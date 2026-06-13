@@ -54,6 +54,9 @@ pnpm run dev
 
 Este repositorio es un proyecto independiente dentro del ecosistema **Control Tower** y sigue los estándares definidos en `Source/GEMINI.md`.
 
+## Visión 2027: Resiliencia SCM
+El proyecto escala hacia una arquitectura con JWT, documentación OpenAPI automática y balanceo dinámico de workers Zeebe. Consulta el [Roadmap Maestro](../ROADMAP.md) para más detalles.
+
 ## Licencia
 
 MIT – Parte del ecosistema **Control Tower**.

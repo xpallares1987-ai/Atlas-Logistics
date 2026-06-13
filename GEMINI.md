@@ -12,8 +12,8 @@ Este documento define la arquitectura y estándares específicos para el proyect
 - **Drizzle ORM**: PostgreSQL.
 - **bpmn-js**: Visualización de procesos en frontend.
 
-## Estándares de Repositorio
-Sigue la estructura definida en el `GEMINI.md` de la raíz de `Control-Tower`.
+## Roadmap de Mejora
+Este repositorio sigue el plan de 20 puntos detallado en el [Roadmap Maestro](../ROADMAP.md).
 
 ## Comandos Críticos
 - `pnpm run db:generate`: Generar migraciones Drizzle.
