@@ -14,7 +14,10 @@ const dictionaries = {
     consignee: 'Consignee',
     cargo_details: 'Cargo Details',
     generate_bl: 'Generate Bill of Lading',
-    shipment_ref: 'Shipment Reference'
+    shipment_ref: 'Shipment Reference',
+    process_modeler: 'BPMN Process Modeler',
+    deploy_process: 'Deploy to Zeebe',
+    download_xml: 'Download XML'
   },
   es: {
     dashboard_title: 'Panel de Embarques',
@@ -29,7 +32,10 @@ const dictionaries = {
     consignee: 'Consignatario (Consignee)',
     cargo_details: 'Detalles de Carga',
     generate_bl: 'Generar Bill of Lading',
-    shipment_ref: 'Referencia de Embarque'
+    shipment_ref: 'Referencia de Embarque',
+    process_modeler: 'Modelador de Procesos BPMN',
+    deploy_process: 'Desplegar en Zeebe',
+    download_xml: 'Descargar XML'
   }
 };
 
