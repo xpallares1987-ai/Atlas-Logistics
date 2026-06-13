@@ -1,0 +1,37 @@
+{
+  "name": "atlas-logistics",
+  "version": "1.0.0",
+  "description": "SCM Freight Forwarding MVP",
+  "type": "module",
+  "scripts": {
+    "dev": "vite src/frontend",
+    "build:frontend": "vite build src/frontend",
+    "build:backend": "tsc",
+    "start": "node dist/server.js",
+    "db:generate": "drizzle-kit generate:pg",
+    "db:push": "drizzle-kit push:pg",
+    "db:migrate": "node dist/db/migrate.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/helmet": "^11.1.1",
+    "@fastify/rate-limit": "^9.1.0",
+    "bpmn-js": "^17.0.2",
+    "drizzle-orm": "^0.30.1",
+    "fastify": "^4.26.2",
+    "fastify-type-provider-zod": "^1.1.9",
+    "ioredis": "^5.3.2",
+    "pino-pretty": "^11.0.0",
+    "postgres": "^3.4.4",
+    "zeebe-node": "^8.3.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "drizzle-kit": "^0.20.14",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.8",
+    "vite-plugin-pwa": "^0.19.8",
+    "vitest": "^1.5.0"
+  }
+}
