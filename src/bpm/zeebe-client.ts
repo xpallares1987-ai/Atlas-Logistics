@@ -10,7 +10,7 @@ export const zbc = new ZBClient({
 });
 
 export const deployProcess = async (resourcePath: string) => {
-  return await zbc.deployResource({ resourceName: resourcePath });
+  return await zbc.deployResource({ processFilename: resourcePath });
 };
 
 export const createShipmentInstance = async (trackingNumber: string, carrierId: number) => {
@@ -31,18 +31,18 @@ export const evaluateSurcharges = async (carrierCode: string) => {
       carrier: carrierCode
     }
   });
-  return result.evaluatedDecision;
+  return result.evaluatedDecisions[0]?.decisionOutput || null;
 };
 
 export const createZeebeWorker = (taskType: string, handler: (job: any) => Promise<void>) => {
   return zbc.createWorker({
     taskType,
-    taskHandler: async (job, complete) => {
+    taskHandler: async (job) => {
       try {
         await handler(job.variables);
-        complete.success();
+        return job.complete();
       } catch (error) {
-        complete.failure((error as Error).message, 0);
+        return job.fail((error as Error).message, 0);
       }
     }
   });

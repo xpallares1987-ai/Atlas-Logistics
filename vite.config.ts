@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  base: '/Atlas-Logistics/',
   root: './src/frontend',
   build: {
     outDir: '../../dist/frontend',

@@ -65,11 +65,11 @@ server.post(
 
     try {
       // Invocación al motor DMN de Camunda 8
-      const decisionOutput = await evaluateSurcharges(carrier);
+      const decisionOutput: any = await evaluateSurcharges(carrier);
       if (decisionOutput) {
-        baf = decisionOutput.baf as number;
-        thc = decisionOutput.thc as number;
-        isps = decisionOutput.isps as number;
+        baf = (decisionOutput.baf as number) || baf;
+        thc = (decisionOutput.thc as number) || thc;
+        isps = (decisionOutput.isps as number) || isps;
       }
     } catch (error) {
       server.log.warn(`Fallo al evaluar DMN para ${carrier}. Usando valores por defecto. Error: ${(error as Error).message}`);
@@ -116,7 +116,7 @@ server.get('/api/shipments', async (request, reply) => {
     }
 
     return reply.status(200).send({ 
-      data: activeShipments.map(s => ({...s, id: String(s.id), lastUpdate: s.lastUpdate.toISOString()})) 
+      data: activeShipments.map((s: any) => ({...s, id: String(s.id), lastUpdate: s.lastUpdate.toISOString()})) 
     });
   } catch (error) {
     server.log.error(error);
