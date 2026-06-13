@@ -1,0 +1,34 @@
+# Node
+node_modules/
+dist/
+out/
+.next/
+.cache/
+
+# pnpm
+pnpm-lock.yaml
+# (Keep lockfile if not using workspace, but GEMINI.md says standard structure)
+# Actually, GEMINI.md says "Debe excluir estrictamente .env, node_modules, dist/out"
+# I will keep pnpm-lock.yaml as it is an independent repo.
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+*.tsbuildinfo
+
+# Testing
+coverage/
+test-results/
