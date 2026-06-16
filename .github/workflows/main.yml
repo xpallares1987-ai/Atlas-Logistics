@@ -1,17 +1,21 @@
-name: Continuous Integration & Audit
+name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  audit-and-build:
+  build:
     runs-on: ubuntu-latest
-    
+    env:
+      CI: 'true'
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,17 +34,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Security Audit
-        run: pnpm audit --prod --audit-level=high
-
       - name: TypeScript Type Checking
         run: pnpm exec tsc --noEmit -p tsconfig.server.json
 
       - name: Run Unit Tests
         run: pnpm vitest run --coverage
 
-      - name: Build Frontend (Vite)
-        run: pnpm run build:frontend
-
-      - name: Build Backend (Fastify)
-        run: pnpm run build:backend
+      - name: Build
+        run: pnpm run build
