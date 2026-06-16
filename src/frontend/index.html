@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Atlas-Logistics</title>
     <meta name="description" content="SCM Freight Forwarding Platform" />
+    <link rel="icon" href="/favicon.ico" />
     <style>
       :root {
         --bg-color: #f4f4f9;
@@ -26,11 +27,16 @@
         background: #ffffff;
         border-right: 1px solid #eaeaea;
         padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
       }
-      nav h2 {
-        margin-top: 0;
+      nav .brand {
+        margin: 0;
         color: #2563eb;
         letter-spacing: -0.5px;
+        font-size: 1.5rem;
+        font-weight: 700;
       }
       main {
         padding: 2rem;
@@ -42,27 +48,73 @@
       .full-width {
         grid-column: 1 / -1;
       }
+      .loader {
+        display: flex;
+        justify-content: center;
+        padding: 2rem;
+        color: #6b7280;
+        font-size: 0.875rem;
+      }
     </style>
   </head>
   <body>
     <div id="app">
       <nav>
-        <h2>Atlas</h2>
+        <div class="brand">Atlas</div>
+        <auth-manager></auth-manager>
+        <language-switcher></language-switcher>
       </nav>
-      <main>
-        <div class="full-width">
-          <bpmn-modeler></bpmn-modeler>
+      <main id="main-content" style="display: none;">
+        <div class="full-width" id="bpmn-container">
+          <div class="loader">Loading Modeler...</div>
         </div>
-        <freight-calculator></freight-calculator>
-        <document-generator></document-generator>
-        <div class="full-width">
-          <shipment-dashboard></shipment-dashboard>
+        <div id="calculator-container">
+          <div class="loader">Loading Calculator...</div>
+        </div>
+        <div id="doc-container">
+          <div class="loader">Loading Document Generator...</div>
+        </div>
+        <div class="full-width" id="dashboard-container">
+          <div class="loader">Loading Dashboard...</div>
         </div>
       </main>
     </div>
-    <script type="module" src="./components/shipment-dashboard.ts"></script>
-    <script type="module" src="./components/freight-calculator.ts"></script>
-    <script type="module" src="./components/document-generator.ts"></script>
-    <script type="module" src="./components/bpmn-modeler.ts"></script>
+    
+    <script type="module">
+      import './components/auth-manager.ts';
+      import './components/language-switcher.ts';
+      
+      const mainContent = document.getElementById('main-content');
+
+      window.addEventListener('auth-changed', (e) => {
+        if (e.detail) {
+          mainContent.style.display = 'grid';
+        } else {
+          mainContent.style.display = 'none';
+        }
+      });
+
+      // Lazy Loading de Web Components pesados
+      document.addEventListener('DOMContentLoaded', async () => {
+        
+        // 1. Prioridad Alta: Dashboard (Tracking)
+        await import('./components/shipment-dashboard.ts');
+        document.getElementById('dashboard-container').innerHTML = '<shipment-dashboard></shipment-dashboard>';
+
+        // 2. Prioridad Media: Cotizador y Documentos
+        await Promise.all([
+          import('./components/freight-calculator.ts'),
+          import('./components/document-generator.ts')
+        ]);
+        document.getElementById('calculator-container').innerHTML = '<freight-calculator></freight-calculator>';
+        document.getElementById('doc-container').innerHTML = '<document-generator></document-generator>';
+
+        // 3. Prioridad Baja (Asíncrono diferido): Modelador BPMN
+        requestIdleCallback(async () => {
+          await import('./components/bpmn-modeler.ts');
+          document.getElementById('bpmn-container').innerHTML = '<bpmn-modeler></bpmn-modeler>';
+        });
+      });
+    </script>
   </body>
 </html>

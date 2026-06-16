@@ -2,13 +2,25 @@ import Fastify from 'fastify';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import cors from '@fastify/cors';
-import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod';
+import fastifyCompress from '@fastify/compress';
+import fastifyJwt from '@fastify/jwt';
+import fastifySwagger from '@fastify/swagger';
+import fastifySwaggerUi from '@fastify/swagger-ui';
+import fastifyWebsocket from '@fastify/websocket';
+import { 
+  serializerCompiler, 
+  validatorCompiler, 
+  ZodTypeProvider, 
+  jsonSchemaTransform 
+} from 'fastify-type-provider-zod';
 import { randomUUID } from 'crypto';
-import { z } from 'zod';
-import { db } from './db/client.js';
-import { shipments, carriers } from './db/schema.js';
-import { eq } from 'drizzle-orm';
-import { evaluateSurcharges, zbc } from './bpm/zeebe-client.js';
+
+import shipmentRoutes from './routes/shipments.js';
+import processRoutes from './routes/processes.js';
+import freightRoutes from './routes/freight.js';
+import healthRoutes from './routes/health.js';
+import authRoutes from './routes/auth.js';
+import liveRoutes from './routes/live.js';
 
 const server = Fastify({
   logger: {
@@ -26,12 +38,67 @@ server.setSerializerCompiler(serializerCompiler);
 
 server.register(helmet, { global: true, contentSecurityPolicy: false });
 
+const ALLOWED_ORIGINS = process.env.NODE_ENV === 'production' 
+  ? ['https://xpallares1987-ai.github.io'] 
+  : ['http://localhost:5173', 'http://localhost:3000', 'https://xpallares1987-ai.github.io'];
+
 server.register(cors, {
-  origin: 'http://localhost:5173',
+  origin: ALLOWED_ORIGINS,
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']
 });
 
 server.register(rateLimit, { max: 100, timeWindow: '1 minute' });
+server.register(fastifyCompress, { global: true });
+
+// WebSockets Configuration (Phase 4)
+server.register(fastifyWebsocket);
+
+// JWT Configuration (Phase 4)
+server.register(fastifyJwt, {
+  secret: process.env.JWT_SECRET || 'control-tower-industrial-secret-2027'
+});
+
+// Swagger Configuration (Phase 4)
+server.register(fastifySwagger, {
+  openapi: {
+    info: {
+      title: 'Atlas Logistics API',
+      description: 'Industrial-grade logistics process automation API',
+      version: '1.0.0'
+    },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    }
+  },
+  transform: jsonSchemaTransform
+});
+
+server.register(fastifySwaggerUi, {
+  routePrefix: '/documentation',
+});
+
+// Decorator for authentication
+server.decorate('authenticate', async (request: any, reply: any) => {
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    reply.send(err);
+  }
+});
+
+// Register Domain-Specific Routes
+server.register(authRoutes);
+server.register(shipmentRoutes);
+server.register(processRoutes);
+server.register(freightRoutes);
+server.register(healthRoutes);
+server.register(liveRoutes);
 
 const idempotencyCache = new Set<string>();
 
@@ -47,172 +114,11 @@ server.addHook('preHandler', async (request, reply) => {
   }
 });
 
-// Endpoint: Despliegue de modelos BPMN dinámicos
-server.post(
-  '/api/processes/deploy',
-  {
-    schema: {
-      body: z.object({
-        xml: z.string()
-      })
-    }
-  },
-  async (request, reply) => {
-    try {
-      const deployResult = await zbc.deployResource({
-        processDefinition: Buffer.from(request.body.xml),
-        name: `DynamicDeployment_${Date.now()}.bpmn`
-      });
-      return reply.status(200).send({ status: 'Deployed', data: deployResult });
-    } catch (error) {
-      server.log.error(error);
-      return reply.status(500).send({ error: 'BPMN deployment to Zeebe failed' });
-    }
-  }
-);
-
-// Endpoint: Cálculo de Tarifas (Cotizador con DMN)
-server.post(
-  '/api/freight-rates/calculate',
-  {
-    schema: {
-      body: z.object({
-        origin: z.string().length(5),
-        destination: z.string().length(5),
-        carrier: z.string()
-      })
-    }
-  },
-  async (request, reply) => {
-    const { carrier } = request.body;
-    let baf = 100, thc = 200, isps = 15;
-
-    try {
-      const decisionOutput = await evaluateSurcharges(carrier);
-      if (decisionOutput) {
-        baf = decisionOutput.baf as number;
-        thc = decisionOutput.thc as number;
-        isps = decisionOutput.isps as number;
-      }
-    } catch (error) {
-      server.log.warn(`Fallback defaults for ${carrier}. Error: ${(error as Error).message}`);
-    }
-
-    const baseRate = Math.floor(Math.random() * (3000 - 1000 + 1) + 1000);
-    const surcharges = [
-      { name: 'BAF', amount: baf },
-      { name: 'THC', amount: thc },
-      { name: 'ISPS', amount: isps }
-    ];
-
-    return reply.status(200).send({ rate: baseRate, surcharges });
-  }
-);
-
-// Endpoint: Dashboard de Embarques
-server.get('/api/shipments', async (request, reply) => {
-  try {
-    const activeShipments = await db
-      .select({
-        id: shipments.id,
-        trackingNumber: shipments.tracking_number,
-        carrier: carriers.name,
-        origin: carriers.code,
-        destination: shipments.status,
-        status: shipments.status,
-        lastUpdate: shipments.updated_at
-      })
-      .from(shipments)
-      .innerJoin(carriers, eq(shipments.carrier_id, carriers.id));
-
-    if (activeShipments.length === 0) {
-      return reply.status(200).send({
-        data: [{
-          id: '1',
-          trackingNumber: 'AWB-77382910',
-          carrier: 'Maersk Line',
-          origin: 'CNSHA',
-          destination: 'ESBCN',
-          status: 'OnBoard',
-          lastUpdate: new Date().toISOString()
-        }]
-      });
-    }
-
-    return reply.status(200).send({ 
-      data: activeShipments.map(s => ({...s, id: String(s.id), lastUpdate: s.lastUpdate.toISOString()})) 
-    });
-  } catch (error) {
-    server.log.error(error);
-    return reply.status(500).send({ error: 'Internal Server Error' });
-  }
-});
-
-// Endpoint: Avanzar Estado Máquina de Estados
-server.patch(
-  '/api/shipments/:id/advance',
-  {
-    schema: {
-      params: z.object({ id: z.string() })
-    }
-  },
-  async (request, reply) => {
-    const shipmentId = parseInt(request.params.id, 10);
-    const statusFlow = ['Booked', 'Received', 'OnBoard', 'Discharged', 'Delivered'] as const;
-    
-    try {
-      const currentShipment = await db
-        .select()
-        .from(shipments)
-        .where(eq(shipments.id, shipmentId))
-        .limit(1);
-
-      if (currentShipment.length === 0) {
-         return reply.status(200).send({
-           data: {
-             id: request.params.id,
-             trackingNumber: 'AWB-77382910',
-             carrier: 'Maersk Line',
-             origin: 'CNSHA',
-             destination: 'ESBCN',
-             status: 'Discharged',
-             lastUpdate: new Date().toISOString()
-           }
-         });
-      }
-
-      const currentIndex = statusFlow.indexOf(currentShipment[0].status as any);
-      
-      if (currentIndex === -1 || currentIndex === statusFlow.length - 1) {
-        return reply.status(400).send({ error: 'Cannot advance status further' });
-      }
-
-      const newStatus = statusFlow[currentIndex + 1];
-
-      const updated = await db
-        .update(shipments)
-        .set({ status: newStatus, updated_at: new Date() })
-        .where(eq(shipments.id, shipmentId))
-        .returning();
-
-      return reply.status(200).send({ 
-        data: {
-          ...updated[0],
-          id: String(updated[0].id),
-          lastUpdate: updated[0].updated_at.toISOString()
-        } 
-      });
-    } catch (error) {
-      server.log.error(error);
-      return reply.status(500).send({ error: 'Database update failed' });
-    }
-  }
-);
-
 export const startServer = async () => {
   try {
     await server.listen({ port: 3000, host: '0.0.0.0' });
     console.log('Atlas Logistics API running on http://localhost:3000');
+    console.log('Documentation available at http://localhost:3000/documentation');
   } catch (err) {
     server.log.error(err);
     process.exit(1);

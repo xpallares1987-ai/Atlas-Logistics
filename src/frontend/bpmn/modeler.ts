@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error: bpmn-js lacks proper type definitions for this specific import path
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
