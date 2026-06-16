@@ -14,15 +14,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -31,13 +32,13 @@ jobs:
         run: pnpm audit --prod --audit-level=high
 
       - name: TypeScript Type Checking
-        run: pnpm tsc --noEmit
+        run: pnpm exec tsc --noEmit -p tsconfig.server.json
 
       - name: Run Unit Tests
         run: pnpm vitest run --coverage
 
       - name: Build Frontend (Vite)
-        run: pnpm build:frontend
+        run: pnpm run build:frontend
 
       - name: Build Backend (Fastify)
-        run: pnpm build:backend
+        run: pnpm run build:backend
