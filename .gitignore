@@ -6,7 +6,6 @@ out/
 .cache/
 
 # pnpm
-pnpm-lock.yaml
 # (Keep lockfile if not using workspace, but GEMINI.md says standard structure)
 # Actually, GEMINI.md says "Debe excluir estrictamente .env, node_modules, dist/out"
 # I will keep pnpm-lock.yaml as it is an independent repo.
