@@ -41,7 +41,7 @@ const dictionaries = {
 
 class I18nService {
   private currentLanguage: Language = 'en';
-  private subscribers: Function[] = [];
+  private subscribers: (() => void)[] = [];
 
   setLanguage(lang: Language) {
     this.currentLanguage = lang;
@@ -56,7 +56,7 @@ class I18nService {
     return dictionaries[this.currentLanguage][key] || key;
   }
 
-  subscribe(callback: Function) {
+  subscribe(callback: () => void) {
     this.subscribers.push(callback);
   }
 

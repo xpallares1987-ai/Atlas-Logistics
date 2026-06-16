@@ -11,6 +11,7 @@ export default defineConfig({
   },
   plugins: [
     VitePWA({
+      injectRegister: 'inline',
       registerType: 'autoUpdate',
       manifest: {
         name: 'Atlas-Logistics',
