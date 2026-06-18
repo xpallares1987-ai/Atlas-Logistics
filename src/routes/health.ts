@@ -1,4 +1,5 @@
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 import { db } from '../db/client.js';
 import { sql } from 'drizzle-orm';
 import { zbc } from '../bpm/zeebe-client.js';

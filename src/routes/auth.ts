@@ -84,6 +84,10 @@ const authRoutes: FastifyPluginAsyncZod = async (server) => {
         201: z.object({
           message: z.string(),
           userId: z.number()
+        }),
+        403: z.object({
+          error: z.string(),
+          message: z.string()
         })
       }
     },

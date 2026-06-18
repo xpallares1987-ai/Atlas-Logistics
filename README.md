@@ -54,6 +54,14 @@ pnpm run dev
 
 Este repositorio es un proyecto independiente dentro del ecosistema **Control Tower** y sigue los estándares definidos en `Source/GEMINI.md`.
 
+### Comandos de Calidad
+
+```bash
+pnpm run lint          # Verificación de tipos y estilo (ESLint)
+pnpm run test          # Ejecución de pruebas unitarias
+pnpm run build         # Compilación de frontend y backend
+```
+
 ## Visión 2027: Resiliencia SCM
 El proyecto escala hacia una arquitectura con JWT, documentación OpenAPI automática y balanceo dinámico de workers Zeebe. Consulta el [Roadmap Maestro](../ROADMAP.md) para más detalles.
 

@@ -3,6 +3,9 @@ import reactPlugin from 'eslint-plugin-react';
 
 export default tseslint.config(
   {
+    ignores: ["**/dist/**", "**/node_modules/**", "**/coverage/**", "packages/**"],
+  },
+  {
     files: ["**/*.ts", "**/*.tsx"],
     extends: [
       ...tseslint.configs.recommended,
@@ -12,7 +15,7 @@ export default tseslint.config(
     },
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.json'],
+        project: ['./tsconfig.json', './tsconfig.server.json', './src/frontend/tsconfig.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
