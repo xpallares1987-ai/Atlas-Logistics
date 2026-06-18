@@ -1,5 +1,13 @@
 
 > atlas-logistics@1.0.0 lint C:\Users\xpall\Source\Atlas-Logistics
+> pnpm run type-check && pnpm run eslint
+
+
+> atlas-logistics@1.0.0 type-check C:\Users\xpall\Source\Atlas-Logistics
+> tsc -p src/frontend/tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit
+
+
+> atlas-logistics@1.0.0 eslint C:\Users\xpall\Source\Atlas-Logistics
 > eslint .
 
 
@@ -9,6 +17,9 @@ C:\Users\xpall\Source\Atlas-Logistics\src\bpm\zeebe-client.ts
 
 C:\Users\xpall\Source\Atlas-Logistics\src\core\event-bus.ts
   3:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\xpall\Source\Atlas-Logistics\src\frontend\bpmn\modeler.ts
+  23:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 C:\Users\xpall\Source\Atlas-Logistics\src\frontend\components\auth-manager.ts
    1:10  warning  'i18n' is defined but never used          @typescript-eslint/no-unused-vars
@@ -24,12 +35,15 @@ C:\Users\xpall\Source\Atlas-Logistics\src\frontend\core\api.ts
 C:\Users\xpall\Source\Atlas-Logistics\src\frontend\core\rate-data.service.ts
   6:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
+C:\Users\xpall\Source\Atlas-Logistics\src\frontend\workers\decrypt-worker.ts
+  37:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
 C:\Users\xpall\Source\Atlas-Logistics\src\routes\auth.ts
-  28:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  66:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  90:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  92:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  97:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   66:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  101:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 C:\Users\xpall\Source\Atlas-Logistics\src\routes\freight.ts
   28:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
@@ -38,7 +52,7 @@ C:\Users\xpall\Source\Atlas-Logistics\src\routes\freight.ts
   39:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 C:\Users\xpall\Source\Atlas-Logistics\src\routes\health.ts
-  33:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 C:\Users\xpall\Source\Atlas-Logistics\src\routes\live.ts
   4:63  warning  'req' is defined but never used  @typescript-eslint/no-unused-vars
@@ -48,9 +62,9 @@ C:\Users\xpall\Source\Atlas-Logistics\src\routes\processes.ts
 
 C:\Users\xpall\Source\Atlas-Logistics\src\routes\shipments.ts
     4:21  warning  'carriers' is defined but never used      @typescript-eslint/no-unused-vars
-   27:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-   87:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  115:78  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   30:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  124:78  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 C:\Users\xpall\Source\Atlas-Logistics\src\server.ts
   87:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
@@ -60,5 +74,5 @@ C:\Users\xpall\Source\Atlas-Logistics\src\services\broker.ts
    8:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   13:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
-✖ 29 problems (0 errors, 29 warnings)
+✖ 31 problems (0 errors, 31 warnings)
 

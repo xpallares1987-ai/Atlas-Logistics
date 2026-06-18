@@ -21,6 +21,9 @@ const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
             status: z.string(),
             lastUpdate: z.string()
           }))
+        }),
+        500: z.object({
+          error: z.string()
         })
       }
     },
@@ -81,6 +84,12 @@ const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
               status: z.string(),
               lastUpdate: z.string()
             })
+          }),
+          400: z.object({
+            error: z.string()
+          }),
+          500: z.object({
+            error: z.string()
           })
         }
       },

@@ -31,3 +31,7 @@ Thumbs.db
 # Testing
 coverage/
 test-results/
+
+# Antigravity CLI cache
+.antigravity/
+*.pbtxt

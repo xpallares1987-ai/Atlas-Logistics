@@ -16,5 +16,10 @@ Este documento define la arquitectura y estándares específicos para el proyect
 Este repositorio sigue el plan de 20 puntos detallado en el [Roadmap Maestro](../ROADMAP.md).
 
 ## Comandos Críticos
+- `pnpm run dev`: Iniciar entorno de desarrollo (Vite).
+- `pnpm run build`: Compilación unificada (Frontend + Backend).
+- `pnpm run lint`: Verificación completa (Tipos + ESLint).
+- `pnpm run type-check`: Validación estricta de tipos (Frontend + Server).
+- `pnpm run test`: Ejecución de pruebas unitarias.
 - `pnpm run db:generate`: Generar migraciones Drizzle.
 - `pnpm run db:push`: Empujar cambios de esquema a base de datos de desarrollo.
