@@ -15,7 +15,7 @@
     "db:push": "drizzle-kit push",
     "db:migrate": "node dist/db/migrate.js",
     "db:seed": "node dist/db/seed.js",
-    "test": "vitest run",
+    "test": "pnpm --filter @torre/shared test",
     "type-check": "pnpm --filter @atlas/frontend type-check && tsc -p tsconfig.server.json --noEmit",
     "eslint": "eslint .",
     "lint": "pnpm run type-check && pnpm run eslint",
