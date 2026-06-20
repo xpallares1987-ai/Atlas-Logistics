@@ -16,13 +16,14 @@ The `Atlas-Logistics` SCM MVP grew to include multiple distinct frontend sub-com
 
 ## Decision Outcome
 
-Chosen option: **pnpm-workspace Monorepo**. We refactored `Atlas-Logistics` to use a workspace layout:
+Chosen option: **pnpm-workspace Monorepo (Internal Only)**. We refactored `Atlas-Logistics` to use a workspace layout:
 - Root level contains the Fastify backend server.
 - `packages/frontend` contains the Next.js client.
 - `packages/frontend-legacy` contains the legacy Vite/bpmn-js application.
 - `packages/shared` and `packages/ui` contain shared logic and components respectively, published internally as workspace packages.
 
-This structure is declared in a root `pnpm-workspace.yaml` file.
+This structure is declared in a root `pnpm-workspace.yaml` file *inside* the `Atlas-Logistics` repository. 
+**Clarification:** This decision applies *strictly* to the internal components of `Atlas-Logistics`. It does not override the global ecosystem rule that forbids a unified monorepo across the distinct Control Tower applications (BPMN-Modeler, Freight-Comparer, etc.).
 
 ### Consequences
 

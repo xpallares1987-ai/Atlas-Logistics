@@ -99,7 +99,11 @@ const authRoutes: FastifyPluginAsyncZod = async (server) => {
     }
 
     const body = request.body as any;
-    const password_hash = await argon2.hash(body.password);
+    const password_hash = await argon2.hash(body.password, {
+      memoryCost: 65536,
+      timeCost: 3,
+      parallelism: 4
+    });
 
     const [newUser] = await db.insert(users).values({
       username: body.username,
