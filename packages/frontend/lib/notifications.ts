@@ -128,7 +128,13 @@ export function triggerScmNotification(
 
   // Simulate Email Dispatch if email notification toggle is set
   if (prefs.emailNotifications && prefs.emailAddress) {
-    console.log(`%c[SCM Mail Delivery] Simulación de correo enviado exitosamente a: ${prefs.emailAddress}\nAsunto: [ForwarderOS Alert] ${title}\nContenido: ${description}`, 'color: #10b981; font-weight: bold;');
+    console.log(
+      '%c[SCM Mail Delivery] Simulación de correo enviado exitosamente a: %s\nAsunto: [ForwarderOS Alert] %s\nContenido: %s',
+      'color: #10b981; font-weight: bold;',
+      prefs.emailAddress,
+      title,
+      description
+    );
     
     // Create custom event for layout notification toast to display email sent message
     window.dispatchEvent(new CustomEvent('forwarderos_email_sent', { 
