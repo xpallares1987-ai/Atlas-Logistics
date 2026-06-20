@@ -99,6 +99,8 @@ export const shipments = pgTable('shipments', {
   id: serial('id').primaryKey(),
   tracking_number: varchar('tracking_number', { length: 100 }).notNull().unique(),
   carrier_id: integer('carrier_id').references(() => carriers.id).notNull(),
+  origin_port: varchar('origin_port', { length: 10 }).default('CNSHA').notNull(),
+  destination_port: varchar('destination_port', { length: 10 }).default('ESBCN').notNull(),
   status: shipmentStatusEnum('status').default('Booked').notNull(),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -130,4 +132,16 @@ export const audit_logs = pgTable('audit_logs', {
   return {
     tableRecordIdx: index('audit_table_record_idx').on(table.table_name, table.record_id)
   };
+});
+
+export const documents = pgTable('documents', {
+  id: varchar('id', { length: 50 }).primaryKey(),
+  booking_ref: varchar('booking_ref', { length: 100 }).notNull(),
+  type: varchar('type', { length: 50 }).notNull(),
+  document_number: varchar('document_number', { length: 100 }).notNull(),
+  issue_date: varchar('issue_date', { length: 100 }).notNull(),
+  status: varchar('status', { length: 50 }).notNull(),
+  payload: jsonb('payload').notNull(),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

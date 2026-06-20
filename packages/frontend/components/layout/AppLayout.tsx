@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { getNotifications, getPreferences } from "@/lib/notifications";
 import {
   LayoutDashboard,
   Anchor,
@@ -49,7 +50,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     
     // Retrieve initial data
     try {
-      const { getNotifications, getPreferences } = require("@/lib/notifications");
       setNotifications(getNotifications());
       setPrefs(getPreferences());
     } catch (e) {
@@ -89,7 +89,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     const handleNotifsChanged = () => {
       try {
-        const { getNotifications } = require("@/lib/notifications");
         setNotifications(getNotifications());
       } catch (e) {}
     };

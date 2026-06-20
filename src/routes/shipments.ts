@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '../db/client.js';
 import { shipments, carriers } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import { createShipmentInstance } from '../bpm/zeebe-client.js';
 
 const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
   server.get('/api/shipments', {
@@ -55,8 +56,8 @@ const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
           id: String(s.id),
           trackingNumber: s.tracking_number,
           carrier: s.carrier.name,
-          origin: s.carrier.code,
-          destination: s.status, // Fallback as status is used for dest in original logic
+          origin: s.origin_port,
+          destination: s.destination_port,
           status: s.status,
           lastUpdate: s.updated_at.toISOString()
         })) 
@@ -64,6 +65,57 @@ const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
     } catch (error) {
       server.log.error(error);
       return reply.status(500).send({ error: 'Internal Server Error' });
+    }
+  });
+
+  server.post('/api/shipments', {
+    schema: {
+      description: 'Create a new shipment and trigger Zeebe workflow',
+      tags: ['Shipments'],
+      security: [{ bearerAuth: [] }],
+      body: z.object({
+        reference: z.string(),
+        mblNumber: z.string(),
+        hblNumber: z.string(),
+        carrier: z.string(),
+        origin: z.string(),
+        destination: z.string(),
+        status: z.string()
+      })
+    },
+    onRequest: [(server as any).authenticate]
+  }, async (request, reply) => {
+    const body = request.body as any;
+
+    try {
+      // Find or create carrier
+      let [carrier] = await db.select().from(carriers).where(eq(carriers.name, body.carrier));
+      if (!carrier) {
+        [carrier] = await db.insert(carriers).values({
+          name: body.carrier,
+          code: body.carrier.substring(0, 4).toUpperCase()
+        }).returning();
+      }
+
+      const [shipment] = await db.insert(shipments).values({
+        tracking_number: body.mblNumber || `AWB-${Math.floor(Math.random() * 1000000)}`,
+        carrier_id: carrier.id,
+        origin_port: body.origin,
+        destination_port: body.destination,
+        status: 'Booked'
+      }).returning();
+
+      // Trigger Zeebe workflow if connected
+      try {
+        await createShipmentInstance(shipment.tracking_number, carrier.id);
+      } catch (err) {
+        server.log.warn(`Could not start Zeebe process: ${(err as Error).message}`);
+      }
+
+      return reply.status(201).send({ success: true, shipmentId: String(shipment.id) });
+    } catch (error) {
+      server.log.error(error);
+      return reply.status(500).send({ error: 'Failed to create shipment' });
     }
   });
 

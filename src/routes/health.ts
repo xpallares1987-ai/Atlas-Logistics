@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '../db/client.js';
 import { sql } from 'drizzle-orm';
 import { zbc } from '../bpm/zeebe-client.js';
+import { redis } from '../services/redis-cache.service.js';
 
 const healthRoutes: FastifyPluginAsyncZod = async (server) => {
   server.get('/api/health', {
@@ -37,7 +38,7 @@ const healthRoutes: FastifyPluginAsyncZod = async (server) => {
       services: {
         database: 'unknown',
         zeebe: 'unknown',
-        redis: 'ok' // Simulated for Phase 3
+        redis: 'unknown'
       }
     };
 
@@ -63,6 +64,16 @@ const healthRoutes: FastifyPluginAsyncZod = async (server) => {
     } catch (err) {
       status.services.zeebe = 'unreachable';
       server.log.warn(err, 'Health Check: Zeebe unreachable');
+    }
+
+    // 3. Check Redis
+    try {
+      await redis.ping();
+      status.services.redis = 'healthy';
+    } catch (err) {
+      status.status = 'error';
+      status.services.redis = 'disconnected';
+      server.log.error(err, 'Health Check: Redis ping failed');
     }
 
     const statusCode = status.status === 'ok' ? 200 : 503;

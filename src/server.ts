@@ -21,6 +21,9 @@ import freightRoutes from './routes/freight.js';
 import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
 import liveRoutes from './routes/live.js';
+import rateRoutes from './routes/rates.js';
+import documentRoutes from './routes/documents.js';
+import userRoutes from './routes/users.js';
 
 const server = Fastify({
   logger: {
@@ -99,6 +102,9 @@ server.register(processRoutes);
 server.register(freightRoutes);
 server.register(healthRoutes);
 server.register(liveRoutes);
+server.register(rateRoutes);
+server.register(documentRoutes);
+server.register(userRoutes);
 
 const idempotencyCache = new Set<string>();
 
