@@ -24,7 +24,7 @@
     "@types/leaflet.markercluster": "^1.5.6",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "next": "16.3.0-canary.42",
+    "next": "15.5.18",
     "typescript": "^5.7.3"
   }
 }
