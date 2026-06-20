@@ -131,7 +131,7 @@ export function formatXmlNumber(val: unknown, decimals: number = 3): string {
 export const xmlParserOptions = {
   explicitArray: false,
   mergeAttrs: true,
-  tagNameProcessors: [(name: string) => name.replace(/.*:/, '')],
+  tagNameProcessors: [(name: string) => name.substring(name.indexOf(':') + 1)],
 };
 
 import sax from 'sax';
@@ -160,7 +160,7 @@ export function streamXml<T>(
     let stack: any[] = [];
 
     parser.onopentag = (tag) => {
-      const tagName = tag.name.replace(/.*:/, '');
+      const tagName = tag.name.substring(tag.name.indexOf(':') + 1);
       if (tagName === recordTag) {
         currentRecord = {};
         stack = [currentRecord];
@@ -180,7 +180,7 @@ export function streamXml<T>(
     };
 
     parser.onclosetag = (tagNameRaw) => {
-      const tagName = tagNameRaw.replace(/.*:/, '');
+      const tagName = tagNameRaw.substring(tagNameRaw.indexOf(':') + 1);
       if (tagName === recordTag) {
         onRecord(currentRecord as T);
         currentRecord = null;
