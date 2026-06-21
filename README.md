@@ -11,6 +11,7 @@ Sistema de gestión de cadena de suministro (SCM) y Freight Forwarding MVP. Este
 - **Persistencia Type-Safe:** Uso de Drizzle ORM para consultas SQL seguras y eficientes.
 - **Frontend Interactivo:** Interfaz basada en Vite con soporte de modelado BPMN integrado.
 - **Infraestructura Dockerizada:** Entorno completo con PostgreSQL y Redis mediante Docker Compose.
+- **Mantenimiento Automatizado:** Scripts integrados para la poda automatizada de logs de auditoría antiguos (mayores de 90 días) para mantener un alto rendimiento de consultas.
 
 ## Stack Tecnológico
 
@@ -60,6 +61,7 @@ Este repositorio es un proyecto independiente dentro del ecosistema **Control To
 pnpm run lint          # Verificación de tipos y estilo (ESLint)
 pnpm run test          # Ejecución de pruebas unitarias
 pnpm run build         # Compilación de frontend y backend
+pnpm run db:clean-logs # Mantenimiento: Poda de logs de auditoría antiguos (90 días)
 ```
 
 ## Visión 2027: Resiliencia SCM
