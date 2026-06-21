@@ -35,3 +35,6 @@ test-results/
 # Antigravity CLI cache
 .antigravity/
 *.pbtxt
+
+# Turbo
+.turbo/
