@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppLayout from "@/components/layout/AppLayout";
+import { AuthProvider } from "@/components/AuthProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
@@ -19,9 +20,11 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${inter.variable} ${jetBrainsMono.variable} font-sans antialiased text-gray-100 bg-[#0A0A0B]`}>
-        <AppLayout>
-          {children}
-        </AppLayout>
+        <AuthProvider>
+          <AppLayout>
+            {children}
+          </AppLayout>
+        </AuthProvider>
       </body>
     </html>
   );
