@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@xpallares1987-ai/control-tower-ui": "file:..\\..\\..\\Control-Tower-UI",
-    "Control-Tower-UI": "link:..\\Control-Tower-UI",
     "d3": "^7.9.0",
     "d3-geo": "^3.1.1",
     "jspdf": "^4.2.1",

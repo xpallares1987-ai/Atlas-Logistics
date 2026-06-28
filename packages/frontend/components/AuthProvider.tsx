@@ -1,8 +1,27 @@
 'use client';
 import { ReactNode } from 'react';
-import { useAuth } from '@xpallares1987-ai/control-tower-ui';
+import { useAuth, FirebaseProvider } from '@xpallares1987-ai/control-tower-ui';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  };
+
+  return (
+    <FirebaseProvider config={firebaseConfig as any}>
+      <AuthGuard>
+        {children}
+      </AuthGuard>
+    </FirebaseProvider>
+  );
+}
+
+function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading, signInWithGoogle } = useAuth();
 
   if (loading) {
