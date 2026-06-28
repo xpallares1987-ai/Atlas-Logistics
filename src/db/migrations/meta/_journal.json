@@ -8,6 +8,48 @@
       "when": 1781589947552,
       "tag": "0000_chemical_praxagora",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782452550311,
+      "tag": "0001_colorful_expediter",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782464011054,
+      "tag": "0002_yielding_famine",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782467548368,
+      "tag": "0003_public_wiccan",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782476041338,
+      "tag": "0004_sturdy_malcolm_colcord",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782476425637,
+      "tag": "0005_equal_wallflower",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782476687366,
+      "tag": "0006_cooing_iron_fist",
+      "breakpoints": true
     }
   ]
 }

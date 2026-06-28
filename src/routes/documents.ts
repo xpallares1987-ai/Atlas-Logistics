@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '../db/client.js';
 import { documents } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import PDFDocument from 'pdfkit';
 
 const documentRoutes: FastifyPluginAsyncZod = async (server) => {
   server.get('/api/documents', {
@@ -115,6 +116,59 @@ const documentRoutes: FastifyPluginAsyncZod = async (server) => {
       createdAt: updated.created_at.toISOString(),
       updatedAt: updated.updated_at.toISOString()
     };
+  });
+
+  server.get('/api/documents/:id/pdf', {
+    schema: {
+      description: 'Generate PDF for a document',
+      tags: ['Documents'],
+      security: [{ bearerAuth: [] }],
+      params: z.object({ id: z.string() })
+    },
+    onRequest: [(server as any).authenticate]
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const [doc] = await db.select().from(documents).where(eq(documents.id, id));
+
+    if (!doc) {
+      return reply.status(404).send({ error: 'Document not found' });
+    }
+
+    const docStream = new PDFDocument({ margin: 50 });
+    
+    reply.header('Content-Type', 'application/pdf');
+    reply.header('Content-Disposition', `inline; filename="${doc.document_number}.pdf"`);
+
+    // Stream the PDF to the reply
+    reply.send(docStream);
+
+    // Build the PDF content
+    docStream
+      .fontSize(24)
+      .text('Atlas Logistics', { align: 'center' })
+      .moveDown();
+
+    docStream
+      .fontSize(16)
+      .text(`Document: ${doc.type} (${doc.status})`, { align: 'center' })
+      .moveDown(2);
+
+    docStream.fontSize(12);
+    docStream.text(`Document No: ${doc.document_number}`);
+    docStream.text(`Booking Ref: ${doc.booking_ref}`);
+    docStream.text(`Issue Date: ${doc.issue_date}`);
+    
+    docStream.moveDown();
+    docStream.text('--- Payload Data ---');
+    docStream.moveDown();
+    
+    // Formatting JSON payload into a readable format for the PDF
+    const payloadStr = JSON.stringify(doc.payload, null, 2) || 'No details provided';
+    docStream.fontSize(10).font('Courier').text(payloadStr);
+
+    // Finalize the PDF
+    docStream.end();
   });
 };
 

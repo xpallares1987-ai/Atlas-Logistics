@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Download, Printer, Eye, Share2, Plus, CheckCircle, Clock, Edit2, Save, FileBox } from 'lucide-react';
 import { fetchAllDocuments, createDocument, issueDocument } from '@/app/actions/docsActions';
+import { ediService } from '@/services/ediService';
 import { DocumentRecord, BLPayload, ManifestPayload } from '@/types/schema';
 import BLTemplate from './components/BLTemplate';
 import ManifestTemplate from './components/ManifestTemplate';
@@ -13,6 +14,12 @@ export default function DocsPage() {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [editingPayload, setEditingPayload] = useState<any>(null);
+
+  // EDI State
+  const [showEdiModal, setShowEdiModal] = useState(false);
+  const [ediMessage, setEdiMessage] = useState<string>('');
+  const [ediLoading, setEdiLoading] = useState(false);
+  const [ediStatus, setEdiStatus] = useState<{ success: boolean; msg: string } | null>(null);
 
   const loadDocs = React.useCallback(async () => {
     setLoading(true);
@@ -118,6 +125,40 @@ export default function DocsPage() {
     }
   };
 
+  const handleDownloadPDF = () => {
+    if (selectedDoc) {
+      window.open(`http://localhost:3000/api/documents/${selectedDoc.id}/pdf`, '_blank');
+    }
+  };
+
+  const handleGenerateEdi = async () => {
+    if (!selectedDoc) return;
+    setEdiLoading(true);
+    setEdiStatus(null);
+    setShowEdiModal(true);
+    try {
+      const res = await ediService.generateEdi(selectedDoc.id, selectedDoc.type, selectedDoc.payload);
+      setEdiMessage(res.content);
+    } catch (e: any) {
+      setEdiStatus({ success: false, msg: e.message || 'Error generating EDI' });
+    } finally {
+      setEdiLoading(false);
+    }
+  };
+
+  const handleTransmitEdi = async () => {
+    setEdiLoading(true);
+    setEdiStatus(null);
+    try {
+      const res = await ediService.transmitEdi(ediMessage);
+      setEdiStatus({ success: true, msg: `Transmission OK! Receipt: ${res.transmissionId}` });
+    } catch (e: any) {
+      setEdiStatus({ success: false, msg: e.message || 'Transmission Failed' });
+    } finally {
+      setEdiLoading(false);
+    }
+  };
+
   if (loading && documents.length === 0) {
     return <div className="p-20 text-center text-gray-500">Cargando módulo de documentación...</div>;
   }
@@ -203,7 +244,12 @@ export default function DocsPage() {
                      </button>
                    </>
                  )}
-                 <button className="bg-[#0A0A0B] border border-gray-800 hover:bg-gray-800 text-gray-300 px-4 py-2 rounded-lg text-sm transition flex items-center">
+                 {selectedDoc.status === 'ISSUED' && (
+                   <button onClick={handleGenerateEdi} className="bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center">
+                     <Share2 className="w-4 h-4 mr-2" /> Transmitir EDI
+                   </button>
+                 )}
+                 <button onClick={handleDownloadPDF} className="bg-[#0A0A0B] border border-gray-800 hover:bg-gray-800 text-gray-300 px-4 py-2 rounded-lg text-sm transition flex items-center">
                    <Download className="w-4 h-4 mr-2" /> PDF
                  </button>
                </div>
@@ -237,6 +283,53 @@ export default function DocsPage() {
           </div>
         )}
       </div>
+
+      {/* EDI Modal */}
+      {showEdiModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111114] border border-gray-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
+            <div className="p-5 border-b border-gray-800 flex justify-between items-center bg-[#16161A]">
+              <h2 className="font-bold text-white flex items-center gap-2">
+                <Share2 className="w-5 h-5 text-blue-500" />
+                Transmisión EDIFACT
+              </h2>
+              <button onClick={() => setShowEdiModal(false)} className="text-gray-400 hover:text-white transition">Cerrar</button>
+            </div>
+            <div className="p-6">
+              {ediLoading && !ediMessage ? (
+                <div className="text-center text-gray-500 py-8">Generando payload EDI...</div>
+              ) : (
+                <>
+                  <div className="mb-4">
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Mensaje Generado (Raw Payload)</label>
+                    <textarea 
+                      readOnly 
+                      value={ediMessage} 
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg p-4 text-emerald-400 font-mono text-xs focus:outline-none h-48 custom-scrollbar" 
+                    />
+                  </div>
+                  
+                  {ediStatus && (
+                    <div className={`p-4 rounded-lg mb-4 text-sm font-medium border ${ediStatus.success ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                      {ediStatus.msg}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end mt-4">
+                    <button 
+                      onClick={handleTransmitEdi} 
+                      disabled={ediLoading || (ediStatus?.success === true)}
+                      className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-blue-900/20"
+                    >
+                      {ediLoading ? 'Transmitiendo...' : 'Transmitir a VAN'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
