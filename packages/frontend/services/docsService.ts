@@ -1,49 +1,55 @@
-import { db } from './db';
-import { DocumentRecord, DocumentType, DocumentStatus } from '@/types/schema';
+import { DocumentRecord } from '@/types/schema';
+
+const API_BASE_URL = 'http://localhost:3000/api';
 
 export class DocumentationService {
   
-  // Data Access layer methods
   public async getAllDocuments(): Promise<DocumentRecord[]> {
-    return db.getDocuments();
+    const res = await fetch(`${API_BASE_URL}/documents`, {
+      headers: { 'Authorization': 'Bearer test-token' }
+    });
+    if (!res.ok) throw new Error('Failed to fetch documents');
+    const data = await res.json();
+    return data.data;
   }
 
   public async getDocumentById(id: string): Promise<DocumentRecord | undefined> {
-    return db.getDocumentById(id);
+    const docs = await this.getAllDocuments();
+    return docs.find(d => d.id === id);
   }
 
   public async getDocumentsByBooking(bookingRef: string): Promise<DocumentRecord[]> {
-    const docs = await db.getDocuments();
+    const docs = await this.getAllDocuments();
     return docs.filter(d => d.bookingRef === bookingRef);
   }
 
-  // Business Logic layer methods
   public async createDraftDocument(data: Partial<DocumentRecord>): Promise<DocumentRecord> {
-    const docData: Omit<DocumentRecord, 'id' | 'createdAt' | 'updatedAt'> = {
-      bookingRef: data.bookingRef || 'UNKNOWN',
-      type: data.type || 'HBL',
-      documentNumber: data.documentNumber || `DOC-${Math.floor(Math.random() * 10000)}`,
-      issueDate: new Date().toISOString(),
-      status: 'DRAFT',
-      payload: data.payload || {}
-    };
-    
-    return db.createDocument(docData);
+    const res = await fetch(`${API_BASE_URL}/documents`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer test-token'
+      },
+      body: JSON.stringify({
+        bookingRef: data.bookingRef || 'UNKNOWN',
+        type: data.type || 'HBL',
+        payload: data.payload || {}
+      })
+    });
+    if (!res.ok) throw new Error('Failed to create document');
+    return res.json();
   }
 
   public async issueDocument(id: string): Promise<DocumentRecord | null> {
-    const docs = await db.getDocuments();
-    const doc = docs.find(d => d.id === id);
-    if (!doc) return null;
-    
-    // Business rule: Only drafts can be issued
-    if (doc.status !== 'DRAFT') {
-      throw new Error('Solo los documentos en formato DRAFT pueden ser emitidos.');
+    const res = await fetch(`${API_BASE_URL}/documents/${id}/issue`, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer test-token' }
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to issue document');
     }
-
-    doc.status = 'ISSUED';
-    doc.updatedAt = new Date().toISOString();
-    return doc; // in a real DB this would trigger an update mutation
+    return res.json();
   }
 }
 

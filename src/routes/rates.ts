@@ -111,6 +111,55 @@ const rateRoutes: FastifyPluginAsyncZod = async (server) => {
 
     return reply.status(201).send({ success: true, rateId: String(rate.id) });
   });
+
+  server.get('/api/rates/search', {
+    schema: {
+      description: 'Search available freight rates',
+      tags: ['Rates'],
+      querystring: z.object({
+        origin: z.string().optional(),
+        destination: z.string().optional()
+      })
+    }
+  }, async (request, reply) => {
+    const { origin, destination } = request.query as { origin?: string, destination?: string };
+    
+    let query = db.select().from(freight_rates);
+    
+    // Quick filtering without full complex ORM syntax since it's just a basic search
+    const results = await db.query.freight_rates.findMany({
+      where: (freight_rates, { eq, and }) => {
+        const conditions = [];
+        if (origin) conditions.push(eq(freight_rates.origin_port, origin));
+        if (destination) conditions.push(eq(freight_rates.destination_port, destination));
+        return conditions.length > 0 ? and(...conditions) : undefined;
+      },
+      with: {
+        carrier: true,
+        surcharges: {
+          with: { type: true }
+        }
+      }
+    });
+
+    return results.map(r => ({
+      id: r.id,
+      carrier: r.carrier.name,
+      origin_port: r.origin_port,
+      destination_port: r.destination_port,
+      currency: r.currency,
+      base_rate: Number(r.base_rate),
+      valid_from: r.valid_from,
+      valid_to: r.valid_to,
+      surcharges: r.surcharges.map(s => ({
+        id: s.id,
+        name: s.type.name,
+        amount: Number(s.amount),
+        currency: s.currency
+      }))
+    }));
+  });
+
 };
 
 export default rateRoutes;

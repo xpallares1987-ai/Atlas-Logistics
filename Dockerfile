@@ -1,23 +1,25 @@
-# Industrialization Phase 4: Multi-stage Docker Build for Atlas Logistics
-
-# Stage 1: Build
-FROM node:20-slim AS builder
+FROM node:20-alpine AS dev
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 WORKDIR /app
-RUN npm install -g pnpm@10.0.0
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-COPY . .
-RUN pnpm run build
-
-# Stage 2: Runtime
-FROM node:20-slim
-WORKDIR /app
-RUN npm install -g pnpm@10.0.0
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
-RUN pnpm install --prod --frozen-lockfile
-
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+COPY BPMN-Modeler ./BPMN-Modeler
+COPY Freight-Comparer ./Freight-Comparer
+COPY Shipment-Dashboard ./Shipment-Dashboard
+COPY Atlas-Logistics ./Atlas-Logistics
+COPY packages ./packages
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install
 EXPOSE 3000
-ENV NODE_ENV=production
-CMD ["node", "dist/server.js"]
+CMD ["pnpm", "--filter", "atlas-logistics", "dev"]
+
+FROM dev AS builder
+RUN pnpm --filter atlas-logistics build
+
+FROM node:20-alpine
+RUN corepack enable
+WORKDIR /app
+# Use builder's workspace with dependencies to run the node server
+COPY --from=builder /app ./
+EXPOSE 3000
+CMD ["pnpm", "--filter", "atlas-logistics", "start"]

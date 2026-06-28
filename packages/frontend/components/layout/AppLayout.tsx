@@ -20,7 +20,10 @@ import {
   Mail,
   Sliders,
   AlertTriangle,
-  Info
+  Info,
+  DollarSign,
+  ShieldCheck,
+  Warehouse
 } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -173,9 +176,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { name: "Nuevo Embarque", href: "/bookings/new", icon: PlusCircle },
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Cotizaciones (P&L)", href: "/quotes", icon: FileText },
+    { name: "Cotizaciones", href: "/quotes", icon: FileText },
     { name: "Tarifas", href: "/rates", icon: Anchor },
     { name: "Tracking & Ops", href: "/tracking", icon: Anchor },
+    { name: "Finanzas & P&L", href: "/financial", icon: DollarSign },
+    { name: "Aduanas & Compliance", href: "/customs", icon: ShieldCheck },
+    { name: "WMS & Inventario", href: "/wms", icon: Warehouse },
     { name: "Sostenibilidad CO2", href: "/sustainability", icon: Leaf },
     { name: "Pipeline", href: "/pipeline", icon: LayoutDashboard },
   ];

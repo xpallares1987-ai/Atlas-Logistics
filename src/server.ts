@@ -17,6 +17,7 @@ import { randomUUID } from 'crypto';
 
 import shipmentRoutes from './routes/shipments.js';
 import processRoutes from './routes/processes.js';
+import bpmRoutes from './routes/bpm.js';
 import freightRoutes from './routes/freight.js';
 import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
@@ -24,6 +25,13 @@ import liveRoutes from './routes/live.js';
 import rateRoutes from './routes/rates.js';
 import documentRoutes from './routes/documents.js';
 import userRoutes from './routes/users.js';
+import crmRoutes from './routes/crm.js';
+
+import quoteRoutes from './routes/quotes.js';
+import financialRoutes from './routes/financial.js';
+import customsRoutes from './routes/customs.js';
+import wmsRoutes from './routes/wms.js';
+import ediRoutes from './routes/edi.js';
 
 const server = Fastify({
   logger: {
@@ -99,14 +107,21 @@ server.decorate('authenticate', async (request: any, reply: any) => {
 server.register(authRoutes);
 server.register(shipmentRoutes);
 server.register(processRoutes);
+server.register(bpmRoutes);
 server.register(freightRoutes);
 server.register(healthRoutes);
 server.register(liveRoutes);
 server.register(rateRoutes);
 server.register(documentRoutes);
 server.register(userRoutes);
-
-const idempotencyCache = new Set<string>();
+server.register(crmRoutes);
+server.register(quoteRoutes);
+    server.register(financialRoutes);
+    server.register(customsRoutes);
+    server.register(wmsRoutes);
+    server.register(ediRoutes);
+    
+    const idempotencyCache = new Set<string>();
 
 server.addHook('preHandler', async (request, reply) => {
   if (request.method === 'POST' || request.method === 'PUT') {
