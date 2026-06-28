@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 function AuthGuard({ children }: { children: ReactNode }) {
-  const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,6 +49,25 @@ function AuthGuard({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       setAuthError(err.message || "An error occurred during authentication.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setAuthError('Please enter your email address first to reset password.');
+      return;
+    }
+    setAuthError('');
+    setIsSubmitting(true);
+    try {
+      if (resetPassword) {
+        await resetPassword(email);
+        setAuthError('Password reset email sent! Please check your inbox.');
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to send reset email.');
     } finally {
       setIsSubmitting(false);
     }
@@ -82,7 +101,18 @@ function AuthGuard({ children }: { children: ReactNode }) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Password</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-400">Password</label>
+                  {!isSignUp && (
+                    <button 
+                      type="button" 
+                      onClick={handleResetPassword}
+                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
                 <input 
                   type="password" 
                   value={password}
