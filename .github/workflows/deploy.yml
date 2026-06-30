@@ -34,9 +34,31 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: 'pnpm'      - name: Checkout Control-Tower-UI
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
+      - name: Checkout Control-Tower-UI
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
 
-      - name: Install Dependencies
+      - name: Checkout Control-Tower-UI
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
+      - name: Checkout Control-Tower-UI
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
+
+      - name: Checkout Control-Tower-UI
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
+       - name: Checkout Control-Tower-UI
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
+       - name: Checkout Control-Tower-UI
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
+       - name: Checkout Control-Tower-UI
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
+       - name: Checkout Control-Tower-UI
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
+       - name: Checkout Control-Tower-UI
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
+       - name: Checkout Control-Tower-UI
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
+- name: Install Dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build Frontend
@@ -50,3 +72,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
