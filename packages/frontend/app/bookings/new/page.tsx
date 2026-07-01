@@ -13,10 +13,15 @@ import AlertConfiguration from '@/components/bookings/AlertConfiguration';
 import UserProfileConfig, { UserProfileData } from '@/components/bookings/UserProfileConfig';
 import AddressSelector from '@/components/common/AddressSelector';
 import { getAddresses } from '@/lib/addressStore';
+import { useFirebase } from '@xpallares1987-ai/control-tower-ui';
+import { addShipment } from '@/lib/services/forwardingService';
+import { useRouter } from 'next/navigation';
 
 type Tab = 'general' | 'booking' | 'instructions' | 'finance';
 
 export default function NewBookingPage() {
+  const router = useRouter();
+  const { db } = useFirebase();
   const [activeTab, setActiveTab] = useState<Tab>('general');
   const [mode, setMode] = useState('FCL');
   
@@ -210,7 +215,7 @@ export default function NewBookingPage() {
     alert('Borrador guardado exitosamente.');
   };
 
-  const handleActivate = () => {
+  const handleActivate = async () => {
     const newErrors: string[] = [];
     
     if (!generalData.cliente) newErrors.push('Tab 1 (General): Falta Cliente');
@@ -237,8 +242,31 @@ export default function NewBookingPage() {
     }
 
     setActivationErrors([]);
-    addAuditLog('Activación de Expediente', 'El expediente ha sido validado y activado correctamente.');
-    alert('¡Expediente activado exitosamente y validado!');
+    
+    if (!db) {
+      alert("Firestore no está inicializado.");
+      return;
+    }
+
+    try {
+      await addShipment(db, {
+        ref: bookingNo,
+        client: generalData.cliente,
+        mode: mode as any,
+        stage: 'BOOKING',
+        origin: generalData.pol,
+        dest: generalData.pod,
+        probability: 80,
+        expectedClose: etaDate,
+        customerId: generalData.cliente
+      });
+      
+      addAuditLog('Activación de Expediente', 'El expediente ha sido validado y activado correctamente.');
+      router.push('/pipeline');
+    } catch (err) {
+      console.error("Error al activar expediente:", err);
+      alert('Hubo un error al guardar el expediente en la base de datos.');
+    }
   };
 
   return (

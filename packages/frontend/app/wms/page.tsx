@@ -27,11 +27,7 @@ export default function WmsPage() {
   const [dispQty, setDispQty] = useState('');
   const [dispNote, setDispNote] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     try {
       const [stockData, warehouseData] = await Promise.all([
         wmsService.getStock(),
@@ -47,7 +43,11 @@ export default function WmsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [recWh]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleCreateWarehouse = async (e: React.FormEvent) => {
     e.preventDefault();

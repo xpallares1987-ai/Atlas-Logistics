@@ -1,12 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  getAddresses, 
-  saveAddresses, 
-  CompanyAddress, 
-  AddressType 
-} from '@/lib/addressStore';
+import { CompanyAddress, AddressType } from '@/lib/addressStore';
+import { getContacts, addContact, updateContact, deleteContact } from '@/lib/services/crmService';
+import { useFirebase } from '@xpallares1987-ai/control-tower-ui';
 import { 
   Search, 
   MapPin, 
@@ -27,7 +24,9 @@ import {
 } from 'lucide-react';
 
 export default function ContactsPage() {
+  const { db } = useFirebase();
   const [addresses, setAddresses] = useState<CompanyAddress[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
 
@@ -69,8 +68,20 @@ export default function ContactsPage() {
 
   // Load addresses on mount
   useEffect(() => {
-    setAddresses(getAddresses());
-  }, []);
+    if (!db) return;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await getContacts(db);
+        setAddresses(data);
+      } catch (err) {
+        console.error("Failed to load contacts", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [db]);
 
   const handleOpenNewModal = () => {
     setEditingAddress(null);
@@ -107,13 +118,13 @@ export default function ContactsPage() {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     if (taxIdError) return;
+    if (!db) return;
 
-    const newAddr: CompanyAddress = {
-      id: editingAddress ? editingAddress.id : `addr-${Date.now()}`,
+    const contactData = {
       name: name.trim(),
       taxId: taxId.trim() || 'N/A',
       type,
@@ -128,23 +139,29 @@ export default function ContactsPage() {
       notes: notes.trim()
     };
 
-    let updatedAddresses: CompanyAddress[] = [];
-    if (editingAddress) {
-      updatedAddresses = addresses.map(a => a.id === editingAddress.id ? newAddr : a);
-    } else {
-      updatedAddresses = [...addresses, newAddr];
+    try {
+      if (editingAddress) {
+        await updateContact(db, editingAddress.id, contactData);
+        setAddresses(addresses.map(a => a.id === editingAddress.id ? { ...contactData, id: editingAddress.id } as CompanyAddress : a));
+      } else {
+        const newContact = await addContact(db, contactData);
+        setAddresses([...addresses, newContact]);
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error("Failed to save contact", err);
     }
-
-    setAddresses(updatedAddresses);
-    saveAddresses(updatedAddresses);
-    setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!db) return;
     if (confirm('¿Está seguro de que desea eliminar esta dirección comercial?')) {
-      const updatedList = addresses.filter(a => a.id !== id);
-      setAddresses(updatedList);
-      saveAddresses(updatedList);
+      try {
+        await deleteContact(db, id);
+        setAddresses(addresses.filter(a => a.id !== id));
+      } catch (err) {
+        console.error("Failed to delete contact", err);
+      }
     }
   };
 
@@ -229,7 +246,15 @@ export default function ContactsPage() {
         </div>
       </div>
 
-      {/* Filter and search controls */}
+      {loading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+        </div>
+      )}
+
+      {!loading && (
+        <>
+          {/* Filter and search controls */}
       <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center bg-[#111114] p-4 rounded-xl border border-gray-800">
          <div className="relative w-full lg:max-w-md shrink-0">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -376,6 +401,8 @@ export default function ContactsPage() {
              <Plus className="w-3.5 h-3.5 mr-1.5" /> Registrar nueva dirección
            </button>
         </div>
+      )}
+        </>
       )}
 
       {/* Creation/Edit Dedicated Modal */}
