@@ -3,28 +3,8 @@
 import React, { useState } from 'react';
 import { Package, Ship, Plane, Truck, Clock, CheckCircle2 } from 'lucide-react';
 
-type Stage = 'QUOTE' | 'BOOKING' | 'AT_ORIGIN' | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED';
-
-interface PipelineItem {
-  id: string;
-  ref: string;
-  client: string;
-  mode: 'FCL' | 'LCL' | 'AIR' | 'ROAD';
-  stage: Stage;
-  origin: string;
-  dest: string;
-  probability: number;
-  expectedClose?: string;
-}
-
-const initialData: PipelineItem[] = [
-  { id: '1', ref: 'BKG-2023-001', client: 'Acme Corp', mode: 'FCL', stage: 'QUOTE', origin: 'CNSHA', dest: 'ESBCN', probability: 40, expectedClose: '2026-06-20' },
-  { id: '2', ref: 'BKG-2023-002', client: 'Global Ind', mode: 'AIR', stage: 'AT_ORIGIN', origin: 'USLAX', dest: 'GBHOU', probability: 100 },
-  { id: '3', ref: 'BKG-2023-003', client: 'Tech Solutions', mode: 'LCL', stage: 'IN_TRANSIT', origin: 'NLRTM', dest: 'MXVER', probability: 100 },
-  { id: '4', ref: 'BKG-2023-004', client: 'Retail Max', mode: 'FCL', stage: 'CUSTOMS', origin: 'DEHAM', dest: 'USNYC', probability: 100 },
-  { id: '5', ref: 'BKG-2023-005', client: 'Foods Co', mode: 'ROAD', stage: 'DELIVERED', origin: 'ESMAD', dest: 'FRCDG', probability: 100 },
-  { id: '6', ref: 'BKG-2023-006', client: 'Auto Parts', mode: 'FCL', stage: 'BOOKING', origin: 'JPTYO', dest: 'USLAX', probability: 80, expectedClose: '2026-06-15' },
-];
+import { useFirebase } from '@xpallares1987-ai/control-tower-ui';
+import { getShipments, updateShipment, Shipment, Stage } from '@/lib/services/forwardingService';
 
 const stages: { key: Stage; label: string; color: string }[] = [
   { key: 'QUOTE', label: 'Cotización', color: 'border-gray-500' },
@@ -36,21 +16,63 @@ const stages: { key: Stage; label: string; color: string }[] = [
 ];
 
 export default function PipelinePage() {
-  const [items, setItems] = useState<PipelineItem[]>(initialData);
+  const { db } = useFirebase();
+  const [items, setItems] = React.useState<Shipment[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  const moveItem = (id: string, direction: 'NEXT' | 'PREV') => {
+  React.useEffect(() => {
+    if (!db) return;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await getShipments(db);
+        setItems(data);
+      } catch (err) {
+        console.error("Failed to load shipments", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [db]);
+
+  const moveItem = async (id: string, direction: 'NEXT' | 'PREV') => {
+    if (!db) return;
+    
+    // Optimistic UI update
+    let newStage: Stage | null = null;
+    let oldStage: Stage | null = null;
+    
     setItems(current => current.map(item => {
       if (item.id === id) {
+        oldStage = item.stage;
         const currentIndex = stages.findIndex(s => s.key === item.stage);
         if (direction === 'NEXT' && currentIndex < stages.length - 1) {
-          return { ...item, stage: stages[currentIndex + 1].key };
+          newStage = stages[currentIndex + 1].key;
+          return { ...item, stage: newStage };
         }
         if (direction === 'PREV' && currentIndex > 0) {
-          return { ...item, stage: stages[currentIndex - 1].key };
+          newStage = stages[currentIndex - 1].key;
+          return { ...item, stage: newStage };
         }
       }
       return item;
     }));
+
+    if (newStage) {
+      try {
+        await updateShipment(db, id, { stage: newStage });
+      } catch (err) {
+        console.error("Failed to update shipment stage", err);
+        // Rollback on failure
+        setItems(current => current.map(item => {
+          if (item.id === id && oldStage) {
+            return { ...item, stage: oldStage };
+          }
+          return item;
+        }));
+      }
+    }
   };
 
   const getIcon = (mode: string) => {
@@ -67,7 +89,12 @@ export default function PipelinePage() {
         <p className="text-gray-400">Panel Kanban interactivo para gestionar el ciclo de vida de los embarques.</p>
       </div>
 
-      <div className="flex space-x-4 min-w-max pb-4">
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+        </div>
+      ) : (
+        <div className="flex space-x-4 min-w-max pb-4">
         {stages.map((stage) => {
           const columnItems = items.filter(i => i.stage === stage.key);
           
@@ -135,6 +162,7 @@ export default function PipelinePage() {
           )
         })}
       </div>
+      )}
     </div>
   );
 }

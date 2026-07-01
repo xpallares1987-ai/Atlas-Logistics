@@ -2,8 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
@@ -21,6 +20,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,48 +29,42 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: '10'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'pnpm'      - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-      - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Restore Next.js cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**/*.[jt]s', '**/*.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
 
       - name: Checkout Control-Tower-UI
         run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-      - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
 
-      - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-- name: Install Dependencies
+      - name: Install Dependencies
+        env:
+          CI: 'true'
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Build Frontend
+      - name: Build
         run: pnpm run build:frontend
 
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist/frontend'
+          path: './packages/frontend/out'
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-

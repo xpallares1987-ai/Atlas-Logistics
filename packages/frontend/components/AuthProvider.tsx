@@ -13,7 +13,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <FirebaseProvider config={firebaseConfig as any}>
+    <FirebaseProvider config={firebaseConfig as any} databaseId="database01">
       <AuthGuard>
         {children}
       </AuthGuard>
