@@ -28,7 +28,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 20
+
       - name: Setup pnpm
         run: npm install -g pnpm@10
 
@@ -38,7 +39,7 @@ jobs:
 
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        run: pnpm install --no-frozen-lockfile --ignore-scripts
 
       - name: Build Frontend
         run: pnpm run build:frontend

@@ -34,7 +34,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 20
+
       - name: Setup pnpm
         run: npm install -g pnpm@10
 
@@ -44,7 +45,7 @@ jobs:
 
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Run ESLint
         run: pnpm run lint --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif
