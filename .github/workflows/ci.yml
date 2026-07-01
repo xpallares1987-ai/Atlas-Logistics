@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -11,61 +11,9 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    env:
-      CI: 'true'
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'      - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-      - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-
-      - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-      - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-
-      - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
-- name: Install Dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      - name: Type Check
-        run: pnpm run type-check
-
-      - name: Run Lint
-        run: pnpm run lint
-
-      - name: Run Tests
-        run: pnpm run test
-
-      - name: Build
-        run: pnpm run build
-
+  ci:
+    uses: xpallares1987-ai/.github/.github/workflows/reusable-ci.yml@main
+    with:
+      run-e2e: true
+      use-nextjs-cache: false
+      run-type-check: true
