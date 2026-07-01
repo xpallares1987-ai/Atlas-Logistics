@@ -1,4 +1,4 @@
-name: Release
+﻿name: Release
 
 on:
   push:
@@ -35,3 +35,4 @@ jobs:
 
       - name: Push release and tags
         run: git push --follow-tags origin main
+

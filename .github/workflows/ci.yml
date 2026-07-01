@@ -17,3 +17,4 @@ jobs:
       run-e2e: true
       use-nextjs-cache: false
       run-type-check: true
+
