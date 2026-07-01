@@ -1,4 +1,3 @@
-'use server';
 
 import { docsService } from '@/services/docsService';
 import { DocumentRecord } from '@/types/schema';
