@@ -30,11 +30,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
+        run: npm install -g pnpm@10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
