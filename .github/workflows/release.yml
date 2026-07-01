@@ -15,12 +15,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm
+
+
+        run: npm install -g pnpm@10
+
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Setup pnpm
-        run: npm install -g pnpm@10
 
       - name: Git Config
         run: |
