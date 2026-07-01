@@ -20,52 +20,28 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Setup pnpm
+        run: npm install -g pnpm@10
 
       - name: Checkout Control-Tower-UI
 
         run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI
 
 
-      - name: Setup pnpm
-
-
-        run: npm install -g pnpm@10
-
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Setup pnpm
-
-        run: npm install -g pnpm@10
 
       - name: Security Audit
         run: pnpm audit --prod --audit-level=high
 
-      - name: Setup pnpm
-
-        run: npm install -g pnpm@10
-
       - name: TypeScript Type Checking
         run: pnpm exec tsc --noEmit -p tsconfig.server.json
-
-      - name: Setup pnpm
-
-        run: npm install -g pnpm@10
 
       - name: Run Unit Tests
         run: pnpm vitest run --coverage
 
-      - name: Setup pnpm
-
-        run: npm install -g pnpm@10
-
       - name: Build Frontend (Vite)
         run: pnpm run build:frontend
-
-      - name: Setup pnpm
-
-        run: npm install -g pnpm@10
 
       - name: Build Backend (Fastify)
         run: pnpm run build:backend
