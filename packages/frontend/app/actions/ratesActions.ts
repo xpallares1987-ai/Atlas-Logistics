@@ -1,4 +1,3 @@
-"use server";
 
 import { z } from 'zod';
 import { ContractRate } from '@/app/rates/types';

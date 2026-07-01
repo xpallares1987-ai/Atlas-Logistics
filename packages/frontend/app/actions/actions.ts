@@ -1,10 +1,8 @@
-'use server'
 import { z } from 'zod';
 import { Rate, Shipment, Milestone, User } from '@/types/scm';
 import { DocumentRecord } from '@/types/schema';
-import { revalidatePath } from 'next/cache';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
 let authToken: string | null = null;
 
 async function getAuthToken(): Promise<string> {
@@ -74,7 +72,6 @@ export async function createRate(rate: Rate) {
   });
   if (!res.ok) throw new Error('Failed to create rate');
   const data = await res.json();
-  revalidatePath('/rates');
   return data;
 }
 
@@ -103,7 +100,6 @@ export async function createShipment(shipment: Shipment) {
   });
   if (!res.ok) throw new Error('Failed to create shipment');
   const data = await res.json();
-  revalidatePath('/tracking');
   return data;
 }
 
@@ -113,7 +109,6 @@ export async function updateShipmentStatusAction(id: string, status: Shipment['s
     method: 'PATCH'
   });
   if (!res.ok) throw new Error('Failed to advance shipment status');
-  revalidatePath('/tracking');
   return { success: true };
 }
 
@@ -123,7 +118,6 @@ export async function recordMilestone(shipmentId: string, milestone: Milestone) 
   if (milestone.type === 'DELIVERED' || milestone.type === 'DEPARTED' || milestone.type === 'ARRIVED') {
     await updateShipmentStatusAction(shipmentId, milestone.type as any);
   }
-  revalidatePath('/tracking');
   return { success: true };
 }
 
@@ -151,7 +145,6 @@ export async function createDocument(doc: DocumentRecord) {
   });
   if (!res.ok) throw new Error('Failed to create document');
   const newDoc = await res.json();
-  revalidatePath('/docs');
   return { success: true, docId: newDoc.id };
 }
 
@@ -179,7 +172,6 @@ export async function createUser(user: Omit<User, 'id' | 'createdAt'>) {
     })
   });
   if (!res.ok) throw new Error('Failed to register user');
-  revalidatePath('/users');
   return { success: true };
 }
 
@@ -190,6 +182,65 @@ export async function toggleUserStatus(id: string, currentStatus: 'ACTIVE' | 'IN
     body: JSON.stringify({ status: newStatus })
   });
   if (!res.ok) throw new Error('Failed to toggle user status');
-  revalidatePath('/users');
   return { success: true };
+}
+// CRM (Customers)
+export async function fetchCustomers() {
+  try {
+    const res = await authenticatedFetch('/api/crm/customers');
+    if (!res.ok) throw new Error('Failed to fetch customers');
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+export async function createCustomer(customer: any) {
+  const res = await authenticatedFetch('/api/crm/customers', {
+    method: 'POST',
+    body: JSON.stringify(customer)
+  });
+  if (!res.ok) throw new Error('Failed to create customer');
+  return await res.json();
+}
+
+export async function updateCustomer(id: number, customer: any) {
+  const res = await authenticatedFetch(`/api/crm/customers/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(customer)
+  });
+  if (!res.ok) throw new Error('Failed to update customer');
+  return await res.json();
+}
+
+export async function deleteCustomer(id: number) {
+  const res = await authenticatedFetch(`/api/crm/customers/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error('Failed to delete customer');
+  return { success: true };
+}
+
+// Quotes (Freight Forwarding)
+export async function fetchQuotes() {
+  try {
+    const res = await authenticatedFetch('/api/quotes');
+    if (!res.ok) throw new Error('Failed to fetch quotes');
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+export async function createQuote(quote: any) {
+  const res = await authenticatedFetch('/api/quotes', {
+    method: 'POST',
+    body: JSON.stringify(quote)
+  });
+  if (!res.ok) throw new Error('Failed to create quote');
+  return await res.json();
 }

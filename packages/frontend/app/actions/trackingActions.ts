@@ -1,4 +1,3 @@
-'use server';
 
 import { trackingService } from '@/services/trackingService';
 import { TrackingMilestone, ContainerTracking, MilestoneType } from '@/types/schema';
