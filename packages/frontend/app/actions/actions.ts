@@ -244,3 +244,36 @@ export async function createQuote(quote: any) {
   if (!res.ok) throw new Error('Failed to create quote');
   return await res.json();
 }
+
+// Forwarding
+export async function fetchConsolidationData() {
+  try {
+    const res = await authenticatedFetch('/api/shipments');
+    if (!res.ok) throw new Error('Failed to fetch shipments');
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+export async function consolidateShipment(masterId: number, houseId: number) {
+  const res = await authenticatedFetch(`/api/shipments/${masterId}/consolidate`, {
+    method: 'POST',
+    body: JSON.stringify({ houseId })
+  });
+  if (!res.ok) throw new Error('Failed to consolidate shipment');
+  return await res.json();
+}
+
+export async function calculatePnL(shipmentId: number) {
+  try {
+    const res = await authenticatedFetch(`/api/shipments/${shipmentId}/profit-and-loss`);
+    if (!res.ok) throw new Error('Failed to fetch P&L');
+    return await res.json();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}

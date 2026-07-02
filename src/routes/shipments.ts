@@ -4,13 +4,15 @@ import { db } from '../db/client.js';
 import { shipments, carriers, shipment_events } from '../db/schema.js';
 import { eq, desc } from 'drizzle-orm';
 import { createShipmentInstance } from '../bpm/zeebe-client.js';
-import { 
+import {
   shipmentSchema, 
   createShipmentSchema, 
   updateShipmentSchema,
   shipmentEventSchema,
-  createShipmentEventSchema
+  createShipmentEventSchema,
+  containerSchema
 } from '../schemas/forwarding.schema.js';
+import { forwardingService } from '../services/forwarding.service.js';
 
 const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
   // GET /api/shipments
@@ -269,6 +271,84 @@ const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
         lastUpdate: updated.updated_at.toISOString()
       } 
     });
+  });
+
+  // POST /api/shipments/:id/consolidate
+  server.post('/api/shipments/:id/consolidate', {
+    schema: {
+      description: 'Consolidate an HBL into an MBL',
+      tags: ['Forwarding'],
+      params: z.object({ id: z.coerce.number().describe('Master Shipment ID') }),
+      body: z.object({
+        houseId: z.number().describe('House Shipment ID to attach')
+      }),
+      response: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: z.object({ error: z.string() })
+      }
+    }
+  }, async (request, reply) => {
+    const { id } = request.params as { id: number };
+    const { houseId } = request.body as { houseId: number };
+    
+    try {
+      const result = await forwardingService.consolidateShipment(id, houseId);
+      return reply.status(200).send(result);
+    } catch (error: any) {
+      return reply.status(400).send({ error: error.message });
+    }
+  });
+
+  // POST /api/shipments/:id/containers
+  server.post('/api/shipments/:id/containers', {
+    schema: {
+      description: 'Add a container to an MBL or Direct shipment',
+      tags: ['Forwarding'],
+      params: z.object({ id: z.coerce.number() }),
+      body: containerSchema.omit({ id: true, shipment_id: true, created_at: true }),
+      response: {
+        201: containerSchema,
+        400: z.object({ error: z.string() })
+      }
+    }
+  }, async (request, reply) => {
+    const { id } = request.params as { id: number };
+    const containerData = request.body as any;
+    
+    try {
+      const container = await forwardingService.addContainer(id, containerData);
+      return reply.status(201).send({
+        ...container,
+        gross_weight: container.gross_weight ? Number(container.gross_weight) : null,
+        volume: container.volume ? Number(container.volume) : null,
+        created_at: container.created_at.toISOString()
+      });
+    } catch (error: any) {
+      return reply.status(400).send({ error: error.message });
+    }
+  });
+
+  // GET /api/shipments/:id/profit-and-loss
+  server.get('/api/shipments/:id/profit-and-loss', {
+    schema: {
+      description: 'Calculate P&L for a shipment based on Invoices',
+      tags: ['Forwarding', 'Finance'],
+      params: z.object({ id: z.coerce.number() }),
+      response: {
+        200: z.object({
+          shipmentId: z.number(),
+          totalRevenue: z.number(),
+          totalCost: z.number(),
+          profit: z.number(),
+          marginPercentage: z.number(),
+          currency: z.string()
+        })
+      }
+    }
+  }, async (request, reply) => {
+    const { id } = request.params as { id: number };
+    const result = await forwardingService.calculateProfitAndLoss(id);
+    return reply.status(200).send(result);
   });
 
 };

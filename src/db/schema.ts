@@ -3,6 +3,9 @@ import { relations } from 'drizzle-orm';
 
 export const shipmentStatusEnum = pgEnum('shipment_status', ['Booked', 'Received', 'OnBoard', 'Discharged', 'Delivered']);
 export const shipmentModeEnum = pgEnum('shipment_mode', ['Ocean FCL', 'Ocean LCL', 'Air', 'Road']);
+export const shipmentTypeEnum = pgEnum('shipment_type', ['Direct', 'MBL', 'HBL']);
+export const incotermEnum = pgEnum('incoterm', ['EXW', 'FCA', 'FAS', 'FOB', 'CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP']);
+export const containerTypeEnum = pgEnum('container_type', ['20DC', '40DC', '40HQ', '45HQ', 'LCL']);
 export const quoteStatusEnum = pgEnum('quote_status', ['Draft', 'Sent', 'Accepted', 'Rejected', 'Expired']);
 export const invoiceStatusEnum = pgEnum('invoice_status', ['Draft', 'Issued', 'Paid', 'Overdue', 'Cancelled']);
 export const invoiceTypeEnum = pgEnum('invoice_type', ['AR', 'AP']);
@@ -109,6 +112,11 @@ export const shipments = pgTable('shipments', {
   booking_reference: varchar('booking_reference', { length: 100 }),
   tracking_number: varchar('tracking_number', { length: 100 }).notNull().unique(),
   carrier_id: integer('carrier_id').references(() => carriers.id).notNull(),
+  type: shipmentTypeEnum('type').default('Direct').notNull(),
+  parent_shipment_id: integer('parent_shipment_id'),
+  incoterm: incotermEnum('incoterm'),
+  origin_agent_id: integer('origin_agent_id').references(() => customers.id),
+  destination_agent_id: integer('destination_agent_id').references(() => customers.id),
   mode: shipmentModeEnum('mode').default('Ocean FCL').notNull(),
   origin_port: varchar('origin_port', { length: 10 }).default('CNSHA').notNull(),
   destination_port: varchar('destination_port', { length: 10 }).default('ESBCN').notNull(),
@@ -121,7 +129,8 @@ export const shipments = pgTable('shipments', {
   return {
     trackingIdx: index('tracking_number_idx').on(table.tracking_number),
     carrierIdx: index('ship_carrier_id_idx').on(table.carrier_id),
-    statusIdx: index('status_idx').on(table.status)
+    statusIdx: index('status_idx').on(table.status),
+    parentShipmentIdx: index('parent_shipment_idx').on(table.parent_shipment_id)
   };
 });
 
@@ -134,10 +143,67 @@ export const shipmentsRelations = relations(shipments, ({ one, many }) => ({
     fields: [shipments.customer_id],
     references: [customers.id],
   }),
+  parent_shipment: one(shipments, {
+    fields: [shipments.parent_shipment_id],
+    references: [shipments.id],
+    relationName: 'child_shipments'
+  }),
+  child_shipments: many(shipments, { relationName: 'child_shipments' }),
+  origin_agent: one(customers, {
+    fields: [shipments.origin_agent_id],
+    references: [customers.id],
+    relationName: 'origin_agent'
+  }),
+  destination_agent: one(customers, {
+    fields: [shipments.destination_agent_id],
+    references: [customers.id],
+    relationName: 'destination_agent'
+  }),
   events: many(shipment_events),
   invoices: many(invoices),
   customs_declarations: many(customs_declarations),
   stock_items: many(stock_items),
+  containers: many(containers),
+  house_containers: many(house_containers),
+}));
+
+export const containers = pgTable('containers', {
+  id: serial('id').primaryKey(),
+  shipment_id: integer('shipment_id').references(() => shipments.id).notNull(), // MBL or Direct
+  container_number: varchar('container_number', { length: 20 }).notNull(),
+  type: containerTypeEnum('type').notNull(),
+  seal_number: varchar('seal_number', { length: 50 }),
+  gross_weight: decimal('gross_weight', { precision: 12, scale: 2 }),
+  volume: decimal('volume', { precision: 12, scale: 2 }),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const containersRelations = relations(containers, ({ one, many }) => ({
+  shipment: one(shipments, {
+    fields: [containers.shipment_id],
+    references: [shipments.id],
+  }),
+  house_containers: many(house_containers),
+}));
+
+export const house_containers = pgTable('house_containers', {
+  id: serial('id').primaryKey(),
+  house_shipment_id: integer('house_shipment_id').references(() => shipments.id).notNull(), // HBL
+  container_id: integer('container_id').references(() => containers.id).notNull(),
+  allocated_weight: decimal('allocated_weight', { precision: 12, scale: 2 }),
+  allocated_volume: decimal('allocated_volume', { precision: 12, scale: 2 }),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const houseContainersRelations = relations(house_containers, ({ one }) => ({
+  house_shipment: one(shipments, {
+    fields: [house_containers.house_shipment_id],
+    references: [shipments.id],
+  }),
+  container: one(containers, {
+    fields: [house_containers.container_id],
+    references: [containers.id],
+  }),
 }));
 
 export const shipment_events = pgTable('shipment_events', {
@@ -192,6 +258,17 @@ export const customers = pgTable('customers', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   industry: varchar('industry', { length: 100 }),
+  tax_id: varchar('tax_id', { length: 100 }),
+  type: varchar('type', { length: 50 }).default('Cliente'),
+  street: varchar('street', { length: 255 }),
+  city: varchar('city', { length: 100 }),
+  state_prov: varchar('state_prov', { length: 100 }),
+  country: varchar('country', { length: 100 }),
+  postal_code: varchar('postal_code', { length: 50 }),
+  phone: varchar('phone', { length: 50 }),
+  email: varchar('email', { length: 255 }),
+  contact_person: varchar('contact_person', { length: 255 }),
+  notes: varchar('notes', { length: 1000 }),
   status: customerStatusEnum('status').default('Active').notNull(),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

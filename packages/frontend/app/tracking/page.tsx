@@ -480,14 +480,14 @@ function TrackingContent() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [filtered, setFiltered] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [expandedRowId, setExpandedRowId] = useState<string | number | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<string | number | null>(null);
 
-  const toggleExpand = (id: string) => {
+  const toggleExpand = (id: string | number) => {
     setExpandedRowId(expandedRowId === id ? null : id);
   };
 
-  const updateShipmentSCM = (shipmentId: string, updates: Partial<Shipment>) => {
+  const updateShipmentSCM = (shipmentId: string | number, updates: Partial<Shipment>) => {
     setShipments((prev) =>
       prev.map((s) => {
         if (s.id === shipmentId) {
@@ -505,7 +505,7 @@ function TrackingContent() {
     );
   };
 
-  const handleCopyLink = (e: React.MouseEvent, shipmentId: string) => {
+  const handleCopyLink = (e: React.MouseEvent, shipmentId: string | number) => {
     e.stopPropagation();
     const url = `${window.location.origin}/public/tracking/${shipmentId}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -783,10 +783,10 @@ function TrackingContent() {
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 border-t border-gray-800 pt-6">
                               <div>
-                                <MilestonesView shipmentId={shp.id} />
+                                <MilestonesView shipmentId={String(shp.id)} />
                               </div>
                               <div>
-                                <AuditLogView shipmentId={shp.id} />
+                                <AuditLogView shipmentId={String(shp.id)} />
                               </div>
                             </div>
                           </td>

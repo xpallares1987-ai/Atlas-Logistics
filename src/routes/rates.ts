@@ -124,7 +124,7 @@ const rateRoutes: FastifyPluginAsyncZod = async (server) => {
   }, async (request, reply) => {
     const { origin, destination } = request.query as { origin?: string, destination?: string };
     
-    let query = db.select().from(freight_rates);
+    const query = db.select().from(freight_rates);
     
     // Quick filtering without full complex ORM syntax since it's just a basic search
     const results = await db.query.freight_rates.findMany({

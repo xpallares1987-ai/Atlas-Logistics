@@ -31,7 +31,9 @@ jobs:
           node-version: 20
 
       - name: Setup pnpm
-        run: npm install -g pnpm@10
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
 
       - name: Checkout Control-Tower-UI
 
@@ -47,7 +49,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist/frontend'
+          path: './packages/frontend/out'
 
       - name: Deploy to GitHub Pages
         id: deployment
