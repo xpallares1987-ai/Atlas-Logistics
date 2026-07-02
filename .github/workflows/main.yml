@@ -24,7 +24,7 @@ jobs:
       - name: Setup pnpm
         run: npm install -g pnpm@10
       - name: Checkout Control-Tower-UI
-        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI && cd ../Control-Tower-UI && pnpm install && pnpm run build
+        run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI && cd ../Control-Tower-UI && pnpm install --no-frozen-lockfile && pnpm run build
 
 
       - name: Install dependencies
@@ -44,6 +44,7 @@ jobs:
 
       - name: Build Backend (Fastify)
         run: pnpm run build:backend
+
 
 
 
