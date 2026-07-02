@@ -35,6 +35,9 @@ importers:
       argon2:
         specifier: ^0.44.0
         version: 0.44.0
+      d3-color:
+        specifier: ^3.1.0
+        version: 3.1.0
       fastify-type-provider-zod:
         specifier: ^1.2.0
         version: 1.2.0(fastify@5.9.0)(zod@3.25.76)
@@ -102,6 +105,9 @@ importers:
       fastify:
         specifier: ^5.9.0
         version: 5.9.0
+      postcss:
+        specifier: ^8.5.16
+        version: 8.5.16
       tsx:
         specifier: ^4.22.4
         version: 4.22.4
@@ -7503,6 +7509,7 @@ snapshots:
       '@types/three': 0.185.0
       clsx: 2.1.1
       dexie: 4.4.4
+      esbuild: 0.28.1
       firebase: 12.15.0
       framer-motion: 12.42.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       idb: 8.0.3
