@@ -34,9 +34,7 @@ jobs:
         uses: pnpm/action-setup@v3
         with:
           version: 10
-
       - name: Checkout Control-Tower-UI
-
         run: git clone https://github.com/xpallares1987-ai/Control-Tower-UI.git ../Control-Tower-UI && cd ../Control-Tower-UI && pnpm install && pnpm run build
 
 
@@ -54,3 +52,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
