@@ -183,7 +183,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { name: "Tracking & Ops", href: "/tracking", icon: Anchor },
     { name: "Finanzas & P&L", href: "/financial", icon: DollarSign },
     { name: "Aduanas & Compliance", href: "/customs", icon: ShieldCheck },
-    { name: "Consolidación (NVOCC)", href: "/forwarding", icon: Boxes },
+    { name: "Consolidación (NVOCC)", href: "/consolidation", icon: Boxes },
     { name: "WMS & Inventario", href: "/wms", icon: Warehouse },
     { name: "Sostenibilidad CO2", href: "/sustainability", icon: Leaf },
     { name: "Pipeline", href: "/pipeline", icon: LayoutDashboard },

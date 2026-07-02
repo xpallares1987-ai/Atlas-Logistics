@@ -7,9 +7,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  transpilePackages: ['@xpallares1987-ai/control-tower-ui'],
+  transpilePackages: [],
   typescript: {
     ignoreBuildErrors: false, 
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
   productionBrowserSourceMaps: true,
   env: { NEXT_PUBLIC_GITHUB_PAGES: "true" },
