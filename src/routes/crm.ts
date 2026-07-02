@@ -101,6 +101,26 @@ const crmRoutes: FastifyPluginAsyncZod = async (fastify) => {
     };
   });
 
+  fastify.delete('/api/crm/customers/:id', {
+    schema: {
+      tags: ['CRM'],
+      summary: 'Delete Customer',
+      params: z.object({ id: z.coerce.number() }),
+      response: {
+        200: z.object({ success: z.boolean() }),
+        404: z.object({ error: z.string() })
+      }
+    }
+  }, async (request, reply) => {
+    const { id } = request.params as { id: number };
+    const [deletedCustomer] = await db.delete(customers)
+      .where(eq(customers.id, id))
+      .returning();
+      
+    if (!deletedCustomer) return reply.status(404).send({ error: 'Customer not found' });
+    return { success: true };
+  });
+
   // Contacts
   fastify.get('/api/crm/customers/:id/contacts', {
     schema: {

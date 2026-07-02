@@ -21,6 +21,7 @@ import {
 import { jsPDF } from 'jspdf';
 import AddressSelector from '@/components/common/AddressSelector';
 import { getAddresses } from '@/lib/addressStore';
+import { fetchQuotes, createQuote } from '@/app/actions/actions';
 
 interface CostLine {
   id: string;
@@ -95,16 +96,28 @@ export default function QuotesPage() {
   // Saved local drafts list
   const [savedQuotes, setSavedQuotes] = useState<QuoteDraft[]>([]);
 
-  // Load and Save states from LocalStorage for durable transient mock persistence
+  // Load quotes from backend
   useEffect(() => {
-    const saved = localStorage.getItem('forwarderos_quotes');
-    if (saved) {
+    const loadQuotes = async () => {
       try {
-        setSavedQuotes(JSON.parse(saved));
+        const quotes = await fetchQuotes();
+        // map backend quotes to drafts for UI compatibility
+        const mappedQuotes: QuoteDraft[] = quotes.map((q: any) => ({
+          id: String(q.id),
+          client: 'Customer ID ' + q.customer_id,
+          ref: 'QTE-DB-' + q.id,
+          validity: q.valid_until,
+          status: q.status,
+          lines: [],
+          volumeCbm: 0,
+          weightKg: 0
+        }));
+        setSavedQuotes(mappedQuotes);
       } catch (e) {
-        console.error('Error loading local storage quotes:', e);
+        console.error('Error loading backend quotes:', e);
       }
-    }
+    };
+    loadQuotes();
   }, []);
 
   // Recalculate volumetric figures whenever inputs change
@@ -196,27 +209,48 @@ export default function QuotesPage() {
     setLines(updated);
   };
 
-  const handleSaveQuote = () => {
+  const handleSaveQuote = async () => {
     if (!clientInfo.client.trim()) {
       alert('Por favor, ingresa el nombre del cliente para registrar la cotización.');
       return;
     }
 
-    const newDraft: QuoteDraft = {
-      id: `QTE-${Date.now()}`,
-      client: clientInfo.client,
-      ref: clientInfo.ref || `QTE-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      validity: clientInfo.validity,
-      status: clientInfo.status,
-      lines,
-      volumeCbm: calcVolumeCbm,
-      weightKg: calcWeight
-    };
+    try {
+      // Use defaults for MVP since the UI uses free-text lines instead of db rates
+      const quotePayload = {
+        customer_id: 1, // Defaulting for MVP
+        origin_port: 'CNSHA',
+        destination_port: 'ESBCN',
+        valid_until: clientInfo.validity || new Date().toISOString().split('T')[0],
+        options: [
+          {
+            freight_rate_id: 1, // Defaulting for MVP
+            total_price: Number(totalSell),
+            margin_percentage: margin ? Number(margin) : null
+          }
+        ]
+      };
+      
+      const savedQuote = await createQuote(quotePayload);
+      
+      const newDraft: QuoteDraft = {
+        id: String(savedQuote.id),
+        client: clientInfo.client,
+        ref: clientInfo.ref || `QTE-DB-${savedQuote.id}`,
+        validity: savedQuote.valid_until,
+        status: savedQuote.status,
+        lines,
+        volumeCbm: calcVolumeCbm,
+        weightKg: calcWeight
+      };
 
-    const updatedQuotes = [newDraft, ...savedQuotes.filter(q => q.ref !== newDraft.ref)];
-    setSavedQuotes(updatedQuotes);
-    localStorage.setItem('forwarderos_quotes', JSON.stringify(updatedQuotes));
-    alert(`Cotización con referencia "${newDraft.ref}" guardada correctamente en el registro.`);
+      const updatedQuotes = [newDraft, ...savedQuotes.filter(q => q.ref !== newDraft.ref)];
+      setSavedQuotes(updatedQuotes);
+      alert(`Cotización con referencia "${newDraft.ref}" guardada correctamente en base de datos.`);
+    } catch (e) {
+      console.error(e);
+      alert('Error guardando la cotización en base de datos');
+    }
   };
 
   const handleLoadDraft = (quote: QuoteDraft) => {
@@ -233,7 +267,7 @@ export default function QuotesPage() {
     e.stopPropagation();
     const updated = savedQuotes.filter(q => q.id !== id);
     setSavedQuotes(updated);
-    localStorage.setItem('forwarderos_quotes', JSON.stringify(updated));
+    // Deletion is visual-only for now until the backend delete route is added
   };
 
   // Perfect PDF generation for pricing sheets matching official SCM parameters

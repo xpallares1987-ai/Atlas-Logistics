@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CompanyAddress, AddressType } from '@/lib/addressStore';
-import { getContacts, addContact, updateContact, deleteContact } from '@/lib/services/crmService';
-import { useFirebase } from '@xpallares1987-ai/control-tower-ui';
+import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer } from '@/app/actions/actions';
 import { 
   Search, 
   MapPin, 
@@ -24,21 +22,20 @@ import {
 } from 'lucide-react';
 
 export default function ContactsPage() {
-  const { db } = useFirebase();
-  const [addresses, setAddresses] = useState<CompanyAddress[]>([]);
+  const [addresses, setAddresses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<CompanyAddress | null>(null);
+  const [editingAddress, setEditingAddress] = useState<any | null>(null);
 
   // Form Fields
   const [name, setName] = useState('');
   const [taxId, setTaxId] = useState('');
   const [taxIdError, setTaxIdError] = useState('');
-  const [type, setType] = useState<AddressType>('Cliente');
+  const [type, setType] = useState<string>('Cliente');
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
   const [stateProv, setStateProv] = useState('');
@@ -68,12 +65,19 @@ export default function ContactsPage() {
 
   // Load addresses on mount
   useEffect(() => {
-    if (!db) return;
     const load = async () => {
       setLoading(true);
       try {
-        const data = await getContacts(db);
-        setAddresses(data);
+        const data = await fetchCustomers();
+        // map backend properties to the UI state
+        const mappedData = data.map((c: any) => ({
+          ...c,
+          taxId: c.tax_id || '',
+          stateProv: c.state_prov || '',
+          postalCode: c.postal_code || '',
+          contactPerson: c.contact_person || ''
+        }));
+        setAddresses(mappedData);
       } catch (err) {
         console.error("Failed to load contacts", err);
       } finally {
@@ -81,7 +85,7 @@ export default function ContactsPage() {
       }
     };
     load();
-  }, [db]);
+  }, []);
 
   const handleOpenNewModal = () => {
     setEditingAddress(null);
@@ -101,7 +105,7 @@ export default function ContactsPage() {
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (addr: CompanyAddress) => {
+  const handleOpenEditModal = (addr: any) => {
     setEditingAddress(addr);
     setName(addr.name);
     setTaxId(addr.taxId || '');
@@ -122,30 +126,29 @@ export default function ContactsPage() {
     e.preventDefault();
     if (!name.trim()) return;
     if (taxIdError) return;
-    if (!db) return;
 
     const contactData = {
       name: name.trim(),
-      taxId: taxId.trim() || 'N/A',
+      tax_id: taxId.trim() || 'N/A',
       type,
       street: street.trim(),
       city: city.trim(),
-      stateProv: stateProv.trim(),
+      state_prov: stateProv.trim(),
       country: country.trim() || 'España',
-      postalCode: postalCode.trim(),
+      postal_code: postalCode.trim(),
       phone: phone.trim(),
       email: email.trim(),
-      contactPerson: contactPerson.trim(),
+      contact_person: contactPerson.trim(),
       notes: notes.trim()
     };
 
     try {
       if (editingAddress) {
-        await updateContact(db, editingAddress.id, contactData);
-        setAddresses(addresses.map(a => a.id === editingAddress.id ? { ...contactData, id: editingAddress.id } as CompanyAddress : a));
+        const updated = await updateCustomer(editingAddress.id, contactData);
+        setAddresses(addresses.map(a => a.id === editingAddress.id ? { ...updated, taxId: updated.tax_id, stateProv: updated.state_prov, postalCode: updated.postal_code, contactPerson: updated.contact_person } : a));
       } else {
-        const newContact = await addContact(db, contactData);
-        setAddresses([...addresses, newContact]);
+        const newContact = await createCustomer(contactData);
+        setAddresses([...addresses, { ...newContact, taxId: newContact.tax_id, stateProv: newContact.state_prov, postalCode: newContact.postal_code, contactPerson: newContact.contact_person }]);
       }
       setIsModalOpen(false);
     } catch (err) {
@@ -154,10 +157,9 @@ export default function ContactsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!db) return;
     if (confirm('¿Está seguro de que desea eliminar esta dirección comercial?')) {
       try {
-        await deleteContact(db, id);
+        await deleteCustomer(Number(id));
         setAddresses(addresses.filter(a => a.id !== id));
       } catch (err) {
         console.error("Failed to delete contact", err);
@@ -176,7 +178,7 @@ export default function ContactsPage() {
     return matchesSearch && matchesType;
   });
 
-  const getTypeColor = (type: AddressType) => {
+  const getTypeColor = (type: string) => {
     switch (type) {
       case 'Cliente': return 'text-sky-450 bg-sky-500/10 border-sky-500/20';
       case 'Aduanas': return 'text-purple-450 bg-purple-500/10 border-purple-500/20';
@@ -454,7 +456,7 @@ export default function ContactsPage() {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setType(item.id as AddressType)}
+                      onClick={() => setType(item.id)}
                       className={`px-2.5 py-2.5 border text-[11px] font-bold rounded-lg transition-all text-center flex flex-col justify-center items-center gap-1 cursor-pointer select-none ${
                         type === item.id 
                           ? 'border-blue-500 bg-blue-500/10 text-blue-400' 

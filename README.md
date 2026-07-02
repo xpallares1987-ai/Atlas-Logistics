@@ -7,6 +7,7 @@ Sistema de gestión de cadena de suministro (SCM) y Freight Forwarding MVP. Este
 ## Características Principales
 
 - **Orquestación de Procesos:** Integración nativa con Zeebe para el flujo de trabajo de carga.
+- **Gestión Documental Compartida:** Utiliza `DocumentPreviewer` desde `Control-Tower-UI` para renderizado unificado de HBL y facturas.
 - **Arquitectura Async:** Backend de alto rendimiento construido sobre Fastify.
 - **Persistencia Type-Safe:** Uso de Drizzle ORM para consultas SQL seguras y eficientes.
 - **Frontend Interactivo:** Interfaz basada en Vite con soporte de modelado BPMN integrado.

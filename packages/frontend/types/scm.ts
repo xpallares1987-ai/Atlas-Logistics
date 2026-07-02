@@ -61,23 +61,28 @@ export interface Container {
 }
 
 export interface Shipment {
-  id: string;
+  id: string | number; // Added number support for Drizzle integer IDs
   reference: string;
   mblNumber: string;
   hblNumber: string;
+  tracking_number?: string; // Drizzle field
   carrier: string;
   origin: string;
   destination: string;
-  incoterm?: Incoterm;
+  origin_port?: string; // Drizzle field
+  destination_port?: string; // Drizzle field
+  incoterm?: Incoterm | string;
   cargoDetails?: CargoDetails;
   customsStatus?: CustomsStatus;
   etd: string;
   eta: string;
-  status: ShipmentStatus;
+  status: ShipmentStatus | string;
   mode: TransportMode;
   containers: Container[];
   milestones: Milestone[];
   delayed?: boolean;
+  type?: 'Direct' | 'MBL' | 'HBL' | string;
+  parent_shipment_id?: number | null;
 }
 
 export type DocumentType = 'MBL' | 'HBL' | 'CARGO_MANIFEST';
