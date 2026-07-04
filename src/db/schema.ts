@@ -121,8 +121,8 @@ export const shipments = pgTable('shipments', {
   origin_port: varchar('origin_port', { length: 10 }).default('CNSHA').notNull(),
   destination_port: varchar('destination_port', { length: 10 }).default('ESBCN').notNull(),
   status: shipmentStatusEnum('status').default('Booked').notNull(),
-  estimated_departure: timestamp('estimated_departure', { withTimezone: true }),
-  estimated_arrival: timestamp('estimated_arrival', { withTimezone: true }),
+  ets: timestamp('ets', { withTimezone: true }),
+  eta: timestamp('eta', { withTimezone: true }),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => {
@@ -536,4 +536,4 @@ export const inventoryMovementsRelations = relations(inventory_movements, ({ one
     fields: [inventory_movements.stock_item_id],
     references: [stock_items.id],
   }),
-}));
+}));

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:App="http://App" id="Definitions_MD" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Proc_MasterData" isExecutable="false">
+    <bpmn:startEvent id="MD_START" name="Solicitud Nueva Dirección">
+      <bpmn:outgoing>M1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="MD_SEARCH" name="Búsqueda en Seastep Global" App:icon="fa-solid fa-magnifying-glass" App:time="5" App:status="normal">
+      <bpmn:incoming>M1</bpmn:incoming>
+      <bpmn:outgoing>M2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:inclusiveGateway id="MD_GW" name="Validaciones Requeridas">
+      <bpmn:incoming>M2</bpmn:incoming>
+      <bpmn:outgoing>M_VAT</bpmn:outgoing>
+      <bpmn:outgoing>M_MAP</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+    <bpmn:serviceTask id="MD_VIES" name="Hugo AI: Validación VIES" App:icon="fa-solid fa-stamp" App:time="0" App:status="completed">
+      <bpmn:incoming>M_VAT</bpmn:incoming>
+      <bpmn:outgoing>M3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="MD_MAPS" name="Verificar en Google Maps" App:icon="fa-solid fa-location-dot" App:time="5" App:status="normal">
+      <bpmn:incoming>M_MAP</bpmn:incoming>
+      <bpmn:outgoing>M4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="MD_END" name="Dirección Validada">
+      <bpmn:incoming>M3</bpmn:incoming>
+      <bpmn:incoming>M4</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="M1" sourceRef="MD_START" targetRef="MD_SEARCH" />
+    <bpmn:sequenceFlow id="M2" sourceRef="MD_SEARCH" targetRef="MD_GW" />
+    <bpmn:sequenceFlow id="M_VAT" sourceRef="MD_GW" targetRef="MD_VIES" />
+    <bpmn:sequenceFlow id="M_MAP" sourceRef="MD_GW" targetRef="MD_MAPS" />
+    <bpmn:sequenceFlow id="M3" sourceRef="MD_VIES" targetRef="MD_END" />
+    <bpmn:sequenceFlow id="M4" sourceRef="MD_MAPS" targetRef="MD_END" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_MD">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Proc_MasterData">
+      <bpmndi:BPMNShape id="MD_START_di" bpmnElement="MD_START"><dc:Bounds x="150" y="100" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="MD_SEARCH_di" bpmnElement="MD_SEARCH"><dc:Bounds x="240" y="78" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="MD_GW_di" bpmnElement="MD_GW"><dc:Bounds x="400" y="93" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="MD_VIES_di" bpmnElement="MD_VIES"><dc:Bounds x="500" y="40" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="MD_MAPS_di" bpmnElement="MD_MAPS"><dc:Bounds x="500" y="160" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="MD_END_di" bpmnElement="MD_END"><dc:Bounds x="680" y="100" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="M1_di" bpmnElement="M1"><di:waypoint x="186" y="118" /><di:waypoint x="240" y="118" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M2_di" bpmnElement="M2"><di:waypoint x="340" y="118" /><di:waypoint x="400" y="118" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_VAT_di" bpmnElement="M_VAT"><di:waypoint x="425" y="93" /><di:waypoint x="425" y="80" /><di:waypoint x="500" y="80" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_MAP_di" bpmnElement="M_MAP"><di:waypoint x="425" y="143" /><di:waypoint x="425" y="200" /><di:waypoint x="500" y="200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M3_di" bpmnElement="M3"><di:waypoint x="600" y="80" /><di:waypoint x="640" y="80" /><di:waypoint x="640" y="118" /><di:waypoint x="680" y="118" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M4_di" bpmnElement="M4"><di:waypoint x="600" y="200" /><di:waypoint x="640" y="200" /><di:waypoint x="640" y="118" /><di:waypoint x="680" y="118" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+

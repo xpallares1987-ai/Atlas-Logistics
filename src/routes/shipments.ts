@@ -36,8 +36,8 @@ const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
     const allShipments = await query;
     return allShipments.map(s => ({
       ...s,
-      estimated_departure: s.estimated_departure?.toISOString() || null,
-      estimated_arrival: s.estimated_arrival?.toISOString() || null,
+      ets: s.ets?.toISOString() || null,
+      eta: s.eta?.toISOString() || null,
       created_at: s.created_at.toISOString(),
       updated_at: s.updated_at.toISOString()
     }));
@@ -66,8 +66,8 @@ const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
       mode: body.mode || 'Ocean FCL',
       origin_port: body.origin_port || 'CNSHA',
       destination_port: body.destination_port || 'ESBCN',
-      estimated_departure: body.estimated_departure ? new Date(body.estimated_departure) : null,
-      estimated_arrival: body.estimated_arrival ? new Date(body.estimated_arrival) : null
+      ets: body.ets ? new Date(body.ets) : null,
+      eta: body.eta ? new Date(body.eta) : null
     }).returning();
 
     // Trigger Zeebe workflow if connected
@@ -80,8 +80,8 @@ const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
     reply.status(201);
     return {
       ...shipment,
-      estimated_departure: shipment.estimated_departure?.toISOString() || null,
-      estimated_arrival: shipment.estimated_arrival?.toISOString() || null,
+      ets: shipment.ets?.toISOString() || null,
+      eta: shipment.eta?.toISOString() || null,
       created_at: shipment.created_at.toISOString(),
       updated_at: shipment.updated_at.toISOString()
     };
@@ -117,8 +117,8 @@ const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
 
     return {
       ...shipmentData,
-      estimated_departure: shipmentData.estimated_departure?.toISOString() || null,
-      estimated_arrival: shipmentData.estimated_arrival?.toISOString() || null,
+      ets: shipmentData.ets?.toISOString() || null,
+      eta: shipmentData.eta?.toISOString() || null,
       created_at: shipmentData.created_at.toISOString(),
       updated_at: shipmentData.updated_at.toISOString(),
       events: shipmentData.events.map(e => ({
@@ -146,8 +146,8 @@ const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
     const body = request.body as z.infer<typeof updateShipmentSchema>;
     
     const updateData: any = { ...body, updated_at: new Date() };
-    if (body.estimated_departure) updateData.estimated_departure = new Date(body.estimated_departure);
-    if (body.estimated_arrival) updateData.estimated_arrival = new Date(body.estimated_arrival);
+    if (body.ets) updateData.ets = new Date(body.ets);
+    if (body.eta) updateData.eta = new Date(body.eta);
 
     const [updated] = await db.update(shipments)
       .set(updateData)
@@ -160,8 +160,8 @@ const shipmentRoutes: FastifyPluginAsyncZod = async (server) => {
 
     return {
       ...updated,
-      estimated_departure: updated.estimated_departure?.toISOString() || null,
-      estimated_arrival: updated.estimated_arrival?.toISOString() || null,
+      ets: updated.ets?.toISOString() || null,
+      eta: updated.eta?.toISOString() || null,
       created_at: updated.created_at.toISOString(),
       updated_at: updated.updated_at.toISOString()
     };

@@ -34,10 +34,12 @@
     "argon2": "^0.44.0",
     "d3-color": "^3.1.0",
     "fastify-type-provider-zod": "^1.2.0",
+    "firebase": "^12.15.0",
     "ioredis": "^5.11.1",
     "pdfkit": "^0.19.1",
     "pino-pretty": "^11.3.0",
     "postgres": "^3.4.9",
+    "zeebe-node": "^8.3.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {

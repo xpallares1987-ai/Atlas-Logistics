@@ -1,5 +1,6 @@
 import { db } from './client.js';
 import { carriers, surcharge_types, freight_rates, surcharges, shipments, users } from './schema.js';
+import { eventBus } from '../core/event-bus.js';
 import argon2 from 'argon2';
 
 async function seed() {
@@ -82,21 +83,42 @@ async function seed() {
   // 4. Shipments
   console.log('Inserting shipments...');
   const shipmentStatuses = ['Booked', 'Received', 'OnBoard', 'Discharged', 'Delivered'] as const;
+  const shipmentModes = ['Ocean FCL', 'Ocean LCL', 'Air', 'Road'] as const;
+  const shipmentTypes = ['Direct', 'MBL', 'HBL'] as const;
   
   for (let i = 0; i < 15; i++) {
     const randomCarrier = insertedCarriers[Math.floor(Math.random() * insertedCarriers.length)];
     const randomStatus = shipmentStatuses[Math.floor(Math.random() * shipmentStatuses.length)];
+    const randomMode = shipmentModes[Math.floor(Math.random() * shipmentModes.length)];
+    const randomType = shipmentTypes[Math.floor(Math.random() * shipmentTypes.length)];
     const trackingNum = `AWB-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
 
-    await db.insert(shipments).values({
+    const etsDate = new Date();
+    etsDate.setDate(etsDate.getDate() + Math.floor(Math.random() * 10)); // ETS en los próximos 10 días
+    
+    const etaDate = new Date(etsDate);
+    etaDate.setDate(etaDate.getDate() + Math.floor(Math.random() * 20) + 15); // ETA 15-35 días después de ETS
+
+    const [newShipment] = await db.insert(shipments).values({
       tracking_number: trackingNum,
       carrier_id: randomCarrier.id,
       status: randomStatus,
-    });
+      type: randomType,
+      mode: randomMode,
+      origin_port: 'CNSHA',
+      destination_port: 'ESBCN',
+      ets: etsDate,
+      eta: etaDate,
+    }).returning();
+
+    // Sincronización con Firestore mediante el Event Bus usando publish en lugar de emit
+    eventBus.publish('shipment:created', newShipment);
   }
 
   console.log('✅ Seeding completed successfully!');
-  process.exit(0);
+  
+  // Retardo para permitir que las promesas asíncronas de Firestore (Event Bus) se resuelvan antes de matar el proceso
+  setTimeout(() => process.exit(0), 2000);
 }
 
 seed().catch((err) => {

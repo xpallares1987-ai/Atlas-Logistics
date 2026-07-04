@@ -20,13 +20,19 @@ const data = {
   ],
 };
 
-export const LogisticsSankey: React.FC = () => {
+export interface LogisticsSankeyProps {
+  data?: any;
+}
+
+export const LogisticsSankey: React.FC<LogisticsSankeyProps> = ({ data: externalData }) => {
   const [selectedNode, setSelectedNode] = React.useState<string | null>(null);
 
   const handleNodeClick = (node: any) => {
     console.log('Sankey Node clicked:', node.name);
     setSelectedNode(node.name === selectedNode ? null : node.name);
   };
+
+  const chartData = externalData || data;
 
   return (
     <div className="bg-white rounded-lg p-5 border border-slate-200 shadow-sm h-[400px]">
@@ -40,7 +46,7 @@ export const LogisticsSankey: React.FC = () => {
       </div>
       <ResponsiveContainer width="100%" height="100%">
         <Sankey
-          data={data}
+          data={chartData}
           nodeWidth={10}
           nodePadding={20}
           margin={{ top: 20, bottom: 20, left: 20, right: 20 }}

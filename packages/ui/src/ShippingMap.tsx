@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import type L from 'leaflet';
 import { LogisticsOverlay } from './LogisticsOverlay';
 
@@ -12,28 +12,34 @@ export function ShippingMap() {
   const mapRef = useRef<L.Map | null>(null);
 
   // Ports of Loading (POL) and Warehouses coordinates
-  const locations = [
+  const locations = useMemo(() => [
     { name: 'Shanghai Port (POL)', coords: [31.2304, 121.4737], type: 'pol' },
     { name: 'Valencia Port (POL)', coords: [39.4699, -0.3763], type: 'pol' },
     { name: 'Van Moer Warehouse (Antwerp)', coords: [51.2194, 4.4025], type: 'warehouse' },
-    { name: 'Hamilton Warehouse (Vogt)', coords: [48.1351, 11.5820], type: 'warehouse' },
+    { name: 'Hamilton Warehouse', coords: [48.1351, 11.5820], type: 'warehouse' },
     { name: 'Spanish Warehouse (TLSA)', coords: [40.4168, -3.7037], type: 'warehouse' },
-  ];
+  ], []);
 
   // Shipping routes coordinates for polyline drawing
-  const routes = [
+  const routes = useMemo(() => [
     { from: 'Shanghai Port (POL)', to: 'Van Moer Warehouse (Antwerp)', path: [[31.2304, 121.4737], [10.0, 105.0], [5.0, 95.0], [12.0, 43.0], [35.0, 15.0], [51.2194, 4.4025]] },
-    { from: 'Valencia Port (POL)', to: 'Hamilton Warehouse (Vogt)', path: [[39.4699, -0.3763], [43.0, 5.0], [48.1351, 11.5820]] },
+    { from: 'Valencia Port (POL)', to: 'Hamilton Warehouse', path: [[39.4699, -0.3763], [43.0, 5.0], [48.1351, 11.5820]] },
     { from: 'Valencia Port (POL)', to: 'Spanish Warehouse (TLSA)', path: [[39.4699, -0.3763], [40.4168, -3.7037]] },
-  ];
+  ], []);
 
   useEffect(() => {
     // Dynamic import to prevent SSR compilation failure on leaflet
     let isMounted = true;
+    let animationFrameId: number;
     
     const initMap = async () => {
       try {
         const L = await import('leaflet');
+        // Expose L globally so leaflet.markercluster can augment it
+        if (typeof window !== 'undefined') {
+          (window as any).L = L;
+        }
+
         // Import leaflet styles dynamically
         await import('leaflet/dist/leaflet.css');
 
@@ -100,6 +106,8 @@ export function ShippingMap() {
         map.addLayer(clusterGroup);
 
         // Draw dashed route lanes and place shipping vessel simulations
+        const activeVessels: { marker: L.Marker, path: number[][], progress: number, speed: number, route: typeof routes[0] }[] = [];
+
         routes.forEach((route) => {
           L.polyline(route.path as L.LatLngExpression[], {
             color: '#3b82f6',
@@ -109,7 +117,6 @@ export function ShippingMap() {
           }).addTo(map);
 
           // Ship simulation marker along the lane path
-          const midPoint = route.path[Math.floor(route.path.length / 2)];
           const shipIcon = L.divIcon({
             html: `<div style="font-size: 1.5rem; text-shadow: 0 0 10px #3b82f6; cursor: pointer;">🚢</div>`,
             className: 'custom-ship-icon',
@@ -117,10 +124,61 @@ export function ShippingMap() {
             iconAnchor: [12, 12]
           });
 
-          L.marker(midPoint as L.LatLngExpression, { icon: shipIcon })
-            .bindPopup(`<b>Vessel Transit</b><br/>En-route: ${route.from} ➔ ${route.to}`)
+          const marker = L.marker(route.path[0] as L.LatLngExpression, { icon: shipIcon })
+            .bindPopup(`<b>Vessel Transit</b><br/>En-route: ${route.from} ➔ ${route.to}<br/>Speed: 0.0 kts<br/>Heading: 000°`)
             .addTo(map);
+            
+          activeVessels.push({
+             marker,
+             path: route.path,
+             progress: 0,
+             speed: 0.001 + Math.random() * 0.001, // random speed for each vessel
+             route
+          });
         });
+
+        let lastTime = performance.now();
+        const animate = (time: number) => {
+          if (!isMounted) return;
+          const delta = time - lastTime;
+          lastTime = time;
+          
+          activeVessels.forEach(vessel => {
+            vessel.progress += vessel.speed * (delta / 16);
+            if (vessel.progress >= vessel.path.length - 1) {
+              vessel.progress = 0; // Loop the simulation
+            }
+            
+            const index = Math.floor(vessel.progress);
+            const nextIndex = index + 1;
+            const fraction = vessel.progress - index;
+            
+            const startNode = vessel.path[index];
+            const endNode = vessel.path[nextIndex];
+            
+            const lat = startNode[0] + (endNode[0] - startNode[0]) * fraction;
+            const lng = startNode[1] + (endNode[1] - startNode[1]) * fraction;
+            
+            vessel.marker.setLatLng([lat, lng] as L.LatLngExpression);
+            
+            // Calculate heading
+            const latDiff = endNode[0] - startNode[0];
+            const lngDiff = endNode[1] - startNode[1];
+            let heading = Math.atan2(lngDiff, latDiff) * (180 / Math.PI);
+            if (heading < 0) heading += 360;
+            const headingStr = Math.round(heading).toString().padStart(3, '0');
+            
+            // Mock speed telemetry (base 15-20 knots + small fluctuation)
+            const baseSpeed = 15 + (vessel.speed * 1000);
+            const mockSpeed = (baseSpeed + (Math.sin(time / 1000) * 1.5)).toFixed(1);
+            
+            const popupContent = `<b>Vessel Transit</b><br/>En-route: ${vessel.route.from} ➔ ${vessel.route.to}<br/>Speed: ${mockSpeed} kts<br/>Heading: ${headingStr}°`;
+            vessel.marker.setPopupContent(popupContent);
+          });
+          
+          animationFrameId = requestAnimationFrame(animate);
+        };
+        animationFrameId = requestAnimationFrame(animate);
 
         setLeafletLoaded(true);
       } catch (err) {
@@ -132,12 +190,13 @@ export function ShippingMap() {
 
     return () => {
       isMounted = false;
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [locations, routes]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '400px', borderRadius: '1.5rem', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)' }}>

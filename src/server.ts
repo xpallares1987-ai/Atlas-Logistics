@@ -14,6 +14,7 @@ import {
   jsonSchemaTransform 
 } from 'fastify-type-provider-zod';
 import { randomUUID } from 'crypto';
+import { env } from './core/config.js';
 
 import shipmentRoutes from './routes/shipments.js';
 import processRoutes from './routes/processes.js';
@@ -26,7 +27,6 @@ import rateRoutes from './routes/rates.js';
 import documentRoutes from './routes/documents.js';
 import userRoutes from './routes/users.js';
 import crmRoutes from './routes/crm.js';
-
 import quoteRoutes from './routes/quotes.js';
 import financialRoutes from './routes/financial.js';
 import customsRoutes from './routes/customs.js';
@@ -49,7 +49,7 @@ server.setSerializerCompiler(serializerCompiler);
 
 server.register(helmet, { global: true, contentSecurityPolicy: false });
 
-const ALLOWED_ORIGINS = process.env.NODE_ENV === 'production' 
+const ALLOWED_ORIGINS = env.NODE_ENV === 'production' 
   ? ['https://xpallares1987-ai.github.io'] 
   : ['http://localhost:5173', 'http://localhost:3000', 'https://xpallares1987-ai.github.io'];
 
@@ -61,20 +61,20 @@ server.register(cors, {
 server.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 server.register(fastifyCompress, { global: true });
 
-// WebSockets Configuration (Phase 4)
+// WebSockets Configuration
 server.register(fastifyWebsocket);
 
-// JWT Configuration (Phase 4)
+// JWT Configuration
 server.register(fastifyJwt, {
-  secret: process.env.JWT_SECRET || 'control-tower-industrial-secret-2027'
+  secret: env.ENCRYPTION_KEY || 'control-tower-industrial-secret-2027'
 });
 
-// Swagger Configuration (Phase 4)
+// Swagger Configuration
 server.register(fastifySwagger, {
   openapi: {
     info: {
-      title: 'Atlas Logistics API',
-      description: 'Industrial-grade logistics process automation API',
+      title: 'API Atlas Logistics SCM',
+      description: 'API de grado industrial para la automatización de operativas de Freight Forwarding',
       version: '1.0.0'
     },
     components: {
@@ -103,6 +103,10 @@ server.decorate('authenticate', async (request: any, reply: any) => {
   }
 });
 
+import { zbc } from './core/zeebe.js';
+import { startZeebeWorkers } from './workers/zeebe-workers.js';
+import { eventBus } from './core/event-bus.js';
+
 // Register Domain-Specific Routes
 server.register(authRoutes);
 server.register(shipmentRoutes);
@@ -116,30 +120,69 @@ server.register(documentRoutes);
 server.register(userRoutes);
 server.register(crmRoutes);
 server.register(quoteRoutes);
-    server.register(financialRoutes);
-    server.register(customsRoutes);
-    server.register(wmsRoutes);
-    server.register(ediRoutes);
+server.register(financialRoutes);
+server.register(customsRoutes);
+server.register(wmsRoutes);
+server.register(ediRoutes);
+
+// Register WebSocket Route for Real-Time Event Broadcasting
+server.register(async (app) => {
+  app.get('/ws', { websocket: true }, (connection, req) => {
+    app.log.info('Client connected to WebSocket');
     
-    const idempotencyCache = new Set<string>();
+    // Listen to internal eventBus and broadcast to this connected WebSocket client
+    const onWorkflowUpdate = (data: any) => {
+      connection.socket.send(JSON.stringify(data));
+    };
+    
+    eventBus.subscribe('workflow:update', onWorkflowUpdate);
+
+    connection.socket.on('close', () => {
+      app.log.info('Client disconnected from WebSocket');
+      eventBus.unsubscribe('workflow:update', onWorkflowUpdate);
+    });
+  });
+});
+
+// Control de idempotencia con prevención de Memory Leak (TTL)
+const idempotencyCache = new Map<string, number>();
+const IDEMPOTENCY_TTL = 60000; // 1 minuto en milisegundos
 
 server.addHook('preHandler', async (request, reply) => {
   if (request.method === 'POST' || request.method === 'PUT') {
     const idempotencyKey = request.headers['x-idempotency-key'] as string;
     if (idempotencyKey) {
-      if (idempotencyCache.has(idempotencyKey)) {
-        return reply.status(409).send({ error: 'Conflict', message: 'Request already processed' });
+      const now = Date.now();
+      const expiration = idempotencyCache.get(idempotencyKey);
+
+      if (expiration && expiration > now) {
+        return reply.status(409).send({ error: 'Conflicto', message: 'La petición ya ha sido procesada' });
       }
-      idempotencyCache.add(idempotencyKey);
+      
+      idempotencyCache.set(idempotencyKey, now + IDEMPOTENCY_TTL);
+
+      // Limpieza periódica ligera si la caché crece demasiado
+      if (idempotencyCache.size > 1000) {
+        for (const [key, exp] of idempotencyCache.entries()) {
+          if (exp <= now) {
+            idempotencyCache.delete(key);
+          }
+        }
+      }
     }
   }
 });
 
 export const startServer = async () => {
   try {
-    await server.listen({ port: 3000, host: '0.0.0.0' });
-    console.log('Atlas Logistics API running on http://localhost:3000');
-    console.log('Documentation available at http://localhost:3000/documentation');
+    const port = parseInt(env.PORT || '3000', 10);
+    
+    // Start Zeebe BPMN Workers
+    startZeebeWorkers(zbc);
+
+    await server.listen({ port, host: '0.0.0.0' });
+    console.log(`🚀 API Atlas Logistics SCM en ejecución: http://0.0.0.0:${port}`);
+    console.log(`📚 Documentación Swagger disponible en: http://0.0.0.0:${port}/documentation`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);

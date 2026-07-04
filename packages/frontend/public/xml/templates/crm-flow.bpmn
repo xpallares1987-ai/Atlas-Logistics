@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:App="http://App" id="Definitions_Quotation" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collab_Quote">
+    <bpmn:participant id="Part_App_Quote" name="App – Pricing Department" processRef="Proc_Quote" />
+    <bpmn:participant id="Part_Carrier" name="Carrier / Naviera" processRef="Proc_Ext_Carrier" />
+    <bpmn:messageFlow id="Msg_RFQ" name="Solicitud de Tarifas" sourceRef="Part_App_Quote" targetRef="Part_Carrier" />
+    <bpmn:messageFlow id="Msg_Rates" name="Tarifas Spot" sourceRef="Part_Carrier" targetRef="Q_START" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Proc_Quote" isExecutable="false">
+    <bpmn:startEvent id="Q_START" name="RFQ / Tarifas Recibidas">
+      <bpmn:outgoing>Q1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Q_CALC" name="Cálculo de Margen" App:icon="fa-solid fa-calculator" App:time="15" App:status="normal">
+      <bpmn:incoming>Q1</bpmn:incoming>
+      <bpmn:outgoing>Q2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Q_PREP" name="Preparar Oferta SIMI" App:icon="fa-solid fa-file-invoice-dollar" App:time="10" App:status="normal">
+      <bpmn:incoming>Q2</bpmn:incoming>
+      <bpmn:outgoing>Q3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Q_GW" name="¿Supera 100 TEUs?">
+      <bpmn:incoming>Q3</bpmn:incoming>
+      <bpmn:outgoing>Q_APPROVE</bpmn:outgoing>
+      <bpmn:outgoing>Q_DIRECT</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Q_MGMT" name="Aprobación Management" App:icon="fa-solid fa-users" App:time="30" App:status="critical">
+      <bpmn:incoming>Q_APPROVE</bpmn:incoming>
+      <bpmn:outgoing>Q4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="Q_END" name="Oferta Enviada">
+      <bpmn:incoming>Q4</bpmn:incoming>
+      <bpmn:incoming>Q_DIRECT</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Q1" sourceRef="Q_START" targetRef="Q_CALC" />
+    <bpmn:sequenceFlow id="Q2" sourceRef="Q_CALC" targetRef="Q_PREP" />
+    <bpmn:sequenceFlow id="Q3" sourceRef="Q_PREP" targetRef="Q_GW" />
+    <bpmn:sequenceFlow id="Q_APPROVE" name="Sí" sourceRef="Q_GW" targetRef="Q_MGMT" />
+    <bpmn:sequenceFlow id="Q_DIRECT" name="No" sourceRef="Q_GW" targetRef="Q_END" />
+    <bpmn:sequenceFlow id="Q4" sourceRef="Q_MGMT" targetRef="Q_END" />
+  </bpmn:process>
+
+  <bpmn:process id="Proc_Ext_Carrier" isExecutable="false" />
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Quotation">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collab_Quote">
+      <bpmndi:BPMNShape id="Part_App_Quote_di" bpmnElement="Part_App_Quote" isHorizontal="true"><dc:Bounds x="160" y="200" width="900" height="280" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Part_Carrier_di" bpmnElement="Part_Carrier" isHorizontal="true"><dc:Bounds x="160" y="40" width="900" height="100" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Q_START_di" bpmnElement="Q_START"><dc:Bounds x="212" y="322" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Q_CALC_di" bpmnElement="Q_CALC"><dc:Bounds x="300" y="300" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Q_PREP_di" bpmnElement="Q_PREP"><dc:Bounds x="450" y="300" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Q_GW_di" bpmnElement="Q_GW" isMarkerVisible="true"><dc:Bounds x="600" y="315" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Q_MGMT_di" bpmnElement="Q_MGMT"><dc:Bounds x="720" y="240" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Q_END_di" bpmnElement="Q_END"><dc:Bounds x="902" y="322" width="36" height="36" /></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Q1_di" bpmnElement="Q1"><di:waypoint x="248" y="340" /><di:waypoint x="300" y="340" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Q2_di" bpmnElement="Q2"><di:waypoint x="400" y="340" /><di:waypoint x="450" y="340" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Q3_di" bpmnElement="Q3"><di:waypoint x="550" y="340" /><di:waypoint x="600" y="340" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Q_APPROVE_di" bpmnElement="Q_APPROVE"><di:waypoint x="625" y="315" /><di:waypoint x="625" y="280" /><di:waypoint x="720" y="280" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Q_DIRECT_di" bpmnElement="Q_DIRECT"><di:waypoint x="650" y="340" /><di:waypoint x="902" y="340" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Q4_di" bpmnElement="Q4"><di:waypoint x="820" y="280" /><di:waypoint x="861" y="280" /><di:waypoint x="861" y="340" /><di:waypoint x="902" y="340" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+

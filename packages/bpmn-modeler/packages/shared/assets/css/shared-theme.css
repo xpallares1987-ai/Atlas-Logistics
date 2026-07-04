@@ -1,0 +1,96 @@
+/* 
+  Freight Forwarder Design System (Control Tower)
+  Professional, High-Trust, Industrial
+*/
+
+:root {
+  /* Brand Colors */
+  --ff-navy: #0f172a; /* Deep Navy - Trust & Authority */
+  --ff-blue: #2563eb; /* Logistics Blue - Core Action (Optimized for contrast 4.5:1) */
+  --ff-blue-hover: #1d4ed8;
+  --ff-blue-soft: #dbeafe;
+
+  /* Semantic Colors */
+  --ff-success: #10b981; /* On-time / Delivered */
+  --ff-warning: #f59e0b; /* Delayed / Pending */
+  --ff-danger: #ef4444; /* Exception / Cancelled */
+
+  /* Shadows & Radius */
+  --ff-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --ff-shadow-md:
+    0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --ff-shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
+  --ff-radius-sm: 8px;
+  --ff-radius-md: 12px;
+  --ff-radius-lg: 20px;
+
+  /* Animation */
+  --ff-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Light Theme (Default) */
+  --ff-bg-main: #f8fafc;
+  --ff-bg-card: #ffffff;
+  --ff-bg-tertiary: #f1f5f9;
+  --ff-text-main: #0f172a;
+  --ff-text-soft: #64748b;
+  --ff-text-muted: #94a3b8;
+  --ff-border: #e2e8f0;
+}
+
+[data-theme="dark"] {
+  --ff-bg-main: #020617;
+  --ff-bg-card: #0f172a;
+  --ff-bg-tertiary: #1e293b;
+  --ff-text-main: #f8fafc;
+  --ff-text-soft: #cbd5e1;
+  --ff-text-muted: #64748b;
+  --ff-border: #1e293b;
+}
+
+/* Base Styles for Containers */
+.ff-card {
+  background: var(--ff-bg-card);
+  border: 1px solid var(--ff-border);
+  border-radius: var(--ff-radius-md);
+  box-shadow: var(--ff-shadow-sm);
+  transition: var(--ff-transition);
+}
+
+.ff-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--ff-shadow-md);
+}
+
+.ff-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--ff-radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--ff-transition);
+  border: 1px solid transparent;
+}
+
+.ff-btn-primary {
+  background: var(--ff-blue);
+  color: #ffffff;
+}
+
+.ff-btn-primary:hover {
+  background: var(--ff-blue-hover);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+}
+
+.ff-btn-secondary {
+  background: var(--ff-bg-tertiary);
+  color: var(--ff-text-main);
+  border-color: var(--ff-border);
+}
+
+.ff-btn-secondary:hover {
+  background: var(--ff-border);
+}

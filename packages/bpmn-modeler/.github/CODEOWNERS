@@ -1,0 +1,5 @@
+# CODEOWNERS
+# This file defines the default code owners for the repository
+
+# All files are owned by the repository admin(s)
+*       @xpall
