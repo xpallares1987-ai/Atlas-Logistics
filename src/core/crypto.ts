@@ -2,7 +2,6 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { env } from './config.js';
 
 const ALGORITHM = 'aes-256-gcm';
-// En producción, esta clave debe inyectarse vía variables de entorno. Debe tener 32 bytes.
 const ENCRYPTION_KEY = Buffer.from(env.ENCRYPTION_KEY, 'utf-8');
 
 export const encryptData = (text: string): string => {

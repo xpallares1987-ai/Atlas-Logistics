@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+
+
+    "baseUrl": ".",
+    "types": [ "vite/client" ],
+    "paths": {
+      "@/*": [ "./src/*" ],
+      "@torre/shared": [ "./src/shared/src/index.ts" ],
+      "@torre/ui": [ "./src/ui-shared/src/index.ts" ],
+      "@control-tower/feature-flags": [ "./src/feature-flags/index.ts" ]
+    }
+  },
+  "include": [ "src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "src/**/*.js" ]
+}

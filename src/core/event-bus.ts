@@ -1,5 +1,3 @@
-// src/core/event-bus.ts
-
 type EventHandler<T = any> = (data: T) => void;
 
 class EventBus {
@@ -27,4 +25,4 @@ class EventBus {
   }
 }
 
-export const eventBus = new EventBus();
+export const eventBus = new EventBus();

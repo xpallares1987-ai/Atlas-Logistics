@@ -1,6 +1,6 @@
 'use client';
 import { ReactNode, useState } from 'react';
-import { useAuth, FirebaseProvider } from '@xpallares1987-ai/control-tower-ui';
+import { useAuth, FirebaseProvider } from '@atlas/ui';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const firebaseConfig = {
@@ -176,3 +176,4 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
   return <>{children}</>;
 }
+

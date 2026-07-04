@@ -11,20 +11,18 @@ interface RateData {
 }
 
 const processBatch = (rates: RateData[]) => {
-  const processedRates = rates.map(rate => {
-    return {
-      carrierId: rate.carrierId,
-      originPort: rate.originPort,
-      destinationPort: rate.destinationPort,
-      currency: rate.currency,
-      baseRate: Number(rate.baseRate).toFixed(2),
-      validFrom: rate.validFrom,
-      validTo: rate.validTo,
-      processedAt: new Date().toISOString()
-    };
-  });
+  const processedAt = new Date().toISOString();
   
-  return processedRates;
+  return rates.map(rate => ({
+    carrierId: rate.carrierId,
+    originPort: rate.originPort,
+    destinationPort: rate.destinationPort,
+    currency: rate.currency,
+    baseRate: Number(rate.baseRate).toFixed(2),
+    validFrom: rate.validFrom,
+    validTo: rate.validTo,
+    processedAt
+  }));
 };
 
 if (parentPort) {

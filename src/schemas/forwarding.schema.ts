@@ -21,8 +21,8 @@ export const shipmentSchema = z.object({
   origin_port: z.string().max(10),
   destination_port: z.string().max(10),
   status: shipmentStatusSchema,
-  estimated_departure: z.string().datetime().nullable().optional(),
-  estimated_arrival: z.string().datetime().nullable().optional(),
+  ets: z.string().datetime().nullable().optional(),
+  eta: z.string().datetime().nullable().optional(),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional(),
 });

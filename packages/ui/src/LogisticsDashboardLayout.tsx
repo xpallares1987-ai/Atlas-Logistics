@@ -1,6 +1,5 @@
 import React, { ReactNode } from 'react';
 import { LayoutDashboard, RefreshCw } from 'lucide-react';
-import Link from 'next/link';
 
 export interface NavItem {
   id: string;
@@ -49,9 +48,9 @@ export const LogisticsDashboardLayout: React.FC<LogisticsDashboardLayoutProps> =
           {navItems.map((item) => {
             if (item.href) {
               return (
-                <Link key={item.id} href={item.href} className="nav-link-special">
+                <a key={item.id} href={item.href} className="nav-link-special">
                   {item.icon} {item.label}
-                </Link>
+                </a>
               );
             }
             return (
