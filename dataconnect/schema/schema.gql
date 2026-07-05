@@ -1,0 +1,60 @@
+type User @table(key: "uid") {
+  uid: String!
+  email: String!
+  role: String!
+}
+
+type Company @table {
+  name: String!
+  email: String!
+  entityType: String! # SHIPPER, CONSIGNEE, CARRIER
+  phoneNumber: String
+  address: String
+  contactPerson: String
+  serviceType: String
+  rating: Float
+}
+
+type Quote @table {
+  origin: String!
+  destination: String!
+  baseRate: Float!
+  surcharges: Float
+  validityDate: Date!
+  carrier: Company! @ref
+  createdBy: User! @ref
+}
+
+type Shipment @table {
+  trackingNumber: String!
+  status: String! # PENDING, IN_TRANSIT, CUSTOMS, DELIVERED
+  origin: String!
+  destination: String!
+  ets: Timestamp
+  eta: Timestamp
+  weight: Float
+  shipper: Company! @ref
+  consignee: Company! @ref
+  relatedQuote: Quote @ref
+}
+
+type Workflow @table {
+  diagramXml: String!
+  currentNode: String!
+  shipment: Shipment! @ref
+}
+
+type Document @table {
+  documentType: String!
+  fileUrl: String!
+  uploadDate: Timestamp @default(expr: "request.time")
+  description: String
+  shipment: Shipment! @ref
+}
+
+type Milestone @table {
+  description: String!
+  timestamp: Timestamp! @default(expr: "request.time")
+  location: String
+  shipment: Shipment! @ref
+}

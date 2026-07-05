@@ -1,4 +1,6 @@
 import { SharedDatabase } from './db';
+import { decryptToken } from './crypto';
+import { publishEvent } from './broadcast-service';
 
 let dbInstance: SharedDatabase | null = null;
 
@@ -70,7 +72,6 @@ export async function swrFetch<T>(config: SWRConfig<T>): Promise<T | null> {
 
   // 2. Define background revalidator
   const runBackgroundRevalidation = async () => {
-    const { decryptToken } = await import('./crypto');
     for (const path of filePaths) {
       try {
         const response = await fetch(path);
@@ -91,7 +92,6 @@ export async function swrFetch<T>(config: SWRConfig<T>): Promise<T | null> {
               onCacheUpdated(parsed);
             }
             // Also notify globally using BroadcastChannel
-            const { publishEvent } = await import('./broadcast-service');
             publishEvent({
               type: 'XML_CACHE_UPDATED',
               payload: { key, isNew: !cached },

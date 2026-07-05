@@ -35,7 +35,7 @@ const rateRoutes: FastifyPluginAsyncZod = async (server) => {
       }
     },
     onRequest: [(server as any).authenticate]
-  }, async (request, reply) => {
+  }, async (_request, _reply) => {
     const rates = await db.query.freight_rates.findMany({
       with: {
         carrier: true,
@@ -121,7 +121,7 @@ const rateRoutes: FastifyPluginAsyncZod = async (server) => {
         destination: z.string().optional()
       })
     }
-  }, async (request, reply) => {
+  }, async (request, _reply) => {
     const { origin, destination } = request.query as { origin?: string, destination?: string };
     
     const query = db.select().from(freight_rates);

@@ -1,73 +1,67 @@
-# Atlas Logistics (SCM MVP)
+# Atlas Logistics (SCM Súper-App)
 
 [![CI](https://github.com/xpallares1987-ai/Atlas-Logistics/actions/workflows/ci.yml/badge.svg)](https://github.com/xpallares1987-ai/Atlas-Logistics/actions/workflows/ci.yml)
 
-Sistema de gestión de cadena de suministro (SCM) y Freight Forwarding MVP. Este proyecto integra orquestación de procesos mediante **Zeebe (Camunda 8)**, persistencia robusta con **Drizzle ORM** y una arquitectura de alto rendimiento basada en **Fastify**.
+Plataforma integral de gestión de cadena de suministro (SCM) y Freight Forwarding. 
+Esta Súper-App consolida todas nuestras herramientas logísticas bajo una **única arquitectura Monorepo gestionada por Turborepo**.
 
-## Características Principales
+## 🏗 Arquitectura del Ecosistema
 
-- **Orquestación de Procesos:** Integración nativa con Zeebe para el flujo de trabajo de carga.
-- **Gestión Documental Compartida:** Utiliza `DocumentPreviewer` desde `Control-Tower-UI` para renderizado unificado de HBL y facturas.
-- **Arquitectura Async:** Backend de alto rendimiento construido sobre Fastify.
-- **Persistencia Type-Safe:** Uso de Drizzle ORM para consultas SQL seguras y eficientes.
-- **Frontend Interactivo:** Interfaz basada en Vite con soporte de modelado BPMN integrado.
-- **Infraestructura Dockerizada:** Entorno completo con PostgreSQL y Redis mediante Docker Compose.
-- **Mantenimiento Automatizado:** Scripts integrados para la poda automatizada de logs de auditoría antiguos (mayores de 90 días) para mantener un alto rendimiento de consultas.
+El proyecto ha abandonado su modelo de múltiples repositorios aislados y ahora se gestiona como un único monorepo compuesto por los siguientes paquetes principales (`packages/`):
 
-## Stack Tecnológico
+- **`@atlas/frontend`**: La Súper-App Host (Vite + React Router) que orquesta la navegación global.
+- **`@atlas/ui`**: Sistema de diseño y biblioteca compartida de componentes logísticos.
+- **`@atlas/dashboard`**: Panel principal para analítica de embarques, KPIs y sostenibilidad (ESG).
+- **`@atlas/freight-comparer`**: Motor de cotización, comparación y consolidación LCL.
+- **`@atlas/bpmn-modeler`**: Modelador de procesos BPMN 2.0 interactivo.
 
-- **Backend:** Fastify (TypeScript), Zod.
-- **Frontend:** Vite, bpmn-js.
-- **ORM:** Drizzle ORM (PostgreSQL).
-- **Cache:** Redis (ioredis).
-- **Orquestación:** Zeebe (zeebe-node).
-- **Testing:** Vitest.
-- **Gestor de Paquetes:** pnpm v10.
+## 🚀 Tecnologías Clave
 
-## Guía de Inicio
+- **Frontend Core:** Vite, React 19, React Router v7.
+- **Estilos:** TailwindCSS v4, Lucide React.
+- **Base de Datos & Backend:** **Firebase Data Connect** (Google Cloud SQL / PostgreSQL).
+- **Orquestación de Monorepo:** pnpm v10 + Turborepo.
+- **Despliegue Contenerizado:** Docker (Multi-stage build usando `nginx:alpine`).
+- **Mapas y Telemetría:** Leaflet con integración AIS en tiempo real.
+- **Workflows (Backend Opcional):** Zeebe / Camunda 8 (Requiere Docker local para orquestación compleja).
 
-### Requisitos
+## 🛠 Guía de Inicio Local
 
-- **Node.js:** v20+ (LTS).
-- **pnpm:** v10+.
-- **Docker & Docker Compose:** Para servicios de base de datos y cache.
+### Requisitos Previos
+- **Node.js:** v20 o superior.
+- **pnpm:** v10 o superior (`npm install -g pnpm`).
+- **Firebase CLI:** v12+ (`npm install -g firebase-tools`).
 
-### Instalación
-
+### 1. Instalación Global
+Desde la raíz del repositorio, ejecuta la instalación. Turborepo enlazará inteligentemente todas las dependencias cruzadas:
 ```bash
 pnpm install
 ```
 
-### Infraestructura
-
-Levanta los servicios necesarios:
-
+### 2. Sincronización de Base de Datos (Data Connect)
+Para generar el SDK tipado local y poder comunicarte con la base de datos Postgres de la nube:
 ```bash
-docker-compose up -d
+firebase init dataconnect
+firebase dataconnect:sdk:generate
+```
+*Nota: El SDK autogenerado se depositará en `src/dataconnect-generated`.*
+
+### 3. Ejecución de la Súper-App
+Para lanzar el servidor de desarrollo y visualizar todo el ecosistema unificado en tu navegador (`http://localhost:5173`):
+```bash
+pnpm run dev --filter @atlas/frontend
 ```
 
-### Desarrollo
-
+### 4. Compilación con Docker (Producción)
+La Súper-App utiliza un modelo **Multi-stage** para generar una imagen Docker ultra-ligera:
 ```bash
-pnpm run dev
+# Construye la app estática y la envuelve en un servidor Nginx
+docker compose build
+docker compose up -d
 ```
 
-## Mantenimiento
+## 🌐 Flujo CI/CD
+El proyecto utiliza GitHub Actions (`.github/workflows/ci.yml`) para verificar tipos, linting y build utilizando la caché remota de **Turborepo**. Al estar configurado con `firebase.json`, la Súper-App está lista para desplegarse de manera estática y unificada en **Firebase Hosting** o Google Cloud Run.
 
-Este repositorio es un proyecto independiente dentro del ecosistema **Control Tower** y sigue los estándares definidos en `Source/GEMINI.md`.
-
-### Comandos de Calidad
-
-```bash
-pnpm run lint          # Verificación de tipos y estilo (ESLint)
-pnpm run test          # Ejecución de pruebas unitarias
-pnpm run build         # Compilación de frontend y backend
-pnpm run db:clean-logs # Mantenimiento: Poda de logs de auditoría antiguos (90 días)
-```
-
-## Visión 2027: Resiliencia SCM
-El proyecto escala hacia una arquitectura con JWT, documentación OpenAPI automática y balanceo dinámico de workers Zeebe. Consulta el [Roadmap Maestro](../ROADMAP.md) para más detalles.
-
-## Licencia
-
-MIT – Parte del ecosistema **Control Tower**.
+---
+*Documentación actualizada tras la migración a Monorepo Súper-App (Julio 2026).*

@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15-alpine3.21
     ports:
       - "5432:5432"
     environment:
@@ -32,11 +32,24 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine3.21
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    restart: unless-stopped
+
+  zeebe:
+    image: camunda/zeebe:8.6.0
+    environment:
+      - ZEEBE_BROKER_NETWORK_HOST=0.0.0.0
+      - ZEEBE_BROKER_NETWORK_PORT=26500
+      - ZEEBE_BROKER_GATEWAY_ENABLE=true
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_CLASSNAME=io.camunda.zeebe.exporter.ElasticsearchExporter
+      - ZEEBE_LOG_LEVEL=info
+    ports:
+      - "26500:26500"
+      - "9600:9600"
     restart: unless-stopped
 
 volumes:

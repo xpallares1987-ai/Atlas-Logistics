@@ -3,7 +3,7 @@
 import React from 'react';
 import { AlertTriangle, Clock, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
 interface Alert {
   id: string;
@@ -38,7 +38,7 @@ export const AlertHistory = () => {
               <p className="text-xs text-gray-500">{alert.message}</p>
               <p className="text-[10px] text-gray-600 mt-1 flex items-center"><Clock className="w-3 h-3 mr-1" />{alert.timestamp}</p>
             </div>
-            <Link href={`/tracking?id=${alert.shipmentId}`} className="text-blue-500 hover:text-blue-400 text-xs font-bold flex items-center bg-blue-500/10 px-2 py-1 rounded">
+            <Link to={`/tracking?id=${alert.shipmentId}`} className="text-blue-500 hover:text-blue-400 text-xs font-bold flex items-center bg-blue-500/10 px-2 py-1 rounded">
                {alert.shipmentId} <ArrowRight className="w-3 h-3 ml-1" />
             </Link>
           </div>

@@ -24,6 +24,7 @@ export default defineConfig({
     lib: {
       entry: path.resolve(__dirname, 'src/index.ts'),
       name: 'ControlTowerUI',
+      formats: ['es'],
       fileName: (format) => `index.${format}.js`,
       cssFileName: 'control-tower-ui'
     },

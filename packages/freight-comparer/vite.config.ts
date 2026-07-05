@@ -23,7 +23,7 @@ export default defineConfig(() => {
       cors: true,
     },
     build: {
-      chunkSizeWarningLimit: 1000,
+      chunkSizeWarningLimit: 2000,
       rollupOptions: {
         output: {
           manualChunks(id) {

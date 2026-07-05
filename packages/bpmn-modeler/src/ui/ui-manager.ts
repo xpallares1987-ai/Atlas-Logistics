@@ -4,7 +4,7 @@
  */
 
 import { qs } from '@atlas/ui';
-import { Toast } from '@torre/ui';
+import { Toast } from '@atlas/ui';
 import type { AppUi } from '../types';
 import { AppState, updateTheme } from '../state';
 

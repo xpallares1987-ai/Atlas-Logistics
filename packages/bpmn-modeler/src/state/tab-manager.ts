@@ -4,7 +4,7 @@
  */
 
 import { safeTrim, ensureExtension } from '@atlas/ui';
-import { Toast } from '@torre/ui';
+import { Toast } from '@atlas/ui';
 import { createModeler, cleanupModeler, importDiagram } from '../services/modeler-service';
 import { getDiagramXml, loadXmlFromUrl } from '../services/xml-service';
 import { saveTabsSession } from '../services/storage-service';

@@ -1,7 +1,7 @@
 import { calculateProcessAnalytics, importDiagram } from '../services/modeler-service';
 import { safeGetMetadata, validateProperty } from '../schemas/metadata';
 import type { AppState } from '../state';
-import { Toast } from '@torre/ui';
+import { Toast } from '@atlas/ui';
 
 export function initLogisticsSidebar(state: AppState) {
   const sidebar = document.getElementById('propertiesSidebar');

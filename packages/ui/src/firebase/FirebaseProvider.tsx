@@ -53,7 +53,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ config, data
       const auth = getAuth(app);
       const db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
       const storage = getStorage(app);
-      const dataConnect = getDataConnect(app, { location: 'us-central1', connector: 'default' });
+      const dataConnect = getDataConnect(app, { location: 'europe-west1', connector: 'default', service: 'gen-lang-client-0393063451-service' });
       
       const googleProvider = new GoogleAuthProvider();
       const emailProvider = new EmailAuthProvider();

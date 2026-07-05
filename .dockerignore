@@ -1,0 +1,10 @@
+node_modules
+.pnpm
+npm-debug.log
+.git
+.turbo
+dist
+.next
+coverage
+.env.local
+.env

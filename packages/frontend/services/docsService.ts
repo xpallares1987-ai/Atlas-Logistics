@@ -41,7 +41,7 @@ export class DocumentationService {
   }
 
   public async issueDocument(id: string): Promise<DocumentRecord | null> {
-    const res = await fetch(`${API_BASE_URL}/documents/${id}/issue`, {
+    const res = await fetch(`${API_BASE_URL}/documents/${encodeURIComponent(id)}/issue`, {
       method: 'PATCH',
       headers: { 'Authorization': 'Bearer test-token' }
     });

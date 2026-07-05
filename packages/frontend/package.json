@@ -11,14 +11,16 @@
   },
   "dependencies": {
     "@atlas/bpmn-modeler": "workspace:*",
-    "@atlas/freight-comparer": "workspace:*",
     "@atlas/dashboard": "workspace:*",
-    "@tanstack/react-query": "^5.101.2",
+    "@atlas/freight-comparer": "workspace:*",
     "@atlas/ui": "workspace:*",
+    "@dataconnect/generated": "file:..\\..\\src\\dataconnect-generated",
+    "@tanstack/react-query": "^5.101.2",
     "d3": "^7.9.0",
     "d3-geo": "^3.1.1",
     "dexie": "^4.0.8",
     "dexie-react-hooks": "^1.1.7",
+    "fastify-type-provider-zod": "^1.2.0",
     "firebase": "^12.15.0",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.344.0",
@@ -49,6 +51,3 @@
     "vite-plugin-pwa": "^0.20.0"
   }
 }
-
-
-

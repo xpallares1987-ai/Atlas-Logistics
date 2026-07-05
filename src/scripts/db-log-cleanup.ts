@@ -13,7 +13,7 @@ async function main() {
   console.log(`[LogCleanup] Pruning audit logs created before ${ninetyDaysAgo.toISOString()}...`);
 
   try {
-    const result = await db.delete(audit_logs).where(lte(audit_logs.created_at, ninetyDaysAgo));
+    await db.delete(audit_logs).where(lte(audit_logs.created_at, ninetyDaysAgo));
     console.log(`[LogCleanup] Audit logs prune action executed successfully.`);
     process.exit(0);
   } catch (error) {

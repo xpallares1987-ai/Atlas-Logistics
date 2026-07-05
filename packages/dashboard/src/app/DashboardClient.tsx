@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { BarChart3, DollarSign, ShieldAlert, UploadCloud, DatabaseZap, Trash2, Timer, Leaf } from 'lucide-react';
-import { LogisticsDashboardLayout, DemurrageAlerts, ESGCarbonTracker, type NavItem } from '@atlas/ui';
+import { LogisticsDashboardLayout, ESGCarbonTracker, ShippingMap, type NavItem, useFirebase } from '@atlas/ui';
 
 import { FileUploader } from '../components/FileUploader';
 import { ColumnMapper } from '../components/ColumnMapper';
@@ -10,6 +10,7 @@ import { KpiPanel } from '../components/KpiPanel';
 import { FinancialPanel } from '../components/FinancialPanel';
 import { ExceptionPanel } from '../components/ExceptionPanel';
 import { TemplateDownloader } from '../components/TemplateDownloader';
+import { DndTracker } from '../components/DndTracker';
 
 import { parseFile } from '../services/csv-parser';
 import { buildMappingState, applyMapping } from '../services/column-mapper';
@@ -30,6 +31,12 @@ export default function DashboardClient() {
   const [mappingState, setMappingState] = useState<MappingState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [pendingFile, setPendingFile] = useState<{ file: File; id: string } | null>(null);
+
+  const { dataConnect } = useFirebase();
+
+  useEffect(() => {
+    // Retain mock functionality since schema was purged
+  }, [dataConnect]);
 
   useEffect(() => {
     // Initialize theme
@@ -239,7 +246,12 @@ export default function DashboardClient() {
       )}
 
       {activeTab === 'KPIs' && (
-        <KpiPanel metrics={kpis} isEmpty={store.operational.length === 0} />
+        <div className="flex flex-col gap-6">
+          <div className="mb-2 shadow-2xl rounded-3xl overflow-hidden border border-slate-700/50">
+            <ShippingMap shipments={[]} />
+          </div>
+          <KpiPanel metrics={kpis} isEmpty={store.operational.length === 0} liveKpis={null} />
+        </div>
       )}
 
       {activeTab === 'Financial' && (
@@ -251,7 +263,7 @@ export default function DashboardClient() {
       )}
 
       {activeTab === 'Demurrage' && (
-        <DemurrageAlerts />
+        <DndTracker />
       )}
 
       {activeTab === 'ESG' && (

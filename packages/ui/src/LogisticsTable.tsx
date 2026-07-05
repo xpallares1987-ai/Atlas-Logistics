@@ -1,5 +1,5 @@
 import React from 'react';
-import { BoardingItem, ReceptionItem, StockItem } from '@torre/shared';
+import { BoardingItem, ReceptionItem, StockItem } from '@atlas/shared';
 
 export type TableRowProps =
   | { type: 'Boarding'; item: BoardingItem; statusColor?: string; }

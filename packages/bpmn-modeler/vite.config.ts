@@ -27,6 +27,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 10485760, // 10 MiB
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff,woff2}'],
         // Large XML templates should be cached for offline use
         runtimeCaching: [
@@ -92,7 +93,6 @@ export default defineConfig({
       '@torre/ui/assets': path.resolve(__dirname, './src/ui-shared/assets'),
       '@torre/ui': path.resolve(__dirname, './src/ui-shared/src/index.ts'),
       '@control-tower/feature-flags': path.resolve(__dirname, './src/feature-flags/index.ts'),
-      '@bpmn-io/cm-theme': path.resolve(__dirname, './src/utils/cm-theme-shim.js'),
     },
   },
   server: {

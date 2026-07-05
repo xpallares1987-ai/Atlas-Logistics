@@ -2,14 +2,10 @@
 import '@atlas/ui/dist/control-tower-ui.css';
 import '../assets/css/app.css';
 import { initPassiveEventsPatch } from './utils/passive-events';
-import { createRoot } from 'react-dom/client';
-import { StrictMode } from 'react';
-import { AuthProvider } from './ui/AuthProvider';
-
 // Initialize performance patches
 initPassiveEventsPatch();
 
-import { getFeatures } from '@control-tower/feature-flags';
+const getFeatures = () => ({ enableTemplateManager: true });
 import { TemplateService } from './services/template-service';
 import { initTemplateManager } from './ui/template-manager';
 import { initLogisticsSidebar } from './ui/logistics-sidebar';
@@ -67,7 +63,7 @@ import {
   SharedDatabase,
   publishEvent,
 } from '@atlas/ui';
-import { Toast } from '@torre/ui';
+import { Toast } from '@atlas/ui';
 import { AppUi } from './types';
 
 let ui: AppUi;
@@ -677,30 +673,7 @@ async function init() {
   }
 }
 
-// React Auth Mounting
-import { FirebaseProvider } from '@atlas/ui';
-
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
-};
-
-const authRoot = document.getElementById('auth-root');
-if (authRoot) {
-  createRoot(authRoot).render(
-    <StrictMode>
-      <FirebaseProvider config={firebaseConfig}>
-        <AuthProvider />
-      </FirebaseProvider>
-    </StrictMode>
-  );
-}
-
+// React Auth Mounting was removed. Authentication is inherited from the host application.
 export function mountBPMNModeler() { init(); }
 
 

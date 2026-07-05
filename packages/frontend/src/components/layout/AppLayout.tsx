@@ -1,17 +1,21 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Ship, LayoutDashboard, Users, FileText, Settings, Package } from 'lucide-react';
+import { Ship, LayoutDashboard, Users, FileText, Settings, Package, TrendingUp, LogOut } from 'lucide-react';
+import { useAuth } from '../auth/AuthProvider';
 
 export default function AppLayout() {
   const location = useLocation();
+  const { user, role, logout } = useAuth();
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'CRM', path: '/crm', icon: Users },
     { name: 'Shipments', path: '/shipments', icon: Ship },
+    { name: 'Rates', path: '/rates', icon: TrendingUp },
     { name: 'WMS', path: '/wms', icon: Package },
+    { name: 'Workflows', path: '/workflows', icon: Settings },
     { name: 'Documents', path: '/docs', icon: FileText },
-    { name: 'Settings', path: '/settings', icon: Settings },
+    ...(role === 'ADMIN' ? [{ name: 'Team & Roles', path: '/settings/users', icon: Users }] : []),
   ];
 
   return (
@@ -53,9 +57,24 @@ export default function AppLayout() {
             {navItems.find(i => location.pathname === i.path || (i.path !== '/' && location.pathname.startsWith(i.path)))?.name || 'Dashboard'}
           </h1>
           <div className="flex items-center gap-4">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
-              AL
+            <div className="text-right hidden md:block">
+              <div className="text-sm font-semibold text-gray-800">{user?.email}</div>
+              <div className="text-xs text-gray-500 font-medium">{role || 'Loading...'}</div>
             </div>
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold uppercase overflow-hidden ring-2 ring-blue-500/20">
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                user?.email?.charAt(0) || 'A'
+              )}
+            </div>
+            <button 
+              onClick={logout}
+              className="ml-2 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </header>
         

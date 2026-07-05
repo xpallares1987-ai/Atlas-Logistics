@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { User, Camera, Bell, Mail, Smartphone } from 'lucide-react';
 
 export interface UserProfileData {
@@ -37,7 +36,7 @@ export default function UserProfileConfig({ profile, onChange }: UserProfileConf
         <div className="flex flex-col items-center gap-3">
           <div className="relative w-24 h-24 rounded-full bg-[#0A0A0B] border-2 border-gray-800 flex items-center justify-center overflow-hidden group">
             {profile.profileImage ? (
-              <Image src={profile.profileImage} alt="Profile" fill className="object-cover" unoptimized />
+              <img src={profile.profileImage} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <User className="w-10 h-10 text-gray-400 group-hover:text-gray-300 transition-colors" />
             )}

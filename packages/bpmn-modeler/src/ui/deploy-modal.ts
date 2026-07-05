@@ -1,4 +1,4 @@
-import { Toast } from '@torre/ui';
+import { Toast } from '@atlas/ui';
 import type { Statusbar } from './statusbar';
 
 export function initDeployModal(statusbar: Statusbar) {
