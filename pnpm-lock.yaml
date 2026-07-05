@@ -6,7 +6,7 @@ settings:
 
 overrides:
   d3-color: ^3.1.0
-  esbuild: ^0.25.0
+  esbuild: ^0.28.1
   postcss: ^8.5.16
   '@grpc/grpc-js': ^1.14.4
   fast-xml-parser: ^5.9.3
@@ -109,7 +109,7 @@ importers:
         specifier: ^0.45.2
         version: 0.45.2(postgres@3.4.9)
       esbuild:
-        specifier: ^0.25.0
+        specifier: ^0.28.1
         version: 0.28.1
       eslint:
         specifier: ^10.6.0
