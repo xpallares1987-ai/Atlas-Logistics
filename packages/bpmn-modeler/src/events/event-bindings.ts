@@ -4,7 +4,7 @@
  */
 
 import { on, debounce, formatError } from '@atlas/ui';
-import { Toast } from '@torre/ui';
+import { Toast } from '@atlas/ui';
 import { getDiagramXml } from '../services/xml-service';
 import { saveTabsSession } from '../services/storage-service';
 import { updateTabsUi, handleNewDiagram } from '../state/tab-manager';

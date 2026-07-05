@@ -5,6 +5,8 @@ import App from './App.tsx';
 import './index.css';
 import { AuthProvider } from './components/AuthProvider';
 import { FirebaseProvider } from '@atlas/ui';
+import { Provider } from 'react-redux';
+import { store } from './store';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,9 +21,11 @@ const firebaseConfig = {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <FirebaseProvider config={firebaseConfig}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <Provider store={store}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </Provider>
     </FirebaseProvider>
   </StrictMode>,
 );

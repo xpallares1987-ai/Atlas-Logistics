@@ -2,16 +2,8 @@
 
 import React, { useState } from 'react';
 import { Bell, Mail, Clock, AlertTriangle, TrendingUp, Smartphone, Plus, X } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { motion } from 'motion/react';
-
-const ResponsiveContainer = dynamic<any>(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false });
-const LineChart = dynamic<any>(() => import('recharts').then(mod => mod.LineChart), { ssr: false });
-const Line = dynamic<any>(() => import('recharts').then(mod => mod.Line), { ssr: false });
-const XAxis = dynamic<any>(() => import('recharts').then(mod => mod.XAxis), { ssr: false });
-const YAxis = dynamic<any>(() => import('recharts').then(mod => mod.YAxis), { ssr: false });
-const CartesianGrid = dynamic<any>(() => import('recharts').then(mod => mod.CartesianGrid), { ssr: false });
-const Tooltip = dynamic<any>(() => import('recharts').then(mod => mod.Tooltip), { ssr: false });
 
 const data = [
   { name: 'Jan', variance: 1.2 },

@@ -19,6 +19,6 @@ export * from './utils/milestones';
 export * from './DynamicRateEngine';
 
 export type { ModalInstance } from './components/Modal';
-export * from './shared/index';
+export * from '@atlas/shared';
 export * from './firebase/FirebaseProvider';
 export * from './hooks/useAuth';

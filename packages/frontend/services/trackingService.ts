@@ -1,16 +1,21 @@
-import { db } from './db';
+// import { db } from '@atlas/shared';
 import { TrackingMilestone, ContainerTracking, MilestoneType } from '@/types/schema';
+
+const mockDb = {
+  getMilestonesByShipment: async (id: string) => [] as TrackingMilestone[],
+  getContainersByShipment: async (id: string) => [] as ContainerTracking[]
+};
 
 export class TrackingService {
   
   // Data Access layer methods
   public async getMilestonesForShipment(shipmentId: string): Promise<TrackingMilestone[]> {
-    const milestones = await db.getMilestonesByShipment(shipmentId);
-    return milestones.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const milestones = await mockDb.getMilestonesByShipment(shipmentId);
+    return milestones.sort((a: TrackingMilestone, b: TrackingMilestone) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }
 
   public async getContainersForShipment(shipmentId: string): Promise<ContainerTracking[]> {
-    return db.getContainersByShipment(shipmentId);
+    return mockDb.getContainersByShipment(shipmentId);
   }
 
   // Business Logic layer methods

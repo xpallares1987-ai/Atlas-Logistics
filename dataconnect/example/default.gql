@@ -1,0 +1,23 @@
+mutation CreateShipment($trackingNumber: String!, $shipperId: UUID!, $consigneeId: UUID!, $origin: String!, $destination: String!) @auth(level: USER) {
+  shipment_insert(data: {trackingNumber: $trackingNumber, shipperId: $shipperId, consigneeId: $consigneeId, origin: $origin, destination: $destination, status: "PENDING"})
+}
+
+query ListShipments @auth(level: USER) {
+  shipments {
+    trackingNumber
+    status
+    origin
+    destination
+    shipper {
+      name
+    }
+  }
+}
+
+mutation UpdateShipmentStatus($id: UUID!, $status: String!) @auth(level: USER) {
+  shipment_update(id: $id, data: {status: $status})
+}
+
+mutation DeleteShipment($id: UUID!) @auth(level: USER) {
+  shipment_delete(id: $id)
+}

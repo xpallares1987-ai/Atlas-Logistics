@@ -6,7 +6,7 @@ import { LogisticsOverlay } from './LogisticsOverlay';
  * Advanced Shipping Map component with Marker Clustering support.
  * Consolidated from Shipment-Dashboard into @torre/ui.
  */
-export function ShippingMap() {
+export function ShippingMap({ shipments = [] }: { shipments?: any[] }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
@@ -116,26 +116,60 @@ export function ShippingMap() {
             opacity: 0.5,
           }).addTo(map);
 
-          // Ship simulation marker along the lane path
-          const shipIcon = L.divIcon({
-            html: `<div style="font-size: 1.5rem; text-shadow: 0 0 10px #3b82f6; cursor: pointer;">🚢</div>`,
-            className: 'custom-ship-icon',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-          });
+          // Ship simulation marker along the lane path (only if no real shipments available)
+          if (shipments.length === 0) {
+            const shipIcon = L.divIcon({
+              html: `<div style="font-size: 1.5rem; text-shadow: 0 0 10px #3b82f6; cursor: pointer;">🚢</div>`,
+              className: 'custom-ship-icon',
+              iconSize: [24, 24],
+              iconAnchor: [12, 12]
+            });
 
-          const marker = L.marker(route.path[0] as L.LatLngExpression, { icon: shipIcon })
-            .bindPopup(`<b>Vessel Transit</b><br/>En-route: ${route.from} ➔ ${route.to}<br/>Speed: 0.0 kts<br/>Heading: 000°`)
-            .addTo(map);
-            
-          activeVessels.push({
-             marker,
-             path: route.path,
-             progress: 0,
-             speed: 0.001 + Math.random() * 0.001, // random speed for each vessel
-             route
-          });
+            const marker = L.marker(route.path[0] as L.LatLngExpression, { icon: shipIcon })
+              .bindPopup(`<b>Vessel Transit</b><br/>En-route: ${route.from} ➔ ${route.to}<br/>Speed: 0.0 kts<br/>Heading: 000°`)
+              .addTo(map);
+              
+            activeVessels.push({
+               marker,
+               path: route.path,
+               progress: 0,
+               speed: 0.001 + Math.random() * 0.001,
+               route
+            });
+          }
         });
+
+        // Plot real live shipments if available
+        if (shipments.length > 0) {
+          shipments.forEach(shipment => {
+            if (shipment.vesselLatitude != null && shipment.vesselLongitude != null) {
+              const shipIcon = L.divIcon({
+                html: `<div style="font-size: 1.5rem; text-shadow: 0 0 12px #10b981; cursor: pointer;">🚢</div>`,
+                className: 'custom-ship-icon',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+              });
+
+              // Mock some speed/heading if not fully available
+              const mockSpeed = (15 + Math.random() * 5).toFixed(1);
+              
+              const popupContent = `
+                <div style="font-family: sans-serif; font-size: 12px;">
+                  <b style="font-size: 14px; color: #1e293b;">Live Vessel (${shipment.carrier})</b><br/>
+                  <span style="color: #64748b;">Ref: ${shipment.bookingReference}</span><br/><br/>
+                  <b>Route:</b> ${shipment.pol} ➔ ${shipment.pod}<br/>
+                  <b>Status:</b> <span style="color: #3b82f6;">${shipment.status.replace(/_/g, ' ')}</span><br/>
+                  <b>Speed:</b> ${mockSpeed} kts<br/>
+                  <b>Updated:</b> ${shipment.coordinatesLastUpdated ? new Date(shipment.coordinatesLastUpdated).toLocaleString() : 'Just now'}
+                </div>
+              `;
+
+              L.marker([shipment.vesselLatitude, shipment.vesselLongitude] as L.LatLngExpression, { icon: shipIcon })
+                .bindPopup(popupContent)
+                .addTo(map);
+            }
+          });
+        }
 
         let lastTime = performance.now();
         const animate = (time: number) => {
@@ -196,7 +230,7 @@ export function ShippingMap() {
         mapRef.current = null;
       }
     };
-  }, [locations, routes]);
+  }, [locations, routes, shipments]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '400px', borderRadius: '1.5rem', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)' }}>

@@ -3,14 +3,12 @@
   "version": "1.0.0",
   "description": "SCM Freight Forwarding MVP",
   "type": "module",
+  "packageManager": "pnpm@10.0.0",
   "scripts": {
-    "dev": "concurrently \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
-    "dev:frontend": "pnpm --filter @atlas/frontend dev",
-    "dev:backend": "pnpm exec tsx watch src/server.ts",
-    "build": "pnpm run build:backend && pnpm run build:frontend",
-    "build:frontend": "pnpm --filter @atlas/frontend build",
-    "build:backend": "tsc -p tsconfig.server.json",
-    "start": "node dist/server.js",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "pnpm run type-check && pnpm run eslint",
+    "start": "pnpm --filter @atlas/frontend start",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "node dist/db/migrate.js",
@@ -19,7 +17,6 @@
     "test": "pnpm --filter @torre/shared test",
     "type-check": "pnpm --filter @atlas/frontend type-check && tsc -p tsconfig.server.json --noEmit",
     "eslint": "eslint .",
-    "lint": "pnpm run type-check && pnpm run eslint",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -33,6 +30,7 @@
     "@fastify/websocket": "^11.2.0",
     "argon2": "^0.44.0",
     "d3-color": "^3.1.0",
+    "dataconnect-generated": "link:..\\..\\AppData\\Local\\pnpm\\global\\5\\node_modules\\src\\dataconnect-generated",
     "fastify-type-provider-zod": "^1.2.0",
     "firebase": "^12.15.0",
     "ioredis": "^5.11.1",
@@ -62,6 +60,7 @@
     "fastify": "^5.9.0",
     "postcss": "^8.5.16",
     "tsx": "^4.22.4",
+    "turbo": "^2.10.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.62.1",
     "uuid": "^14.0.1",
@@ -71,7 +70,8 @@
     "overrides": {
       "d3-color": "^3.1.0",
       "esbuild": "^0.25.0",
-      "postcss": "^8.5.14"
+      "postcss": "^8.5.14",
+      "dataconnect-generated": "link:..\\..\\..\\..\\AppData\\Local\\pnpm\\global\\5\\node_modules\\src\\dataconnect-generated"
     }
   }
 }

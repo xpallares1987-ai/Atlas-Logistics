@@ -1,0 +1,28 @@
+mutation UpsertUser($uid: String!, $email: String!, $role: String!) {
+  user_upsert(
+    data: {
+      uid: $uid
+      email: $email
+      role: $role
+    }
+  )
+}
+
+query GetUserRole($uid: String!) {
+  users(where: { uid: { eq: $uid } }) {
+    role
+    email
+  }
+}
+
+query GetAllUsers {
+  users {
+    uid
+    email
+    role
+  }
+}
+
+mutation UpdateUserRole($uid: String!, $role: String!) {
+  user_update(key: { uid: $uid }, data: { role: $role })
+}

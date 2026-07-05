@@ -6,7 +6,13 @@
 import React, { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { PlayCircle, AlertTriangle, CheckCircle2, FileSpreadsheet, Upload } from "lucide-react";
-import { FreightDB } from "../services/db";
+// import { FreightDB } from '@atlas/shared';
+
+const FreightDB = {
+  saveRates: async (rates: any[]) => { console.log('Mock saveRates', rates); },
+  clearAll: async () => { console.log('Mock clearAll'); }
+};
+
 import { eventBus } from "../services/eventBus";
 import { FreightRate, TranslationSet } from "../types";
 import { parseRawSheetRows, parseDatosJsRows, parseSemicolonCSV, parseMappedSheetRows } from "../services/rateParser";

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getNotifications, getPreferences } from "@/lib/notifications";
 import {
   LayoutDashboard,
@@ -30,8 +29,9 @@ import {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const pathname = usePathname();
-  const router = useRouter();
+  const location = useLocation();
+  const pathname = location.pathname;
+  const navigate = useNavigate();
 
   // Notification states
   const [isMounted, setIsMounted] = useState(false);
@@ -127,7 +127,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/tracking?search=${encodeURIComponent(searchQuery)}`);
+      navigate(`/tracking?search=${encodeURIComponent(searchQuery)}`);
     }
   };
 
@@ -237,7 +237,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                to={item.href}
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all ${
                   isActive
                     ? "bg-blue-600/10 text-blue-400 border border-blue-500/10"
@@ -514,7 +514,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    to={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50"
                   >

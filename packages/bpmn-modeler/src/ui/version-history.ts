@@ -2,7 +2,7 @@ import { getDiagramVersions, saveDiagramVersion } from '../services/firestoreSer
 import { loadDiagramInNewTab } from '../state/tab-manager';
 import { state } from '../state';
 import { getDiagramXml } from '../services/xml-service';
-import { Toast } from '@torre/ui';
+import { Toast } from '@atlas/ui';
 import { on } from '@atlas/ui';
 
 let container: HTMLElement | null = null;
