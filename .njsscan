@@ -1,0 +1,10 @@
+# .njsscan — njsscan configuration
+# https://github.com/ajinabraham/njsscan#configuration-options
+
+exclude_paths:
+  - src/dataconnect-generated
+  - packages/frontend/src/dataconnect-generated
+  - packages/freight-comparer/src/dataconnect-generated
+  - packages/dashboard/.next
+  - packages/dashboard/out
+  - node_modules

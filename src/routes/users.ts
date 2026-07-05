@@ -47,13 +47,8 @@ const userRoutes: FastifyPluginAsyncZod = async (server) => {
       })
     },
     onRequest: [(server as any).authenticate]
-  }, async (request, _reply) => {
-    const { id: _id } = request.params as { id: string };
-    const { status: _status } = request.body as { status: 'ACTIVE' | 'INACTIVE' };
-
-    // Note: Our users table in schema.ts doesn't have a status column yet (users contains id, username, password_hash, email, role, carrier_id, created_at, updated_at).
-    // But we can check if it exists or simulate/add it, or mock the return response.
-    // Let's add the 'status' column to users in schema.ts in a later step if needed, or we can just return success: true.
+  }, async (_request, _reply) => {
+    // Note: users table doesn't yet have a status column; returns success stub.
     return { success: true };
   });
 };
