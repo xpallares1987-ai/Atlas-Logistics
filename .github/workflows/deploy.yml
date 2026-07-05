@@ -37,19 +37,16 @@ jobs:
         with:
           version: 10
 
-      - name: Build dependencies
-        run: pnpm run build
-
       - name: Install Dependencies
         run: pnpm install --no-frozen-lockfile --ignore-scripts
 
-      - name: Build Frontend
-        run: pnpm run build:frontend
+      - name: Build
+        run: pnpm run build
 
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './packages/frontend/out'
+          path: './packages/frontend/dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
