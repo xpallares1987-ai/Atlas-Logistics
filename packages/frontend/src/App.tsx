@@ -1,17 +1,22 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
 import { AuthProvider, useAuth } from './components/auth/AuthProvider';
 import Login from './pages/Login';
-
-// Wrappers for Modules
-import FreightComparerApp from '@atlas/freight-comparer/src/index';
-import DashboardApp from '@atlas/dashboard/src/app/DashboardClient';
 import { AdminRoute } from './components/auth/AdminRoute';
-import UserManagement from './pages/UserManagement';
 
-// For BPMN Modeler (Vanilla DOM Wrapper)
-import WorkflowsPage from './pages/Workflows';
+// Lazy-loaded route modules — Vite code-splits each into its own async chunk,
+// so the initial bundle only includes the auth shell and layout.
+const DashboardApp = lazy(() => import('@atlas/dashboard/src/app/DashboardClient'));
+const FreightComparerApp = lazy(() => import('@atlas/freight-comparer/src/index'));
+const WorkflowsPage = lazy(() => import('./pages/Workflows'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
+
+const RouteLoader = () => (
+  <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+    Loading…
+  </div>
+);
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -37,12 +42,12 @@ export default function App() {
         {/* Protected Routes */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           {/* Main Landing / Shipment Dashboard */}
-          <Route path="/" element={<DashboardApp />} />
+          <Route path="/" element={<Suspense fallback={<RouteLoader />}><DashboardApp /></Suspense>} />
           
           {/* Modules */}
-          <Route path="/shipments" element={<DashboardApp />} />
-          <Route path="/rates" element={<FreightComparerApp />} />
-          <Route path="/workflows" element={<WorkflowsPage />} />
+          <Route path="/shipments" element={<Suspense fallback={<RouteLoader />}><DashboardApp /></Suspense>} />
+          <Route path="/rates" element={<Suspense fallback={<RouteLoader />}><FreightComparerApp /></Suspense>} />
+          <Route path="/workflows" element={<Suspense fallback={<RouteLoader />}><WorkflowsPage /></Suspense>} />
           
           {/* Placeholders for future modules */}
           <Route path="/crm" element={<div className="p-4">CRM Module (Coming Soon)</div>} />
@@ -50,7 +55,11 @@ export default function App() {
           <Route path="/docs" element={<div className="p-4">Documents (Coming Soon)</div>} />
           
           {/* Admin Routes */}
-          <Route path="/settings/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+          <Route path="/settings/users" element={
+            <AdminRoute>
+              <Suspense fallback={<RouteLoader />}><UserManagement /></Suspense>
+            </AdminRoute>
+          } />
           <Route path="/settings" element={<div className="p-4">Settings</div>} />
         </Route>
       </Routes>
