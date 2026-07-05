@@ -24,7 +24,7 @@ const crmRoutes: FastifyPluginAsyncZod = async (fastify) => {
         200: z.array(customerSchema)
       }
     }
-  }, async (request, reply) => {
+  }, async (_request, _reply) => {
     const allCustomers = await db.select().from(customers);
     return allCustomers.map(c => ({
       ...c,
@@ -131,7 +131,7 @@ const crmRoutes: FastifyPluginAsyncZod = async (fastify) => {
         200: z.array(contactSchema)
       }
     }
-  }, async (request, reply) => {
+  }, async (request, _reply) => {
     const { id } = request.params as { id: number };
     const customerContacts = await db.select().from(contacts).where(eq(contacts.customer_id, id));
     return customerContacts.map(c => ({
@@ -175,7 +175,7 @@ const crmRoutes: FastifyPluginAsyncZod = async (fastify) => {
         200: z.array(rateAgreementSchema)
       }
     }
-  }, async (request, reply) => {
+  }, async (request, _reply) => {
     const { id } = request.params as { id: number };
     const agreements = await db.select().from(rate_agreements).where(eq(rate_agreements.customer_id, id));
     return agreements.map(a => ({
