@@ -33,5 +33,24 @@ export default defineConfig({
         ]
       }
     })
-  ]
+  ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('lucide-react'))                       return 'vendor-lucide';
+          if (id.includes('recharts'))                           return 'vendor-recharts';
+          if (id.includes('leaflet'))                            return 'vendor-leaflet';
+          if (id.includes('three') || id.includes('@react-three')) return 'vendor-three';
+          if (id.includes('firebase'))                           return 'vendor-firebase';
+          if (id.includes('xlsx'))                               return 'vendor-xlsx';
+          if (id.includes('bpmn') || id.includes('camunda'))     return 'vendor-bpmn';
+          if (id.includes('d3'))                                 return 'vendor-d3';
+          if (id.includes('react-router'))                       return 'vendor-router';
+          if (id.includes('react') || id.includes('react-dom')) return 'vendor-react';
+          if (id.includes('node_modules'))                       return 'vendor';
+        },
+      },
+    },
+  },
 });

@@ -11,7 +11,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false, 
   },
-  productionBrowserSourceMaps: true,
+  productionBrowserSourceMaps: false,
   env: { NEXT_PUBLIC_GITHUB_PAGES: "true" },
 };
 

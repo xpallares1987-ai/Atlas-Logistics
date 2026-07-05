@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { BarChart3, DollarSign, ShieldAlert, UploadCloud, DatabaseZap, Trash2, Timer, Leaf } from 'lucide-react';
-import { LogisticsDashboardLayout, ESGCarbonTracker, ShippingMap, type NavItem, useFirebase } from '@atlas/ui';
+import { LogisticsDashboardLayout, ESGCarbonTracker, ShippingMap, type NavItem, useFirebase, loadTheme, applyTheme } from '@atlas/ui';
 
 import { FileUploader } from '../components/FileUploader';
 import { ColumnMapper } from '../components/ColumnMapper';
@@ -20,12 +20,25 @@ import type { MappingState, ColumnMapping, UploadedFile } from '../types/dashboa
 
 type TabType = 'Upload' | 'KPIs' | 'Financial' | 'Exceptions' | 'Demurrage' | 'ESG';
 
+// Defined outside the component — icons are stable React elements with no runtime deps.
+const NAV_ITEMS: NavItem[] = [
+  { id: 'Upload',     label: 'Data Import',      icon: <UploadCloud size={18} /> },
+  { id: 'KPIs',       label: 'Operational KPIs', icon: <BarChart3   size={18} /> },
+  { id: 'Financial',  label: 'Financial',         icon: <DollarSign  size={18} /> },
+  { id: 'Exceptions', label: 'Exceptions',        icon: <ShieldAlert size={18} /> },
+  { id: 'Demurrage',  label: 'D&D Alerts',        icon: <Timer       size={18} /> },
+  { id: 'ESG',        label: 'ESG Tracker',       icon: <Leaf        size={18} /> },
+];
+
 export default function DashboardClient() {
   const [activeTab, setActiveTab] = useState<TabType>('Upload');
   
   // Store state
   const store = useDashboardStore();
-  const kpis = computeKpis(store.operational, store.financial, store.exceptions);
+  const kpis = useMemo(
+    () => computeKpis(store.operational, store.financial, store.exceptions),
+    [store.operational, store.financial, store.exceptions],
+  );
   
   // Import state
   const [mappingState, setMappingState] = useState<MappingState | null>(null);
@@ -39,11 +52,8 @@ export default function DashboardClient() {
   }, [dataConnect]);
 
   useEffect(() => {
-    // Initialize theme
-    import('@atlas/ui').then((shared) => {
-      const theme = shared.loadTheme();
-      shared.applyTheme(theme);
-    }).catch(console.error);
+    // Initialize theme using the already-loaded @atlas/ui exports
+    applyTheme(loadTheme());
 
     // Auto-import polling
     const pollAutoImport = async () => {
@@ -157,22 +167,13 @@ export default function DashboardClient() {
     setPendingFile(null);
   };
 
-  const navItems: NavItem[] = [
-    { id: 'Upload', label: 'Data Import', icon: <UploadCloud size={18} /> },
-    { id: 'KPIs', label: 'Operational KPIs', icon: <BarChart3 size={18} /> },
-    { id: 'Financial', label: 'Financial', icon: <DollarSign size={18} /> },
-    { id: 'Exceptions', label: 'Exceptions', icon: <ShieldAlert size={18} /> },
-    { id: 'Demurrage', label: 'D&D Alerts', icon: <Timer size={18} /> },
-    { id: 'ESG', label: 'ESG Tracker', icon: <Leaf size={18} /> },
-  ];
-
   return (
     <LogisticsDashboardLayout
       title="Shipment Intelligence"
       subtitle="Analytics & Exception Dashboard"
       activeTab={activeTab}
       onTabChange={(id) => setActiveTab(id as TabType)}
-      navItems={navItems}
+      navItems={NAV_ITEMS}
       searchTerm=""
       onSearchChange={() => {}}
       isSyncing={false}

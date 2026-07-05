@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Ship, LayoutDashboard, Users, FileText, Settings, Package, TrendingUp, LogOut } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
@@ -7,7 +7,7 @@ export default function AppLayout() {
   const location = useLocation();
   const { user, role, logout } = useAuth();
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'CRM', path: '/crm', icon: Users },
     { name: 'Shipments', path: '/shipments', icon: Ship },
@@ -16,7 +16,7 @@ export default function AppLayout() {
     { name: 'Workflows', path: '/workflows', icon: Settings },
     { name: 'Documents', path: '/docs', icon: FileText },
     ...(role === 'ADMIN' ? [{ name: 'Team & Roles', path: '/settings/users', icon: Users }] : []),
-  ];
+  ], [role]);
 
   return (
     <div className="flex h-screen bg-gray-50">
