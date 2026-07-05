@@ -4,6 +4,7 @@ import AppLayout from './components/layout/AppLayout';
 import { AuthProvider, useAuth } from './components/auth/AuthProvider';
 import Login from './pages/Login';
 import { AdminRoute } from './components/auth/AdminRoute';
+import ComingSoon from './components/ComingSoon';
 
 // Lazy-loaded route modules — Vite code-splits each into its own async chunk,
 // so the initial bundle only includes the auth shell and layout.
@@ -49,10 +50,10 @@ export default function App() {
           <Route path="/rates" element={<Suspense fallback={<RouteLoader />}><FreightComparerApp /></Suspense>} />
           <Route path="/workflows" element={<Suspense fallback={<RouteLoader />}><WorkflowsPage /></Suspense>} />
           
-          {/* Placeholders for future modules */}
-          <Route path="/crm" element={<div className="p-4">CRM Module (Coming Soon)</div>} />
-          <Route path="/wms" element={<div className="p-4">WMS Module (Coming Soon)</div>} />
-          <Route path="/docs" element={<div className="p-4">Documents (Coming Soon)</div>} />
+          {/* Placeholder modules — coming soon */}
+          <Route path="/crm" element={<ComingSoon module="CRM Module" description="Manage customer relationships, contacts, and deal pipelines across your logistics network." />} />
+          <Route path="/wms" element={<ComingSoon module="Warehouse Management" description="Track inventory, manage warehouse operations, and optimise your fulfilment workflow." />} />
+          <Route path="/docs" element={<ComingSoon module="Documents" description="Centralised document management for bills of lading, customs declarations, and shipping instructions." />} />
           
           {/* Admin Routes */}
           <Route path="/settings/users" element={
@@ -60,9 +61,10 @@ export default function App() {
               <Suspense fallback={<RouteLoader />}><UserManagement /></Suspense>
             </AdminRoute>
           } />
-          <Route path="/settings" element={<div className="p-4">Settings</div>} />
+          <Route path="/settings" element={<ComingSoon module="Settings" description="Configure application preferences, integrations, and account settings." />} />
         </Route>
       </Routes>
     </AuthProvider>
   );
 }
+

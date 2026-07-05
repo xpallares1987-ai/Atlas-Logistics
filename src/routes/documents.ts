@@ -28,7 +28,7 @@ const documentRoutes: FastifyPluginAsyncZod = async (server) => {
       }
     },
     onRequest: [(server as any).authenticate]
-  }, async (request) => {
+  }, async (_request) => {
     const docs = await db.select().from(documents);
     return {
       data: docs.map(d => ({

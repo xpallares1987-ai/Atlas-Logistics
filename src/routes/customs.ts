@@ -26,7 +26,7 @@ const customsRoutes: FastifyPluginAsyncZod = async (server) => {
         200: z.array(hsCodeSchema)
       }
     }
-  }, async (request, reply) => {
+  }, async (request, _reply) => {
     const { search } = request.query as { search?: string };
     
     let query = db.select().from(hs_codes);
@@ -81,7 +81,7 @@ const customsRoutes: FastifyPluginAsyncZod = async (server) => {
         200: z.array(customsDeclarationSchema)
       }
     }
-  }, async (request, reply) => {
+  }, async (request, _reply) => {
     const { shipment_id } = request.query as { shipment_id?: number };
     
     const queryResult = await db.query.customs_declarations.findMany({
