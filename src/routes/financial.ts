@@ -2,7 +2,7 @@ import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { db } from '../db/client.js';
 import { invoices, invoice_items } from '../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { 
   invoiceSchema, 
   createInvoiceSchema, 

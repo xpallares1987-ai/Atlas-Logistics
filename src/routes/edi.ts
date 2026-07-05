@@ -15,7 +15,7 @@ const ediRoutes: FastifyPluginAsyncZod = async (server) => {
     },
     onRequest: [(server as any).authenticate]
   }, async (request, reply) => {
-    const { documentId, documentType, payload } = request.body as any;
+    const { documentId, documentType } = request.body as any;
 
     // Simulate EDIFACT translation based on Document Type
     let ediMessageType = 'UNKNOWN';
@@ -60,7 +60,7 @@ UNZ+1+${Math.floor(Math.random() * 10000)}'`;
     },
     onRequest: [(server as any).authenticate]
   }, async (request, reply) => {
-    const { ediMessage, destinationEndpoint = 'VAN_DEFAULT' } = request.body as any;
+    const { _ediMessage, destinationEndpoint = 'VAN_DEFAULT' } = request.body as any;
 
     // Simulate transmission delay
     await new Promise(resolve => setTimeout(resolve, 800));
