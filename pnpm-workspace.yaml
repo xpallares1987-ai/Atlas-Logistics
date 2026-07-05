@@ -1,8 +1,2 @@
 packages:
   - 'packages/*'
-
-overrides:
-  d3-color: ^3.1.0
-  esbuild: ^0.28.1
-  postcss: ^8.5.14
-  dataconnect-generated: link:..\\..\\..\\..\\AppData\\Local\\pnpm\\global\\5\\node_modules\\src\\dataconnect-generated
