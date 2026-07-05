@@ -35,14 +35,14 @@ jobs:
         run: pnpm install --no-frozen-lockfile --ignore-scripts
 
       # Turborepo automatically handles internal caching across the monorepo
+      - name: Turbo Build
+        run: pnpm run build
+
       - name: Turbo Type Check
         run: pnpm run type-check
 
       - name: Turbo Lint
         run: pnpm run lint
-
-      - name: Turbo Build
-        run: pnpm run build
 
       - name: Run Tests
         run: pnpm run test
