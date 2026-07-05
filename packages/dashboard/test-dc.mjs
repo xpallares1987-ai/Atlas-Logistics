@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBSyDFKEACruhF9XndvLfuglhDif4ILJ3k",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? process.env.VITE_FIREBASE_API_KEY ?? "",
   authDomain: "gen-lang-client-0393063451.firebaseapp.com",
   projectId: "gen-lang-client-0393063451",
   storageBucket: "gen-lang-client-0393063451.firebasestorage.app",
