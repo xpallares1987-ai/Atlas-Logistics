@@ -127,7 +127,7 @@ server.register(ediRoutes);
 
 // Register WebSocket Route for Real-Time Event Broadcasting
 server.register(async (app) => {
-  app.get('/ws', { websocket: true }, (connection, req) => {
+  app.get('/ws', { websocket: true }, (connection, _req) => {
     app.log.info('Client connected to WebSocket');
     
     // Listen to internal eventBus and broadcast to this connected WebSocket client

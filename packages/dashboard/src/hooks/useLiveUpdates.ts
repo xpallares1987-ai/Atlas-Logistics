@@ -23,7 +23,7 @@ export function useLiveUpdates() {
       if (!isComponentMounted) return;
 
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const isGitHubPages = window.location.hostname.includes('github.io');
+      const isGitHubPages = window.location.hostname.endsWith('.github.io') || window.location.hostname === 'github.io';
       const wsUrl = isGitHubPages
         ? '' // No WS on GitHub Pages
         : process.env.NODE_ENV === 'production'

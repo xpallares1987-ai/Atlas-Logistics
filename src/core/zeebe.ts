@@ -1,5 +1,4 @@
 import { ZBClient } from 'zeebe-node';
-import { env } from './config.js';
 
 // Initialize the Zeebe client
 // It connects to a local broker by default (localhost:26500) if no env vars are provided
