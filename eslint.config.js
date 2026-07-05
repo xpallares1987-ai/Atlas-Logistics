@@ -3,7 +3,7 @@ import reactPlugin from 'eslint-plugin-react';
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "**/coverage/**", "packages/**"],
+    ignores: ["**/dist/**", "**/node_modules/**", "**/coverage/**", "packages/**", "functions/**"],
   },
   {
     files: ["**/*.ts", "**/*.tsx"],
