@@ -14,7 +14,7 @@
     "db:migrate": "node dist/db/migrate.js",
     "db:seed": "node dist/db/seed.js",
     "db:clean-logs": "node dist/scripts/db-log-cleanup.js",
-    "test": "pnpm --filter @torre/shared test",
+    "test": "pnpm --filter @atlas/shared test",
     "type-check": "pnpm --filter @atlas/frontend type-check && tsc -p tsconfig.server.json --noEmit",
     "eslint": "eslint .",
     "format": "prettier --write ."
@@ -63,7 +63,7 @@
     "turbo": "^2.10.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.62.1",
-    "uuid": "^14.0.1",
+    "uuid": "^11.1.1",
     "vitest": "^4.1.9"
   }
 }
