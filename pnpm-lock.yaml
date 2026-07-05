@@ -11,7 +11,6 @@ overrides:
   '@grpc/grpc-js': ^1.14.4
   fast-xml-parser: ^5.9.3
   uuid: ^11.1.1
-  dataconnect-generated: link:..\..\..\..\AppData\Local\pnpm\global\5\node_modules\src\dataconnect-generated
 
 importers:
 
@@ -48,8 +47,8 @@ importers:
         specifier: ^3.1.0
         version: 3.1.0
       dataconnect-generated:
-        specifier: link:../../../../AppData/Local/pnpm/global/5/node_modules/src/dataconnect-generated
-        version: link:../../../../AppData/Local/pnpm/global/5/node_modules/src/dataconnect-generated
+        specifier: file:./src/dataconnect-generated
+        version: '@dataconnect/generated@file:src/dataconnect-generated(firebase@12.15.0)'
       fastify-type-provider-zod:
         specifier: ^1.2.0
         version: 1.2.0(fastify@5.9.0)(zod@3.25.76)
@@ -187,8 +186,8 @@ importers:
         specifier: ^1.18.0
         version: 1.18.0(bpmn-js@18.19.0)(camunda-bpmn-moddle@7.0.1)(zeebe-bpmn-moddle@1.16.0)
       dataconnect-generated:
-        specifier: link:../../../../../../AppData/Local/pnpm/global/5/node_modules/src/dataconnect-generated
-        version: link:../../../../../../AppData/Local/pnpm/global/5/node_modules/src/dataconnect-generated
+        specifier: link:..\..\..\..\AppData\Local\pnpm\global\5\node_modules\src\dataconnect-generated
+        version: link:../../../../AppData/Local/pnpm/global/5/node_modules/src/dataconnect-generated
       dexie:
         specifier: ^4.4.4
         version: 4.4.4
