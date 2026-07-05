@@ -19,47 +19,65 @@ import type {
 
 // ─── IndexedDB storage adapter ────────────────────────────────────────────────
 
+// Cache the DB instance so we don't pay the open() overhead on every read/write.
+let _dbPromise: Promise<IDBDatabase> | null = null;
+
+function getDB(): Promise<IDBDatabase> {
+  if (!_dbPromise) {
+    _dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open('shipment-dashboard', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('kv');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => {
+        _dbPromise = null; // allow retry on next call
+        reject(req.error);
+      };
+    });
+  }
+  return _dbPromise;
+}
+
 const idbStorage = {
   getItem: async (name: string): Promise<string | null> => {
     if (typeof indexedDB === 'undefined') return null;
-    return new Promise((resolve) => {
-      const req = indexedDB.open('shipment-dashboard', 1);
-      req.onupgradeneeded = () => req.result.createObjectStore('kv');
-      req.onsuccess = () => {
-        const tx = req.result.transaction('kv', 'readonly');
-        const get = tx.objectStore('kv').get(name);
+    try {
+      const db = await getDB();
+      return new Promise((resolve) => {
+        const get = db.transaction('kv', 'readonly').objectStore('kv').get(name);
         get.onsuccess = () => resolve(get.result ?? null);
         get.onerror = () => resolve(null);
-      };
-      req.onerror = () => resolve(null);
-    });
+      });
+    } catch {
+      return null;
+    }
   },
   setItem: async (name: string, value: string): Promise<void> => {
     if (typeof indexedDB === 'undefined') return;
-    return new Promise((resolve) => {
-      const req = indexedDB.open('shipment-dashboard', 1);
-      req.onupgradeneeded = () => req.result.createObjectStore('kv');
-      req.onsuccess = () => {
-        const tx = req.result.transaction('kv', 'readwrite');
+    try {
+      const db = await getDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction('kv', 'readwrite');
         tx.objectStore('kv').put(value, name);
         tx.oncomplete = () => resolve();
         tx.onerror = () => resolve();
-      };
-      req.onerror = () => resolve();
-    });
+      });
+    } catch {
+      // ignore storage failures
+    }
   },
   removeItem: async (name: string): Promise<void> => {
     if (typeof indexedDB === 'undefined') return;
-    return new Promise((resolve) => {
-      const req = indexedDB.open('shipment-dashboard', 1);
-      req.onsuccess = () => {
-        const tx = req.result.transaction('kv', 'readwrite');
+    try {
+      const db = await getDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction('kv', 'readwrite');
         tx.objectStore('kv').delete(name);
         tx.oncomplete = () => resolve();
         tx.onerror = () => resolve();
-      };
-      req.onerror = () => resolve();
-    });
+      });
+    } catch {
+      // ignore storage failures
+    }
   },
 };
 
