@@ -1,25 +1,24 @@
 # 0002 Independent Hybrid Architecture
 
-* **Status**: Accepted
+* **Status**: Superseded by [0003 Transition to Internal Monorepo Workspace](./0003-transition-to-internal-monorepo-workspace.md)
 * **Deciders**: AI Assistant
 * **Date**: 2026-06-12
 
 ## Context and Problem Statement
 
-Atlas-Logistics consolidates multiple functional modules in one monorepo while still requiring clear package boundaries. The platform needs to share core logic (schemas, database helpers, utilities, UI primitives) across modules without duplicating code.
+The project mandate at the time required active repositories to remain independent to avoid deployment coupling and complex dependency graphs. At the same time, there was a need to share core logic (schemas, database definitions, utilities) across projects.
 
 ## Decision Drivers
 
-* Consistency in shared domain logic and UI behavior.
-* Maintainable package boundaries with low coupling.
-* Faster CI/CD by reusing shared workspace packages.
+* Strict independence mandate.
+* Need for shared domain logic consistency.
+* Deployment speed and reliability.
 
 ## Decision Outcome
 
-Chosen option: **Internal Workspace Packages**. Shared logic is centralized in `packages/shared` and shared UI/runtime integration is centralized in `packages/ui`. Consumer modules import these through pnpm workspace links using package names such as `@atlas/shared` and `@atlas/ui`.
+Chosen option at the time: **Local Shared Copies**. Each repository maintained its own local copy of shared logic in `src/shared` and `src/ui-shared` folders, aliased through build tools (Vite aliases or TypeScript paths).
 
 ### Consequences
 
-* **Good**: No duplicated shared code between feature modules, and shared fixes are applied once.
-* **Good**: Stronger type consistency across frontend packages through one canonical shared layer.
-* **Bad**: Workspace-level changes can affect multiple packages, so CI discipline and package filtering are required.
+* **Good**: Repositories could be built and deployed in complete isolation.
+* **Bad**: Code redundancy and manual synchronization across repositories.
