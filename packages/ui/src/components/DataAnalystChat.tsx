@@ -55,7 +55,7 @@ export function DataAnalystChat() {
   };
 
   return (
-    <div className="flex flex-col h-[500px] w-full max-w-2xl bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden shadow-2xl relative">
+    <div className="flex flex-col h-[500px] w-full max-w-2xl bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden shadow-2xl relative transform gpu will-change-transform">
       <div className="absolute top-0 right-0 p-32 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
       
       <div className="px-6 py-4 border-b border-slate-700/50 bg-slate-900/40 flex items-center gap-3 relative z-10">

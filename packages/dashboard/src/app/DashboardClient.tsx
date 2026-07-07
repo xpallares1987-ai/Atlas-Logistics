@@ -10,6 +10,7 @@ import {
   Trash2,
   Timer,
   Leaf,
+  CheckCircle2,
 } from "lucide-react";
 import {
   LogisticsDashboardLayout,
@@ -64,15 +65,60 @@ type TabType =
 type Role = "ADMIN" | "BROKER" | "SHIPPER";
 
 const NAV_ITEMS: (NavItem & { roles: Role[] })[] = [
-  { id: "Upload", label: "Data Import", icon: <UploadCloud size={18} />, roles: ["ADMIN", "BROKER"] },
-  { id: "KPIs", label: "Operational KPIs", icon: <BarChart3 size={18} />, roles: ["ADMIN", "SHIPPER"] },
-  { id: "Financial", label: "Financial", icon: <DollarSign size={18} />, roles: ["ADMIN"] },
-  { id: "Exceptions", label: "Exceptions", icon: <ShieldAlert size={18} />, roles: ["ADMIN", "BROKER"] },
-  { id: "Demurrage", label: "D&D Alerts", icon: <Timer size={18} />, roles: ["ADMIN", "BROKER"] },
-  { id: "Consolidation", label: "LCL Planner", icon: <Package size={18} />, roles: ["ADMIN", "BROKER"] },
-  { id: "Copilot", label: "AI Copilot", icon: <Zap size={18} />, roles: ["ADMIN", "SHIPPER", "BROKER"] },
-  { id: "Tasklist", label: "Tasklist", icon: <CheckCircle2 size={18} />, roles: ["ADMIN", "BROKER"] },
-  { id: "ESG", label: "ESG Tracker", icon: <Leaf size={18} />, roles: ["ADMIN", "SHIPPER"] },
+  {
+    id: "Upload",
+    label: "Data Import",
+    icon: <UploadCloud size={18} />,
+    roles: ["ADMIN", "BROKER"],
+  },
+  {
+    id: "KPIs",
+    label: "Operational KPIs",
+    icon: <BarChart3 size={18} />,
+    roles: ["ADMIN", "SHIPPER"],
+  },
+  {
+    id: "Financial",
+    label: "Financial",
+    icon: <DollarSign size={18} />,
+    roles: ["ADMIN"],
+  },
+  {
+    id: "Exceptions",
+    label: "Exceptions",
+    icon: <ShieldAlert size={18} />,
+    roles: ["ADMIN", "BROKER"],
+  },
+  {
+    id: "Demurrage",
+    label: "D&D Alerts",
+    icon: <Timer size={18} />,
+    roles: ["ADMIN", "BROKER"],
+  },
+  {
+    id: "Consolidation",
+    label: "LCL Planner",
+    icon: <Package size={18} />,
+    roles: ["ADMIN", "BROKER"],
+  },
+  {
+    id: "Copilot",
+    label: "AI Copilot",
+    icon: <Zap size={18} />,
+    roles: ["ADMIN", "SHIPPER", "BROKER"],
+  },
+  {
+    id: "Tasklist",
+    label: "Tasklist",
+    icon: <CheckCircle2 size={18} />,
+    roles: ["ADMIN", "BROKER"],
+  },
+  {
+    id: "ESG",
+    label: "ESG Tracker",
+    icon: <Leaf size={18} />,
+    roles: ["ADMIN", "SHIPPER"],
+  },
 ];
 
 function LclConsolidationEngineWrapper() {
@@ -125,10 +171,7 @@ function LclConsolidationEngineWrapper() {
         if (c.id === activeContainerId) {
           return {
             ...c,
-            assignedCargoIds: [
-              ...c.assignedCargoIds,
-              ...cargoIds,
-            ],
+            assignedCargoIds: [...c.assignedCargoIds, ...cargoIds],
           };
         }
         return c;
@@ -178,8 +221,11 @@ function LclConsolidationEngineWrapper() {
 export default function DashboardClient() {
   const [activeTab, setActiveTab] = useState<TabType>("KPIs");
   const [activeRole, setActiveRole] = useState<Role>("ADMIN");
-  
-  const allowedNavItems = useMemo(() => NAV_ITEMS.filter(item => item.roles.includes(activeRole)), [activeRole]);
+
+  const allowedNavItems = useMemo(
+    () => NAV_ITEMS.filter((item) => item.roles.includes(activeRole)),
+    [activeRole],
+  );
 
   const store = useDashboardStore();
   const { dataConnect, auth } = useFirebase();
@@ -272,38 +318,54 @@ export default function DashboardClient() {
 
     try {
       const file = files[0]; // Process one by one for mapping step
-      const ext = file.name.split('.').pop()?.toLowerCase();
-      
-      if (['png', 'jpg', 'jpeg', 'pdf'].includes(ext || '')) {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+
+      if (["png", "jpg", "jpeg", "pdf"].includes(ext || "")) {
         // AI OCR Route
         const reader = new FileReader();
         const base64Promise = new Promise<string>((resolve) => {
-          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onload = () =>
+            resolve((reader.result as string).split(",")[1]);
           reader.readAsDataURL(file);
         });
         const base64Image = await base64Promise;
-        
+
         const { getApp } = await import("firebase/app");
-        const { getFunctions, httpsCallable } = await import("firebase/functions");
+        const { getFunctions, httpsCallable } =
+          await import("firebase/functions");
         const app = getApp();
         const functions = getFunctions(app);
         const documentOCR = httpsCallable(functions, "documentOCR");
-        
-        const result = await documentOCR({ base64Image, mimeType: file.type || "image/jpeg" });
+
+        const result = await documentOCR({
+          base64Image,
+          mimeType: file.type || "image/jpeg",
+        });
         const data = result.data as any;
-        
+
         if (data.success && data.data) {
           // Push directly into the store
-          store.addOperationalData([{
-            shipment_ref: data.data.referenceNumber || `REF-${Date.now()}`,
-            status: "IN_TRANSIT",
-            pol: data.data.originPort || "UNKNOWN",
-            pod: data.data.destinationPort || "UNKNOWN",
-            trade_lane: `${data.data.originPort}-${data.data.destinationPort}`,
-            eta: new Date(Date.now() + 86400000 * 10).toISOString(),
-            ata: new Date().toISOString(),
-            weight_kg: data.data.totalWeightKg || 0,
-          }], file.name, "operational");
+          store.addOperational(
+            [
+              {
+                shipment_ref: data.data.referenceNumber || `REF-${Date.now()}`,
+                status: "IN_TRANSIT",
+                pol: data.data.originPort || "UNKNOWN",
+                pod: data.data.destinationPort || "UNKNOWN",
+                trade_lane: `${data.data.originPort}-${data.data.destinationPort}`,
+                eta: new Date(Date.now() + 86400000 * 10).toISOString(),
+                ata: new Date().toISOString(),
+                weight_kg: data.data.totalWeightKg || 0,
+              },
+            ] as any,
+            {
+              id: `ocr-${Date.now()}`,
+              name: file.name,
+              type: "operational",
+              uploadedAt: new Date().toISOString(),
+              rowCount: 1,
+            },
+          );
           alert(`Documento OCR Procesado: ${data.data.documentType}`);
         } else {
           throw new Error("OCR Failed");
@@ -311,11 +373,17 @@ export default function DashboardClient() {
       } else {
         // Standard CSV/Excel Route
         const parsed = await parseFile(file);
-        const detectedType = autoDetectReportType(parsed.columns) || "operational";
+        const detectedType =
+          autoDetectReportType(parsed.columns) || "operational";
 
         setPendingFile({ file, id: `file-${Date.now()}` });
         setMappingState(
-          buildMappingState(file.name, parsed.columns, parsed.rows, detectedType),
+          buildMappingState(
+            file.name,
+            parsed.columns,
+            parsed.rows,
+            detectedType,
+          ),
         );
       }
     } catch (err) {
@@ -379,8 +447,8 @@ export default function DashboardClient() {
         style={{ position: "absolute", top: "1rem", right: "1rem", zIndex: 50 }}
         className="flex items-center gap-4"
       >
-        <select 
-          value={activeRole} 
+        <select
+          value={activeRole}
           onChange={(e) => {
             setActiveRole(e.target.value as Role);
             setActiveTab("KPIs");
@@ -522,7 +590,7 @@ export default function DashboardClient() {
       {activeTab === "Tasklist" && <HumanTasklist />}
 
       {activeTab === "ESG" && <ESGCarbonTracker />}
-      
+
       <OmniSearch />
     </LogisticsDashboardLayout>
   );

@@ -16,22 +16,30 @@ export default function AppLayout() {
   const location = useLocation();
   const { user, role, logout } = useAuth();
 
-  const navItems = useMemo(
-    () => [
+  const navItems = useMemo(() => {
+    const items = [
       { name: "Dashboard", path: "/", icon: LayoutDashboard },
-      { name: "CRM", path: "/crm", icon: Users },
       { name: "Shipments", path: "/shipments", icon: Ship },
-      { name: "Rates", path: "/rates", icon: TrendingUp },
-      { name: "WMS", path: "/wms", icon: Package },
-      { name: "Consolidation", path: "/consolidation", icon: Package },
-      { name: "Workflows", path: "/workflows", icon: Settings },
       { name: "Documents", path: "/docs", icon: FileText },
-      ...(role === "ADMIN"
-        ? [{ name: "Team & Roles", path: "/settings/users", icon: Users }]
-        : []),
-    ],
-    [role],
-  );
+    ];
+
+    if (role === "ADMIN" || role === "SALES") {
+      items.push({ name: "CRM", path: "/crm", icon: Users });
+      items.push({ name: "Rates", path: "/rates", icon: TrendingUp });
+    }
+
+    if (role === "ADMIN" || role === "WAREHOUSE") {
+      items.push({ name: "WMS", path: "/wms", icon: Package });
+      items.push({ name: "Consolidation", path: "/consolidation", icon: Package });
+    }
+
+    if (role === "ADMIN") {
+      items.push({ name: "Workflows", path: "/workflows", icon: Settings });
+      items.push({ name: "Team & Roles", path: "/settings/users", icon: Users });
+    }
+
+    return items;
+  }, [role]);
 
   return (
     <div className="flex h-screen bg-gray-50">

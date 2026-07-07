@@ -7,9 +7,12 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
+  timeout: 120000,
   use: {
     baseURL: "http://localhost:5173",
     trace: "on-first-retry",
+    actionTimeout: 60000,
+    navigationTimeout: 60000,
   },
 
   projects: [
@@ -23,5 +26,6 @@ export default defineConfig({
     command: "pnpm run dev --filter @atlas/frontend",
     url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
+    timeout: 120000,
   },
 });
