@@ -1,10 +1,17 @@
-'use client';
+"use client";
 
-import { useCallback } from 'react';
-import { ArrowRight, Check, AlertTriangle, ChevronDown } from 'lucide-react';
-import type { MappingState, ColumnMapping, ReportType } from '../types/dashboard';
-import { TEMPLATE_FIELDS } from '../types/dashboard';
-import { getMissingRequired, isMappingComplete } from '../services/column-mapper';
+import { useCallback } from "react";
+import { ArrowRight, Check, AlertTriangle, ChevronDown } from "lucide-react";
+import type {
+  MappingState,
+  ColumnMapping,
+  ReportType,
+} from "../types/dashboard";
+import { TEMPLATE_FIELDS } from "../types/dashboard";
+import {
+  getMissingRequired,
+  isMappingComplete,
+} from "../services/column-mapper";
 
 interface ColumnMapperProps {
   state: MappingState;
@@ -13,14 +20,19 @@ interface ColumnMapperProps {
   onCancel: () => void;
 }
 
-export function ColumnMapper({ state, onChange, onConfirm, onCancel }: ColumnMapperProps) {
+export function ColumnMapper({
+  state,
+  onChange,
+  onConfirm,
+  onCancel,
+}: ColumnMapperProps) {
   const { reportType, availableColumns, mappings } = state;
   const fields = TEMPLATE_FIELDS[reportType];
   const missing = getMissingRequired(mappings, reportType);
   const complete = isMappingComplete(mappings, reportType);
 
   const getSourceFor = (targetField: string): string =>
-    mappings.find((m) => m.targetField === targetField)?.sourceColumn ?? '';
+    mappings.find((m) => m.targetField === targetField)?.sourceColumn ?? "";
 
   const handleChange = useCallback(
     (targetField: string, sourceColumn: string) => {
@@ -37,9 +49,9 @@ export function ColumnMapper({ state, onChange, onConfirm, onCancel }: ColumnMap
   );
 
   const REPORT_LABELS: Record<ReportType, string> = {
-    operational: 'Operational',
-    financial: 'Financial',
-    exception: 'Exception',
+    operational: "Operational",
+    financial: "Financial",
+    exception: "Exception",
   };
 
   return (
@@ -48,13 +60,20 @@ export function ColumnMapper({ state, onChange, onConfirm, onCancel }: ColumnMap
         <div>
           <h3 className="column-mapper__title">Map Columns</h3>
           <p className="column-mapper__subtitle">
-            Assign columns from <strong>{state.fileName}</strong> to the{' '}
-            <span className={`badge badge--${reportType}`}>{REPORT_LABELS[reportType]}</span> report fields
+            Assign columns from <strong>{state.fileName}</strong> to the{" "}
+            <span className={`badge badge--${reportType}`}>
+              {REPORT_LABELS[reportType]}
+            </span>{" "}
+            report fields
           </p>
         </div>
         <div className="column-mapper__stats">
-          <span className="stat-badge stat-badge--info">{state.rawData.length} rows</span>
-          <span className="stat-badge stat-badge--muted">{availableColumns.length} columns detected</span>
+          <span className="stat-badge stat-badge--info">
+            {state.rawData.length} rows
+          </span>
+          <span className="stat-badge stat-badge--muted">
+            {availableColumns.length} columns detected
+          </span>
         </div>
       </div>
 
@@ -68,13 +87,15 @@ export function ColumnMapper({ state, onChange, onConfirm, onCancel }: ColumnMap
           return (
             <div
               key={field.key}
-              className={`mapper-row ${isMapped ? 'mapper-row--mapped' : ''} ${isMissingRequired ? 'mapper-row--error' : ''}`}
+              className={`mapper-row ${isMapped ? "mapper-row--mapped" : ""} ${isMissingRequired ? "mapper-row--error" : ""}`}
             >
               {/* Target field */}
               <div className="mapper-row__target">
                 <span className="mapper-row__field-name">{field.label}</span>
                 {isRequired && <span className="required-badge">required</span>}
-                <span className="mapper-row__example">e.g. {field.example}</span>
+                <span className="mapper-row__example">
+                  e.g. {field.example}
+                </span>
               </div>
 
               {/* Arrow */}
@@ -86,7 +107,7 @@ export function ColumnMapper({ state, onChange, onConfirm, onCancel }: ColumnMap
                   <select
                     value={src}
                     onChange={(e) => handleChange(field.key, e.target.value)}
-                    className={`mapper-select ${isMissingRequired ? 'mapper-select--error' : ''}`}
+                    className={`mapper-select ${isMissingRequired ? "mapper-select--error" : ""}`}
                   >
                     <option value="">— not mapped —</option>
                     {availableColumns.map((col) => (
@@ -107,7 +128,7 @@ export function ColumnMapper({ state, onChange, onConfirm, onCancel }: ColumnMap
       {!complete && (
         <div className="mapper-warning">
           <AlertTriangle size={14} />
-          <span>Required fields not mapped: {missing.join(', ')}</span>
+          <span>Required fields not mapped: {missing.join(", ")}</span>
         </div>
       )}
 

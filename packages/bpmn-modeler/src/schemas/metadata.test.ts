@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { SysMetadataSchema, getValidatedMetadata, safeGetMetadata, validateProperty } from './metadata';
+import {
+  SysMetadataSchema,
+  getValidatedMetadata,
+  safeGetMetadata,
+  validateProperty,
+} from './metadata';
 
 describe('Metadata Schema Validation', () => {
   describe('SysMetadataSchema', () => {
