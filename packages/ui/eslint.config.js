@@ -19,6 +19,12 @@ export default tseslint.config(
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      "no-restricted-imports": ["error", {
+        patterns: [{
+          group: ["@atlas/dashboard", "@atlas/freight-comparer", "@atlas/bpmn-modeler"],
+          message: "El paquete genérico @atlas/ui no debe importar desde paquetes específicos del dominio."
+        }]
+      }],
     },
   },
   {
