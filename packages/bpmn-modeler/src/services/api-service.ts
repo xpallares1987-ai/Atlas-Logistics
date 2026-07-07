@@ -17,20 +17,25 @@ export async function getDiagramVersions(diagramId: string): Promise<DiagramVers
   return response.json();
 }
 
-export async function saveDiagramVersion(diagramId: string, xml: string, label?: string, authorId?: string): Promise<{ id: number; message: string }> {
+export async function saveDiagramVersion(
+  diagramId: string,
+  xml: string,
+  label?: string,
+  authorId?: string
+): Promise<{ id: number; message: string }> {
   const response = await fetch(`${API_BASE}/bpm/versions`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       diagram_id: diagramId,
       xml,
       label,
-      author_id: authorId
-    })
+      author_id: authorId,
+    }),
   });
-  
+
   if (!response.ok) {
     throw new Error('Failed to save diagram version');
   }

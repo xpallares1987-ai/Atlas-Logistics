@@ -1,122 +1,118 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.16.0">
-  <bpmn:process id="Process_SeaExport" name="Exportación Marítima FCL" isExecutable="true">
-    <bpmn:startEvent id="StartEvent_1" name="Solicitud de Cotización">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_OceanExport" name="Ocean Export Flow" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_BookingReceived" name="Booking Received">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:task id="Task_Booking" name="Realizar Booking con Naviera">
+    <bpmn:task id="Task_ConfirmCarrier" name="Confirm with Carrier">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="carrier-confirmation" />
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Booking" />
-    <bpmn:task id="Task_Docs" name="Recoger Documentación (Invoice, PL)">
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_BookingReceived" targetRef="Task_ConfirmCarrier" />
+    <bpmn:task id="Task_EmptyPickup" name="Empty Container Pickup">
       <bpmn:incoming>Flow_2</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Booking" targetRef="Task_Docs" />
-    <bpmn:exclusiveGateway id="Gateway_Customs" name="¿Requiere Inspección?">
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_ConfirmCarrier" targetRef="Task_EmptyPickup" />
+    <bpmn:task id="Task_Stuffing" name="Stuffing at Shipper">
       <bpmn:incoming>Flow_3</bpmn:incoming>
-      <bpmn:outgoing>Flow_Green</bpmn:outgoing>
-      <bpmn:outgoing>Flow_Red</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
-    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_Docs" targetRef="Gateway_Customs" />
-    <bpmn:task id="Task_Clearance" name="Despacho de Aduanas">
-      <bpmn:incoming>Flow_Green</bpmn:incoming>
       <bpmn:outgoing>Flow_4</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:sequenceFlow id="Flow_Green" name="Canal Verde" sourceRef="Gateway_Customs" targetRef="Task_Clearance" />
-    <bpmn:task id="Task_Inspection" name="Inspección Física (Canal Rojo)">
-      <bpmn:incoming>Flow_Red</bpmn:incoming>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_EmptyPickup" targetRef="Task_Stuffing" />
+    <bpmn:task id="Task_VGM" name="Submit VGM">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:sequenceFlow id="Flow_Red" name="Canal Rojo/Naranja" sourceRef="Gateway_Customs" targetRef="Task_Inspection" />
-    <bpmn:task id="Task_Loading" name="Carga en Buque">
-      <bpmn:incoming>Flow_4</bpmn:incoming>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_Stuffing" targetRef="Task_VGM" />
+    <bpmn:task id="Task_CYDelivery" name="CY Delivery at Port">
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_Clearance" targetRef="Task_Loading" />
-    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_Inspection" targetRef="Task_Loading" />
-    <bpmn:endEvent id="EndEvent_1" name="Envío en Tránsito">
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_VGM" targetRef="Task_CYDelivery" />
+    <bpmn:task id="Task_Customs" name="Export Customs Clearance">
       <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_CYDelivery" targetRef="Task_Customs" />
+    <bpmn:task id="Task_Onboard" name="Loaded Onboard">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_Customs" targetRef="Task_Onboard" />
+    <bpmn:endEvent id="EndEvent_Sailed" name="Vessel Sailed">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_Loading" targetRef="EndEvent_1" />
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_Onboard" targetRef="EndEvent_Sailed" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_SeaExport">
-      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
-        <dc:Bounds x="179" y="159" width="36" height="36" />
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_OceanExport">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_BookingReceived" bpmnElement="StartEvent_BookingReceived">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="168" y="202" width="59" height="27" />
+          <dc:Bounds x="131" y="145" width="79" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_Booking_di" bpmnElement="Task_Booking">
-        <dc:Bounds x="270" y="137" width="100" height="80" />
+      <bpmndi:BPMNShape id="Task_ConfirmCarrier_di" bpmnElement="Task_ConfirmCarrier">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_Docs_di" bpmnElement="Task_Docs">
-        <dc:Bounds x="430" y="137" width="100" height="80" />
+      <bpmndi:BPMNShape id="Task_EmptyPickup_di" bpmnElement="Task_EmptyPickup">
+        <dc:Bounds x="390" y="80" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_Customs_di" bpmnElement="Gateway_Customs" isMarkerVisible="true">
-        <dc:Bounds x="595" y="152" width="50" height="50" />
+      <bpmndi:BPMNShape id="Task_Stuffing_di" bpmnElement="Task_Stuffing">
+        <dc:Bounds x="540" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_VGM_di" bpmnElement="Task_VGM">
+        <dc:Bounds x="690" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CYDelivery_di" bpmnElement="Task_CYDelivery">
+        <dc:Bounds x="840" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Customs_di" bpmnElement="Task_Customs">
+        <dc:Bounds x="990" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Onboard_di" bpmnElement="Task_Onboard">
+        <dc:Bounds x="1140" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Sailed_di" bpmnElement="EndEvent_Sailed">
+        <dc:Bounds x="1292" y="102" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="591" y="122" width="59" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_Clearance_di" bpmnElement="Task_Clearance">
-        <dc:Bounds x="710" y="137" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_Inspection_di" bpmnElement="Task_Inspection">
-        <dc:Bounds x="710" y="250" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_Loading_di" bpmnElement="Task_Loading">
-        <dc:Bounds x="880" y="137" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
-        <dc:Bounds x="1052" y="159" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="1027" y="202" width="86" height="14" />
+          <dc:Bounds x="1277" y="145" width="67" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
-        <di:waypoint x="215" y="177" />
-        <di:waypoint x="270" y="177" />
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
-        <di:waypoint x="370" y="177" />
-        <di:waypoint x="430" y="177" />
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="390" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
-        <di:waypoint x="530" y="177" />
-        <di:waypoint x="595" y="177" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Green_di" bpmnElement="Flow_Green">
-        <di:waypoint x="645" y="177" />
-        <di:waypoint x="710" y="177" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="649" y="159" width="62" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Red_di" bpmnElement="Flow_Red">
-        <di:waypoint x="620" y="202" />
-        <di:waypoint x="620" y="290" />
-        <di:waypoint x="710" y="290" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="625" y="256" width="70" height="27" />
-        </bpmndi:BPMNLabel>
+        <di:waypoint x="490" y="120" />
+        <di:waypoint x="540" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
-        <di:waypoint x="810" y="177" />
-        <di:waypoint x="880" y="177" />
+        <di:waypoint x="640" y="120" />
+        <di:waypoint x="690" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
-        <di:waypoint x="810" y="290" />
-        <di:waypoint x="845" y="290" />
-        <di:waypoint x="845" y="177" />
-        <di:waypoint x="880" y="177" />
+        <di:waypoint x="790" y="120" />
+        <di:waypoint x="840" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
-        <di:waypoint x="980" y="177" />
-        <di:waypoint x="1052" y="177" />
+        <di:waypoint x="940" y="120" />
+        <di:waypoint x="990" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1090" y="120" />
+        <di:waypoint x="1140" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1240" y="120" />
+        <di:waypoint x="1292" y="120" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

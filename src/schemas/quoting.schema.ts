@@ -1,6 +1,12 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const quoteStatusSchema = z.enum(['Draft', 'Sent', 'Accepted', 'Rejected', 'Expired']);
+export const quoteStatusSchema = z.enum([
+  "Draft",
+  "Sent",
+  "Accepted",
+  "Rejected",
+  "Expired",
+]);
 
 export const quoteOptionSchema = z.object({
   id: z.number().int().positive(),
@@ -12,7 +18,7 @@ export const quoteOptionSchema = z.object({
 
 export const createQuoteOptionSchema = quoteOptionSchema.omit({
   id: true,
-  quote_id: true
+  quote_id: true,
 });
 
 export const quoteSchema = z.object({
@@ -24,20 +30,22 @@ export const quoteSchema = z.object({
   status: quoteStatusSchema,
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional(),
-  options: z.array(quoteOptionSchema).optional()
+  options: z.array(quoteOptionSchema).optional(),
 });
 
-export const createQuoteSchema = quoteSchema.omit({
-  id: true,
-  status: true,
-  created_at: true,
-  updated_at: true,
-  options: true
-}).extend({
-  options: z.array(createQuoteOptionSchema).optional()
-});
+export const createQuoteSchema = quoteSchema
+  .omit({
+    id: true,
+    status: true,
+    created_at: true,
+    updated_at: true,
+    options: true,
+  })
+  .extend({
+    options: z.array(createQuoteOptionSchema).optional(),
+  });
 
 export const updateQuoteSchema = z.object({
   status: quoteStatusSchema,
-  valid_until: z.string().optional()
+  valid_until: z.string().optional(),
 });

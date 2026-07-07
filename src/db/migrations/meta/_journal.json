@@ -57,6 +57,13 @@
       "when": 1782923152774,
       "tag": "0007_lame_zuras",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783340228437,
+      "tag": "0008_add_tenant_id",
+      "breakpoints": true
     }
   ]
 }

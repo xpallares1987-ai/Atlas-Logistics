@@ -4,16 +4,40 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
-import { 
-  ArrowUpDown, Award, DollarSign, Split, TrendingDown, TrendingUp, Minus, 
-  HelpCircle, Layers, Download, FileSpreadsheet, Scale, 
-  ShieldAlert, AlertCircle, CheckCircle, Coins, Leaf
+import {
+  ArrowUpDown,
+  Award,
+  DollarSign,
+  Split,
+  TrendingDown,
+  TrendingUp,
+  Minus,
+  HelpCircle,
+  Layers,
+  Download,
+  FileSpreadsheet,
+  Scale,
+  ShieldAlert,
+  AlertCircle,
+  CheckCircle,
+  Coins,
+  Leaf,
 } from "lucide-react";
 import { FreightRate, TranslationSet } from "../types";
 import * as XLSX from "xlsx";
-import { estimateCarbonFootprint, getCarbonRating } from "../services/carbonService";
-import { convertCurrency, formatCurrency, CURRENCY_RATES } from "../services/currencyService";
-import { generateExecutiveReport, generateCustomerQuote } from "../services/PDFService";
+import {
+  estimateCarbonFootprint,
+  getCarbonRating,
+} from "../services/carbonService";
+import {
+  convertCurrency,
+  formatCurrency,
+  CURRENCY_RATES,
+} from "../services/currencyService";
+import {
+  generateExecutiveReport,
+  generateCustomerQuote,
+} from "../services/PDFService";
 
 interface ComparisonTableProps {
   t: TranslationSet;
@@ -21,12 +45,21 @@ interface ComparisonTableProps {
   allRates?: FreightRate[];
 }
 
-type SortKey = "carrier" | "oceanFreight" | "gastosFob" | "gastosDestino" | "total" | "transitTime" | "carbon";
+type SortKey =
+  | "carrier"
+  | "oceanFreight"
+  | "gastosFob"
+  | "gastosDestino"
+  | "total"
+  | "transitTime"
+  | "carbon";
 
-function parseMonthYear(mesStr: string): { monthIndex: number; year: number } | null {
+function parseMonthYear(
+  mesStr: string,
+): { monthIndex: number; year: number } | null {
   if (!mesStr) return null;
   const cleaned = mesStr.trim().toLowerCase();
-  
+
   // Try pattern matching like "05/2026" or "2026-05" or "05-2026"
   const m1 = cleaned.match(/^(\d{1,2})[\/\- ](\d{4})$/);
   if (m1) {
@@ -39,28 +72,86 @@ function parseMonthYear(mesStr: string): { monthIndex: number; year: number } | 
 
   // English month terms names map
   const monthNamesEN: Record<string, number> = {
-    january: 0, jan: 0,
-    february: 1, feb: 1,
-    march: 2, mar: 2,
-    april: 3, apr: 3,
+    january: 0,
+    jan: 0,
+    february: 1,
+    feb: 1,
+    march: 2,
+    mar: 2,
+    april: 3,
+    apr: 3,
     may: 4,
-    june: 5, jun: 5,
-    july: 6, jul: 6,
-    august: 7, aug: 7,
-    september: 8, sep: 8, sept: 8,
-    october: 9, oct: 9,
-    november: 10, nov: 10,
-    december: 11, dec: 11
+    june: 5,
+    jun: 5,
+    july: 6,
+    jul: 6,
+    august: 7,
+    aug: 7,
+    september: 8,
+    sep: 8,
+    sept: 8,
+    october: 9,
+    oct: 9,
+    november: 10,
+    nov: 10,
+    december: 11,
+    dec: 11,
   };
-  
+
   // Spanish month terms names map
   const monthNamesES: Record<string, number> = {
-    enero: 0, ene: 0, febrero: 1, feb: 1, marzo: 2, mar: 2, abril: 3, abr: 3, mayo: 4, may: 4, junio: 5, jun: 5, julio: 6, jul: 6, agosto: 7, ago: 7, septiembre: 8, sep: 8, sept: 8, octubre: 9, oct: 9, noviembre: 10, nov: 10, diciembre: 11, dic: 11
+    enero: 0,
+    ene: 0,
+    febrero: 1,
+    feb: 1,
+    marzo: 2,
+    mar: 2,
+    abril: 3,
+    abr: 3,
+    mayo: 4,
+    may: 4,
+    junio: 5,
+    jun: 5,
+    julio: 6,
+    jul: 6,
+    agosto: 7,
+    ago: 7,
+    septiembre: 8,
+    sep: 8,
+    sept: 8,
+    octubre: 9,
+    oct: 9,
+    noviembre: 10,
+    nov: 10,
+    diciembre: 11,
+    dic: 11,
   };
 
   // German month terms names map
   const monthNamesDE: Record<string, number> = {
-    januar: 0, jan: 0, februar: 1, feb: 1, märz: 2, mrz: 2, april: 3, apr: 3, mai: 4, juni: 5, jun: 5, juli: 6, jul: 6, august: 7, aug: 7, september: 8, sep: 8, oktober: 9, okt: 9, november: 10, nov: 10, dezember: 11, dez: 11
+    januar: 0,
+    jan: 0,
+    februar: 1,
+    feb: 1,
+    märz: 2,
+    mrz: 2,
+    april: 3,
+    apr: 3,
+    mai: 4,
+    juni: 5,
+    jun: 5,
+    juli: 6,
+    jul: 6,
+    august: 7,
+    aug: 7,
+    september: 8,
+    sep: 8,
+    oktober: 9,
+    okt: 9,
+    november: 10,
+    nov: 10,
+    dezember: 11,
+    dez: 11,
   };
 
   const allMonths = { ...monthNamesEN, ...monthNamesES, ...monthNamesDE };
@@ -85,14 +176,17 @@ function parseMonthYear(mesStr: string): { monthIndex: number; year: number } | 
   if (foundMonth !== null) {
     return {
       monthIndex: foundMonth,
-      year: foundYear || new Date().getFullYear() // fallback to current year
+      year: foundYear || new Date().getFullYear(), // fallback to current year
     };
   }
 
   return null;
 }
 
-const getPreviousMonthRate = (currentRate: FreightRate, allRates: FreightRate[]): FreightRate | null => {
+const getPreviousMonthRate = (
+  currentRate: FreightRate,
+  allRates: FreightRate[],
+): FreightRate | null => {
   const currentParsed = parseMonthYear(currentRate.mes);
   if (!currentParsed) return null;
   const currentAbsMonth = currentParsed.year * 12 + currentParsed.monthIndex;
@@ -100,9 +194,10 @@ const getPreviousMonthRate = (currentRate: FreightRate, allRates: FreightRate[])
   // Find all rates for the same provider/carrier on the same trading lane
   const siblingRates = allRates.filter(
     (r) =>
-      r.carrier.toLowerCase().trim() === currentRate.carrier.toLowerCase().trim() &&
+      r.carrier.toLowerCase().trim() ===
+        currentRate.carrier.toLowerCase().trim() &&
       r.pol.toLowerCase().trim() === currentRate.pol.toLowerCase().trim() &&
-      r.pod.toLowerCase().trim() === currentRate.pod.toLowerCase().trim()
+      r.pod.toLowerCase().trim() === currentRate.pod.toLowerCase().trim(),
   );
 
   let bestPrevRate: FreightRate | null = null;
@@ -124,23 +219,37 @@ const getPreviousMonthRate = (currentRate: FreightRate, allRates: FreightRate[])
   return bestPrevRate;
 };
 
-export default function ComparisonTable({ t, filteredRates, allRates }: ComparisonTableProps) {
+export default function ComparisonTable({
+  t,
+  filteredRates,
+  allRates,
+}: ComparisonTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("total");
   const [sortAsc, setSortAsc] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<"matrix" | "list">("matrix");
   const [currency, setCurrency] = useState<string>("USD");
-  
+
   // Carrier comparison helper variables
   // Find the absolute cheapest rate to highlight it
-  const cheapestRate = filteredRates.length > 0
-    ? filteredRates.reduce((min, current) => (current.total < min.total ? current : min), filteredRates[0])
-    : null;
+  const cheapestRate =
+    filteredRates.length > 0
+      ? filteredRates.reduce(
+          (min, current) => (current.total < min.total ? current : min),
+          filteredRates[0],
+        )
+      : null;
 
   // Find the fastest rate (lowest transit time)
   const fastestRate = useMemo(() => {
-    const ratesWithTT = filteredRates.filter(r => r.transitTime !== undefined && r.transitTime > 0);
+    const ratesWithTT = filteredRates.filter(
+      (r) => r.transitTime !== undefined && r.transitTime > 0,
+    );
     if (ratesWithTT.length === 0) return null;
-    return ratesWithTT.reduce((min, current) => (current.transitTime! < min.transitTime! ? current : min), ratesWithTT[0]);
+    return ratesWithTT.reduce(
+      (min, current) =>
+        current.transitTime! < min.transitTime! ? current : min,
+      ratesWithTT[0],
+    );
   }, [filteredRates]);
 
   // Sort the actual rates
@@ -151,7 +260,7 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
         const valB = estimateCarbonFootprint(b);
         return sortAsc ? valA - valB : valB - valA;
       }
-      
+
       const valA = a[sortKey as keyof FreightRate];
       const valB = b[sortKey as keyof FreightRate];
 
@@ -160,14 +269,14 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
       } else {
         const numA = Number(valA) || 0;
         const numB = Number(valB) || 0;
-        
+
         // Treat 0 as infinity for transit time if ascending to push 0s to bottom
         if (sortKey === "transitTime" && sortAsc) {
           const aEff = numA === 0 ? Infinity : numA;
           const bEff = numB === 0 ? Infinity : numB;
           return aEff - bEff;
         }
-        
+
         return sortAsc ? numA - numB : numB - numA;
       }
     });
@@ -191,15 +300,20 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
     localStorage.setItem("arena_annual_volume", String(vol));
   };
 
-  const uniqueCarriersList = Array.from(new Set(filteredRates.map(r => r.carrier))).sort();
+  const uniqueCarriersList = Array.from(
+    new Set(filteredRates.map((r) => r.carrier)),
+  ).sort();
 
   // Algorithmic Carrier Efficiency Grading Helper
   const carrierGrades = useMemo(() => {
     if (filteredRates.length === 0) return [];
-    
+
     // Group rates by carrier
-    const carrierGroups: Record<string, { total: number; count: number; lanes: Set<string> }> = {};
-    filteredRates.forEach(r => {
+    const carrierGroups: Record<
+      string,
+      { total: number; count: number; lanes: Set<string> }
+    > = {};
+    filteredRates.forEach((r) => {
       const key = r.carrier;
       const laneKey = `${r.pol}➔${r.pod}`;
       if (!carrierGroups[key]) {
@@ -209,95 +323,109 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
       carrierGroups[key].count += 1;
       carrierGroups[key].lanes.add(laneKey);
     });
-    
+
     // Compute averages
     const averages = Object.entries(carrierGroups).map(([carrier, data]) => {
       return {
         carrier,
         avgPrice: data.total / data.count,
         laneCount: data.lanes.size,
-        totalCount: data.count
+        totalCount: data.count,
       };
     });
-    
+
     if (averages.length === 0) return [];
-    
+
     // Sort by price
     const sortedByPrice = [...averages].sort((a, b) => a.avgPrice - b.avgPrice);
     const minAvg = sortedByPrice[0].avgPrice;
-    
-    return averages.map(item => {
-      const ratio = item.avgPrice / (minAvg || 1);
-      let grade = "A+";
-      let colorClass = "text-emerald-500 bg-emerald-50/50 border-emerald-100";
-      let label = "Top Optimizer";
-      
-      if (ratio > 1.30) {
-        grade = "D";
-        colorClass = "text-red-500 bg-red-50/50 border-red-105";
-        label = "Premium Price Bracket";
-      } else if (ratio > 1.15) {
-        grade = "C";
-        colorClass = "text-amber-500 bg-amber-50/50 border-amber-105";
-        label = "Standard Tier Pricing";
-      } else if (ratio > 1.05) {
-        grade = "B";
-        colorClass = "text-indigo-500 bg-indigo-50/50 border-indigo-105";
-        label = "Highly Competitive Price";
-      } else if (ratio > 1.01) {
-        grade = "A";
-        colorClass = "text-teal-500 bg-teal-50/50 border-teal-105";
-        label = "Cost Leader Associate";
-      }
-      
-      return {
-        ...item,
-        grade,
-        colorClass,
-        label,
-        ratio
-      };
-    }).sort((a, b) => a.avgPrice - b.avgPrice);
+
+    return averages
+      .map((item) => {
+        const ratio = item.avgPrice / (minAvg || 1);
+        let grade = "A+";
+        let colorClass = "text-emerald-500 bg-emerald-50/50 border-emerald-100";
+        let label = "Top Optimizer";
+
+        if (ratio > 1.3) {
+          grade = "D";
+          colorClass = "text-red-500 bg-red-50/50 border-red-105";
+          label = "Premium Price Bracket";
+        } else if (ratio > 1.15) {
+          grade = "C";
+          colorClass = "text-amber-500 bg-amber-50/50 border-amber-105";
+          label = "Standard Tier Pricing";
+        } else if (ratio > 1.05) {
+          grade = "B";
+          colorClass = "text-indigo-500 bg-indigo-50/50 border-indigo-105";
+          label = "Highly Competitive Price";
+        } else if (ratio > 1.01) {
+          grade = "A";
+          colorClass = "text-teal-500 bg-teal-50/50 border-teal-105";
+          label = "Cost Leader Associate";
+        }
+
+        return {
+          ...item,
+          grade,
+          colorClass,
+          label,
+          ratio,
+        };
+      })
+      .sort((a, b) => a.avgPrice - b.avgPrice);
   }, [filteredRates]);
 
   // Group columns by POL, POD, and Carrier
   const columnsList = useMemo(() => {
-    const colMap: Record<string, { pol: string; pod: string; carrier: string; rate: FreightRate }> = {};
-    sortedRates.forEach(rate => {
+    const colMap: Record<
+      string,
+      { pol: string; pod: string; carrier: string; rate: FreightRate }
+    > = {};
+    sortedRates.forEach((rate) => {
       const key = `${rate.pol}||${rate.carrier}||${rate.pod}`;
       colMap[key] = {
         pol: rate.pol,
         pod: rate.pod,
         carrier: rate.carrier,
-        rate: rate
+        rate: rate,
       };
     });
-    return Object.keys(colMap).sort().map(key => colMap[key]);
+    return Object.keys(colMap)
+      .sort()
+      .map((key) => colMap[key]);
   }, [sortedRates]);
 
   // Extract all itemized surcharges
   const displayConceptsList = useMemo(() => {
     const META_KEYS = [
-      'CONTRATO', 'Dias libres en Origen', 'Dias Libres en Destino', 
-      'Effective Date', 'Valid Until', 'GASTOS FOB', 'SF + RECARGOS', 
-      'Ocean freight', 'GASTOS EN DESTINO', 'NAC'
+      "CONTRATO",
+      "Dias libres en Origen",
+      "Dias Libres en Destino",
+      "Effective Date",
+      "Valid Until",
+      "GASTOS FOB",
+      "SF + RECARGOS",
+      "Ocean freight",
+      "GASTOS EN DESTINO",
+      "NAC",
     ];
     const conceptsSet = new Set<string>();
-    sortedRates.forEach(rate => {
+    sortedRates.forEach((rate) => {
       if (rate.conceptos) {
-        Object.keys(rate.conceptos).forEach(c => {
+        Object.keys(rate.conceptos).forEach((c) => {
           conceptsSet.add(c);
         });
       }
     });
 
     if (conceptsSet.size === 0) {
-      const hasFob = sortedRates.some(r => r.gastosFob > 0);
-      const hasDest = sortedRates.some(r => r.gastosDestino > 0);
-      const hasBaf = sortedRates.some(r => (r.baf || 0) > 0);
-      const hasThc = sortedRates.some(r => (r.thc || 0) > 0);
-      const hasLss = sortedRates.some(r => (r.lss || 0) > 0);
-      const hasOthers = sortedRates.some(r => (r.otrosRecargos || 0) > 0);
+      const hasFob = sortedRates.some((r) => r.gastosFob > 0);
+      const hasDest = sortedRates.some((r) => r.gastosDestino > 0);
+      const hasBaf = sortedRates.some((r) => (r.baf || 0) > 0);
+      const hasThc = sortedRates.some((r) => (r.thc || 0) > 0);
+      const hasLss = sortedRates.some((r) => (r.lss || 0) > 0);
+      const hasOthers = sortedRates.some((r) => (r.otrosRecargos || 0) > 0);
 
       if (hasFob) conceptsSet.add("FOB Local Charges");
       if (hasDest) conceptsSet.add("Destination Charges");
@@ -307,10 +435,15 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
       if (hasOthers) conceptsSet.add("Others Surcharges");
     }
 
-    return Array.from(conceptsSet).filter(c => !META_KEYS.includes(c)).sort();
+    return Array.from(conceptsSet)
+      .filter((c) => !META_KEYS.includes(c))
+      .sort();
   }, [sortedRates]);
 
-  const getConceptValue = (rate: FreightRate, concept: string): { val: number; divisa: string } | null => {
+  const getConceptValue = (
+    rate: FreightRate,
+    concept: string,
+  ): { val: number; divisa: string } | null => {
     if (rate.conceptos && rate.conceptos[concept] !== undefined) {
       const raw = rate.conceptos[concept];
       if (typeof raw === "object") {
@@ -318,44 +451,64 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
       }
       return { val: Number(raw) || 0, divisa: "USD" };
     }
-    
-    if (concept === "FOB Local Charges" && rate.gastosFob > 0) return { val: rate.gastosFob, divisa: "USD" };
-    if (concept === "Destination Charges" && rate.gastosDestino > 0) return { val: rate.gastosDestino, divisa: "USD" };
-    if (concept === "BAF (Fuel Fee)" && rate.baf && rate.baf > 0) return { val: rate.baf, divisa: "USD" };
-    if (concept === "THC (Terminal Charge)" && rate.thc && rate.thc > 0) return { val: rate.thc, divisa: "USD" };
-    if (concept === "LSS (Low Sulfur)" && rate.lss && rate.lss > 0) return { val: rate.lss, divisa: "USD" };
-    if (concept === "Others Surcharges" && rate.otrosRecargos && rate.otrosRecargos > 0) return { val: rate.otrosRecargos, divisa: "USD" };
-    
+
+    if (concept === "FOB Local Charges" && rate.gastosFob > 0)
+      return { val: rate.gastosFob, divisa: "USD" };
+    if (concept === "Destination Charges" && rate.gastosDestino > 0)
+      return { val: rate.gastosDestino, divisa: "USD" };
+    if (concept === "BAF (Fuel Fee)" && rate.baf && rate.baf > 0)
+      return { val: rate.baf, divisa: "USD" };
+    if (concept === "THC (Terminal Charge)" && rate.thc && rate.thc > 0)
+      return { val: rate.thc, divisa: "USD" };
+    if (concept === "LSS (Low Sulfur)" && rate.lss && rate.lss > 0)
+      return { val: rate.lss, divisa: "USD" };
+    if (
+      concept === "Others Surcharges" &&
+      rate.otrosRecargos &&
+      rate.otrosRecargos > 0
+    )
+      return { val: rate.otrosRecargos, divisa: "USD" };
+
     return null;
   };
 
   const getDualTotalOfRate = (rate: FreightRate) => {
     const META_KEYS = [
-      'CONTRATO', 'Dias libres en Origen', 'Dias Libres en Destino', 
-      'Effective Date', 'Valid Until', 'GASTOS FOB', 'SF + RECARGOS', 
-      'Ocean freight', 'GASTOS EN DESTINO', 'NAC'
+      "CONTRATO",
+      "Dias libres en Origen",
+      "Dias Libres en Destino",
+      "Effective Date",
+      "Valid Until",
+      "GASTOS FOB",
+      "SF + RECARGOS",
+      "Ocean freight",
+      "GASTOS EN DESTINO",
+      "NAC",
     ];
 
     let sumE = 0;
     let sumU = 0;
-    
+
     if (rate.oceanFreight) {
-      if ((rate.oceanFreightDivisa || "USD") === "EUR") sumE += rate.oceanFreight;
+      if ((rate.oceanFreightDivisa || "USD") === "EUR")
+        sumE += rate.oceanFreight;
       else sumU += rate.oceanFreight;
     }
-    
+
     if (rate.conceptos) {
       Object.entries(rate.conceptos).forEach(([c, value]) => {
         if (META_KEYS.includes(c)) return;
-        const val = typeof value === "object" ? (value as any).val : (value as number);
-        const divisa = typeof value === "object" ? ((value as any).divisa || "USD") : "USD";
+        const val =
+          typeof value === "object" ? (value as any).val : (value as number);
+        const divisa =
+          typeof value === "object" ? (value as any).divisa || "USD" : "USD";
         if (divisa === "EUR") sumE += val;
         else sumU += val;
       });
     } else {
       sumU += rate.total;
     }
-    
+
     return { sumE, sumU };
   };
 
@@ -364,11 +517,13 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
     return (
       <span className="flex items-center justify-end gap-1 font-mono font-semibold text-slate-800">
         <span>{val.toFixed(2)}</span>
-        <span className={`text-[8.5px] font-bold px-1 py-0.2 rounded border select-none ${
-          divisa === "EUR" 
-            ? "bg-emerald-50 text-emerald-700 border-emerald-250" 
-            : "bg-blue-50 text-blue-700 border-blue-250"
-        }`}>
+        <span
+          className={`text-[8.5px] font-bold px-1 py-0.2 rounded border select-none ${
+            divisa === "EUR"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-250"
+              : "bg-blue-50 text-blue-700 border-blue-250"
+          }`}
+        >
           {sym}
         </span>
       </span>
@@ -428,32 +583,53 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
 
     const worksheet = XLSX.utils.json_to_sheet(excelRows);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Carrier Analysis Matrix");
-    
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Carrier Analysis Matrix",
+    );
+
     // Fit column widths elegantly
-    const max_width = excelRows.reduce((w, r) => Math.max(w, String(r["Carrier / Lines (Naviera)"]).length), 15);
+    const max_width = excelRows.reduce(
+      (w, r) => Math.max(w, String(r["Carrier / Lines (Naviera)"]).length),
+      15,
+    );
     worksheet["!cols"] = [
-      { wch: max_width }, 
-      { wch: 8 }, 
-      { wch: 8 }, 
-      { wch: 15 }, 
-      { wch: 22 }, 
-      { wch: 22 }, 
-      { wch: 22 }, 
-      { wch: 12 }, 
-      { wch: 12 }, 
-      { wch: 12 }, 
-      { wch: 12 }, 
-      { wch: 18 }, 
-      { wch: 20 }
+      { wch: max_width },
+      { wch: 8 },
+      { wch: 8 },
+      { wch: 15 },
+      { wch: 22 },
+      { wch: 22 },
+      { wch: 22 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 18 },
+      { wch: 20 },
     ];
 
     XLSX.writeFile(workbook, "FreightSync_Ocean_Rates_Comparative.xlsx");
   };
 
   const handleExportCSV = () => {
-    const headers = ["Carrier", "POL", "POD", "Month", "Ocean Freight", "FOB Charges", "Destination Charges", "BAF", "THC", "LSS", "Others", "Total", "Source"];
-    const rows = sortedRates.map(r => [
+    const headers = [
+      "Carrier",
+      "POL",
+      "POD",
+      "Month",
+      "Ocean Freight",
+      "FOB Charges",
+      "Destination Charges",
+      "BAF",
+      "THC",
+      "LSS",
+      "Others",
+      "Total",
+      "Source",
+    ];
+    const rows = sortedRates.map((r) => [
       r.carrier,
       r.pol,
       r.pod,
@@ -466,16 +642,25 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
       r.lss || 0,
       r.otrosRecargos || 0,
       r.total,
-      r.sheetSource
+      r.sheetSource,
     ]);
 
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
-      
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [
+        headers.join(","),
+        ...rows.map((e) =>
+          e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(","),
+        ),
+      ].join("\n");
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `FreightSync_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `FreightSync_Export_${new Date().toISOString().split("T")[0]}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -483,9 +668,9 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
 
   // Compare Simulation Calculator
   const getCarrierSummary = (cName: string) => {
-    const cRates = filteredRates.filter(r => r.carrier === cName);
+    const cRates = filteredRates.filter((r) => r.carrier === cName);
     if (cRates.length === 0) return null;
-    
+
     const count = cRates.length;
     const total = cRates.reduce((acc, r) => acc + r.total, 0) / count;
     const ocean = cRates.reduce((acc, r) => acc + r.oceanFreight, 0) / count;
@@ -494,8 +679,9 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
     const baf = cRates.reduce((acc, r) => acc + (r.baf || 0), 0) / count;
     const thc = cRates.reduce((acc, r) => acc + (r.thc || 0), 0) / count;
     const lss = cRates.reduce((acc, r) => acc + (r.lss || 0), 0) / count;
-    const other = cRates.reduce((acc, r) => acc + (r.otrosRecargos || 0), 0) / count;
-    
+    const other =
+      cRates.reduce((acc, r) => acc + (r.otrosRecargos || 0), 0) / count;
+
     return { count, total, ocean, fob, dest, baf, thc, lss, other };
   };
 
@@ -504,45 +690,55 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
 
   // Analyze active lane metrics for Data Health diagnostics alerts
   const generateLaneInsights = () => {
-    const insights: { level: "info" | "success" | "warn"; text: string; subtext: string }[] = [];
+    const insights: {
+      level: "info" | "success" | "warn";
+      text: string;
+      subtext: string;
+    }[] = [];
     if (filteredRates.length === 0) return insights;
 
     // 1. Dispersion check
-    const totals = filteredRates.map(r => r.total);
+    const totals = filteredRates.map((r) => r.total);
     const maxTotal = Math.max(...totals);
     const minTotal = Math.min(...totals);
     const spread = maxTotal - minTotal;
-    
+
     if (spread > 0) {
       const spreadPct = ((spread / minTotal) * 100).toFixed(0);
       insights.push({
         level: "info",
         text: `Rate arbitrage margin of ${formatCur(spread)} (${spreadPct}% lane variance)`,
-        subtext: `Choosing the layout optimization leader instead of high quote carrier offers direct cost savings.`
+        subtext: `Choosing the layout optimization leader instead of high quote carrier offers direct cost savings.`,
       });
     }
 
     // 2. Local charges vs Ocean Freight check
-    filteredRates.forEach(rate => {
-      const scaleSurcharges = (rate.baf || 0) + (rate.thc || 0) + (rate.lss || 0) + (rate.otrosRecargos || 0);
+    filteredRates.forEach((rate) => {
+      const scaleSurcharges =
+        (rate.baf || 0) +
+        (rate.thc || 0) +
+        (rate.lss || 0) +
+        (rate.otrosRecargos || 0);
       const localsTotal = rate.gastosFob + rate.gastosDestino + scaleSurcharges;
       if (localsTotal > rate.oceanFreight && rate.oceanFreight > 0) {
         insights.push({
           level: "warn",
           text: `High supplementary fees detected for ${rate.carrier}`,
-          subtext: `FOB, destination and surcharge elements compose ${((localsTotal / rate.oceanFreight) * 100).toFixed(0)}% of basic ocean freight. Verify and negotiate fixed local tariffs.`
+          subtext: `FOB, destination and surcharge elements compose ${((localsTotal / rate.oceanFreight) * 100).toFixed(0)}% of basic ocean freight. Verify and negotiate fixed local tariffs.`,
         });
       }
     });
 
     // 3. Completeness check
-    const missingBAFList = filteredRates.filter(r => !r.baf).map(r => r.carrier);
+    const missingBAFList = filteredRates
+      .filter((r) => !r.baf)
+      .map((r) => r.carrier);
     const uniqueMissingBAF = Array.from(new Set(missingBAFList));
     if (uniqueMissingBAF.length > 0) {
       insights.push({
         level: "warn",
         text: `Incomplete Surcharge break-out for: ${uniqueMissingBAF.slice(0, 2).join(", ")}${uniqueMissingBAF.length > 2 ? "..." : ""}`,
-        subtext: `One or more sheet records lacks standard fuel adjustment (BAF) components. Surcharge visualization defaults to total aggregations.`
+        subtext: `One or more sheet records lacks standard fuel adjustment (BAF) components. Surcharge visualization defaults to total aggregations.`,
       });
     }
 
@@ -550,7 +746,8 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
       insights.push({
         level: "success",
         text: "Clean tariff health check",
-        subtext: "Pricing distributions amongst all carriers remain robustly aligned with baseline expectations."
+        subtext:
+          "Pricing distributions amongst all carriers remain robustly aligned with baseline expectations.",
       });
     }
 
@@ -564,17 +761,28 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
   const totalSum = filteredRates.reduce((acc, r) => acc + r.total, 0);
   const avgTotal = ratesCount > 0 ? totalSum / ratesCount : 0;
 
-  const totalOceanSum = filteredRates.reduce((acc, r) => acc + r.oceanFreight, 0);
-  const totalLocalSum = filteredRates.reduce((acc, r) => acc + r.gastosFob + r.gastosDestino, 0);
+  const totalOceanSum = filteredRates.reduce(
+    (acc, r) => acc + r.oceanFreight,
+    0,
+  );
+  const totalLocalSum = filteredRates.reduce(
+    (acc, r) => acc + r.gastosFob + r.gastosDestino,
+    0,
+  );
   const oceanPercentage = totalSum > 0 ? (totalOceanSum / totalSum) * 100 : 0;
   const localPercentage = totalSum > 0 ? (totalLocalSum / totalSum) * 100 : 0;
 
   if (filteredRates.length === 0) {
     return (
-      <div id="no-carrier-rates-warning" className="bg-slate-50 border border-slate-100 rounded-2xl p-12 text-center text-slate-500">
+      <div
+        id="no-carrier-rates-warning"
+        className="bg-slate-50 border border-slate-100 rounded-2xl p-12 text-center text-slate-500"
+      >
         <DollarSign className="h-10 w-10 text-slate-300 mx-auto mb-3" />
         <p className="text-sm font-semibold text-slate-700">{t.noRatesFound}</p>
-        <p className="text-xs text-slate-400 mt-1">Try relaxing some active lane filters to compare available carriers.</p>
+        <p className="text-xs text-slate-400 mt-1">
+          Try relaxing some active lane filters to compare available carriers.
+        </p>
       </div>
     );
   }
@@ -582,15 +790,24 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
   return (
     <div id="comparison-analysis-panel" className="space-y-6">
       {/* Dynamic Summary Bento-style widgets */}
-      <div id="analytical-bento-grid" className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div
+        id="analytical-bento-grid"
+        className="grid grid-cols-1 md:grid-cols-4 gap-4"
+      >
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
             <DollarSign className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{t.metricAvgTotal}</p>
-            <p className="text-lg font-bold text-slate-800">{formatCur(avgTotal)}</p>
-            <p className="text-[10px] text-slate-500">{ratesCount} carriers in rate assessment</p>
+            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+              {t.metricAvgTotal}
+            </p>
+            <p className="text-lg font-bold text-slate-800">
+              {formatCur(avgTotal)}
+            </p>
+            <p className="text-[10px] text-slate-500">
+              {ratesCount} carriers in rate assessment
+            </p>
           </div>
         </div>
 
@@ -599,12 +816,23 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
             <Award className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{t.metricCheapest}</p>
-            <p className="text-lg font-bold text-emerald-600">{formatCur(cheapestRate.total)}</p>
-            <p className="text-[10px] text-slate-500 truncate max-w-[140px]">{cheapestRate.carrier}</p>
+            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+              {t.metricCheapest}
+            </p>
+            <p className="text-lg font-bold text-emerald-600">
+              {formatCur(cheapestRate.total)}
+            </p>
+            <p className="text-[10px] text-slate-500 truncate max-w-[140px]">
+              {cheapestRate.carrier}
+            </p>
           </div>
           <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-emerald-50 text-[9px] text-emerald-700 font-bold rounded">
-            -{( ((avgTotal - cheapestRate.total) / (avgTotal || 1)) * 100).toFixed(0)}% avg
+            -
+            {(
+              ((avgTotal - cheapestRate.total) / (avgTotal || 1)) *
+              100
+            ).toFixed(0)}
+            % avg
           </div>
         </div>
 
@@ -613,9 +841,15 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
             <TrendingDown className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{t.metricCheapestCarrier}</p>
-            <p className="text-base font-bold text-slate-800 truncate max-w-[145px]">{cheapestRate.carrier}</p>
-            <p className="text-[10px] text-slate-500">Most competitive pricing lane</p>
+            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+              {t.metricCheapestCarrier}
+            </p>
+            <p className="text-base font-bold text-slate-800 truncate max-w-[145px]">
+              {cheapestRate.carrier}
+            </p>
+            <p className="text-[10px] text-slate-500">
+              Most competitive pricing lane
+            </p>
           </div>
         </div>
 
@@ -661,21 +895,35 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">OPCIÓN LÍDER EN COSTO</span>
+                  <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                    OPCIÓN LÍDER EN COSTO
+                  </span>
                 </div>
-                <h4 className="text-2xl font-black tracking-tight">{cheapestRate.carrier}</h4>
+                <h4 className="text-2xl font-black tracking-tight">
+                  {cheapestRate.carrier}
+                </h4>
                 <div className="flex items-baseline gap-1.5 mt-1">
-                  <span className="text-3xl font-black">{formatCur(cheapestRate.total)}</span>
-                  <span className="text-[10px] opacity-80 font-bold uppercase">Tarifa Consolidada</span>
+                  <span className="text-3xl font-black">
+                    {formatCur(cheapestRate.total)}
+                  </span>
+                  <span className="text-[10px] opacity-80 font-bold uppercase">
+                    Tarifa Consolidada
+                  </span>
                 </div>
                 <div className="mt-4 flex items-center justify-between text-[11px] font-bold text-emerald-100 bg-black/10 p-2 rounded-lg">
-                  <span>{cheapestRate.pol} ➔ {cheapestRate.pod}</span>
-                  {cheapestRate.transitTime ? <span>T/T: {cheapestRate.transitTime} Días</span> : <span>T/T: N/A</span>}
+                  <span>
+                    {cheapestRate.pol} ➔ {cheapestRate.pod}
+                  </span>
+                  {cheapestRate.transitTime ? (
+                    <span>T/T: {cheapestRate.transitTime} Días</span>
+                  ) : (
+                    <span>T/T: N/A</span>
+                  )}
                 </div>
               </div>
             </div>
           )}
-          
+
           {fastestRate ? (
             <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-5 shadow-md text-white border border-indigo-400 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform pointer-events-none">
@@ -683,15 +931,25 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">OPCIÓN LÍDER EN TIEMPO</span>
+                  <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                    OPCIÓN LÍDER EN TIEMPO
+                  </span>
                 </div>
-                <h4 className="text-2xl font-black tracking-tight">{fastestRate.carrier}</h4>
+                <h4 className="text-2xl font-black tracking-tight">
+                  {fastestRate.carrier}
+                </h4>
                 <div className="flex items-baseline gap-1.5 mt-1">
-                  <span className="text-3xl font-black">{fastestRate.transitTime} Días</span>
-                  <span className="text-[10px] opacity-80 font-bold uppercase">Transit Time</span>
+                  <span className="text-3xl font-black">
+                    {fastestRate.transitTime} Días
+                  </span>
+                  <span className="text-[10px] opacity-80 font-bold uppercase">
+                    Transit Time
+                  </span>
                 </div>
                 <div className="mt-4 flex items-center justify-between text-[11px] font-bold text-indigo-100 bg-black/10 p-2 rounded-lg">
-                  <span>{fastestRate.pol} ➔ {fastestRate.pod}</span>
+                  <span>
+                    {fastestRate.pol} ➔ {fastestRate.pod}
+                  </span>
                   <span>Coste: {formatCur(fastestRate.total)}</span>
                 </div>
               </div>
@@ -699,8 +957,13 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
           ) : (
             <div className="bg-slate-50 rounded-2xl p-5 border border-dashed border-slate-200 flex flex-col items-center justify-center text-center opacity-60">
               <HelpCircle size={32} className="text-slate-400 mb-2" />
-              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Análisis de Tiempo no disponible</p>
-              <p className="text-[9px] text-slate-400 mt-1 max-w-[200px]">Incluya la columna 'Transit Time' en su Excel para habilitar la comparativa de velocidad.</p>
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">
+                Análisis de Tiempo no disponible
+              </p>
+              <p className="text-[9px] text-slate-400 mt-1 max-w-[200px]">
+                Incluya la columna 'Transit Time' en su Excel para habilitar la
+                comparativa de velocidad.
+              </p>
             </div>
           )}
         </div>
@@ -714,7 +977,8 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
               {t.carrierComparisonTitle}
             </h3>
             <p className="text-[10px] text-slate-450 mt-0.5">
-              Refined tariff layout. Toggle different rendering structures for side-by-side audit.
+              Refined tariff layout. Toggle different rendering structures for
+              side-by-side audit.
             </p>
             <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 mt-2.5 shrink-0 max-w-fit select-none">
               <button
@@ -743,7 +1007,10 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
 
             <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 mt-2.5 shrink-0 max-w-fit select-none ml-4">
               <button
-                onClick={() => { setSortKey("total"); setSortAsc(true); }}
+                onClick={() => {
+                  setSortKey("total");
+                  setSortAsc(true);
+                }}
                 className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer flex items-center gap-1 ${
                   sortKey === "total"
                     ? "bg-emerald-100 text-emerald-800 shadow-xs"
@@ -753,7 +1020,10 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                 <DollarSign className="w-3 h-3" /> Cheapest
               </button>
               <button
-                onClick={() => { setSortKey("transitTime"); setSortAsc(true); }}
+                onClick={() => {
+                  setSortKey("transitTime");
+                  setSortAsc(true);
+                }}
                 className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer flex items-center gap-1 ${
                   sortKey === "transitTime"
                     ? "bg-indigo-100 text-indigo-800 shadow-xs"
@@ -763,7 +1033,10 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                 <TrendingUp className="w-3 h-3" /> Fastest
               </button>
               <button
-                onClick={() => { setSortKey("carbon"); setSortAsc(true); }}
+                onClick={() => {
+                  setSortKey("carbon");
+                  setSortAsc(true);
+                }}
                 className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer flex items-center gap-1 ${
                   sortKey === "carbon"
                     ? "bg-teal-100 text-teal-800 shadow-xs"
@@ -773,7 +1046,6 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                 <Leaf className="w-3 h-3" /> Greenest
               </button>
             </div>
-
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -803,34 +1075,40 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
             <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-medium">
               Multi-Currency
             </span>
-            <select 
-              value={currency} 
+            <select
+              value={currency}
               onChange={(e) => setCurrency(e.target.value)}
               className="text-[10px] bg-white border border-slate-200 rounded px-1.5 py-1 font-bold outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
             >
-              {Object.keys(CURRENCY_RATES).map(c => (
-                <option key={c} value={c}>{c}</option>
+              {Object.keys(CURRENCY_RATES).map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </select>
-            </div>
+          </div>
         </div>
 
         {viewMode === "matrix" ? (
           <div className="overflow-x-auto">
-            <table id="comp-matrix-pivot-table" className="w-full text-left border-collapse min-w-[800px] text-xs">
+            <table
+              id="comp-matrix-pivot-table"
+              className="w-full text-left border-collapse min-w-[800px] text-xs"
+            >
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-205">
                   <th className="p-4 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-r border-slate-200">
                     <div className="flex items-center gap-1.5">
-                       CO2 Impact
-                       <Leaf className="h-3 w-3 text-emerald-500" />
+                      CO2 Impact
+                      <Leaf className="h-3 w-3 text-emerald-500" />
                     </div>
                   </th>
                   <th className="p-4 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-r border-slate-200 min-w-[200px]">
                     Desglose de Conceptos
                   </th>
                   {columnsList.map((col, idx) => {
-                    const isBest = cheapestRate && col.rate.id === cheapestRate.id;
+                    const isBest =
+                      cheapestRate && col.rate.id === cheapestRate.id;
                     return (
                       <th
                         key={`h-${idx}`}
@@ -860,9 +1138,13 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                   {columnsList.map((col, idx) => {
                     const val = col.rate.oceanFreight;
                     const div = col.rate.oceanFreightDivisa || "USD";
-                    const isBest = cheapestRate && col.rate.id === cheapestRate.id;
+                    const isBest =
+                      cheapestRate && col.rate.id === cheapestRate.id;
                     return (
-                      <td key={`of-${idx}`} className={`p-3 text-right border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}>
+                      <td
+                        key={`of-${idx}`}
+                        className={`p-3 text-right border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}
+                      >
                         {formatSurchargeVal(val, div)}
                       </td>
                     );
@@ -876,11 +1158,21 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                       {concept}
                     </td>
                     {columnsList.map((col, idx) => {
-                      const isBest = cheapestRate && col.rate.id === cheapestRate.id;
+                      const isBest =
+                        cheapestRate && col.rate.id === cheapestRate.id;
                       const res = getConceptValue(col.rate, concept);
                       return (
-                        <td key={`cval-${cIdx}-${idx}`} className={`p-3 text-right border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}>
-                          {res ? formatSurchargeVal(res.val, res.divisa) : <span className="text-slate-300 font-mono pr-4">—</span>}
+                        <td
+                          key={`cval-${cIdx}-${idx}`}
+                          className={`p-3 text-right border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}
+                        >
+                          {res ? (
+                            formatSurchargeVal(res.val, res.divisa)
+                          ) : (
+                            <span className="text-slate-300 font-mono pr-4">
+                              —
+                            </span>
+                          )}
                         </td>
                       );
                     })}
@@ -894,19 +1186,31 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                   </td>
                   {columnsList.map((col, idx) => {
                     const simRate = col.rate as any;
-                    const hasSimulations = simRate.appliedSurcharges && simRate.appliedSurcharges.length > 0;
+                    const hasSimulations =
+                      simRate.appliedSurcharges &&
+                      simRate.appliedSurcharges.length > 0;
                     return (
-                      <td key={`sim-${idx}`} className="p-3 text-right border-r border-slate-150">
+                      <td
+                        key={`sim-${idx}`}
+                        className="p-3 text-right border-r border-slate-150"
+                      >
                         {hasSimulations ? (
                           <div className="flex flex-col items-end gap-1">
-                            {simRate.appliedSurcharges.map((s: any, i: number) => (
-                              <span key={i} className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium">
-                                {s.name}: +${s.amount.toFixed(2)}
-                              </span>
-                            ))}
+                            {simRate.appliedSurcharges.map(
+                              (s: any, i: number) => (
+                                <span
+                                  key={i}
+                                  className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium"
+                                >
+                                  {s.name}: +${s.amount.toFixed(2)}
+                                </span>
+                              ),
+                            )}
                           </div>
                         ) : (
-                          <span className="text-slate-300 font-mono pr-4">—</span>
+                          <span className="text-slate-300 font-mono pr-4">
+                            —
+                          </span>
                         )}
                       </td>
                     );
@@ -919,10 +1223,12 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                     TOTAL
                   </td>
                   {columnsList.map((col, idx) => {
-                    const isBest = cheapestRate && col.rate.id === cheapestRate.id;
-                    const isFastest = fastestRate && col.rate.id === fastestRate.id;
+                    const isBest =
+                      cheapestRate && col.rate.id === cheapestRate.id;
+                    const isFastest =
+                      fastestRate && col.rate.id === fastestRate.id;
                     const { sumE, sumU } = getDualTotalOfRate(col.rate);
-                    
+
                     const formattedParts = [];
                     if (sumU > 0) formattedParts.push(`$${sumU.toFixed(2)}`);
                     if (sumE > 0) formattedParts.push(`€${sumE.toFixed(2)}`);
@@ -931,20 +1237,26 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                       <td
                         key={`total-${idx}`}
                         className={`p-4 text-right border-r border-slate-200 ${
-                          isBest 
-                            ? "bg-emerald-600 text-white font-extrabold shadow-inner" 
+                          isBest
+                            ? "bg-emerald-600 text-white font-extrabold shadow-inner"
                             : isFastest
                               ? "bg-indigo-600 text-white font-extrabold shadow-inner"
                               : "text-amber-800 bg-amber-55/15 font-bold"
                         }`}
                       >
                         <div className="flex flex-col items-end justify-center">
-                          {(col.rate as any).originalTotal && (col.rate as any).originalTotal !== col.rate.total && (
-                            <span className="text-[10px] line-through opacity-70 mb-0.5">
-                              ${(col.rate as any).originalTotal.toFixed(2)}
-                            </span>
-                          )}
-                          <span>{formattedParts.length ? formattedParts.join(" + ") : "0.00"}</span>
+                          {(col.rate as any).originalTotal &&
+                            (col.rate as any).originalTotal !==
+                              col.rate.total && (
+                              <span className="text-[10px] line-through opacity-70 mb-0.5">
+                                ${(col.rate as any).originalTotal.toFixed(2)}
+                              </span>
+                            )}
+                          <span>
+                            {formattedParts.length
+                              ? formattedParts.join(" + ")
+                              : "0.00"}
+                          </span>
                           {isBest && (
                             <span className="text-[9px] font-black bg-white text-emerald-800 px-1.5 py-0.5 rounded mt-1 inline-block animate-pulse">
                               ★ MÁS BARATA
@@ -968,9 +1280,13 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                     Nº Contrato
                   </td>
                   {columnsList.map((col, idx) => {
-                    const isBest = cheapestRate && col.rate.id === cheapestRate.id;
+                    const isBest =
+                      cheapestRate && col.rate.id === cheapestRate.id;
                     return (
-                      <td key={`contr-${idx}`} className={`p-3 text-center font-bold text-slate-700 border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}>
+                      <td
+                        key={`contr-${idx}`}
+                        className={`p-3 text-center font-bold text-slate-700 border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}
+                      >
                         {col.rate.contrato || "—"}
                       </td>
                     );
@@ -983,9 +1299,13 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                     NAC
                   </td>
                   {columnsList.map((col, idx) => {
-                    const isBest = cheapestRate && col.rate.id === cheapestRate.id;
+                    const isBest =
+                      cheapestRate && col.rate.id === cheapestRate.id;
                     return (
-                      <td key={`nac-${idx}`} className={`p-3 text-center text-slate-700 border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}>
+                      <td
+                        key={`nac-${idx}`}
+                        className={`p-3 text-center text-slate-700 border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}
+                      >
                         {col.rate.nac || "—"}
                       </td>
                     );
@@ -998,10 +1318,15 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                     Días Libres (POL / POD)
                   </td>
                   {columnsList.map((col, idx) => {
-                    const isBest = cheapestRate && col.rate.id === cheapestRate.id;
+                    const isBest =
+                      cheapestRate && col.rate.id === cheapestRate.id;
                     return (
-                      <td key={`free-${idx}`} className={`p-3 text-center text-slate-700 border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}>
-                        {col.rate.diasLibresOrigen || "—"} / {col.rate.diasLibresDestino || "—"} días
+                      <td
+                        key={`free-${idx}`}
+                        className={`p-3 text-center text-slate-700 border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}
+                      >
+                        {col.rate.diasLibresOrigen || "—"} /{" "}
+                        {col.rate.diasLibresDestino || "—"} días
                       </td>
                     );
                   })}
@@ -1013,10 +1338,16 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                     Validez Tarifa
                   </td>
                   {columnsList.map((col, idx) => {
-                    const isBest = cheapestRate && col.rate.id === cheapestRate.id;
-                    const valStr = col.rate.validUntil ? String(col.rate.validUntil) : null;
+                    const isBest =
+                      cheapestRate && col.rate.id === cheapestRate.id;
+                    const valStr = col.rate.validUntil
+                      ? String(col.rate.validUntil)
+                      : null;
                     return (
-                      <td key={`val-${idx}`} className={`p-3 text-center text-slate-600 font-medium italic border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}>
+                      <td
+                        key={`val-${idx}`}
+                        className={`p-3 text-center text-slate-600 font-medium italic border-r border-slate-150 ${isBest ? "bg-emerald-50/10" : ""}`}
+                      >
                         {valStr ? `Hasta ${valStr}` : "—"}
                       </td>
                     );
@@ -1029,10 +1360,16 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                     Transit Time (T/T)
                   </td>
                   {columnsList.map((col, idx) => {
-                    const isFastest = fastestRate && col.rate.id === fastestRate.id;
+                    const isFastest =
+                      fastestRate && col.rate.id === fastestRate.id;
                     return (
-                      <td key={`tt-${idx}`} className={`p-3 text-center border-r border-slate-150 ${isFastest ? "bg-indigo-50 font-black text-indigo-700" : "text-slate-600 font-medium"}`}>
-                        {col.rate.transitTime ? `${col.rate.transitTime} días` : "—"}
+                      <td
+                        key={`tt-${idx}`}
+                        className={`p-3 text-center border-r border-slate-150 ${isFastest ? "bg-indigo-50 font-black text-indigo-700" : "text-slate-600 font-medium"}`}
+                      >
+                        {col.rate.transitTime
+                          ? `${col.rate.transitTime} días`
+                          : "—"}
                       </td>
                     );
                   })}
@@ -1042,7 +1379,10 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table id="comp-matrix-table" className="w-full text-left border-collapse">
+            <table
+              id="comp-matrix-table"
+              className="w-full text-left border-collapse"
+            >
               <thead>
                 <tr className="bg-slate-50/75 border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   <th
@@ -1098,14 +1438,20 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {sortedRates.map((rate, rIdx) => {
-                  const isCheapestOnScreen = cheapestRate && rate.id === cheapestRate.id;
+                  const isCheapestOnScreen =
+                    cheapestRate && rate.id === cheapestRate.id;
 
-                  const prevRate = allRates ? getPreviousMonthRate(rate, allRates) : null;
+                  const prevRate = allRates
+                    ? getPreviousMonthRate(rate, allRates)
+                    : null;
                   let trendElement = null;
 
                   if (prevRate) {
                     const diff = rate.total - prevRate.total;
-                    const pct = prevRate.total > 0 ? ((diff / prevRate.total) * 100).toFixed(1) : "0.0";
+                    const pct =
+                      prevRate.total > 0
+                        ? ((diff / prevRate.total) * 100).toFixed(1)
+                        : "0.0";
                     const isUp = diff > 0;
                     const isDown = diff < 0;
 
@@ -1115,8 +1461,7 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                           className="inline-flex items-center gap-0.5 text-[10px] font-bold text-rose-600 tracking-tight"
                           title={`Rate increased from ${formatCur(prevRate.total)} in ${prevRate.mes} (+${pct}%)`}
                         >
-                          <TrendingUp className="h-3 w-3 shrink-0" />
-                          +{pct}%
+                          <TrendingUp className="h-3 w-3 shrink-0" />+{pct}%
                         </span>
                       );
                     } else if (isDown) {
@@ -1175,9 +1520,16 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                           const rating = getCarbonRating(co2);
                           return (
                             <div className="flex flex-col items-center gap-1">
-                               <div className={`w-2.5 h-2.5 rounded-full ${rating === 'green' ? 'bg-emerald-500' : rating === 'amber' ? 'bg-amber-500' : 'bg-red-500'}`} title={`Rating: ${rating}`}></div>
-                               <span className="text-[10px] font-bold text-slate-700">{co2.toFixed(0)} kg</span>
-                               <span className="text-[8px] text-slate-400 uppercase font-black">Est. CO2</span>
+                              <div
+                                className={`w-2.5 h-2.5 rounded-full ${rating === "green" ? "bg-emerald-500" : rating === "amber" ? "bg-amber-500" : "bg-red-500"}`}
+                                title={`Rating: ${rating}`}
+                              ></div>
+                              <span className="text-[10px] font-bold text-slate-700">
+                                {co2.toFixed(0)} kg
+                              </span>
+                              <span className="text-[8px] text-slate-400 uppercase font-black">
+                                Est. CO2
+                              </span>
                             </div>
                           );
                         })()}
@@ -1202,13 +1554,28 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                       <td className="p-4 text-right text-slate-500 hidden lg:table-cell text-[10px] font-mono">
                         <div className="flex justify-end gap-2.5 text-[10px]">
                           {rate.baf !== undefined && rate.baf > 0 && (
-                            <span title="Bunker Adjustment Factor">BAF: <strong className="text-slate-600">{formatCur(rate.baf)}</strong></span>
+                            <span title="Bunker Adjustment Factor">
+                              BAF:{" "}
+                              <strong className="text-slate-600">
+                                {formatCur(rate.baf)}
+                              </strong>
+                            </span>
                           )}
                           {rate.thc !== undefined && rate.thc > 0 && (
-                            <span title="Terminal Handling Charge">THC: <strong className="text-slate-600">{formatCur(rate.thc)}</strong></span>
+                            <span title="Terminal Handling Charge">
+                              THC:{" "}
+                              <strong className="text-slate-600">
+                                {formatCur(rate.thc)}
+                              </strong>
+                            </span>
                           )}
                           {rate.lss !== undefined && rate.lss > 0 && (
-                            <span title="Low Sulfur Surcharge">LSS: <strong className="text-slate-600">{formatCur(rate.lss)}</strong></span>
+                            <span title="Low Sulfur Surcharge">
+                              LSS:{" "}
+                              <strong className="text-slate-600">
+                                {formatCur(rate.lss)}
+                              </strong>
+                            </span>
                           )}
                         </div>
                       </td>
@@ -1216,7 +1583,9 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                       {/* Total Overall Carrier Rate */}
                       <td className="p-4 text-right">
                         <div className="flex flex-col items-end gap-0.5">
-                          <span className={`font-mono font-bold text-sm ${isCheapestOnScreen ? "text-emerald-600" : "text-slate-900"}`}>
+                          <span
+                            className={`font-mono font-bold text-sm ${isCheapestOnScreen ? "text-emerald-600" : "text-slate-900"}`}
+                          >
                             {formatCur(rate.total)}
                           </span>
                           {trendElement}
@@ -1243,7 +1612,10 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
 
       {/* Side-by-Side Dual Carrier Simulator Showcase */}
       {uniqueCarriersList.length >= 2 && summaryA && summaryB && (
-        <div id="carrier-arena-showdown" className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-slate-200 shadow-xl">
+        <div
+          id="carrier-arena-showdown"
+          className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-slate-200 shadow-xl"
+        >
           <div className="flex items-center gap-2 mb-4">
             <div className="p-2 bg-indigo-950 text-indigo-400 border border-indigo-800/60 rounded-xl">
               <Scale className="h-5 w-5" />
@@ -1253,7 +1625,8 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                 Carrier Versus Carrier Simulation Arena
               </h3>
               <p className="text-[10px] text-slate-400 mt-0.5">
-                Simulate contract spreads and fee weights directly across custom forwarders.
+                Simulate contract spreads and fee weights directly across custom
+                forwarders.
               </p>
             </div>
           </div>
@@ -1261,7 +1634,10 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
           {/* Selection Droppers & Volume Simulator */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-end">
             <div className="space-y-1">
-              <label htmlFor="arena-carrier-a" className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block font-sans">
+              <label
+                htmlFor="arena-carrier-a"
+                className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block font-sans"
+              >
                 🔴 Carrier Selection Alpha
               </label>
               <select
@@ -1270,14 +1646,19 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                 onChange={(e) => setCarrierA(e.target.value)}
                 className="w-full bg-slate-850 border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-white outline-none cursor-pointer focus:border-indigo-500 font-sans font-semibold transition animate-none"
               >
-                {uniqueCarriersList.map(c => (
-                  <option key={`a-${c}`} value={c}>{c}</option>
+                {uniqueCarriersList.map((c) => (
+                  <option key={`a-${c}`} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="arena-carrier-b" className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block font-sans">
+              <label
+                htmlFor="arena-carrier-b"
+                className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block font-sans"
+              >
                 🔵 Carrier Selection Beta
               </label>
               <select
@@ -1286,8 +1667,10 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                 onChange={(e) => setCarrierB(e.target.value)}
                 className="w-full bg-slate-850 border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-indigo-200 outline-none cursor-pointer focus:border-indigo-500 font-sans font-semibold transition animate-none"
               >
-                {uniqueCarriersList.map(c => (
-                  <option key={`b-${c}`} value={c}>{c}</option>
+                {uniqueCarriersList.map((c) => (
+                  <option key={`b-${c}`} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
             </div>
@@ -1298,7 +1681,9 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                   <Coins className="h-3.5 w-3.5 text-emerald-400" />
                   Annual Volume (FFE)
                 </span>
-                <span className="font-mono text-emerald-400 font-extrabold text-xs">{annualVolume} ctrs</span>
+                <span className="font-mono text-emerald-400 font-extrabold text-xs">
+                  {annualVolume} ctrs
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -1307,7 +1692,9 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                   max="500"
                   step="5"
                   value={annualVolume}
-                  onChange={(e) => handleVolumeChange(parseInt(e.target.value, 10))}
+                  onChange={(e) =>
+                    handleVolumeChange(parseInt(e.target.value, 10))
+                  }
                   className="w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer my-1 text-indigo-500"
                 />
                 <input
@@ -1329,13 +1716,17 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
             {/* Scorecard Alpha */}
             <div className="bg-slate-950/60 p-4 border border-slate-800/50 rounded-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white truncate max-w-[150px]">{carrierA}</span>
+                <span className="text-xs font-bold text-white truncate max-w-[150px]">
+                  {carrierA}
+                </span>
                 <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
                   {summaryA.count} quotes
                 </span>
               </div>
               <div className="space-y-1">
-                <span className="text-[10px] text-slate-500 block uppercase font-medium">Avg Total Freight</span>
+                <span className="text-[10px] text-slate-500 block uppercase font-medium">
+                  Avg Total Freight
+                </span>
                 <span className="text-xl font-mono font-extrabold text-white">
                   {formatCur(summaryA.total)}
                 </span>
@@ -1347,11 +1738,20 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                 </div>
                 <div className="flex justify-between">
                   <span>FOB+Dest Locals:</span>
-                  <span className="font-mono">{formatCur(summaryA.fob + summaryA.dest)}</span>
+                  <span className="font-mono">
+                    {formatCur(summaryA.fob + summaryA.dest)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Surcharges (BAF/Others):</span>
-                  <span className="font-mono">{formatCur(summaryA.baf + summaryA.thc + summaryA.lss + summaryA.other)}</span>
+                  <span className="font-mono">
+                    {formatCur(
+                      summaryA.baf +
+                        summaryA.thc +
+                        summaryA.lss +
+                        summaryA.other,
+                    )}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1367,26 +1767,41 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                   <span className="pointer-events-none group-hover:pointer-events-auto absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-72 bg-slate-950/98 backdrop-blur-md text-slate-200 p-3.5 rounded-lg border border-indigo-500/50 shadow-[0_12px_40px_rgba(0,0,0,0.95)] drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] opacity-0 group-hover:opacity-100 transition-all duration-300 delay-200 group-hover:delay-0 z-50 font-sans normal-case text-left">
                     <span className="block text-[11px] font-bold text-indigo-300 uppercase tracking-wider mb-2 border-b border-indigo-500/20 pb-1.5 flex items-center justify-between">
                       <span>Arbitrage Calculation</span>
-                      <span className="text-[10px] font-mono text-slate-400 font-normal">Est. Annual</span>
+                      <span className="text-[10px] font-mono text-slate-400 font-normal">
+                        Est. Annual
+                      </span>
                     </span>
                     <span className="block text-[10.5px] text-slate-300 leading-relaxed mb-3">
-                      Annual savings is derived by multiplying the estimated volume of {annualVolume} containers by the average freight rate spread.
+                      Annual savings is derived by multiplying the estimated
+                      volume of {annualVolume} containers by the average freight
+                      rate spread.
                     </span>
                     <span className="space-y-1.5 block text-xs">
                       <span className="flex justify-between items-center py-1 border-b border-slate-800/60">
-                        <span className="text-slate-400 text-[10.5px]">Annual Volume:</span>
-                        <span className="font-mono text-[10.5px] font-bold text-slate-200">{annualVolume} Containers (FFE)</span>
+                        <span className="text-slate-400 text-[10.5px]">
+                          Annual Volume:
+                        </span>
+                        <span className="font-mono text-[10.5px] font-bold text-slate-200">
+                          {annualVolume} Containers (FFE)
+                        </span>
                       </span>
                       <span className="flex justify-between items-center py-1 border-b border-slate-800/60">
-                        <span className="text-slate-400 text-[10.5px]">Avg. Freight Spread:</span>
+                        <span className="text-slate-400 text-[10.5px]">
+                          Avg. Freight Spread:
+                        </span>
                         <span className="font-mono text-[10.5px] font-bold text-indigo-300">
                           {formatCur(Math.abs(summaryA.total - summaryB.total))}
                         </span>
                       </span>
                       <span className="flex justify-between items-center pt-1.5 text-indigo-300 font-semibold">
-                        <span className="text-[11px]">Annual Impact (Savings):</span>
+                        <span className="text-[11px]">
+                          Annual Impact (Savings):
+                        </span>
                         <span className="font-mono text-xs font-extrabold text-emerald-400">
-                          {formatCur(Math.abs(summaryA.total - summaryB.total) * annualVolume)}
+                          {formatCur(
+                            Math.abs(summaryA.total - summaryB.total) *
+                              annualVolume,
+                          )}
                         </span>
                       </span>
                     </span>
@@ -1396,26 +1811,46 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
 
               {summaryA.total === summaryB.total ? (
                 <div>
-                  <p className="text-lg font-bold text-slate-300">Absolute Parity</p>
-                  <p className="text-[11px] text-slate-450 mt-1">Both providers present exact matching tariff pricing indices.</p>
+                  <p className="text-lg font-bold text-slate-300">
+                    Absolute Parity
+                  </p>
+                  <p className="text-[11px] text-slate-450 mt-1">
+                    Both providers present exact matching tariff pricing
+                    indices.
+                  </p>
                 </div>
               ) : (
                 (() => {
                   const savesA = summaryA.total < summaryB.total;
-                  const advantage = savesA ? summaryB.total - summaryA.total : summaryA.total - summaryB.total;
-                  const pct = (advantage / (savesA ? summaryB.total : summaryA.total) * 100).toFixed(1);
+                  const advantage = savesA
+                    ? summaryB.total - summaryA.total
+                    : summaryA.total - summaryB.total;
+                  const pct = (
+                    (advantage / (savesA ? summaryB.total : summaryA.total)) *
+                    100
+                  ).toFixed(1);
                   return (
                     <div className="space-y-2">
                       <p className="text-3xl font-mono font-black text-emerald-400">
                         {formatCur(advantage)}
                       </p>
                       <p className="text-xs text-white">
-                        <strong className="font-bold text-indigo-300">{savesA ? carrierA : carrierB}</strong> is{" "}
-                        <span className="text-emerald-400 font-bold">{pct}% cheaper</span> on average.
+                        <strong className="font-bold text-indigo-300">
+                          {savesA ? carrierA : carrierB}
+                        </strong>{" "}
+                        is{" "}
+                        <span className="text-emerald-400 font-bold">
+                          {pct}% cheaper
+                        </span>{" "}
+                        on average.
                       </p>
                       <p className="text-[9px] text-slate-400 px-3">
-                        Over an annual volume of {annualVolume} containers, this represents an estimated savings margin of{" "}
-                        <strong className="text-emerald-400 font-mono">{formatCur(advantage * annualVolume)}</strong>.
+                        Over an annual volume of {annualVolume} containers, this
+                        represents an estimated savings margin of{" "}
+                        <strong className="text-emerald-400 font-mono">
+                          {formatCur(advantage * annualVolume)}
+                        </strong>
+                        .
                       </p>
                     </div>
                   );
@@ -1426,13 +1861,17 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
             {/* Scorecard Beta */}
             <div className="bg-slate-950/60 p-4 border border-slate-800/50 rounded-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white truncate max-w-[150px]">{carrierB}</span>
+                <span className="text-xs font-bold text-white truncate max-w-[150px]">
+                  {carrierB}
+                </span>
                 <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
                   {summaryB.count} quotes
                 </span>
               </div>
               <div className="space-y-1">
-                <span className="text-[10px] text-slate-500 block uppercase font-medium">Avg Total Freight</span>
+                <span className="text-[10px] text-slate-500 block uppercase font-medium">
+                  Avg Total Freight
+                </span>
                 <span className="text-xl font-mono font-extrabold text-white">
                   {formatCur(summaryB.total)}
                 </span>
@@ -1444,11 +1883,20 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                 </div>
                 <div className="flex justify-between">
                   <span>FOB+Dest Locals:</span>
-                  <span className="font-mono">{formatCur(summaryB.fob + summaryB.dest)}</span>
+                  <span className="font-mono">
+                    {formatCur(summaryB.fob + summaryB.dest)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Surcharges (BAF/Others):</span>
-                  <span className="font-mono">{formatCur(summaryB.baf + summaryB.thc + summaryB.lss + summaryB.other)}</span>
+                  <span className="font-mono">
+                    {formatCur(
+                      summaryB.baf +
+                        summaryB.thc +
+                        summaryB.lss +
+                        summaryB.other,
+                    )}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1458,7 +1906,10 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
 
       {/* Smart Carrier Efficiency Card */}
       {carrierGrades.length > 0 && (
-        <div id="smart-carrier-grades" className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs">
+        <div
+          id="smart-carrier-grades"
+          className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs"
+        >
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
               <Award className="h-4.5 w-4.5" />
@@ -1468,32 +1919,49 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
                 Smart Carrier Efficiency Grading
               </h4>
               <p className="text-[10px] text-slate-400 mt-0.5">
-                Dynamic cost efficiency grades generated across trade-lane pricing benchmarks.
+                Dynamic cost efficiency grades generated across trade-lane
+                pricing benchmarks.
               </p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
             {carrierGrades.map((cg, idx) => (
-              <div key={idx} className="bg-slate-50/50 border border-slate-150 rounded-xl p-3.5 flex flex-col justify-between">
+              <div
+                key={idx}
+                className="bg-slate-50/50 border border-slate-150 rounded-xl p-3.5 flex flex-col justify-between"
+              >
                 <div>
                   <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs font-black text-slate-800 truncate pr-2" title={cg.carrier}>{cg.carrier}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-black tracking-tight ${cg.colorClass}`}>
+                    <span
+                      className="text-xs font-black text-slate-800 truncate pr-2"
+                      title={cg.carrier}
+                    >
+                      {cg.carrier}
+                    </span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded font-black tracking-tight ${cg.colorClass}`}
+                    >
                       Grade {cg.grade}
                     </span>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[9px] text-slate-400 uppercase font-semibold">Average Tariff</p>
+                    <p className="text-[9px] text-slate-400 uppercase font-semibold">
+                      Average Tariff
+                    </p>
                     <p className="text-xs font-mono font-bold text-slate-800">
                       {formatCur(cg.avgPrice)}
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="border-t border-slate-150 pt-2.5 mt-2.5 flex items-center justify-between text-[9px] text-slate-400">
-                  <span>{cg.laneCount} Lane{cg.laneCount > 1 ? "s" : ""}</span>
-                  <span className="font-semibold text-slate-500">{cg.label}</span>
+                  <span>
+                    {cg.laneCount} Lane{cg.laneCount > 1 ? "s" : ""}
+                  </span>
+                  <span className="font-semibold text-slate-500">
+                    {cg.label}
+                  </span>
                 </div>
               </div>
             ))}
@@ -1502,7 +1970,10 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
       )}
 
       {/* Diagnostics Health & Compliancy Checks card */}
-      <div id="logistics-lane-audit-panel" className="bg-slate-50/50 border border-slate-100 rounded-2xl p-6">
+      <div
+        id="logistics-lane-audit-panel"
+        className="bg-slate-50/50 border border-slate-100 rounded-2xl p-6"
+      >
         <div className="flex items-center gap-2 mb-4">
           <div className="p-1.5 bg-blue-100 text-blue-800 rounded-lg">
             <AlertCircle className="h-4.5 w-4.5" />
@@ -1512,21 +1983,22 @@ export default function ComparisonTable({ t, filteredRates, allRates }: Comparis
               Logistics Lane Sanity Audit
             </h4>
             <p className="text-[10px] text-slate-400 mt-0.5">
-              Automated heuristics evaluating tariff structures and surcharge variances inside IndexedDB.
+              Automated heuristics evaluating tariff structures and surcharge
+              variances inside IndexedDB.
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {laneInsights.map((check, idx) => (
-            <div 
-              key={`check-${idx}`} 
+            <div
+              key={`check-${idx}`}
               className={`p-3.5 rounded-xl border flex gap-3 text-xs ${
-                check.level === "success" 
+                check.level === "success"
                   ? "bg-emerald-50/40 border-emerald-100 text-slate-700"
                   : check.level === "warn"
-                  ? "bg-amber-50/40 border-amber-100 text-slate-705"
-                  : "bg-blue-50/30 border-blue-150 text-slate-700"
+                    ? "bg-amber-50/40 border-amber-100 text-slate-705"
+                    : "bg-blue-50/30 border-blue-150 text-slate-700"
               }`}
             >
               <div className="shrink-0 mt-0.5">

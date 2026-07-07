@@ -164,4 +164,3 @@ export function initTabManager(dependencies: {
   getUi = dependencies.getUi;
   bindModelerEvents = dependencies.bindModelerEvents;
 }
-

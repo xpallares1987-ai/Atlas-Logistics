@@ -1,5 +1,5 @@
-import React, { ReactNode } from 'react';
-import { LayoutDashboard, RefreshCw } from 'lucide-react';
+import React, { ReactNode } from "react";
+import { LayoutDashboard, RefreshCw } from "lucide-react";
 
 export interface NavItem {
   id: string;
@@ -20,7 +20,9 @@ export interface LogisticsDashboardLayoutProps {
   children: ReactNode;
 }
 
-export const LogisticsDashboardLayout: React.FC<LogisticsDashboardLayoutProps> = ({
+export const LogisticsDashboardLayout: React.FC<
+  LogisticsDashboardLayoutProps
+> = ({
   title,
   subtitle,
   activeTab,
@@ -29,7 +31,7 @@ export const LogisticsDashboardLayout: React.FC<LogisticsDashboardLayoutProps> =
   searchTerm,
   onSearchChange,
   isSyncing,
-  children
+  children,
 }) => {
   return (
     <div className="dashboard-container">
@@ -57,7 +59,7 @@ export const LogisticsDashboardLayout: React.FC<LogisticsDashboardLayoutProps> =
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
-                className={activeTab === item.id ? 'active' : ''}
+                className={activeTab === item.id ? "active" : ""}
               >
                 {item.icon} {item.label}
               </button>
@@ -74,13 +76,13 @@ export const LogisticsDashboardLayout: React.FC<LogisticsDashboardLayoutProps> =
               onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
-          {isSyncing && <RefreshCw size={18} className="spin-animation text-primary" />}
+          {isSyncing && (
+            <RefreshCw size={18} className="spin-animation text-primary" />
+          )}
         </div>
       </header>
 
-      <main className="dashboard-main">
-        {children}
-      </main>
+      <main className="dashboard-main">{children}</main>
     </div>
   );
 };

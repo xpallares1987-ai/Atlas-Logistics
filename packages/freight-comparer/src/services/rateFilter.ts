@@ -43,7 +43,10 @@ export function getRateDate(rate: FreightRate): Date {
 /**
  * Pure function to filter rates based on user selected criteria
  */
-export function filterRates(dataset: FreightRate[], activeFilters: ActiveFilters): FreightRate[] {
+export function filterRates(
+  dataset: FreightRate[],
+  activeFilters: ActiveFilters,
+): FreightRate[] {
   let result = [...dataset];
 
   if (activeFilters.sheetSource && activeFilters.sheetSource !== "all") {
@@ -52,27 +55,45 @@ export function filterRates(dataset: FreightRate[], activeFilters: ActiveFilters
   if (activeFilters.mes && activeFilters.mes !== "all") {
     result = result.filter((r) => r.mes === activeFilters.mes);
   }
-  
+
   // MULTI-SELECT FOR POL
-  if (activeFilters.pol && activeFilters.pol.length > 0 && !activeFilters.pol.includes("all")) {
-    const polsUpper = activeFilters.pol.map(p => p.trim().toUpperCase());
-    result = result.filter((r) => polsUpper.includes(r.pol.trim().toUpperCase()));
+  if (
+    activeFilters.pol &&
+    activeFilters.pol.length > 0 &&
+    !activeFilters.pol.includes("all")
+  ) {
+    const polsUpper = activeFilters.pol.map((p) => p.trim().toUpperCase());
+    result = result.filter((r) =>
+      polsUpper.includes(r.pol.trim().toUpperCase()),
+    );
   }
 
   // MULTI-SELECT FOR POD
-  if (activeFilters.pod && activeFilters.pod.length > 0 && !activeFilters.pod.includes("all")) {
-    const podsUpper = activeFilters.pod.map(p => p.trim().toUpperCase());
-    result = result.filter((r) => podsUpper.includes(r.pod.trim().toUpperCase()));
+  if (
+    activeFilters.pod &&
+    activeFilters.pod.length > 0 &&
+    !activeFilters.pod.includes("all")
+  ) {
+    const podsUpper = activeFilters.pod.map((p) => p.trim().toUpperCase());
+    result = result.filter((r) =>
+      podsUpper.includes(r.pod.trim().toUpperCase()),
+    );
   }
 
   // MULTI-SELECT FOR CARRIER
-  if (activeFilters.carrier && activeFilters.carrier.length > 0 && !activeFilters.carrier.includes("all")) {
+  if (
+    activeFilters.carrier &&
+    activeFilters.carrier.length > 0 &&
+    !activeFilters.carrier.includes("all")
+  ) {
     result = result.filter((r) => activeFilters.carrier.includes(r.carrier));
   }
 
   if (activeFilters.carrierSearch) {
     const searchLower = activeFilters.carrierSearch.trim().toLowerCase();
-    result = result.filter((r) => r.carrier.toLowerCase().includes(searchLower));
+    result = result.filter((r) =>
+      r.carrier.toLowerCase().includes(searchLower),
+    );
   }
 
   // DATE RANGE FILTERING

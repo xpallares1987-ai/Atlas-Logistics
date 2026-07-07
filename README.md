@@ -1,67 +1,66 @@
-# Atlas Logistics (SCM Súper-App)
+# Atlas Logistics 🌍🚢
 
-[![CI](https://github.com/xpallares1987-ai/Atlas-Logistics/actions/workflows/ci.yml/badge.svg)](https://github.com/xpallares1987-ai/Atlas-Logistics/actions/workflows/ci.yml)
+Atlas Logistics es una **Súper-App** integral para la gestión de la cadena de suministro (SCM). Ofrece herramientas avanzadas para transitarios, navieras y operadores logísticos, centralizando cotizaciones de fletes, gestión de embarques e inteligencia predictiva impulsada por IA.
 
-Plataforma integral de gestión de cadena de suministro (SCM) y Freight Forwarding. 
-Esta Súper-App consolida todas nuestras herramientas logísticas bajo una **única arquitectura Monorepo gestionada por Turborepo**.
+![Atlas Logistics Dashboard](https://img.shields.io/badge/Status-Active-success) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-## 🏗 Arquitectura del Ecosistema
+## 🏗️ Arquitectura y Tecnologías
 
-El proyecto ha abandonado su modelo de múltiples repositorios aislados y ahora se gestiona como un único monorepo compuesto por los siguientes paquetes principales (`packages/`):
+El proyecto ha sido refactorizado recientemente en un **Monorepo (Turborepo)**, unificando múltiples submódulos bajo una misma súper-aplicación React (Vite).
 
-- **`@atlas/frontend`**: La Súper-App Host (Vite + React Router) que orquesta la navegación global.
-- **`@atlas/ui`**: Sistema de diseño y biblioteca compartida de componentes logísticos.
-- **`@atlas/dashboard`**: Panel principal para analítica de embarques, KPIs y sostenibilidad (ESG).
-- **`@atlas/freight-comparer`**: Motor de cotización, comparación y consolidación LCL.
-- **`@atlas/bpmn-modeler`**: Modelador de procesos BPMN 2.0 interactivo.
+### Core Stack
+- **Frontend:** React, Vite, React Router, TailwindCSS (Dark Premium Glassmorphism).
+- **Backend / Database:** Google Cloud SQL (PostgreSQL) orquestado vía **Firebase DataConnect** (GraphQL).
+- **Orquestación de Procesos (BPMN):** Camunda 8 (Zeebe) conectado mediante Firebase Functions.
+- **Inteligencia Predictiva:** Google Gen AI (Gemini 2.5 Flash) para cálculos de ETA predictivo y riesgos.
+- **Gestión de Paquetes:** `pnpm` y Turborepo para cachés ultrarrápidas.
 
-## 🚀 Tecnologías Clave
+## 📦 Estructura del Monorepo
 
-- **Frontend Core:** Vite, React 19, React Router v7.
-- **Estilos:** TailwindCSS v4, Lucide React.
-- **Base de Datos & Backend:** **Firebase Data Connect** (Google Cloud SQL / PostgreSQL).
-- **Orquestación de Monorepo:** pnpm v10 + Turborepo.
-- **Despliegue Contenerizado:** Docker (Multi-stage build usando `nginx:alpine`).
-- **Mapas y Telemetría:** Leaflet con integración AIS en tiempo real.
-- **Workflows (Backend Opcional):** Zeebe / Camunda 8 (Requiere Docker local para orquestación compleja).
+```
+Atlas-Logistics/
+├── packages/
+│   ├── frontend/          # Host App (Motor principal)
+│   ├── dashboard/         # Panel inteligente SCM
+│   ├── freight-comparer/  # Cotizador de Fletes (Tarifas y Excel)
+│   ├── bpmn-modeler/      # Modelador de procesos BPMN 2.0 (Camunda)
+│   ├── ui/                # Sistema de diseño (Componentes, i18n, Zustand)
+│   └── shared/            # Tipos, esquemas y utilidades compartidas
+├── dataconnect/           # Esquema de la base de datos (GraphQL -> Cloud SQL)
+└── functions/             # Firebase Functions (Workers de Camunda y Gemini AI)
+```
 
-## 🛠 Guía de Inicio Local
+## 🚀 Inicio Rápido (Desarrollo Local)
 
-### Requisitos Previos
-- **Node.js:** v20 o superior.
-- **pnpm:** v10 o superior (`npm install -g pnpm`).
-- **Firebase CLI:** v12+ (`npm install -g firebase-tools`).
+### Prerrequisitos
+- Node.js >= 18
+- `pnpm` versión 10+
+- Firebase CLI (`npm install -g firebase-tools`)
 
-### 1. Instalación Global
-Desde la raíz del repositorio, ejecuta la instalación. Turborepo enlazará inteligentemente todas las dependencias cruzadas:
+### Instalación
+
+1. Clona el repositorio e instala las dependencias globales:
 ```bash
+git clone https://github.com/tu-usuario/atlas-logistics.git
+cd atlas-logistics
 pnpm install
 ```
 
-### 2. Sincronización de Base de Datos (Data Connect)
-Para generar el SDK tipado local y poder comunicarte con la base de datos Postgres de la nube:
+2. Genera los SDKs de Firebase Data Connect (PostgreSQL):
 ```bash
-firebase init dataconnect
-firebase dataconnect:sdk:generate
+npx firebase dataconnect:sdk:generate
 ```
-*Nota: El SDK autogenerado se depositará en `src/dataconnect-generated`.*
 
-### 3. Ejecución de la Súper-App
-Para lanzar el servidor de desarrollo y visualizar todo el ecosistema unificado en tu navegador (`http://localhost:5173`):
+3. Levanta la aplicación localmente (esto arrancará el `@atlas/frontend` y enlazará los demás paquetes):
 ```bash
 pnpm run dev --filter @atlas/frontend
 ```
 
-### 4. Compilación con Docker (Producción)
-La Súper-App utiliza un modelo **Multi-stage** para generar una imagen Docker ultra-ligera:
-```bash
-# Construye la app estática y la envuelve en un servidor Nginx
-docker compose build
-docker compose up -d
-```
+## 📖 Documentación Adicional
+- [Guía de Contribución](CONTRIBUTING.md)
+- [Arquitectura (ARCHITECTURE.md)](ARCHITECTURE.md)
+- [Historial de Cambios](CHANGELOG.md)
+- [Políticas de Seguridad](SECURITY.md)
 
-## 🌐 Flujo CI/CD
-El proyecto utiliza GitHub Actions (`.github/workflows/ci.yml`) para verificar tipos, linting y build utilizando la caché remota de **Turborepo**. Al estar configurado con `firebase.json`, la Súper-App está lista para desplegarse de manera estática y unificada en **Firebase Hosting** o Google Cloud Run.
-
----
-*Documentación actualizada tras la migración a Monorepo Súper-App (Julio 2026).*
+## 🤝 Soporte
+Si tienes dudas o encuentras problemas con la integración de Camunda o los conectores de Firebase, por favor, abre un Issue o revisa la documentación de Firebase DataConnect.

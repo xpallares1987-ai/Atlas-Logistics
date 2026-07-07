@@ -122,6 +122,11 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
     (selectedElement.businessObject?.$instanceOf?.('bpmn:Task') ||
       selectedElement.businessObject?.$type?.includes?.('Task'));
 
+  const isSequenceFlow =
+    selectedElement &&
+    (selectedElement.businessObject?.$instanceOf?.('bpmn:SequenceFlow') ||
+      selectedElement.businessObject?.$type?.includes?.('SequenceFlow'));
+
   let elementMetadataHtml = '';
 
   if (isTask && selectedElement) {
@@ -178,11 +183,58 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
         </div>
       </div>
     `;
+  } else if (isSequenceFlow && selectedElement) {
+    const bo = selectedElement.businessObject;
+    let existingCondition = '';
+    if (bo.conditionExpression && (bo.conditionExpression as any).body) {
+      existingCondition = (bo.conditionExpression as any).body.replace(/"/g, '&quot;');
+    }
+
+    elementMetadataHtml = `
+      <div class="panel-section">
+        <h3 class="panel-section__title">Enrutamiento Inteligente (Zeebe)</h3>
+        <p class="section-desc">Configura reglas de decisión basadas en los datos del Shipment.</p>
+        <div class="form-group">
+          <label>Elemento Seleccionado</label>
+          <div class="selected-badge">${bo.name || selectedElement.id} (SequenceFlow)</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="condIncoterm">Incoterm</label>
+          <select id="condIncoterm" class="input">
+             <option value="">Cualquiera</option>
+             <option value="EXW">EXW (Ex Works)</option>
+             <option value="FOB">FOB (Free On Board)</option>
+             <option value="CIF">CIF</option>
+             <option value="DAP">DAP</option>
+             <option value="DDP">DDP</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="condMovement">Tipo de Carga</label>
+          <select id="condMovement" class="input">
+             <option value="">Cualquiera</option>
+             <option value="FCL">FCL (Contenedor Completo)</option>
+             <option value="LCL">LCL (Grupaje)</option>
+             <option value="AIR">AIR (Aéreo)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Expresión FEEL Resultante</label>
+          <input type="text" id="zeebeCondition" class="input" readonly placeholder="=" value="${existingCondition}" />
+        </div>
+        <button id="btnApplyCondition" class="btn btn--primary btn--full-width" type="button" style="margin-top: 8px;">
+          Aplicar Regla al Flujo
+        </button>
+      </div>
+    `;
   } else {
     elementMetadataHtml = `
       <div class="no-selection-alert">
         <div class="no-selection-alert__icon">ℹ️</div>
-        <div>Selecciona una <b>Tarea (Task)</b> en el lienzo para configurar sus metadatos logísticos y conectores Zeebe.</div>
+        <div>Selecciona una <b>Tarea (Task)</b> o una <b>Flecha (SequenceFlow)</b> en el lienzo para configurar sus opciones.</div>
       </div>
     `;
   }
@@ -319,6 +371,50 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
         }
       });
     });
+  } else if (isSequenceFlow && modeler) {
+    const condIncoterm = document.getElementById('condIncoterm') as HTMLSelectElement;
+    const condMovement = document.getElementById('condMovement') as HTMLSelectElement;
+    const zeebeCondition = document.getElementById('zeebeCondition') as HTMLInputElement;
+    const btnApplyCondition = document.getElementById('btnApplyCondition');
+
+    const updateConditionPreview = () => {
+      let conditions = [];
+      if (condIncoterm.value) conditions.push(`incoterm = "${condIncoterm.value}"`);
+      if (condMovement.value) conditions.push(`movementType = "${condMovement.value}"`);
+
+      if (conditions.length > 0) {
+        zeebeCondition.value = '=' + conditions.join(' and ');
+      } else {
+        zeebeCondition.value = '';
+      }
+    };
+
+    condIncoterm?.addEventListener('change', updateConditionPreview);
+    condMovement?.addEventListener('change', updateConditionPreview);
+
+    btnApplyCondition?.addEventListener('click', () => {
+      if (!selectedElement) return;
+      try {
+        const modeling = modeler.get('modeling') as any;
+        const moddle = modeler.get('moddle') as any;
+
+        let conditionObj = undefined;
+        if (zeebeCondition.value) {
+          conditionObj = moddle.create('bpmn:FormalExpression', {
+            body: zeebeCondition.value,
+          });
+        }
+
+        modeling.updateProperties(selectedElement, {
+          conditionExpression: conditionObj,
+        });
+
+        Toast.show('Regla de enrutamiento FEEL aplicada', 'success');
+      } catch (err) {
+        console.error(err);
+        Toast.show('Error al aplicar la regla', 'error');
+      }
+    });
   }
 
   // Bind SOP generation
@@ -342,8 +438,7 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
     item.addEventListener('click', () => {
       const elementId = item.getAttribute('data-element-id')!;
       const elementRegistry = modeler?.get('elementRegistry') as
-        | { get: (id: string) => BpmnElement }
-        | undefined;
+        { get: (id: string) => BpmnElement } | undefined;
       const element = elementRegistry?.get(elementId);
       if (modeler && element) {
         const selection = modeler.get('selection') as { select: (el: BpmnElement) => void };

@@ -7,6 +7,7 @@ We as members, contributors, and maintainers of the **Freight-Comparer** project
 ## Our Standards
 
 Examples of behavior that contributes to a positive environment include:
+
 - Demonstrating empathy and kindness toward other people.
 - Being respectful of differing opinions, viewpoints, and experiences.
 - Gracefully accepting constructive criticism.
@@ -14,6 +15,7 @@ Examples of behavior that contributes to a positive environment include:
 - Using inclusive language.
 
 Examples of unacceptable behavior include:
+
 - The use of sexualized language or imagery and unwelcome sexual attention or advances.
 - Trolling, insulting/derogatory comments, or personal or political attacks.
 - Public or private harassment.

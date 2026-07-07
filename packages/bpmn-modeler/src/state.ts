@@ -1,12 +1,6 @@
 import { AppState } from './types';
 import APP_CONFIG from './config';
-import {
-  loadTheme,
-  saveTheme,
-  applyTheme,
-  publishEvent,
-  Theme,
-} from '@atlas/ui';
+import { loadTheme, saveTheme, applyTheme, publishEvent, Theme } from '@atlas/ui';
 
 export type { AppState };
 
@@ -41,4 +35,3 @@ export function updateTheme(theme: Theme, isFromBroadcast: boolean = false) {
     }
   }
 }
-

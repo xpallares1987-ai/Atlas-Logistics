@@ -1,8 +1,8 @@
 # 0003: Unified Single Sign-On using Firebase
 
-* **Status**: Accepted
-* **Deciders**: AI Assistant, xpall
-* **Date**: 2026-06-28
+- **Status**: Accepted
+- **Deciders**: AI Assistant, xpall
+- **Date**: 2026-06-28
 
 ## Context and Problem Statement
 
@@ -10,10 +10,10 @@ As the `Control-Tower` ecosystem expands with multiple independent applications 
 
 ## Decision Drivers
 
-* Consistent user experience across all Control-Tower applications.
-* Centralized identity management.
-* Reusability of UI components (e.g., `<AuthProvider>`) from the `@xpallares1987-ai/control-tower-ui` shared package.
-* High security and ease of implementation.
+- Consistent user experience across all Control-Tower applications.
+- Centralized identity management.
+- Reusability of UI components (e.g., `<AuthProvider>`) from the `@xpallares1987-ai/control-tower-ui` shared package.
+- High security and ease of implementation.
 
 ## Considered Options
 
@@ -27,5 +27,5 @@ Chosen option: **Firebase Authentication**, because it provides an out-of-the-bo
 
 ### Consequences
 
-* **Good**: Users log in once and can traverse the ecosystem using the same credentials. Secure session handling is abstracted away from individual apps. The login UI is 100% consistent.
-* **Bad**: Adds a dependency on Firebase. Environment variables (`VITE_FIREBASE_*`) must be replicated in every local development environment.
+- **Good**: Users log in once and can traverse the ecosystem using the same credentials. Secure session handling is abstracted away from individual apps. The login UI is 100% consistent.
+- **Bad**: Adds a dependency on Firebase. Environment variables (`VITE_FIREBASE_*`) must be replicated in every local development environment.

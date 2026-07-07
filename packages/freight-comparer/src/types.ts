@@ -32,10 +32,10 @@ export interface FreightRate {
 export interface SurchargeRule {
   id: string;
   name: string;
-  type: 'BAF' | 'CAF' | 'PSS' | 'IMO' | 'OTHER';
+  type: "BAF" | "CAF" | "PSS" | "IMO" | "OTHER";
   amount: number;
   currency: string;
-  calcMethod: 'PER_TEU' | 'PERCENTAGE' | 'FLAT_PER_BL';
+  calcMethod: "PER_TEU" | "PERCENTAGE" | "FLAT_PER_BL";
   active: boolean;
 }
 

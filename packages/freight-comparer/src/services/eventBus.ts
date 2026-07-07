@@ -38,14 +38,17 @@ class EventBus {
    */
   public emit<T = any>(event: string, data?: T): void {
     if (!this.events.has(event)) return;
-    
+
     // Create copy of callback list to avoid mutation issues during invocation
     const callbacks = [...this.events.get(event)!];
     callbacks.forEach((callback) => {
       try {
         callback(data);
       } catch (err) {
-        console.error(`[EventBus] Error in listener for event "${event}":`, err);
+        console.error(
+          `[EventBus] Error in listener for event "${event}":`,
+          err,
+        );
       }
     });
   }
