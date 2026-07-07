@@ -102,25 +102,39 @@ export default function TrackerModule() {
     return () => clearInterval(interval);
   }, []);
 
+  // Debounced ports to avoid heavy re-renders while typing
+  const [debouncedOriginPort, setDebouncedOriginPort] = useState(originPort);
+  const [debouncedDestPort, setDebouncedDestPort] = useState(destPort);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedOriginPort(originPort), 300);
+    return () => clearTimeout(timer);
+  }, [originPort]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedDestPort(destPort), 300);
+    return () => clearTimeout(timer);
+  }, [destPort]);
+
   // Filter shipments when ports change
   useEffect(() => {
     let result = shipments;
-    if (originPort) {
+    if (debouncedOriginPort) {
       result = result.filter(
         (s) =>
-          s.origin?.toUpperCase().includes(originPort.locode) ||
-          s.origin?.toLowerCase().includes(originPort.name.toLowerCase()),
+          s.origin?.toUpperCase().includes(debouncedOriginPort.locode) ||
+          s.origin?.toLowerCase().includes(debouncedOriginPort.name.toLowerCase()),
       );
     }
-    if (destPort) {
+    if (debouncedDestPort) {
       result = result.filter(
         (s) =>
-          s.destination?.toUpperCase().includes(destPort.locode) ||
-          s.destination?.toLowerCase().includes(destPort.name.toLowerCase()),
+          s.destination?.toUpperCase().includes(debouncedDestPort.locode) ||
+          s.destination?.toLowerCase().includes(debouncedDestPort.name.toLowerCase()),
       );
     }
     setFilteredShipments(result);
-  }, [originPort, destPort, shipments]);
+  }, [debouncedOriginPort, debouncedDestPort, shipments]);
 
   const clearFilters = useCallback(() => {
     setOriginPort(null);

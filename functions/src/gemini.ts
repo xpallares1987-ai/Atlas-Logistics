@@ -54,6 +54,13 @@ export async function generatePredictiveETA(apiKey: string, shipmentData: any) {
 
 export async function processDocumentOCR(apiKey: string, base64Image: string, mimeType: string) {
   if (!apiKey) throw new Error("Missing Gemini API Key");
+  
+  // Limit payload size to 5MB to prevent memory exhaustion (OOM)
+  const approxSizeMb = (base64Image.length * 3) / 4 / (1024 * 1024);
+  if (approxSizeMb > 5) {
+    throw new Error("El archivo excede el tamaño máximo permitido de 5MB.");
+  }
+
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
@@ -98,6 +105,30 @@ export async function processDocumentOCR(apiKey: string, base64Image: string, mi
 
 export async function executeDataAnalystChat(apiKey: string, question: string) {
   if (!apiKey) throw new Error("Missing Gemini API Key");
+
+  // Simple protection against prompt injection and SQL DDL/DML injection
+  const injectionPatterns = [
+    /drop\s+/i,
+    /truncate\s+/i,
+    /delete\s+/i,
+    /insert\s+/i,
+    /update\s+/i,
+    /alter\s+/i,
+    /grant\s+/i,
+    /revoke\s+/i,
+    /syscolumns/i,
+    /sysobjects/i,
+  ];
+
+  const hasInjection = injectionPatterns.some((pattern) => pattern.test(question));
+  if (hasInjection) {
+    return {
+      sqlQuery: null,
+      friendlyResponse: "Error de seguridad: La consulta contiene comandos no autorizados o potencialmente peligrosos.",
+      chartSuggestion: "none",
+    };
+  }
+
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `

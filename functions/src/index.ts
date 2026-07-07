@@ -30,13 +30,20 @@ const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 
 setGlobalOptions({ maxInstances: 10 });
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  /https:\/\/.*\.web\.app$/,
+  /https:\/\/.*\.firebaseapp\.com$/
+];
+
 // Global initialization of Camunda Workers when instance warms up
 let workersStarted = false;
 
 export const deployBPMN = onCall(
   {
     secrets: [CAMUNDA_CLUSTER_ID, CAMUNDA_CLIENT_ID, CAMUNDA_CLIENT_SECRET],
-    cors: true,
+    cors: allowedOrigins,
   },
   async (request) => {
     // Inicializar workers si no lo están
@@ -77,7 +84,7 @@ export const deployBPMN = onCall(
 export const predictETA = onCall(
   {
     secrets: [GEMINI_API_KEY],
-    cors: true,
+    cors: allowedOrigins,
   },
   async (request) => {
     const { shipmentData } = request.data;
@@ -99,7 +106,7 @@ export const predictETA = onCall(
 export const documentOCR = onCall(
   {
     secrets: [GEMINI_API_KEY],
-    cors: true,
+    cors: allowedOrigins,
   },
   async (request) => {
     const { base64Image, mimeType } = request.data;
@@ -118,7 +125,7 @@ export const documentOCR = onCall(
 export const chatWithData = onCall(
   {
     secrets: [GEMINI_API_KEY],
-    cors: true,
+    cors: allowedOrigins,
   },
   async (request) => {
     const { question } = request.data;
@@ -135,7 +142,7 @@ export const chatWithData = onCall(
 export const optimizeLCL = onCall(
   {
     secrets: [GEMINI_API_KEY],
-    cors: true,
+    cors: allowedOrigins,
   },
   async (request) => {
     const { containerSpec, cargoPool } = request.data;
