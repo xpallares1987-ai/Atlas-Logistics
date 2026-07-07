@@ -31,7 +31,7 @@ export const triggerWebhook = onCall(async (request) => {
   // Función auxiliar para emitir webhooks tras cambios de estado importantes.
   // En producción, esto sería llamado desde un onDocumentWritten trigger de Firestore
   // o desde Camunda Service Tasks, y usaría fetch() para notificar a la URL registrada.
-  const { eventType, payload } = request.data;
+  const { eventType, payload: _payload } = request.data;
   
   console.log(`[Webhooks] Evaluando emisión para evento: ${eventType}`);
   
