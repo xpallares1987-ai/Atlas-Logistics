@@ -6,6 +6,7 @@ Este documento describe la topología y decisiones de diseño técnico detrás d
 Atlas es una "Súper-App" que engloba varios módulos históricamente separados. Turborepo nos permite paralelizar el build y linting (`pnpm run build`) almacenando en caché los resultados.
 - El anfitrión principal (`Host App`) está en `@atlas/frontend`. Este paquete importa y sirve a los demás (`dashboard`, `freight-comparer`, `bpmn-modeler`) mediante React Router.
 - Las dependencias y versiones (como React 18, Tailwind, Lucide) se comparten centralizadamente.
+- **Límites de Importación (Linter):** Para mantener un bajo acoplamiento, el linter prohíbe de forma estricta que `@atlas/ui` (módulo común) importe componentes o utilidades de módulos específicos de dominio como `@atlas/dashboard`, `@atlas/freight-comparer`, o `@atlas/bpmn-modeler` mediante la regla `no-restricted-imports`.
 
 ## 2. Bases de Datos (Cloud SQL + DataConnect)
 Hemos adoptado **Firebase Data Connect** como capa GraphQL fuertemente tipada sobre un clúster de **Google Cloud SQL (PostgreSQL)**.
@@ -20,8 +21,10 @@ La logística moderna requiere flujos de trabajo resilientes. Hemos integrado **
 
 ## 4. IA Predictiva (Gemini)
 El módulo SCM no es reactivo, es predictivo.
-- Empleamos **Google Gen AI (Gemini 2.5 Flash)** en el backend (`functions/src/gemini.ts`) para estimaciones. 
-- Acepta objetos JSON complejos de embarques e inclemencias externas para emitir un cálculo de "Riesgo" y ajustar el Tiempo Estimado de Llegada (ETA).
+- Empleamos **Google Gen AI (Gemini 3.1 Pro)** en el backend (`functions/src/gemini.ts`) para estimaciones complejas de ETA, chat analítico y bin-packing.
+- Las llamadas están configuradas con `responseMimeType: "application/json"` para asegurar respuestas estructuradas nativas de JSON de la IA.
+- **Resiliencia & Fallback:** En caso de fallas de conexión o agotamiento de cuotas de Gemini 3.1 Pro, el backend conmuta automáticamente a `gemini-2.5-flash` para mantener el servicio arriba de forma transparente.
+- Las imágenes enviadas al OCR en `processDocumentOCR` están limitadas a 5MB para prevenir sobrecargas de memoria (OOM).
 
 ## 5. Diseño Visual y UI
 La directriz fundamental del diseño es **Premium Dark Glassmorphism**.
