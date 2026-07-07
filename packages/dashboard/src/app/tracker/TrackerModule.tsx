@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AgentService } from "../../tracker-services/agentService";
 import {
   LocationService,
@@ -47,23 +47,25 @@ export default function TrackerModule() {
           AgentService.getAgents(),
           LocationService.getAll(), // pre-warm cache
         ]);
-        
+
         // Map data connect response to expected Shipment format
-        const shipmentData = (shipmentRes.data.shipments || []).map((s: any) => ({
-          ...s,
-          id: s.id,
-          reference: s.bookingReference,
-          mode: s.mode || "sea",
-          origin: s.pol,
-          destination: s.pod,
-          status: s.status,
-          eta: s.eta,
-          vesselLatitude: s.vesselLatitude,
-          vesselLongitude: s.vesselLongitude,
-          coordinatesLastUpdated: s.coordinatesLastUpdated,
-          carrier: s.carrier,
-        })) as Shipment[];
-        
+        const shipmentData = (shipmentRes.data.shipments || []).map(
+          (s: any) => ({
+            ...s,
+            id: s.id,
+            reference: s.bookingReference,
+            mode: s.mode || "sea",
+            origin: s.pol,
+            destination: s.pod,
+            status: s.status,
+            eta: s.eta,
+            vesselLatitude: s.vesselLatitude,
+            vesselLongitude: s.vesselLongitude,
+            coordinatesLastUpdated: s.coordinatesLastUpdated,
+            carrier: s.carrier,
+          }),
+        ) as Shipment[];
+
         setShipments(shipmentData);
         setFilteredShipments(shipmentData);
         setAgents(agentData);
@@ -556,9 +558,11 @@ export default function TrackerModule() {
                               s.eta,
                             )}
                             currentStepIndex={
-                              s.status === "in_transit"
+                              (s.status as string) === "IN_TRANSIT" ||
+                              (s.status as string) === "in_transit"
                                 ? 2
-                                : s.status === "arrived"
+                                : (s.status as string) === "DELIVERED" ||
+                                    (s.status as string) === "arrived"
                                   ? 4
                                   : 0
                             }
