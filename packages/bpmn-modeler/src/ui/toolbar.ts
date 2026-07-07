@@ -56,4 +56,3 @@ export function createToolbar(
     destroy: () => cleanups.forEach((cleanup) => cleanup()),
   };
 }
-

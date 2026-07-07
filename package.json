@@ -17,7 +17,8 @@
     "test": "pnpm --filter @atlas/shared test",
     "type-check": "pnpm --filter @atlas/frontend type-check && tsc -p tsconfig.server.json --noEmit",
     "eslint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prepare": "husky"
   },
   "dependencies": {
     "@fastify/compress": "^9.0.0",
@@ -28,9 +29,12 @@
     "@fastify/swagger": "^9.7.0",
     "@fastify/swagger-ui": "^6.0.0",
     "@fastify/websocket": "^11.2.0",
+    "@sentry/node": "^10.63.0",
+    "@sentry/profiling-node": "^10.63.0",
     "argon2": "^0.44.0",
     "d3-color": "^3.1.0",
     "dataconnect-generated": "file:./src/dataconnect-generated",
+    "default-connector": "link:..\\..\\AppData\\Local\\pnpm\\global\\5\\node_modules\\src\\dataconnect-generated\\js\\default-connector",
     "fastify-type-provider-zod": "^1.2.0",
     "firebase": "^12.15.0",
     "ioredis": "^5.11.1",
@@ -44,6 +48,7 @@
     "@camunda8/sdk": "^8.8.11",
     "@grpc/grpc-js": "^1.14.4",
     "@microsoft/eslint-formatter-sarif": "^3.1.0",
+    "@playwright/test": "^1.61.1",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@types/node": "^20.19.43",
@@ -60,6 +65,8 @@
     "fast-uri": "^4.1.0",
     "fast-xml-parser": "^5.9.3",
     "fastify": "^5.9.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "postcss": "^8.5.16",
     "semantic-release": "^25.0.5",
     "tsx": "^4.22.4",
@@ -70,13 +77,27 @@
     "vitest": "^4.1.9"
   },
   "pnpm": {
+    "auditConfig": {
+      "ignoreCves": [
+        "GHSA-848j-6mx2-7j84"
+      ]
+    },
     "overrides": {
       "d3-color": "^3.1.0",
       "esbuild": "^0.25.0",
       "postcss": "^8.5.16",
       "@grpc/grpc-js": "^1.14.4",
       "fast-xml-parser": "^5.9.3",
-      "uuid": "^11.1.1"
+      "uuid": "^11.1.1",
+      "ts-deepmerge": "^8.0.0",
+      "dataconnect-generated": "link:..\\..\\AppData\\Local\\pnpm\\global\\5\\node_modules\\src\\dataconnect-generated",
+      "default-connector": "link:..\\..\\AppData\\Local\\pnpm\\global\\5\\node_modules\\src\\dataconnect-generated\\js\\default-connector"
     }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

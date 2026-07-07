@@ -71,12 +71,8 @@
           "name": "bill_of_ladings_shipment_id_shipments_id_fk",
           "tableFrom": "bill_of_ladings",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -208,9 +204,7 @@
         "carriers_code_unique": {
           "name": "carriers_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -285,12 +279,8 @@
           "name": "contacts_customer_id_customers_id_fk",
           "tableFrom": "contacts",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -300,9 +290,7 @@
         "contacts_email_unique": {
           "name": "contacts_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -415,12 +403,8 @@
           "name": "customs_declaration_items_declaration_id_customs_declarations_id_fk",
           "tableFrom": "customs_declaration_items",
           "tableTo": "customs_declarations",
-          "columnsFrom": [
-            "declaration_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["declaration_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -428,12 +412,8 @@
           "name": "customs_declaration_items_hs_code_id_hs_codes_id_fk",
           "tableFrom": "customs_declaration_items",
           "tableTo": "hs_codes",
-          "columnsFrom": [
-            "hs_code_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hs_code_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -507,12 +487,8 @@
           "name": "customs_declarations_shipment_id_shipments_id_fk",
           "tableFrom": "customs_declarations",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -719,12 +695,8 @@
           "name": "freight_rates_carrier_id_carriers_id_fk",
           "tableFrom": "freight_rates",
           "tableTo": "carriers",
-          "columnsFrom": [
-            "carrier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["carrier_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -771,9 +743,7 @@
         "hs_codes_code_unique": {
           "name": "hs_codes_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -827,12 +797,8 @@
           "name": "invoice_items_invoice_id_invoices_id_fk",
           "tableFrom": "invoice_items",
           "tableTo": "invoices",
-          "columnsFrom": [
-            "invoice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -931,12 +897,8 @@
           "name": "invoices_shipment_id_shipments_id_fk",
           "tableFrom": "invoices",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -944,12 +906,8 @@
           "name": "invoices_customer_id_customers_id_fk",
           "tableFrom": "invoices",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -957,12 +915,8 @@
           "name": "invoices_carrier_id_carriers_id_fk",
           "tableFrom": "invoices",
           "tableTo": "carriers",
-          "columnsFrom": [
-            "carrier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["carrier_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -972,9 +926,7 @@
         "invoices_invoice_number_unique": {
           "name": "invoices_invoice_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "invoice_number"
-          ]
+          "columns": ["invoice_number"]
         }
       },
       "policies": {},
@@ -1022,12 +974,8 @@
           "name": "quote_options_quote_id_quotes_id_fk",
           "tableFrom": "quote_options",
           "tableTo": "quotes",
-          "columnsFrom": [
-            "quote_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["quote_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1035,12 +983,8 @@
           "name": "quote_options_freight_rate_id_freight_rates_id_fk",
           "tableFrom": "quote_options",
           "tableTo": "freight_rates",
-          "columnsFrom": [
-            "freight_rate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["freight_rate_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1114,12 +1058,8 @@
           "name": "quotes_customer_id_customers_id_fk",
           "tableFrom": "quotes",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1166,12 +1106,8 @@
           "name": "rate_agreement_items_rate_agreement_id_rate_agreements_id_fk",
           "tableFrom": "rate_agreement_items",
           "tableTo": "rate_agreements",
-          "columnsFrom": [
-            "rate_agreement_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rate_agreement_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1179,12 +1115,8 @@
           "name": "rate_agreement_items_freight_rate_id_freight_rates_id_fk",
           "tableFrom": "rate_agreement_items",
           "tableTo": "freight_rates",
-          "columnsFrom": [
-            "freight_rate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["freight_rate_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1250,12 +1182,8 @@
           "name": "rate_agreements_customer_id_customers_id_fk",
           "tableFrom": "rate_agreements",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1321,12 +1249,8 @@
           "name": "shipment_events_shipment_id_shipments_id_fk",
           "tableFrom": "shipment_events",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1480,12 +1404,8 @@
           "name": "shipments_customer_id_customers_id_fk",
           "tableFrom": "shipments",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1493,12 +1413,8 @@
           "name": "shipments_carrier_id_carriers_id_fk",
           "tableFrom": "shipments",
           "tableTo": "carriers",
-          "columnsFrom": [
-            "carrier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["carrier_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1508,9 +1424,7 @@
         "shipments_tracking_number_unique": {
           "name": "shipments_tracking_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tracking_number"
-          ]
+          "columns": ["tracking_number"]
         }
       },
       "policies": {},
@@ -1620,12 +1534,8 @@
           "name": "surcharges_freight_rate_id_freight_rates_id_fk",
           "tableFrom": "surcharges",
           "tableTo": "freight_rates",
-          "columnsFrom": [
-            "freight_rate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["freight_rate_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1633,12 +1543,8 @@
           "name": "surcharges_surcharge_type_id_surcharge_types_id_fk",
           "tableFrom": "surcharges",
           "tableTo": "surcharge_types",
-          "columnsFrom": [
-            "surcharge_type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["surcharge_type_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1712,12 +1618,8 @@
           "name": "users_carrier_id_carriers_id_fk",
           "tableFrom": "users",
           "tableTo": "carriers",
-          "columnsFrom": [
-            "carrier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["carrier_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1727,16 +1629,12 @@
         "users_username_unique": {
           "name": "users_username_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         },
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -1748,81 +1646,42 @@
     "public.customer_status": {
       "name": "customer_status",
       "schema": "public",
-      "values": [
-        "Active",
-        "Inactive"
-      ]
+      "values": ["Active", "Inactive"]
     },
     "public.customs_status": {
       "name": "customs_status",
       "schema": "public",
-      "values": [
-        "Pending",
-        "Submitted",
-        "UnderReview",
-        "Cleared",
-        "Rejected"
-      ]
+      "values": ["Pending", "Submitted", "UnderReview", "Cleared", "Rejected"]
     },
     "public.invoice_status": {
       "name": "invoice_status",
       "schema": "public",
-      "values": [
-        "Draft",
-        "Issued",
-        "Paid",
-        "Overdue",
-        "Cancelled"
-      ]
+      "values": ["Draft", "Issued", "Paid", "Overdue", "Cancelled"]
     },
     "public.invoice_type": {
       "name": "invoice_type",
       "schema": "public",
-      "values": [
-        "AR",
-        "AP"
-      ]
+      "values": ["AR", "AP"]
     },
     "public.quote_status": {
       "name": "quote_status",
       "schema": "public",
-      "values": [
-        "Draft",
-        "Sent",
-        "Accepted",
-        "Rejected",
-        "Expired"
-      ]
+      "values": ["Draft", "Sent", "Accepted", "Rejected", "Expired"]
     },
     "public.shipment_mode": {
       "name": "shipment_mode",
       "schema": "public",
-      "values": [
-        "Ocean FCL",
-        "Ocean LCL",
-        "Air",
-        "Road"
-      ]
+      "values": ["Ocean FCL", "Ocean LCL", "Air", "Road"]
     },
     "public.shipment_status": {
       "name": "shipment_status",
       "schema": "public",
-      "values": [
-        "Booked",
-        "Received",
-        "OnBoard",
-        "Discharged",
-        "Delivered"
-      ]
+      "values": ["Booked", "Received", "OnBoard", "Discharged", "Delivered"]
     },
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "admin",
-        "agent",
-        "carrier"
-      ]
+      "values": ["admin", "agent", "carrier"]
     }
   },
   "schemas": {},

@@ -1,9 +1,28 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { initializeApp, getApps, getApp, FirebaseApp, FirebaseOptions } from 'firebase/app';
-import { getAuth, Auth, GoogleAuthProvider, EmailAuthProvider } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
-import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import {
+  initializeApp,
+  getApps,
+  getApp,
+  FirebaseApp,
+  FirebaseOptions,
+} from "firebase/app";
+import {
+  getAuth,
+  Auth,
+  GoogleAuthProvider,
+  EmailAuthProvider,
+  OAuthProvider,
+  signInAnonymously,
+} from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
+import { getDataConnect, DataConnect } from "firebase/data-connect";
 
 export interface FirebaseContextType {
   app: FirebaseApp | null;
@@ -13,6 +32,7 @@ export interface FirebaseContextType {
   dataConnect: DataConnect | null;
   googleProvider: GoogleAuthProvider | null;
   emailProvider: EmailAuthProvider | null;
+  microsoftProvider: OAuthProvider | null;
 }
 
 const FirebaseContext = createContext<FirebaseContextType>({
@@ -23,6 +43,7 @@ const FirebaseContext = createContext<FirebaseContextType>({
   dataConnect: null,
   googleProvider: null,
   emailProvider: null,
+  microsoftProvider: null,
 });
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -34,16 +55,23 @@ export interface FirebaseProviderProps {
   children: ReactNode;
 }
 
-export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ config, databaseId, children }) => {
-  const [firebaseInstance, setFirebaseInstance] = useState<FirebaseContextType>({
-    app: null,
-    auth: null,
-    db: null,
-    storage: null,
-    dataConnect: null,
-    googleProvider: null,
-    emailProvider: null,
-  });
+export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
+  config,
+  databaseId,
+  children,
+}) => {
+  const [firebaseInstance, setFirebaseInstance] = useState<FirebaseContextType>(
+    {
+      app: null,
+      auth: null,
+      db: null,
+      storage: null,
+      dataConnect: null,
+      googleProvider: null,
+      emailProvider: null,
+      microsoftProvider: null,
+    },
+  );
 
   useEffect(() => {
     if (!config || !config.projectId) return;
@@ -51,12 +79,26 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ config, data
     try {
       const app = !getApps().length ? initializeApp(config) : getApp();
       const auth = getAuth(app);
+
+      // Retained as fallback per user request
+      signInAnonymously(auth).catch((error) =>
+        console.error("Anonymous auth failed:", error),
+      );
+
       const db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
       const storage = getStorage(app);
-      const dataConnect = getDataConnect(app, { location: 'europe-west1', connector: 'default', service: 'gen-lang-client-0393063451-service' });
-      
+      const dataConnect = getDataConnect(app, {
+        location: "europe-west1",
+        connector: "default",
+        service: "gen-lang-client-0393063451-service",
+      });
+
       const googleProvider = new GoogleAuthProvider();
       const emailProvider = new EmailAuthProvider();
+
+      const microsoftProvider = new OAuthProvider("microsoft.com");
+      // Optional: Add custom tenant ID for Identity Platform multi-tenancy if configured
+      // microsoftProvider.setCustomParameters({ tenant: 'YOUR_TENANT_ID' });
 
       setFirebaseInstance({
         app,
@@ -66,6 +108,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ config, data
         dataConnect,
         googleProvider,
         emailProvider,
+        microsoftProvider,
       });
     } catch (error) {
       console.error("Failed to initialize Firebase", error);

@@ -2,8 +2,8 @@ name: Sync External Warehouses Daily
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # Runs daily at 02:00 UTC
-  workflow_dispatch:  # Allows manual trigger
+    - cron: "0 2 * * *" # Runs daily at 02:00 UTC
+  workflow_dispatch: # Allows manual trigger
 
 jobs:
   sync:
@@ -28,7 +28,3 @@ jobs:
           Write-Host "Executing $scriptPath"
           & powershell -NoProfile -ExecutionPolicy Bypass -File $scriptPath
         shell: pwsh
-
-
-
-

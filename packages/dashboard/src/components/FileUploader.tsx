@@ -1,25 +1,28 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
-import { Upload, FileText, AlertCircle, CheckCircle2, X } from 'lucide-react';
-import type { ReportType } from '../types/dashboard';
+import { useState, useCallback } from "react";
+import { Upload, FileText, AlertCircle, CheckCircle2, X } from "lucide-react";
+import type { ReportType } from "../types/dashboard";
 
 interface FileUploaderProps {
   onFilesReady: (files: File[], detectedType?: ReportType) => void;
   isProcessing?: boolean;
 }
 
-const ACCEPTED = '.csv,.xlsx,.xls,.ods';
+const ACCEPTED = ".csv,.xlsx,.xls,.ods,.png,.jpg,.jpeg,.pdf";
 
-export function FileUploader({ onFilesReady, isProcessing = false }: FileUploaderProps) {
+export function FileUploader({
+  onFilesReady,
+  isProcessing = false,
+}: FileUploaderProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accepted, setAccepted] = useState<string[]>([]);
 
   const validate = (files: File[]): File[] => {
-    const validExts = ['csv', 'xlsx', 'xls', 'ods', 'txt'];
+    const validExts = ["csv", "xlsx", "xls", "ods", "txt", "png", "jpg", "jpeg", "pdf"];
     return files.filter((f) => {
-      const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
       return validExts.includes(ext);
     });
   };
@@ -31,11 +34,15 @@ export function FileUploader({ onFilesReady, isProcessing = false }: FileUploade
       const files = Array.from(raw);
       const valid = validate(files);
       if (valid.length === 0) {
-        setError('No valid files found. Please upload CSV or Excel (.xlsx/.xls) files.');
+        setError(
+          "No valid files found. Please upload CSV or Excel (.xlsx/.xls) files.",
+        );
         return;
       }
       if (valid.length < files.length) {
-        setError(`${files.length - valid.length} file(s) were skipped (unsupported format).`);
+        setError(
+          `${files.length - valid.length} file(s) were skipped (unsupported format).`,
+        );
       }
       setAccepted(valid.map((f) => f.name));
       onFilesReady(valid);
@@ -57,14 +64,20 @@ export function FileUploader({ onFilesReady, isProcessing = false }: FileUploade
     [handleFiles],
   );
 
-  const clearAccepted = () => { setAccepted([]); setError(null); };
+  const clearAccepted = () => {
+    setAccepted([]);
+    setError(null);
+  };
 
   return (
     <div className="file-uploader">
       {/* Drop zone */}
       <label
-        className={`drop-zone ${isDragOver ? 'drop-zone--active' : ''} ${isProcessing ? 'drop-zone--processing' : ''}`}
-        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        className={`drop-zone ${isDragOver ? "drop-zone--active" : ""} ${isProcessing ? "drop-zone--processing" : ""}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragOver(true);
+        }}
         onDragLeave={() => setIsDragOver(false)}
         onDrop={onDrop}
         aria-label="File upload drop zone"
@@ -88,16 +101,24 @@ export function FileUploader({ onFilesReady, isProcessing = false }: FileUploade
           )}
         </div>
         <p className="drop-zone__title">
-          {isProcessing ? 'Processing files…' : isDragOver ? 'Drop files here' : 'Drop files here or click to browse'}
+          {isProcessing
+            ? "Processing files…"
+            : isDragOver
+              ? "Drop files here"
+              : "Drop files here or click to browse"}
         </p>
-        <p className="drop-zone__hint">Accepts CSV, Excel (.xlsx, .xls) — multiple files supported</p>
+        <p className="drop-zone__hint">
+          Accepts CSV, Excel (.xlsx, .xls) and Images/PDFs for AI OCR — multiple files supported
+        </p>
       </label>
 
       {/* File list */}
       {accepted.length > 0 && (
         <div className="upload-file-list">
           <div className="upload-file-list__header">
-            <span>{accepted.length} file{accepted.length !== 1 ? 's' : ''} queued</span>
+            <span>
+              {accepted.length} file{accepted.length !== 1 ? "s" : ""} queued
+            </span>
             <button onClick={clearAccepted} className="btn-icon" title="Clear">
               <X size={14} />
             </button>

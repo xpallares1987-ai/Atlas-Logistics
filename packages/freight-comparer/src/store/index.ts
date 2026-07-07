@@ -1,6 +1,6 @@
-import { configureStore } from '@reduxjs/toolkit';
-import currencyReducer from './slices/currencySlice';
-import bookingReducer from './slices/bookingSlice';
+import { configureStore } from "@reduxjs/toolkit";
+import currencyReducer from "./slices/currencySlice";
+import bookingReducer from "./slices/bookingSlice";
 
 export const store = configureStore({
   reducer: {

@@ -1,12 +1,23 @@
-import { collection, doc, getDocs, setDoc, deleteDoc, query, where, updateDoc, Firestore } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  query,
+  where,
+  updateDoc,
+  Firestore,
+} from "firebase/firestore";
 
-export type Stage = 'QUOTE' | 'BOOKING' | 'AT_ORIGIN' | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED';
+export type Stage =
+  "QUOTE" | "BOOKING" | "AT_ORIGIN" | "IN_TRANSIT" | "CUSTOMS" | "DELIVERED";
 
 export interface Shipment {
   id: string;
   ref: string;
   client: string;
-  mode: 'FCL' | 'LCL' | 'AIR' | 'ROAD';
+  mode: "FCL" | "LCL" | "AIR" | "ROAD";
   stage: Stage;
   origin: string;
   dest: string;
@@ -15,7 +26,7 @@ export interface Shipment {
   customerId?: string;
 }
 
-const COLLECTION_NAME = 'shipments';
+const COLLECTION_NAME = "shipments";
 
 export const getShipments = async (db: Firestore): Promise<Shipment[]> => {
   if (!db) throw new Error("Firestore instance required");
@@ -28,7 +39,10 @@ export const getShipments = async (db: Firestore): Promise<Shipment[]> => {
   return shipments;
 };
 
-export const addShipment = async (db: Firestore, shipment: Omit<Shipment, 'id'>): Promise<Shipment> => {
+export const addShipment = async (
+  db: Firestore,
+  shipment: Omit<Shipment, "id">,
+): Promise<Shipment> => {
   if (!db) throw new Error("Firestore instance required");
   const docRef = doc(collection(db, COLLECTION_NAME));
   const newShipment = { id: docRef.id, ...shipment } as Shipment;
@@ -36,22 +50,35 @@ export const addShipment = async (db: Firestore, shipment: Omit<Shipment, 'id'>)
   return newShipment;
 };
 
-export const updateShipment = async (db: Firestore, id: string, shipment: Partial<Shipment>): Promise<void> => {
+export const updateShipment = async (
+  db: Firestore,
+  id: string,
+  shipment: Partial<Shipment>,
+): Promise<void> => {
   if (!db) throw new Error("Firestore instance required");
   const docRef = doc(db, COLLECTION_NAME, id);
   const { id: _id, ...updateData } = shipment as any;
   await updateDoc(docRef, updateData);
 };
 
-export const deleteShipment = async (db: Firestore, id: string): Promise<void> => {
+export const deleteShipment = async (
+  db: Firestore,
+  id: string,
+): Promise<void> => {
   if (!db) throw new Error("Firestore instance required");
   const docRef = doc(db, COLLECTION_NAME, id);
   await deleteDoc(docRef);
 };
 
-export const getShipmentsByCustomer = async (db: Firestore, customerId: string): Promise<Shipment[]> => {
+export const getShipmentsByCustomer = async (
+  db: Firestore,
+  customerId: string,
+): Promise<Shipment[]> => {
   if (!db) throw new Error("Firestore instance required");
-  const q = query(collection(db, COLLECTION_NAME), where("customerId", "==", customerId));
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where("customerId", "==", customerId),
+  );
   const querySnapshot = await getDocs(q);
   const shipments: Shipment[] = [];
   querySnapshot.forEach((doc) => {

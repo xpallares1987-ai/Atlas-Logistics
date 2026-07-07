@@ -1,5 +1,5 @@
-import { parseStringPromise } from 'xml2js';
-import { z } from 'zod';
+import { parseStringPromise } from "xml2js";
+import { z } from "zod";
 
 /**
  * Data Masking Dictionary (Disabled per user request).
@@ -10,7 +10,7 @@ import { z } from 'zod';
  * Returns the original string (masking disabled).
  */
 export function applyDataMasking(val: unknown): string {
-  if (val === null || val === undefined) return '';
+  if (val === null || val === undefined) return "";
   return String(val);
 }
 
@@ -27,16 +27,18 @@ export function maskSensitiveData<T>(data: T): T {
 export const BoardingSchema = z
   .object({
     Origin: z.string(),
-    'Customer Order': z.string(),
+    "Customer Order": z.string(),
     Warehouse: z.string(),
     POL: z.string(),
-    'Final Destination': z.string(),
-    'Fecha Lim. Carga': z.string(),
-    'Delivery Date': z.string(),
-    'Forecast Arrival': z.string(),
+    "Final Destination": z.string(),
+    "Fecha Lim. Carga": z.string(),
+    "Delivery Date": z.string(),
+    "Forecast Arrival": z.string(),
     Bultos: z.union([z.string(), z.number()]).transform((v) => String(v)),
-    'Weight (Tons)': z.union([z.string(), z.number()]).transform((v) => String(v)),
-    'Ext. Addr. Number': z.string(),
+    "Weight (Tons)": z
+      .union([z.string(), z.number()])
+      .transform((v) => String(v)),
+    "Ext. Addr. Number": z.string(),
   })
   .passthrough();
 
@@ -48,21 +50,23 @@ export const ReceptionSchema = z
     Origin: z.string(),
     Warehouse: z.string(),
     Status: z.string(),
-    'Load Code': z.string(),
-    'Plate Number': z.string(),
-    'Estimated Arrival at WH': z.string(),
-    'Ext. Addr. Number': z.string(),
-    'Final Destination': z.string(),
-    'Customer Order': z.string(),
-    'Item Number': z.string(),
-    'Reel Year': z.string(),
-    'Paper Code': z.string(),
-    'Product Description': z.string(),
-    'Grammage (GM)': z.string(),
-    'Diameter (CM)': z.string(),
-    'Roll Width (CM)': z.string(),
-    'Roll Length (CM)': z.string(),
-    'Weight (Kgs)': z.union([z.string(), z.number()]).transform((v) => String(v)),
+    "Load Code": z.string(),
+    "Plate Number": z.string(),
+    "Estimated Arrival at WH": z.string(),
+    "Ext. Addr. Number": z.string(),
+    "Final Destination": z.string(),
+    "Customer Order": z.string(),
+    "Item Number": z.string(),
+    "Reel Year": z.string(),
+    "Paper Code": z.string(),
+    "Product Description": z.string(),
+    "Grammage (GM)": z.string(),
+    "Diameter (CM)": z.string(),
+    "Roll Width (CM)": z.string(),
+    "Roll Length (CM)": z.string(),
+    "Weight (Kgs)": z
+      .union([z.string(), z.number()])
+      .transform((v) => String(v)),
   })
   .passthrough();
 
@@ -73,16 +77,16 @@ export const StockSchema = z
   .object({
     Origin: z.string(),
     Warehouse: z.string(),
-    'Ext. Addr. Number': z.string(),
-    'Product Code': z.string(),
-    'Item Number': z.string(),
+    "Ext. Addr. Number": z.string(),
+    "Product Code": z.string(),
+    "Item Number": z.string(),
     Description: z.string(),
     Grammage: z.string(),
     Diameter: z.string(),
-    'Roll Width': z.string(),
+    "Roll Width": z.string(),
     Weight: z.union([z.string(), z.number()]).transform((v) => String(v)),
-    'Load Code': z.string().optional(),
-    'Customer Name': z.string().optional(),
+    "Load Code": z.string().optional(),
+    "Customer Name": z.string().optional(),
   })
   .passthrough();
 
@@ -90,13 +94,15 @@ export const StockSchema = z
  * Utility to flatten complex XML structures and handle common Power Query logic.
  */
 export function flattenXmlValue(val: unknown): string {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val.trim();
-  if (typeof val === 'object') {
-    if (Array.isArray(val)) return val.map(flattenXmlValue).join(', ');
+  if (val === null || val === undefined) return "";
+  if (typeof val === "string") return val.trim();
+  if (typeof val === "object") {
+    if (Array.isArray(val)) return val.map(flattenXmlValue).join(", ");
     const obj = val as Record<string, unknown>;
-    const inner = obj._ || obj.Value || obj['Element:Text'] || '';
-    return typeof inner === 'object' ? flattenXmlValue(inner) : String(inner).trim();
+    const inner = obj._ || obj.Value || obj["Element:Text"] || "";
+    return typeof inner === "object"
+      ? flattenXmlValue(inner)
+      : String(inner).trim();
   }
   return String(val).trim();
 }
@@ -105,24 +111,30 @@ export function flattenXmlValue(val: unknown): string {
  * Formats date objects from XML into DD/MM/YYYY.
  */
 export function formatXmlDate(dateObj: unknown): string {
-  if (!dateObj || typeof dateObj !== 'object') return flattenXmlValue(dateObj);
+  if (!dateObj || typeof dateObj !== "object") return flattenXmlValue(dateObj);
   const obj = dateObj as Record<string, unknown>;
-  const day = flattenXmlValue(obj.Day || (obj.Date as Record<string, unknown>)?.Day);
-  const month = flattenXmlValue(obj.Month || (obj.Date as Record<string, unknown>)?.Month);
-  const year = flattenXmlValue(obj.Year || (obj.Date as Record<string, unknown>)?.Year);
+  const day = flattenXmlValue(
+    obj.Day || (obj.Date as Record<string, unknown>)?.Day,
+  );
+  const month = flattenXmlValue(
+    obj.Month || (obj.Date as Record<string, unknown>)?.Month,
+  );
+  const year = flattenXmlValue(
+    obj.Year || (obj.Date as Record<string, unknown>)?.Year,
+  );
   if (day && month && year) {
-    return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+    return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
   }
-  return '';
+  return "";
 }
 
 /**
  * Rounds numbers to specified decimals and uses European format (comma).
  */
 export function formatXmlNumber(val: unknown, decimals: number = 3): string {
-  const s = flattenXmlValue(val).replace(',', '.');
+  const s = flattenXmlValue(val).replace(",", ".");
   const n = parseFloat(s);
-  return isNaN(n) ? '' : n.toFixed(decimals).replace('.', ',');
+  return isNaN(n) ? "" : n.toFixed(decimals).replace(".", ",");
 }
 
 /**
@@ -131,10 +143,10 @@ export function formatXmlNumber(val: unknown, decimals: number = 3): string {
 export const xmlParserOptions = {
   explicitArray: false,
   mergeAttrs: true,
-  tagNameProcessors: [(name: string) => name.substring(name.indexOf(':') + 1)],
+  tagNameProcessors: [(name: string) => name.substring(name.indexOf(":") + 1)],
 };
 
-import sax from 'sax';
+import sax from "sax";
 
 /**
  * Parses XML string using standard repository options.
@@ -160,7 +172,7 @@ export function streamXml<T>(
     let stack: any[] = [];
 
     parser.onopentag = (tag) => {
-      const tagName = tag.name.substring(tag.name.indexOf(':') + 1);
+      const tagName = tag.name.substring(tag.name.indexOf(":") + 1);
       if (tagName === recordTag) {
         currentRecord = {};
         stack = [currentRecord];
@@ -180,7 +192,7 @@ export function streamXml<T>(
     };
 
     parser.onclosetag = (tagNameRaw) => {
-      const tagName = tagNameRaw.substring(tagNameRaw.indexOf(':') + 1);
+      const tagName = tagNameRaw.substring(tagNameRaw.indexOf(":") + 1);
       if (tagName === recordTag) {
         onRecord(currentRecord as T);
         currentRecord = null;
@@ -198,10 +210,10 @@ export function streamXml<T>(
         const parent = stack[stack.length - 2];
         if (parent) {
           if (Array.isArray(parent[currentTag])) {
-             const idx = parent[currentTag].length - 1;
-             parent[currentTag][idx] = text;
+            const idx = parent[currentTag].length - 1;
+            parent[currentTag][idx] = text;
           } else {
-             parent[currentTag] = text;
+            parent[currentTag] = text;
           }
         }
       }

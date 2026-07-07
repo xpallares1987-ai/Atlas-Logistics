@@ -1,10 +1,69 @@
+# Dependencies
 node_modules
+**/node_modules
+.pnpm-store
 .pnpm
-npm-debug.log
-.git
-.turbo
+
+# Build outputs
 dist
-.next
+**/dist
+out
+**/.next
+.turbo
+**/.turbo
 coverage
-.env.local
+**/coverage
+
+# Git & VCS
+.git
+.gitignore
+.gitmodules
+
+# Environment & secrets
 .env
+.env.*
+!.env.example
+
+# Logs & debug
+npm-debug.log*
+pnpm-debug.log*
+*.log
+logs
+
+# Test artifacts
+test-results
+**/test-results
+playwright-report
+**/playwright-report
+e2e
+**/e2e
+
+# IDE & tools
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker itself
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Docs & CI (no needed in image)
+docs
+*.md
+.github
+.devcontainer
+
+# Firebase & GCP artifacts
+dataconnect
+firebase.json
+.firebaserc
+firestore.*
+database.rules.json
+functions
+skills-lock.json
