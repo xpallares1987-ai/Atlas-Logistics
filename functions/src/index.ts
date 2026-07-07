@@ -12,7 +12,13 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { deployToCamunda } from "./camunda";
 import { startWorkers } from "./workers";
-export * from "./auth";
+import {
+  generatePredictiveETA,
+  processDocumentOCR,
+  executeDataAnalystChat,
+  calculateLCLBinPacking,
+} from "./gemini";
+
 export * from "./gemini";
 export * from "./webhooks";
 
