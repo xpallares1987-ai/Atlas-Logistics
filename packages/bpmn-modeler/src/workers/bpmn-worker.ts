@@ -75,18 +75,21 @@ function extractStats(doc: Document) {
     return { tasks: 0, gateways: 0, events: 0, isCamunda8: false };
   }
 
-  const tasks = doc.getElementsByTagNameNS('*', 'task').length + 
-                doc.getElementsByTagNameNS('*', 'userTask').length +
-                doc.getElementsByTagNameNS('*', 'serviceTask').length;
-  
-  const gateways = doc.getElementsByTagNameNS('*', 'exclusiveGateway').length +
-                   doc.getElementsByTagNameNS('*', 'parallelGateway').length;
-  
-  const events = doc.getElementsByTagNameNS('*', 'startEvent').length +
-                 doc.getElementsByTagNameNS('*', 'endEvent').length;
+  const tasks =
+    doc.getElementsByTagNameNS('*', 'task').length +
+    doc.getElementsByTagNameNS('*', 'userTask').length +
+    doc.getElementsByTagNameNS('*', 'serviceTask').length;
 
-  const isCamunda8 = doc.documentElement.getAttribute('xmlns:zeebe') !== null || 
-                     xmlStringContains(doc, 'zeebe:');
+  const gateways =
+    doc.getElementsByTagNameNS('*', 'exclusiveGateway').length +
+    doc.getElementsByTagNameNS('*', 'parallelGateway').length;
+
+  const events =
+    doc.getElementsByTagNameNS('*', 'startEvent').length +
+    doc.getElementsByTagNameNS('*', 'endEvent').length;
+
+  const isCamunda8 =
+    doc.documentElement.getAttribute('xmlns:zeebe') !== null || xmlStringContains(doc, 'zeebe:');
 
   return { tasks, gateways, events, isCamunda8 };
 }
@@ -98,12 +101,18 @@ function xmlStringContains(doc: Document, search: string): boolean {
 
 function generateSopFromDoc(doc: Document): string {
   const taskTags = [
-    'task', 'userTask', 'serviceTask', 'sendTask', 
-    'receiveTask', 'manualTask', 'businessRuleTask', 'scriptTask'
+    'task',
+    'userTask',
+    'serviceTask',
+    'sendTask',
+    'receiveTask',
+    'manualTask',
+    'businessRuleTask',
+    'scriptTask',
   ];
-  
+
   const tasks: Element[] = [];
-  taskTags.forEach(tag => {
+  taskTags.forEach((tag) => {
     const list = doc.getElementsByTagNameNS('*', tag);
     for (let i = 0; i < list.length; i++) {
       tasks.push(list[i] as Element);
@@ -130,7 +139,45 @@ function generateSopFromDoc(doc: Document): string {
       sop += `- **Guidelines**: ${docNodes[0].textContent.trim()}\n`;
     }
 
+    // Extract logistics execution properties
+    const costHR = task.getAttribute('sys:costHR');
+    const status = task.getAttribute('sys:status');
+    const formKey = task.getAttribute('sys:formKey');
+    const decisionRef = task.getAttribute('sys:decisionRef');
+
+    if (costHR) sop += `- **Cost/Hr**: $${costHR}\n`;
+    if (status) sop += `- **Status**: ${status}\n`;
+    if (formKey) sop += `- **Assigned Form**: ${formKey}\n`;
+    if (decisionRef) sop += `- **DMN Decision**: ${decisionRef}\n`;
+
+    // Extract Camunda 8 Connectors
+    const extElements = task.getElementsByTagNameNS('*', 'extensionElements');
+    if (extElements.length > 0) {
+      const taskDefs = extElements[0].getElementsByTagNameNS('*', 'taskDefinition');
+      if (taskDefs.length > 0) {
+        const zeebeType = taskDefs[0].getAttribute('type');
+        if (zeebeType) sop += `- **Zeebe Connector**: \`${zeebeType}\`\n`;
+      }
+    }
+
     sop += `\n---\n\n`;
+  });
+
+  // Extract routing conditions (SequenceFlows)
+  const flows = doc.getElementsByTagNameNS('*', 'sequenceFlow');
+  let hasConditions = false;
+  Array.from(flows).forEach((flow) => {
+    const conds = flow.getElementsByTagNameNS('*', 'conditionExpression');
+    if (conds.length > 0 && conds[0].textContent) {
+      if (!hasConditions) {
+        sop += `## Routing Logic & Conditions\n\n`;
+        hasConditions = true;
+      }
+      const source = flow.getAttribute('sourceRef') || 'Unknown';
+      const target = flow.getAttribute('targetRef') || 'Unknown';
+      const name = flow.getAttribute('name') ? ` (${flow.getAttribute('name')})` : '';
+      sop += `- Flow **${source} &rarr; ${target}**${name}: \`${conds[0].textContent.trim()}\`\n`;
+    }
   });
 
   return sop;
@@ -145,14 +192,14 @@ self.onmessage = async (event) => {
     }
 
     if (xml.length === 0 || xml.length > MAX_XML_SIZE) {
-      throw new Error(`Invalid BPMN payload: xml is empty or exceeds ${MAX_XML_SIZE / 1024 / 1024}MB.`);
+      throw new Error(
+        `Invalid BPMN payload: xml is empty or exceeds ${MAX_XML_SIZE / 1024 / 1024}MB.`
+      );
     }
 
     // Security Guard: Prevent XML Entity Expansion (Billion Laughs)
     if (XML_ENTITY_PATTERN.test(xml)) {
-      throw new Error(
-        'Security Alert: XML entities and DOCTYPE declarations are prohibited.'
-      );
+      throw new Error('Security Alert: XML entities and DOCTYPE declarations are prohibited.');
     }
 
     // Step 1: Parse (hardened parser config for untrusted XML)
@@ -182,10 +229,33 @@ self.onmessage = async (event) => {
       return;
     }
 
+    if (action === 'execute-process') {
+      const tasks = Array.from(doc.getElementsByTagNameNS('*', 'serviceTask')).map((task) => ({
+        id: task.getAttribute('id'),
+        name: task.getAttribute('name') || 'Unnamed Service Task',
+        type: 'serviceTask',
+      }));
+
+      // Simulate sending execution steps back to the main thread
+      self.postMessage({
+        status: 'success',
+        action: 'execute-process',
+        tasks,
+        message: 'Process execution planned.',
+      });
+      return;
+    }
+
     // Step 4: Validate BPMN Namespace (Basic check)
-    if (doc.documentElement && !doc.documentElement.getAttribute('xmlns') && !Array.from(doc.documentElement.attributes as unknown as Attr[]).some(a => a.value === BPMN_20_NS)) {
-       // We don't throw yet, some valid files might be loose, but we log it.
-       console.warn('Worker: BPMN 2.0 Namespace not explicitly found in root.');
+    if (
+      doc.documentElement &&
+      !doc.documentElement.getAttribute('xmlns') &&
+      !Array.from(doc.documentElement.attributes as unknown as Attr[]).some(
+        (a) => a.value === BPMN_20_NS
+      )
+    ) {
+      // We don't throw yet, some valid files might be loose, but we log it.
+      console.warn('Worker: BPMN 2.0 Namespace not explicitly found in root.');
     }
 
     // Step 5: Extract Stats (UX Metadata)
@@ -195,10 +265,9 @@ self.onmessage = async (event) => {
     sanitizeXmlDocument(doc as unknown as Document);
 
     // Step 7: Serialize
-    const sanitizedXml =
-      new (XMLSerializerToUse as unknown as new () => XMLSerializer)().serializeToString(
-        doc as unknown as Node
-      );
+    const sanitizedXml = new (
+      XMLSerializerToUse as unknown as new () => XMLSerializer
+    )().serializeToString(doc as unknown as Node);
 
     const result: WorkerResult = {
       status: 'success',
@@ -212,7 +281,7 @@ self.onmessage = async (event) => {
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : 'An unknown error occurred during BPMN processing.';
-    
+
     self.postMessage({
       status: 'error',
       fileName,

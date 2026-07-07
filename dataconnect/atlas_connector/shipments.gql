@@ -1,0 +1,95 @@
+query ListShipments @auth(level: USER) {
+  shipments(where: { tenantId: { eq_expr: "auth.token.tenantId" } }, orderBy: [{ ets: DESC }]) {
+    trackingNumber
+    status
+    origin
+    destination
+    vesselName
+    voyageNumber
+    movementType
+    ets
+    eta
+    shipper {
+      name
+    }
+    consignee {
+      name
+    }
+  }
+}
+
+query GetShipmentById($id: UUID!) @auth(level: USER) {
+  shipment(id: $id) {
+    trackingNumber
+    status
+    origin
+    pol
+    pod
+    destination
+    vesselName
+    voyageNumber
+    movementType
+    ets
+    eta
+    packages
+    grossWeight
+    volume
+    shipper {
+      name
+    }
+    consignee {
+      name
+    }
+    carrier {
+      name
+    }
+  }
+}
+
+mutation CreateShipment(
+  $trackingNumber: String!
+  $status: String!
+  $movementType: String!
+  $direction: String!
+  $incoterm: String!
+  $origin: String!
+  $pol: String!
+  $pod: String!
+  $destination: String!
+  $shipperId: UUID!
+  $consigneeId: UUID!
+) @auth(level: USER) {
+  shipment_insert(
+    data: {
+      trackingNumber: $trackingNumber
+      status: $status
+      movementType: $movementType
+      direction: $direction
+      incoterm: $incoterm
+      origin: $origin
+      pol: $pol
+      pod: $pod
+      destination: $destination
+      shipperId: $shipperId
+      consigneeId: $consigneeId
+    }
+  )
+}
+
+mutation LogShipmentEvent(
+  $shipmentId: UUID!
+  $eventType: String!
+  $oldStatus: String
+  $newStatus: String
+  $details: String
+) @auth(level: USER) {
+  shipmentEventLog_insert(
+    data: {
+      shipmentId: $shipmentId
+      eventType: $eventType
+      oldStatus: $oldStatus
+      newStatus: $newStatus
+      details: $details
+    }
+  )
+}

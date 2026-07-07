@@ -1,11 +1,11 @@
-import { openDB, IDBPDatabase } from 'idb';
-import LZString from 'lz-string';
-import { encryptToken, decryptToken } from './crypto';
+import { openDB, IDBPDatabase } from "idb";
+import LZString from "lz-string";
+import { encryptToken, decryptToken } from "./crypto";
 
-const DB_NAME = 'ControlTowerAnalysisCache';
-const STORE_NAME = 'analysis_results';
+const DB_NAME = "ControlTowerAnalysisCache";
+const STORE_NAME = "analysis_results";
 const DB_VERSION = 1;
-const DEFAULT_SECRET = 'ct-industrial-v1';
+const DEFAULT_SECRET = "ct-industrial-v1";
 
 /**
  * High-performance compressed and encrypted cache for heavy analysis results.
@@ -22,8 +22,8 @@ export class AnalysisCache {
   private getDB(): Promise<IDBPDatabase> {
     if (this.dbPromise) return this.dbPromise;
 
-    if (typeof indexedDB === 'undefined') {
-      return Promise.reject(new Error('IndexedDB is not available'));
+    if (typeof indexedDB === "undefined") {
+      return Promise.reject(new Error("IndexedDB is not available"));
     }
 
     this.dbPromise = openDB(DB_NAME, DB_VERSION, {
@@ -40,7 +40,8 @@ export class AnalysisCache {
    * Compresses and stores an encrypted result for a given key.
    */
   async set(key: string, value: any): Promise<void> {
-    if (typeof window === 'undefined' || typeof indexedDB === 'undefined') return;
+    if (typeof window === "undefined" || typeof indexedDB === "undefined")
+      return;
     try {
       const db = await this.getDB();
       const jsonStr = JSON.stringify(value);
@@ -48,7 +49,7 @@ export class AnalysisCache {
       const encrypted = await encryptToken(compressed, this.secret);
       await db.put(STORE_NAME, encrypted, key);
     } catch (error) {
-      console.warn('[AnalysisCache] Failed to store result:', error);
+      console.warn("[AnalysisCache] Failed to store result:", error);
     }
   }
 
@@ -56,7 +57,8 @@ export class AnalysisCache {
    * Retrieves, decrypts and decompresses a result for a given key.
    */
   async get<T>(key: string): Promise<T | null> {
-    if (typeof window === 'undefined' || typeof indexedDB === 'undefined') return null;
+    if (typeof window === "undefined" || typeof indexedDB === "undefined")
+      return null;
     try {
       const db = await this.getDB();
       const encrypted = await db.get(STORE_NAME, key);
@@ -67,7 +69,7 @@ export class AnalysisCache {
       if (!decompressed) return null;
       return JSON.parse(decompressed) as T;
     } catch (error) {
-      console.warn('[AnalysisCache] Failed to retrieve result:', error);
+      console.warn("[AnalysisCache] Failed to retrieve result:", error);
       return null;
     }
   }
@@ -76,12 +78,13 @@ export class AnalysisCache {
    * Clears a specific key from the cache.
    */
   async delete(key: string): Promise<void> {
-    if (typeof window === 'undefined' || typeof indexedDB === 'undefined') return;
+    if (typeof window === "undefined" || typeof indexedDB === "undefined")
+      return;
     try {
       const db = await this.getDB();
       await db.delete(STORE_NAME, key);
     } catch (error) {
-      console.warn('[AnalysisCache] Failed to delete result:', error);
+      console.warn("[AnalysisCache] Failed to delete result:", error);
     }
   }
 

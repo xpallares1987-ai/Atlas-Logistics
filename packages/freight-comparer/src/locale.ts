@@ -8,18 +8,24 @@ import { LanguageCode, TranslationSet } from "./types";
 export const LOCALES: Record<LanguageCode, TranslationSet> = {
   en: {
     title: "Freight Rate Comparator",
-    subtitle: "Enterprise-grade carrier assessment tool for optimal Freight Forwarding operations.",
+    subtitle:
+      "Enterprise-grade carrier assessment tool for optimal Freight Forwarding operations.",
     dragActiveText: "Drop DATO.xlsx file here...",
-    dragInactiveText: "Drag and drop your DATO.xlsx file here, or click to upload",
-    orSelectFile: "Supports standard Sheets: 'DATOS', 'MESES ANTERIORES', 'Buscador'",
+    dragInactiveText:
+      "Drag and drop your DATO.xlsx file here, or click to upload",
+    orSelectFile:
+      "Supports standard Sheets: 'DATOS', 'MESES ANTERIORES', 'Buscador'",
     loadingData: "Parsing and updating local cache...",
     dbStatus: "Cache Status",
     dbEmpty: "No rates loaded. Please import DATO.xlsx to begin comparing.",
     dbRecords: "rates registered in local storage.",
     clearDb: "Clear Cache",
-    uploadSuccess: "Excel data parsed and securely stored in IndexedDB successfully.",
-    uploadError: "Failed to parse the uploaded Excel file. Ensure cells conform to rate criteria.",
-    invalidExcel: "File type not supported. Please load a valid DATO.xlsx file.",
+    uploadSuccess:
+      "Excel data parsed and securely stored in IndexedDB successfully.",
+    uploadError:
+      "Failed to parse the uploaded Excel file. Ensure cells conform to rate criteria.",
+    invalidExcel:
+      "File type not supported. Please load a valid DATO.xlsx file.",
     allMeses: "All Months",
     allPols: "All Loading Ports (POL)",
     allPods: "All Discharge Ports (POD)",
@@ -43,10 +49,12 @@ export const LOCALES: Record<LanguageCode, TranslationSet> = {
     chartOcean: "Ocean Freight (USD)",
     consoleTitle: "Diagnostics Console",
     consoleClear: "Clear Console",
-    consoleWarnNoData: "Ready to load Excel files. Ensure Sheetnames match 'DATOS' or equivalents.",
+    consoleWarnNoData:
+      "Ready to load Excel files. Ensure Sheetnames match 'DATOS' or equivalents.",
     searchBtn: "Refine Lane",
     resetBtn: "Clear Filters",
-    noRatesFound: "No carrier records match selected POL, POD, or month criteria.",
+    noRatesFound:
+      "No carrier records match selected POL, POD, or month criteria.",
     sheetLabel: "Source",
     metricAvgTotal: "Avg Total Cost",
     metricCheapest: "Cheapest Option",
@@ -62,18 +70,25 @@ export const LOCALES: Record<LanguageCode, TranslationSet> = {
   },
   es: {
     title: "Comparador de Tarifas Fletes",
-    subtitle: "Herramienta corporativa de tarifas para optimizar operaciones de Freight Forwarding.",
+    subtitle:
+      "Herramienta corporativa de tarifas para optimizar operaciones de Freight Forwarding.",
     dragActiveText: "Suelte el archivo DATO.xlsx aquí...",
-    dragInactiveText: "Arrastre y suelte su archivo DATO.xlsx aquí, o haga clic para cargarlo",
-    orSelectFile: "Soporta hojas estándar: 'DATOS', 'MESES ANTERIORES', 'Buscador'",
+    dragInactiveText:
+      "Arrastre y suelte su archivo DATO.xlsx aquí, o haga clic para cargarlo",
+    orSelectFile:
+      "Soporta hojas estándar: 'DATOS', 'MESES ANTERIORES', 'Buscador'",
     loadingData: "Analizando y actualizando caché local...",
     dbStatus: "Estado del index",
-    dbEmpty: "No hay tarifas cargadas. Importe un archivo DATO.xlsx para iniciar comparaciones.",
+    dbEmpty:
+      "No hay tarifas cargadas. Importe un archivo DATO.xlsx para iniciar comparaciones.",
     dbRecords: "tarifas registradas en IndexedDB.",
     clearDb: "Limpiar Base de Datos",
-    uploadSuccess: "Archivo Excel parseado y guardado correctamente en IndexedDB.",
-    uploadError: "Error al leer el archivo Excel. Asegúrese de que las columnas coincidan con las requeridas.",
-    invalidExcel: "Tipo de archivo no admitido. Cargue un archivo DATO.xlsx válido.",
+    uploadSuccess:
+      "Archivo Excel parseado y guardado correctamente en IndexedDB.",
+    uploadError:
+      "Error al leer el archivo Excel. Asegúrese de que las columnas coincidan con las requeridas.",
+    invalidExcel:
+      "Tipo de archivo no admitido. Cargue un archivo DATO.xlsx válido.",
     allMeses: "Todos los Meses",
     allPols: "Todos los Puertos de Salida (POL)",
     allPods: "Todos los Puertos de Destino (POD)",
@@ -97,10 +112,12 @@ export const LOCALES: Record<LanguageCode, TranslationSet> = {
     chartOcean: "Flete Marítimo (USD)",
     consoleTitle: "Consola de Diagnóstico Técnico",
     consoleClear: "Borrar Registros",
-    consoleWarnNoData: "Listo para cargar archivos Excel. Verifique que las hojas correspondan al formato solicitado.",
+    consoleWarnNoData:
+      "Listo para cargar archivos Excel. Verifique que las hojas correspondan al formato solicitado.",
     searchBtn: "Filtrar Ruta",
     resetBtn: "Limpiar Filtros",
-    noRatesFound: "No se encontraron ofertas de navieras para el POL, POD o mes seleccionado.",
+    noRatesFound:
+      "No se encontraron ofertas de navieras para el POL, POD o mes seleccionado.",
     sheetLabel: "Origen",
     metricAvgTotal: "Coste Promedio",
     metricCheapest: "Opción Más Económica",
@@ -116,18 +133,25 @@ export const LOCALES: Record<LanguageCode, TranslationSet> = {
   },
   de: {
     title: "Frachtraten-Vergleicher",
-    subtitle: "Enterprise-Tool für Reederei-Bewertung zur Optimierung von Freight Forwarding Prozessen.",
+    subtitle:
+      "Enterprise-Tool für Reederei-Bewertung zur Optimierung von Freight Forwarding Prozessen.",
     dragActiveText: "DATO.xlsx-Datei hier ablegen...",
-    dragInactiveText: "Ziehen Sie Ihre DATO.xlsx-Datei hierher oder klicken Sie zum Hochladen",
-    orSelectFile: "Unterstützt Standard-Blätter: 'DATOS', 'MESES ANTERIORES', 'Buscador'",
+    dragInactiveText:
+      "Ziehen Sie Ihre DATO.xlsx-Datei hierher oder klicken Sie zum Hochladen",
+    orSelectFile:
+      "Unterstützt Standard-Blätter: 'DATOS', 'MESES ANTERIORES', 'Buscador'",
     loadingData: "Analysieren und Aktualisieren des lokalen Caches...",
     dbStatus: "Datenbankstatus",
-    dbEmpty: "Keine Tarife geladen. Bitte importieren Sie DATO.xlsx, um mit dem Vergleich zu beginnen.",
+    dbEmpty:
+      "Keine Tarife geladen. Bitte importieren Sie DATO.xlsx, um mit dem Vergleich zu beginnen.",
     dbRecords: "Tarife in IndexedDB registriert.",
     clearDb: "Lokalen Speicher leeren",
-    uploadSuccess: "Excel-Daten erfolgreich analysiert und in IndexedDB gespeichert.",
-    uploadError: "Fehler beim Analysieren der Excel-Datei. Stellen Sie sicher, dass die Zeilen den Strukturdaten entsprechen.",
-    invalidExcel: "Dateityp nicht unterstützt. Bitte laden Sie eine gültige DATO.xlsx-Datei.",
+    uploadSuccess:
+      "Excel-Daten erfolgreich analysiert und in IndexedDB gespeichert.",
+    uploadError:
+      "Fehler beim Analysieren der Excel-Datei. Stellen Sie sicher, dass die Zeilen den Strukturdaten entsprechen.",
+    invalidExcel:
+      "Dateityp nicht unterstützt. Bitte laden Sie eine gültige DATO.xlsx-Datei.",
     allMeses: "Alle Monate",
     allPols: "Alle Abgangshäfen (POL)",
     allPods: "Alle Bestimmungshäfen (POD)",
@@ -151,10 +175,12 @@ export const LOCALES: Record<LanguageCode, TranslationSet> = {
     chartOcean: "Seefracht (USD)",
     consoleTitle: "Diagnose-Konsole",
     consoleClear: "Konsole löschen",
-    consoleWarnNoData: "Bereit zum Laden von *.xlsx-Dateien. Stellen Sie sicher, dass die Blattnamen übereinstimmen.",
+    consoleWarnNoData:
+      "Bereit zum Laden von *.xlsx-Dateien. Stellen Sie sicher, dass die Blattnamen übereinstimmen.",
     searchBtn: "Frachtstrecke filtern",
     resetBtn: "Filter zurücksetzen",
-    noRatesFound: "Keine Frachtraten entsprechen den ausgewählten Kriterien für POL, POD oder Monat.",
+    noRatesFound:
+      "Keine Frachtraten entsprechen den ausgewählten Kriterien für POL, POD oder Monat.",
     sheetLabel: "Quelle",
     metricAvgTotal: "Durchschnittskosten",
     metricCheapest: "Günstigste Option",
@@ -167,5 +193,5 @@ export const LOCALES: Record<LanguageCode, TranslationSet> = {
     destLabel: "Bestimmungsgebühren",
     oceanLabel: "Seefracht",
     totalFreightLabel: "Gesamtsumme",
-  }
+  },
 };

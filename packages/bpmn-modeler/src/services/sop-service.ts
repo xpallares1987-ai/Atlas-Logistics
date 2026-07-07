@@ -21,8 +21,8 @@ export async function generateSOP(modeler: Modeler): Promise<string> {
       typeof Worker === 'undefined' ||
       (typeof (globalThis as typeof globalThis & { process?: { env?: { NODE_ENV?: string } } })
         .process !== 'undefined' &&
-        (globalThis as typeof globalThis & { process?: { env?: { NODE_ENV?: string } } }).process?.env
-          ?.NODE_ENV === 'test');
+        (globalThis as typeof globalThis & { process?: { env?: { NODE_ENV?: string } } }).process
+          ?.env?.NODE_ENV === 'test');
 
     if (isTestOrServer) {
       // Fallback to synchronous DOM parser
@@ -63,12 +63,18 @@ export async function generateSOP(modeler: Modeler): Promise<string> {
 
 function generateSopFromDoc(doc: Document): string {
   const taskTags = [
-    'task', 'userTask', 'serviceTask', 'sendTask', 
-    'receiveTask', 'manualTask', 'businessRuleTask', 'scriptTask'
+    'task',
+    'userTask',
+    'serviceTask',
+    'sendTask',
+    'receiveTask',
+    'manualTask',
+    'businessRuleTask',
+    'scriptTask',
   ];
-  
+
   const tasks: Element[] = [];
-  taskTags.forEach(tag => {
+  taskTags.forEach((tag) => {
     const list = doc.getElementsByTagNameNS('*', tag);
     for (let i = 0; i < list.length; i++) {
       tasks.push(list[i] as Element);

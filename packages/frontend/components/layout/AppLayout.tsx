@@ -23,7 +23,7 @@ import {
   DollarSign,
   ShieldCheck,
   Warehouse,
-  Boxes
+  Boxes,
 } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -43,7 +43,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     bookingEnabled: true,
     emailNotifications: true,
     pushNotifications: true,
-    emailAddress: "x.pallares1987@gmail.com"
+    emailAddress: "x.pallares1987@gmail.com",
   });
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownTab, setDropdownTab] = useState<"notifs" | "prefs">("notifs");
@@ -51,7 +51,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setIsMounted(true);
-    
+
     // Retrieve initial data
     try {
       setNotifications(getNotifications());
@@ -63,31 +63,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // Dynamic browser listeners for system events
     const handleNewNotif = (e: any) => {
       const newNotif = e.detail;
-      setNotifications(prev => [newNotif, ...prev]);
-      
+      setNotifications((prev) => [newNotif, ...prev]);
+
       // Auto-append live visual Toast
-      setToasts(prev => [
+      setToasts((prev) => [
         ...prev,
         {
           id: `toast-${Date.now()}-${Math.random()}`,
           title: newNotif.title,
           description: newNotif.description,
           type: newNotif.type,
-          isEmail: false
-        }
+          isEmail: false,
+        },
       ]);
     };
 
     const handleEmailNotificationGroup = (e: any) => {
       const { to, subject } = e.detail;
-      setToasts(prev => [
+      setToasts((prev) => [
         ...prev,
         {
           id: `toast-email-${Date.now()}-${Math.random()}`,
           title: "✉️ Correo Alerta SCM Enviado",
           description: `Notificado a: ${to}\nSin demoras de red.`,
-          isEmail: true
-        }
+          isEmail: true,
+        },
       ]);
     };
 
@@ -98,19 +98,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     };
 
     window.addEventListener("forwarderos_new_notification", handleNewNotif);
-    window.addEventListener("forwarderos_email_sent", handleEmailNotificationGroup);
-    window.addEventListener("forwarderos_notifications_changed", handleNotifsChanged);
+    window.addEventListener(
+      "forwarderos_email_sent",
+      handleEmailNotificationGroup,
+    );
+    window.addEventListener(
+      "forwarderos_notifications_changed",
+      handleNotifsChanged,
+    );
 
     return () => {
-      window.removeEventListener("forwarderos_new_notification", handleNewNotif);
-      window.removeEventListener("forwarderos_email_sent", handleEmailNotificationGroup);
-      window.removeEventListener("forwarderos_notifications_changed", handleNotifsChanged);
+      window.removeEventListener(
+        "forwarderos_new_notification",
+        handleNewNotif,
+      );
+      window.removeEventListener(
+        "forwarderos_email_sent",
+        handleEmailNotificationGroup,
+      );
+      window.removeEventListener(
+        "forwarderos_notifications_changed",
+        handleNotifsChanged,
+      );
     };
   }, []);
 
   // Dismiss a toast
   const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
   // Auto Dismiss logic
@@ -133,9 +148,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Mark single as read
   const handleMarkAsRead = (id: string) => {
-    const updated = notifications.map(n => n.id === id ? { ...n, read: true } : n);
+    const updated = notifications.map((n) =>
+      n.id === id ? { ...n, read: true } : n,
+    );
     setNotifications(updated);
-    localStorage.setItem("forwarderos_notifications_list", JSON.stringify(updated));
+    localStorage.setItem(
+      "forwarderos_notifications_list",
+      JSON.stringify(updated),
+    );
   };
 
   // Mark all count as read
@@ -189,29 +209,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { name: "Pipeline", href: "/pipeline", icon: LayoutDashboard },
   ];
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div id="scm-app-layout" className="flex h-screen bg-[#0A0A0B] font-sans antialiased text-gray-200 overflow-hidden relative">
-      
+    <div
+      id="scm-app-layout"
+      className="flex h-screen bg-[#0A0A0B] font-sans antialiased text-gray-200 overflow-hidden relative"
+    >
       {/* Toast Overlay Container */}
       <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full">
-        {toasts.map(toast => (
-          <div 
+        {toasts.map((toast) => (
+          <div
             key={toast.id}
             className={`p-4 rounded-xl shadow-2xl border flex items-start gap-3 animate-in slide-in-from-bottom-5 duration-300 relative transition-all ${
-              toast.isEmail 
-                ? "bg-emerald-950/90 border-emerald-500/30 text-emerald-100" 
+              toast.isEmail
+                ? "bg-emerald-950/90 border-emerald-500/30 text-emerald-100"
                 : "bg-slate-900/95 border-blue-500/30 text-slate-100"
             }`}
           >
             <div className="flex-1">
               <span className="text-xs font-bold block mb-0.5">
-                {toast.isEmail ? "✉️ ALERTA ENVIADA POR CORREO" : `🔔 NOTIFICACIÓN SCM: ${toast.type || 'HITO'}`}
+                {toast.isEmail
+                  ? "✉️ ALERTA ENVIADA POR CORREO"
+                  : `🔔 NOTIFICACIÓN SCM: ${toast.type || "HITO"}`}
               </span>
-              <p className="text-[11px] text-gray-300 leading-relaxed whitespace-pre-line">{toast.description}</p>
+              <p className="text-[11px] text-gray-300 leading-relaxed whitespace-pre-line">
+                {toast.description}
+              </p>
             </div>
-            <button 
+            <button
               onClick={() => removeToast(toast.id)}
               className="text-gray-400 hover:text-white p-0.5"
             >
@@ -277,12 +303,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </form>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-5 relative">
-            
             {/* Interactive Bell Icon & Dropdown Container */}
             <div className="relative">
-              <button 
+              <button
                 id="scm-bell-notification-trigger"
                 onClick={() => setShowDropdown(!showDropdown)}
                 className="p-2 text-gray-400 hover:text-white relative transition-colors cursor-pointer"
@@ -297,24 +322,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
               {/* Collapsed Tray/Popover */}
               {showDropdown && (
-                <div 
+                <div
                   id="scm-notifications-tray-dropdown"
                   className="absolute right-0 mt-3 w-80 bg-[#111114] border border-gray-800 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in duration-200"
                 >
                   {/* Tray Tabs */}
                   <div className="flex bg-[#0A0A0B] border-b border-gray-800/80 text-[10.5px] font-bold uppercase tracking-wider">
-                    <button 
+                    <button
                       onClick={() => setDropdownTab("notifs")}
                       className={`flex-1 py-3 text-center border-b-2 transition ${
-                        dropdownTab === "notifs" ? "border-blue-500 text-white" : "border-transparent text-gray-500"
+                        dropdownTab === "notifs"
+                          ? "border-blue-500 text-white"
+                          : "border-transparent text-gray-500"
                       }`}
                     >
                       Alertas ({unreadCount})
                     </button>
-                    <button 
+                    <button
                       onClick={() => setDropdownTab("prefs")}
                       className={`flex-1 py-3 text-center border-b-2 transition ${
-                        dropdownTab === "prefs" ? "border-blue-500 text-gold text-white" : "border-transparent text-gray-500"
+                        dropdownTab === "prefs"
+                          ? "border-blue-500 text-gold text-white"
+                          : "border-transparent text-gray-500"
                       }`}
                     >
                       Ajustes Notificaciones
@@ -331,24 +360,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                           </div>
                         ) : (
                           notifications.map((notif) => (
-                            <div 
+                            <div
                               key={notif.id}
                               onClick={() => handleMarkAsRead(notif.id)}
                               className={`p-2.5 rounded-lg border text-[10.5px] transition cursor-pointer relative ${
-                                notif.read 
-                                  ? "bg-transparent border-gray-800/30 text-gray-400" 
+                                notif.read
+                                  ? "bg-transparent border-gray-800/30 text-gray-400"
                                   : "bg-blue-600/5 border-blue-500/20 text-gray-200"
                               }`}
                             >
                               <div className="flex justify-between items-start">
-                                <span className="font-bold text-white block mb-0.5">{notif.title}</span>
+                                <span className="font-bold text-white block mb-0.5">
+                                  {notif.title}
+                                </span>
                                 {!notif.read && (
                                   <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
                                 )}
                               </div>
-                              <p className="text-[9.5px] text-gray-400 mt-1 line-clamp-3 leading-relaxed">{notif.description}</p>
+                              <p className="text-[9.5px] text-gray-400 mt-1 line-clamp-3 leading-relaxed">
+                                {notif.description}
+                              </p>
                               {notif.shipmentRef && (
-                                <span className="text-[8px] font-mono text-blue-400 font-bold tracking-wider mt-1.5 block">REF: {notif.shipmentRef}</span>
+                                <span className="text-[8px] font-mono text-blue-400 font-bold tracking-wider mt-1.5 block">
+                                  REF: {notif.shipmentRef}
+                                </span>
                               )}
                             </div>
                           ))
@@ -357,12 +392,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     ) : (
                       // Preferences subview
                       <div className="p-4 space-y-3.5 text-xs text-gray-300">
-                        <span className="text-[10px] text-gray-500 font-bold uppercase block pb-1 border-b border-gray-800/60">Disparadores Logísticos SCM</span>
-                        
+                        <span className="text-[10px] text-gray-500 font-bold uppercase block pb-1 border-b border-gray-800/60">
+                          Disparadores Logísticos SCM
+                        </span>
+
                         <label className="flex items-center space-x-2.5 cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            checked={prefs.etdEnabled} 
+                          <input
+                            type="checkbox"
+                            checked={prefs.etdEnabled}
                             onChange={() => handleTogglePref("etdEnabled")}
                             className="bg-[#0A0A0B] rounded border border-gray-800"
                           />
@@ -370,50 +407,61 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         </label>
 
                         <label className="flex items-center space-x-2.5 cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            checked={prefs.etaEnabled} 
+                          <input
+                            type="checkbox"
+                            checked={prefs.etaEnabled}
                             onChange={() => handleTogglePref("etaEnabled")}
                           />
                           <span>Llegadas de Buque (Alertas de ETA)</span>
                         </label>
 
                         <label className="flex items-center space-x-2.5 cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            checked={prefs.customsEnabled} 
+                          <input
+                            type="checkbox"
+                            checked={prefs.customsEnabled}
                             onChange={() => handleTogglePref("customsEnabled")}
                           />
                           <span>Aduana de Puerto (Liberados/Retenidos)</span>
                         </label>
 
                         <label className="flex items-center space-x-2.5 cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            checked={prefs.bookingEnabled} 
+                          <input
+                            type="checkbox"
+                            checked={prefs.bookingEnabled}
                             onChange={() => handleTogglePref("bookingEnabled")}
                           />
                           <span>Altas y Bookings de Carga</span>
                         </label>
 
-                        <span className="text-[10px] text-gray-500 font-bold uppercase block pt-2 pb-1 border-b border-gray-800/60">Canales habilitados</span>
-                        
+                        <span className="text-[10px] text-gray-500 font-bold uppercase block pt-2 pb-1 border-b border-gray-800/60">
+                          Canales habilitados
+                        </span>
+
                         <label className="flex items-center space-x-2.5 cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            checked={prefs.emailNotifications} 
-                            onChange={() => handleTogglePref("emailNotifications")}
+                          <input
+                            type="checkbox"
+                            checked={prefs.emailNotifications}
+                            onChange={() =>
+                              handleTogglePref("emailNotifications")
+                            }
                           />
-                          <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5 text-emerald-500" /> Correo de Alerta (Email)</span>
+                          <span className="flex items-center gap-1">
+                            <Mail className="w-3.5 h-3.5 text-emerald-500" />{" "}
+                            Correo de Alerta (Email)
+                          </span>
                         </label>
 
                         {prefs.emailNotifications && (
                           <div className="mt-1 pl-6">
-                            <label className="text-[9px] text-gray-500 block mb-0.5">Dirección de correo destinatario</label>
-                            <input 
+                            <label className="text-[9px] text-gray-500 block mb-0.5">
+                              Dirección de correo destinatario
+                            </label>
+                            <input
                               type="email"
                               value={prefs.emailAddress}
-                              onChange={e => handleEmailAddrChange(e.target.value)}
+                              onChange={(e) =>
+                                handleEmailAddrChange(e.target.value)
+                              }
                               placeholder="ejemplo@logistica.com"
                               className="w-full bg-[#0A0A0B] border border-gray-850 rounded px-2 py-1 text-[11px] focus:outline-none"
                             />
@@ -421,10 +469,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         )}
 
                         <label className="flex items-center space-x-2.5 cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            checked={prefs.pushNotifications} 
-                            onChange={() => handleTogglePref("pushNotifications")}
+                          <input
+                            type="checkbox"
+                            checked={prefs.pushNotifications}
+                            onChange={() =>
+                              handleTogglePref("pushNotifications")
+                            }
                           />
                           <span>Push Logs en Pantalla</span>
                         </label>
@@ -435,13 +485,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   {/* Tray Footer */}
                   {dropdownTab === "notifs" && notifications.length > 0 && (
                     <div className="p-2 border-t border-gray-800 bg-[#0A0A0B] flex text-[9.5px] text-gray-400 font-bold items-center justify-between">
-                      <button 
+                      <button
                         onClick={handleMarkAllRead}
                         className="hover:text-white px-2 py-1"
                       >
                         Marcar todo leído
                       </button>
-                      <button 
+                      <button
                         onClick={handleClearAll}
                         className="hover:text-red-400 px-2 py-1"
                       >

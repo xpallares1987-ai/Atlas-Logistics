@@ -1,5 +1,13 @@
-import { collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
+} from 'firebase/firestore';
+import { db } from './firebaseConfig';
 
 export interface DiagramVersion {
   id?: string;
@@ -10,13 +18,13 @@ export interface DiagramVersion {
   created_at?: any;
 }
 
-const COLLECTION_NAME = "diagram_versions";
+const COLLECTION_NAME = 'diagram_versions';
 
 export async function saveDiagramVersion(
-  diagramId: string, 
-  xml: string, 
-  label: string, 
-  authorId: string = "Logistics Manager"
+  diagramId: string,
+  xml: string,
+  label: string,
+  authorId: string = 'Logistics Manager'
 ) {
   const docRef = await addDoc(collection(db, COLLECTION_NAME), {
     diagram_id: diagramId,
@@ -31,8 +39,8 @@ export async function saveDiagramVersion(
 export async function getDiagramVersions(diagramId: string): Promise<DiagramVersion[]> {
   const q = query(
     collection(db, COLLECTION_NAME),
-    where("diagram_id", "==", diagramId),
-    orderBy("created_at", "desc")
+    where('diagram_id', '==', diagramId),
+    orderBy('created_at', 'desc')
   );
 
   const querySnapshot = await getDocs(q);
@@ -40,6 +48,6 @@ export async function getDiagramVersions(diagramId: string): Promise<DiagramVers
   querySnapshot.forEach((doc) => {
     versions.push({ id: doc.id, ...doc.data() } as DiagramVersion);
   });
-  
+
   return versions;
 }

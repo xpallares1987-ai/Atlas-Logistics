@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { encryptData, decryptData } from '@atlas/ui';
+import { encryptData, decryptData } from "@atlas/ui";
 
 /**
  * Service for enterprise-grade secure local storage in Shipment-Dashboard.
  */
 export class SecurityService {
-  private static readonly STORAGE_KEY_PREFIX = 'ct_secure_';
+  private static readonly STORAGE_KEY_PREFIX = "ct_secure_";
 
   /**
    * Saves sensitive data to local storage encrypted with a user PIN.
@@ -48,4 +48,3 @@ export class SecurityService {
     localStorage.removeItem(this.STORAGE_KEY_PREFIX + key);
   }
 }
-

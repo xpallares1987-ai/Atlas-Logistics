@@ -422,7 +422,7 @@ async function init() {
     });
 
     initEventBindings({ state, ui, statusbar });
-    initDeployModal(statusbar);
+    initDeployModal(statusbar, state);
     initVersionHistory();
     initTaskFormViewer();
     initHandlers({
@@ -674,6 +674,6 @@ async function init() {
 }
 
 // React Auth Mounting was removed. Authentication is inherited from the host application.
-export function mountBPMNModeler() { init(); }
-
-
+export function mountBPMNModeler() {
+  init();
+}

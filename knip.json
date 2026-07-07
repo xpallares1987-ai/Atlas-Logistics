@@ -1,0 +1,48 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignore": [
+    "**/dataconnect-generated/**",
+    "packages/**/dist/**",
+    "functions/lib/**",
+    "**/*.config.cjs"
+  ],
+  "ignoreDependencies": [
+    "@dataconnect/generated",
+    "dataconnect-generated",
+    "default-connector",
+    "d3",
+    "dexie"
+  ],
+  "ignoreBinaries": [
+    "prettier"
+  ],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "src/server.ts",
+        "src/db/migrate.ts",
+        "src/db/seed.ts",
+        "src/scripts/**/*.ts"
+      ],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/frontend": {
+      "entry": ["index.html", "src/main.tsx", "vite.config.ts"]
+    },
+    "packages/dashboard": {
+      "entry": ["index.html", "src/main.tsx", "vite.config.ts"]
+    },
+    "packages/freight-comparer": {
+      "entry": ["index.html", "src/main.tsx", "vite.config.ts", "scripts/**/*.cjs"]
+    },
+    "packages/bpmn-modeler": {
+      "entry": ["index.html", "src/main.tsx", "src/index.ts", "vite.config.ts"]
+    },
+    "packages/ui": {
+      "entry": ["src/index.ts", "vite.config.ts"]
+    },
+    "packages/shared": {
+      "entry": ["src/index.ts"]
+    }
+  }
+}

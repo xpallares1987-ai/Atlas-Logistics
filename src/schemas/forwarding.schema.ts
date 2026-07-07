@@ -1,10 +1,39 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const shipmentStatusSchema = z.enum(['Booked', 'Received', 'OnBoard', 'Discharged', 'Delivered']);
-export const shipmentModeSchema = z.enum(['Ocean FCL', 'Ocean LCL', 'Air', 'Road']);
-export const shipmentTypeSchema = z.enum(['Direct', 'MBL', 'HBL']);
-export const incotermSchema = z.enum(['EXW', 'FCA', 'FAS', 'FOB', 'CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP']);
-export const containerTypeSchema = z.enum(['20DC', '40DC', '40HQ', '45HQ', 'LCL']);
+export const shipmentStatusSchema = z.enum([
+  "Booked",
+  "Received",
+  "OnBoard",
+  "Discharged",
+  "Delivered",
+]);
+export const shipmentModeSchema = z.enum([
+  "Ocean FCL",
+  "Ocean LCL",
+  "Air",
+  "Road",
+]);
+export const shipmentTypeSchema = z.enum(["Direct", "MBL", "HBL"]);
+export const incotermSchema = z.enum([
+  "EXW",
+  "FCA",
+  "FAS",
+  "FOB",
+  "CFR",
+  "CIF",
+  "CPT",
+  "CIP",
+  "DAP",
+  "DPU",
+  "DDP",
+]);
+export const containerTypeSchema = z.enum([
+  "20DC",
+  "40DC",
+  "40HQ",
+  "45HQ",
+  "LCL",
+]);
 
 export const shipmentSchema = z.object({
   id: z.number().int().positive(),
@@ -12,7 +41,7 @@ export const shipmentSchema = z.object({
   booking_reference: z.string().max(100).nullable().optional(),
   tracking_number: z.string().max(100),
   carrier_id: z.number().int().positive(),
-  type: shipmentTypeSchema.default('Direct'),
+  type: shipmentTypeSchema.default("Direct"),
   parent_shipment_id: z.number().int().positive().nullable().optional(),
   incoterm: incotermSchema.nullable().optional(),
   origin_agent_id: z.number().int().positive().nullable().optional(),
@@ -47,16 +76,18 @@ export const houseContainerSchema = z.object({
   created_at: z.string().datetime().optional(),
 });
 
-export const createShipmentSchema = shipmentSchema.omit({ 
-  id: true, 
-  created_at: true, 
-  updated_at: true 
-}).partial({
-  mode: true,
-  origin_port: true,
-  destination_port: true,
-  status: true,
-});
+export const createShipmentSchema = shipmentSchema
+  .omit({
+    id: true,
+    created_at: true,
+    updated_at: true,
+  })
+  .partial({
+    mode: true,
+    origin_port: true,
+    destination_port: true,
+    status: true,
+  });
 
 export const updateShipmentSchema = createShipmentSchema.partial();
 
@@ -70,8 +101,8 @@ export const shipmentEventSchema = z.object({
   created_at: z.string().datetime().optional(),
 });
 
-export const createShipmentEventSchema = shipmentEventSchema.omit({ 
-  id: true, 
-  shipment_id: true, 
-  created_at: true 
+export const createShipmentEventSchema = shipmentEventSchema.omit({
+  id: true,
+  shipment_id: true,
+  created_at: true,
 });

@@ -84,18 +84,18 @@ export async function refreshVersions() {
     }
 
     listEl.innerHTML = versions
-      .map(
-        (v) => {
-          const dateStr = v.created_at?.toDate ? v.created_at.toDate().toLocaleString() : new Date().toLocaleString();
-          return `
+      .map((v) => {
+        const dateStr = v.created_at?.toDate
+          ? v.created_at.toDate().toLocaleString()
+          : new Date().toLocaleString();
+        return `
       <div class="version-item" style="padding: 10px; border-bottom: 1px solid var(--border); margin-bottom: 5px;">
         <div style="font-weight: 500;">${v.label || 'Untitled Version'}</div>
         <div style="font-size: 0.8rem; color: var(--text-muted);">${dateStr}</div>
         <button class="btn btn-secondary btn-sm restore-btn" data-id="${v.id}" style="margin-top: 5px;">Restore</button>
       </div>
-    `
-        }
-      )
+    `;
+      })
       .join('');
 
     listEl.querySelectorAll('.restore-btn').forEach((btn) => {
@@ -120,8 +120,6 @@ export async function refreshVersions() {
     });
   } catch (e) {
     console.error(e);
-    listEl.innerHTML =
-      '<div class="error">Failed to load versions from Firebase Firestore.</div>';
+    listEl.innerHTML = '<div class="error">Failed to load versions from Firebase Firestore.</div>';
   }
 }
-

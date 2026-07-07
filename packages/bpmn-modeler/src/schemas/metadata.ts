@@ -9,13 +9,16 @@ export const SysMetadataSchema = z.object({
       if (val === '' || val === undefined || val === null) return 0;
       return typeof val === 'string' ? parseFloat(val) : val;
     },
-    z.number({ message: "El costo debe ser un número" })
-     .nonnegative({ message: "El costo no puede ser negativo" })
-     .default(0)
+    z
+      .number({ message: 'El costo debe ser un número' })
+      .nonnegative({ message: 'El costo no puede ser negativo' })
+      .default(0)
   ),
-  status: z.enum(['', 'Listo', 'delayed', 'Retrasado', 'blocked', 'Bloqueado'], {
-    message: "Seleccione un estado válido"
-  }).default(''),
+  status: z
+    .enum(['', 'Listo', 'delayed', 'Retrasado', 'blocked', 'Bloqueado'], {
+      message: 'Seleccione un estado válido',
+    })
+    .default(''),
   formKey: z.string().trim().default(''),
   decisionRef: z.string().trim().default(''),
 });
@@ -65,7 +68,7 @@ export function validateProperty(key: string, value: any): any {
   const partialSchema = SysMetadataSchema.pick({ [schemaKey as any]: true } as any);
 
   const result = partialSchema.safeParse({ [schemaKey]: value });
-  
+
   if (!result.success) {
     const firstError = result.error.issues[0]?.message || `Invalid value for ${key}`;
     throw new Error(firstError);

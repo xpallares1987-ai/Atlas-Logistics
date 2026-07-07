@@ -17,14 +17,14 @@ export default defineConfig({
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
-          }
-        ]
+            type: 'image/png',
+          },
+        ],
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 10485760, // 10 MiB
@@ -38,16 +38,16 @@ export default defineConfig({
               cacheName: 'google-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                maxAgeSeconds: 60 * 60 * 24 * 365, // <== 365 days
               },
               cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          }
-        ]
-      }
-    })
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
+      },
+    }),
   ],
   optimizeDeps: {
     include: ['stream-browserify', 'events', 'timers-browserify', 'xml2js'],
@@ -67,9 +67,12 @@ export default defineConfig({
           if (id.includes('react') || id.includes('@tanstack')) return 'vendor-react';
           if (id.includes('@mui') || id.includes('@emotion')) return 'vendor-mui';
           if (id.includes('@google/genai')) return 'vendor-genai';
-          if (id.includes('yjs') || id.includes('y-indexeddb') || id.includes('y-protocols')) return 'vendor-yjs';
-          if (id.includes('bpmnlint') || id.includes('zeebe') || id.includes('camunda')) return 'vendor-bpmn-addons';
-          if (id.includes('bpmn-js/lib/features') || id.includes('bpmn-js/lib/import')) return 'vendor-bpmn-features';
+          if (id.includes('yjs') || id.includes('y-indexeddb') || id.includes('y-protocols'))
+            return 'vendor-yjs';
+          if (id.includes('bpmnlint') || id.includes('zeebe') || id.includes('camunda'))
+            return 'vendor-bpmn-addons';
+          if (id.includes('bpmn-js/lib/features') || id.includes('bpmn-js/lib/import'))
+            return 'vendor-bpmn-features';
           if (id.includes('bpmn-js') || id.includes('bpmn-moddle')) return 'vendor-bpmn-core';
           if (id.includes('diagram-js')) return 'vendor-diagram';
           if (id.includes('@bpmn-io')) return 'vendor-bpmn-io';
@@ -102,7 +105,3 @@ export default defineConfig({
     cors: true,
   },
 });
-
-
-
-
