@@ -1,8 +1,8 @@
 # 0002 Independent Hybrid Architecture
 
-* **Status**: Accepted
-* **Deciders**: AI Assistant
-* **Date**: 2026-06-12
+- **Status**: Accepted
+- **Deciders**: AI Assistant
+- **Date**: 2026-06-12
 
 ## Context and Problem Statement
 
@@ -10,9 +10,9 @@ The project mandate requires active repositories to be 100% independent to avoid
 
 ## Decision Drivers
 
-* Strict independence mandate.
-* Need for shared domain logic consistency.
-* Deployment speed and reliability.
+- Strict independence mandate.
+- Need for shared domain logic consistency.
+- Deployment speed and reliability.
 
 ## Decision Outcome
 
@@ -20,5 +20,5 @@ Chosen option: **Local Shared Copies**. Each repository maintains its own local 
 
 ### Consequences
 
-* **Good**: Repositories can be built and deployed in complete isolation. No versioning overhead between internal packages.
-* **Bad**: Code redundancy. Changes to shared logic must be manually synchronized across repositories.
+- **Good**: Repositories can be built and deployed in complete isolation. No versioning overhead between internal packages.
+- **Bad**: Code redundancy. Changes to shared logic must be manually synchronized across repositories.

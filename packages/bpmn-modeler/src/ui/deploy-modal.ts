@@ -1,7 +1,9 @@
-import { Toast } from '@atlas/ui';
+import { Toast, publishEvent } from '@atlas/ui';
 import type { Statusbar } from './statusbar';
+import { getDiagramXml } from '../services/xml-service';
+import { AppState } from '../types';
 
-export function initDeployModal(statusbar: Statusbar) {
+export function initDeployModal(statusbar: Statusbar, state: AppState) {
   const btnDeploy = document.getElementById('btnDeploy');
   const modal = document.getElementById('deployModal') as HTMLDialogElement;
   const btnClose = document.getElementById('btnCloseDeployModal');
@@ -70,20 +72,78 @@ export function initDeployModal(statusbar: Statusbar) {
         const randomVersion = Math.floor(Math.random() * 5) + 1;
         const randomProcId = Math.floor(Math.random() * 9000000) + 1000000;
 
-        Toast.show(
-          `¡Proceso desplegado con éxito! Versión: ${randomVersion} (ID: ${randomProcId})`,
-          'success'
-        );
+        if (state.modeler) {
+          try {
+            const xml = await getDiagramXml(state.modeler);
+
+            // Invoke Worker to parse and plan execution
+            const worker = new Worker(new URL('../workers/bpmn-worker.ts', import.meta.url), {
+              type: 'module',
+            });
+
+            const workerPromise = new Promise((resolve, reject) => {
+              worker.onmessage = (event) => {
+                if (event.data.status === 'success' && event.data.action === 'execute-process') {
+                  resolve(event.data.tasks);
+                } else {
+                  reject(new Error(event.data.message));
+                }
+                worker.terminate();
+              };
+              worker.onerror = (err) => {
+                worker.terminate();
+                reject(err);
+              };
+            });
+
+            worker.postMessage({ action: 'execute-process', xml, fileName: 'process.bpmn' });
+
+            const tasks = await workerPromise;
+
+            // Publish the event so the host React app (Workflows.tsx) can intercept it and save via DataConnect
+            publishEvent({
+              type: 'DEPLOY_WORKFLOW',
+              payload: {
+                xml,
+                tasks,
+                version: randomVersion,
+                processId: randomProcId.toString(),
+              },
+            });
+          } catch (workerErr) {
+            console.error('Worker failed to process execution:', workerErr);
+          }
+        }
 
         // Update Statusbar
         statusbar.setStatus(`Camunda 8: Desplegado v${randomVersion}`, 'success');
       } else {
-        // Simulate a real attempt that prompts cluster credentials alert
-        statusText.textContent = 'Conectando con cluster externo...';
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        throw new Error(
-          'No se pudo establecer conexión de confianza gRPC. Verifique su certificado SSL o use el modo Sandbox.'
-        );
+        // Despliegue Real a Camunda 8
+        statusText.textContent = 'Contactando con servidor seguro (GCP)...';
+        
+        // Dynamic import to avoid breaking if firebase is not ready early
+        const { getApp } = await import('firebase/app');
+        const { getFunctions, httpsCallable } = await import('firebase/functions');
+        
+        const app = getApp();
+        const functions = getFunctions(app);
+        
+        const deployBPMN = httpsCallable(functions, 'deployBPMN');
+        
+        if (state.modeler) {
+          const xml = await getDiagramXml(state.modeler);
+          statusText.textContent = 'Desplegando en Camunda 8 (Bélgica)...';
+          
+          const result = await deployBPMN({ xml });
+          const data = result.data as any;
+          
+          if (data.success) {
+             statusbar.setStatus(`Camunda 8: Desplegado v${data.version}`, 'success');
+             Toast.show(`Proceso ${data.processId} desplegado (v${data.version})`, 'success');
+          } else {
+             throw new Error("Despliegue fallido");
+          }
+        }
       }
 
       modal.close();

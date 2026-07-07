@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
-import { 
-  User, 
-  onAuthStateChanged, 
-  signOut as firebaseSignOut, 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
+import { useState, useEffect } from "react";
+import {
+  User,
+  onAuthStateChanged,
+  signOut as firebaseSignOut,
+  signInWithPopup,
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  sendEmailVerification
-} from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { useFirebase } from '../firebase/FirebaseProvider';
+  sendEmailVerification,
+} from "firebase/auth";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { useFirebase } from "../firebase/FirebaseProvider";
 
 export const useAuth = () => {
-  const { auth, db, googleProvider } = useFirebase();
+  const { auth, db, googleProvider, microsoftProvider } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,17 +39,17 @@ export const useAuth = () => {
   const createOrUpdateUserProfile = async (user: User) => {
     if (!db) return;
     try {
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists()) {
         await setDoc(userRef, {
           uid: user.uid,
           email: user.email,
-          displayName: user.displayName || '',
-          photoURL: user.photoURL || '',
+          displayName: user.displayName || "",
+          photoURL: user.photoURL || "",
           createdAt: serverTimestamp(),
-          role: 'user', // default role
+          role: "user", // default role
         });
       }
     } catch (error) {
@@ -57,34 +57,61 @@ export const useAuth = () => {
     }
   };
 
-  const handleLocalFallback = (email: string) => {
-    console.warn("⚠️ Firebase Auth failed or is unconfigured. Falling back to local Mock User.");
+  const handleLocalFallback = (
+    email: string,
+    role: string = "user",
+    displayName: string = "Local Developer",
+  ) => {
+    console.warn(
+      "⚠️ Firebase Auth failed or is unconfigured. Falling back to local Mock User.",
+    );
     const mockUser = {
-      uid: 'dev-mock-uid-123',
-      email: email || 'demo@logistics.com',
-      displayName: 'Local Developer',
-      photoURL: '',
-      emailVerified: true
-    } as User;
+      uid: "dev-mock-uid-123",
+      email: email || "demo@logistics.com",
+      displayName: displayName,
+      photoURL: "",
+      emailVerified: true,
+      // We attach role here for the UI to use
+      role: role,
+    } as any;
     setUser(mockUser);
     document.cookie = "auth_session=true; path=/; max-age=86400";
   };
 
   const signInWithGoogle = async () => {
-    if (!auth || !googleProvider) throw new Error("Firebase Auth not initialized");
+    if (!auth || !googleProvider)
+      throw new Error("Firebase Auth not initialized");
     try {
       const result = await signInWithPopup(auth, googleProvider);
       await createOrUpdateUserProfile(result.user);
     } catch (error) {
       console.error("Error signing in with Google:", error);
-      handleLocalFallback('demo-google@logistics.com');
+      handleLocalFallback("demo-google@logistics.com");
+    }
+  };
+
+  const signInWithMicrosoft = async () => {
+    if (!auth || !microsoftProvider)
+      throw new Error(
+        "Firebase Auth not initialized or Microsoft Provider missing",
+      );
+    try {
+      const result = await signInWithPopup(auth, microsoftProvider);
+      await createOrUpdateUserProfile(result.user);
+    } catch (error) {
+      console.error("Error signing in with Microsoft SAML/SSO:", error);
+      handleLocalFallback(
+        "demo-sso@logistics.com",
+        "enterprise_user",
+        "Corporate Employee",
+      );
     }
   };
 
   const signInWithEmail = async (email: string, pass: string) => {
     if (!auth) throw new Error("Firebase Auth not initialized");
     try {
-      if (email.startsWith('demo')) {
+      if (email.startsWith("demo")) {
         return handleLocalFallback(email);
       }
       await signInWithEmailAndPassword(auth, email, pass);
@@ -97,12 +124,12 @@ export const useAuth = () => {
   const signUpWithEmail = async (email: string, pass: string) => {
     if (!auth) throw new Error("Firebase Auth not initialized");
     try {
-      if (email.startsWith('demo')) {
+      if (email.startsWith("demo")) {
         return handleLocalFallback(email);
       }
       const result = await createUserWithEmailAndPassword(auth, email, pass);
       await createOrUpdateUserProfile(result.user);
-      
+
       // Optionally send email verification
       await sendEmailVerification(result.user);
     } catch (error) {
@@ -135,9 +162,11 @@ export const useAuth = () => {
     user,
     loading,
     signInWithGoogle,
+    signInWithMicrosoft,
     signInWithEmail,
     signUpWithEmail,
     resetPassword,
     signOut,
+    handleLocalFallback,
   };
 };

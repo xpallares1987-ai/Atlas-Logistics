@@ -1,7 +1,13 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const invoiceStatusSchema = z.enum(['Draft', 'Issued', 'Paid', 'Overdue', 'Cancelled']);
-export const invoiceTypeSchema = z.enum(['AR', 'AP']);
+export const invoiceStatusSchema = z.enum([
+  "Draft",
+  "Issued",
+  "Paid",
+  "Overdue",
+  "Cancelled",
+]);
+export const invoiceTypeSchema = z.enum(["AR", "AP"]);
 
 export const invoiceItemSchema = z.object({
   id: z.number().int().positive(),
@@ -15,7 +21,7 @@ export const invoiceItemSchema = z.object({
 export const createInvoiceItemSchema = invoiceItemSchema.omit({
   id: true,
   invoice_id: true,
-  total_price: true
+  total_price: true,
 });
 
 export const invoiceSchema = z.object({
@@ -31,20 +37,22 @@ export const invoiceSchema = z.object({
   currency: z.string().max(3),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional(),
-  items: z.array(invoiceItemSchema).optional()
+  items: z.array(invoiceItemSchema).optional(),
 });
 
-export const createInvoiceSchema = invoiceSchema.omit({
-  id: true,
-  status: true,
-  total_amount: true,
-  created_at: true,
-  updated_at: true,
-  items: true
-}).extend({
-  items: z.array(createInvoiceItemSchema).optional()
-});
+export const createInvoiceSchema = invoiceSchema
+  .omit({
+    id: true,
+    status: true,
+    total_amount: true,
+    created_at: true,
+    updated_at: true,
+    items: true,
+  })
+  .extend({
+    items: z.array(createInvoiceItemSchema).optional(),
+  });
 
 export const updateInvoiceSchema = z.object({
-  status: invoiceStatusSchema
+  status: invoiceStatusSchema,
 });
