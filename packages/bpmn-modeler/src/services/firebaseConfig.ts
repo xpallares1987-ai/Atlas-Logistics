@@ -2,7 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyBSyDFKEACruhF9XndvLfuglhDif4ILJ3k',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? '',
   authDomain: 'gen-lang-client-0393063451.firebaseapp.com',
   projectId: 'gen-lang-client-0393063451',
   storageBucket: 'gen-lang-client-0393063451.firebasestorage.app',
