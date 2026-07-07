@@ -5,6 +5,13 @@ import { useFirebase } from "@atlas/ui";
 import { useAuth } from "../components/auth/AuthProvider";
 import { Lock, Mail, ChevronRight, Anchor, KeyRound } from "lucide-react";
 
+async function hashPassword(password: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(password);
+  const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
 export default function Login() {
   const { auth, googleProvider } = useFirebase();
   const { user, loading: authLoading, mockLoginAsAdmin } = useAuth();
@@ -36,21 +43,28 @@ export default function Login() {
     // Hardcoded mock admin user logic
     const normalizedEmail = email.trim().toLowerCase();
     if (normalizedEmail === "x.pallares1987@gmail.com") {
-      const savedMockPassword =
-        localStorage.getItem("mock_admin_password") || "admin";
+      try {
+        const enteredHash = await hashPassword(password);
+        const savedMockHash =
+          localStorage.getItem("mock_admin_password_hash") || "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
 
-      if (password === savedMockPassword) {
-        if (password === "admin") {
-          setRequirePasswordChange(true);
+        if (enteredHash === savedMockHash) {
+          if (password === "admin") {
+            setRequirePasswordChange(true);
+            setLoading(false);
+            return;
+          } else {
+            // Already updated password correctly entered, skip password change UI
+            mockLoginAsAdmin(email, "Xavi Pallares");
+            return;
+          }
+        } else {
+          setError("Invalid credentials");
           setLoading(false);
           return;
-        } else {
-          // Already updated password correctly entered, skip password change UI
-          mockLoginAsAdmin(email, "Xavi Pallares");
-          return;
         }
-      } else {
-        setError("Invalid credentials");
+      } catch (err) {
+        setError("Error securing credentials");
         setLoading(false);
         return;
       }
@@ -70,18 +84,23 @@ export default function Login() {
     }
   };
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 8) {
       setError("Password must be at least 8 characters");
       return;
     }
 
-    // Save to local storage to persist the password override
-    localStorage.setItem("mock_admin_password", newPassword);
+    try {
+      const newHash = await hashPassword(newPassword);
+      // Save the hash to local storage to persist the override securely
+      localStorage.setItem("mock_admin_password_hash", newHash);
 
-    // Simulate updating password and log the user in as Admin
-    mockLoginAsAdmin(email, "Xavi Pallares");
+      // Simulate updating password and log the user in as Admin
+      mockLoginAsAdmin(email, "Xavi Pallares");
+    } catch (err) {
+      setError("Failed to secure password.");
+    }
   };
 
   const handleGoogleLogin = async () => {
