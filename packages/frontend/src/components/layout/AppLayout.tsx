@@ -1,22 +1,37 @@
-import React, { useMemo } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Ship, LayoutDashboard, Users, FileText, Settings, Package, TrendingUp, LogOut } from 'lucide-react';
-import { useAuth } from '../auth/AuthProvider';
+import React, { useMemo } from "react";
+import { Outlet, Link, useLocation } from "react-router-dom";
+import {
+  Ship,
+  LayoutDashboard,
+  Users,
+  FileText,
+  Settings,
+  Package,
+  TrendingUp,
+  LogOut,
+} from "lucide-react";
+import { useAuth } from "../auth/AuthProvider";
 
 export default function AppLayout() {
   const location = useLocation();
   const { user, role, logout } = useAuth();
 
-  const navItems = useMemo(() => [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'CRM', path: '/crm', icon: Users },
-    { name: 'Shipments', path: '/shipments', icon: Ship },
-    { name: 'Rates', path: '/rates', icon: TrendingUp },
-    { name: 'WMS', path: '/wms', icon: Package },
-    { name: 'Workflows', path: '/workflows', icon: Settings },
-    { name: 'Documents', path: '/docs', icon: FileText },
-    ...(role === 'ADMIN' ? [{ name: 'Team & Roles', path: '/settings/users', icon: Users }] : []),
-  ], [role]);
+  const navItems = useMemo(
+    () => [
+      { name: "Dashboard", path: "/", icon: LayoutDashboard },
+      { name: "CRM", path: "/crm", icon: Users },
+      { name: "Shipments", path: "/shipments", icon: Ship },
+      { name: "Rates", path: "/rates", icon: TrendingUp },
+      { name: "WMS", path: "/wms", icon: Package },
+      { name: "Consolidation", path: "/consolidation", icon: Package },
+      { name: "Workflows", path: "/workflows", icon: Settings },
+      { name: "Documents", path: "/docs", icon: FileText },
+      ...(role === "ADMIN"
+        ? [{ name: "Team & Roles", path: "/settings/users", icon: Users }]
+        : []),
+    ],
+    [role],
+  );
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -29,16 +44,18 @@ export default function AppLayout() {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-            
+            const isActive =
+              location.pathname === item.path ||
+              (item.path !== "/" && location.pathname.startsWith(item.path));
+
             return (
               <Link
                 key={item.name}
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-                  isActive 
-                    ? 'bg-blue-600 text-white' 
-                    : 'hover:bg-slate-800 hover:text-white'
+                  isActive
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-slate-800 hover:text-white"
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -54,21 +71,33 @@ export default function AppLayout() {
         {/* Topbar */}
         <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 shrink-0">
           <h1 className="text-xl font-semibold text-gray-800">
-            {navItems.find(i => location.pathname === i.path || (i.path !== '/' && location.pathname.startsWith(i.path)))?.name || 'Dashboard'}
+            {navItems.find(
+              (i) =>
+                location.pathname === i.path ||
+                (i.path !== "/" && location.pathname.startsWith(i.path)),
+            )?.name || "Dashboard"}
           </h1>
           <div className="flex items-center gap-4">
             <div className="text-right hidden md:block">
-              <div className="text-sm font-semibold text-gray-800">{user?.email}</div>
-              <div className="text-xs text-gray-500 font-medium">{role || 'Loading...'}</div>
+              <div className="text-sm font-semibold text-gray-800">
+                {user?.email}
+              </div>
+              <div className="text-xs text-gray-500 font-medium">
+                {role || "Loading..."}
+              </div>
             </div>
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold uppercase overflow-hidden ring-2 ring-blue-500/20">
               {user?.photoURL ? (
-                <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" />
+                <img
+                  src={user.photoURL}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                user?.email?.charAt(0) || 'A'
+                user?.email?.charAt(0) || "A"
               )}
             </div>
-            <button 
+            <button
               onClick={logout}
               className="ml-2 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
               title="Logout"
@@ -77,7 +106,7 @@ export default function AppLayout() {
             </button>
           </div>
         </header>
-        
+
         {/* Page Content */}
         <main className="flex-1 overflow-auto p-6">
           <Outlet />

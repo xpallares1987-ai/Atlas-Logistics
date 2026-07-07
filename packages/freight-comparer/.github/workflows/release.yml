@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'   # e.g., v1.0.0
+      - "v*" # e.g., v1.0.0
 
 permissions:
   contents: write
@@ -21,7 +21,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - name: Setup pnpm
         run: npm install -g pnpm@10
 
@@ -63,9 +63,3 @@ jobs:
           asset_path: ./dist
           asset_name: dist.zip
           asset_content_type: application/zip
-
-
-
-
-
-

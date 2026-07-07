@@ -37,9 +37,9 @@ class Assert {
       id: Math.random().toString(36).substring(2, 9),
       assertion: `Assert.equal: ${message}`,
       passed,
-      message: passed 
-        ? `PASSED: Found expected value "${expected}"` 
-        : `FAILED: Expected "${expected}", but got "${actual}"`
+      message: passed
+        ? `PASSED: Found expected value "${expected}"`
+        : `FAILED: Expected "${expected}", but got "${actual}"`,
     });
   }
 
@@ -51,9 +51,9 @@ class Assert {
       id: Math.random().toString(36).substring(2, 9),
       assertion: `Assert.deepEqual: ${message}`,
       passed,
-      message: passed 
-        ? `PASSED: Structure matches expected JSON` 
-        : `FAILED: Structure mismatch.\nGot: ${actStr}\nExpected: ${expStr}`
+      message: passed
+        ? `PASSED: Structure matches expected JSON`
+        : `FAILED: Structure mismatch.\nGot: ${actStr}\nExpected: ${expStr}`,
     });
   }
 
@@ -67,9 +67,9 @@ class Assert {
       id: Math.random().toString(36).substring(2, 9),
       assertion: `Assert.greaterThan: ${message}`,
       passed,
-      message: passed 
-        ? `PASSED: ${actual} is greater than ${threshold}` 
-        : `FAILED: ${actual} is not greater than ${threshold}`
+      message: passed
+        ? `PASSED: ${actual} is greater than ${threshold}`
+        : `FAILED: ${actual} is not greater than ${threshold}`,
     });
   }
 
@@ -98,23 +98,23 @@ export function runUnitTestSuite(): TestCaseResult[] {
         "Loading Port (POL)": "ESBCN (BARCELONA)",
         "Discharge Port (POD)": "USNYC (NEW YORK)",
         "Line / Carrier": "Hapag-Lloyd",
-        "oceanFreight": "$2,200.75",
+        oceanFreight: "$2,200.75",
         "local fob fee": "350",
         "gastos en Destino": "400.25",
-        "BAF_fuel": "120",
+        BAF_fuel: "120",
         "THC charges": 150,
-        "LSS": "  50  "
+        LSS: "  50  ",
       },
       {
         " Month / Periodo ": "June 2026",
         "Loading Port (POL)": "CNSHA (SHANGHAI)",
         "Discharge Port (POD)": "ESVLC (VALENCIA)",
         "Line / Carrier": "CMA CGM",
-        "oceanFreight": 4800,
+        oceanFreight: 4800,
         "local fob fee": "$0.00",
         "gastos en Destino": 150,
-        "THC charges": 0
-      }
+        "THC charges": 0,
+      },
     ];
 
     // Trigger parser
@@ -122,42 +122,91 @@ export function runUnitTestSuite(): TestCaseResult[] {
 
     // Assertions
     assert.equal(parsed.length, 2, "Should parse exactly 2 valid rows");
-    
+
     // First rate details
     const rate1 = parsed[0];
-    assert.equal(rate1.sheetSource, "DATOS", "Sheet source metadata must match input parameters");
-    assert.equal(rate1.mes, "May 2026", "Mes mapping must normalize whitespace");
-    assert.equal(rate1.pol, "ESBCN (BARCELONA)", "POL mapping must convert text to uppercase");
-    assert.equal(rate1.pod, "USNYC (NEW YORK)", "POD mapping must convert text to uppercase");
-    assert.equal(rate1.carrier, "Hapag-Lloyd", "Carrier string extraction must be clean");
-    
+    assert.equal(
+      rate1.sheetSource,
+      "DATOS",
+      "Sheet source metadata must match input parameters",
+    );
+    assert.equal(
+      rate1.mes,
+      "May 2026",
+      "Mes mapping must normalize whitespace",
+    );
+    assert.equal(
+      rate1.pol,
+      "ESBCN (BARCELONA)",
+      "POL mapping must convert text to uppercase",
+    );
+    assert.equal(
+      rate1.pod,
+      "USNYC (NEW YORK)",
+      "POD mapping must convert text to uppercase",
+    );
+    assert.equal(
+      rate1.carrier,
+      "Hapag-Lloyd",
+      "Carrier string extraction must be clean",
+    );
+
     // Financial calculations and currency casting asserts
-    assert.equal(rate1.oceanFreight, 2200.75, "Float parsing of currency strings with commas/dollar symbols");
-    assert.equal(rate1.gastosFob, 350, "Standard conversion on integer strings");
-    assert.equal(rate1.gastosDestino, 400.25, "Float parsing of destination rate values");
+    assert.equal(
+      rate1.oceanFreight,
+      2200.75,
+      "Float parsing of currency strings with commas/dollar symbols",
+    );
+    assert.equal(
+      rate1.gastosFob,
+      350,
+      "Standard conversion on integer strings",
+    );
+    assert.equal(
+      rate1.gastosDestino,
+      400.25,
+      "Float parsing of destination rate values",
+    );
     assert.equal(rate1.baf, 120, "Recognizes BAF mapping");
     assert.equal(rate1.thc, 150, "Recognizes numeric THC fields");
-    assert.equal(rate1.lss, 50, "Cleans up trailing strings inside numeric boxes");
-    
+    assert.equal(
+      rate1.lss,
+      50,
+      "Cleans up trailing strings inside numeric boxes",
+    );
+
     // Total calculation when sheet lacks simple total = ocean + fob + dest + baf + thc + lss + others
     const calculatedSum = 2200.75 + 350 + 400.25 + 120 + 150 + 50 + 0;
-    assert.equal(rate1.total, calculatedSum, "Computes correct compound sum rate if total is absent");
+    assert.equal(
+      rate1.total,
+      calculatedSum,
+      "Computes correct compound sum rate if total is absent",
+    );
 
     // Second rate details (checking defaults for missing cells)
     const rate2 = parsed[1];
     assert.equal(rate2.carrier, "CMA CGM", "Carrier matches CMA CGM");
-    assert.equal(rate2.baf, 0, "Default mapping of undefined metric properties to zero");
-    assert.equal(rate2.total, 4950, "Accurate aggregation with optional and missing surcharge values");
+    assert.equal(
+      rate2.baf,
+      0,
+      "Default mapping of undefined metric properties to zero",
+    );
+    assert.equal(
+      rate2.total,
+      4950,
+      "Accurate aggregation with optional and missing surcharge values",
+    );
 
     const durationMs = performance.now() - startTime;
     const assertions = assert.getAssertions();
     results.push({
       id: "test-sheetjs-parser",
       name: "SheetJS Normalization & Aggregator",
-      description: "Verifies headers mapping rules, currency string sanitize formatting, and total computations.",
-      passed: assertions.every(a => a.passed),
+      description:
+        "Verifies headers mapping rules, currency string sanitize formatting, and total computations.",
+      passed: assertions.every((a) => a.passed),
       assertions,
-      durationMs
+      durationMs,
     });
   })();
 
@@ -180,7 +229,10 @@ export function runUnitTestSuite(): TestCaseResult[] {
         gastosFob: 250,
         oceanFreight: 1000,
         gastosDestino: 300,
-        baf: 0, thc: 0, lss: 0, otrosRecargos: 0
+        baf: 0,
+        thc: 0,
+        lss: 0,
+        otrosRecargos: 0,
       },
       {
         sheetSource: "DATOS",
@@ -192,7 +244,10 @@ export function runUnitTestSuite(): TestCaseResult[] {
         gastosFob: 200,
         oceanFreight: 2400,
         gastosDestino: 200,
-        baf: 0, thc: 0, lss: 0, otrosRecargos: 0
+        baf: 0,
+        thc: 0,
+        lss: 0,
+        otrosRecargos: 0,
       },
       {
         sheetSource: "MESES ANTERIORES",
@@ -204,8 +259,11 @@ export function runUnitTestSuite(): TestCaseResult[] {
         gastosFob: 300,
         oceanFreight: 1050,
         gastosDestino: 300,
-        baf: 0, thc: 0, lss: 0, otrosRecargos: 0
-      }
+        baf: 0,
+        thc: 0,
+        lss: 0,
+        otrosRecargos: 0,
+      },
     ];
 
     // Sub-Test 1: Filter on POL
@@ -214,11 +272,18 @@ export function runUnitTestSuite(): TestCaseResult[] {
       mes: "all",
       pol: ["ESBCN (BARCELONA)"],
       pod: ["all"],
-      carrier: ["all"]
+      carrier: ["all"],
     };
     const resultsPOL = filterRates(mockDataset, filterPOLOnly);
-    assert.equal(resultsPOL.length, 2, "Filters dataset precisely to match target POL");
-    assert.isTrue(resultsPOL.every(r => r.pol === "ESBCN (BARCELONA)"), "All return results have correct POL string");
+    assert.equal(
+      resultsPOL.length,
+      2,
+      "Filters dataset precisely to match target POL",
+    );
+    assert.isTrue(
+      resultsPOL.every((r) => r.pol === "ESBCN (BARCELONA)"),
+      "All return results have correct POL string",
+    );
 
     // Sub-Test 2: Filter on POL + POD (combative combination checking)
     const filterPolPod: ActiveFilters = {
@@ -226,10 +291,14 @@ export function runUnitTestSuite(): TestCaseResult[] {
       mes: "all",
       pol: ["ESBCN (BARCELONA)"],
       pod: ["USNYC (NEW YORK)"],
-      carrier: ["all"]
+      carrier: ["all"],
     };
     const resultsPolPod = filterRates(mockDataset, filterPolPod);
-    assert.equal(resultsPolPod.length, 2, "POL + POD simultaneous filter sifts precisely");
+    assert.equal(
+      resultsPolPod.length,
+      2,
+      "POL + POD simultaneous filter sifts precisely",
+    );
 
     // Sub-Test 3: Case-insensitive match check on lowercase filters
     const filterCaseInsensitive: ActiveFilters = {
@@ -237,10 +306,14 @@ export function runUnitTestSuite(): TestCaseResult[] {
       mes: "all",
       pol: ["esbcn (barcelona)"],
       pod: ["usnyc (new york)"],
-      carrier: ["all"]
+      carrier: ["all"],
     };
     const resultsCI = filterRates(mockDataset, filterCaseInsensitive);
-    assert.equal(resultsCI.length, 2, "POL / POD filter mapping operates case-insensitively");
+    assert.equal(
+      resultsCI.length,
+      2,
+      "POL / POD filter mapping operates case-insensitively",
+    );
 
     // Sub-Test 4: Filter on POL + POD + sheetSource
     const filterSheetSource: ActiveFilters = {
@@ -248,11 +321,19 @@ export function runUnitTestSuite(): TestCaseResult[] {
       mes: "all",
       pol: ["ESBCN (BARCELONA)"],
       pod: ["USNYC (NEW YORK)"],
-      carrier: ["all"]
+      carrier: ["all"],
     };
     const resultsSheet = filterRates(mockDataset, filterSheetSource);
-    assert.equal(resultsSheet.length, 1, "Sifts perfectly by spreadsheet tab/source criteria");
-    assert.equal(resultsSheet[0].carrier, "Global Logistics", "Confirms exact record retrieved through compound filters");
+    assert.equal(
+      resultsSheet.length,
+      1,
+      "Sifts perfectly by spreadsheet tab/source criteria",
+    );
+    assert.equal(
+      resultsSheet[0].carrier,
+      "Global Logistics",
+      "Confirms exact record retrieved through compound filters",
+    );
 
     // Sub-Test 5: Filter reset state ('all' mapping)
     const filterAll: ActiveFilters = {
@@ -260,20 +341,25 @@ export function runUnitTestSuite(): TestCaseResult[] {
       mes: "all",
       pol: ["all"],
       pod: ["all"],
-      carrier: ["all"]
+      carrier: ["all"],
     };
     const resultsAll = filterRates(mockDataset, filterAll);
-    assert.equal(resultsAll.length, mockDataset.length, "Resets to absolute original record length when filters match 'all'");
+    assert.equal(
+      resultsAll.length,
+      mockDataset.length,
+      "Resets to absolute original record length when filters match 'all'",
+    );
 
     const durationMs = performance.now() - startTime;
     const assertions = assert.getAssertions();
     results.push({
       id: "test-rate-filters",
       name: "Compound Tariff Filtering Sifter",
-      description: "Examines isolation parameters for POL and POD routes, case-insensitivity matches, source sheet bounds, and 'all' filter resets.",
-      passed: assertions.every(a => a.passed),
+      description:
+        "Examines isolation parameters for POL and POD routes, case-insensitivity matches, source sheet bounds, and 'all' filter resets.",
+      passed: assertions.every((a) => a.passed),
       assertions,
-      durationMs
+      durationMs,
     });
   })();
 

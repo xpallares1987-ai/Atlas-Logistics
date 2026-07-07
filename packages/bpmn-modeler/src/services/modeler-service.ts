@@ -323,4 +323,3 @@ export function calculateProcessAnalytics(modeler: Modeler | null): ProcessAnaly
 
   return result;
 }
-

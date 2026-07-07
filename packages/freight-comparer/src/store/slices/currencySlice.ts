@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-export type Currency = 'USD' | 'EUR';
+export type Currency = "USD" | "EUR";
 
 interface CurrencyState {
   current: Currency;
@@ -8,7 +8,7 @@ interface CurrencyState {
 }
 
 const initialState: CurrencyState = {
-  current: 'USD',
+  current: "USD",
   rates: {
     USD: 1,
     EUR: 0.92, // Mock exchange rate for MVP
@@ -16,7 +16,7 @@ const initialState: CurrencyState = {
 };
 
 export const currencySlice = createSlice({
-  name: 'currency',
+  name: "currency",
   initialState,
   reducers: {
     setCurrency: (state, action: PayloadAction<Currency>) => {

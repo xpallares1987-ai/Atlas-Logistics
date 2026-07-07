@@ -1,4 +1,4 @@
-import Dexie, { Table } from 'dexie';
+import Dexie, { Table } from "dexie";
 
 export interface DbShipment {
   id?: string | number;
@@ -33,19 +33,19 @@ export class SharedDatabase extends Dexie {
   xmlCache!: Table<DbXmlCache>;
   diagrams!: Table<DbDiagram>;
 
-  constructor(dbName: string = 'ControlTowerDB') {
+  constructor(dbName: string = "ControlTowerDB") {
     super(dbName);
     this.version(1).stores({
-      shipments: '++id, customerOrder, warehouse, origin, loadCode, status',
+      shipments: "++id, customerOrder, warehouse, origin, loadCode, status",
     });
     this.version(2).stores({
-      shipments: '++id, customerOrder, warehouse, origin, loadCode, status',
-      xmlCache: 'key, updatedAt',
+      shipments: "++id, customerOrder, warehouse, origin, loadCode, status",
+      xmlCache: "key, updatedAt",
     });
     this.version(3).stores({
-      shipments: '++id, customerOrder, warehouse, origin, loadCode, status',
-      xmlCache: 'key, updatedAt',
-      diagrams: 'id, name, updatedAt',
+      shipments: "++id, customerOrder, warehouse, origin, loadCode, status",
+      xmlCache: "key, updatedAt",
+      diagrams: "id, name, updatedAt",
     });
   }
 }

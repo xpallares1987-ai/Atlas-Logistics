@@ -20,13 +20,12 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
 
-
     "baseUrl": ".",
-    "types": [ "vite/client" ],
+    "types": ["vite/client"],
     "paths": {
-      "@/*": [ "./src/*" ],
-      "@control-tower/feature-flags": [ "./src/feature-flags/index.ts" ]
+      "@/*": ["./src/*"],
+      "@control-tower/feature-flags": ["./src/feature-flags/index.ts"]
     }
   },
-  "include": [ "src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "src/**/*.js" ]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "src/**/*.js"]
 }

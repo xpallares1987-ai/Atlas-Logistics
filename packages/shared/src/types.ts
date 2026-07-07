@@ -81,11 +81,7 @@ export interface AuditLog {
 }
 
 export type ShipmentStatus =
-  | "booking"
-  | "transit"
-  | "customs"
-  | "delivered"
-  | "delayed";
+  "booking" | "transit" | "customs" | "delivered" | "delayed";
 export type ShipmentMode = "sea" | "air" | "land";
 
 export interface Shipment {

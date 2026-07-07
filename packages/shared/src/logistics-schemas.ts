@@ -1,11 +1,11 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // Helper to preprocess xml2js values that could be empty objects/arrays
 const xmlString = z.preprocess((val) => {
   if (val === null || val === undefined) {
     return undefined;
   }
-  if (typeof val === 'object') {
+  if (typeof val === "object") {
     // Empty object `{}` or with attributes parsed by xml2js
     return undefined;
   }
@@ -64,8 +64,8 @@ export const StockItemSchema = z.object({
 
 export const ReceptionContentSchema = z.object({
   LoadCode: z.preprocess((val) => {
-    if (val === null || val === undefined || typeof val === 'object') {
-      return '';
+    if (val === null || val === undefined || typeof val === "object") {
+      return "";
     }
     return String(val);
   }, z.string()),
@@ -82,15 +82,19 @@ export const WarehouseInfoSchema = z.object({
       z.object({
         Code: z.preprocess(
           (val) =>
-            val === null || val === undefined || typeof val === 'object' ? '' : String(val),
-          z.string()
+            val === null || val === undefined || typeof val === "object"
+              ? ""
+              : String(val),
+          z.string(),
         ),
         Name: z.preprocess(
           (val) =>
-            val === null || val === undefined || typeof val === 'object' ? '' : String(val),
-          z.string()
+            val === null || val === undefined || typeof val === "object"
+              ? ""
+              : String(val),
+          z.string(),
         ),
-      })
+      }),
     )
     .optional(),
 });
@@ -99,17 +103,23 @@ export const ExternalWarehousesSchema = z.object({
   ExternalWarehouses: z.object({
     Shipments: z
       .object({
-        BoardingItem: z.union([z.array(BoardingItemSchema), BoardingItemSchema]).optional(),
+        BoardingItem: z
+          .union([z.array(BoardingItemSchema), BoardingItemSchema])
+          .optional(),
       })
       .optional(),
     Receptions: z
       .object({
-        ReceptionItem: z.union([z.array(ReceptionItemSchema), ReceptionItemSchema]).optional(),
+        ReceptionItem: z
+          .union([z.array(ReceptionItemSchema), ReceptionItemSchema])
+          .optional(),
       })
       .optional(),
     Stock: z
       .object({
-        StockItem: z.union([z.array(StockItemSchema), StockItemSchema]).optional(),
+        StockItem: z
+          .union([z.array(StockItemSchema), StockItemSchema])
+          .optional(),
       })
       .optional(),
     ReceptionsContent: ReceptionContentSchema.optional(),

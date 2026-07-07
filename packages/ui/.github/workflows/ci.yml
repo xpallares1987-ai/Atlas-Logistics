@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
   workflow_dispatch:
 
 permissions:
@@ -35,5 +35,3 @@ jobs:
 
       - name: Build
         run: pnpm run build
-
-

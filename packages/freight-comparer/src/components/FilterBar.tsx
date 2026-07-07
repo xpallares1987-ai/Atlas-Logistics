@@ -4,7 +4,15 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Filter, RotateCcw, MapPin, Anchor, Landmark, Calendar, Layers } from "lucide-react";
+import {
+  Filter,
+  RotateCcw,
+  MapPin,
+  Anchor,
+  Landmark,
+  Calendar,
+  Layers,
+} from "lucide-react";
 import { ActiveFilters, FreightRate, TranslationSet } from "../types";
 
 interface FilterBarProps {
@@ -25,12 +33,21 @@ interface MultiSelectProps {
   placeholder?: string;
 }
 
-function MultiSelectChecklist({ label, options, selectedValues, onToggle, onClear, icon, placeholder }: MultiSelectProps) {
+function MultiSelectChecklist({
+  label,
+  options,
+  selectedValues,
+  onToggle,
+  onClear,
+  icon,
+  placeholder,
+}: MultiSelectProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const isAllSelected = selectedValues.includes("all") || selectedValues.length === 0;
+  const isAllSelected =
+    selectedValues.includes("all") || selectedValues.length === 0;
 
-  const filteredOptions = options.filter(opt => 
-    opt.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredOptions = options.filter((opt) =>
+    opt.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -72,7 +89,9 @@ function MultiSelectChecklist({ label, options, selectedValues, onToggle, onClea
             onChange={() => onToggle("all")}
             className="rounded border-slate-600 bg-slate-750 text-indigo-600 focus:ring-0 focus:ring-offset-0 h-3.5 w-3.5 cursor-pointer"
           />
-          <span className={`font-medium ${isAllSelected ? "text-indigo-400 font-extrabold" : "text-slate-400"}`}>
+          <span
+            className={`font-medium ${isAllSelected ? "text-indigo-400 font-extrabold" : "text-slate-400"}`}
+          >
             (Show All)
           </span>
         </label>
@@ -90,21 +109,31 @@ function MultiSelectChecklist({ label, options, selectedValues, onToggle, onClea
                 onChange={() => onToggle(opt)}
                 className="rounded border-slate-600 bg-slate-750 text-indigo-600 focus:ring-0 focus:ring-offset-0 h-3.5 w-3.5 cursor-pointer"
               />
-              <span className={`transition-colors ${isChecked ? "text-white font-extrabold" : "text-slate-350"}`}>
+              <span
+                className={`transition-colors ${isChecked ? "text-white font-extrabold" : "text-slate-350"}`}
+              >
                 {opt}
               </span>
             </label>
           );
         })}
         {filteredOptions.length === 0 && (
-          <p className="text-[10px] text-slate-500 italic p-1.5">No options available</p>
+          <p className="text-[10px] text-slate-500 italic p-1.5">
+            No options available
+          </p>
         )}
       </div>
     </div>
   );
 }
 
-export default function FilterBar({ t, allRates, filters, onFilterChange, onReset }: FilterBarProps) {
+export default function FilterBar({
+  t,
+  allRates,
+  filters,
+  onFilterChange,
+  onReset,
+}: FilterBarProps) {
   const [availablePols, setAvailablePols] = useState<string[]>([]);
   const [availablePods, setAvailablePods] = useState<string[]>([]);
   const [availableCarriers, setAvailableCarriers] = useState<string[]>([]);
@@ -125,10 +154,13 @@ export default function FilterBar({ t, allRates, filters, onFilterChange, onRese
 
     // 1. POL options
     const polsFiltered = allRates.filter((r) => {
-      const matchPOD = filters.pod.includes("all") || filters.pod.includes(r.pod);
-      const matchCarrier = filters.carrier.includes("all") || filters.carrier.includes(r.carrier);
+      const matchPOD =
+        filters.pod.includes("all") || filters.pod.includes(r.pod);
+      const matchCarrier =
+        filters.carrier.includes("all") || filters.carrier.includes(r.carrier);
       const matchMes = filters.mes === "all" || r.mes === filters.mes;
-      const matchSheet = filters.sheetSource === "all" || r.sheetSource === filters.sheetSource;
+      const matchSheet =
+        filters.sheetSource === "all" || r.sheetSource === filters.sheetSource;
       return matchPOD && matchCarrier && matchMes && matchSheet;
     });
     const uniqPols = Array.from(new Set(polsFiltered.map((r) => r.pol))).sort();
@@ -136,10 +168,13 @@ export default function FilterBar({ t, allRates, filters, onFilterChange, onRese
 
     // 2. POD options
     const podsFiltered = allRates.filter((r) => {
-      const matchPOL = filters.pol.includes("all") || filters.pol.includes(r.pol);
-      const matchCarrier = filters.carrier.includes("all") || filters.carrier.includes(r.carrier);
+      const matchPOL =
+        filters.pol.includes("all") || filters.pol.includes(r.pol);
+      const matchCarrier =
+        filters.carrier.includes("all") || filters.carrier.includes(r.carrier);
       const matchMes = filters.mes === "all" || r.mes === filters.mes;
-      const matchSheet = filters.sheetSource === "all" || r.sheetSource === filters.sheetSource;
+      const matchSheet =
+        filters.sheetSource === "all" || r.sheetSource === filters.sheetSource;
       return matchPOL && matchCarrier && matchMes && matchSheet;
     });
     const uniqPods = Array.from(new Set(podsFiltered.map((r) => r.pod))).sort();
@@ -147,37 +182,52 @@ export default function FilterBar({ t, allRates, filters, onFilterChange, onRese
 
     // 3. Carrier options
     const carriersFiltered = allRates.filter((r) => {
-      const matchPOL = filters.pol.includes("all") || filters.pol.includes(r.pol);
-      const matchPOD = filters.pod.includes("all") || filters.pod.includes(r.pod);
+      const matchPOL =
+        filters.pol.includes("all") || filters.pol.includes(r.pol);
+      const matchPOD =
+        filters.pod.includes("all") || filters.pod.includes(r.pod);
       const matchMes = filters.mes === "all" || r.mes === filters.mes;
-      const matchSheet = filters.sheetSource === "all" || r.sheetSource === filters.sheetSource;
+      const matchSheet =
+        filters.sheetSource === "all" || r.sheetSource === filters.sheetSource;
       return matchPOL && matchPOD && matchMes && matchSheet;
     });
-    const uniqCarriers = Array.from(new Set(carriersFiltered.map((r) => r.carrier))).sort();
+    const uniqCarriers = Array.from(
+      new Set(carriersFiltered.map((r) => r.carrier)),
+    ).sort();
     setAvailableCarriers(uniqCarriers);
 
     // 4. Month options
     const mesesFiltered = allRates.filter((r) => {
-      const matchPOL = filters.pol.includes("all") || filters.pol.includes(r.pol);
-      const matchPOD = filters.pod.includes("all") || filters.pod.includes(r.pod);
-      const matchCarrier = filters.carrier.includes("all") || filters.carrier.includes(r.carrier);
-      const matchSheet = filters.sheetSource === "all" || r.sheetSource === filters.sheetSource;
+      const matchPOL =
+        filters.pol.includes("all") || filters.pol.includes(r.pol);
+      const matchPOD =
+        filters.pod.includes("all") || filters.pod.includes(r.pod);
+      const matchCarrier =
+        filters.carrier.includes("all") || filters.carrier.includes(r.carrier);
+      const matchSheet =
+        filters.sheetSource === "all" || r.sheetSource === filters.sheetSource;
       return matchPOL && matchPOD && matchCarrier && matchSheet;
     });
-    const uniqMeses = Array.from(new Set(mesesFiltered.map((r) => r.mes))).sort();
+    const uniqMeses = Array.from(
+      new Set(mesesFiltered.map((r) => r.mes)),
+    ).sort();
     setAvailableMeses(uniqMeses);
 
     // 5. Sheet Source options
     const sheetsFiltered = allRates.filter((r) => {
-      const matchPOL = filters.pol.includes("all") || filters.pol.includes(r.pol);
-      const matchPOD = filters.pod.includes("all") || filters.pod.includes(r.pod);
-      const matchCarrier = filters.carrier.includes("all") || filters.carrier.includes(r.carrier);
+      const matchPOL =
+        filters.pol.includes("all") || filters.pol.includes(r.pol);
+      const matchPOD =
+        filters.pod.includes("all") || filters.pod.includes(r.pod);
+      const matchCarrier =
+        filters.carrier.includes("all") || filters.carrier.includes(r.carrier);
       const matchMes = filters.mes === "all" || r.mes === filters.mes;
       return matchPOL && matchPOD && matchCarrier && matchMes;
     });
-    const uniqSheets = Array.from(new Set(sheetsFiltered.map((r) => r.sheetSource))).sort();
+    const uniqSheets = Array.from(
+      new Set(sheetsFiltered.map((r) => r.sheetSource)),
+    ).sort();
     setAvailableSheets(uniqSheets);
-
   }, [allRates, filters]);
 
   const handleSelect = (key: keyof ActiveFilters, value: string) => {
@@ -187,21 +237,24 @@ export default function FilterBar({ t, allRates, filters, onFilterChange, onRese
     });
   };
 
-  const handleToggleOption = (key: "pol" | "pod" | "carrier", value: string) => {
+  const handleToggleOption = (
+    key: "pol" | "pod" | "carrier",
+    value: string,
+  ) => {
     let current = [...(filters[key] || [])];
 
     if (value === "all") {
       onFilterChange({
         ...filters,
-        [key]: ["all"]
+        [key]: ["all"],
       });
       return;
     }
 
-    current = current.filter(item => item !== "all");
+    current = current.filter((item) => item !== "all");
 
     if (current.includes(value)) {
-      current = current.filter(item => item !== value);
+      current = current.filter((item) => item !== value);
     } else {
       current.push(value);
     }
@@ -212,13 +265,12 @@ export default function FilterBar({ t, allRates, filters, onFilterChange, onRese
 
     onFilterChange({
       ...filters,
-      [key]: current
+      [key]: current,
     });
   };
 
   return (
     <div id="filter-control-panel" className="space-y-4">
-      
       {/* Selector Heading in Sidebar */}
       <div className="flex items-center justify-between border-b border-slate-700/50 pb-2">
         <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase flex items-center gap-1.5">
@@ -238,7 +290,6 @@ export default function FilterBar({ t, allRates, filters, onFilterChange, onRese
       </div>
 
       <div className="flex flex-col gap-3.5">
-        
         {/* Multi-Select POL */}
         <MultiSelectChecklist
           label={t.labelPOL}
@@ -273,7 +324,10 @@ export default function FilterBar({ t, allRates, filters, onFilterChange, onRese
         {/* Month Selection */}
         <div id="filter-wrapper-mes" className="space-y-1">
           <div className="flex items-center justify-between">
-            <label htmlFor="filter-mes" className="text-[11px] uppercase tracking-wider text-slate-400 font-bold block flex items-center gap-1.5">
+            <label
+              htmlFor="filter-mes"
+              className="text-[11px] uppercase tracking-wider text-slate-400 font-bold block flex items-center gap-1.5"
+            >
               <Calendar className="h-3.5 w-3.5 text-indigo-400" />
               {t.labelMes}
             </label>
@@ -308,29 +362,40 @@ export default function FilterBar({ t, allRates, filters, onFilterChange, onRese
         </div>
 
         {/* Date Range Selection */}
-        <div id="filter-wrapper-dates" className="space-y-1 border-t border-slate-800/80 pt-3">
+        <div
+          id="filter-wrapper-dates"
+          className="space-y-1 border-t border-slate-800/80 pt-3"
+        >
           <label className="text-[11px] uppercase tracking-wider text-slate-400 font-bold block flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5 text-indigo-400" />
             Specific Date Period
           </label>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-0.5">
-              <span className="text-[9px] text-slate-500 uppercase font-semibold">Start Date</span>
+              <span className="text-[9px] text-slate-500 uppercase font-semibold">
+                Start Date
+              </span>
               <input
                 id="filter-start-date"
                 type="date"
                 value={filters.startDate || ""}
-                onChange={(e) => onFilterChange({ ...filters, startDate: e.target.value })}
+                onChange={(e) =>
+                  onFilterChange({ ...filters, startDate: e.target.value })
+                }
                 className="w-full bg-slate-700 border border-slate-600/80 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-indigo-450 cursor-pointer text-center"
               />
             </div>
             <div className="space-y-0.5">
-              <span className="text-[9px] text-slate-500 uppercase font-semibold">End Date</span>
+              <span className="text-[9px] text-slate-500 uppercase font-semibold">
+                End Date
+              </span>
               <input
                 id="filter-end-date"
                 type="date"
                 value={filters.endDate || ""}
-                onChange={(e) => onFilterChange({ ...filters, endDate: e.target.value })}
+                onChange={(e) =>
+                  onFilterChange({ ...filters, endDate: e.target.value })
+                }
                 className="w-full bg-slate-700 border border-slate-600/80 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-indigo-450 cursor-pointer text-center"
               />
             </div>
@@ -338,7 +403,9 @@ export default function FilterBar({ t, allRates, filters, onFilterChange, onRese
           {(filters.startDate || filters.endDate) && (
             <button
               type="button"
-              onClick={() => onFilterChange({ ...filters, startDate: "", endDate: "" })}
+              onClick={() =>
+                onFilterChange({ ...filters, startDate: "", endDate: "" })
+              }
               className="text-[9px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wider mt-1.5 block hover:underline cursor-pointer"
             >
               Clear Date Period
@@ -349,7 +416,10 @@ export default function FilterBar({ t, allRates, filters, onFilterChange, onRese
         {/* Source sheet selection */}
         <div id="filter-wrapper-sheet" className="space-y-1">
           <div className="flex items-center justify-between">
-            <label htmlFor="filter-sheet" className="text-[11px] uppercase tracking-wider text-slate-400 font-bold block flex items-center gap-1.5">
+            <label
+              htmlFor="filter-sheet"
+              className="text-[11px] uppercase tracking-wider text-slate-400 font-bold block flex items-center gap-1.5"
+            >
               <Layers className="h-3.5 w-3.5 text-indigo-400" />
               {t.labelSheet}
             </label>
@@ -382,7 +452,6 @@ export default function FilterBar({ t, allRates, filters, onFilterChange, onRese
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

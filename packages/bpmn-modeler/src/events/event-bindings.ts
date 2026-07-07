@@ -141,4 +141,3 @@ export function initEventBindings(dependencies: {
   ui = dependencies.ui;
   statusbar = dependencies.statusbar;
 }
-

@@ -8,9 +8,7 @@
   "types": [
     {
       "name": "SysElement",
-      "extends": [
-        "bpmn:Task"
-      ],
+      "extends": ["bpmn:Task"],
       "properties": [
         {
           "name": "status",

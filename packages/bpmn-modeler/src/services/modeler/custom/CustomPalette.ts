@@ -15,13 +15,15 @@ export default class CustomPalette {
   }
 
   getPaletteEntries() {
-    const {
-      _create,
-      _elementFactory,
-      _translate
-    } = this;
+    const { _create, _elementFactory, _translate } = this;
 
-    function createAction(type: string, group: string, className: string, title: string, options?: any) {
+    function createAction(
+      type: string,
+      group: string,
+      className: string,
+      title: string,
+      options?: any
+    ) {
       function createListener(event: any) {
         const shape = _elementFactory.createShape({ type, ...options });
         _create.start(event, shape);
@@ -33,15 +35,15 @@ export default class CustomPalette {
         title: _translate(title),
         action: {
           dragstart: createListener,
-          click: createListener
-        }
+          click: createListener,
+        },
       };
     }
 
     return {
       'custom-separator': {
         group: 'logistics',
-        separator: true
+        separator: true,
       },
       'create.customs-task': createAction(
         'bpmn:Task',
@@ -70,14 +72,9 @@ export default class CustomPalette {
         'bpmn-icon-crossdock',
         'Cross-docking',
         { businessObject: { name: 'Operación Cross-dock' } }
-      )
+      ),
     };
   }
 }
 
-CustomPalette.$inject = [
-  'palette',
-  'create',
-  'elementFactory',
-  'translate'
-];
+CustomPalette.$inject = ['palette', 'create', 'elementFactory', 'translate'];
