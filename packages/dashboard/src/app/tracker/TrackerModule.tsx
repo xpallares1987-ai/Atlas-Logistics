@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AgentService } from "../../tracker-services/agentService";
 import {
   LocationService,
@@ -21,9 +21,10 @@ import {
   ChevronUp,
 } from "lucide-react";
 import PortAutocomplete from "../../components/PortAutocomplete";
+import { PredictiveAIBadge } from "../../components/PredictiveAIBadge";
 import { Link } from "react-router-dom";
 import {
-  ShippingMap,
+  GlobeTracker,
   MilestoneStepper,
   getStandardOceanMilestones,
 } from "@atlas/ui";
@@ -47,23 +48,25 @@ export default function TrackerModule() {
           AgentService.getAgents(),
           LocationService.getAll(), // pre-warm cache
         ]);
-        
+
         // Map data connect response to expected Shipment format
-        const shipmentData = (shipmentRes.data.shipments || []).map((s: any) => ({
-          ...s,
-          id: s.id,
-          reference: s.bookingReference,
-          mode: s.mode || "sea",
-          origin: s.pol,
-          destination: s.pod,
-          status: s.status,
-          eta: s.eta,
-          vesselLatitude: s.vesselLatitude,
-          vesselLongitude: s.vesselLongitude,
-          coordinatesLastUpdated: s.coordinatesLastUpdated,
-          carrier: s.carrier,
-        })) as Shipment[];
-        
+        const shipmentData = (shipmentRes.data.shipments || []).map(
+          (s: any) => ({
+            ...s,
+            id: s.id,
+            reference: s.bookingReference,
+            mode: s.mode || "sea",
+            origin: s.pol,
+            destination: s.pod,
+            status: s.status,
+            eta: s.eta,
+            vesselLatitude: s.vesselLatitude,
+            vesselLongitude: s.vesselLongitude,
+            coordinatesLastUpdated: s.coordinatesLastUpdated,
+            carrier: s.carrier,
+          }),
+        ) as Shipment[];
+
         setShipments(shipmentData);
         setFilteredShipments(shipmentData);
         setAgents(agentData);
@@ -74,25 +77,64 @@ export default function TrackerModule() {
     loadData();
   }, []);
 
+  // Simulate Live Sync (WebSockets)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShipments(currentShipments => {
+        if (!currentShipments || currentShipments.length === 0) return currentShipments;
+        // Pick a random shipment
+        const randomIndex = Math.floor(Math.random() * currentShipments.length);
+        const newShipments = [...currentShipments];
+        const shipment = { ...newShipments[randomIndex] };
+        
+        // Randomly simulate a status update or ETA change
+        if (shipment.status === "IN_TRANSIT" && Math.random() > 0.8) {
+          shipment.status = "DELAYED";
+        } else if (shipment.status === "PENDING" && Math.random() > 0.8) {
+          shipment.status = "IN_TRANSIT";
+        }
+        
+        newShipments[randomIndex] = shipment;
+        return newShipments;
+      });
+    }, 5000); // Check every 5 seconds for a simulated update
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Debounced ports to avoid heavy re-renders while typing
+  const [debouncedOriginPort, setDebouncedOriginPort] = useState(originPort);
+  const [debouncedDestPort, setDebouncedDestPort] = useState(destPort);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedOriginPort(originPort), 300);
+    return () => clearTimeout(timer);
+  }, [originPort]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedDestPort(destPort), 300);
+    return () => clearTimeout(timer);
+  }, [destPort]);
+
   // Filter shipments when ports change
   useEffect(() => {
     let result = shipments;
-    if (originPort) {
+    if (debouncedOriginPort) {
       result = result.filter(
         (s) =>
-          s.origin?.toUpperCase().includes(originPort.locode) ||
-          s.origin?.toLowerCase().includes(originPort.name.toLowerCase()),
+          s.origin?.toUpperCase().includes(debouncedOriginPort.locode) ||
+          s.origin?.toLowerCase().includes(debouncedOriginPort.name.toLowerCase()),
       );
     }
-    if (destPort) {
+    if (debouncedDestPort) {
       result = result.filter(
         (s) =>
-          s.destination?.toUpperCase().includes(destPort.locode) ||
-          s.destination?.toLowerCase().includes(destPort.name.toLowerCase()),
+          s.destination?.toUpperCase().includes(debouncedDestPort.locode) ||
+          s.destination?.toLowerCase().includes(debouncedDestPort.name.toLowerCase()),
       );
     }
     setFilteredShipments(result);
-  }, [originPort, destPort, shipments]);
+  }, [debouncedOriginPort, debouncedDestPort, shipments]);
 
   const clearFilters = useCallback(() => {
     setOriginPort(null);
@@ -478,9 +520,18 @@ export default function TrackerModule() {
                           setExpandedShipmentId(isExpanded ? null : s.id)
                         }
                       >
-                        <strong style={{ fontSize: "0.95rem" }}>
-                          {s.reference}
-                        </strong>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.75rem",
+                          }}
+                        >
+                          <strong style={{ fontSize: "0.95rem" }}>
+                            {s.reference}
+                          </strong>
+                          <PredictiveAIBadge shipment={s} />
+                        </div>
                         <div
                           style={{
                             display: "flex",
@@ -556,9 +607,11 @@ export default function TrackerModule() {
                               s.eta,
                             )}
                             currentStepIndex={
-                              s.status === "in_transit"
+                              (s.status as string) === "IN_TRANSIT" ||
+                              (s.status as string) === "in_transit"
                                 ? 2
-                                : s.status === "arrived"
+                                : (s.status as string) === "DELIVERED" ||
+                                    (s.status as string) === "arrived"
                                   ? 4
                                   : 0
                             }
@@ -664,9 +717,20 @@ export default function TrackerModule() {
         {/* Map */}
         <div
           className="card"
-          style={{ padding: 0, overflow: "hidden", marginBottom: 0 }}
+          style={{ padding: 0, overflow: "hidden", marginBottom: 0, position: "relative", minHeight: "400px" }}
         >
-          <ShippingMap shipments={filteredShipments} />
+          <GlobeTracker 
+            markers={filteredShipments.map(s => ({ 
+              lat: s.status === "DELIVERED" ? 51.92 : 31.23, // Simple mock
+              lng: s.status === "DELIVERED" ? 4.47 : 121.47, 
+              name: s.reference 
+            }))}
+            arcs={filteredShipments.filter(s => s.status !== "DELIVERED").map(s => ({
+              startLat: 31.23, startLng: 121.47,
+              endLat: 51.92, endLng: 4.47,
+              color: s.status === "DELAYED" ? "#f43f5e" : "#3b82f6"
+            }))}
+          />
         </div>
       </div>
     </div>

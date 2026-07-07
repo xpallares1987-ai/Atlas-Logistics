@@ -33,3 +33,5 @@ export * from "./firebase/FirebaseProvider";
 export * from "./hooks/useAuth";
 import "./i18n";
 export * from "./AiCopilot";
+
+export * from './components/GlobeTracker';
