@@ -3,11 +3,7 @@
     "target": "ESNext",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": [
-      "ESNext",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -24,12 +20,8 @@
     "baseUrl": ".",
     "types": [],
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@control-tower/workers": [
-        "src/workers/pool.ts"
-      ]
+      "@/*": ["src/*"],
+      "@control-tower/workers": ["src/workers/pool.ts"]
     },
     "incremental": true,
     "jsx": "react-jsx",
@@ -47,7 +39,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

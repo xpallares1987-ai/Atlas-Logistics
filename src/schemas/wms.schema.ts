@@ -1,6 +1,12 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const movementTypeSchema = z.enum(['Receiving', 'Putaway', 'Picking', 'Dispatch', 'Adjustment']);
+export const movementTypeSchema = z.enum([
+  "Receiving",
+  "Putaway",
+  "Picking",
+  "Dispatch",
+  "Adjustment",
+]);
 
 export const warehouseSchema = z.object({
   id: z.number().int().positive(),

@@ -1,29 +1,29 @@
-# Code of Conduct
+# Código de Conducta
 
-## Our Pledge
+## Nuestro Compromiso
 
-We as members, contributors, and maintainers of the **Atlas-Logistics** project pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
+En el interés de fomentar un entorno abierto, acogedor e inclusivo, nosotros como contribuyentes y administradores nos comprometemos a hacer de la participación en nuestro proyecto y en nuestra comunidad una experiencia libre de acoso para todos, independientemente de la edad, el tamaño corporal, la discapacidad, el origen étnico, las características sexuales, la identidad y expresión de género, el nivel de experiencia, la educación, el estado socioeconómico, la nacionalidad, la apariencia personal, la raza, la religión o la orientación sexual.
 
-## Our Standards
+## Nuestros Estándares
 
-Examples of behavior that contributes to a positive environment include:
-- Demonstrating empathy and kindness toward other people.
-- Being respectful of differing opinions, viewpoints, and experiences.
-- Gracefully accepting constructive criticism.
-- Focusing on what is best for the community.
-- Using inclusive language.
+Ejemplos de comportamiento que contribuyen a crear un entorno positivo incluyen:
 
-Examples of unacceptable behavior include:
-- The use of sexualized language or imagery and unwelcome sexual attention or advances.
-- Trolling, insulting/derogatory comments, or personal or political attacks.
-- Public or private harassment.
-- Publishing others' private information, such as a physical address, without explicit permission.
-- Any other conduct which could reasonably be considered inappropriate in a professional setting.
+* Usar un lenguaje acogedor e inclusivo.
+* Ser respetuoso con los diferentes puntos de vista y experiencias.
+* Aceptar pacíficamente las críticas constructivas (especialmente en revisiones de código de infraestructura crítica como Camunda o esquemas de Base de Datos).
+* Mostrar empatía hacia otros miembros de la comunidad.
 
-## Enforcement
+Ejemplos de comportamiento inaceptable incluyen:
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project maintainers. All complaints will be reviewed and investigated and a response will be provided as appropriate.
+* El uso de lenguaje o imágenes sexualizadas.
+* Comentarios insultantes o despectivos, y ataques personales o políticos.
+* Acoso público o privado.
+* Modificar a propósito dependencias de infraestructura críticas sin consenso técnico, lo que podría afectar los despliegues de la cadena de suministro.
 
-## Attribution
+## Alcance
 
-This Code of Conduct is adapted from the Contributor Covenant, version 2.1, available at https://www.contributor-covenant.org/version/2/1/code_of_conduct.
+Este Código de Conducta aplica tanto a los espacios del proyecto como a los espacios públicos cuando un individuo representa al proyecto o a su comunidad. Representar al proyecto incluye usar una dirección de correo electrónico oficial, publicar en redes sociales o actuar como representante designado.
+
+## Cumplimiento
+
+Las instancias de comportamiento abusivo, acosador o de otra manera inaceptable pueden ser reportadas contactando al equipo del proyecto. El equipo revisará e investigará todas las quejas, y responderá de una manera que se considere apropiada dadas las circunstancias.

@@ -19,6 +19,7 @@ Si encuentras una vulnerabilidad de seguridad, por favor **no la hagas pública*
 2. Proporciona una descripción detallada y pasos para reproducir.
 
 **Expectativas de Respuesta:**
+
 - **Acuse de recibo:** Menos de 48 horas.
 - **Actualizaciones de estado:** Cada 7 días.
 

@@ -1,8 +1,8 @@
 # [ADR Title]
 
-* **Status**: [Proposed | Accepted | Rejected | Superseded]
-* **Deciders**: [Deciders list]
-* **Date**: [YYYY-MM-DD]
+- **Status**: [Proposed | Accepted | Rejected | Superseded]
+- **Deciders**: [Deciders list]
+- **Date**: [YYYY-MM-DD]
 
 ## Context and Problem Statement
 
@@ -10,8 +10,8 @@
 
 ## Decision Drivers
 
-* [Driver 1]
-* [Driver 2]
+- [Driver 1]
+- [Driver 2]
 
 ## Considered Options
 
@@ -24,6 +24,5 @@ Chosen option: [Option X], because [justification].
 
 ### Consequences
 
-* **Good**: [Positive outcomes]
-* **Bad**: [Risks/negative consequences]
-
+- **Good**: [Positive outcomes]
+- **Bad**: [Risks/negative consequences]
