@@ -37,7 +37,7 @@ pnpm --filter @atlas/bpmn-modeler exec vitest run src/services/storage-service.t
 
 Notes that matter in this repo:
 
-- The root `pnpm run test` script currently filters `@torre/shared`, so it does **not** execute the Atlas workspace tests. Use package-level test commands instead.
+- The root `pnpm run test` script currently filters `@atlas/shared`, so it does **not** execute the full Atlas workspace test suite. Use package-level test commands instead.
 - `packages/dashboard/playwright.config.ts` expects `dashboard.localhost:8080`; run `scripts/add-dev-hosts.bat` as Administrator if you need that host locally.
 
 ## High-level architecture
