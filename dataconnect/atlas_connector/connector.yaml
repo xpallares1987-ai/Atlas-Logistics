@@ -1,0 +1,6 @@
+connectorId: "atlas"
+generate:
+  javascriptSdk:
+    outputDir: "../../src/dataconnect-generated/js/default-connector"
+    package: "@atlas/dataconnect"
+    packageJsonDir: "../../"

@@ -1,7 +1,7 @@
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { Shipment } from '../types';
-import { BASE_PATH } from '../config';
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { Shipment } from "../types";
+import { BASE_PATH } from "../config";
 
 export class MapService {
   private static instance: L.Map | null = null;
@@ -10,37 +10,55 @@ export class MapService {
   private static animationIntervals: ReturnType<typeof setInterval>[] = [];
 
   static init(containerId: string) {
-    this.instance = L.map(containerId, { zoomControl: false }).setView([20, 0], 2);
-    
-    const standardMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    });
-    
-    const aerialMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-    });
-    
-    const darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-    });
+    this.instance = L.map(containerId, { zoomControl: false }).setView(
+      [20, 0],
+      2,
+    );
 
-    const maritimeOverlay = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
-      attribution: 'Map data: &copy; OpenSeaMap contributors'
-    });
+    const standardMap = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        attribution: "&copy; OpenStreetMap contributors",
+      },
+    );
+
+    const aerialMap = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution:
+          "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+      },
+    );
+
+    const darkMap = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      },
+    );
+
+    const maritimeOverlay = L.tileLayer(
+      "https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",
+      {
+        attribution: "Map data: &copy; OpenSeaMap contributors",
+      },
+    );
 
     const baseMaps = {
       "Standard (OSM)": standardMap,
       "Aerial / Satellite": aerialMap,
-      "Dark Mode": darkMap
+      "Dark Mode": darkMap,
     };
 
     const overlayMaps = {
-      "Maritime Marks": maritimeOverlay
+      "Maritime Marks": maritimeOverlay,
     };
 
     standardMap.addTo(this.instance);
-    L.control.layers(baseMaps, overlayMaps, { position: 'bottomleft' }).addTo(this.instance);
-    L.control.zoom({ position: 'bottomright' }).addTo(this.instance);
+    L.control
+      .layers(baseMaps, overlayMaps, { position: "bottomleft" })
+      .addTo(this.instance);
+    L.control.zoom({ position: "bottomright" }).addTo(this.instance);
   }
 
   // Geodesic Bezier Curve generator
@@ -52,7 +70,9 @@ export class MapService {
     const startLatLng = Array.isArray(start)
       ? L.latLng(start[0], start[1])
       : L.latLng(start as L.LatLngLiteral | L.LatLng);
-    const endLatLng = Array.isArray(end) ? L.latLng(end[0], end[1]) : L.latLng(end as L.LatLngLiteral | L.LatLng);
+    const endLatLng = Array.isArray(end)
+      ? L.latLng(end[0], end[1])
+      : L.latLng(end as L.LatLngLiteral | L.LatLng);
 
     // Midpoint
     const midLng = (startLatLng.lng + endLatLng.lng) / 2;
@@ -92,9 +112,9 @@ export class MapService {
       if (!this.instance) return;
 
       const iconUrl =
-        s.mode === 'air'
+        s.mode === "air"
           ? `${BASE_PATH}/assets/icons/plane.svg`
-          : s.mode === 'sea'
+          : s.mode === "sea"
             ? `${BASE_PATH}/assets/icons/ship.svg`
             : `${BASE_PATH}/assets/icons/truck.svg`;
 
@@ -109,16 +129,16 @@ export class MapService {
       // 1. Origin anchor dot
       const origin = L.circleMarker(s.originCoords, {
         radius: 5,
-        color: '#64748b',
-        fillColor: '#64748b',
+        color: "#64748b",
+        fillColor: "#64748b",
         fillOpacity: 0.8,
       }).addTo(this.instance);
 
       // 2. Destination anchor dot
       const destination = L.circleMarker(s.destCoords, {
         radius: 5,
-        color: '#ef4444',
-        fillColor: '#ef4444',
+        color: "#ef4444",
+        fillColor: "#ef4444",
         fillOpacity: 0.8,
       }).addTo(this.instance);
 
@@ -126,13 +146,14 @@ export class MapService {
       const bezierCoords = this.getBezierPath(s.originCoords, s.destCoords);
 
       // 4. Draw curved polyline trade lane
-      const pathColor = s.mode === 'air' ? '#ec4899' : s.mode === 'sea' ? '#3b82f6' : '#10b981';
-      const isUrgent = s.status === 'customs' || s.status === 'delayed';
+      const pathColor =
+        s.mode === "air" ? "#ec4899" : s.mode === "sea" ? "#3b82f6" : "#10b981";
+      const isUrgent = s.status === "customs" || s.status === "delayed";
 
       const line = L.polyline(bezierCoords, {
-        color: isUrgent ? '#ef4444' : pathColor,
+        color: isUrgent ? "#ef4444" : pathColor,
         weight: isUrgent ? 3 : 2,
-        dashArray: isUrgent ? '4, 6' : '5, 8',
+        dashArray: isUrgent ? "4, 6" : "5, 8",
         opacity: 0.75,
       }).addTo(this.instance);
 
@@ -143,7 +164,7 @@ export class MapService {
           `<b>Ref: ${s.reference}</b><br>
            Ruta: ${s.origin} ➔ ${s.destination}<br>
            Modo: ${s.mode.toUpperCase()}<br>
-           Status: <span class="origin-badge ${s.status === 'delivered' ? 'fr' : 'es'}">${s.status.toUpperCase()}</span>`,
+           Status: <span class="origin-badge ${s.status === "delivered" ? "fr" : "es"}">${s.status.toUpperCase()}</span>`,
         );
 
       // 6. Smooth loop animation interval along bezier path

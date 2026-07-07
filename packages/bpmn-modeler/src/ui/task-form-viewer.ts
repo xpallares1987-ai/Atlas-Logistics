@@ -5,7 +5,7 @@ let container: HTMLElement | null = null;
 export function initTaskFormViewer() {
   container = document.createElement('div');
   container.className = 'task-form-viewer';
-  
+
   // Style and position it
   container.style.display = 'none';
   container.style.position = 'absolute';
@@ -64,7 +64,7 @@ function renderFormForTask(element: any) {
   // Look for zeebe:FormDefinition or camunda:FormData
   let formFields: any[] = [];
   const values = extensionElements.values || [];
-  
+
   // Basic parsing for camunda:FormData
   const formData = values.find((v: any) => v.$type === 'camunda:FormData');
   if (formData && formData.fields) {
@@ -96,8 +96,8 @@ function renderFormForTask(element: any) {
   container.style.display = 'block';
   let html = `<h4>${businessObject.name || 'Task Form'}</h4>`;
   html += '<form onsubmit="event.preventDefault()">';
-  
-  formFields.forEach(field => {
+
+  formFields.forEach((field) => {
     html += `
       <div style="margin-bottom: 10px;">
         <label style="display:block; font-size: 0.9rem; margin-bottom: 5px;">${field.label || field.id}</label>
@@ -116,7 +116,8 @@ function renderFormForTask(element: any) {
     html += '</div>';
   });
 
-  html += '<button class="btn btn-primary btn-sm" style="margin-top: 10px; width: 100%">Submit (Preview)</button>';
+  html +=
+    '<button class="btn btn-primary btn-sm" style="margin-top: 10px; width: 100%">Submit (Preview)</button>';
   html += '</form>';
 
   container.innerHTML = html;

@@ -6,5 +6,5 @@ export default {
   __init__: ['customPalette', 'customRenderer', 'customContextPad'],
   customPalette: ['type', CustomPalette],
   customRenderer: ['type', CustomRenderer],
-  customContextPad: ['type', CustomContextPad]
+  customContextPad: ['type', CustomContextPad],
 };

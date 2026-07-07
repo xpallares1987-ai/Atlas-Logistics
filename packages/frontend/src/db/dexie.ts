@@ -1,4 +1,4 @@
-import Dexie, { type EntityTable } from 'dexie';
+import Dexie, { type EntityTable } from "dexie";
 
 export interface Embarque {
   id: number;
@@ -16,10 +16,11 @@ export interface Embarque {
   fecha_actualizacion: string;
 }
 
-export const db = new Dexie('AtlasSCM_OfflineDB') as Dexie & {
-  embarques: EntityTable<Embarque, 'numero_seguimiento'>;
+export const db = new Dexie("AtlasSCM_OfflineDB") as Dexie & {
+  embarques: EntityTable<Embarque, "numero_seguimiento">;
 };
 
 db.version(1).stores({
-  embarques: 'numero_seguimiento, estado, puerto_origen, puerto_destino, eta, ets'
+  embarques:
+    "numero_seguimiento, estado, puerto_origen, puerto_destino, eta, ets",
 });

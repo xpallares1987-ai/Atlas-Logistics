@@ -2,7 +2,7 @@ export function logAction(action: string, metadata: unknown) {
   const logEntry = {
     timestamp: new Date().toISOString(),
     action,
-    metadata
+    metadata,
   };
-  console.log('[AUDIT]', JSON.stringify(logEntry));
+  console.log("[AUDIT]", JSON.stringify(logEntry));
 }

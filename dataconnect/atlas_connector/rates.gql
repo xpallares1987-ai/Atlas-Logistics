@@ -1,0 +1,22 @@
+query ListCompanies @auth(level: USER) {
+  companies {
+    id
+    name
+    entityType
+    countryCode
+  }
+}
+
+query ListQuotes @auth(level: USER) {
+  quotes(orderBy: [{ validityDate: DESC }]) {
+    quoteNumber
+    status
+    origin
+    destination
+    totalCost
+    currency
+    carrier {
+      name
+    }
+  }
+}

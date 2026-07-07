@@ -61,4 +61,3 @@ export interface ShipmentFilters {
   term: string;
   status: string;
 }
-
