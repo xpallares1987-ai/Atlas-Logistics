@@ -21,6 +21,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import PortAutocomplete from "../../components/PortAutocomplete";
+import { PredictiveAIBadge } from "../../components/PredictiveAIBadge";
 import { Link } from "react-router-dom";
 import {
   ShippingMap,
@@ -480,9 +481,18 @@ export default function TrackerModule() {
                           setExpandedShipmentId(isExpanded ? null : s.id)
                         }
                       >
-                        <strong style={{ fontSize: "0.95rem" }}>
-                          {s.reference}
-                        </strong>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.75rem",
+                          }}
+                        >
+                          <strong style={{ fontSize: "0.95rem" }}>
+                            {s.reference}
+                          </strong>
+                          <PredictiveAIBadge shipment={s} />
+                        </div>
                         <div
                           style={{
                             display: "flex",
