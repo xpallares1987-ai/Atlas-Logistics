@@ -10,7 +10,10 @@ import { FreightRate } from "../types";
 /**
  * Generates an Executive PDF Report for Freight Rates.
  */
-export async function generateExecutiveReport(rates: FreightRate[], insights: string) {
+export async function generateExecutiveReport(
+  rates: FreightRate[],
+  insights: string,
+) {
   const doc = new jsPDF();
   const timestamp = new Date().toLocaleString();
 
@@ -18,7 +21,7 @@ export async function generateExecutiveReport(rates: FreightRate[], insights: st
   doc.setFontSize(22);
   doc.setTextColor(79, 70, 229); // Indigo-600
   doc.text("FREIGHT SYNC", 14, 20);
-  
+
   doc.setFontSize(10);
   doc.setTextColor(100);
   doc.text(`Executive Rate Audit Report | Generated: ${timestamp}`, 14, 28);
@@ -28,7 +31,7 @@ export async function generateExecutiveReport(rates: FreightRate[], insights: st
   doc.setFontSize(14);
   doc.setTextColor(30);
   doc.text("Strategic AI Insights", 14, 45);
-  
+
   doc.setFontSize(10);
   doc.setTextColor(60);
   const splitInsights = doc.splitTextToSize(insights, 180);
@@ -46,14 +49,14 @@ export async function generateExecutiveReport(rates: FreightRate[], insights: st
   autoTable(doc, {
     startY: currentY,
     head: [["Carrier", "Origin", "Destination", "Valid To", "Total (USD)"]],
-    body: rates.map(r => [
+    body: rates.map((r) => [
       r.carrier,
       r.pol,
       r.pod,
-      r.validUntil || 'N/A',
-      `$${r.total.toFixed(2)}`
+      r.validUntil || "N/A",
+      `$${r.total.toFixed(2)}`,
     ]),
-    theme: 'striped',
+    theme: "striped",
     headStyles: { fillColor: [79, 70, 229] },
     margin: { top: 10 },
   });
@@ -67,7 +70,7 @@ export async function generateExecutiveReport(rates: FreightRate[], insights: st
     doc.text(
       `Control Tower Industrialization Phase 4 - Page ${i} of ${pageCount}`,
       14,
-      doc.internal.pageSize.getHeight() - 10
+      doc.internal.pageSize.getHeight() - 10,
     );
   }
 

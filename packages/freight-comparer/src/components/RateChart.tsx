@@ -17,7 +17,21 @@ import {
   Legend,
   ChartOptions,
 } from "chart.js";
-import { BarChart, Info, ArrowLeft, TrendingUp, Calendar, DollarSign, ArrowRight, Layers, Anchor, Compass, Globe, TrendingDown, AlertTriangle } from "lucide-react";
+import {
+  BarChart,
+  Info,
+  ArrowLeft,
+  TrendingUp,
+  Calendar,
+  DollarSign,
+  ArrowRight,
+  Layers,
+  Anchor,
+  Compass,
+  Globe,
+  TrendingDown,
+  AlertTriangle,
+} from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { FreightRate, TranslationSet } from "../types";
 
@@ -30,7 +44,7 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
 /**
@@ -38,33 +52,52 @@ ChartJS.register(
  */
 export function getPortCoordinates(portStr: string): [number, number] {
   const norm = portStr.toUpperCase().trim();
-  
+
   if (norm.includes("BARCELONA") || norm.includes("BCN")) return [41.38, 2.17];
   if (norm.includes("VALENCIA") || norm.includes("VLC")) return [39.46, -0.37];
   if (norm.includes("SHANGHAI") || norm.includes("SHA")) return [31.23, 121.47];
-  if (norm.includes("NEW YORK") || norm.includes("NYC") || norm.includes("NEWYORK")) return [40.71, -74.00];
+  if (
+    norm.includes("NEW YORK") ||
+    norm.includes("NYC") ||
+    norm.includes("NEWYORK")
+  )
+    return [40.71, -74.0];
   if (norm.includes("NINGBO") || norm.includes("NGB")) return [29.86, 121.54];
   if (norm.includes("SHENZHEN") || norm.includes("SZX")) return [22.54, 114.05];
   if (norm.includes("QINGDAO") || norm.includes("TAO")) return [36.06, 120.38];
   if (norm.includes("ROTTERDAM") || norm.includes("RTM")) return [51.92, 4.47];
   if (norm.includes("HAMBURG") || norm.includes("HAM")) return [53.55, 9.99];
-  if (norm.includes("LOS ANGELES") || norm.includes("LAX") || norm.includes("OAKLAND") || norm.includes("OAK")) return [34.05, -118.24];
+  if (
+    norm.includes("LOS ANGELES") ||
+    norm.includes("LAX") ||
+    norm.includes("OAKLAND") ||
+    norm.includes("OAK")
+  )
+    return [34.05, -118.24];
   if (norm.includes("SINGAPORE") || norm.includes("SGP")) return [1.35, 103.81];
   if (norm.includes("BUSAN") || norm.includes("PUS")) return [35.18, 129.07];
-  if (norm.includes("HONG KONG") || norm.includes("HKG") || norm.includes("HONGKONG")) return [22.31, 114.16];
-  if (norm.includes("TOKYO") || norm.includes("TYO") || norm.includes("JPTYO")) return [35.67, 139.65];
-  if (norm.includes("LONDON") || norm.includes("LON") || norm.includes("GBLON")) return [51.50, -0.12];
+  if (
+    norm.includes("HONG KONG") ||
+    norm.includes("HKG") ||
+    norm.includes("HONGKONG")
+  )
+    return [22.31, 114.16];
+  if (norm.includes("TOKYO") || norm.includes("TYO") || norm.includes("JPTYO"))
+    return [35.67, 139.65];
+  if (norm.includes("LONDON") || norm.includes("LON") || norm.includes("GBLON"))
+    return [51.5, -0.12];
   if (norm.includes("MIAMI") || norm.includes("MIA")) return [25.76, -80.19];
   if (norm.includes("HOUSTON") || norm.includes("HOU")) return [29.76, -95.36];
-  if (norm.includes("SEATTLE") || norm.includes("SEA")) return [47.60, -122.33];
+  if (norm.includes("SEATTLE") || norm.includes("SEA")) return [47.6, -122.33];
   if (norm.includes("SANTOS") || norm.includes("SSZ")) return [-23.96, -46.33];
   if (norm.includes("PIRAEUS") || norm.includes("PIR")) return [37.94, 23.63];
   if (norm.includes("GENOA") || norm.includes("GOA")) return [44.41, 8.92];
-  if (norm.includes("ANTWERP") || norm.includes("ANR")) return [51.22, 4.40];
+  if (norm.includes("ANTWERP") || norm.includes("ANR")) return [51.22, 4.4];
   if (norm.includes("FELIXSTOWE") || norm.includes("FXT")) return [51.96, 1.35];
   if (norm.includes("ALGECIRAS") || norm.includes("ALG")) return [36.13, -5.45];
-  if (norm.includes("PORT SAID") || norm.includes("PSD")) return [31.26, 32.30];
-  if (norm.includes("DUBAI") || norm.includes("DXB") || norm.includes("JEBEL")) return [25.01, 55.06];
+  if (norm.includes("PORT SAID") || norm.includes("PSD")) return [31.26, 32.3];
+  if (norm.includes("DUBAI") || norm.includes("DXB") || norm.includes("JEBEL"))
+    return [25.01, 55.06];
 
   // Hash fallback to make any unseen port rendering robust and predictable
   let hash = 0;
@@ -99,7 +132,7 @@ interface RouteGroup {
 /**
  * Interactive shipping routes visual layer that plots routes geographically
  */
-export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, 't'>) {
+export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, "t">) {
   const [hoveredRoute, setHoveredRoute] = useState<RouteGroup | null>(null);
   const [hoveredPort, setHoveredPort] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -147,13 +180,26 @@ export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, 't'>) {
 
   // Extract all active unique ports
   const activePorts = React.useMemo(() => {
-    const ports: Record<string, { name: string; isPOL: boolean; isPOD: boolean; coords: [number, number] }> = {};
-    routes.forEach(r => {
+    const ports: Record<
+      string,
+      { name: string; isPOL: boolean; isPOD: boolean; coords: [number, number] }
+    > = {};
+    routes.forEach((r) => {
       if (!ports[r.pol]) {
-        ports[r.pol] = { name: r.pol, isPOL: true, isPOD: false, coords: r.coordsPOL };
+        ports[r.pol] = {
+          name: r.pol,
+          isPOL: true,
+          isPOD: false,
+          coords: r.coordsPOL,
+        };
       }
       if (!ports[r.pod]) {
-        ports[r.pod] = { name: r.pod, isPOL: false, isPOD: true, coords: r.coordsPOD };
+        ports[r.pod] = {
+          name: r.pod,
+          isPOL: false,
+          isPOD: true,
+          coords: r.coordsPOD,
+        };
       } else {
         ports[r.pod].isPOD = true;
       }
@@ -162,7 +208,7 @@ export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, 't'>) {
   }, [routes]);
 
   // Pricing range calculation for classification
-  const prices = filteredRates.map(r => r.total);
+  const prices = filteredRates.map((r) => r.total);
   const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
   const maxPrice = prices.length > 0 ? Math.max(...prices) : 4000;
   const range = maxPrice - minPrice;
@@ -204,7 +250,11 @@ export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, 't'>) {
   };
 
   const formatCost = (val: number) => {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(val);
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(val);
   };
 
   return (
@@ -255,8 +305,12 @@ export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, 't'>) {
       </div>
 
       <div className="absolute bottom-2.5 right-3 select-none pointer-events-none text-right opacity-30">
-        <span className="text-[7.5px] font-mono text-slate-500 block">STANDARD MERCATOR LAT/LNG COORDINATES</span>
-        <span className="text-[7.5px] font-mono text-slate-500 block">WGS84 PROJECTION SYSTEM ERROR +/- 0.04%</span>
+        <span className="text-[7.5px] font-mono text-slate-500 block">
+          STANDARD MERCATOR LAT/LNG COORDINATES
+        </span>
+        <span className="text-[7.5px] font-mono text-slate-500 block">
+          WGS84 PROJECTION SYSTEM ERROR +/- 0.04%
+        </span>
       </div>
 
       {/* Main Vector SVG Layer */}
@@ -383,7 +437,10 @@ export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, 't'>) {
         {activePorts.map((p) => {
           const px = getX(p.coords[1]);
           const py = getY(p.coords[0]);
-          const isHovered = hoveredPort === p.name || hoveredRoute?.pol === p.name || hoveredRoute?.pod === p.name;
+          const isHovered =
+            hoveredPort === p.name ||
+            hoveredRoute?.pol === p.name ||
+            hoveredRoute?.pod === p.name;
           const portAbbrev = p.name.split(" ")[0] || p.name;
 
           return (
@@ -394,12 +451,7 @@ export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, 't'>) {
               onMouseLeave={() => setHoveredPort(null)}
             >
               {/* Soft touch target outer background */}
-              <circle
-                cx={px}
-                cy={py}
-                r="10"
-                fill="transparent"
-              />
+              <circle cx={px} cy={py} r="10" fill="transparent" />
 
               {/* Outer glowing pulsing halo */}
               <circle
@@ -425,7 +477,10 @@ export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, 't'>) {
               />
 
               {/* Floating micro code text label box */}
-              <g transform={`translate(${px}, ${py - 10})`} className="pointer-events-none select-none">
+              <g
+                transform={`translate(${px}, ${py - 10})`}
+                className="pointer-events-none select-none"
+              >
                 {/* Background tag wrapper */}
                 <rect
                   x="-18"
@@ -465,21 +520,31 @@ export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, 't'>) {
         >
           <div className="flex items-center gap-1.5 border-b border-slate-800 pb-1.5 mb-1.5 font-bold">
             <Globe className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
-            <span className="text-[10px] tracking-wide text-indigo-300 font-bold truncate font-sans">POL ➔ POD Route Details</span>
+            <span className="text-[10px] tracking-wide text-indigo-300 font-bold truncate font-sans">
+              POL ➔ POD Route Details
+            </span>
           </div>
 
           <div className="space-y-1 select-none text-[10px] text-slate-300">
             <div className="flex items-center gap-1">
               <span className="font-semibold text-slate-400">Loading POL:</span>
-              <span className="text-white font-bold truncate">{hoveredRoute.pol}</span>
+              <span className="text-white font-bold truncate">
+                {hoveredRoute.pol}
+              </span>
             </div>
             <div className="flex items-center gap-1 pb-1 border-b border-slate-900">
-              <span className="font-semibold text-slate-400">Discharge POD:</span>
-              <span className="text-white font-bold truncate">{hoveredRoute.pod}</span>
+              <span className="font-semibold text-slate-400">
+                Discharge POD:
+              </span>
+              <span className="text-white font-bold truncate">
+                {hoveredRoute.pod}
+              </span>
             </div>
 
             <div className="flex items-center justify-between mt-1 text-[11px]">
-              <span className="font-semibold text-slate-400 text-[10px]">Integrated Avg:</span>
+              <span className="font-semibold text-slate-400 text-[10px]">
+                Integrated Avg:
+              </span>
               <span
                 className="font-extrabold"
                 style={{ color: getTierAndColor(hoveredRoute.avgTotal).color }}
@@ -495,16 +560,23 @@ export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, 't'>) {
 
             <div className="flex items-center justify-between text-[9px] text-slate-400">
               <span>Port Local fees:</span>
-              <span>{formatCost(hoveredRoute.avgTotal - hoveredRoute.avgOcean)}</span>
+              <span>
+                {formatCost(hoveredRoute.avgTotal - hoveredRoute.avgOcean)}
+              </span>
             </div>
 
             <div className="flex items-center justify-between text-[9px] text-slate-400">
               <span>Spread Range:</span>
-              <span>{formatCost(hoveredRoute.minTotal)} – {formatCost(hoveredRoute.maxTotal)}</span>
+              <span>
+                {formatCost(hoveredRoute.minTotal)} –{" "}
+                {formatCost(hoveredRoute.maxTotal)}
+              </span>
             </div>
 
             <div className="pt-1.5 border-t border-slate-800 mt-1 select-none">
-              <span className="text-[8.5px] font-bold text-slate-400 block mb-0.5 font-sans">CARRIERS ({hoveredRoute.carriers.length}):</span>
+              <span className="text-[8.5px] font-bold text-slate-400 block mb-0.5 font-sans">
+                CARRIERS ({hoveredRoute.carriers.length}):
+              </span>
               <div className="flex flex-wrap gap-1">
                 {hoveredRoute.carriers.map((c: string) => (
                   <span
@@ -532,19 +604,27 @@ export function RoutesMap({ filteredRates }: Omit<RoutesMapProps, 't'>) {
         >
           <div className="flex items-center gap-1.5 border-b border-slate-800 pb-1 mb-1 font-bold">
             <Anchor className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
-            <span className="text-[10px] text-indigo-300 font-bold truncate font-sans">{hoveredPort}</span>
+            <span className="text-[10px] text-indigo-300 font-bold truncate font-sans">
+              {hoveredPort}
+            </span>
           </div>
           <div className="space-y-1 select-none text-[9.5px] text-slate-400">
             <div className="flex items-center justify-between">
               <span>Lanes connection:</span>
               <span className="text-white font-bold">
-                {routes.filter(r => r.pol === hoveredPort || r.pod === hoveredPort).length} lanes
+                {
+                  routes.filter(
+                    (r) => r.pol === hoveredPort || r.pod === hoveredPort,
+                  ).length
+                }{" "}
+                lanes
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span>GPS Coordinates:</span>
               <span className="text-indigo-400 font-semibold font-mono">
-                {getPortCoordinates(hoveredPort)[0].toFixed(2)}°, {getPortCoordinates(hoveredPort)[1].toFixed(2)}°
+                {getPortCoordinates(hoveredPort)[0].toFixed(2)}°,{" "}
+                {getPortCoordinates(hoveredPort)[1].toFixed(2)}°
               </span>
             </div>
           </div>
@@ -561,7 +641,12 @@ interface RateChartProps {
   allRates?: FreightRate[];
 }
 
-export default function RateChart({ t, filteredRates, onCarrierSelect, allRates }: RateChartProps) {
+export default function RateChart({
+  t,
+  filteredRates,
+  onCarrierSelect,
+  allRates,
+}: RateChartProps) {
   const [chartMode, setChartMode] = useState<"grouped" | "stacked">("grouped");
   const [showHistoryLines, setShowHistoryLines] = useState(false);
   const [showDensityHeatmap, setShowDensityHeatmap] = useState(false);
@@ -617,22 +702,45 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
 
   // Find historical rates for the selected drill-down carrier
   const carrierHistory = filteredRates.filter(
-    (rate) => rate.carrier === drilldownCarrier
+    (rate) => rate.carrier === drilldownCarrier,
   );
 
   const monthOrder: Record<string, number> = {
-    enero: 1, jan: 1, january: 1,
-    febrero: 2, feb: 2, february: 2,
-    marzo: 3, mar: 3, march: 3,
-    abril: 4, apr: 4, april: 4,
-    mayo: 5, may: 5,
-    junio: 6, jun: 6, june: 6,
-    julio: 7, jul: 7, july: 7,
-    agosto: 8, aug: 8, august: 8,
-    septiembre: 9, sep: 9, september: 9,
-    octubre: 10, oct: 10, october: 10,
-    noviembre: 11, nov: 11, november: 11,
-    diciembre: 12, dec: 12, december: 12,
+    enero: 1,
+    jan: 1,
+    january: 1,
+    febrero: 2,
+    feb: 2,
+    february: 2,
+    marzo: 3,
+    mar: 3,
+    march: 3,
+    abril: 4,
+    apr: 4,
+    april: 4,
+    mayo: 5,
+    may: 5,
+    junio: 6,
+    jun: 6,
+    june: 6,
+    julio: 7,
+    jul: 7,
+    july: 7,
+    agosto: 8,
+    aug: 8,
+    august: 8,
+    septiembre: 9,
+    sep: 9,
+    september: 9,
+    octubre: 10,
+    oct: 10,
+    october: 10,
+    noviembre: 11,
+    nov: 11,
+    november: 11,
+    diciembre: 12,
+    dec: 12,
+    december: 12,
   };
 
   const sortedHistory = [...carrierHistory].sort((a, b) => {
@@ -662,7 +770,10 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
       let prevIdx = -1;
       // Search for the most immediate predecessor that matches the exact same route
       for (let i = idx - 1; i >= 0; i--) {
-        if (sortedHistory[i].pol === rate.pol && sortedHistory[i].pod === rate.pod) {
+        if (
+          sortedHistory[i].pol === rate.pol &&
+          sortedHistory[i].pod === rate.pod
+        ) {
           prevRate = sortedHistory[i];
           prevIdx = i;
           break;
@@ -692,120 +803,167 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
     return changes;
   }, [sortedHistory]);
 
-  const timelineAnnotationsPlugin = React.useMemo(() => ({
-    id: "timelineAnnotations",
-    afterDatasetsDraw(chart: ChartJS<"line">) {
-      if (sortedHistory.length === 0 || significantChanges.length === 0) return;
+  const timelineAnnotationsPlugin = React.useMemo(
+    () => ({
+      id: "timelineAnnotations",
+      afterDatasetsDraw(chart: ChartJS<"line">) {
+        if (sortedHistory.length === 0 || significantChanges.length === 0)
+          return;
 
-      const { ctx, chartArea, scales } = chart;
-      if (!chartArea || !scales || !scales.x || !scales.y) return;
+        const { ctx, chartArea, scales } = chart;
+        if (!chartArea || !scales || !scales.x || !scales.y) return;
 
-      ctx.save();
+        ctx.save();
 
-      significantChanges.forEach((change) => {
-        const dIdx = change.currentIndex;
-        // Total Cost represents dataset index 1
-        const meta = chart.getDatasetMeta(1);
-        if (!meta || !meta.data || !meta.data[dIdx]) return;
+        significantChanges.forEach((change) => {
+          const dIdx = change.currentIndex;
+          // Total Cost represents dataset index 1
+          const meta = chart.getDatasetMeta(1);
+          if (!meta || !meta.data || !meta.data[dIdx]) return;
 
-        const point = meta.data[dIdx];
-        const px = point.x;
-        const py = point.y;
+          const point = meta.data[dIdx];
+          const px = point.x;
+          const py = point.y;
 
-        const isSpike = change.type === "spike";
+          const isSpike = change.type === "spike";
 
-        // Dotted vertical indicator alignment lines
-        ctx.strokeStyle = isSpike ? "rgba(239, 68, 68, 0.45)" : "rgba(16, 185, 129, 0.45)";
-        ctx.lineWidth = 1.2;
-        ctx.setLineDash([3, 3]);
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        ctx.lineTo(px, chartArea.bottom);
-        ctx.stroke();
-        ctx.setLineDash([]);
+          // Dotted vertical indicator alignment lines
+          ctx.strokeStyle = isSpike
+            ? "rgba(239, 68, 68, 0.45)"
+            : "rgba(16, 185, 129, 0.45)";
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(px, py);
+          ctx.lineTo(px, chartArea.bottom);
+          ctx.stroke();
+          ctx.setLineDash([]);
 
-        // Small indicator ring enclosing dataset node
-        ctx.strokeStyle = isSpike ? "rgba(239, 68, 68, 0.75)" : "rgba(16, 185, 129, 0.75)";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(px, py, 7.5, 0, 2 * Math.PI);
-        ctx.stroke();
+          // Small indicator ring enclosing dataset node
+          ctx.strokeStyle = isSpike
+            ? "rgba(239, 68, 68, 0.75)"
+            : "rgba(16, 185, 129, 0.75)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(px, py, 7.5, 0, 2 * Math.PI);
+          ctx.stroke();
 
-        // Banner text callout overlay
-        const labelY = py - 18;
-        const tagText = `${isSpike ? "▲" : "▼"} ${Math.abs(change.pctChange).toFixed(0)}%`;
-        ctx.font = "bold 9px 'JetBrains Mono', Courier, monospace";
-        const textWidth = ctx.measureText(tagText).width;
-        const pillW = textWidth + 8;
-        const pillH = 13;
-        const prx = px - pillW / 2;
-        const pry = labelY - pillH / 2;
+          // Banner text callout overlay
+          const labelY = py - 18;
+          const tagText = `${isSpike ? "▲" : "▼"} ${Math.abs(change.pctChange).toFixed(0)}%`;
+          ctx.font = "bold 9px 'JetBrains Mono', Courier, monospace";
+          const textWidth = ctx.measureText(tagText).width;
+          const pillW = textWidth + 8;
+          const pillH = 13;
+          const prx = px - pillW / 2;
+          const pry = labelY - pillH / 2;
 
-        ctx.fillStyle = isSpike ? "#fef2f2" : "#ecfdf5";
-        ctx.strokeStyle = isSpike ? "rgba(240, 128, 128, 0.6)" : "rgba(52, 211, 153, 0.6)";
-        ctx.lineWidth = 1;
+          ctx.fillStyle = isSpike ? "#fef2f2" : "#ecfdf5";
+          ctx.strokeStyle = isSpike
+            ? "rgba(240, 128, 128, 0.6)"
+            : "rgba(52, 211, 153, 0.6)";
+          ctx.lineWidth = 1;
 
-        ctx.beginPath();
-        if (typeof ctx.roundRect === "function") {
-          ctx.roundRect(prx, pry, pillW, pillH, 3);
-        } else {
-          ctx.rect(prx, pry, pillW, pillH);
-        }
-        ctx.fill();
-        ctx.stroke();
+          ctx.beginPath();
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(prx, pry, pillW, pillH, 3);
+          } else {
+            ctx.rect(prx, pry, pillW, pillH);
+          }
+          ctx.fill();
+          ctx.stroke();
 
-        ctx.fillStyle = isSpike ? "#dc2626" : "#059669";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(tagText, px, labelY + 1);
-      });
+          ctx.fillStyle = isSpike ? "#dc2626" : "#059669";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(tagText, px, labelY + 1);
+        });
 
-      ctx.restore();
-    }
-  }), [sortedHistory, significantChanges]);
+        ctx.restore();
+      },
+    }),
+    [sortedHistory, significantChanges],
+  );
 
   // Calculations for drilldown carrier timeline
   const totalCarrierHistory = sortedHistory.length;
-  const avgTotalTimeline = totalCarrierHistory > 0 
-    ? sortedHistory.reduce((sum, r) => sum + r.total, 0) / totalCarrierHistory 
-    : 0;
-  const avgOceanTimeline = totalCarrierHistory > 0 
-    ? sortedHistory.reduce((sum, r) => sum + r.oceanFreight, 0) / totalCarrierHistory 
-    : 0;
-  const minPriceTimeline = totalCarrierHistory > 0 
-    ? Math.min(...sortedHistory.map(r => r.total)) 
-    : 0;
-  const maxPriceTimeline = totalCarrierHistory > 0 
-    ? Math.max(...sortedHistory.map(r => r.total)) 
-    : 0;
-  const avgSurchargeShare = avgTotalTimeline > 0 
-    ? ((avgTotalTimeline - avgOceanTimeline) / avgTotalTimeline) * 100 
-    : 0;
+  const avgTotalTimeline =
+    totalCarrierHistory > 0
+      ? sortedHistory.reduce((sum, r) => sum + r.total, 0) / totalCarrierHistory
+      : 0;
+  const avgOceanTimeline =
+    totalCarrierHistory > 0
+      ? sortedHistory.reduce((sum, r) => sum + r.oceanFreight, 0) /
+        totalCarrierHistory
+      : 0;
+  const minPriceTimeline =
+    totalCarrierHistory > 0
+      ? Math.min(...sortedHistory.map((r) => r.total))
+      : 0;
+  const maxPriceTimeline =
+    totalCarrierHistory > 0
+      ? Math.max(...sortedHistory.map((r) => r.total))
+      : 0;
+  const avgSurchargeShare =
+    avgTotalTimeline > 0
+      ? ((avgTotalTimeline - avgOceanTimeline) / avgTotalTimeline) * 100
+      : 0;
 
   const getNextMonth = (currentMes: string) => {
-    const list = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const listSp = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const list = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const listSp = [
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
+    ];
     const norm = currentMes.toLowerCase();
-    
-    const idx = list.findIndex(m => norm.startsWith(m.toLowerCase()));
+
+    const idx = list.findIndex((m) => norm.startsWith(m.toLowerCase()));
     if (idx !== -1) {
       return list[(idx + 1) % 12];
     }
-    
-    const idxSp = listSp.findIndex(m => m.toLowerCase() === norm);
+
+    const idxSp = listSp.findIndex((m) => m.toLowerCase() === norm);
     if (idxSp !== -1) {
       return listSp[(idxSp + 1) % 12];
     }
-    
+
     return "Next Month";
   };
 
   const extendedLabels = React.useMemo(() => {
-    const actualLabels = sortedHistory.map((rate) => `${rate.mes} (${rate.pol}➔${rate.pod})`);
+    const actualLabels = sortedHistory.map(
+      (rate) => `${rate.mes} (${rate.pol}➔${rate.pod})`,
+    );
     if (showForecast && sortedHistory.length > 0) {
       const lastItem = sortedHistory[sortedHistory.length - 1];
       const nextMonth = getNextMonth(lastItem.mes);
-      return [...actualLabels, `*FCST* ${nextMonth} (${lastItem.pol}➔${lastItem.pod})`];
+      return [
+        ...actualLabels,
+        `*FCST* ${nextMonth} (${lastItem.pol}➔${lastItem.pod})`,
+      ];
     }
     return actualLabels;
   }, [sortedHistory, showForecast]);
@@ -814,24 +972,27 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
     if (sortedHistory.length === 0) return [];
     const n = sortedHistory.length;
     if (n === 1) {
-      return [sortedHistory[0].total, Math.round(sortedHistory[0].total * 1.02)];
+      return [
+        sortedHistory[0].total,
+        Math.round(sortedHistory[0].total * 1.02),
+      ];
     }
 
     let sumX = 0;
     let sumY = 0;
     let sumXY = 0;
     let sumXX = 0;
-    
+
     for (let i = 0; i < n; i++) {
       sumX += i;
       sumY += sortedHistory[i].total;
       sumXY += i * sortedHistory[i].total;
       sumXX += i * i;
     }
-    
+
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX || 1);
     const intercept = (sumY - slope * sumX) / n;
-    
+
     const predictions = [];
     const targetLength = showForecast ? n + 1 : n;
     for (let i = 0; i < targetLength; i++) {
@@ -871,23 +1032,25 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
         pointHoverRadius: 8,
         fill: true,
       },
-      ...(showForecast && predictedRates.length > 0 ? [
-        {
-          label: "Predicted Rate",
-          data: predictedRates,
-          borderColor: "rgb(236, 72, 153)", // Pink 500
-          backgroundColor: "rgba(236, 72, 153, 0.04)",
-          borderWidth: 2.5,
-          borderDash: [6, 4],
-          tension: 0.3,
-          pointBackgroundColor: "rgb(236, 72, 153)",
-          pointBorderColor: "#fff",
-          pointBorderWidth: 2,
-          pointRadius: 6,
-          pointHoverRadius: 8,
-          fill: false,
-        }
-      ] : [])
+      ...(showForecast && predictedRates.length > 0
+        ? [
+            {
+              label: "Predicted Rate",
+              data: predictedRates,
+              borderColor: "rgb(236, 72, 153)", // Pink 500
+              backgroundColor: "rgba(236, 72, 153, 0.04)",
+              borderWidth: 2.5,
+              borderDash: [6, 4],
+              tension: 0.3,
+              pointBackgroundColor: "rgb(236, 72, 153)",
+              pointBorderColor: "#fff",
+              pointBorderWidth: 2,
+              pointRadius: 6,
+              pointHoverRadius: 8,
+              fill: false,
+            },
+          ]
+        : []),
     ],
   };
 
@@ -991,9 +1154,9 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
             lines.push(`  • Month: ${item.mes}`);
 
             return lines;
-          }
-        }
-      }
+          },
+        },
+      },
     },
     scales: {
       y: {
@@ -1031,7 +1194,7 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
       event.nativeEvent,
       "nearest",
       { intersect: true },
-      true
+      true,
     );
     if (elements && elements.length > 0) {
       const itemIdx = elements[0].index;
@@ -1041,40 +1204,56 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
       }
     }
   };
-  const totalCosts = carriersList.map((c) => 
-    Math.round((carrierRatesMap[c].total / carrierRatesMap[c].count) * 100) / 100
+  const totalCosts = carriersList.map(
+    (c) =>
+      Math.round((carrierRatesMap[c].total / carrierRatesMap[c].count) * 100) /
+      100,
   );
-  const oceanCosts = carriersList.map((c) => 
-    Math.round((carrierRatesMap[c].ocean / carrierRatesMap[c].count) * 100) / 100
+  const oceanCosts = carriersList.map(
+    (c) =>
+      Math.round((carrierRatesMap[c].ocean / carrierRatesMap[c].count) * 100) /
+      100,
   );
-  const otherCosts = carriersList.map((c) => 
-    Math.max(0, Math.round(((carrierRatesMap[c].total - carrierRatesMap[c].ocean) / carrierRatesMap[c].count) * 100) / 100)
+  const otherCosts = carriersList.map((c) =>
+    Math.max(
+      0,
+      Math.round(
+        ((carrierRatesMap[c].total - carrierRatesMap[c].ocean) /
+          carrierRatesMap[c].count) *
+          100,
+      ) / 100,
+    ),
   );
 
   // Calculation of historical lines from previous months
-  const ratesToUse = (allRates && allRates.length > 0) ? allRates : filteredRates;
-  const uniqueMonths = Array.from(new Set(ratesToUse.map(r => r.mes)))
-    .sort((a, b) => {
+  const ratesToUse = allRates && allRates.length > 0 ? allRates : filteredRates;
+  const uniqueMonths = Array.from(new Set(ratesToUse.map((r) => r.mes))).sort(
+    (a, b) => {
       const orderA = monthOrder[a.toLowerCase()] || 99;
       const orderB = monthOrder[b.toLowerCase()] || 99;
       return orderA - orderB;
-    });
+    },
+  );
 
   const linePalette = [
-    "rgba(16, 185, 129, 0.95)",  // Emerald (Green)
-    "rgba(245, 158, 11, 0.95)",  // Amber (Orange)
-    "rgba(239, 68, 68, 0.95)",   // Rose/Red
-    "rgba(14, 165, 233, 0.95)",  // Sky Blue
-    "rgba(236, 72, 153, 0.95)",  // Pink
-    "rgba(115, 115, 115, 0.95)"  // Alternate Gray
+    "rgba(16, 185, 129, 0.95)", // Emerald (Green)
+    "rgba(245, 158, 11, 0.95)", // Amber (Orange)
+    "rgba(239, 68, 68, 0.95)", // Rose/Red
+    "rgba(14, 165, 233, 0.95)", // Sky Blue
+    "rgba(236, 72, 153, 0.95)", // Pink
+    "rgba(115, 115, 115, 0.95)", // Alternate Gray
   ];
 
-  const monthlyCarrierAverages = uniqueMonths.map(month => {
+  const monthlyCarrierAverages = uniqueMonths.map((month) => {
     const carrierAveragesForMonth: Record<string, number | null> = {};
-    carriersList.forEach(carrier => {
-      const matchingRates = ratesToUse.filter(r => r.carrier === carrier && r.mes === month);
+    carriersList.forEach((carrier) => {
+      const matchingRates = ratesToUse.filter(
+        (r) => r.carrier === carrier && r.mes === month,
+      );
       if (matchingRates.length > 0) {
-        const avgTotal = matchingRates.reduce((sum, r) => sum + r.total, 0) / matchingRates.length;
+        const avgTotal =
+          matchingRates.reduce((sum, r) => sum + r.total, 0) /
+          matchingRates.length;
         carrierAveragesForMonth[carrier] = Math.round(avgTotal * 100) / 100;
       } else {
         carrierAveragesForMonth[carrier] = null;
@@ -1082,33 +1261,35 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
     });
     return {
       month,
-      averages: carrierAveragesForMonth
+      averages: carrierAveragesForMonth,
     };
   });
 
-  const historicalLineDatasets = showHistoryLines ? monthlyCarrierAverages.map((ma, idx) => {
-    const color = linePalette[idx % linePalette.length];
-    return {
-      type: "line" as const,
-      label: `${ma.month} Trend`,
-      data: carriersList.map(c => ma.averages[c]),
-      borderColor: color,
-      backgroundColor: color.replace("0.95", "0.05"),
-      borderWidth: 2.2,
-      pointStyle: "circle",
-      pointBackgroundColor: color,
-      pointBorderColor: "#fff",
-      pointBorderWidth: 1.5,
-      pointRadius: 4.5,
-      pointHoverRadius: 6.5,
-      tension: 0.35,
-      fill: false,
-    };
-  }) : [];
+  const historicalLineDatasets = showHistoryLines
+    ? monthlyCarrierAverages.map((ma, idx) => {
+        const color = linePalette[idx % linePalette.length];
+        return {
+          type: "line" as const,
+          label: `${ma.month} Trend`,
+          data: carriersList.map((c) => ma.averages[c]),
+          borderColor: color,
+          backgroundColor: color.replace("0.95", "0.05"),
+          borderWidth: 2.2,
+          pointStyle: "circle",
+          pointBackgroundColor: color,
+          pointBorderColor: "#fff",
+          pointBorderWidth: 1.5,
+          pointRadius: 4.5,
+          pointHoverRadius: 6.5,
+          tension: 0.35,
+          fill: false,
+        };
+      })
+    : [];
 
   // Bin rates to show price density across ocean lanes
   const ratesCount = filteredRates.length;
-  const ratesTotals = filteredRates.map(r => r.total);
+  const ratesTotals = filteredRates.map((r) => r.total);
   const maxTotalVal = ratesCount > 0 ? Math.max(...ratesTotals) : 2500;
 
   const numBins = 10;
@@ -1116,7 +1297,7 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
   const binCounts = Array(numBins).fill(0);
 
   if (ratesCount > 0) {
-    filteredRates.forEach(r => {
+    filteredRates.forEach((r) => {
       const idx = Math.min(Math.floor(r.total / binSize), numBins - 1);
       if (idx >= 0 && idx < numBins) {
         binCounts[idx]++;
@@ -1173,12 +1354,12 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
           ctx.fillText(
             `${count} quotes`,
             chartArea.right - 10,
-            yStart + rectHeight / 2
+            yStart + rectHeight / 2,
           );
         }
       }
       ctx.restore();
-    }
+    },
   };
 
   const chartData = {
@@ -1196,7 +1377,10 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
         hoverBorderWidth: 3.5, // Tactile visual pop scale-up border
       },
       {
-        label: chartMode === "grouped" ? t.chartTotal : (t.surchargesBreakdown || "Surcharges"),
+        label:
+          chartMode === "grouped"
+            ? t.chartTotal
+            : t.surchargesBreakdown || "Surcharges",
         data: chartMode === "grouped" ? totalCosts : otherCosts,
         backgroundColor: "rgba(139, 92, 246, 0.8)", // Base Total Purple Indigo
         borderColor: "rgba(139, 92, 246, 0.9)",
@@ -1206,7 +1390,7 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
         hoverBorderColor: "rgb(139, 92, 246)", // Deeper base contrast border
         hoverBorderWidth: 3.5, // Tactile visual pop scale-up border
       },
-      ...historicalLineDatasets
+      ...historicalLineDatasets,
     ],
   };
 
@@ -1227,7 +1411,8 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
       } else if (index === 1) {
         badgeColor = "bg-violet-500";
         borderColor = "border-violet-600/15";
-        description = chartMode === "grouped" ? "Ocean + Surcharges" : "Local Fees Only";
+        description =
+          chartMode === "grouped" ? "Ocean + Surcharges" : "Local Fees Only";
       } else {
         renderAsLine = true;
         customColor = dataset.borderColor || "#6366f1";
@@ -1241,7 +1426,7 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
         description,
         renderAsLine,
         customColor,
-        index
+        index,
       };
     });
   }, [chartData.datasets, chartMode, t]);
@@ -1276,7 +1461,7 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
         type: "number",
         duration: 350,
         easing: "easeOutBack", // Springy curve
-      }
+      },
     },
     // Customize interactive transitions with high-fidelity spring animations
     transitions: {
@@ -1284,8 +1469,8 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
         animation: {
           duration: 350,
           easing: "easeOutBack", // Springy elastic easing creates a high-fidelity scale-up feel
-        }
-      }
+        },
+      },
     },
     onClick: (event, elements) => {
       if (elements && elements.length > 0) {
@@ -1388,8 +1573,12 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
             }
 
             lines.push(``);
-            lines.push(`  • ${t.chartTotal || "Total Cost"}: ${formatVal(avgTotal)}  (100.0%)`);
-            lines.push(`  [Based on ${count} carrier quote${count > 1 ? "s" : ""}]`);
+            lines.push(
+              `  • ${t.chartTotal || "Total Cost"}: ${formatVal(avgTotal)}  (100.0%)`,
+            );
+            lines.push(
+              `  [Based on ${count} carrier quote${count > 1 ? "s" : ""}]`,
+            );
 
             return lines;
           },
@@ -1427,7 +1616,10 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
   };
 
   return (
-    <div id="logistics-pricing-chart-card" className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm overflow-hidden">
+    <div
+      id="logistics-pricing-chart-card"
+      className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm overflow-hidden"
+    >
       <AnimatePresence mode="wait">
         {!drilldownCarrier ? (
           <motion.div
@@ -1449,10 +1641,13 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
                   </h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <p className="text-[10px] text-slate-400">
-                      Visual analytics comparing ocean freight alongside total integrated charges.
+                      Visual analytics comparing ocean freight alongside total
+                      integrated charges.
                     </p>
                     <span className="inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                    <span className="text-[9px] text-indigo-500 font-medium">Double-click a bar to drill down</span>
+                    <span className="text-[9px] text-indigo-500 font-medium">
+                      Double-click a bar to drill down
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1565,7 +1760,10 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
               </div>
             </div>
 
-            <div className="h-[280px] w-full relative" onDoubleClick={handleDoubleClick}>
+            <div
+              className="h-[280px] w-full relative"
+              onDoubleClick={handleDoubleClick}
+            >
               {filteredRates.length > 0 ? (
                 activeView === "chart" ? (
                   <motion.div
@@ -1575,12 +1773,16 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
                     transition={{ duration: 0.35, ease: "easeOut" }}
                     className="w-full h-full"
                   >
-                    <Chart type="bar" ref={chartRef} data={chartData as any} options={options as any} plugins={[densityHeatmapPlugin]} />
+                    <Chart
+                      type="bar"
+                      ref={chartRef}
+                      data={chartData as any}
+                      options={options as any}
+                      plugins={[densityHeatmapPlugin]}
+                    />
                   </motion.div>
                 ) : (
-                  <RoutesMap 
-                    filteredRates={filteredRates} 
-                  />
+                  <RoutesMap filteredRates={filteredRates} />
                 )
               ) : (
                 <div className="w-full h-full flex items-center justify-center font-mono text-xs text-slate-400 italic">
@@ -1591,7 +1793,10 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
 
             {/* Custom Premium Color Legend Display */}
             {filteredRates.length > 0 && (
-              <div id="chart-custom-legend" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-4 pt-3.5 border-t border-slate-100">
+              <div
+                id="chart-custom-legend"
+                className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-4 pt-3.5 border-t border-slate-100"
+              >
                 {activeView === "chart" ? (
                   <>
                     {/* Dynamically Generated Active Series Reference */}
@@ -1602,12 +1807,21 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
                           className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 shadow-3xs hover:bg-slate-100/50 transition-colors duration-150 animate-fade-in"
                         >
                           {series.renderAsLine ? (
-                            <span className="h-1.5 w-4 rounded-full" style={{ backgroundColor: series.customColor }} />
+                            <span
+                              className="h-1.5 w-4 rounded-full"
+                              style={{ backgroundColor: series.customColor }}
+                            />
                           ) : (
-                            <span className={`h-2.5 w-2.5 rounded-full ${series.badgeColor} border ${series.borderColor} shadow-xs shrink-0`} />
+                            <span
+                              className={`h-2.5 w-2.5 rounded-full ${series.badgeColor} border ${series.borderColor} shadow-xs shrink-0`}
+                            />
                           )}
-                          <span className="text-[11px] text-slate-700 font-semibold">{series.label}</span>
-                          <span className="text-[10px] text-slate-400 font-normal">({series.description})</span>
+                          <span className="text-[11px] text-slate-700 font-semibold">
+                            {series.label}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            ({series.description})
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -1616,15 +1830,21 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
                       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 w-full mt-2 pt-2 border-t border-dashed border-slate-100">
                         <div className="flex items-center gap-1.5 animate-fade-in">
                           <span className="h-2 w-2 rounded bg-emerald-500/65 border border-emerald-600/10 shadow-3xs" />
-                          <span className="text-[10px] text-slate-500 font-medium">Optimized Cost Region</span>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            Optimized Cost Region
+                          </span>
                         </div>
                         <div className="flex items-center gap-1.5 animate-fade-in">
                           <span className="h-2 w-2 rounded bg-amber-500/65 border border-amber-600/10 shadow-3xs" />
-                          <span className="text-[10px] text-slate-500 font-medium">Moderate Cost Band</span>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            Moderate Cost Band
+                          </span>
                         </div>
                         <div className="flex items-center gap-1.5 animate-fade-in">
                           <span className="h-2 w-2 rounded bg-rose-500/65 border border-rose-600/10 shadow-3xs" />
-                          <span className="text-[10px] text-slate-500 font-medium">High-Cost Exposure</span>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            High-Cost Exposure
+                          </span>
                         </div>
                       </div>
                     )}
@@ -1633,19 +1853,27 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
                   <>
                     <div className="flex items-center gap-2">
                       <span className="h-2.5 w-2.5 rounded bg-[#10b981] border border-[#10b981]/15 shadow-3xs" />
-                      <span className="text-[11px] text-slate-600 font-semibold">Optimized Lanes (Lower 33%)</span>
+                      <span className="text-[11px] text-slate-600 font-semibold">
+                        Optimized Lanes (Lower 33%)
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="h-2.5 w-2.5 rounded bg-[#f59e0b] border border-[#f59e0b]/15 shadow-3xs" />
-                      <span className="text-[11px] text-slate-600 font-semibold">Moderate Cost Band (33% – 67%)</span>
+                      <span className="text-[11px] text-slate-600 font-semibold">
+                        Moderate Cost Band (33% – 67%)
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="h-2.5 w-2.5 rounded bg-[#f43f5e] border border-[#f43f5e]/15 shadow-3xs" />
-                      <span className="text-[11px] text-slate-600 font-bold">High Cost Exposure (Upper 33%)</span>
+                      <span className="text-[11px] text-slate-600 font-bold">
+                        High Cost Exposure (Upper 33%)
+                      </span>
                     </div>
                     <div className="flex items-center gap-1.5 border-l border-slate-200 pl-4 text-[10px] text-slate-500">
                       <span className="h-0.5 w-4 bg-indigo-500/80 rounded block border-dashed animate-pulse" />
-                      <span className="font-mono text-[9px] text-slate-400">Dashed Arc Flows Towards POD</span>
+                      <span className="font-mono text-[9px] text-slate-400">
+                        Dashed Arc Flows Towards POD
+                      </span>
                     </div>
                   </>
                 )}
@@ -1676,19 +1904,26 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-bold text-slate-800">
-                      Carrier Profile: <span className="text-purple-600 font-extrabold">{drilldownCarrier}</span>
+                      Carrier Profile:{" "}
+                      <span className="text-purple-600 font-extrabold">
+                        {drilldownCarrier}
+                      </span>
                     </h3>
                     <span className="px-1.5 py-0.5 bg-purple-50 text-purple-700 text-[9px] font-semibold rounded-md border border-purple-100">
                       Drill-down active
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-0.5">
-                    Analyzing rate history, monthly tariff trends, and surcharge share across {sortedHistory.length} matching quotes.
+                    Analyzing rate history, monthly tariff trends, and surcharge
+                    share across {sortedHistory.length} matching quotes.
                   </p>
                 </div>
               </div>
 
-              <div id="drilldown-indicators" className="flex items-center gap-4 pr-1 text-[10px]">
+              <div
+                id="drilldown-indicators"
+                className="flex items-center gap-4 pr-1 text-[10px]"
+              >
                 {/* Forecast Line Toggle Button */}
                 <button
                   id="chart-forecast-toggle-btn"
@@ -1725,13 +1960,23 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
             <div className="h-[200px] w-full relative mb-4">
               {sortedHistory.length > 0 ? (
                 <motion.div
-                  key={drilldownCarrier + "-" + sortedHistory.length + "-" + showForecast}
+                  key={
+                    drilldownCarrier +
+                    "-" +
+                    sortedHistory.length +
+                    "-" +
+                    showForecast
+                  }
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, ease: "easeOut" }}
                   className="w-full h-full"
                 >
-                  <Line data={timelineData} options={timelineOptions} plugins={[timelineAnnotationsPlugin]} />
+                  <Line
+                    data={timelineData}
+                    options={timelineOptions}
+                    plugins={[timelineAnnotationsPlugin]}
+                  />
                 </motion.div>
               ) : (
                 <div className="w-full h-full flex items-center justify-center font-mono text-xs text-slate-400 italic">
@@ -1741,7 +1986,10 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
             </div>
 
             {/* Graphical Volatility & Rate Change Callout Annotations Panel */}
-            <div className="mb-4 bg-slate-50 border border-slate-200/60 rounded-xl p-3" id="timeline-volatility-callouts">
+            <div
+              className="mb-4 bg-slate-50 border border-slate-200/60 rounded-xl p-3"
+              id="timeline-volatility-callouts"
+            >
               <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100">
                 <div className="flex items-center gap-1.5">
                   <span className="relative flex h-2 w-2">
@@ -1753,7 +2001,8 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
                   </span>
                 </div>
                 <span className="text-[9px] text-slate-400 font-mono">
-                  {significantChanges.length} alert{significantChanges.length !== 1 ? "s" : ""} detected
+                  {significantChanges.length} alert
+                  {significantChanges.length !== 1 ? "s" : ""} detected
                 </span>
               </div>
 
@@ -1794,15 +2043,23 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
                                 : "bg-emerald-100 text-emerald-700"
                             }`}
                           >
-                            {isSpike ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
+                            {isSpike ? (
+                              <TrendingUp className="h-2.5 w-2.5" />
+                            ) : (
+                              <TrendingDown className="h-2.5 w-2.5" />
+                            )}
                             {Math.abs(change.pctChange).toFixed(0)}%
                           </span>
                         </div>
                         <div className="mt-2 pt-1.5 border-t border-slate-100/60 flex items-center justify-between text-[8px] text-slate-400">
                           <span className="font-semibold tracking-wider uppercase text-[7.5px] text-slate-500">
-                            {isSpike ? "⚠️ Volatility Spike Flag" : "✅ Cost Drop Optimization"}
+                            {isSpike
+                              ? "⚠️ Volatility Spike Flag"
+                              : "✅ Cost Drop Optimization"}
                           </span>
-                          <span className="font-mono text-[7.5px]">{change.sheetSource}</span>
+                          <span className="font-mono text-[7.5px]">
+                            {change.sheetSource}
+                          </span>
                         </div>
                       </div>
                     );
@@ -1811,107 +2068,188 @@ export default function RateChart({ t, filteredRates, onCarrierSelect, allRates 
               ) : (
                 <div className="py-4 flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 text-center bg-white">
                   <AlertTriangle className="h-4 w-4 text-slate-300 mb-1" />
-                  <span className="text-[10px] text-slate-500 font-medium text-center">No lane rate fluctuations exceeding 15% observed.</span>
-                  <p className="text-[8.5px] text-slate-400 mt-0.5 text-center">Rates for matching port pairs remain in a stable corridor.</p>
+                  <span className="text-[10px] text-slate-500 font-medium text-center">
+                    No lane rate fluctuations exceeding 15% observed.
+                  </span>
+                  <p className="text-[8.5px] text-slate-400 mt-0.5 text-center">
+                    Rates for matching port pairs remain in a stable corridor.
+                  </p>
                 </div>
               )}
             </div>
 
             {/* Statistics Bento Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4" id="drilldown-metric-grid">
+            <div
+              className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4"
+              id="drilldown-metric-grid"
+            >
               <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Total Quotes</span>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                    Total Quotes
+                  </span>
                   <div className="p-1 bg-blue-50 text-blue-600 rounded-lg">
                     <Calendar className="h-3.5 w-3.5" />
                   </div>
                 </div>
-                <p className="text-base font-bold text-slate-800">{totalCarrierHistory} quotes</p>
-                <span className="text-[9px] text-slate-400 mt-0.5 block">Record occurrences count</span>
+                <p className="text-base font-bold text-slate-800">
+                  {totalCarrierHistory} quotes
+                </p>
+                <span className="text-[9px] text-slate-400 mt-0.5 block">
+                  Record occurrences count
+                </span>
               </div>
 
               <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Average Price</span>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                    Average Price
+                  </span>
                   <div className="p-1 bg-purple-50 text-purple-600 rounded-lg">
                     <DollarSign className="h-3.5 w-3.5" />
                   </div>
                 </div>
                 <p className="text-base font-bold text-slate-800">
-                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(avgTotalTimeline)}
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                    maximumFractionDigits: 0,
+                  }).format(avgTotalTimeline)}
                 </p>
                 <div className="text-[9px] text-slate-400 mt-0.5 flex items-center gap-1">
                   <span>Ocean Base avg</span>
                   <span className="font-semibold text-slate-600">
-                    {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(avgOceanTimeline)}
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                      maximumFractionDigits: 0,
+                    }).format(avgOceanTimeline)}
                   </span>
                 </div>
               </div>
 
               <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Historical Range</span>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                    Historical Range
+                  </span>
                   <div className="p-1 bg-emerald-50 text-emerald-600 rounded-lg">
                     <TrendingUp className="h-3.5 w-3.5" />
                   </div>
                 </div>
                 <p className="text-[13px] font-bold text-slate-800 truncate">
-                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(minPriceTimeline)} – {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(maxPriceTimeline)}
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                    maximumFractionDigits: 0,
+                  }).format(minPriceTimeline)}{" "}
+                  –{" "}
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                    maximumFractionDigits: 0,
+                  }).format(maxPriceTimeline)}
                 </p>
-                <span className="text-[9px] text-emerald-600 font-semibold mt-0.5 block">Fluctuation span of costs</span>
+                <span className="text-[9px] text-emerald-600 font-semibold mt-0.5 block">
+                  Fluctuation span of costs
+                </span>
               </div>
 
               <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Surcharge Share</span>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                    Surcharge Share
+                  </span>
                   <div className="p-1 bg-amber-50 text-amber-600 rounded-lg">
                     <Info className="h-3.5 w-3.5" />
                   </div>
                 </div>
-                <p className="text-base font-bold text-slate-800">{avgSurchargeShare.toFixed(1)}%</p>
-                <span className="text-[9px] text-slate-400 mt-0.5 block">Port local surcharges weight</span>
+                <p className="text-base font-bold text-slate-800">
+                  {avgSurchargeShare.toFixed(1)}%
+                </p>
+                <span className="text-[9px] text-slate-400 mt-0.5 block">
+                  Port local surcharges weight
+                </span>
               </div>
             </div>
 
             {/* Interactive Scrollable Details List */}
             <div className="flex flex-col border border-slate-100 rounded-xl overflow-hidden bg-white shadow-3xs">
               <div className="bg-slate-50/70 px-4 py-2 flex items-center justify-between border-b border-slate-100">
-                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Chronological Tariffs Breakdown</span>
-                <span className="text-[9px] text-slate-400">Scroll to view all records in details</span>
+                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                  Chronological Tariffs Breakdown
+                </span>
+                <span className="text-[9px] text-slate-400">
+                  Scroll to view all records in details
+                </span>
               </div>
-              <div className="max-h-[120px] overflow-y-auto divide-y divide-slate-100/60 pr-1 select-none" id="drilldown-historical-list">
+              <div
+                className="max-h-[120px] overflow-y-auto divide-y divide-slate-100/60 pr-1 select-none"
+                id="drilldown-historical-list"
+              >
                 {sortedHistory.map((rate, rIdx) => {
-                  const rateSurcharges = (rate.baf || 0) + (rate.thc || 0) + (rate.lss || 0) + (rate.otrosRecargos || 0);
+                  const rateSurcharges =
+                    (rate.baf || 0) +
+                    (rate.thc || 0) +
+                    (rate.lss || 0) +
+                    (rate.otrosRecargos || 0);
                   return (
-                    <div key={rate.id || rIdx} className="px-4 py-2.5 hover:bg-slate-50/40 flex items-center justify-between text-xs transition-colors duration-100">
+                    <div
+                      key={rate.id || rIdx}
+                      className="px-4 py-2.5 hover:bg-slate-50/40 flex items-center justify-between text-xs transition-colors duration-100"
+                    >
                       <div className="flex items-center gap-3">
                         <span className="font-semibold text-slate-700 min-w-[70px] bg-slate-50 border border-slate-200/50 px-1.5 py-0.5 rounded text-center text-[10px]">
                           {rate.mes}
                         </span>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-slate-800 font-medium">{rate.pol}</span>
+                          <span className="text-slate-800 font-medium">
+                            {rate.pol}
+                          </span>
                           <ArrowRight className="h-3 w-3 text-slate-300" />
-                          <span className="text-slate-800 font-medium">{rate.pod}</span>
-                          <span className="text-[9px] text-slate-400 font-mono ml-2">[{rate.sheetSource}]</span>
+                          <span className="text-slate-800 font-medium">
+                            {rate.pod}
+                          </span>
+                          <span className="text-[9px] text-slate-400 font-mono ml-2">
+                            [{rate.sheetSource}]
+                          </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-5">
                         <div className="text-right">
-                          <span className="text-[10px] text-slate-400 block">Ocean base</span>
+                          <span className="text-[10px] text-slate-400 block">
+                            Ocean base
+                          </span>
                           <span className="font-medium text-slate-600">
-                            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(rate.oceanFreight)}
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: "USD",
+                              maximumFractionDigits: 0,
+                            }).format(rate.oceanFreight)}
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] text-slate-400 block">Surcharges</span>
+                          <span className="text-[10px] text-slate-400 block">
+                            Surcharges
+                          </span>
                           <span className="font-medium text-slate-600">
-                            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(rateSurcharges)}
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: "USD",
+                              maximumFractionDigits: 0,
+                            }).format(rateSurcharges)}
                           </span>
                         </div>
                         <div className="text-right border-l border-slate-100 pl-4 font-mono">
-                          <span className="text-[10px] text-slate-500 font-bold block">Total price</span>
+                          <span className="text-[10px] text-slate-500 font-bold block">
+                            Total price
+                          </span>
                           <span className="font-extrabold text-purple-600">
-                            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(rate.total)}
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: "USD",
+                              maximumFractionDigits: 0,
+                            }).format(rate.total)}
                           </span>
                         </div>
                       </div>

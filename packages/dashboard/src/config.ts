@@ -7,7 +7,10 @@ const envSchema = {
 
 const validateEnv = createEnvValidator(envSchema);
 export const env = validateEnv(
-  (typeof import.meta !== "undefined" && (import.meta as unknown as { env: Record<string, string> }).env) || process.env || {},
+  (typeof import.meta !== "undefined" &&
+    (import.meta as unknown as { env: Record<string, string> }).env) ||
+    process.env ||
+    {},
 );
 
 export const BLACK_SHEETS = ["Final Destination", "Warehouse"];
@@ -70,4 +73,3 @@ export type PaletteTheme = keyof typeof PALETTES;
 
 export const BASE_PATH = "/Shipment-Dashboard";
 export const PAGE_SIZE = 50;
-
