@@ -403,8 +403,8 @@ importers:
         specifier: ^0.185.1
         version: 0.185.1
       xlsx:
-        specifier: git+https://git.sheetjs.com/sheetjs/sheetjs.git#v0.20.3
-        version: git+https://git.sheetjs.com/sheetjs/sheetjs.git#f30a4dfd4c994f2c1ce57f6cb0281917bca76e7f
+        specifier: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
+        version: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
       xml2js:
         specifier: ^0.6.2
         version: 0.6.2
@@ -596,8 +596,8 @@ importers:
         specifier: ^8.1.2
         version: 8.1.3(@types/node@25.9.4)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0)
       xlsx:
-        specifier: git+https://git.sheetjs.com/sheetjs/sheetjs.git#v0.20.3
-        version: git+https://git.sheetjs.com/sheetjs/sheetjs.git#f30a4dfd4c994f2c1ce57f6cb0281917bca76e7f
+        specifier: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
+        version: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -9877,8 +9877,8 @@ packages:
     resolution: {integrity: sha512-g/eziiSUNBSsdDJtCLB8bdYEUMj4jR7AGeUo96p/3dTafgjHhpF4RiCFPiRILwjQoDXx5MqkBr4fwWtR3Ky4Wg==}
     engines: {node: '>=20'}
 
-  xlsx@git+https://git.sheetjs.com/sheetjs/sheetjs.git#f30a4dfd4c994f2c1ce57f6cb0281917bca76e7f:
-    resolution: {commit: f30a4dfd4c994f2c1ce57f6cb0281917bca76e7f, repo: https://git.sheetjs.com/sheetjs/sheetjs.git, type: git}
+  xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz:
+    resolution: {tarball: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz}
     version: 0.20.3
     engines: {node: '>=0.8'}
     hasBin: true
@@ -20188,7 +20188,7 @@ snapshots:
       is-wsl: 3.1.1
       powershell-utils: 0.1.0
 
-  xlsx@git+https://git.sheetjs.com/sheetjs/sheetjs.git#f30a4dfd4c994f2c1ce57f6cb0281917bca76e7f: {}
+  xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz: {}
 
   xml-name-validator@5.0.0: {}
 
