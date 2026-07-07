@@ -10,6 +10,7 @@ export default tseslint.config(
       "packages/**",
       "functions/**",
       "e2e/**",
+      "scripts/**",
       "playwright.config.ts",
     ],
   },

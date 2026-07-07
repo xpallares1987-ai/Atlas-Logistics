@@ -25,6 +25,8 @@ const deps = [
   "three",
   "xml2js",
   "zod",
+  "cmdk",
+  "react-globe.gl",
 ];
 
 const makeExternalPredicate = (externalArr: string[]) => {

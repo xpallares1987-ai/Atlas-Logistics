@@ -24,7 +24,7 @@ import PortAutocomplete from "../../components/PortAutocomplete";
 import { PredictiveAIBadge } from "../../components/PredictiveAIBadge";
 import { Link } from "react-router-dom";
 import {
-  ShippingMap,
+  GlobeTracker,
   MilestoneStepper,
   getStandardOceanMilestones,
 } from "@atlas/ui";
@@ -75,6 +75,31 @@ export default function TrackerModule() {
       }
     };
     loadData();
+  }, []);
+
+  // Simulate Live Sync (WebSockets)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShipments(currentShipments => {
+        if (!currentShipments || currentShipments.length === 0) return currentShipments;
+        // Pick a random shipment
+        const randomIndex = Math.floor(Math.random() * currentShipments.length);
+        const newShipments = [...currentShipments];
+        const shipment = { ...newShipments[randomIndex] };
+        
+        // Randomly simulate a status update or ETA change
+        if (shipment.status === "IN_TRANSIT" && Math.random() > 0.8) {
+          shipment.status = "DELAYED";
+        } else if (shipment.status === "PENDING" && Math.random() > 0.8) {
+          shipment.status = "IN_TRANSIT";
+        }
+        
+        newShipments[randomIndex] = shipment;
+        return newShipments;
+      });
+    }, 5000); // Check every 5 seconds for a simulated update
+
+    return () => clearInterval(interval);
   }, []);
 
   // Filter shipments when ports change
@@ -678,9 +703,20 @@ export default function TrackerModule() {
         {/* Map */}
         <div
           className="card"
-          style={{ padding: 0, overflow: "hidden", marginBottom: 0 }}
+          style={{ padding: 0, overflow: "hidden", marginBottom: 0, position: "relative", minHeight: "400px" }}
         >
-          <ShippingMap shipments={filteredShipments} />
+          <GlobeTracker 
+            markers={filteredShipments.map(s => ({ 
+              lat: s.status === "DELIVERED" ? 51.92 : 31.23, // Simple mock
+              lng: s.status === "DELIVERED" ? 4.47 : 121.47, 
+              name: s.reference 
+            }))}
+            arcs={filteredShipments.filter(s => s.status !== "DELIVERED").map(s => ({
+              startLat: 31.23, startLng: 121.47,
+              endLat: 51.92, endLng: 4.47,
+              color: s.status === "DELAYED" ? "#f43f5e" : "#3b82f6"
+            }))}
+          />
         </div>
       </div>
     </div>
