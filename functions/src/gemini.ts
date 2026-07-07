@@ -7,6 +7,7 @@ const interactionConfig = {
   max_output_tokens: 65536,
   topP: 0.95,
   thinkingLevel: "high" as const,
+  responseMimeType: "application/json",
 };
 
 export async function generatePredictiveETA(apiKey: string, shipmentData: any) {
@@ -47,8 +48,21 @@ export async function generatePredictiveETA(apiKey: string, shipmentData: any) {
     const text = lastStep?.model_turn?.parts ? lastStep.model_turn.parts[0]?.text?.replace(/```json/g, "").replace(/```/g, "") : lastStep?.model_turn?.parts?.at(0)?.text?.replace(/```json/g, "").replace(/```/g, "") || "{}";
     return JSON.parse(text.trim());
   } catch (error) {
-    console.error("Gemini prediction error:", error);
-    throw new Error("Failed to generate predictive ETA");
+    console.warn("Gemini 3.1 Pro prediction error, attempting fallback to gemini-2.5-flash:", error);
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+      const text = response.text?.replace(/```json/g, '').replace(/```/g, '') || "{}";
+      return JSON.parse(text);
+    } catch (fallbackError) {
+      console.error("Gemini ETA fallback failed:", fallbackError);
+      throw new Error("Failed to generate predictive ETA");
+    }
   }
 }
 
@@ -93,7 +107,10 @@ export async function processDocumentOCR(apiKey: string, base64Image: string, mi
             mimeType: mimeType,
           }
         }
-      ]
+      ],
+      config: {
+        responseMimeType: "application/json",
+      }
     });
     const text = response.text?.replace(/```json/g, '').replace(/```/g, '') || "{}";
     return JSON.parse(text);
@@ -165,8 +182,21 @@ export async function executeDataAnalystChat(apiKey: string, question: string) {
     const text = lastStep?.model_turn?.parts ? lastStep.model_turn.parts[0]?.text?.replace(/```json/g, "").replace(/```/g, "") : lastStep?.model_turn?.parts?.at(0)?.text?.replace(/```json/g, "").replace(/```/g, "") || "{}";
     return JSON.parse(text.trim());
   } catch (error) {
-    console.error("Gemini Chat error:", error);
-    throw new Error("Failed to process chat with data");
+    console.warn("Gemini 3.1 Pro Analyst chat error, attempting fallback to gemini-2.5-flash:", error);
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+      const text = response.text?.replace(/```json/g, '').replace(/```/g, '') || "{}";
+      return JSON.parse(text);
+    } catch (fallbackError) {
+      console.error("Gemini chat fallback failed:", fallbackError);
+      throw new Error("Failed to process chat with data");
+    }
   }
 }
 
@@ -206,7 +236,20 @@ export async function calculateLCLBinPacking(apiKey: string, containerSpec: any,
     const text = lastStep?.model_turn?.parts ? lastStep.model_turn.parts[0]?.text?.replace(/```json/g, "").replace(/```/g, "") || "{}" : lastStep?.model_turn?.parts?.at(0)?.text?.replace(/```json/g, "").replace(/```/g, "") || "{}";
     return JSON.parse(text.trim());
   } catch (error) {
-    console.error("Gemini BinPacking error:", error);
-    throw new Error("Failed to calculate LCL bin packing");
+    console.warn("Gemini 3.1 Pro BinPacking error, attempting fallback to gemini-2.5-flash:", error);
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+      const text = response.text?.replace(/```json/g, '').replace(/```/g, '') || "{}";
+      return JSON.parse(text);
+    } catch (fallbackError) {
+      console.error("Gemini BinPacking fallback failed:", fallbackError);
+      throw new Error("Failed to calculate LCL bin packing");
+    }
   }
 }
