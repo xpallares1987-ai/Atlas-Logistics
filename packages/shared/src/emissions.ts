@@ -142,7 +142,11 @@ export function estimateDistance(
  */
 export function calculateScope3Emissions(input: EmissionsInput): EmissionsResult {
   const { mode, weightKg, isReefer } = input;
-  
+
+  if (!Number.isFinite(weightKg) || weightKg <= 0) {
+    throw new Error("weightKg must be a positive number");
+  }
+
   // Calculate or estimate distance
   let distanceKm = input.distanceKm;
   let isDistanceEstimated = false;
