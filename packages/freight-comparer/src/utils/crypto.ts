@@ -35,9 +35,9 @@ export async function decryptData(
   );
 
   const plainBuf = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: iv as any },
+    { name: "AES-GCM", iv: iv as BufferSource },
     aesKey,
-    cipher as any,
+    cipher as BufferSource,
   );
 
   return JSON.parse(new TextDecoder().decode(plainBuf));
