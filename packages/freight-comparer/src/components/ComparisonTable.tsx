@@ -25,10 +25,7 @@ import {
 } from "lucide-react";
 import { FreightRate, TranslationSet } from "../types";
 import * as XLSX from "xlsx";
-import {
-  estimateCarbonFootprint,
-  getCarbonRating,
-} from "../services/carbonService";
+import { estimateCarbonFootprint } from "../services/carbonService";
 import {
   convertCurrency,
   formatCurrency,
@@ -256,8 +253,8 @@ export default function ComparisonTable({
   const sortedRates = useMemo(() => {
     return [...filteredRates].sort((a, b) => {
       if (sortKey === "carbon") {
-        const valA = estimateCarbonFootprint(a);
-        const valB = estimateCarbonFootprint(b);
+        const valA = estimateCarbonFootprint(a).co2eKg;
+        const valB = estimateCarbonFootprint(b).co2eKg;
         return sortAsc ? valA - valB : valB - valA;
       }
 
@@ -1516,8 +1513,7 @@ export default function ComparisonTable({
                       {/* CO2 Impact */}
                       <td className="p-4 text-center border-r border-slate-200">
                         {(() => {
-                          const co2 = estimateCarbonFootprint(rate);
-                          const rating = getCarbonRating(co2);
+                          const { co2eKg, rating } = estimateCarbonFootprint(rate);
                           return (
                             <div className="flex flex-col items-center gap-1">
                               <div
@@ -1525,7 +1521,7 @@ export default function ComparisonTable({
                                 title={`Rating: ${rating}`}
                               ></div>
                               <span className="text-[10px] font-bold text-slate-700">
-                                {co2.toFixed(0)} kg
+                                {co2eKg.toFixed(0)} kg
                               </span>
                               <span className="text-[8px] text-slate-400 uppercase font-black">
                                 Est. CO2

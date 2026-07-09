@@ -25,6 +25,26 @@ describe("Scope 3 Carbon Footprint Calculator", () => {
       expect(transatlantic.distance).toBe(6500);
     });
 
+    it("should handle reverse lanes symmetrically", () => {
+      // Europe to China (reverse CN-EU)
+      const barcelonaToYantian = estimateDistance("Barcelona", "Yantian", "OCEAN");
+      expect(barcelonaToYantian.distance).toBe(18000);
+
+      const barcelonaToNingbo = estimateDistance("Barcelona", "Ningbo", "OCEAN");
+      expect(barcelonaToNingbo.distance).toBe(18000);
+
+      const rotterdamToShanghai = estimateDistance("Rotterdam", "Shanghai", "OCEAN");
+      expect(rotterdamToShanghai.distance).toBe(18000);
+
+      // US to China (reverse CN-US)
+      const laxToShanghai = estimateDistance("LAX", "Shanghai", "OCEAN");
+      expect(laxToShanghai.distance).toBe(11500);
+
+      // US to Europe (reverse EU-US)
+      const nyToRotterdam = estimateDistance("NY", "Rotterdam", "OCEAN");
+      expect(nyToRotterdam.distance).toBe(6500);
+    });
+
     it("should fallback to default distances for unrecognized lanes", () => {
       const unknownOcean = estimateDistance("XYZ", "ABC", "OCEAN");
       expect(unknownOcean.distance).toBe(8000);

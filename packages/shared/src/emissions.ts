@@ -72,27 +72,57 @@ export function estimateDistance(
   const originTokens = new Set(normalizedOrigin.split(/[^A-Z0-9]+/).filter(Boolean));
   const destTokens = new Set(normalizedDest.split(/[^A-Z0-9]+/).filter(Boolean));
 
-  // Try China to Europe lanes
-  if (
-    (originTokens.has("CN") || normalizedOrigin.includes("SHANGHAI") || normalizedOrigin.includes("NINGBO")) &&
-    (destTokens.has("EU") || normalizedDest.includes("ROTTERDAM") || normalizedDest.includes("HAMBURG") || destTokens.has("ES") || destTokens.has("FR") || destTokens.has("DE"))
-  ) {
+  const isChinaPort = (tokens: Set<string>, normalized: string) =>
+    tokens.has("CN") ||
+    normalized.includes("SHANGHAI") ||
+    normalized.includes("NINGBO") ||
+    normalized.includes("YANTIAN") ||
+    normalized.includes("GUANGZHOU") ||
+    normalized.includes("QINGDAO") ||
+    normalized.includes("TIANJIN");
+
+  const isEuropePort = (tokens: Set<string>, normalized: string) =>
+    tokens.has("EU") ||
+    tokens.has("ES") ||
+    tokens.has("FR") ||
+    tokens.has("DE") ||
+    tokens.has("GB") ||
+    normalized.includes("ROTTERDAM") ||
+    normalized.includes("HAMBURG") ||
+    normalized.includes("BARCELONA") ||
+    normalized.includes("VALENCIA") ||
+    normalized.includes("FELIXSTOWE") ||
+    normalized.includes("ANTWERP");
+
+  // Try China to/from Europe lanes (symmetric)
+  if (isChinaPort(originTokens, normalizedOrigin) && isEuropePort(destTokens, normalizedDest)) {
+    return { distance: LANE_DISTANCES["CN-EU"][mode], estimated: true };
+  }
+  if (isEuropePort(originTokens, normalizedOrigin) && isChinaPort(destTokens, normalizedDest)) {
     return { distance: LANE_DISTANCES["CN-EU"][mode], estimated: true };
   }
 
-  // Try China to US lanes
-  if (
-    (originTokens.has("CN") || normalizedOrigin.includes("SHANGHAI") || normalizedOrigin.includes("NINGBO")) &&
-    (destTokens.has("US") || destTokens.has("LAX") || normalizedDest.includes("LONG BEACH") || destTokens.has("NY"))
-  ) {
+  const isUSPort = (tokens: Set<string>, normalized: string) =>
+    tokens.has("US") ||
+    tokens.has("LAX") ||
+    tokens.has("NY") ||
+    normalized.includes("LONG BEACH") ||
+    normalized.includes("LOS ANGELES") ||
+    normalized.includes("NEW YORK");
+
+  // Try China to US lanes (symmetric)
+  if (isChinaPort(originTokens, normalizedOrigin) && isUSPort(destTokens, normalizedDest)) {
+    return { distance: LANE_DISTANCES["CN-US"][mode], estimated: true };
+  }
+  if (isUSPort(originTokens, normalizedOrigin) && isChinaPort(destTokens, normalizedDest)) {
     return { distance: LANE_DISTANCES["CN-US"][mode], estimated: true };
   }
 
-  // Try Europe to US lanes
-  if (
-    (originTokens.has("EU") || normalizedOrigin.includes("ROTTERDAM") || normalizedOrigin.includes("HAMBURG") || originTokens.has("GB") || originTokens.has("ES")) &&
-    (destTokens.has("US") || destTokens.has("NY") || destTokens.has("LAX"))
-  ) {
+  // Try Europe to US lanes (symmetric)
+  if (isEuropePort(originTokens, normalizedOrigin) && isUSPort(destTokens, normalizedDest)) {
+    return { distance: LANE_DISTANCES["EU-US"][mode], estimated: true };
+  }
+  if (isUSPort(originTokens, normalizedOrigin) && isEuropePort(destTokens, normalizedDest)) {
     return { distance: LANE_DISTANCES["EU-US"][mode], estimated: true };
   }
 

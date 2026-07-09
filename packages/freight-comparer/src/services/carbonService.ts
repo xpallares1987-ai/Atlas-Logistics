@@ -1,16 +1,19 @@
 /**
  * @license
- * SPDX-License-Identifier: Apache-2.5
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { FreightRate } from "../types";
 import { calculateScope3Emissions, TransportMode } from "@atlas/ui";
 
 /**
- * Calculates estimated CO2 emissions (kg) for a freight route using the standardized Scope 3 calculator.
+ * Calculates estimated CO2 emissions for a freight route using the standardized Scope 3 calculator.
+ * Returns both the kg CO2e value and the mode-aware carbon rating from the Scope 3 result.
  * Industrialization Phase 4: Environmental sustainability tracking.
  */
-export function estimateCarbonFootprint(rate: FreightRate): number {
+export function estimateCarbonFootprint(
+  rate: FreightRate,
+): { co2eKg: number; rating: "green" | "amber" | "red" } {
   // Determine transport mode based on carrier name
   const carrierLower = (rate.carrier || "").toLowerCase();
   let mode: TransportMode = "OCEAN";
@@ -32,7 +35,7 @@ export function estimateCarbonFootprint(rate: FreightRate): number {
     destination: rate.pod,
   });
 
-  return result.co2eKg;
+  return { co2eKg: result.co2eKg, rating: result.rating };
 }
 
 /**
