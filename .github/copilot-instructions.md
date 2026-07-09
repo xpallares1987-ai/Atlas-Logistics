@@ -69,3 +69,18 @@ firebase dataconnect:sdk:generate
 
 - The dashboard package has explicit AI guidance in `packages/dashboard/AGENTS.md` and `packages/dashboard/CLAUDE.md`: treat its Next.js version as non-standard and check `node_modules/next/dist/docs/` before making framework-specific changes.
 - Preserve the CI permission baseline in `.github/workflows/ci.yml`: workflows are expected to keep `permissions: contents: read`.
+
+## Personalized Tips and Monorepo Learnings
+
+### 1. Schema-Compliant GitHub MCP Server Configurations
+- **Standard:** GitHub MCP settings require all server definitions to have a valid `"type"` (e.g., `"stdio"`, `"http"`, `"sse"`) and explicit `"tools"` configuration (e.g., `["*"]` or an array of specific tool names). Schema validation will fail if these are omitted.
+
+### 2. Validating CommonJS vs. ESM Compatibility in Overrides
+- **Standard:** When overriding transitive dependencies globally via `pnpm.overrides`, check if any packages in the dependency tree require CommonJS imports of that library. For example, `uuid@12+` dropped CJS support and breaks `zeebe-node` imports. Pin the override to the highest secure previous major version (e.g., `^11.1.1` for `uuid`) to avoid runtime crashes.
+
+### 3. Workspace-Authoritative Dependency & Lockfile Resolution
+- **Standard:** Always place dependency overrides in the root `package.json` under `pnpm.overrides` rather than in individual package directories or `.npmrc`. Run a root-level `pnpm install` to regenerate the workspace lockfile. For non-pnpm directories (e.g., `functions/` which uses npm), delete and regenerate their local lockfile (`package-lock.json`) after updating overrides to prevent CI install mismatches.
+
+### 4. DOM Environments in Package-Level Unit Tests
+- **Standard:** Any Vitest unit tests referencing browser or DOM globals (such as `document` or `window`) must explicitly declare a DOM environment (e.g., jsdom or happy-dom) via a `// @vitest-environment jsdom` comment at the top of the test file, or via local `vitest.config.ts` configuration, to prevent runtime `ReferenceError` errors in CI/CD.
+
