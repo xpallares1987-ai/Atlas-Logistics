@@ -31,14 +31,20 @@ export function parseCsv(content: string): ParseResult {
 // ─── Excel parsing ────────────────────────────────────────────────────────────
 
 export async function parseExcel(buffer: ArrayBuffer): Promise<ParseResult> {
-  const { read, utils } = await import("xlsx");
-  const wb = read(buffer, { type: "array" });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const raw: unknown[][] = utils.sheet_to_json(ws, { header: 1, defval: "" });
+  const { default: ExcelJS } = await import("exceljs");
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer as ArrayBuffer & Buffer);
+  const ws = wb.worksheets[0];
+
+  const raw: unknown[][] = [];
+  ws.eachRow((row) => {
+    // ExcelJS row.values is 1-indexed; index 0 is null
+    raw.push((row.values as unknown[]).slice(1));
+  });
 
   if (raw.length < 2) return { columns: [], rows: [], rowCount: 0 };
 
-  const headers = (raw[0] as string[]).map((h) => String(h).trim());
+  const headers = (raw[0] as unknown[]).map((h) => String(h ?? "").trim());
   const rows: Record<string, string>[] = raw.slice(1).map((row) => {
     const r: Record<string, string> = {};
     headers.forEach((h, i) => {

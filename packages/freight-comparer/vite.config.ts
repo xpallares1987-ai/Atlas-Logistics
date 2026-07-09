@@ -33,7 +33,7 @@ export default defineConfig(() => {
             if (id.includes("three") || id.includes("@react-three"))
               return "vendor-three";
             if (id.includes("firebase")) return "vendor-firebase";
-            if (id.includes("xlsx")) return "vendor-xlsx";
+            if (id.includes("exceljs")) return "vendor-exceljs";
             if (id.includes("@xpallares1987-ai")) return "vendor-ui";
             if (id.includes("react") || id.includes("react-dom"))
               return "vendor-react";

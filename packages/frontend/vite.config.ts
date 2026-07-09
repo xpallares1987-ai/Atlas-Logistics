@@ -49,7 +49,7 @@ export default defineConfig({
           if (id.includes("three") || id.includes("@react-three"))
             return "vendor-three";
           if (id.includes("firebase")) return "vendor-firebase";
-          if (id.includes("xlsx")) return "vendor-xlsx";
+          if (id.includes("exceljs")) return "vendor-exceljs";
           if (id.includes("bpmn") || id.includes("camunda"))
             return "vendor-bpmn";
           if (id.includes("d3")) return "vendor-d3";
