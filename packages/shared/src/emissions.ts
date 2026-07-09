@@ -69,26 +69,29 @@ export function estimateDistance(
   const normalizedOrigin = (origin || "").toUpperCase();
   const normalizedDest = (destination || "").toUpperCase();
 
+  const originTokens = new Set(normalizedOrigin.split(/[^A-Z0-9]+/).filter(Boolean));
+  const destTokens = new Set(normalizedDest.split(/[^A-Z0-9]+/).filter(Boolean));
+
   // Try China to Europe lanes
   if (
-    (normalizedOrigin.includes("CN") || normalizedOrigin.includes("SHANGHAI") || normalizedOrigin.includes("NINGBO")) &&
-    (normalizedDest.includes("EU") || normalizedDest.includes("ROTTERDAM") || normalizedDest.includes("HAMBURG") || normalizedDest.includes("ES") || normalizedDest.includes("FR") || normalizedDest.includes("DE"))
+    (originTokens.has("CN") || normalizedOrigin.includes("SHANGHAI") || normalizedOrigin.includes("NINGBO")) &&
+    (destTokens.has("EU") || normalizedDest.includes("ROTTERDAM") || normalizedDest.includes("HAMBURG") || destTokens.has("ES") || destTokens.has("FR") || destTokens.has("DE"))
   ) {
     return { distance: LANE_DISTANCES["CN-EU"][mode], estimated: true };
   }
 
   // Try China to US lanes
   if (
-    (normalizedOrigin.includes("CN") || normalizedOrigin.includes("SHANGHAI") || normalizedOrigin.includes("NINGBO")) &&
-    (normalizedDest.includes("US") || normalizedDest.includes("LAX") || normalizedDest.includes("LONG BEACH") || normalizedDest.includes("NY"))
+    (originTokens.has("CN") || normalizedOrigin.includes("SHANGHAI") || normalizedOrigin.includes("NINGBO")) &&
+    (destTokens.has("US") || destTokens.has("LAX") || normalizedDest.includes("LONG BEACH") || destTokens.has("NY"))
   ) {
     return { distance: LANE_DISTANCES["CN-US"][mode], estimated: true };
   }
 
   // Try Europe to US lanes
   if (
-    (normalizedOrigin.includes("EU") || normalizedOrigin.includes("ROTTERDAM") || normalizedOrigin.includes("HAMBURG") || normalizedOrigin.includes("GB") || normalizedOrigin.includes("ES")) &&
-    (normalizedDest.includes("US") || normalizedDest.includes("NY") || normalizedDest.includes("LAX"))
+    (originTokens.has("EU") || normalizedOrigin.includes("ROTTERDAM") || normalizedOrigin.includes("HAMBURG") || originTokens.has("GB") || originTokens.has("ES")) &&
+    (destTokens.has("US") || destTokens.has("NY") || destTokens.has("LAX"))
   ) {
     return { distance: LANE_DISTANCES["EU-US"][mode], estimated: true };
   }
