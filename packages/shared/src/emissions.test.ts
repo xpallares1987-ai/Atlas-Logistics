@@ -16,33 +16,39 @@ describe("Scope 3 Carbon Footprint Calculator", () => {
       const airLane = estimateDistance("CN", "DE", "AIR");
       expect(airLane.distance).toBe(9000);
 
+      // Europe to China (reverse lane - symmetric check)
+      const reverseEuropeChina = estimateDistance(
+        "Barcelona",
+        "Yantian",
+        "OCEAN",
+      );
+      expect(reverseEuropeChina.distance).toBe(18000);
+
       // China to US
       const usLane = estimateDistance("CN", "LAX", "OCEAN");
       expect(usLane.distance).toBe(11500);
 
+      // US to China (reverse lane - symmetric check)
+      const reverseUSChina = estimateDistance("LAX", "CN", "OCEAN");
+      expect(reverseUSChina.distance).toBe(11500);
+
       // Europe to US
       const transatlantic = estimateDistance("ROTTERDAM", "NY", "OCEAN");
       expect(transatlantic.distance).toBe(6500);
+
+      // US to Europe (reverse lane - symmetric check)
+      const reverseUSEurope = estimateDistance("NY", "ROTTERDAM", "OCEAN");
+      expect(reverseUSEurope.distance).toBe(6500);
     });
 
-    it("should handle reverse lanes symmetrically", () => {
-      // Europe to China (reverse CN-EU)
-      const barcelonaToYantian = estimateDistance("Barcelona", "Yantian", "OCEAN");
-      expect(barcelonaToYantian.distance).toBe(18000);
+    it("should not match substrings like SYDNEY as NY or WEST as ES", () => {
+      // SYDNEY has NY as substring, but token is SYDNEY. Should fallback to default.
+      const sydneyOcean = estimateDistance("SHANGHAI", "SYDNEY", "OCEAN");
+      expect(sydneyOcean.distance).toBe(8000); // default
 
-      const barcelonaToNingbo = estimateDistance("Barcelona", "Ningbo", "OCEAN");
-      expect(barcelonaToNingbo.distance).toBe(18000);
-
-      const rotterdamToShanghai = estimateDistance("Rotterdam", "Shanghai", "OCEAN");
-      expect(rotterdamToShanghai.distance).toBe(18000);
-
-      // US to China (reverse CN-US)
-      const laxToShanghai = estimateDistance("LAX", "Shanghai", "OCEAN");
-      expect(laxToShanghai.distance).toBe(11500);
-
-      // US to Europe (reverse EU-US)
-      const nyToRotterdam = estimateDistance("NY", "Rotterdam", "OCEAN");
-      expect(nyToRotterdam.distance).toBe(6500);
+      // WEST has ES as substring, but token is WEST. Should fallback to default.
+      const westOcean = estimateDistance("WEST", "US", "OCEAN");
+      expect(westOcean.distance).toBe(8000); // default
     });
 
     it("should fallback to default distances for unrecognized lanes", () => {

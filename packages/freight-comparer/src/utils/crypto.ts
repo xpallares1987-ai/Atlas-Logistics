@@ -27,7 +27,7 @@ export async function decryptData(
   );
 
   const aesKey = await crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: salt, iterations: 150000, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as any, iterations: 150000, hash: "SHA-256" },
     baseKey,
     { name: "AES-GCM", length: 256 },
     false,
@@ -35,9 +35,9 @@ export async function decryptData(
   );
 
   const plainBuf = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: iv },
+    { name: "AES-GCM", iv: iv as any },
     aesKey,
-    cipher,
+    cipher as any,
   );
 
   return JSON.parse(new TextDecoder().decode(plainBuf));
