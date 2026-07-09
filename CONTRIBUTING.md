@@ -1,24 +1,31 @@
-# Contributing to Atlas-Logistics
+# Contributing to Atlas Logistics
 
-Gracias por tu interés en contribuir a **Atlas-Logistics**. Este proyecto es un **repositorio independiente** dentro del ecosistema **Control Tower**.
+¡Gracias por tu interés en contribuir a Atlas Logistics! Al ser un proyecto de tipo monorepo (Turborepo) con integraciones complejas de base de datos e IA, hemos establecido las siguientes pautas para asegurar la estabilidad del proyecto.
 
-## Proceso de Desarrollo
+## Flujo de Trabajo (Git Flow)
 
-### 1. Requisitos
-- **Node.js v20** y **pnpm v10**.
-- **Docker Desktop** para servicios locales.
+1. **Ramificación**: Crea una rama a partir de `main` siguiendo la nomenclatura `tipo/descripcion-corta` (ej. `feat/gemini-integration`, `fix/camunda-worker`).
+2. **Commits**: Utilizamos `commitlint`. Asegúrate de que tus mensajes sigan las [Conventional Commits](https://www.conventionalcommits.org/). Por ejemplo: `feat(dashboard): add predictive ETA badge`.
+3. **Pull Requests**: Abre la PR contra `main`. Tu PR debe pasar todos los tests y el linter (`pnpm run lint`) en el pipeline de GitHub Actions.
 
-### 2. Flujo de Trabajo
-- Usa **Conventional Commits** (`feat:`, `fix:`, `chore:`, `docs:`).
-- Las ramas deben seguir el patrón `feat/nombre-cambio` o `fix/descripcion-bug`.
+## Desarrollo en el Monorepo
 
-### 3. Estándares de Código
-- **TypeScript:** Tipado estricto mandatorio.
-- **Drizzle:** Los cambios en el esquema deben generar migraciones mediante `pnpm run db:generate`.
+Al trabajar en un paquete específico (por ejemplo, el UI), **NO** instales dependencias navegando al directorio del paquete. Utiliza siempre `pnpm` desde la raíz con el flag `--filter`:
 
-### 4. Validación
-- Ejecuta `pnpm run test` antes de enviar cambios.
-- Los commits son validados mediante Husky y lint-staged.
+```bash
+# Añadir una dependencia solo a un paquete:
+pnpm add lucide-react --filter @atlas/ui
+```
 
-## Licencia
-Al contribuir, aceptas que tu código sea licenciado bajo la licencia **MIT**.
+### Reglas de Modificación de Base de Datos
+- La base de datos es gestionada por **Firebase Data Connect** hacia Google Cloud SQL.
+- Si necesitas alterar tablas, edita los archivos `.gql` en la carpeta `dataconnect/schema/`.
+- Tras realizar cambios, DEBES regenerar el SDK de cliente para que TypeScript atrape los errores:
+  ```bash
+  npx firebase dataconnect:sdk:generate
+  ```
+- **Prohibido**: No edites manualmente ningún archivo dentro de las carpetas `dataconnect-generated`.
+
+## Estilo y Diseño Visual
+- Atlas Logistics utiliza un estilo riguroso de **Dark Premium Glassmorphism**.
+- Por favor, utiliza los tokens CSS globales definidos en `packages/ui/src/index.css`. No abuses de colores arbitrarios; confía en los fondos semitransparentes, los bordes sutiles y los efectos de desenfoque (`backdrop-blur`).

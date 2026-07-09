@@ -1,72 +1,66 @@
-# Atlas Logistics (SCM MVP)
+# Atlas Logistics 🌍🚢
 
-[![CI](https://github.com/xpallares1987-ai/Atlas-Logistics/actions/workflows/ci.yml/badge.svg)](https://github.com/xpallares1987-ai/Atlas-Logistics/actions/workflows/ci.yml)
+Atlas Logistics es una **Súper-App** integral para la gestión de la cadena de suministro (SCM). Ofrece herramientas avanzadas para transitarios, navieras y operadores logísticos, centralizando cotizaciones de fletes, gestión de embarques e inteligencia predictiva impulsada por IA.
 
-Sistema de gestión de cadena de suministro (SCM) y Freight Forwarding MVP. Este proyecto integra orquestación de procesos mediante **Zeebe (Camunda 8)**, persistencia robusta con **Drizzle ORM** y una arquitectura de alto rendimiento basada en **Fastify**.
+![Atlas Logistics Dashboard](https://img.shields.io/badge/Status-Active-success) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-## Características Principales
+## 🏗️ Arquitectura y Tecnologías
 
-- **Orquestación de Procesos:** Integración nativa con Zeebe para el flujo de trabajo de carga.
-- **Arquitectura Async:** Backend de alto rendimiento construido sobre Fastify.
-- **Persistencia Type-Safe:** Uso de Drizzle ORM para consultas SQL seguras y eficientes.
-- **Frontend Interactivo:** Interfaz basada en Vite con soporte de modelado BPMN integrado.
-- **Infraestructura Dockerizada:** Entorno completo con PostgreSQL y Redis mediante Docker Compose.
-- **Mantenimiento Automatizado:** Scripts integrados para la poda automatizada de logs de auditoría antiguos (mayores de 90 días) para mantener un alto rendimiento de consultas.
+El proyecto ha sido refactorizado recientemente en un **Monorepo (Turborepo)**, unificando múltiples submódulos bajo una misma súper-aplicación React (Vite).
 
-## Stack Tecnológico
+### Core Stack
+- **Frontend:** React, Vite, React Router, TailwindCSS (Dark Premium Glassmorphism).
+- **Backend / Database:** Google Cloud SQL (PostgreSQL) orquestado vía **Firebase DataConnect** (GraphQL).
+- **Orquestación de Procesos (BPMN):** Camunda 8 (Zeebe) conectado mediante Firebase Functions.
+- **Inteligencia Predictiva:** Google Gen AI (Gemini 2.5 Flash) para cálculos de ETA predictivo y riesgos.
+- **Gestión de Paquetes:** `pnpm` y Turborepo para cachés ultrarrápidas.
 
-- **Backend:** Fastify (TypeScript), Zod.
-- **Frontend:** Vite, bpmn-js.
-- **ORM:** Drizzle ORM (PostgreSQL).
-- **Cache:** Redis (ioredis).
-- **Orquestación:** Zeebe (zeebe-node).
-- **Testing:** Vitest.
-- **Gestor de Paquetes:** pnpm v10.
+## 📦 Estructura del Monorepo
 
-## Guía de Inicio
+```
+Atlas-Logistics/
+├── packages/
+│   ├── frontend/          # Host App (Motor principal)
+│   ├── dashboard/         # Panel inteligente SCM
+│   ├── freight-comparer/  # Cotizador de Fletes (Tarifas y Excel)
+│   ├── bpmn-modeler/      # Modelador de procesos BPMN 2.0 (Camunda)
+│   ├── ui/                # Sistema de diseño (Componentes, i18n, Zustand)
+│   └── shared/            # Tipos, esquemas y utilidades compartidas
+├── dataconnect/           # Esquema de la base de datos (GraphQL -> Cloud SQL)
+└── functions/             # Firebase Functions (Workers de Camunda y Gemini AI)
+```
 
-### Requisitos
+## 🚀 Inicio Rápido (Desarrollo Local)
 
-- **Node.js:** v20+ (LTS).
-- **pnpm:** v10+.
-- **Docker & Docker Compose:** Para servicios de base de datos y cache.
+### Prerrequisitos
+- Node.js >= 18
+- `pnpm` versión 10+
+- Firebase CLI (`npm install -g firebase-tools`)
 
 ### Instalación
 
+1. Clona el repositorio e instala las dependencias globales:
 ```bash
+git clone https://github.com/tu-usuario/atlas-logistics.git
+cd atlas-logistics
 pnpm install
 ```
 
-### Infraestructura
-
-Levanta los servicios necesarios:
-
+2. Genera los SDKs de Firebase Data Connect (PostgreSQL):
 ```bash
-docker-compose up -d
+npx firebase dataconnect:sdk:generate
 ```
 
-### Desarrollo
-
+3. Levanta la aplicación localmente (esto arrancará el `@atlas/frontend` y enlazará los demás paquetes):
 ```bash
-pnpm run dev
+pnpm run dev --filter @atlas/frontend
 ```
 
-## Mantenimiento
+## 📖 Documentación Adicional
+- [Guía de Contribución](CONTRIBUTING.md)
+- [Arquitectura (ARCHITECTURE.md)](ARCHITECTURE.md)
+- [Historial de Cambios](CHANGELOG.md)
+- [Políticas de Seguridad](SECURITY.md)
 
-Este repositorio es un proyecto independiente dentro del ecosistema **Control Tower** y sigue los estándares definidos en `Source/GEMINI.md`.
-
-### Comandos de Calidad
-
-```bash
-pnpm run lint          # Verificación de tipos y estilo (ESLint)
-pnpm run test          # Ejecución de pruebas unitarias
-pnpm run build         # Compilación de frontend y backend
-pnpm run db:clean-logs # Mantenimiento: Poda de logs de auditoría antiguos (90 días)
-```
-
-## Visión 2027: Resiliencia SCM
-El proyecto escala hacia una arquitectura con JWT, documentación OpenAPI automática y balanceo dinámico de workers Zeebe. Consulta el [Roadmap Maestro](../ROADMAP.md) para más detalles.
-
-## Licencia
-
-MIT – Parte del ecosistema **Control Tower**.
+## 🤝 Soporte
+Si tienes dudas o encuentras problemas con la integración de Camunda o los conectores de Firebase, por favor, abre un Issue o revisa la documentación de Firebase DataConnect.

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_LastMile" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.16.0">
+  <bpmn:process id="Process_LastMileDelivery" name="Seguimiento Última Milla" isExecutable="true">
+    <bpmn:startEvent id="Start_LastMile" name="Carga Liberada en Puerto/Aeropuerto">
+      <bpmn:outgoing>Flow_LM_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_Assign" name="Asignar Transportista Terrestre">
+      <bpmn:incoming>Flow_LM_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_LM_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_LM_1" sourceRef="Start_LastMile" targetRef="Task_Assign" />
+    <bpmn:task id="Task_Pickup" name="Recogida de Carga">
+      <bpmn:incoming>Flow_LM_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_LM_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_LM_2" sourceRef="Task_Assign" targetRef="Task_Pickup" />
+    <bpmn:task id="Task_Delivery" name="Entrega en Destino Final">
+      <bpmn:incoming>Flow_LM_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_LM_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_LM_3" sourceRef="Task_Pickup" targetRef="Task_Delivery" />
+    <bpmn:task id="Task_POD" name="Confirmación de Entrega (POD)">
+      <bpmn:incoming>Flow_LM_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_LM_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_LM_4" sourceRef="Task_Delivery" targetRef="Task_POD" />
+    <bpmn:endEvent id="End_LastMile" name="Servicio Completado">
+      <bpmn:incoming>Flow_LM_5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_LM_5" sourceRef="Task_POD" targetRef="End_LastMile" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_LastMile">
+    <bpmndi:BPMNPlane id="BPMNPlane_LastMile" bpmnElement="Process_LastMileDelivery">
+      <bpmndi:BPMNShape id="Start_LastMile_di" bpmnElement="Start_LastMile">
+        <dc:Bounds x="180" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Assign_di" bpmnElement="Task_Assign">
+        <dc:Bounds x="270" y="78" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Pickup_di" bpmnElement="Task_Pickup">
+        <dc:Bounds x="430" y="78" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Delivery_di" bpmnElement="Task_Delivery">
+        <dc:Bounds x="590" y="78" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_POD_di" bpmnElement="Task_POD">
+        <dc:Bounds x="750" y="78" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_LastMile_di" bpmnElement="End_LastMile">
+        <dc:Bounds x="910" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_LM_1_di" bpmnElement="Flow_LM_1">
+        <di:waypoint x="216" y="118" />
+        <di:waypoint x="270" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_LM_2_di" bpmnElement="Flow_LM_2">
+        <di:waypoint x="370" y="118" />
+        <di:waypoint x="430" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_LM_3_di" bpmnElement="Flow_LM_3">
+        <di:waypoint x="530" y="118" />
+        <di:waypoint x="590" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_LM_4_di" bpmnElement="Flow_LM_4">
+        <di:waypoint x="690" y="118" />
+        <di:waypoint x="750" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_LM_5_di" bpmnElement="Flow_LM_5">
+        <di:waypoint x="850" y="118" />
+        <di:waypoint x="910" y="118" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

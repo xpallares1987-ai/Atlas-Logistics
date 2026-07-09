@@ -1,0 +1,44 @@
+name: Rotate ENCRYPTED_DATA Secret
+
+on:
+  schedule:
+    - cron: "0 0 1 * *" # Runs at 00:00 UTC on the 1st of every month
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+
+permissions:
+  contents: read
+
+jobs:
+  rotate_secret:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate new secret value
+        id: generate
+        run: |
+          NEW_SECRET=$(openssl rand -base64 32)
+          echo "::add-mask::$NEW_SECRET"
+          echo "new_secret=$NEW_SECRET" >> $GITHUB_OUTPUT
+
+      - name: Rotate ENCRYPTED_DATA at org level
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          gh secret set ENCRYPTED_DATA \
+            --org LogisticOPEX \
+            --visibility all \
+            -b "${{ steps.generate.outputs.new_secret }}"
+
+      - name: Rotate ENCRYPTED_DATA at repo level
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          gh secret set ENCRYPTED_DATA \
+            --repo ${{ github.repository }} \
+            -b "${{ steps.generate.outputs.new_secret }}"
+
+      - name: Confirm rotation
+        run: |
+          echo "ENCRYPTED_DATA rotated for org LogisticOPEX and repo ${{ github.repository }} at $(date -u)"

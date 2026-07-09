@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:App="http://App" id="Definitions_CrossTrade" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collab_CT">
+    <bpmn:participant id="Part_App_Origin" name="App Origin / Agent" processRef="Proc_CT_Origin" />
+    <bpmn:participant id="Part_App_Control" name="App Spain (Control File)" processRef="Proc_CT_Control" />
+    <bpmn:participant id="Part_App_Dest" name="App Destination / Agent" processRef="Proc_CT_Dest" />
+    <bpmn:messageFlow id="Msg_CT_1" sourceRef="Part_App_Origin" targetRef="CT_START" />
+    <bpmn:messageFlow id="Msg_CT_2" sourceRef="CT_INSTRUCT_DEST" targetRef="Part_App_Dest" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Proc_CT_Control" isExecutable="false">
+    <bpmn:startEvent id="CT_START" name="Instrucciones Origen">
+      <bpmn:outgoing>F1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="CT_OPEN_FILE" name="Abrir Expediente CT" App:icon="fa-solid fa-folder-open" App:time="10" App:status="normal">
+      <bpmn:incoming>F1</bpmn:incoming>
+      <bpmn:outgoing>F2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="CT_AUDIT_DOCS" name="Auditar Documentos HBL" App:icon="fa-solid fa-file-circle-check" App:time="15" App:status="critical">
+      <bpmn:incoming>F2</bpmn:incoming>
+      <bpmn:outgoing>F3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sendTask id="CT_INSTRUCT_DEST" name="Instruir Agente Destino" App:icon="fa-solid fa-paper-plane" App:time="5" App:status="normal">
+      <bpmn:incoming>F3</bpmn:incoming>
+      <bpmn:outgoing>F4</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="CT_END" name="CT Coordinado">
+      <bpmn:incoming>F4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="F1" sourceRef="CT_START" targetRef="CT_OPEN_FILE" />
+    <bpmn:sequenceFlow id="F2" sourceRef="CT_OPEN_FILE" targetRef="CT_AUDIT_DOCS" />
+    <bpmn:sequenceFlow id="F3" sourceRef="CT_AUDIT_DOCS" targetRef="CT_INSTRUCT_DEST" />
+    <bpmn:sequenceFlow id="F4" sourceRef="CT_INSTRUCT_DEST" targetRef="CT_END" />
+  </bpmn:process>
+
+  <bpmn:process id="Proc_CT_Origin" isExecutable="false" />
+  <bpmn:process id="Proc_CT_Dest" isExecutable="false" />
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_CT">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collab_CT">
+      <bpmndi:BPMNShape id="Part_App_Origin_di" bpmnElement="Part_App_Origin" isHorizontal="true"><dc:Bounds x="160" y="40" width="800" height="100" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Part_App_Control_di" bpmnElement="Part_App_Control" isHorizontal="true"><dc:Bounds x="160" y="180" width="800" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Part_App_Dest_di" bpmnElement="Part_App_Dest" isHorizontal="true"><dc:Bounds x="160" y="420" width="800" height="100" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CT_START_di" bpmnElement="CT_START"><dc:Bounds x="212" y="262" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CT_OPEN_FILE_di" bpmnElement="CT_OPEN_FILE"><dc:Bounds x="300" y="240" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CT_AUDIT_DOCS_di" bpmnElement="CT_AUDIT_DOCS"><dc:Bounds x="450" y="240" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CT_INSTRUCT_DEST_di" bpmnElement="CT_INSTRUCT_DEST"><dc:Bounds x="600" y="240" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CT_END_di" bpmnElement="CT_END"><dc:Bounds x="762" y="262" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="F1_di" bpmnElement="F1"><di:waypoint x="248" y="280" /><di:waypoint x="300" y="280" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F2_di" bpmnElement="F2"><di:waypoint x="400" y="280" /><di:waypoint x="450" y="280" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F3_di" bpmnElement="F3"><di:waypoint x="550" y="280" /><di:waypoint x="600" y="280" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F4_di" bpmnElement="F4"><di:waypoint x="700" y="280" /><di:waypoint x="762" y="280" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+

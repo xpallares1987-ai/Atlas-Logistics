@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:App="http://App" id="Definitions_DG" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Proc_DG_Approval" isExecutable="false">
+    <bpmn:startEvent id="DG_START" name="Solicitud Mercancía Peligrosa">
+      <bpmn:outgoing>D1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="DG_COLLECT" name="Validar MSDS / Clase" App:icon="fa-solid fa-file-shield" App:time="15" App:status="critical">
+      <bpmn:incoming>D1</bpmn:incoming>
+      <bpmn:outgoing>D2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="DG_HUGO_CHECK" name="Hugo AI: Validación Química" App:icon="fa-solid fa-gears" App:time="0" App:status="completed">
+      <bpmn:incoming>D2</bpmn:incoming>
+      <bpmn:outgoing>D3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="DG_CARRIER_REQ" name="Solicitar IMO a Naviera" App:icon="fa-solid fa-paper-plane" App:time="5" App:status="normal">
+      <bpmn:incoming>D3</bpmn:incoming>
+      <bpmn:outgoing>D4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="DG_END" name="Aprobación DG Confirmada">
+      <bpmn:incoming>D4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="D1" sourceRef="DG_START" targetRef="DG_COLLECT" />
+    <bpmn:sequenceFlow id="D2" sourceRef="DG_COLLECT" targetRef="DG_HUGO_CHECK" />
+    <bpmn:sequenceFlow id="D3" sourceRef="DG_HUGO_CHECK" targetRef="DG_CARRIER_REQ" />
+    <bpmn:sequenceFlow id="D4" sourceRef="DG_CARRIER_REQ" targetRef="DG_END" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_DG">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Proc_DG_Approval">
+      <bpmndi:BPMNShape id="DG_START_di" bpmnElement="DG_START"><dc:Bounds x="150" y="100" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DG_COLLECT_di" bpmnElement="DG_COLLECT"><dc:Bounds x="250" y="78" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DG_HUGO_CHECK_di" bpmnElement="DG_HUGO_CHECK"><dc:Bounds x="400" y="78" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DG_CARRIER_REQ_di" bpmnElement="DG_CARRIER_REQ"><dc:Bounds x="550" y="78" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DG_END_di" bpmnElement="DG_END"><dc:Bounds x="700" y="100" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="D1_di" bpmnElement="D1"><di:waypoint x="186" y="118" /><di:waypoint x="250" y="118" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="D2_di" bpmnElement="D2"><di:waypoint x="350" y="118" /><di:waypoint x="400" y="118" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="D3_di" bpmnElement="D3"><di:waypoint x="500" y="118" /><di:waypoint x="550" y="118" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="D4_di" bpmnElement="D4"><di:waypoint x="650" y="118" /><di:waypoint x="700" y="118" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+

@@ -1,25 +1,31 @@
-FROM node:20-alpine AS dev
+FROM node:22-alpine AS dev
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN apk add --no-cache git \
+    && npm install -g pnpm@10.0.0 \
+    && pnpm --version
 WORKDIR /app
+
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
-COPY BPMN-Modeler ./BPMN-Modeler
-COPY Freight-Comparer ./Freight-Comparer
-COPY Shipment-Dashboard ./Shipment-Dashboard
-COPY Atlas-Logistics ./Atlas-Logistics
+COPY src ./src
 COPY packages ./packages
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install
-EXPOSE 3000
-CMD ["pnpm", "--filter", "atlas-logistics", "dev"]
+
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store CI=true pnpm install --no-frozen-lockfile
 
 FROM dev AS builder
-RUN pnpm --filter atlas-logistics build
+RUN pnpm run build
 
-FROM node:20-alpine
-RUN corepack enable
-WORKDIR /app
-# Use builder's workspace with dependencies to run the node server
-COPY --from=builder /app ./
+# --- Servidor Nginx (Produccion Ultraligera) ---
+FROM nginx:alpine
+
+# Limpiar directorio default de Nginx
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copiar build estatico del Frontend Súper-App
+COPY --from=builder /app/packages/frontend/dist /usr/share/nginx/html
+
+# Configurar Nginx para SPA (React Router) en el puerto 3000
+RUN printf 'server {\n    listen 3000;\n    server_name localhost;\n    location / {\n        root   /usr/share/nginx/html;\n        index  index.html index.htm;\n        try_files $uri $uri/ /index.html;\n    }\n}' > /etc/nginx/conf.d/default.conf
+
 EXPOSE 3000
-CMD ["pnpm", "--filter", "atlas-logistics", "start"]
+CMD ["nginx", "-g", "daemon off;"]

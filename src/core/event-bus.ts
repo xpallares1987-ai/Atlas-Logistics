@@ -1,5 +1,3 @@
-// src/core/event-bus.ts
-
 type EventHandler<T = any> = (data: T) => void;
 
 class EventBus {
@@ -15,7 +13,10 @@ class EventBus {
   unsubscribe<T>(event: string, handler: EventHandler<T>): void {
     const handlers = this.events.get(event);
     if (handlers) {
-      this.events.set(event, handlers.filter((h) => h !== handler));
+      this.events.set(
+        event,
+        handlers.filter((h) => h !== handler),
+      );
     }
   }
 

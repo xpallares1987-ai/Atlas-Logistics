@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:App="http://App" id="Definitions_eFile" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Proc_eFile" isExecutable="false">
+    <bpmn:startEvent id="EF_START" name="Cierre de Expediente">
+      <bpmn:outgoing>E1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="EF_COLLECT" name="Escanear / Bajar Documentos" App:icon="fa-solid fa-file-import" App:time="2" App:instances="10" App:status="normal">
+      <bpmn:incoming>E1</bpmn:incoming>
+      <bpmn:outgoing>E2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="EF_UPLOAD" name="Cargar en Seastep eFile" App:icon="fa-solid fa-cloud-arrow-up" App:time="5" App:status="completed">
+      <bpmn:incoming>E2</bpmn:incoming>
+      <bpmn:outgoing>E3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="EF_END" name="Expediente Archivado">
+      <bpmn:incoming>E3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="E1" sourceRef="EF_START" targetRef="EF_COLLECT" />
+    <bpmn:sequenceFlow id="E2" sourceRef="EF_COLLECT" targetRef="EF_UPLOAD" />
+    <bpmn:sequenceFlow id="E3" sourceRef="EF_UPLOAD" targetRef="EF_END" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_eFile">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Proc_eFile">
+      <bpmndi:BPMNShape id="EF_START_di" bpmnElement="EF_START"><dc:Bounds x="150" y="100" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EF_COLLECT_di" bpmnElement="EF_COLLECT"><dc:Bounds x="250" y="78" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EF_UPLOAD_di" bpmnElement="EF_UPLOAD"><dc:Bounds x="400" y="78" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EF_END_di" bpmnElement="EF_END"><dc:Bounds x="550" y="100" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="E1_di" bpmnElement="E1"><di:waypoint x="186" y="118" /><di:waypoint x="250" y="118" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E2_di" bpmnElement="E2"><di:waypoint x="350" y="118" /><di:waypoint x="400" y="118" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E3_di" bpmnElement="E3"><di:waypoint x="500" y="118" /><di:waypoint x="550" y="118" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+

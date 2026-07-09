@@ -1,0 +1,7 @@
+camunda:
+  database:
+    url: http://elasticsearch:9200
+  data:
+    secondary-storage:
+      elasticsearch:
+        url: http://elasticsearch:9200

@@ -2,16 +2,16 @@
 
 :root {
   /* Colors - Logistics Professional Palette */
-  --color-primary: #1e3a8a;       /* Deep Navy */
-  --color-secondary: #3b82f6;     /* Bright Blue */
-  --color-success: #10b981;       /* Emerald */
-  --color-warning: #f59e0b;       /* Amber */
-  --color-danger: #ef4444;        /* Rose */
-  --color-background: #f8fafc;    /* Slate 50 */
+  --color-primary: #1e3a8a; /* Deep Navy */
+  --color-secondary: #3b82f6; /* Bright Blue */
+  --color-success: #10b981; /* Emerald */
+  --color-warning: #f59e0b; /* Amber */
+  --color-danger: #ef4444; /* Rose */
+  --color-background: #f8fafc; /* Slate 50 */
   --color-surface: #ffffff;
-  --color-text: #0f172a;          /* Slate 900 */
-  --color-text-muted: #64748b;    /* Slate 500 */
-  --color-border: #e2e8f0;        /* Slate 200 */
+  --color-text: #0f172a; /* Slate 900 */
+  --color-text-muted: #64748b; /* Slate 500 */
+  --color-border: #e2e8f0; /* Slate 200 */
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -21,7 +21,7 @@
   --spacing-xl: 2rem;
 
   /* Typography */
-  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;

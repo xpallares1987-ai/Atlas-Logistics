@@ -12,7 +12,7 @@ export interface CargoItem {
 
 export interface Container {
   id: string;
-  type: '20ft' | '40ft' | '40ftHC';
+  type: "20ft" | "40ft" | "40ftHC";
   maxWeight: number; // kg
   volumeCapacity: number; // m3
   dimensions: { width: number; height: number; length: number }; // cm
@@ -28,7 +28,10 @@ export function calculateVolume(item: CargoItem): number {
 /**
  * Validates if a cargo item fits within container dimensions
  */
-export function fitsInContainer(item: CargoItem, container: Container): boolean {
+export function fitsInContainer(
+  item: CargoItem,
+  container: Container,
+): boolean {
   return (
     item.width <= container.dimensions.width &&
     item.height <= container.dimensions.height &&
@@ -39,7 +42,13 @@ export function fitsInContainer(item: CargoItem, container: Container): boolean 
 /**
  * Calculates container utilization percentage
  */
-export function calculateUtilization(items: CargoItem[], container: Container): number {
-  const totalVolume = items.reduce((sum, item) => sum + calculateVolume(item), 0);
+export function calculateUtilization(
+  items: CargoItem[],
+  container: Container,
+): number {
+  const totalVolume = items.reduce(
+    (sum, item) => sum + calculateVolume(item),
+    0,
+  );
   return (totalVolume / container.volumeCapacity) * 100;
 }

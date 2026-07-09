@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:App="http://App" id="Definitions_QC" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Proc_QC" isExecutable="false">
+    <bpmn:startEvent id="QC_START" name="Muestra de Expedientes">
+      <bpmn:outgoing>Q1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="QC_AUDIT" name="Auditoría de Datos Seastep" App:icon="fa-solid fa-eye" App:time="10" App:instances="5" App:status="normal">
+      <bpmn:incoming>Q1</bpmn:incoming>
+      <bpmn:outgoing>Q2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="QC_GW" name="¿Correcto?">
+      <bpmn:incoming>Q2</bpmn:incoming>
+      <bpmn:outgoing>QC_OK</bpmn:outgoing>
+      <bpmn:outgoing>QC_FAIL</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="QC_CORRECT" name="Solicitar Corrección" App:icon="fa-solid fa-triangle-exclamation" App:time="5" App:status="critical">
+      <bpmn:incoming>QC_FAIL</bpmn:incoming>
+      <bpmn:outgoing>Q3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="QC_END" name="Expediente Auditado">
+      <bpmn:incoming>QC_OK</bpmn:incoming>
+      <bpmn:incoming>Q3</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Q1" sourceRef="QC_START" targetRef="QC_AUDIT" />
+    <bpmn:sequenceFlow id="Q2" sourceRef="QC_AUDIT" targetRef="QC_GW" />
+    <bpmn:sequenceFlow id="QC_OK" name="Sí" sourceRef="QC_GW" targetRef="QC_END" />
+    <bpmn:sequenceFlow id="QC_FAIL" name="No" sourceRef="QC_GW" targetRef="QC_CORRECT" />
+    <bpmn:sequenceFlow id="Q3" sourceRef="QC_CORRECT" targetRef="QC_END" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_QC">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Proc_QC">
+      <bpmndi:BPMNShape id="QC_START_di" bpmnElement="QC_START">
+        <dc:Bounds x="150" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="QC_AUDIT_di" bpmnElement="QC_AUDIT">
+        <dc:Bounds x="250" y="78" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="QC_GW_di" bpmnElement="QC_GW" isMarkerVisible="true">
+        <dc:Bounds x="400" y="93" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="QC_CORRECT_di" bpmnElement="QC_CORRECT">
+        <dc:Bounds x="500" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="QC_END_di" bpmnElement="QC_END">
+        <dc:Bounds x="650" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Q1_di" bpmnElement="Q1">
+        <di:waypoint x="186" y="118" />
+        <di:waypoint x="250" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Q2_di" bpmnElement="Q2">
+        <di:waypoint x="350" y="118" />
+        <di:waypoint x="400" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="QC_OK_di" bpmnElement="QC_OK">
+        <di:waypoint x="450" y="118" />
+        <di:waypoint x="650" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="QC_FAIL_di" bpmnElement="QC_FAIL">
+        <di:waypoint x="425" y="143" />
+        <di:waypoint x="425" y="220" />
+        <di:waypoint x="500" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Q3_di" bpmnElement="Q3">
+        <di:waypoint x="600" y="220" />
+        <di:waypoint x="625" y="220" />
+        <di:waypoint x="625" y="118" />
+        <di:waypoint x="650" y="118" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+
+

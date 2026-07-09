@@ -1,17 +1,32 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const customerStatusSchema = z.enum(['Active', 'Inactive']);
+export const customerStatusSchema = z.enum(["Active", "Inactive"]);
 
 export const customerSchema = z.object({
   id: z.number().int().positive(),
   name: z.string().max(255),
   industry: z.string().max(100).nullable().optional(),
+  tax_id: z.string().max(100).nullable().optional(),
+  type: z.string().max(50).nullable().optional(),
+  street: z.string().max(255).nullable().optional(),
+  city: z.string().max(100).nullable().optional(),
+  state_prov: z.string().max(100).nullable().optional(),
+  country: z.string().max(100).nullable().optional(),
+  postal_code: z.string().max(50).nullable().optional(),
+  phone: z.string().max(50).nullable().optional(),
+  email: z.string().max(255).nullable().optional(),
+  contact_person: z.string().max(255).nullable().optional(),
+  notes: z.string().max(1000).nullable().optional(),
   status: customerStatusSchema,
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional(),
 });
 
-export const createCustomerSchema = customerSchema.omit({ id: true, created_at: true, updated_at: true });
+export const createCustomerSchema = customerSchema.omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
 export const updateCustomerSchema = createCustomerSchema.partial();
 
 export const contactSchema = z.object({
@@ -26,7 +41,12 @@ export const contactSchema = z.object({
   updated_at: z.string().datetime().optional(),
 });
 
-export const createContactSchema = contactSchema.omit({ id: true, customer_id: true, created_at: true, updated_at: true });
+export const createContactSchema = contactSchema.omit({
+  id: true,
+  customer_id: true,
+  created_at: true,
+  updated_at: true,
+});
 
 export const rateAgreementSchema = z.object({
   id: z.number().int().positive(),
@@ -38,6 +58,8 @@ export const rateAgreementSchema = z.object({
   updated_at: z.string().datetime().optional(),
 });
 
-export const createRateAgreementSchema = rateAgreementSchema.omit({ id: true, customer_id: true, created_at: true, updated_at: true }).extend({
-  freight_rate_ids: z.array(z.number().int().positive()).optional(),
-});
+export const createRateAgreementSchema = rateAgreementSchema
+  .omit({ id: true, customer_id: true, created_at: true, updated_at: true })
+  .extend({
+    freight_rate_ids: z.array(z.number().int().positive()).optional(),
+  });

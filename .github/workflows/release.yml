@@ -1,19 +1,29 @@
 name: Release
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
     branches:
       - main
 
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
 jobs:
   release:
+    name: Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -25,13 +35,10 @@ jobs:
         with:
           version: 10
 
-      - name: Git Config
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile --ignore-scripts
 
-      - name: Run standard-version
-        run: npx standard-version
-
-      - name: Push release and tags
-        run: git push --follow-tags origin main
+      - name: Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm dlx semantic-release
