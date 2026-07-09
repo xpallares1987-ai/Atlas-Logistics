@@ -1,14 +1,27 @@
-export type TransportMode = 'FCL_20' | 'FCL_40' | 'LCL' | 'AIR';
-export type ChargeType = 'PER_UNIT' | 'PER_BL' | 'PER_CBM' | 'PER_KG' | 'FIXED';
-export type Incoterm = 'EXW' | 'FCA' | 'FAS' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DPU' | 'DDP';
-export type CargoType = 'GENERAL' | 'HAZMAT' | 'PERISHABLE' | 'OVERSIZED' | 'RO_RO';
-export type CustomsStatus = 'PENDING' | 'CLEARED' | 'HELD_FOR_INSPECTION' | 'IN_BOND';
+export type TransportMode = "FCL_20" | "FCL_40" | "LCL" | "AIR";
+export type ChargeType = "PER_UNIT" | "PER_BL" | "PER_CBM" | "PER_KG" | "FIXED";
+export type Incoterm =
+  | "EXW"
+  | "FCA"
+  | "FAS"
+  | "FOB"
+  | "CFR"
+  | "CIF"
+  | "CPT"
+  | "CIP"
+  | "DAP"
+  | "DPU"
+  | "DDP";
+export type CargoType =
+  "GENERAL" | "HAZMAT" | "PERISHABLE" | "OVERSIZED" | "RO_RO";
+export type CustomsStatus =
+  "PENDING" | "CLEARED" | "HELD_FOR_INSPECTION" | "IN_BOND";
 
 export interface Location {
   code: string;
   name: string;
   country: string;
-  type: 'PORT' | 'AIRPORT' | 'TERMINAL' | 'CUSTOMS_DEPOT';
+  type: "PORT" | "AIRPORT" | "TERMINAL" | "CUSTOMS_DEPOT";
 }
 
 export interface CargoDetails {
@@ -42,8 +55,17 @@ export interface Rate {
   surcharges: Surcharge[];
 }
 
-export type ShipmentStatus = 'BOOKED' | 'IN_TRANSIT' | 'ARRIVED' | 'DELIVERED';
-export type MilestoneType = 'BOOKED' | 'GATE_IN' | 'LOADED' | 'DEPARTED' | 'TRANSSHIPMENT' | 'ARRIVED' | 'DISCHARGED' | 'GATE_OUT' | 'DELIVERED';
+export type ShipmentStatus = "BOOKED" | "IN_TRANSIT" | "ARRIVED" | "DELIVERED";
+export type MilestoneType =
+  | "BOOKED"
+  | "GATE_IN"
+  | "LOADED"
+  | "DEPARTED"
+  | "TRANSSHIPMENT"
+  | "ARRIVED"
+  | "DISCHARGED"
+  | "GATE_OUT"
+  | "DELIVERED";
 
 export interface Milestone {
   id: string;
@@ -61,26 +83,31 @@ export interface Container {
 }
 
 export interface Shipment {
-  id: string;
+  id: string | number; // Added number support for Drizzle integer IDs
   reference: string;
   mblNumber: string;
   hblNumber: string;
+  tracking_number?: string; // Drizzle field
   carrier: string;
   origin: string;
   destination: string;
-  incoterm?: Incoterm;
+  origin_port?: string; // Drizzle field
+  destination_port?: string; // Drizzle field
+  incoterm?: Incoterm | string;
   cargoDetails?: CargoDetails;
   customsStatus?: CustomsStatus;
   etd: string;
   eta: string;
-  status: ShipmentStatus;
+  status: ShipmentStatus | string;
   mode: TransportMode;
   containers: Container[];
   milestones: Milestone[];
   delayed?: boolean;
+  type?: "Direct" | "MBL" | "HBL" | string;
+  parent_shipment_id?: number | null;
 }
 
-export type DocumentType = 'MBL' | 'HBL' | 'CARGO_MANIFEST';
+export type DocumentType = "MBL" | "HBL" | "CARGO_MANIFEST";
 
 export interface DocumentRecord {
   id: string;
@@ -99,11 +126,11 @@ export interface DocumentRecord {
   grossWeightKg: number;
   volumeCbm: number;
   issueDate: string;
-  status: 'DRAFT' | 'ISSUED';
+  status: "DRAFT" | "ISSUED";
 }
 
-export type UserRole = 'ADMIN' | 'OPERATOR' | 'SALES' | 'CUSTOMER';
-export type UserStatus = 'ACTIVE' | 'INACTIVE';
+export type UserRole = "ADMIN" | "OPERATOR" | "SALES" | "CUSTOMER";
+export type UserStatus = "ACTIVE" | "INACTIVE";
 
 export interface User {
   id: string;
@@ -131,7 +158,7 @@ export interface Customer {
   email: string;
   phone: string;
   address: Address;
-  status: 'ACTIVE' | 'INACTIVE';
+  status: "ACTIVE" | "INACTIVE";
 }
 
 export interface Route {

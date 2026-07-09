@@ -1,0 +1,28 @@
+name: Security reports
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # Daily at 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  generate-reports:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch the whole repo so the script can be run
+          fetch-depth: 0
+
+      - name: Run security alerts fetch script
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+        run: |
+          pwsh ./scripts/fetch_security_alerts.ps1
+
+      - name: Upload security reports as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: security-reports/

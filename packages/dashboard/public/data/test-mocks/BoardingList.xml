@@ -1,0 +1,17 @@
+<ExternalWarehouses>
+  <Shipments>
+    <BoardingItem>
+      <Origin>Shanghai</Origin>
+      <CustomerOrder>ORD-123</CustomerOrder>
+      <Warehouse>ANVERS</Warehouse>
+      <POL>Port A</POL>
+      <FinalDestination>Dest A</FinalDestination>
+      <BoardingDate>2026-05-12</BoardingDate>
+      <DeliveryDate>2026-05-15</DeliveryDate>
+      <ForecastArrivalDate>2026-05-20</ForecastArrivalDate>
+      <ReelsCount>10</ReelsCount>
+      <Weight>150.5</Weight>
+      <ExtAddrNumber>111</ExtAddrNumber>
+    </BoardingItem>
+  </Shipments>
+</ExternalWarehouses>

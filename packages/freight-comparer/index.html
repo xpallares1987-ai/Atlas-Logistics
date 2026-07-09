@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Google AI Studio App</title>
+    <!-- Script para cargar datos encriptados (opcional) -->
+    <script src="/assets/datos_encrypted.js"></script>
+    <style>
+      #pw-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #0f172a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="pw-overlay">
+      <div
+        style="
+          background: #1e293b;
+          padding: 40px;
+          border-radius: 16px;
+          text-align: center;
+          color: white;
+        "
+      >
+        <h2>Acceso Restringido</h2>
+        <form
+          onsubmit="
+            checkPw(event);
+            return false;
+          "
+        >
+          <input
+            id="pw-input"
+            type="password"
+            placeholder="Contraseña..."
+            autocomplete="new-password"
+          />
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="pw-error" style="color: red"></p>
+      </div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      function base64ToUint8Array(b64) {
+        return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      }
+
+      async function decryptData(password, payload) {
+        const enc = new TextEncoder();
+        const salt = base64ToUint8Array(payload.salt);
+        const iv = base64ToUint8Array(payload.iv);
+        const cipher = base64ToUint8Array(payload.data);
+        const baseKey = await crypto.subtle.importKey(
+          "raw",
+          enc.encode(password),
+          "PBKDF2",
+          false,
+          ["deriveKey"],
+        );
+        const aesKey = await crypto.subtle.deriveKey(
+          { name: "PBKDF2", salt: salt, iterations: 150000, hash: "SHA-256" },
+          baseKey,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["decrypt"],
+        );
+        const plainBuf = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: iv },
+          aesKey,
+          cipher,
+        );
+        return JSON.parse(new TextDecoder().decode(plainBuf));
+      }
+
+      async function checkPw(e) {
+        if (e) e.preventDefault();
+        const val = document.getElementById("pw-input").value;
+        if (!window.DATA_ENCRYPTED) {
+          document.getElementById("pw-error").textContent =
+            "datos_encrypted.js no cargado.";
+          return;
+        }
+        try {
+          const records = await decryptData(val, window.DATA_ENCRYPTED);
+          window.DECRYPTED_DATA = records;
+          document.getElementById("pw-overlay").style.display = "none";
+        } catch (e) {
+          document.getElementById("pw-error").textContent =
+            "Contraseña incorrecta.";
+        }
+      }
+
+      // Auto-hide the password overlay if no encrypted data is present
+      window.addEventListener("DOMContentLoaded", () => {
+        if (!window.DATA_ENCRYPTED) {
+          const overlay = document.getElementById("pw-overlay");
+          if (overlay) {
+            overlay.style.display = "none";
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

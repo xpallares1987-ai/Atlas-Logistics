@@ -1,0 +1,13 @@
+{
+  "name": "@control-tower/feature-flags",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

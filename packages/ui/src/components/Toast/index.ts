@@ -1,6 +1,6 @@
-import { qs } from '@torre/shared';
+import { qs } from "@atlas/shared";
 
-export type ToastType = 'info' | 'success' | 'warning' | 'error';
+export type ToastType = "info" | "success" | "warning" | "error";
 
 export interface ToastOptions {
   duration?: number;
@@ -8,15 +8,15 @@ export interface ToastOptions {
 }
 
 export const Toast = {
-  show(message: string, type: ToastType = 'info', options: ToastOptions = {}) {
-    const { duration = 4000, containerSelector = '#toast-container' } = options;
+  show(message: string, type: ToastType = "info", options: ToastOptions = {}) {
+    const { duration = 4000, containerSelector = "#toast-container" } = options;
 
     let container = qs(containerSelector);
     if (!container) {
-      container = this.createContainer(containerSelector.replace('#', ''));
+      container = this.createContainer(containerSelector.replace("#", ""));
     }
 
-    const toast = document.createElement('div');
+    const toast = document.createElement("div");
     toast.className = `toast toast--${type}`;
     toast.textContent = message;
 
@@ -24,10 +24,10 @@ export const Toast = {
 
     // Trigger reflow for animation
     void toast.offsetHeight;
-    toast.classList.add('toast--visible');
+    toast.classList.add("toast--visible");
 
     const removeToast = () => {
-      toast.classList.remove('toast--visible');
+      toast.classList.remove("toast--visible");
       setTimeout(() => {
         if (toast.parentNode) {
           toast.remove();
@@ -39,33 +39,33 @@ export const Toast = {
   },
 
   createContainer(id: string) {
-    const container = document.createElement('div');
+    const container = document.createElement("div");
     container.id = id;
-    container.className = 'toast-container';
+    container.className = "toast-container";
     document.body.appendChild(container);
     return container;
   },
 };
 
-const HTMLElementClass = typeof HTMLElement !== 'undefined' ? HTMLElement : class {} as any;
+const HTMLElementClass =
+  typeof HTMLElement !== "undefined" ? HTMLElement : (class {} as any);
 
 class TorreToastElement extends HTMLElementClass {
   static get observedAttributes() {
-    return ['message', 'type', 'duration'];
+    return ["message", "type", "duration"];
   }
 
   attributeChangedCallback(name: string, _oldVal: string, newVal: string) {
-    if (name === 'message' && newVal) {
-      const type = (this.getAttribute('type') as ToastType) || 'info';
-      const duration = parseInt(this.getAttribute('duration') || '4000', 10);
+    if (name === "message" && newVal) {
+      const type = (this.getAttribute("type") as ToastType) || "info";
+      const duration = parseInt(this.getAttribute("duration") || "4000", 10);
       Toast.show(newVal, type, { duration });
-      this.removeAttribute('message');
+      this.removeAttribute("message");
     }
   }
 }
 
-if (typeof window !== 'undefined' && !customElements.get('torre-toast')) {
+if (typeof window !== "undefined" && !customElements.get("torre-toast")) {
   // @ts-ignore - Valid at runtime in browser
-  customElements.define('torre-toast', TorreToastElement);
+  customElements.define("torre-toast", TorreToastElement);
 }
-

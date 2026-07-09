@@ -1,0 +1,36 @@
+{
+  "name": "sys-moddle",
+  "uri": "http://sys",
+  "prefix": "sys",
+  "xml": {
+    "tagAlias": "lowerCase"
+  },
+  "types": [
+    {
+      "name": "SysElement",
+      "extends": ["bpmn:Task"],
+      "properties": [
+        {
+          "name": "status",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "costHR",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "decisionRef",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "formKey",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
+    }
+  ]
+}

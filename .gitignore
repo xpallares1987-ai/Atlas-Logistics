@@ -1,8 +1,14 @@
 # Node
 node_modules/
 dist/
+build/
 out/
 .next/
+**/.next/
+**/dist/
+**/build/
+**/playwright-report/
+*.log
 .cache/
 
 # pnpm

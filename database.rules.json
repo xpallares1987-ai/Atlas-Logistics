@@ -1,0 +1,53 @@
+﻿{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "vessels": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'ADMIN'",
+      "$imoNumber": {
+        ".validate": "newData.hasChildren(['imo','name','lat','lng','status'])"
+      }
+    },
+
+    "port_status": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'ADMIN'",
+      "$locode": {
+        ".validate": "newData.hasChildren(['locode','name','congestionLevel'])"
+      }
+    },
+
+    "alerts": {
+      ".read": "auth != null",
+      "$alertId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'ADMIN' || root.child('users').child(auth.uid).child('role').val() === 'OPERATOR')",
+        "isRead": {
+          ".write": "auth != null"
+        }
+      }
+    },
+
+    "exchange_rates": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'ADMIN'"
+    },
+
+    "presence": {
+      ".read": "auth != null",
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['uid','status','lastSeen'])"
+      }
+    },
+
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# CODEOWNERS
+# Repository code owners
+
+# All files are owned by the main maintainer
+*       @xpall

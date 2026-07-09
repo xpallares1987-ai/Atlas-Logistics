@@ -1,0 +1,221 @@
+type User @table(key: "uid") {
+  uid: String!
+  tenantId: String! @default(expr: "auth.token.tenantId")
+  email: String!
+  displayName: String
+  role: String! # ADMIN, OPERATOR, VIEWER, FINANCE
+  isActive: Boolean! @default(value: true)
+}
+
+type Company @table {
+  tenantId: String! @default(expr: "auth.token.tenantId")
+  name: String!
+  legalName: String
+  taxId: String
+  eoriNumber: String
+  scacCode: String
+  entityType: String! # SHIPPER, CONSIGNEE, CARRIER, HAULIER, CUSTOMS_BROKER, FREIGHT_FORWARDER, NOTIFY_PARTY, WAREHOUSE
+  email: String
+  phoneNumber: String
+  address: String
+  city: String
+  countryCode: String
+  contactPerson: String
+  website: String
+  creditLimit: Float
+  paymentTerms: String # NET30, NET60, PREPAID, COD
+  currency: String
+  rating: Float
+  notes: String
+  isActive: Boolean! @default(value: true)
+}
+
+type Location @table(key: "locode") {
+  locode: String!
+  name: String!
+  nameAlias: String
+  countryCode: String!
+  countryName: String!
+  subdivisionCode: String
+  type: String! # SEAPORT, AIRPORT, INLAND_PORT, RAILPORT, MULTIMODAL, DRY_PORT
+  functionCodes: String # 1=Sea, 3=Rail, 4=Air, 5=Post, 6=Inland, 7=Fixed Transport
+  latitude: Float
+  longitude: Float
+  timezone: String
+  region: String # EUROPE, NORTH_AMERICA, ASIA, LATAM, MIDDLE_EAST, AFRICA, OCEANIA
+  isActive: Boolean! @default(value: true)
+}
+
+type Quote @table {
+  tenantId: String! @default(expr: "auth.token.tenantId")
+  quoteNumber: String! @unique
+  status: String! # DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED
+  movementType: String! # FCL, LCL, AIR, FTL, LTL, RO-RO
+  incoterm: String
+  origin: String!
+  destination: String!
+  commodity: String
+  hsCode: String
+  equipmentType: String # 20GP, 40GP, 40HC, 45HC, 20RF, 40RF
+  grossWeight: Float
+  volume: Float
+  baseFreightCost: Float!
+  baf: Float
+  pss: Float
+  thc: Float
+  blFee: Float
+  isf: Float
+  customsFee: Float
+  insuranceFee: Float
+  originDrayage: Float
+  destinationDrayage: Float
+  otherCharges: Float
+  totalCost: Float!
+  currency: String!
+  transitTime: Int
+  validityDate: Date!
+  carrier: Company @ref
+  customer: Company @ref
+  createdBy: User! @ref
+  notes: String
+}
+
+type Shipment @table {
+  tenantId: String! @default(expr: "auth.token.tenantId")
+  trackingNumber: String! @unique
+  mblNumber: String
+  hblNumber: String
+  blType: String # OBL, SEAWAY, SURRENDER, EXPRESS
+  customsEntryNumber: String
+  status: String! # BOOKED, RECEIVED, IN_TRANSIT, CUSTOMS, DELIVERED, CANCELLED, ON_HOLD
+  customsStatus: String # PENDING, CLEARED, INSPECTION, HOLD, RELEASED
+  movementType: String! # FCL, LCL, AIR, FTL, LTL, RO-RO
+  direction: String! # IMPORT, EXPORT, CROSS_TRADE, DOMESTIC
+  incoterm: String! # EXW, FCA, CPT, CIP, DAP, DAT, DDP, FAS, FOB, CFR, CIF
+  origin: String!
+  pol: String!
+  pod: String!
+  destination: String!
+  transhipmentPort: String
+  vesselName: String
+  voyageNumber: String
+  flightNumber: String
+  imoNumber: String
+  mmsiNumber: String
+  ets: Timestamp
+  ats: Timestamp
+  eta: Timestamp
+  ata: Timestamp
+  pickupDate: Timestamp
+  deliveryDate: Timestamp
+  customsReleaseDate: Timestamp
+  cyCutOff: Timestamp
+  siCutOff: Timestamp
+  vgmCutOff: Timestamp
+  commodity: String
+  hsCode: String
+  packages: Int
+  packageType: String # PALLET, CARTON, DRUM, BAG, CRATE
+  equipmentType: String # 20GP, 40GP, 40HC, 45HC, 20RF, 40RF
+  grossWeight: Float
+  netWeight: Float
+  volume: Float
+  isDangerous: Boolean! @default(value: false)
+  unNumber: String
+  imdgClass: String
+  isReefer: Boolean! @default(value: false)
+  temperature: String
+  isOOG: Boolean! @default(value: false)
+  freightPayableAt: String # ORIGIN, DESTINATION
+  freightPaid: Boolean @default(value: false)
+  declaredValue: Float
+  insurance: Boolean @default(value: false)
+  insuranceValue: Float
+  shipper: Company! @ref
+  consignee: Company! @ref
+  buyer: Company @ref
+  notify: Company @ref
+  carrier: Company @ref
+  haulierOrigin: Company @ref
+  haulierDestination: Company @ref
+  customsBroker: Company @ref
+  warehouse: Company @ref
+  relatedQuote: Quote @ref
+  notes: String
+}
+
+type Document @table {
+  tenantId: String! @default(expr: "auth.token.tenantId")
+  documentNumber: String
+  documentType: String! # MBL, HBL, SEAWAY, CMR, AWB, COMMERCIAL_INVOICE, PACKING_LIST, CERTIFICATE_ORIGIN, CUSTOMS_ENTRY, INSPECTION_CERT, VGM, DG_DECLARATION, PHYTOSANITARY, FUMIGATION
+  fileUrl: String!
+  fileName: String
+  mimeType: String
+  status: String # DRAFT, ISSUED, SURRENDERED, TELEX_RELEASED, ORIGINAL_REQUIRED
+  uploadDate: Timestamp @default(expr: "request.time")
+  issuedDate: Date
+  expiryDate: Date
+  description: String
+  signatoryName: String
+  issuedBy: Company @ref
+  shipment: Shipment! @ref
+}
+
+type Milestone @table {
+  tenantId: String! @default(expr: "auth.token.tenantId")
+  eventCode: String! # DCSA: VESSEL_ARRIVED, VESSEL_DEPARTED, CONTAINER_DISCHARGED, CUSTOMS_RELEASED, DELIVERED
+  eventType: String! # TRANSPORT, EQUIPMENT, SHIPMENT, DOCUMENT
+  description: String!
+  timestamp: Timestamp! @default(expr: "request.time")
+  location: String
+  vessel: String
+  voyage: String
+  isEstimated: Boolean! @default(value: false)
+  source: String # MANUAL, AIS, EDI, API
+  shipment: Shipment! @ref
+}
+
+type Invoice @table {
+  tenantId: String! @default(expr: "auth.token.tenantId")
+  invoiceNumber: String! @unique
+  invoiceType: String! # FREIGHT, CUSTOMS, DISBURSEMENT, CREDIT_NOTE, DEBIT_NOTE
+  status: String! # DRAFT, SENT, PAID, OVERDUE, CANCELLED
+  amount: Float!
+  currency: String!
+  exchangeRate: Float
+  issueDate: Date!
+  dueDate: Date!
+  paymentDate: Date
+  paymentMethod: String # BANK_TRANSFER, CASH, CHEQUE, CREDIT
+  bankReference: String
+  shipment: Shipment @ref
+  customer: Company @ref
+  createdBy: User @ref
+  notes: String
+}
+
+type Workflow @table {
+  tenantId: String! @default(expr: "auth.token.tenantId")
+  name: String!
+  version: Int
+  diagramXml: String!
+  currentNode: String!
+  status: String! # ACTIVE, PAUSED, COMPLETED, FAILED, SUSPENDED
+  processId: String
+  processInstanceKey: String
+  incidentReason: String
+  shipment: Shipment! @ref
+}
+
+type ShipmentEventLog @table {
+  tenantId: String! @default(expr: "auth.token.tenantId")
+  shipment: Shipment! @ref
+  eventType: String! # CREATED, STATUS_CHANGED, CUSTOMS_UPDATE, DOC_UPLOADED
+  oldStatus: String
+  newStatus: String
+  performedBy: User @ref
+  timestamp: Timestamp! @default(expr: "request.time")
+  details: String
+  ipAddress: String
+  userAgent: String
+}

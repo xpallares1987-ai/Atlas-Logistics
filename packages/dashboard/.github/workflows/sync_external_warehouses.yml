@@ -1,0 +1,30 @@
+name: Sync External Warehouses Daily
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # Runs daily at 02:00 UTC
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  sync:
+    runs-on: windows-latest
+    env:
+      WAREHOUSE_SYNC_LOGIN: ${{ secrets.WAREHOUSE_SYNC_LOGIN }}
+      WAREHOUSE_SYNC_PASSWORD: ${{ secrets.WAREHOUSE_SYNC_PASSWORD }}
+      EXTERNAL_WAREHOUSE_URL: ${{ secrets.EXTERNAL_WAREHOUSE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set PowerShell execution policy
+        run: Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+        shell: pwsh
+
+      - name: Run sync script
+        run: |
+          $scriptPath = "${{ github.workspace }}\\scripts\\sync_external_warehouses.ps1"
+          Write-Host "Executing $scriptPath"
+          & powershell -NoProfile -ExecutionPolicy Bypass -File $scriptPath
+        shell: pwsh
