@@ -2,50 +2,79 @@
   {
     "name": "Freight Forwarder: Create Booking",
     "id": "ff.create.booking",
-    "appliesTo": [ "bpmn:ServiceTask" ],
+    "appliesTo": ["bpmn:ServiceTask"],
     "properties": [
-      { "label": "Carrier", "type": "String", "binding": { "type": "zeebe:taskHeader", "key": "carrier" } },
-      { "label": "Service Type", "type": "Dropdown", "choices": [
+      {
+        "label": "Carrier",
+        "type": "String",
+        "binding": { "type": "zeebe:taskHeader", "key": "carrier" }
+      },
+      {
+        "label": "Service Type",
+        "type": "Dropdown",
+        "choices": [
           { "name": "FCL (Full Container Load)", "value": "fcl" },
           { "name": "LCL (Less than Container Load)", "value": "lcl" },
           { "name": "Air Freight", "value": "air" }
-        ], "binding": { "type": "zeebe:taskHeader", "key": "serviceType" } }
+        ],
+        "binding": { "type": "zeebe:taskHeader", "key": "serviceType" }
+      }
     ]
   },
   {
     "name": "Freight Forwarder: Customs Declaration",
     "id": "ff.customs.declaration",
-    "appliesTo": [ "bpmn:ServiceTask" ],
+    "appliesTo": ["bpmn:ServiceTask"],
     "properties": [
-      { "label": "Customs Office", "type": "String", "binding": { "type": "zeebe:taskHeader", "key": "customsOffice" } },
-      { "label": "Document Type", "type": "Dropdown", "choices": [
+      {
+        "label": "Customs Office",
+        "type": "String",
+        "binding": { "type": "zeebe:taskHeader", "key": "customsOffice" }
+      },
+      {
+        "label": "Document Type",
+        "type": "Dropdown",
+        "choices": [
           { "name": "Import (DUA)", "value": "import" },
           { "name": "Export (DUA)", "value": "export" },
           { "name": "Transit", "value": "transit" }
-        ], "binding": { "type": "zeebe:taskHeader", "key": "docType" } }
+        ],
+        "binding": { "type": "zeebe:taskHeader", "key": "docType" }
+      }
     ]
   },
   {
     "name": "Logistics: Warehouse Inbound",
     "id": "logistics.warehouse.inbound",
-    "appliesTo": [ "bpmn:ServiceTask" ],
+    "appliesTo": ["bpmn:ServiceTask"],
     "properties": [
-      { "label": "Warehouse Code", "type": "String", "binding": { "type": "zeebe:taskHeader", "key": "whCode" } },
-      { "label": "Checklist Required", "type": "Boolean", "binding": { "type": "zeebe:taskHeader", "key": "checklist" } }
+      {
+        "label": "Warehouse Code",
+        "type": "String",
+        "binding": { "type": "zeebe:taskHeader", "key": "whCode" }
+      },
+      {
+        "label": "Checklist Required",
+        "type": "Boolean",
+        "binding": { "type": "zeebe:taskHeader", "key": "checklist" }
+      }
     ]
   },
   {
     "name": "Logistics: Last Mile Delivery",
     "id": "logistics.transport.delivery",
-    "appliesTo": [ "bpmn:ServiceTask" ],
+    "appliesTo": ["bpmn:ServiceTask"],
     "properties": [
-      { "label": "Vehicle Type", "type": "Dropdown", "choices": [
+      {
+        "label": "Vehicle Type",
+        "type": "Dropdown",
+        "choices": [
           { "name": "Van", "value": "van" },
           { "name": "Truck", "value": "truck" },
           { "name": "Bike", "value": "bike" }
-        ], "binding": { "type": "zeebe:taskHeader", "key": "vehicle" } }
+        ],
+        "binding": { "type": "zeebe:taskHeader", "key": "vehicle" }
+      }
     ]
   }
 ]
-
-

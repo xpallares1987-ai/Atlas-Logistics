@@ -89,5 +89,5 @@ export const MOCK_RATES: FreightRateMock[] = [
     ],
     total: 2930,
     isDirect: true,
-  }
+  },
 ];

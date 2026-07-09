@@ -1,29 +1,35 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { mountBPMNModeler } from '@atlas/bpmn-modeler/src/main';
-import { bpmnHtml } from './bpmn-template';
+import React, { useEffect, useRef, useState } from "react";
+import { bpmnHtml } from "./bpmn-template";
 
 export default function WorkflowsPage() {
-  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const initialized = useRef(false);
+
   useEffect(() => {
-    // Solo montar una vez
-    if (!mounted) {
-      setMounted(true);
-      // Timeout para permitir que React adjunte el DOM con dangerouslySetInnerHTML antes de buscar los selectores
-      setTimeout(() => {
-        try {
-          mountBPMNModeler();
-        } catch (error) {
-          console.error("Error mounting BPMN Modeler:", error);
-        }
-      }, 100);
-    }
-  }, [mounted]);
+    if (initialized.current) return;
+    initialized.current = true;
+
+    // Use a small timeout to let React completely paint the dangerouslySetInnerHTML content
+    const timer = setTimeout(() => {
+      // Check if the DOM is actually present to prevent Strict Mode errors
+      if (document.querySelector("#canvas")) {
+        import("@atlas/bpmn-modeler/src/main")
+          .then((m) => {
+            m.mountBPMNModeler();
+          })
+          .catch((err) => console.error("Failed to import BPMN Modeler", err));
+      }
+    }, 150);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
 
   return (
-    <div 
-      className="w-full h-[calc(100vh-120px)] relative bpmn-modeler-wrapper bg-white shadow-sm rounded-xl overflow-hidden" 
+    <div
+      className="w-full h-[calc(100vh-120px)] relative bpmn-modeler-wrapper bg-white shadow-sm rounded-xl overflow-hidden"
       ref={containerRef}
       dangerouslySetInnerHTML={{ __html: bpmnHtml }}
     />

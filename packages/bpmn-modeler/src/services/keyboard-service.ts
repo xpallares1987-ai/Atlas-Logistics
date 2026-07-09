@@ -43,7 +43,7 @@ export function initCustomKeyboard(modeler: Modeler) {
         if (selected) {
           bpmnReplace.replaceElement(selected, { type: 'bpmn:UserTask' });
         }
-      }
+      },
     });
   }
 
@@ -77,7 +77,7 @@ export function initCustomKeyboard(modeler: Modeler) {
       editorActions.trigger('replace-with-user-task');
       return true;
     }
-    
+
     return undefined;
   });
 

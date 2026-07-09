@@ -1,5 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import React, { Component, ErrorInfo, ReactNode } from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -26,7 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
+    console.error("Uncaught error:", error, errorInfo);
   }
 
   private handleRetry = () => {
@@ -35,21 +35,25 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
-      const isAIError = this.state.error?.message?.toLowerCase().includes('gemini') || 
-                        this.state.error?.message?.toLowerCase().includes('ai');
-      
+      const isAIError =
+        this.state.error?.message?.toLowerCase().includes("gemini") ||
+        this.state.error?.message?.toLowerCase().includes("ai");
+
       return (
         <div className="flex flex-col items-center justify-center p-8 bg-slate-50 border border-slate-200 rounded-2xl my-4 text-center">
           <div className="p-3 bg-red-100 rounded-full mb-4">
             <AlertTriangle className="w-8 h-8 text-red-600" />
           </div>
           <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-2">
-            {isAIError ? 'AI Analysis Interrupted' : (this.props.fallbackTitle || 'Component Error')}
+            {isAIError
+              ? "AI Analysis Interrupted"
+              : this.props.fallbackTitle || "Component Error"}
           </h2>
           <p className="text-[10px] text-slate-500 font-medium mb-6 max-w-xs mx-auto leading-relaxed">
-            {isAIError 
-              ? 'The AI engine encountered an issue while processing these rates. This is usually due to API limits or network instability.'
-              : (this.state.error?.message || 'An unexpected error occurred in this section.')}
+            {isAIError
+              ? "The AI engine encountered an issue while processing these rates. This is usually due to API limits or network instability."
+              : this.state.error?.message ||
+                "An unexpected error occurred in this section."}
           </p>
           <button
             onClick={this.handleRetry}
