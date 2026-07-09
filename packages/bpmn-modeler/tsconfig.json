@@ -20,8 +20,6 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
 
-    "baseUrl": ".",
-    "ignoreDeprecations": "5.0",
     "types": ["vite/client"],
     "paths": {
       "@/*": ["./src/*"],
