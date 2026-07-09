@@ -1,117 +1,37 @@
-name: Atlas Logistics Validation
+name: Copilot Setup Steps
 
 on:
-  check_run:
-    types:
-      - completed
-      - created
-      - requested_action
-      - rerequested
-  workflow_dispatch:
+  copilot_setup_steps: {}
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 env:
   NODE_VERSION: "20"
   PNPM_VERSION: "10"
 
 jobs:
-  atlas-logistics-validation:
-    name: Atlas Logistics Validation
+  copilot-setup-steps:
+    name: Copilot Setup Steps
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js and pnpm
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-
+      # pnpm must be set up BEFORE actions/setup-node so the node cache works
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
 
-      - name: Validate required repository files
-        run: |
-          test -f package.json
-          test -f pnpm-lock.yaml
-          test -f pnpm-workspace.yaml
-          test -f turbo.json
-          test -f tsconfig.json
-          test -f tsconfig.server.json
-          test -f eslint.config.js
-          test -f firebase.json
-          test -f firestore.indexes.json
-          test -f database.rules.json
-          test -f knip.json
-          test -f docker-compose.yml
-          test -d packages
-          test -d dataconnect
-          echo "✓ Required repository files validated."
-
-      - name: Validate JSON configuration files
-        run: |
-          for file in package.json turbo.json tsconfig.json tsconfig.server.json firebase.json firestore.indexes.json database.rules.json knip.json; do
-            node -e "JSON.parse(require('fs').readFileSync('$file', 'utf8'))" || exit 1
-          done
-          echo "✓ JSON configuration files are valid."
-
-      - name: Validate TypeScript configuration
-        run: |
-          pnpm exec tsc -p tsconfig.json --noEmit --pretty false
-          pnpm exec tsc -p tsconfig.server.json --noEmit --pretty false
-          echo "✓ TypeScript configuration validated."
-
-      - name: Validate Turborepo configuration
-        run: |
-          node -e "const turbo = JSON.parse(require('fs').readFileSync('turbo.json', 'utf8')); if (!turbo.tasks || !turbo.tasks.build || !turbo.tasks['type-check'] || !turbo.tasks.lint) process.exit(1);"
-          echo "✓ Turborepo configuration validated."
-
-      - name: Validate pnpm workspace structure
-        run: |
-          grep -q 'packages:' pnpm-workspace.yaml
-          grep -q 'packages/\*' pnpm-workspace.yaml
-          grep -q "lockfileVersion: '9.0'" pnpm-lock.yaml
-          echo "✓ pnpm workspace and lockfile metadata validated."
-
-      - name: Validate Docker Compose configuration
-        run: docker compose -f docker-compose.yml config --quiet
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: TypeScript validation
-        run: pnpm run type-check
-
-      - name: Lint validation
-        run: pnpm run lint
-
-      - name: Run tests
-        run: pnpm run test
-
-      - name: Build monorepo
-        run: pnpm run build
-
-      - name: Knip dead-code analysis
-        run: pnpm dlx knip
-        continue-on-error: true
-
-      - name: Production dependency audit
-        run: pnpm audit --prod
-        continue-on-error: true
-
-      - name: Summary
-        run: |
-          echo "✓ Atlas Logistics validation completed."
-          echo "All checks passed: pnpm workspace, Turbo, TypeScript, ESLint, Docker Compose, tests, and build."
