@@ -25,7 +25,9 @@ import {
 } from "lucide-react";
 import { FreightRate, TranslationSet } from "../types";
 import * as XLSX from "xlsx";
-import { estimateCarbonFootprint } from "../services/carbonService";
+import {
+  estimateCarbonFootprint,
+} from "../services/carbonService";
 import {
   convertCurrency,
   formatCurrency,
