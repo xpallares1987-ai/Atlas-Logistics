@@ -24,7 +24,6 @@
     "noImplicitAny": false,
     "noImplicitReturns": true,
 
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
