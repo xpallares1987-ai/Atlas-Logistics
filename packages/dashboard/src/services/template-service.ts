@@ -108,7 +108,7 @@ const TAB_COLORS: Record<ReportType, string> = {
 };
 
 export async function downloadTemplate(type: ReportType): Promise<void> {
-  const { utils, write } = await import("xlsx");
+  const { default: ExcelJS } = await import("exceljs");
 
   const fields = TEMPLATE_FIELDS[type];
   const examples = EXAMPLE_ROWS[type];
@@ -118,31 +118,35 @@ export async function downloadTemplate(type: ReportType): Promise<void> {
   const keys = fields.map((f) => f.key);
   const dataRows = examples.map((ex) => keys.map((k) => ex[k] ?? ""));
 
-  const ws = utils.aoa_to_sheet([headers, ...dataRows]);
-
-  // Style the header row (bold, colored background)
-  const range = utils.decode_range(ws["!ref"] ?? "A1");
-  for (let col = range.s.c; col <= range.e.c; col++) {
-    const addr = utils.encode_cell({ r: 0, c: col });
-    if (!ws[addr]) continue;
-    ws[addr].s = {
-      font: { bold: true, color: { rgb: "FFFFFF" } },
-      fill: { fgColor: { rgb: TAB_COLORS[type] } },
-      alignment: { horizontal: "center" },
-    };
-  }
+  const wb = new ExcelJS.Workbook();
+  const sheetName = type.charAt(0).toUpperCase() + type.slice(1);
+  const ws = wb.addWorksheet(sheetName, {
+    properties: { tabColor: { argb: "FF" + TAB_COLORS[type] } },
+  });
 
   // Column widths
-  ws["!cols"] = fields.map((f) => ({
-    wch: Math.max(f.label.length + 2, f.example.length + 2),
+  ws.columns = fields.map((f) => ({
+    width: Math.max(f.label.length + 2, f.example.length + 2),
   }));
 
-  const wb = utils.book_new();
-  utils.book_append_sheet(wb, ws, type.charAt(0).toUpperCase() + type.slice(1));
+  // Header row with styling
+  const headerRow = ws.addRow(headers);
+  headerRow.eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF" + TAB_COLORS[type] },
+    };
+    cell.alignment = { horizontal: "center" };
+  });
+
+  // Data rows
+  dataRows.forEach((row) => ws.addRow(row));
 
   // Write and trigger download
-  const buf = write(wb, { type: "array", bookType: "xlsx", cellStyles: true });
-  const blob = new Blob([buf], {
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf as ArrayBuffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
   const url = URL.createObjectURL(blob);
