@@ -11,6 +11,7 @@ name: Copilot Setup Steps
 
 env:
   NODE_VERSION: "20"
+  PNPM_VERSION: "10"
 
 jobs:
   copilot-setup-steps:
@@ -27,7 +28,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: "10.0.0"
+          version: ${{ env.PNPM_VERSION }}
           run_install: false
 
       - name: Setup Node.js
