@@ -7,7 +7,7 @@ import { FreightRate } from "../types";
 import { calculateScope3Emissions, TransportMode } from "@atlas/ui";
 
 /**
- * Calculates estimated CO2 emissions (kgs) for a freight route using the standardized Scope 3 calculator.
+ * Calculates estimated CO2 emissions (kg) for a freight route using the standardized Scope 3 calculator.
  * Industrialization Phase 4: Environmental sustainability tracking.
  */
 export function estimateCarbonFootprint(rate: FreightRate): number {
