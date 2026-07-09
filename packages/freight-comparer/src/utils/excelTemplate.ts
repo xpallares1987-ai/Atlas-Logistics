@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import ExcelJS from "exceljs";
+import * as XLSX from "xlsx";
 
-export async function downloadRateTemplate() {
+export function downloadRateTemplate() {
   const wsData = [
     [
       "Mode",
@@ -60,40 +60,29 @@ export async function downloadRateTemplate() {
     ],
   ];
 
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet("DATOS");
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
 
   // Set column widths for better readability
-  ws.columns = [
-    { width: 10 },
-    { width: 10 },
-    { width: 15 },
-    { width: 20 },
-    { width: 20 },
-    { width: 15 },
-    { width: 22 },
-    { width: 10 },
-    { width: 10 },
-    { width: 10 },
-    { width: 10 },
-    { width: 15 },
-    { width: 10 },
-    { width: 15 },
-    { width: 15 },
+  ws["!cols"] = [
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 15 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 15 },
+    { wch: 22 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 15 },
+    { wch: 10 },
+    { wch: 15 },
+    { wch: 15 },
   ];
 
-  wsData.forEach((row) => ws.addRow(row));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "DATOS");
 
-  const buffer = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buffer as ArrayBuffer], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "FreightSync_Rate_Template.xlsx";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  XLSX.writeFile(wb, "FreightSync_Rate_Template.xlsx");
 }
