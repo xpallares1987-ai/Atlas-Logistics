@@ -1,0 +1,2 @@
+# Exclude the .agents directory from GitHub Linguist language detection and CodeQL analysis
+.agents/** linguist-vendored
