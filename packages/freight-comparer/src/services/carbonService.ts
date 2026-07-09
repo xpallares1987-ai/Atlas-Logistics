@@ -4,29 +4,35 @@
  */
 
 import { FreightRate } from "../types";
+import { calculateScope3Emissions, TransportMode } from "@atlas/ui";
 
 /**
- * Calculates estimated CO2 emissions (kgs) for a freight route.
+ * Calculates estimated CO2 emissions (kgs) for a freight route using the standardized Scope 3 calculator.
  * Industrialization Phase 4: Environmental sustainability tracking.
  */
 export function estimateCarbonFootprint(rate: FreightRate): number {
-  // Simplified calculation based on distance/mode (Simulated)
-  // Real industrial app would use GLEC framework or similar APIs.
-
-  const baseEmissionFactor = 0.015; // Kg CO2 per ton-km (Maritime)
-  const estimatedDistance = 12000; // Estimated distance in KM (Avg Asia-Europe)
-  const estimatedWeight = 18; // Avg tons per TEU
-
-  let modeMultiplier = 1.0;
-  if (rate.carrier.toLowerCase().includes("air")) {
-    modeMultiplier = 50.0; // Air freight is much more carbon intensive
-  } else if (rate.carrier.toLowerCase().includes("rail")) {
-    modeMultiplier = 0.5;
+  // Determine transport mode based on carrier name
+  const carrierLower = (rate.carrier || "").toLowerCase();
+  let mode: TransportMode = "OCEAN";
+  if (carrierLower.includes("air")) {
+    mode = "AIR";
+  } else if (carrierLower.includes("rail")) {
+    mode = "RAIL";
+  } else if (carrierLower.includes("truck") || carrierLower.includes("road") || carrierLower.includes("ftl") || carrierLower.includes("ltl")) {
+    mode = "ROAD";
   }
 
-  return (
-    estimatedDistance * estimatedWeight * baseEmissionFactor * modeMultiplier
-  );
+  // Use average weight of 18 tons (18,000 kg) per container/rate shipment
+  const estimatedWeight = 18000;
+
+  const result = calculateScope3Emissions({
+    mode,
+    weightKg: estimatedWeight,
+    origin: rate.pol,
+    destination: rate.pod,
+  });
+
+  return result.co2eKg;
 }
 
 /**
@@ -37,3 +43,4 @@ export function getCarbonRating(kgCO2: number): "green" | "amber" | "red" {
   if (kgCO2 < 10000) return "amber";
   return "red";
 }
+
