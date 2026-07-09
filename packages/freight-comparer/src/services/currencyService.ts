@@ -12,7 +12,7 @@ export const CURRENCY_RATES: Record<string, number> = {
   EUR: 0.92,
   GBP: 0.78,
   CNY: 7.24,
-  JPY: 156.4
+  JPY: 156.4,
 };
 
 const CACHE_KEY = "control_tower_exchange_rates";
@@ -31,17 +31,20 @@ export async function initializeCurrencyRates(): Promise<void> {
     if (cachedRates && cachedExpiry && now < Number(cachedExpiry)) {
       const parsed = JSON.parse(cachedRates);
       Object.assign(CURRENCY_RATES, parsed);
-      console.log("[CurrencyService] Loaded cached exchange rates:", CURRENCY_RATES);
+      console.log(
+        "[CurrencyService] Loaded cached exchange rates:",
+        CURRENCY_RATES,
+      );
       return;
     }
 
     const response = await fetch("https://open.er-api.com/v6/latest/USD");
     if (!response.ok) throw new Error("Exchange rate API request failed");
     const data = await response.json();
-    
+
     if (data && data.rates) {
       const newRates: Record<string, number> = {};
-      Object.keys(CURRENCY_RATES).forEach(currency => {
+      Object.keys(CURRENCY_RATES).forEach((currency) => {
         if (data.rates[currency]) {
           newRates[currency] = data.rates[currency];
         }
@@ -49,21 +52,31 @@ export async function initializeCurrencyRates(): Promise<void> {
       Object.assign(CURRENCY_RATES, newRates);
       localStorage.setItem(CACHE_KEY, JSON.stringify(newRates));
       localStorage.setItem(CACHE_EXPIRY_KEY, (now + CACHE_DURATION).toString());
-      console.log("[CurrencyService] Fetched and updated live exchange rates:", CURRENCY_RATES);
+      console.log(
+        "[CurrencyService] Fetched and updated live exchange rates:",
+        CURRENCY_RATES,
+      );
     }
   } catch (error) {
-    console.error("[CurrencyService] Failed to fetch live exchange rates, using defaults:", error);
+    console.error(
+      "[CurrencyService] Failed to fetch live exchange rates, using defaults:",
+      error,
+    );
   }
 }
 
 /**
  * Converts an amount from one currency to another.
  */
-export function convertCurrency(amount: number, from: string, to: string): number {
+export function convertCurrency(
+  amount: number,
+  from: string,
+  to: string,
+): number {
   if (from === to) return amount;
   const fromRate = CURRENCY_RATES[from] || 1.0;
   const toRate = CURRENCY_RATES[to] || 1.0;
-  
+
   // amount in base (USD) = amount / fromRate
   // amount in target = (amount / fromRate) * toRate
   return (amount / fromRate) * toRate;
@@ -73,9 +86,9 @@ export function convertCurrency(amount: number, from: string, to: string): numbe
  * Formats currency based on locale.
  */
 export function formatCurrency(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
     currency: currency,
-    minimumFractionDigits: 2
+    minimumFractionDigits: 2,
   }).format(amount);
 }

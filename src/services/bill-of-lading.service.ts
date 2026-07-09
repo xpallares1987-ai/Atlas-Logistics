@@ -1,14 +1,14 @@
-import { db } from '../db/client.js';
-import { bill_of_ladings } from '../db/schema-documents.js';
-import { eq } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
+import { db } from "../db/client.js";
+import { bill_of_ladings } from "../db/schema-documents.js";
+import { eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 export const createBillOfLadingVersion = async (
   shipmentId: number,
   shipper: string,
   consignee: string,
   cargoDetails: string,
-  previousVersionId?: string
+  previousVersionId?: string,
 ) => {
   return await db.transaction(async (tx) => {
     const newVersionId = randomUUID();
@@ -25,7 +25,8 @@ export const createBillOfLadingVersion = async (
         versionNumber = prevDocQuery[0].version + 1;
       }
 
-      await tx.update(bill_of_ladings)
+      await tx
+        .update(bill_of_ladings)
         .set({ is_active: false })
         .where(eq(bill_of_ladings.id, previousVersionId));
     }
@@ -38,7 +39,7 @@ export const createBillOfLadingVersion = async (
       consignee: consignee,
       cargo_details: cargoDetails,
       previous_version_id: previousVersionId || null,
-      is_active: true
+      is_active: true,
     });
 
     return newVersionId;

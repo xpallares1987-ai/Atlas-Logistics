@@ -15,11 +15,7 @@ export default class CustomContextPad {
   }
 
   getContextPadEntries(element: any) {
-    const {
-      _create,
-      _elementFactory,
-      _translate
-    } = this;
+    const { _create, _elementFactory, _translate } = this;
 
     function appendAction(type: string, className: string, title: string, options?: any) {
       function appendListener(event: any, element: any) {
@@ -33,12 +29,16 @@ export default class CustomContextPad {
         title: _translate(title),
         action: {
           dragstart: appendListener,
-          click: appendListener
-        }
+          click: appendListener,
+        },
       };
     }
 
-    if (element.type === 'bpmn:UserTask' || element.type === 'bpmn:Task' || element.type === 'bpmn:StartEvent') {
+    if (
+      element.type === 'bpmn:UserTask' ||
+      element.type === 'bpmn:Task' ||
+      element.type === 'bpmn:StartEvent'
+    ) {
       return {
         'append.customs-task': appendAction(
           'bpmn:Task',
@@ -51,7 +51,7 @@ export default class CustomContextPad {
           'bpmn-icon-warehouse',
           'Añadir Tarea de Almacén',
           { businessObject: { name: 'Recepción Almacén' } }
-        )
+        ),
       };
     }
 
@@ -59,9 +59,4 @@ export default class CustomContextPad {
   }
 }
 
-CustomContextPad.$inject = [
-  'contextPad',
-  'create',
-  'elementFactory',
-  'translate'
-];
+CustomContextPad.$inject = ['contextPad', 'create', 'elementFactory', 'translate'];

@@ -22,35 +22,45 @@ export default function ConsoleLogs({ t }: ConsoleLogsProps) {
   const sampleMessages = [
     {
       message: "Seasonal container rate threshold check complete.",
-      details: "POL: Barcelona -> POD: New York. Variance detected: +1.2% versus previous rolling period metrics."
+      details:
+        "POL: Barcelona -> POD: New York. Variance detected: +1.2% versus previous rolling period metrics.",
     },
     {
       message: "Verified carrier compliance metrics for active pricing lanes.",
-      details: "Assessed Ocean Express and Global Logistics compliance ratings: 99.8% tracking index."
+      details:
+        "Assessed Ocean Express and Global Logistics compliance ratings: 99.8% tracking index.",
     },
     {
       message: "Carrier lane optimization registry recalculated.",
-      details: "Optimized 4 carrier routing profiles in IndexedDB cache to reduce routing overhead."
+      details:
+        "Optimized 4 carrier routing profiles in IndexedDB cache to reduce routing overhead.",
     },
     {
       message: "Cascaded lane selector parameters refreshed.",
-      details: "Active matching: 5 ports checked. Local cache pinged in 2.1ms with zero lookup misses."
-    }
+      details:
+        "Active matching: 5 ports checked. Local cache pinged in 2.1ms with zero lookup misses.",
+    },
   ];
 
   const sampleErrors = [
     {
-      message: "MALFORMED DATASHEET: 'oceanFreight' is not a valid currency float on row 19.",
-      details: "Found string 'TBD' on column 'Ocean Freight' under Carrier 'Pacific Link'."
+      message:
+        "MALFORMED DATASHEET: 'oceanFreight' is not a valid currency float on row 19.",
+      details:
+        "Found string 'TBD' on column 'Ocean Freight' under Carrier 'Pacific Link'.",
     },
     {
-      message: "CACHE WARNING: IndexedDB standard allocation buffer quota nearing threshold limit.",
-      details: "Calculated 872 KB used out of 50 MB permitted browser persistent storage allocation."
+      message:
+        "CACHE WARNING: IndexedDB standard allocation buffer quota nearing threshold limit.",
+      details:
+        "Calculated 872 KB used out of 50 MB permitted browser persistent storage allocation.",
     },
     {
-      message: "CORRELATION EXCEPTION: Route code 'CNSHA -> SGPIN' possesses unrecognized transit zones.",
-      details: "Please verify that the sheet matches expected DATOS structures."
-    }
+      message:
+        "CORRELATION EXCEPTION: Route code 'CNSHA -> SGPIN' possesses unrecognized transit zones.",
+      details:
+        "Please verify that the sheet matches expected DATOS structures.",
+    },
   ];
 
   useEffect(() => {
@@ -71,7 +81,8 @@ export default function ConsoleLogs({ t }: ConsoleLogsProps) {
       id: "seeded-001",
       timestamp: new Date().toISOString(),
       level: "info",
-      message: "Diagnostics Monitor initialized. Ready to record XLS imports and db transactions.",
+      message:
+        "Diagnostics Monitor initialized. Ready to record XLS imports and db transactions.",
     });
 
     return () => {
@@ -82,7 +93,10 @@ export default function ConsoleLogs({ t }: ConsoleLogsProps) {
   const handleClear = () => {
     setLogs([]);
     console.clear();
-    console.log("%c[FreightDB] Console reports cleared by operator.", "color: #ff9900; font-weight: bold;");
+    console.log(
+      "%c[FreightDB] Console reports cleared by operator.",
+      "color: #ff9900; font-weight: bold;",
+    );
   };
 
   const handleTriggerSampleEvent = () => {
@@ -93,7 +107,9 @@ export default function ConsoleLogs({ t }: ConsoleLogsProps) {
       timestamp: new Date().toISOString(),
       level: "info",
       message: item.message,
-      details: isVerbose ? `${item.details} [VERB_INFO: Log sequence #${logs.length + 1}]` : item.details
+      details: isVerbose
+        ? `${item.details} [VERB_INFO: Log sequence #${logs.length + 1}]`
+        : item.details,
     });
   };
 
@@ -105,7 +121,9 @@ export default function ConsoleLogs({ t }: ConsoleLogsProps) {
       timestamp: new Date().toISOString(),
       level: idx === 1 ? "warn" : "error",
       message: item.message,
-      details: isVerbose ? `${item.details} [VERB_ERR: Exception captured on frame stack]` : item.details
+      details: isVerbose
+        ? `${item.details} [VERB_ERR: Exception captured on frame stack]`
+        : item.details,
     });
   };
 
@@ -117,17 +135,22 @@ export default function ConsoleLogs({ t }: ConsoleLogsProps) {
         id: `verbose-${Date.now()}`,
         timestamp: new Date().toISOString(),
         level: next ? "success" : "warn",
-        message: next ? "DEBUG: Verbose telemetry streams enabled." : "DEBUG: Verbose telemetry streams disabled.",
-        details: next 
+        message: next
+          ? "DEBUG: Verbose telemetry streams enabled."
+          : "DEBUG: Verbose telemetry streams disabled.",
+        details: next
           ? "Enhanced diagnostic logs will record background latency, cascading lane selectors state changes, and individual database writes."
-          : "Background tracking levels set to basic events."
+          : "Background tracking levels set to basic events.",
       });
       return next;
     });
   };
 
   return (
-    <div id="technical-console-logger" className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg font-mono">
+    <div
+      id="technical-console-logger"
+      className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg font-mono"
+    >
       {/* Header bar that can be clicked to toggle drawer */}
       <div
         id="console-header-bar"
@@ -142,7 +165,10 @@ export default function ConsoleLogs({ t }: ConsoleLogsProps) {
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 md:gap-2.5" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="flex flex-wrap items-center gap-2 md:gap-2.5"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             id="btn-trigger-event"
             type="button"
@@ -180,7 +206,9 @@ export default function ConsoleLogs({ t }: ConsoleLogsProps) {
                 : "text-slate-450 bg-slate-900/40 border-slate-750"
             }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${isVerbose ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`}></span>
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${isVerbose ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`}
+            ></span>
             Verbose logging: {isVerbose ? "ON" : "OFF"}
           </button>
 
@@ -202,22 +230,31 @@ export default function ConsoleLogs({ t }: ConsoleLogsProps) {
             </button>
           )}
 
-          <div 
+          <div
             className="text-slate-400 hover:text-white p-1 hover:bg-slate-850 rounded transition"
             onClick={(e) => {
               e.stopPropagation();
               setIsOpen(!isOpen);
             }}
           >
-            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronUp className="h-4 w-4" />
+            )}
           </div>
         </div>
       </div>
 
       {isOpen && (
-        <div id="console-output-container" className="p-4 max-h-[190px] overflow-y-auto space-y-2 text-[11px] bg-slate-950/80 border-t border-slate-900 leading-normal">
+        <div
+          id="console-output-container"
+          className="p-4 max-h-[190px] overflow-y-auto space-y-2 text-[11px] bg-slate-950/80 border-t border-slate-900 leading-normal"
+        >
           {logs.length === 0 ? (
-            <p className="text-slate-500 italic text-center py-6">{t.consoleWarnNoData}</p>
+            <p className="text-slate-500 italic text-center py-6">
+              {t.consoleWarnNoData}
+            </p>
           ) : (
             logs.map((log) => {
               let tagColor = "text-blue-400 bg-blue-500/10";
@@ -233,12 +270,17 @@ export default function ConsoleLogs({ t }: ConsoleLogsProps) {
               }
 
               return (
-                <div key={log.id} className="flex items-start gap-2 border-b border-slate-900 pb-1.5 last:border-b-0 last:pb-0">
+                <div
+                  key={log.id}
+                  className="flex items-start gap-2 border-b border-slate-900 pb-1.5 last:border-b-0 last:pb-0"
+                >
                   <span className="text-slate-550 shrink-0 select-none font-sans text-[10px]">
                     [{new Date(log.timestamp).toLocaleTimeString()}]
                   </span>
-                  
-                  <span className={`px-1.5 py-0.25 rounded font-sans text-[9px] uppercase font-bold shrink-0 inline-block tracking-wider ${tagColor}`}>
+
+                  <span
+                    className={`px-1.5 py-0.25 rounded font-sans text-[9px] uppercase font-bold shrink-0 inline-block tracking-wider ${tagColor}`}
+                  >
                     {log.level}
                   </span>
 

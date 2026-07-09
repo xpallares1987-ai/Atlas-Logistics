@@ -71,17 +71,17 @@ export class DiffVisualizer {
       additionalModules: [
         {
           __init__: ['changeVisualization'],
-          changeVisualization: ['type', function() {}] // Mock for differ
-        }
-      ]
+          changeVisualization: ['type', function () {}], // Mock for differ
+        },
+      ],
     });
 
     const currentXml = await this.currentModeler.saveXML({ format: true });
-    
+
     // In a real implementation with bpmn-js-differ, we would use its visual module
     // For now, we will perform a logic-only diff and highlight elements
     // since bpmn-js-differ is primarily a logical differ.
-    
+
     try {
       await differModeler.importXML(oldXml);
       const oldDefinitions = differModeler.getDefinitions();
@@ -92,16 +92,16 @@ export class DiffVisualizer {
       const diff = new BpmnDiffer().diff(oldDefinitions, currentDefinitions);
 
       const canvas = differModeler.get('canvas') as any;
-      
+
       // Highlight changes
-      Object.keys(diff.added).forEach(id => {
+      Object.keys(diff.added).forEach((id) => {
         canvas.addMarker(id, 'diff-added');
       });
-      Object.keys(diff.changed).forEach(id => {
+      Object.keys(diff.changed).forEach((id) => {
         canvas.addMarker(id, 'diff-changed');
       });
-      Object.keys(diff.removed).forEach(id => {
-        // Removed elements aren't in the current XML, 
+      Object.keys(diff.removed).forEach((id) => {
+        // Removed elements aren't in the current XML,
         // a more advanced diff would show them ghosted.
         console.log('Removed:', id);
       });

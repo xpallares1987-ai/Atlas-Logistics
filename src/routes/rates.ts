@@ -1,163 +1,205 @@
-import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { z } from 'zod';
-import { db } from '../db/client.js';
-import { freight_rates, carriers, surcharges, surcharge_types } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
+import { z } from "zod";
+import { db } from "../db/client.js";
+import { freight_rates, carriers } from "../db/schema.js";
+import { eq } from "drizzle-orm";
+import { cacheService } from "../cache/redis.js";
 
 const rateRoutes: FastifyPluginAsyncZod = async (server) => {
-  server.get('/api/freight-rates', {
-    schema: {
-      description: 'Get all freight rates',
-      tags: ['Rates'],
-      security: [{ bearerAuth: [] }],
-      response: {
-        200: z.object({
-          data: z.array(z.object({
-            id: z.string(),
-            carrier: z.string(),
-            origin: z.string(),
-            destination: z.string(),
-            mode: z.string(),
-            basePrice: z.number(),
-            currency: z.string(),
-            transitTimeDays: z.number(),
-            validity: z.string(),
-            surcharges: z.array(z.object({
-              id: z.string(),
-              code: z.string(),
-              name: z.string(),
-              amount: z.number(),
-              currency: z.string(),
-              chargeType: z.string()
-            })).optional()
-          }))
-        })
-      }
+  server.get(
+    "/api/freight-rates",
+    {
+      schema: {
+        description: "Get all freight rates",
+        tags: ["Rates"],
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: z.object({
+            data: z.array(
+              z.object({
+                id: z.string(),
+                carrier: z.string(),
+                origin: z.string(),
+                destination: z.string(),
+                mode: z.string(),
+                basePrice: z.number(),
+                currency: z.string(),
+                transitTimeDays: z.number(),
+                validity: z.string(),
+                surcharges: z
+                  .array(
+                    z.object({
+                      id: z.string(),
+                      code: z.string(),
+                      name: z.string(),
+                      amount: z.number(),
+                      currency: z.string(),
+                      chargeType: z.string(),
+                    }),
+                  )
+                  .optional(),
+              }),
+            ),
+          }),
+        },
+      },
+      onRequest: [(server as any).authenticate],
     },
-    onRequest: [(server as any).authenticate]
-  }, async (_request, _reply) => {
-    const rates = await db.query.freight_rates.findMany({
-      with: {
-        carrier: true,
-        surcharges: {
-          with: {
-            type: true
-          }
-        }
+    async () => {
+      const cacheKey = "catalog:freight_rates:all";
+      const cachedRates = await cacheService.get(cacheKey);
+      if (cachedRates) {
+        return cachedRates;
       }
-    });
 
-    return {
-      data: rates.map(r => ({
-        id: String(r.id),
+      const rates = await db.query.freight_rates.findMany({
+        with: {
+          carrier: true,
+          surcharges: {
+            with: {
+              type: true,
+            },
+          },
+        },
+      });
+
+      const responseData = {
+        data: rates.map((r) => ({
+          id: String(r.id),
+          carrier: r.carrier.name,
+          origin: r.origin_port,
+          destination: r.destination_port,
+          mode: "FCL_40", // Fallback
+          basePrice: Number(r.base_rate),
+          currency: r.currency,
+          transitTimeDays: 14, // Fallback
+          validity: r.valid_to,
+          surcharges: r.surcharges.map((s) => ({
+            id: String(s.id),
+            code: s.type.name,
+            name: s.type.name,
+            amount: Number(s.amount),
+            currency: s.currency,
+            chargeType: "FIXED",
+          })),
+        })),
+      };
+
+      await cacheService.set(cacheKey, responseData, 3600);
+      return responseData;
+    },
+  );
+
+  server.post(
+    "/api/freight-rates",
+    {
+      schema: {
+        description: "Create a new freight rate",
+        tags: ["Rates"],
+        security: [{ bearerAuth: [] }],
+        body: z.object({
+          carrier: z.string(),
+          origin: z.string(),
+          destination: z.string(),
+          mode: z.string(),
+          basePrice: z.number(),
+          currency: z.string(),
+          transitTimeDays: z.number(),
+          validity: z.string(),
+        }),
+      },
+      onRequest: [(server as any).authenticate],
+    },
+    async (request, reply) => {
+      const body = request.body as any;
+
+      // Find or create carrier
+      let [carrier] = await db
+        .select()
+        .from(carriers)
+        .where(eq(carriers.name, body.carrier));
+      if (!carrier) {
+        [carrier] = await db
+          .insert(carriers)
+          .values({
+            name: body.carrier,
+            code: body.carrier.substring(0, 4).toUpperCase(),
+          })
+          .returning();
+      }
+
+      const [rate] = await db
+        .insert(freight_rates)
+        .values({
+          carrier_id: carrier.id,
+          origin_port: body.origin,
+          destination_port: body.destination,
+          currency: body.currency,
+          base_rate: String(body.basePrice),
+          valid_from: new Date().toISOString().split("T")[0],
+          valid_to: body.validity,
+        })
+        .returning();
+
+      await cacheService.del("catalog:freight_rates:all");
+
+      return reply.status(201).send({ success: true, rateId: String(rate.id) });
+    },
+  );
+
+  server.get(
+    "/api/rates/search",
+    {
+      schema: {
+        description: "Search available freight rates",
+        tags: ["Rates"],
+        querystring: z.object({
+          origin: z.string().optional(),
+          destination: z.string().optional(),
+        }),
+      },
+    },
+    async (request) => {
+      const { origin, destination } = request.query as {
+        origin?: string;
+        destination?: string;
+      };
+
+      // Quick filtering without full complex ORM syntax since it's just a basic search
+      const results = await db.query.freight_rates.findMany({
+        where: (freight_rates, { eq, and }) => {
+          const conditions = [];
+          if (origin) conditions.push(eq(freight_rates.origin_port, origin));
+          if (destination)
+            conditions.push(eq(freight_rates.destination_port, destination));
+          return conditions.length > 0 ? and(...conditions) : undefined;
+        },
+        with: {
+          carrier: true,
+          surcharges: {
+            with: { type: true },
+          },
+        },
+      });
+
+      return results.map((r) => ({
+        id: r.id,
         carrier: r.carrier.name,
-        origin: r.origin_port,
-        destination: r.destination_port,
-        mode: 'FCL_40', // Fallback
-        basePrice: Number(r.base_rate),
+        origin_port: r.origin_port,
+        destination_port: r.destination_port,
         currency: r.currency,
-        transitTimeDays: 14, // Fallback
-        validity: r.valid_to,
-        surcharges: r.surcharges.map(s => ({
-          id: String(s.id),
-          code: s.type.name,
+        base_rate: Number(r.base_rate),
+        valid_from: r.valid_from,
+        valid_to: r.valid_to,
+        surcharges: r.surcharges.map((s) => ({
+          id: s.id,
           name: s.type.name,
           amount: Number(s.amount),
           currency: s.currency,
-          chargeType: 'FIXED'
-        }))
-      }))
-    };
-  });
-
-  server.post('/api/freight-rates', {
-    schema: {
-      description: 'Create a new freight rate',
-      tags: ['Rates'],
-      security: [{ bearerAuth: [] }],
-      body: z.object({
-        carrier: z.string(),
-        origin: z.string(),
-        destination: z.string(),
-        mode: z.string(),
-        basePrice: z.number(),
-        currency: z.string(),
-        transitTimeDays: z.number(),
-        validity: z.string()
-      })
+        })),
+      }));
     },
-    onRequest: [(server as any).authenticate]
-  }, async (request, reply) => {
-    const body = request.body as any;
-    
-    // Find or create carrier
-    let [carrier] = await db.select().from(carriers).where(eq(carriers.name, body.carrier));
-    if (!carrier) {
-      [carrier] = await db.insert(carriers).values({
-        name: body.carrier,
-        code: body.carrier.substring(0, 4).toUpperCase()
-      }).returning();
-    }
-
-    const [rate] = await db.insert(freight_rates).values({
-      carrier_id: carrier.id,
-      origin_port: body.origin,
-      destination_port: body.destination,
-      currency: body.currency,
-      base_rate: String(body.basePrice),
-      valid_from: new Date().toISOString().split('T')[0],
-      valid_to: body.validity
-    }).returning();
-
-    return reply.status(201).send({ success: true, rateId: String(rate.id) });
-  });
-
-  server.get('/api/rates/search', {
-    schema: {
-      description: 'Search available freight rates',
-      tags: ['Rates'],
-      querystring: z.object({
-        origin: z.string().optional(),
-        destination: z.string().optional()
-      })
-    }
-  }, async (_request, _reply) => {
-    const { origin, destination } = _request.query as { origin?: string, destination?: string };
-    
-    // Quick filtering without full complex ORM syntax since it's just a basic search
-    const results = await db.query.freight_rates.findMany({
-      where: (freight_rates, { eq, and }) => {
-        const conditions = [];
-        if (origin) conditions.push(eq(freight_rates.origin_port, origin));
-        if (destination) conditions.push(eq(freight_rates.destination_port, destination));
-        return conditions.length > 0 ? and(...conditions) : undefined;
-      },
-      with: {
-        carrier: true,
-        surcharges: {
-          with: { type: true }
-        }
-      }
-    });
-
-    return results.map(r => ({
-      id: r.id,
-      carrier: r.carrier.name,
-      origin_port: r.origin_port,
-      destination_port: r.destination_port,
-      currency: r.currency,
-      base_rate: Number(r.base_rate),
-      valid_from: r.valid_from,
-      valid_to: r.valid_to,
-      surcharges: r.surcharges.map(s => ({
-        id: s.id,
-        name: s.type.name,
-        amount: Number(s.amount),
-        currency: s.currency
-      }))
-    }));
-  });
-
+  );
 };
 
 export default rateRoutes;

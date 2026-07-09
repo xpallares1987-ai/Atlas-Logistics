@@ -6,7 +6,7 @@ test.describe('BPMN Modeler Sanity Check', () => {
 
   test.beforeEach(async ({ page }) => {
     // Capture console errors
-    page.on('console', msg => {
+    page.on('console', (msg) => {
       if (msg.type() === 'error') {
         const text = msg.text();
         if (!text.includes('is already registered') && !text.includes('append-task')) {
@@ -15,7 +15,7 @@ test.describe('BPMN Modeler Sanity Check', () => {
       }
     });
 
-    page.on('pageerror', error => {
+    page.on('pageerror', (error) => {
       consoleErrors.push(error.message);
     });
   });
@@ -23,7 +23,7 @@ test.describe('BPMN Modeler Sanity Check', () => {
   test('should render correctly and have no console errors', async ({ page }) => {
     // 1. App renders correctly
     await page.goto('/');
-    
+
     // Verify title and main elements are visible
     await expect(page).toHaveTitle(/BPMN Modeler/);
     await expect(page.locator('.app-shell')).toBeVisible();

@@ -13,7 +13,10 @@ class EventBus {
   unsubscribe<T>(event: string, handler: EventHandler<T>): void {
     const handlers = this.events.get(event);
     if (handlers) {
-      this.events.set(event, handlers.filter((h) => h !== handler));
+      this.events.set(
+        event,
+        handlers.filter((h) => h !== handler),
+      );
     }
   }
 
@@ -25,4 +28,4 @@ class EventBus {
   }
 }
 
-export const eventBus = new EventBus();
+export const eventBus = new EventBus();

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
   workflow_dispatch:
 
 permissions:
@@ -14,9 +14,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      CI: 'true'
-      # Turborepo remote caching can be configured here if available
-
+      CI: "true"
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -33,6 +33,9 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm install --no-frozen-lockfile --ignore-scripts
+
+      - name: Security Audit
+        run: pnpm audit --audit-level=high
 
       # Cache Turborepo outputs
       - name: Cache Turborepo
@@ -55,3 +58,38 @@ jobs:
 
       - name: Run Tests
         run: pnpm run test
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E Tests (Playwright)
+        run: npx playwright test
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: packages/frontend/playwright-report/
+          retention-days: 14
+
+      - name: Authenticate to Google Cloud
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/100198375762/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-actions@gen-lang-client-0393063451.iam.gserviceaccount.com'
+
+      - name: Deploy to Firebase (Production)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: |
+          npm install -g firebase-tools
+          firebase deploy --non-interactive
+
+      - name: Deploy to Firebase (Preview Channel)
+        if: github.event_name == 'pull_request'
+        run: |
+          npm install -g firebase-tools
+          firebase hosting:channel:deploy pr-${{ github.event.number }} --expires 7d
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

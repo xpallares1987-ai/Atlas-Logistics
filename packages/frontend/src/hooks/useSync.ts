@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { db } from '../db/dexie';
+import { useEffect } from "react";
+import { db } from "../db/dexie";
 
 export function useOfflineSync() {
   useEffect(() => {
@@ -7,11 +7,11 @@ export function useOfflineSync() {
       if (!navigator.onLine) return;
 
       try {
-        const respuesta = await fetch('http://localhost:3000/api/shipments');
-        
+        const respuesta = await fetch("http://localhost:3000/api/shipments");
+
         if (respuesta.ok) {
           const datos = await respuesta.json();
-          
+
           const embarquesMapeados = datos.map((e: any) => ({
             id: e.id,
             numero_seguimiento: e.tracking_number,
@@ -25,22 +25,22 @@ export function useOfflineSync() {
             ets: e.ets,
             eta: e.eta,
             fecha_creacion: e.created_at,
-            fecha_actualizacion: e.updated_at
+            fecha_actualizacion: e.updated_at,
           }));
 
           await db.embarques.bulkPut(embarquesMapeados);
         }
       } catch (error) {
-        console.error('Fallo en la sincronización offline:', error);
+        console.error("Fallo en la sincronización offline:", error);
       }
     };
 
     sincronizarDatos();
-    
-    window.addEventListener('online', sincronizarDatos);
-    
+
+    window.addEventListener("online", sincronizarDatos);
+
     return () => {
-      window.removeEventListener('online', sincronizarDatos);
+      window.removeEventListener("online", sincronizarDatos);
     };
   }, []);
 }
