@@ -56,7 +56,6 @@
     "sax": "^1.6.0",
     "tailwind-merge": "^3.6.0",
     "three": "^0.185.1",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "xml2js": "^0.6.2",
     "zod": "^4.4.3"
   },

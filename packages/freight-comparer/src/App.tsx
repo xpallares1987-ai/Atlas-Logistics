@@ -18,7 +18,8 @@ export default function App() {
   React.useEffect(() => {
     async function loadRates() {
       try {
-        const { listQuotes } = await import("@dataconnect/generated");
+        const dataconnect = await import("@dataconnect/generated") as any;
+        const { listQuotes } = dataconnect;
         const res = await listQuotes();
         if (res.data?.quotes) {
           const mapped = res.data.quotes.map((q: any) => {
