@@ -1,3 +1,5 @@
+name: Atlas Logistics Validation
+
 on:
   check_run:
     types:
@@ -8,31 +10,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: write
-  artifact-metadata: write
-  attestations: write
-  checks: write
-  code-quality: write
-  contents: write
-  deployments: write
-  discussions: write
-  id-token: write
-  issues: write
-  models: read
-  packages: write
-  pages: write
-  pull-requests: write
-  repository-projects: write
-  security-events: write
-  statuses: write
-  vulnerability-alerts: read
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "20"
   PNPM_VERSION: "10"
 
 jobs:
@@ -44,23 +29,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js and pnpm
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
-
-      - name: Configure pnpm cache
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
       - name: Validate required repository files
         run: |
@@ -78,36 +58,32 @@ jobs:
           test -f docker-compose.yml
           test -d packages
           test -d dataconnect
-          echo "Required repository files validated."
+          echo "✓ Required repository files validated."
 
       - name: Validate JSON configuration files
         run: |
-          node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))"
-          node -e "JSON.parse(require('fs').readFileSync('turbo.json', 'utf8'))"
-          node -e "JSON.parse(require('fs').readFileSync('tsconfig.json', 'utf8'))"
-          node -e "JSON.parse(require('fs').readFileSync('tsconfig.server.json', 'utf8'))"
-          node -e "JSON.parse(require('fs').readFileSync('firebase.json', 'utf8'))"
-          node -e "JSON.parse(require('fs').readFileSync('firestore.indexes.json', 'utf8'))"
-          node -e "JSON.parse(require('fs').readFileSync('database.rules.json', 'utf8'))"
-          node -e "JSON.parse(require('fs').readFileSync('knip.json', 'utf8'))"
-          echo "JSON configuration files are valid."
+          for file in package.json turbo.json tsconfig.json tsconfig.server.json firebase.json firestore.indexes.json database.rules.json knip.json; do
+            node -e "JSON.parse(require('fs').readFileSync('$file', 'utf8'))" || exit 1
+          done
+          echo "✓ JSON configuration files are valid."
 
       - name: Validate TypeScript configuration
         run: |
           pnpm exec tsc -p tsconfig.json --noEmit --pretty false
           pnpm exec tsc -p tsconfig.server.json --noEmit --pretty false
+          echo "✓ TypeScript configuration validated."
 
       - name: Validate Turborepo configuration
         run: |
-          node -e "const turbo = JSON.parse(require('fs').readFileSync('turbo.json', 'utf8')); if (!turbo.tasks || !turbo.tasks.build || !turbo.tasks.type-check || !turbo.tasks.lint) process.exit(1);"
-          echo "Turborepo configuration validated."
+          node -e "const turbo = JSON.parse(require('fs').readFileSync('turbo.json', 'utf8')); if (!turbo.tasks || !turbo.tasks.build || !turbo.tasks['type-check'] || !turbo.tasks.lint) process.exit(1);"
+          echo "✓ Turborepo configuration validated."
 
       - name: Validate pnpm workspace structure
         run: |
           grep -q 'packages:' pnpm-workspace.yaml
           grep -q 'packages/\*' pnpm-workspace.yaml
           grep -q "lockfileVersion: '9.0'" pnpm-lock.yaml
-          echo "pnpm workspace and lockfile metadata validated."
+          echo "✓ pnpm workspace and lockfile metadata validated."
 
       - name: Validate Docker Compose configuration
         run: docker compose -f docker-compose.yml config --quiet
@@ -115,28 +91,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Repository context
-        run: |
-          echo "Repository: ${{ github.repository }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "Actor: ${{ github.actor }}"
-
       - name: TypeScript validation
         run: pnpm run type-check
 
-      - name: ESLint validation
-        run: pnpm run eslint
-
-      - name: ESLint SARIF report
-        run: pnpm exec eslint . --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif
-        continue-on-error: true
-
-      - name: Upload ESLint SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always() && hashFiles('eslint-results.sarif') != ''
-        with:
-          sarif_file: eslint-results.sarif
+      - name: Lint validation
+        run: pnpm run lint
 
       - name: Run tests
         run: pnpm run test
@@ -152,16 +111,7 @@ jobs:
         run: pnpm audit --prod
         continue-on-error: true
 
-      - name: Firebase Data Connect SDK check
-        run: |
-          if [ -d "dataconnect/schema" ]; then
-            npx firebase-tools dataconnect:sdk:generate
-          else
-            echo "dataconnect/schema not found. Skipping SDK generation."
-          fi
-        continue-on-error: true
-
       - name: Summary
         run: |
-          echo "Atlas Logistics validation completed."
-          echo "pnpm workspace, Turbo, TypeScript, ESLint, Firebase, Docker Compose, tests and build checks completed."
+          echo "✓ Atlas Logistics validation completed."
+          echo "All checks passed: pnpm workspace, Turbo, TypeScript, ESLint, Docker Compose, tests, and build."
