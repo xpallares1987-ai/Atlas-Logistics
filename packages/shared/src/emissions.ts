@@ -1,7 +1,7 @@
 /**
  * @license
- * SPDX-License-Identifier: Apache-2.5
- * 
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Scope 3 Carbon Footprint & Green Logistics Calculator
  * Compliant with GLEC (Global Logistics Emissions Council) and DEFRA frameworks.
  */
