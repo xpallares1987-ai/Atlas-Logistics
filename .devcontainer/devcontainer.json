@@ -1,18 +1,17 @@
 {
   "name": "Atlas Logistics",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:22-bookworm",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22",
       "pnpmVersion": "latest"
-    },
-    "ghcr.io/devcontainers/features/postgres:1": {
-      "version": "latest",
-      "databaseName": "atlas_scm",
-      "databaseUser": "postgres"
     }
   },
-  "forwardPorts": [3000],
+  "onCreateCommand": "sudo service postgresql start && (sudo -u postgres psql -tAc \"SELECT 1 FROM pg_database WHERE datname = 'atlas_scm'\" | grep -qx 1 || sudo -u postgres createdb atlas_scm)",
+  "postStartCommand": "sudo service postgresql start",
+  "forwardPorts": [3000, 5432],
   "customizations": {
     "vscode": {
       "extensions": [
