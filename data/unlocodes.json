@@ -1,0 +1,442 @@
+[
+  {
+    "locode": "CNSHA",
+    "name": "Shanghai",
+    "countryCode": "CN",
+    "countryName": "China",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 31.2222,
+    "longitude": 121.4581
+  },
+  {
+    "locode": "SGSIN",
+    "name": "Singapore",
+    "countryCode": "SG",
+    "countryName": "Singapore",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 1.2903,
+    "longitude": 103.85
+  },
+  {
+    "locode": "NLRTM",
+    "name": "Rotterdam",
+    "countryCode": "NL",
+    "countryName": "Netherlands",
+    "type": "SEAPORT",
+    "region": "Europe",
+    "latitude": 51.9225,
+    "longitude": 4.4792
+  },
+  {
+    "locode": "AEDXB",
+    "name": "Dubai",
+    "countryCode": "AE",
+    "countryName": "United Arab Emirates",
+    "type": "SEAPORT",
+    "region": "Middle East",
+    "latitude": 25.2048,
+    "longitude": 55.2708
+  },
+  {
+    "locode": "MYPKG",
+    "name": "Port Klang",
+    "countryCode": "MY",
+    "countryName": "Malaysia",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 3,
+    "longitude": 101.4
+  },
+  {
+    "locode": "BEANR",
+    "name": "Antwerp",
+    "countryCode": "BE",
+    "countryName": "Belgium",
+    "type": "SEAPORT",
+    "region": "Europe",
+    "latitude": 51.2194,
+    "longitude": 4.4025
+  },
+  {
+    "locode": "DEHAM",
+    "name": "Hamburg",
+    "countryCode": "DE",
+    "countryName": "Germany",
+    "type": "SEAPORT",
+    "region": "Europe",
+    "latitude": 53.5511,
+    "longitude": 9.9937
+  },
+  {
+    "locode": "USLAX",
+    "name": "Los Angeles",
+    "countryCode": "US",
+    "countryName": "United States",
+    "type": "SEAPORT",
+    "region": "North America",
+    "latitude": 34.0522,
+    "longitude": -118.2437
+  },
+  {
+    "locode": "USLGB",
+    "name": "Long Beach",
+    "countryCode": "US",
+    "countryName": "United States",
+    "type": "SEAPORT",
+    "region": "North America",
+    "latitude": 33.7701,
+    "longitude": -118.1937
+  },
+  {
+    "locode": "USNYC",
+    "name": "New York",
+    "countryCode": "US",
+    "countryName": "United States",
+    "type": "SEAPORT",
+    "region": "North America",
+    "latitude": 40.7128,
+    "longitude": -74.006
+  },
+  {
+    "locode": "VNSGN",
+    "name": "Ho Chi Minh City",
+    "countryCode": "VN",
+    "countryName": "Vietnam",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 10.8231,
+    "longitude": 106.6297
+  },
+  {
+    "locode": "ESBCN",
+    "name": "Barcelona",
+    "countryCode": "ES",
+    "countryName": "Spain",
+    "type": "SEAPORT",
+    "region": "Europe",
+    "latitude": 41.3851,
+    "longitude": 2.1734
+  },
+  {
+    "locode": "ESVLC",
+    "name": "Valencia",
+    "countryCode": "ES",
+    "countryName": "Spain",
+    "type": "SEAPORT",
+    "region": "Europe",
+    "latitude": 39.4699,
+    "longitude": -0.3774
+  },
+  {
+    "locode": "GBFEL",
+    "name": "Felixstowe",
+    "countryCode": "GB",
+    "countryName": "United Kingdom",
+    "type": "SEAPORT",
+    "region": "Europe",
+    "latitude": 51.9626,
+    "longitude": 1.3512
+  },
+  {
+    "locode": "BRSSZ",
+    "name": "Santos",
+    "countryCode": "BR",
+    "countryName": "Brazil",
+    "type": "SEAPORT",
+    "region": "LatAm",
+    "latitude": -23.9608,
+    "longitude": -46.3331
+  },
+  {
+    "locode": "ZADUR",
+    "name": "Durban",
+    "countryCode": "ZA",
+    "countryName": "South Africa",
+    "type": "SEAPORT",
+    "region": "Africa",
+    "latitude": -29.8587,
+    "longitude": 31.0218
+  },
+  {
+    "locode": "INBOM",
+    "name": "Nhava Sheva",
+    "countryCode": "IN",
+    "countryName": "India",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 18.9401,
+    "longitude": 72.9469
+  },
+  {
+    "locode": "AUMEL",
+    "name": "Melbourne",
+    "countryCode": "AU",
+    "countryName": "Australia",
+    "type": "SEAPORT",
+    "region": "Oceania",
+    "latitude": -37.8136,
+    "longitude": 144.9631
+  },
+  {
+    "locode": "JPTYO",
+    "name": "Tokyo",
+    "countryCode": "JP",
+    "countryName": "Japan",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 35.6762,
+    "longitude": 139.6503
+  },
+  {
+    "locode": "FRLEH",
+    "name": "Le Havre",
+    "countryCode": "FR",
+    "countryName": "France",
+    "type": "SEAPORT",
+    "region": "Europe",
+    "latitude": 49.4944,
+    "longitude": 0.1079
+  },
+  {
+    "locode": "USCHI",
+    "name": "Chicago",
+    "countryCode": "US",
+    "countryName": "United States",
+    "type": "INLAND_PORT",
+    "region": "North America",
+    "latitude": 41.8781,
+    "longitude": -87.6298
+  },
+  {
+    "locode": "DESTR",
+    "name": "Stuttgart",
+    "countryCode": "DE",
+    "countryName": "Germany",
+    "type": "INLAND_PORT",
+    "region": "Europe",
+    "latitude": 48.7758,
+    "longitude": 9.1829
+  },
+  {
+    "locode": "CNDLC",
+    "name": "Dalian",
+    "countryCode": "CN",
+    "countryName": "China",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 38.914,
+    "longitude": 121.6147
+  },
+  {
+    "locode": "CNNGB",
+    "name": "Ningbo",
+    "countryCode": "CN",
+    "countryName": "China",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 29.8683,
+    "longitude": 121.544
+  },
+  {
+    "locode": "GBLHR",
+    "name": "Heathrow Airport",
+    "countryCode": "GB",
+    "countryName": "United Kingdom",
+    "type": "AIRPORT",
+    "region": "Europe",
+    "latitude": 51.47,
+    "longitude": -0.4543
+  },
+  {
+    "locode": "DEFRA",
+    "name": "Frankfurt Airport",
+    "countryCode": "DE",
+    "countryName": "Germany",
+    "type": "AIRPORT",
+    "region": "Europe",
+    "latitude": 50.0333,
+    "longitude": 8.5706
+  },
+  {
+    "locode": "USJFK",
+    "name": "John F. Kennedy Intl",
+    "countryCode": "US",
+    "countryName": "United States",
+    "type": "AIRPORT",
+    "region": "North America",
+    "latitude": 40.6413,
+    "longitude": -73.7781
+  },
+  {
+    "locode": "USORD",
+    "name": "O'Hare Intl",
+    "countryCode": "US",
+    "countryName": "United States",
+    "type": "AIRPORT",
+    "region": "North America",
+    "latitude": 41.9742,
+    "longitude": -87.9073
+  },
+  {
+    "locode": "JPHND",
+    "name": "Haneda Airport",
+    "countryCode": "JP",
+    "countryName": "Japan",
+    "type": "AIRPORT",
+    "region": "Asia",
+    "latitude": 35.5494,
+    "longitude": 139.7798
+  },
+  {
+    "locode": "CNPEK",
+    "name": "Beijing Capital Intl",
+    "countryCode": "CN",
+    "countryName": "China",
+    "type": "AIRPORT",
+    "region": "Asia",
+    "latitude": 40.0799,
+    "longitude": 116.6031
+  },
+  {
+    "locode": "AEAUD",
+    "name": "Dubai Intl Airport",
+    "countryCode": "AE",
+    "countryName": "United Arab Emirates",
+    "type": "AIRPORT",
+    "region": "Middle East",
+    "latitude": 25.2532,
+    "longitude": 55.3657
+  },
+  {
+    "locode": "FRCDG",
+    "name": "Charles de Gaulle Airport",
+    "countryCode": "FR",
+    "countryName": "France",
+    "type": "AIRPORT",
+    "region": "Europe",
+    "latitude": 49.0097,
+    "longitude": 2.5479
+  },
+  {
+    "locode": "NLAMS",
+    "name": "Amsterdam Airport Schiphol",
+    "countryCode": "NL",
+    "countryName": "Netherlands",
+    "type": "AIRPORT",
+    "region": "Europe",
+    "latitude": 52.3105,
+    "longitude": 4.7683
+  },
+  {
+    "locode": "HKHKG",
+    "name": "Hong Kong Intl",
+    "countryCode": "HK",
+    "countryName": "Hong Kong",
+    "type": "AIRPORT",
+    "region": "Asia",
+    "latitude": 22.308,
+    "longitude": 113.9185
+  },
+  {
+    "locode": "CNNKG",
+    "name": "Nanjing",
+    "countryCode": "CN",
+    "countryName": "China",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 32.0603,
+    "longitude": 118.7969
+  },
+  {
+    "locode": "KRINC",
+    "name": "Incheon",
+    "countryCode": "KR",
+    "countryName": "South Korea",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 37.4563,
+    "longitude": 126.7052
+  },
+  {
+    "locode": "MAPEL",
+    "name": "Tanger Med",
+    "countryCode": "MA",
+    "countryName": "Morocco",
+    "type": "SEAPORT",
+    "region": "Africa",
+    "latitude": 35.8856,
+    "longitude": -5.5005
+  },
+  {
+    "locode": "USMIA",
+    "name": "Miami",
+    "countryCode": "US",
+    "countryName": "United States",
+    "type": "SEAPORT",
+    "region": "North America",
+    "latitude": 25.7617,
+    "longitude": -80.1918
+  },
+  {
+    "locode": "PAONX",
+    "name": "Colón",
+    "countryCode": "PA",
+    "countryName": "Panama",
+    "type": "SEAPORT",
+    "region": "LatAm",
+    "latitude": 9.3599,
+    "longitude": -79.8979
+  },
+  {
+    "locode": "COLON",
+    "name": "Cartagena",
+    "countryCode": "CO",
+    "countryName": "Colombia",
+    "type": "SEAPORT",
+    "region": "LatAm",
+    "latitude": 10.391,
+    "longitude": -75.4794
+  },
+  {
+    "locode": "EGALY",
+    "name": "Alexandria",
+    "countryCode": "EG",
+    "countryName": "Egypt",
+    "type": "SEAPORT",
+    "region": "Africa",
+    "latitude": 31.2001,
+    "longitude": 29.9187
+  },
+  {
+    "locode": "KRPUS",
+    "name": "Busan",
+    "countryCode": "KR",
+    "countryName": "South Korea",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 35.1796,
+    "longitude": 129.0756
+  },
+  {
+    "locode": "TWKHH",
+    "name": "Kaohsiung",
+    "countryCode": "TW",
+    "countryName": "Taiwan",
+    "type": "SEAPORT",
+    "region": "Asia",
+    "latitude": 22.6273,
+    "longitude": 120.3014
+  },
+  {
+    "locode": "GBSOU",
+    "name": "Southampton",
+    "countryCode": "GB",
+    "countryName": "United Kingdom",
+    "type": "SEAPORT",
+    "region": "Europe",
+    "latitude": 50.9097,
+    "longitude": -1.4044
+  }
+]

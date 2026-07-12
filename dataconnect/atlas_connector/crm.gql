@@ -1,0 +1,92 @@
+# =====================================================================
+# CRM (SALES) OPERATIONS
+# =====================================================================
+
+query ListCustomers($tenantId: String!) @auth(level: USER) {
+  companies(where: { tenantId: { eq: $tenantId }, entityType: { eq: "CUSTOMER" } }) {
+    id
+    name
+    email
+    phoneNumber
+    contactPerson
+    city
+    creditLimit
+    paymentTerms
+    rating
+  }
+}
+
+query ListCrmDeals($tenantId: String!) @auth(level: USER) {
+  crmDeals(where: { tenantId: { eq: $tenantId } }) {
+    id
+    title
+    customer {
+      id
+      name
+    }
+    estimatedValue
+    status
+    expectedCloseDate
+    assignedToUid
+    createdAt
+  }
+}
+
+query ListCrmInteractions($tenantId: String!, $customerId: UUID!) @auth(level: USER) {
+  crmInteractions(where: { tenantId: { eq: $tenantId }, customerId: { eq: $customerId } }, orderBy: { date: DESC }) {
+    id
+    type
+    date
+    notes
+    outcome
+    createdByUid
+  }
+}
+
+mutation CreateCrmDeal(
+  $tenantId: String!
+  $title: String!
+  $customerId: UUID!
+  $estimatedValue: Float
+  $status: String!
+  $expectedCloseDate: Date
+  $assignedToUid: String!
+) @auth(level: USER) {
+  crmDeal_insert(
+    data: {
+      tenantId: $tenantId
+      title: $title
+      customerId: $customerId
+      estimatedValue: $estimatedValue
+      status: $status
+      expectedCloseDate: $expectedCloseDate
+      assignedToUid: $assignedToUid
+    }
+  )
+}
+
+mutation UpdateCrmDealStatus($id: UUID!, $status: String!) @auth(level: USER) {
+  crmDeal_update(id: $id, data: { status: $status })
+}
+
+mutation CreateCrmInteraction(
+  $tenantId: String!
+  $customerId: UUID!
+  $type: String!
+  $date: Timestamp!
+  $notes: String
+  $outcome: String
+  $createdByUid: String!
+) @auth(level: USER) {
+  crmInteraction_insert(
+    data: {
+      tenantId: $tenantId
+      customerId: $customerId
+      type: $type
+      date: $date
+      notes: $notes
+      outcome: $outcome
+      createdByUid: $createdByUid
+    }
+  )
+}

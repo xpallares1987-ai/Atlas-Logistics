@@ -1,6 +1,7 @@
 connectorId: "atlas"
 generate:
   javascriptSdk:
-    outputDir: "../../src/dataconnect-generated/js/default-connector"
-    package: "@atlas/dataconnect"
-    packageJsonDir: "../../"
+    outputDir: "../../apps/atlas-scm/src/dataconnect-generated"
+    package: "@dataconnect/generated"
+    packageJsonDir: "../../apps/atlas-scm"
+    react: true

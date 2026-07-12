@@ -8,5 +8,5 @@ schemas:
         database: "gen-lang-client-0393063451-2-database"
         cloudSql:
           instanceId: "gen-lang-client-0393063451-2-instance"
-          schemaValidation: "STRICT"
+          schemaValidation: "COMPATIBLE"
 connectorDirs: ["./atlas_connector"]

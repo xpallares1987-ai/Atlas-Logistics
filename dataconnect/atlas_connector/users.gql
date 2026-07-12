@@ -1,0 +1,31 @@
+mutation UpsertUser($email: String!, $displayName: String, $tenantId: String) @auth(level: USER) {
+  user_upsert(data: {
+    uid_expr: "auth.uid"
+    email: $email
+    displayName: $displayName
+    role: "ADMIN"
+    tenantId: $tenantId
+  })
+}
+
+query GetUserProfile($uid: String!) @auth(level: USER) {
+  user(key: { uid: $uid }) {
+    role
+    tenantId
+  }
+}
+
+query GetAllUsers @auth(level: USER) {
+  users {
+    uid
+    email
+    displayName
+    role
+    tenantId
+    isActive
+  }
+}
+
+mutation UpdateUserRole($uid: String!, $role: String!, $tenantId: String) @auth(level: USER) {
+  user_update(key: { uid: $uid }, data: { role: $role, tenantId: $tenantId })
+}

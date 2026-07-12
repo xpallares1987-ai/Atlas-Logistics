@@ -1,36 +1,36 @@
 # Arquitectura de Atlas Logistics
 
-Este documento describe la topología y decisiones de diseño técnico detrás de Atlas Logistics, con el fin de guiar a nuevos desarrolladores y a los asistentes de inteligencia artificial.
+Este documento detalla la estructura y diseño arquitectónico actual de **Atlas Logistics**.
 
-## 1. Topología del Monorepo (Turborepo)
-Atlas es una "Súper-App" que engloba varios módulos históricamente separados. Turborepo nos permite paralelizar el build y linting (`pnpm run build`) almacenando en caché los resultados.
-- El anfitrión principal (`Host App`) está en `@atlas/frontend`. Este paquete importa y sirve a los demás (`dashboard`, `freight-comparer`, `bpmn-modeler`) mediante React Router.
-- Las dependencias y versiones (como React 18, Tailwind, Lucide) se comparten centralizadamente.
-- **Límites de Importación (Linter):** Para mantener un bajo acoplamiento, el linter prohíbe de forma estricta que `@atlas/ui` (módulo común) importe componentes o utilidades de módulos específicos de dominio como `@atlas/dashboard`, `@atlas/freight-comparer`, o `@atlas/bpmn-modeler` mediante la regla `no-restricted-imports`.
+## 1. Visión General: Frontend-First y Súper-App
 
-## 2. Bases de Datos (Cloud SQL + DataConnect)
-Hemos adoptado **Firebase Data Connect** como capa GraphQL fuertemente tipada sobre un clúster de **Google Cloud SQL (PostgreSQL)**.
-- **Esquema Único:** Todo el diseño de datos (Usuarios, Cotizaciones, Envíos, Facturas) vive en `dataconnect/schema/schema.gql`.
-- **Tipado Fuerte:** Al compilar el esquema, se generan SDKs en `src/dataconnect-generated/` que ofrecen hooks y funciones listas para usar en el frontend sin tener que escribir consultas SQL directas ni fetchers inseguros.
+El proyecto ha abandonado las arquitecturas tradicionales de API backend pesadas (servidores Node.js independientes, Fastify, Drizzle, Zeebe backend) en favor de un modelo **Frontend-First** unificado. 
+Toda la aplicación se ejecuta y renderiza directamente en el navegador como una Súper-App impulsada por **Vite** y **React Router**.
 
-## 3. Orquestación de Procesos Logísticos (Camunda 8)
-La logística moderna requiere flujos de trabajo resilientes. Hemos integrado **Camunda 8 (Zeebe)** para gestionar los *pipelines* de aduanas, cotizaciones y movimientos.
-- **Frontend Modeler:** Los operadores pueden dibujar los flujos BPMN 2.0 en `@atlas/bpmn-modeler`.
-- **Despliegue Serverless:** Al hacer clic en "Desplegar", se invoca una Firebase Cloud Function (`deployBPMN`) que usa el token OAuth de Camunda para inyectar el XML en el Zeebe Engine (SaaS).
-- **Ejecución (Workers):** El backend de Node ejecuta workers en `functions/src/workers.ts` que se suscriben a tareas específicas (ej. `validate-customs`) para actuar como puentes entre el mundo digital y los estados del BPMN.
+## 2. Turborepo y Gestión de Paquetes
 
-## 4. IA Predictiva (Gemini)
-El módulo SCM no es reactivo, es predictivo.
-- Empleamos **Google Gen AI (Gemini 3.1 Pro)** en el backend (`functions/src/gemini.ts`) para estimaciones complejas de ETA, chat analítico y bin-packing.
-- Las llamadas están configuradas con `responseMimeType: "application/json"` para asegurar respuestas estructuradas nativas de JSON de la IA.
-- **Resiliencia & Fallback:** En caso de fallas de conexión o agotamiento de cuotas de Gemini 3.1 Pro, el backend conmuta automáticamente a `gemini-2.5-flash` para mantener el servicio arriba de forma transparente.
-- Las imágenes enviadas al OCR en `processDocumentOCR` están limitadas a 5MB para prevenir sobrecargas de memoria (OOM).
+El ecosistema está construido sobre un Monorepo gestionado por `Turborepo` y `pnpm` (versión 10+). Las dependencias se enlazan mediante *symlinks* locales (`workspace:*`) garantizando la máxima reutilización de código y tiempos de compilación paralelos.
 
-## 5. Diseño Visual y UI
-La directriz fundamental del diseño es **Premium Dark Glassmorphism**.
-Todas las interfaces deben adherirse a esta estética:
-- Uso extensivo de fondos translúcidos (`bg-white/5` a `bg-white/10`).
-- Desenfoques de fondo (`backdrop-blur-xl` a `backdrop-blur-3xl`).
-- Contornos suaves y brillantes (`border border-white/10` o `ring-white/10`).
-- Textos y tipografías nítidas (`text-white`, `text-slate-300`).
-- Micro-interacciones (fades, rebotes suaves al hacer hover).
+### Estructura Principal
+
+- **`apps/atlas-scm` (Host App)**: Es el corazón de la aplicación. Actúa como el orquestador principal que consolida el enrutamiento (React Router), el layout general, y contiene todos los submódulos de la aplicación bajo `src/modules/`. Es el único frontend que se ejecuta para iniciar todo el ecosistema.
+- **Módulos Integrados (en `src/modules/`)**:
+  - **`bpmn-modeler`**: Modelador BPMN 2.0 que corre de manera nativa en el navegador.
+  - **`dashboard`**: Panel principal de embarques, telemetría logística y visibilidad de contenedores.
+  - **`freight-comparer`**: Módulo dedicado a la ingesta (Excel), comparación y analítica de tarifas de fletes.
+- **`packages/shared` y `packages/ui`**: (Si aplican) Contienen utilidades compartidas y componentes de UI consumidos por la aplicación principal.
+
+## 3. Capa de Datos (Firebase Data Connect)
+
+Todo el estado persistente y las consultas a base de datos de la Súper-App se realizan mediante **Firebase Data Connect**.
+
+1. **PostgreSQL en Cloud SQL**: La fuente única de verdad.
+2. **Esquema Declarativo**: Definido en el directorio `/dataconnect` a través de GraphQL.
+3. **SDKs Tipados de Extremo a Extremo**: Al ejecutar `firebase dataconnect:sdk:generate`, Firebase genera funciones de TypeScript (`src/dataconnect-generated`) que exponen de forma estrictamente tipada las *Queries* y *Mutations* de Postgres directamente hacia nuestros componentes de React. No existe intermediario Node.js.
+
+## 4. Pipeline de CI/CD
+
+El repositorio está configurado para integración continua ultra eficiente:
+- El comando de construcción oficial es `pnpm run build` en la raíz, que utiliza Turbo para empaquetar paralelamente usando cachés remotas/locales.
+- El linting (`pnpm run lint`) consolida tanto la verificación de TypeScript (`tsc --noEmit`) como el análisis estricto de ESLint a lo largo de todos los paquetes del monorepo.
+- Mínimos privilegios en GitHub Actions, exigiendo el uso de tokens con permisos estrictos de lectura.

@@ -1,31 +1,31 @@
 type User @table(key: "uid") {
   uid: String!
-  tenantId: String! @default(expr: "auth.token.tenantId")
+  tenantId: String! @default(value: "atlas-default-tenant")
   email: String!
   displayName: String
-  role: String! # ADMIN, OPERATOR, VIEWER, FINANCE
+  role: String! # ADMIN, EXECUTIVE, ICT, MANAGER, TEAM_LEADER, SALES, PROCUREMENT, OPERATOR
   isActive: Boolean! @default(value: true)
 }
 
 type Company @table {
-  tenantId: String! @default(expr: "auth.token.tenantId")
+  tenantId: String! @default(value: "atlas-default-tenant")
   name: String!
   legalName: String
   taxId: String
   eoriNumber: String
   scacCode: String
-  entityType: String! # SHIPPER, CONSIGNEE, CARRIER, HAULIER, CUSTOMS_BROKER, FREIGHT_FORWARDER, NOTIFY_PARTY, WAREHOUSE
+  entityType: String! # CUSTOMER, SUPPLIER, BUYER, MANUFACTURER, CARRIER, HAULIER, CUSTOMS_BROKER, FREIGHT_FORWARDER, WAREHOUSE, AGENT
   email: String
   phoneNumber: String
   address: String
   city: String
+  country: String
   countryCode: String
   contactPerson: String
-  website: String
   creditLimit: Float
-  paymentTerms: String # NET30, NET60, PREPAID, COD
-  currency: String
-  rating: Float
+  paymentTerms: String
+  rating: Int
+  postalCode: String
   notes: String
   isActive: Boolean! @default(value: true)
 }
@@ -33,87 +33,84 @@ type Company @table {
 type Location @table(key: "locode") {
   locode: String!
   name: String!
-  nameAlias: String
-  countryCode: String!
-  countryName: String!
-  subdivisionCode: String
-  type: String! # SEAPORT, AIRPORT, INLAND_PORT, RAILPORT, MULTIMODAL, DRY_PORT
-  functionCodes: String # 1=Sea, 3=Rail, 4=Air, 5=Post, 6=Inland, 7=Fixed Transport
+  country: String
+  countryCode: String
+  countryName: String
+  region: String
+  type: String! # PORT, AIRPORT, RAIL_TERMINAL, INLAND_DEPOT
   latitude: Float
   longitude: Float
-  timezone: String
-  region: String # EUROPE, NORTH_AMERICA, ASIA, LATAM, MIDDLE_EAST, AFRICA, OCEANIA
-  isActive: Boolean! @default(value: true)
 }
 
 type Quote @table {
-  tenantId: String! @default(expr: "auth.token.tenantId")
+  tenantId: String! @default(value: "atlas-default-tenant")
   quoteNumber: String! @unique
   status: String! # DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED
   movementType: String! # FCL, LCL, AIR, FTL, LTL, RO-RO
-  incoterm: String
+  incoterm: Incoterm @ref
   origin: String!
   destination: String!
   commodity: String
-  hsCode: String
+  hsCode: HsCode @ref
   equipmentType: String # 20GP, 40GP, 40HC, 45HC, 20RF, 40RF
   grossWeight: Float
+  hsCodeLegacy: String @col(name: "hs_code")
+  incotermLegacy: String @col(name: "incoterm")
   volume: Float
   baseFreightCost: Float!
   baf: Float
-  pss: Float
-  thc: Float
-  blFee: Float
-  isf: Float
-  customsFee: Float
-  insuranceFee: Float
-  originDrayage: Float
-  destinationDrayage: Float
-  otherCharges: Float
+  caf: Float
+  thcOrigin: Float
+  thcDest: Float
+  customsOrigin: Float
+  customsDest: Float
+  insurance: Float
+  margin: Float
   totalCost: Float!
-  currency: String!
-  transitTime: Int
+  totalPrice: Float
+  currency: String! @default(value: "USD")
+  validUntil: Date
   validityDate: Date!
+  createdByUid: String!
+  customer: Company! @ref
   carrier: Company @ref
-  customer: Company @ref
-  createdBy: User! @ref
   notes: String
 }
 
 type Shipment @table {
-  tenantId: String! @default(expr: "auth.token.tenantId")
+  tenantId: String! @default(value: "atlas-default-tenant")
   trackingNumber: String! @unique
   mblNumber: String
   hblNumber: String
-  blType: String # OBL, SEAWAY, SURRENDER, EXPRESS
-  customsEntryNumber: String
-  status: String! # BOOKED, RECEIVED, IN_TRANSIT, CUSTOMS, DELIVERED, CANCELLED, ON_HOLD
+  bookingNumber: String
+  status: String! @default(value: "QUOTED") # QUOTED, BOOKED, GATED_IN, DEPARTED, ARRIVED, CLEARED, DELIVERED
   customsStatus: String # PENDING, CLEARED, INSPECTION, HOLD, RELEASED
   movementType: String! # FCL, LCL, AIR, FTL, LTL, RO-RO
   direction: String! # IMPORT, EXPORT, CROSS_TRADE, DOMESTIC
-  incoterm: String! # EXW, FCA, CPT, CIP, DAP, DAT, DDP, FAS, FOB, CFR, CIF
+  incoterm: Incoterm @ref
+  freightTerms: String # PREPAID, COLLECT
   origin: String!
+  hsCodeLegacy: String @col(name: "hs_code")
+  incotermLegacy: String @col(name: "incoterm")
   pol: String!
   pod: String!
   destination: String!
-  transhipmentPort: String
-  vesselName: String
-  voyageNumber: String
-  flightNumber: String
-  imoNumber: String
-  mmsiNumber: String
-  ets: Timestamp
-  ats: Timestamp
+  etd: Timestamp
   eta: Timestamp
+  atd: Timestamp
   ata: Timestamp
-  pickupDate: Timestamp
+  bookingDate: Timestamp
+  emptyPickupDate: Timestamp
+  gatedInDate: Timestamp
+  loadedOnVesselDate: Timestamp
+  dischargedDate: Timestamp
+  gatedOutDate: Timestamp
   deliveryDate: Timestamp
-  customsReleaseDate: Timestamp
   cyCutOff: Timestamp
   siCutOff: Timestamp
   vgmCutOff: Timestamp
   commodity: String
-  hsCode: String
+  hsCode: HsCode @ref
   packages: Int
   packageType: String # PALLET, CARTON, DRUM, BAG, CRATE
   equipmentType: String # 20GP, 40GP, 40HC, 45HC, 20RF, 40RF
@@ -131,21 +128,29 @@ type Shipment @table {
   declaredValue: Float
   insurance: Boolean @default(value: false)
   insuranceValue: Float
-  shipper: Company! @ref
-  consignee: Company! @ref
-  buyer: Company @ref
-  notify: Company @ref
+  customer: Company! @ref
+  supplier: Company @ref
+  shipperAddressShape: String
+  consigneeAddressShape: String
+  notifyAddressShape: String
+  deliveryAddressShape: String
   carrier: Company @ref
   haulierOrigin: Company @ref
   haulierDestination: Company @ref
-  customsBroker: Company @ref
-  warehouse: Company @ref
-  relatedQuote: Quote @ref
-  notes: String
+  description: String
+  timestamp: Timestamp @default(expr: "request.time")
+  location: String
+  vessel: String
+  vesselName: String
+  voyage: String
+  voyageNumber: String
+  ets: Timestamp
+  isEstimated: Boolean! @default(value: false)
+  source: String # MANUAL, AIS, EDI, API
 }
 
 type Document @table {
-  tenantId: String! @default(expr: "auth.token.tenantId")
+  tenantId: String! @default(value: "atlas-default-tenant")
   documentNumber: String
   documentType: String! # MBL, HBL, SEAWAY, CMR, AWB, COMMERCIAL_INVOICE, PACKING_LIST, CERTIFICATE_ORIGIN, CUSTOMS_ENTRY, INSPECTION_CERT, VGM, DG_DECLARATION, PHYTOSANITARY, FUMIGATION
   fileUrl: String!
@@ -158,25 +163,32 @@ type Document @table {
   description: String
   signatoryName: String
   issuedBy: Company @ref
-  shipment: Shipment! @ref
+  shipment: Shipment @ref
+  
+  # OCR Workflow
+  extractedData: Any
+  ocrStatus: String @default(value: "NOT_APPLICABLE") # PENDING, APPROVED, REJECTED, NOT_APPLICABLE
 }
 
 type Milestone @table {
-  tenantId: String! @default(expr: "auth.token.tenantId")
+  tenantId: String! @default(value: "atlas-default-tenant")
   eventCode: String! # DCSA: VESSEL_ARRIVED, VESSEL_DEPARTED, CONTAINER_DISCHARGED, CUSTOMS_RELEASED, DELIVERED
   eventType: String! # TRANSPORT, EQUIPMENT, SHIPMENT, DOCUMENT
-  description: String!
+  description: String
   timestamp: Timestamp! @default(expr: "request.time")
   location: String
   vessel: String
+  vesselName: String
   voyage: String
+  voyageNumber: String
+  ets: Timestamp
   isEstimated: Boolean! @default(value: false)
   source: String # MANUAL, AIS, EDI, API
   shipment: Shipment! @ref
 }
 
 type Invoice @table {
-  tenantId: String! @default(expr: "auth.token.tenantId")
+  tenantId: String! @default(value: "atlas-default-tenant")
   invoiceNumber: String! @unique
   invoiceType: String! # FREIGHT, CUSTOMS, DISBURSEMENT, CREDIT_NOTE, DEBIT_NOTE
   status: String! # DRAFT, SENT, PAID, OVERDUE, CANCELLED
@@ -195,7 +207,7 @@ type Invoice @table {
 }
 
 type Workflow @table {
-  tenantId: String! @default(expr: "auth.token.tenantId")
+  tenantId: String! @default(value: "atlas-default-tenant")
   name: String!
   version: Int
   diagramXml: String!
@@ -208,7 +220,7 @@ type Workflow @table {
 }
 
 type ShipmentEventLog @table {
-  tenantId: String! @default(expr: "auth.token.tenantId")
+  tenantId: String! @default(value: "atlas-default-tenant")
   shipment: Shipment! @ref
   eventType: String! # CREATED, STATUS_CHANGED, CUSTOMS_UPDATE, DOC_UPLOADED
   oldStatus: String
@@ -219,3 +231,77 @@ type ShipmentEventLog @table {
   ipAddress: String
   userAgent: String
 }
+
+type HsCode @table(key: "code") {
+  code: String!               # Ej: "0901.11" (Café)
+  description: String
+  dutyRate: Float             # Arancel base de importación
+  isHazardous: Boolean! @default(value: false)
+  isActive: Boolean! @default(value: true)
+}
+
+type Incoterm @table(key: "code") {
+  code: String!               # Ej: "FOB", "EXW", "DDP"
+  description: String
+  freightPayer: String!       # "BUYER" o "SELLER"
+  originCustomsPayer: String! # "BUYER" o "SELLER"
+  destCustomsPayer: String!   # "BUYER" o "SELLER"
+  isActive: Boolean! @default(value: true)
+}
+
+type Vessel @table(key: "imoNumber") {
+  imoNumber: String!          # Código identificador único del barco
+  name: String!               # Ej: "MSC AMELIA"
+  flag: String                # País de bandera
+  carrier: Company! @ref      # Naviera dueña o armador
+  capacityTeu: Int            # Capacidad en TEUs
+  isActive: Boolean! @default(value: true)
+}
+
+type Schedule @table {
+  tenantId: String! @default(value: "atlas-default-tenant")
+  vessel: Vessel! @ref
+  voyageNumber: String!
+  pol: Location! @ref         # Port of Loading
+  pod: Location! @ref         # Port of Discharge
+  etd: Date!                  # Estimated Time of Departure
+  eta: Date!                  # Estimated Time of Arrival
+  cutOffDate: Timestamp       # Fecha límite de entrega de contenedor
+  availableTeu: Int
+  status: String! @default(value: "SCHEDULED") # SCHEDULED, DELAYED, CANCELLED
+}
+
+type CrmDeal @table {
+  tenantId: String! @default(value: "atlas-default-tenant")
+  title: String!
+  customer: Company! @ref
+  estimatedValue: Float
+  status: String! @default(value: "LEAD") # LEAD, CONTACTED, QUOTING, NEGOTIATION, WON, LOST
+  expectedCloseDate: Date
+  assignedToUid: String!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type CrmInteraction @table {
+  tenantId: String! @default(value: "atlas-default-tenant")
+  customer: Company! @ref
+  type: String! # VISIT, CALL, EMAIL
+  date: Timestamp!
+  notes: String
+  outcome: String
+  createdByUid: String!
+}
+
+
+
+type DictionaryTerm @table(key: ["acronym", "category"]) {
+  acronym: String!
+  meaning: String!
+  description: String
+  category: String!
+  subCategory: String
+  region: String
+  moduleScope: [String!]
+  isActive: Boolean! @default(value: true)
+}
+

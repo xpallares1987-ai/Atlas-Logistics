@@ -6,28 +6,22 @@ Atlas Logistics es una **Súper-App** integral para la gestión de la cadena de 
 
 ## 🏗️ Arquitectura y Tecnologías
 
-El proyecto ha sido refactorizado recientemente en un **Monorepo (Turborepo)**, unificando múltiples submódulos bajo una misma súper-aplicación React (Vite).
+El proyecto opera como un **Monorepo (Turborepo)**, unificando múltiples submódulos bajo una misma súper-aplicación React (Vite).
 
 ### Core Stack
-- **Frontend:** React, Vite, React Router, TailwindCSS (Dark Premium Glassmorphism).
-- **Backend / Database:** Google Cloud SQL (PostgreSQL) orquestado vía **Firebase DataConnect** (GraphQL).
-- **Orquestación de Procesos (BPMN):** Camunda 8 (Zeebe) conectado mediante Firebase Functions.
+- **Frontend (Host App):** React, Vite, React Router, TailwindCSS (Dark Premium Glassmorphism).
+- **Capa de Datos Backend:** Google Cloud SQL (PostgreSQL) integrado nativamente y tipado de extremo a extremo mediante **Firebase Data Connect**.
 - **Inteligencia Predictiva:** Google Gen AI (Gemini 2.5 Flash) para cálculos de ETA predictivo y riesgos.
-- **Gestión de Paquetes:** `pnpm` y Turborepo para cachés ultrarrápidas.
+- **Gestión de Paquetes:** `pnpm` (v10+) y Turborepo para cachés ultrarrápidas e integración continua eficiente.
 
 ## 📦 Estructura del Monorepo
 
 ```
 Atlas-Logistics/
-├── packages/
-│   ├── frontend/          # Host App (Motor principal)
-│   ├── dashboard/         # Panel inteligente SCM
-│   ├── freight-comparer/  # Cotizador de Fletes (Tarifas y Excel)
-│   ├── bpmn-modeler/      # Modelador de procesos BPMN 2.0 (Camunda)
-│   ├── ui/                # Sistema de diseño (Componentes, i18n, Zustand)
-│   └── shared/            # Tipos, esquemas y utilidades compartidas
-├── dataconnect/           # Esquema de la base de datos (GraphQL -> Cloud SQL)
-└── functions/             # Firebase Functions (Workers de Camunda y Gemini AI)
+├── apps/
+│   └── atlas-scm/         # Host App Vite (Súper-App Frontend que unifica todos los módulos)
+├── dataconnect/           # Esquema declarativo de la base de datos (GraphQL -> Cloud SQL)
+└── firebase.json          # Configuración de Firebase Hosting y Data Connect
 ```
 
 ## 🚀 Inicio Rápido (Desarrollo Local)
@@ -39,28 +33,27 @@ Atlas-Logistics/
 
 ### Instalación
 
-1. Clona el repositorio e instala las dependencias globales:
+1. Clona el repositorio e instala las dependencias:
 ```bash
 git clone https://github.com/tu-usuario/atlas-logistics.git
 cd atlas-logistics
 pnpm install
 ```
 
-2. Genera los SDKs de Firebase Data Connect (PostgreSQL):
+2. (Opcional) Si hay cambios en la estructura de base de datos, sincroniza los SDKs tipados de Firebase Data Connect:
 ```bash
 npx firebase dataconnect:sdk:generate
 ```
 
-3. Levanta la aplicación localmente (esto arrancará el `@atlas/frontend` y enlazará los demás paquetes):
+3. Levanta la aplicación localmente:
 ```bash
-pnpm run dev --filter @atlas/frontend
+pnpm run dev
 ```
 
 ## 📖 Documentación Adicional
+- [Visión del SCM (SCM_VISION.md)](SCM_VISION.md)
 - [Guía de Contribución](CONTRIBUTING.md)
-- [Arquitectura (ARCHITECTURE.md)](ARCHITECTURE.md)
-- [Historial de Cambios](CHANGELOG.md)
 - [Políticas de Seguridad](SECURITY.md)
 
 ## 🤝 Soporte
-Si tienes dudas o encuentras problemas con la integración de Camunda o los conectores de Firebase, por favor, abre un Issue o revisa la documentación de Firebase DataConnect.
+Si tienes dudas o encuentras problemas con los conectores de Firebase, por favor, abre un Issue o revisa la documentación oficial de Firebase Data Connect.

@@ -1,0 +1,173 @@
+mutation CreateCompany(
+  $id: UUID
+  $name: String!
+  $entityType: String!
+  $countryCode: String
+  $email: String
+  $phoneNumber: String
+  $address: String
+  $city: String
+) @auth(level: USER) {
+  company_upsert(
+    data: {
+      id: $id
+      name: $name
+      entityType: $entityType
+      countryCode: $countryCode
+      email: $email
+      phoneNumber: $phoneNumber
+      address: $address
+      city: $city
+    }
+  )
+}
+
+mutation CreateLocation(
+  $locode: String!
+  $name: String!
+  $countryCode: String!
+  $countryName: String!
+  $type: String!
+  $region: String
+  $latitude: Float
+  $longitude: Float
+) @auth(level: PUBLIC) {
+  location_upsert(
+    data: {
+      locode: $locode
+      name: $name
+      countryCode: $countryCode
+      countryName: $countryName
+      type: $type
+      region: $region
+      latitude: $latitude
+      longitude: $longitude
+    }
+  )
+}
+
+mutation CreateQuote(
+  $quoteNumber: String!
+  $status: String!
+  $movementType: String!
+  $origin: String!
+  $destination: String!
+  $baseFreightCost: Float!
+  $totalCost: Float!
+  $currency: String!
+  $validityDate: Date!
+  $carrierId: UUID
+  $customerId: UUID
+  $createdByUid: String!
+) @auth(level: USER) {
+  quote_insert(
+    data: {
+      quoteNumber: $quoteNumber
+      status: $status
+      movementType: $movementType
+      origin: $origin
+      destination: $destination
+      baseFreightCost: $baseFreightCost
+      totalCost: $totalCost
+      currency: $currency
+      validityDate: $validityDate
+      carrierId: $carrierId
+      customerId: $customerId
+      createdByUid: $createdByUid
+    }
+  )
+}
+
+mutation CreateMilestone(
+  $eventCode: String!
+  $eventType: String!
+  $description: String!
+  $location: String
+  $shipmentId: UUID!
+) @auth(level: USER) {
+  milestone_insert(
+    data: {
+      eventCode: $eventCode
+      eventType: $eventType
+      description: $description
+      location: $location
+      shipmentId: $shipmentId
+    }
+  )
+}
+
+mutation CreateHsCode(
+  $code: String!
+  $description: String!
+  $dutyRate: Float
+  $isHazardous: Boolean
+) @auth(level: USER) {
+  hsCode_upsert(
+    data: {
+      code: $code
+      description: $description
+      dutyRate: $dutyRate
+      isHazardous: $isHazardous
+    }
+  )
+}
+
+mutation CreateIncoterm(
+  $code: String!
+  $description: String!
+  $freightPayer: String!
+  $originCustomsPayer: String!
+  $destCustomsPayer: String!
+) @auth(level: USER) {
+  incoterm_upsert(
+    data: {
+      code: $code
+      description: $description
+      freightPayer: $freightPayer
+      originCustomsPayer: $originCustomsPayer
+      destCustomsPayer: $destCustomsPayer
+    }
+  )
+}
+
+mutation CreateVessel(
+  $imoNumber: String!
+  $name: String!
+  $flag: String
+  $carrierId: UUID!
+  $capacityTeu: Int
+) @auth(level: USER) {
+  vessel_upsert(
+    data: {
+      imoNumber: $imoNumber
+      name: $name
+      flag: $flag
+      carrierId: $carrierId
+      capacityTeu: $capacityTeu
+    }
+  )
+}
+
+mutation CreateSchedule(
+  $vesselImoNumber: String!
+  $voyageNumber: String!
+  $polLocode: String!
+  $podLocode: String!
+  $etd: Date!
+  $eta: Date!
+  $cutOffDate: Timestamp
+  $availableTeu: Int
+) @auth(level: USER) {
+  schedule_insert(
+    data: {
+      vesselImoNumber: $vesselImoNumber
+      voyageNumber: $voyageNumber
+      polLocode: $polLocode
+      podLocode: $podLocode
+      etd: $etd
+      eta: $eta
+      cutOffDate: $cutOffDate
+      availableTeu: $availableTeu
+    }
+  )
+}

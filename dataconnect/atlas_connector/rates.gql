@@ -7,14 +7,46 @@ query ListCompanies @auth(level: USER) {
   }
 }
 
-query ListQuotes @auth(level: USER) {
-  quotes(orderBy: [{ validityDate: DESC }]) {
+query SearchLocations($query: String!) @auth(level: USER) {
+  locations(
+    where: { 
+      name: { contains: $query }
+    }
+    limit: 20
+    orderBy: [{ name: ASC }]
+  ) {
+    locode
+    name
+    countryCode
+    countryName
+    type
+  }
+}
+
+query ListQuotes(
+  $tenantId: String!
+  $origin: String
+  $destination: String
+) @auth(level: USER) {
+  quotes(
+    where: {
+      tenantId: { eq: $tenantId }
+      origin: { contains: $origin }
+      destination: { contains: $destination }
+    }
+    orderBy: [{ validityDate: DESC }]
+  ) {
+    id
+    tenantId
     quoteNumber
     status
+    movementType
     origin
     destination
+    baseFreightCost
     totalCost
     currency
+    validityDate
     carrier {
       name
     }

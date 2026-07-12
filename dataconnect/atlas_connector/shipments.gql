@@ -1,5 +1,5 @@
-query ListShipments @auth(level: USER) {
-  shipments(where: { tenantId: { eq_expr: "auth.token.tenantId" } }, orderBy: [{ ets: DESC }]) {
+query ListShipments($tenantId: String!) @auth(level: USER) {
+  shipments(where: { tenantId: { eq: $tenantId } }, orderBy: [{ ets: DESC }]) {
     trackingNumber
     status
     origin
@@ -9,10 +9,10 @@ query ListShipments @auth(level: USER) {
     movementType
     ets
     eta
-    shipper {
+    customer {
       name
     }
-    consignee {
+    supplier {
       name
     }
   }
@@ -34,10 +34,12 @@ query GetShipmentById($id: UUID!) @auth(level: USER) {
     packages
     grossWeight
     volume
-    shipper {
+    shipperAddressShape
+    consigneeAddressShape
+    customer {
       name
     }
-    consignee {
+    supplier {
       name
     }
     carrier {
@@ -51,13 +53,15 @@ mutation CreateShipment(
   $status: String!
   $movementType: String!
   $direction: String!
-  $incoterm: String!
+  $incotermCode: String
   $origin: String!
   $pol: String!
   $pod: String!
   $destination: String!
-  $shipperId: UUID!
-  $consigneeId: UUID!
+  $customerId: UUID!
+  $supplierId: UUID
+  $shipperAddressShape: String
+  $consigneeAddressShape: String
 ) @auth(level: USER) {
   shipment_insert(
     data: {
@@ -65,13 +69,15 @@ mutation CreateShipment(
       status: $status
       movementType: $movementType
       direction: $direction
-      incoterm: $incoterm
+      incotermCode: $incotermCode
       origin: $origin
       pol: $pol
       pod: $pod
       destination: $destination
-      shipperId: $shipperId
-      consigneeId: $consigneeId
+      customerId: $customerId
+      supplierId: $supplierId
+      shipperAddressShape: $shipperAddressShape
+      consigneeAddressShape: $consigneeAddressShape
     }
   )
 }

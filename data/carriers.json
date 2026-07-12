@@ -1,0 +1,186 @@
+[
+  {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "name": "Maersk Line",
+    "entityType": "CARRIER",
+    "countryCode": "DK",
+    "city": "Copenhagen",
+    "scacCode": "MAEU",
+    "website": "https://www.maersk.com"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "name": "Mediterranean Shipping Company (MSC)",
+    "entityType": "CARRIER",
+    "countryCode": "CH",
+    "city": "Geneva",
+    "scacCode": "MSCU",
+    "website": "https://www.msc.com"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000003",
+    "name": "CMA CGM",
+    "entityType": "CARRIER",
+    "countryCode": "FR",
+    "city": "Marseille",
+    "scacCode": "CMDU",
+    "website": "https://www.cma-cgm.com"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000004",
+    "name": "Hapag-Lloyd",
+    "entityType": "CARRIER",
+    "countryCode": "DE",
+    "city": "Hamburg",
+    "scacCode": "HLCU",
+    "website": "https://www.hapag-lloyd.com"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000005",
+    "name": "Ocean Network Express (ONE)",
+    "entityType": "CARRIER",
+    "countryCode": "SG",
+    "city": "Singapore",
+    "scacCode": "ONEY",
+    "website": "https://www.one-line.com"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000006",
+    "name": "Evergreen Marine",
+    "entityType": "CARRIER",
+    "countryCode": "TW",
+    "city": "Taipei",
+    "scacCode": "EGLV",
+    "website": "https://www.evergreen-marine.com"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000007",
+    "name": "HMM",
+    "entityType": "CARRIER",
+    "countryCode": "KR",
+    "city": "Seoul",
+    "scacCode": "HDMU",
+    "website": "https://www.hmm21.com"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000008",
+    "name": "Yang Ming",
+    "entityType": "CARRIER",
+    "countryCode": "TW",
+    "city": "Keelung",
+    "scacCode": "YMLU",
+    "website": "https://www.yangming.com"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000009",
+    "name": "ZIM Integrated Shipping",
+    "entityType": "CARRIER",
+    "countryCode": "IL",
+    "city": "Haifa",
+    "scacCode": "ZIMU",
+    "website": "https://www.zim.com"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000010",
+    "name": "FedEx Express",
+    "entityType": "CARRIER",
+    "countryCode": "US",
+    "city": "Memphis",
+    "scacCode": "FDX",
+    "website": "https://www.fedex.com"
+  },
+  {
+    "id": "f0d48edf-e435-484a-b3da-c323c759ea70",
+    "name": "Emirates SkyCargo",
+    "entityType": "AIR_CARRIER",
+    "countryCode": "AE",
+    "city": "Dubai",
+    "scacCode": "EK",
+    "website": "https://www.skycargo.com"
+  },
+  {
+    "id": "0971087d-ab5b-4b1b-a925-6d2f4191c475",
+    "name": "Qatar Airways Cargo",
+    "entityType": "AIR_CARRIER",
+    "countryCode": "QA",
+    "city": "Doha",
+    "scacCode": "QR",
+    "website": "https://www.qrcargo.com"
+  },
+  {
+    "id": "96393e2b-036d-43af-adfc-8584635227a5",
+    "name": "Lufthansa Cargo",
+    "entityType": "AIR_CARRIER",
+    "countryCode": "DE",
+    "city": "Frankfurt",
+    "scacCode": "LH",
+    "website": "https://lufthansa-cargo.com"
+  },
+  {
+    "id": "ed06dd72-d6d7-464c-bf78-9c437cb6c8bb",
+    "name": "Cathay Cargo",
+    "entityType": "AIR_CARRIER",
+    "countryCode": "HK",
+    "city": "Hong Kong",
+    "scacCode": "CX",
+    "website": "https://www.cathaycargo.com"
+  },
+  {
+    "id": "e092d539-e8bd-4092-8e6b-09897c8dc2a5",
+    "name": "Korean Air Cargo",
+    "entityType": "AIR_CARRIER",
+    "countryCode": "KR",
+    "city": "Seoul",
+    "scacCode": "KE",
+    "website": "https://cargo.koreanair.com"
+  },
+  {
+    "id": "1465ff84-8861-4464-a89f-4faef854da92",
+    "name": "OOCL",
+    "entityType": "CARRIER",
+    "countryCode": "HK",
+    "city": "Hong Kong",
+    "scacCode": "OOLU",
+    "website": "https://www.oocl.com"
+  },
+  {
+    "id": "6d11558d-0a20-4da8-977d-c790b9f5bd29",
+    "name": "A. Perez y Cia. S.L.",
+    "entityType": "SHIPPING_AGENT",
+    "countryCode": "ES",
+    "city": "Madrid",
+    "website": "https://www.perezycia.com"
+  },
+  {
+    "id": "28808da9-3665-4dd8-9767-9dfe91c16688",
+    "name": "Inchcape Shipping Services",
+    "entityType": "SHIPPING_AGENT",
+    "countryCode": "GB",
+    "city": "London",
+    "website": "https://www.iss-shipping.com"
+  },
+  {
+    "id": "a4ee65b4-ff6d-42d9-93f1-e8b9e41e28da",
+    "name": "GAC Group",
+    "entityType": "SHIPPING_AGENT",
+    "countryCode": "AE",
+    "city": "Dubai",
+    "website": "https://www.gac.com"
+  },
+  {
+    "id": "79a810d4-174b-4da0-95e2-d3c60b85d794",
+    "name": "Wilhelmsen Ships Service",
+    "entityType": "SHIPPING_AGENT",
+    "countryCode": "NO",
+    "city": "Oslo",
+    "website": "https://www.wilhelmsen.com"
+  },
+  {
+    "id": "6021f019-09bc-419f-b4e3-70ca561af30b",
+    "name": "Norton Lilly International",
+    "entityType": "SHIPPING_AGENT",
+    "countryCode": "US",
+    "city": "Mobile",
+    "website": "https://www.nortonlilly.com"
+  }
+]

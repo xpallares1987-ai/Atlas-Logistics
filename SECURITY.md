@@ -18,8 +18,8 @@ Si descubres una vulnerabilidad en este proyecto, **POR FAVOR, NO la reportes a 
 Por favor, envía un correo electrónico al equipo de arquitectura. Proporcionaremos acuse de recibo en un plazo de 24 horas y emitiremos un parche (Hotfix) para vulnerabilidades críticas en menos de 48 horas.
 
 ### Áreas Críticas de Atención
-- **Secretos de GCP y Camunda:** Cualquier vulnerabilidad que permita la exposición de los Service Accounts de GCP o los `ZEEBE_CLIENT_SECRET` en el navegador.
-- **Firebase Data Connect:** Escalada de privilegios a través de inyecciones en el esquema GraphQL.
-- **Workers BPMN:** Ejecución remota de código en los Node Workers que atienden a Zeebe.
+- **Secretos de GCP y Firebase:** Cualquier vulnerabilidad que permita la exposición de los Service Accounts de GCP o tokens API sin restricción en el navegador. Las claves de API públicas deben estar fuertemente restringidas por dominio en Google Cloud Console.
+- **Firebase Data Connect:** Escalada de privilegios a través de fallos en las directivas `@auth` del esquema GraphQL. Asegurar que las operaciones sensibles usen siempre `@auth(level: USER)` o controles de roles más avanzados.
+- **Vulnerabilidades XSS en la Súper-App:** Cualquier vector que permita inyectar scripts en `apps/atlas-scm` y pueda robar tokens de sesión de Firebase Authentication.
 
 Alentamos a los investigadores de seguridad a auditar los despliegues, siempre y cuando se haga de manera responsable y en entornos locales o *sandbox*.

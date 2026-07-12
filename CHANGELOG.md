@@ -7,18 +7,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 - **Inteligencia Predictiva (Gemini AI)**: Nueva Firebase Function `predictETA` que utiliza Gemini 2.5 para analizar envíos y devolver un ETA ajustado con nivel de confianza.
-- **Camunda 8 (Zeebe Workers)**: Integración total del SDK de Camunda 8 en el backend de Node (`functions/src/workers.ts`) para escuchar y procesar tareas del BPMN (`validate-customs`).
-- **PostgreSQL Data Connect**: Directivas `@unique` en el esquema de Cloud SQL (`trackingNumber`, `quoteNumber`, `invoiceNumber`) para proteger la unicidad de las cargas.
-- **Nuevo Diseño UI**: Implementación global del diseño "Dark Premium Glassmorphism" en `@atlas/dashboard` y `@atlas/freight-comparer`.
+- **PostgreSQL Data Connect**: Migración completa de la capa de datos de Drizzle a Firebase Data Connect. Directivas `@auth` y esquema definido en `/dataconnect`.
+- **Nuevo Diseño UI**: Implementación global del diseño "Dark Premium Glassmorphism" en toda la Súper-App unificada.
+- **Roles y Permisos**: Se preparó la base de datos con la nueva tabla `DictionaryTerm` con PK compuesta para gestionar maestros de datos de forma segura.
 
 ### Changed
-- **Arquitectura Turborepo**: Migración completa de todos los repositorios dispersos a un único monorepo administrado por `pnpm`.
+- **Arquitectura Unificada (Frontend)**: Consolidación de todos los submódulos dispersos de la interfaz (`dashboard`, `bpmn-modeler`, etc.) en una sola Súper-App bajo el directorio `apps/atlas-scm`.
 - **Configuración Knip**: Se implementó `knip.json` adaptado al monorepo para excluir archivos autogenerados de DataConnect y optimizar la detección de código muerto.
 - El componente `RateTable` ahora maneja cálculos de recargos BAF dinámicamente con estilos glassmorphism y tooltips interactivos.
 
 ### Removed
-- Limpieza masiva de componentes huérfanos (`RegionalProfitabilityChart`, `AIInsightsPanel`, etc.) para sanear la deuda técnica.
-- Eliminados scripts antiguos de migración Drizzle (ahora usando Firebase DataConnect nativo).
+- Eliminados los paquetes de frontend separados (`packages/frontend`, `packages/ui`, etc.) en favor del enfoque monolítico de React en `apps/atlas-scm`.
+- Eliminados scripts antiguos de migración Drizzle y conectores directos a bases de datos en favor de los conectores generados por Firebase Data Connect.
 
 ## [1.0.0] - 2026-06-01
 ### Added
