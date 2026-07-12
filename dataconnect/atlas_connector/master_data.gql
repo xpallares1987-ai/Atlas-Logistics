@@ -1,0 +1,99 @@
+# =====================================================================
+# QUERIES
+# =====================================================================
+
+query ListIncoterms @auth(level: USER) {
+  incoterms {
+    code
+    description
+    freightPayer
+    originCustomsPayer
+    destCustomsPayer
+    isActive
+  }
+}
+
+query ListHsCodes @auth(level: USER) {
+  hsCodes {
+    code
+    description
+    dutyRate
+    isHazardous
+    isActive
+  }
+}
+
+query ListVessels @auth(level: USER) {
+  vessels {
+    imoNumber
+    name
+    flag
+    capacityTeu
+    carrier {
+      id
+      name
+    }
+    isActive
+  }
+}
+
+query ListSchedules($tenantId: String!) @auth(level: USER) {
+  schedules(where: { tenantId: { eq: $tenantId } }) {
+    id
+    tenantId
+    vessel {
+      imoNumber
+      name
+    }
+    voyageNumber
+    pol {
+      locode
+      name
+    }
+    pod {
+      locode
+      name
+    }
+    etd
+    eta
+    cutOffDate
+    availableTeu
+    status
+  }
+}
+
+query ListDictionaryTerms @auth(level: USER) {
+  dictionaryTerms {
+    acronym
+    meaning
+    description
+    category
+    subCategory
+    region
+    moduleScope
+    isActive
+  }
+}
+
+mutation UpsertDictionaryTerm(
+  $acronym: String!,
+  $category: String!,
+  $meaning: String!,
+  $description: String,
+  $subCategory: String,
+  $region: String,
+  $moduleScope: [String!],
+  $isActive: Boolean
+) @auth(level: USER) {
+  dictionaryTerm_upsert(data: {
+    acronym: $acronym
+    category: $category
+    meaning: $meaning
+    description: $description
+    subCategory: $subCategory
+    region: $region
+    moduleScope: $moduleScope
+    isActive: $isActive
+  })
+}
+

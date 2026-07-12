@@ -1,69 +1,34 @@
-# Dependencies
-node_modules
-**/node_modules
-.pnpm-store
-.pnpm
+# Include any files or directories that you don't want to be copied to your
+# container here (e.g., local build artifacts, temporary files, etc.).
+#
+# For more help, visit the .dockerignore file reference guide at
+# https://docs.docker.com/go/build-context-dockerignore/
 
-# Build outputs
-dist
-**/dist
-out
+**/.classpath
+**/.dockerignore
+**/.env
+**/.git
+**/.gitignore
+**/.project
+**/.settings
+**/.toolstarget
+**/.vs
+**/.vscode
 **/.next
-.turbo
-**/.turbo
-coverage
-**/coverage
-
-# Git & VCS
-.git
-.gitignore
-.gitmodules
-
-# Environment & secrets
-.env
-.env.*
-!.env.example
-
-# Logs & debug
-npm-debug.log*
-pnpm-debug.log*
-*.log
-logs
-
-# Test artifacts
-test-results
-**/test-results
-playwright-report
-**/playwright-report
-e2e
-**/e2e
-
-# IDE & tools
-.vscode
-.idea
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Docker itself
-Dockerfile*
-docker-compose*
-.dockerignore
-
-# Docs & CI (no needed in image)
-docs
-*.md
-.github
-.devcontainer
-
-# Firebase & GCP artifacts
-dataconnect
-firebase.json
-.firebaserc
-firestore.*
-database.rules.json
-functions
-skills-lock.json
+**/.cache
+**/*.*proj.user
+**/*.dbmdl
+**/*.jfm
+**/charts
+**/docker-compose*
+**/compose.y*ml
+**/Dockerfile*
+**/node_modules
+**/npm-debug.log
+**/obj
+**/secrets.dev.yaml
+**/values.dev.yaml
+**/build
+**/dist
+LICENSE
+README.md

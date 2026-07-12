@@ -10,22 +10,23 @@
 
 ## Desarrollo en el Monorepo
 
-Al trabajar en un paquete específico (por ejemplo, el UI), **NO** instales dependencias navegando al directorio del paquete. Utiliza siempre `pnpm` desde la raíz con el flag `--filter`:
+Al trabajar en el proyecto unificado, puedes instalar dependencias directamente en la carpeta de la Súper-App:
 
 ```bash
-# Añadir una dependencia solo a un paquete:
-pnpm add lucide-react --filter @atlas/ui
+# Añadir una dependencia a la app principal:
+pnpm add lucide-react --filter atlas-scm
 ```
 
 ### Reglas de Modificación de Base de Datos
 - La base de datos es gestionada por **Firebase Data Connect** hacia Google Cloud SQL.
-- Si necesitas alterar tablas, edita los archivos `.gql` en la carpeta `dataconnect/schema/`.
-- Tras realizar cambios, DEBES regenerar el SDK de cliente para que TypeScript atrape los errores:
+- Si necesitas alterar tablas, edita los archivos `.gql` en la carpeta `dataconnect/`.
+- Tras realizar cambios, DEBES regenerar el SDK de cliente para que TypeScript atrape los errores y hacer el deploy:
   ```bash
-  npx firebase dataconnect:sdk:generate
+  firebase dataconnect:sdk:generate
+  firebase deploy --only dataconnect
   ```
-- **Prohibido**: No edites manualmente ningún archivo dentro de las carpetas `dataconnect-generated`.
+- **Prohibido**: No edites manualmente ningún archivo dentro de las carpetas generadas de dataconnect.
 
 ## Estilo y Diseño Visual
 - Atlas Logistics utiliza un estilo riguroso de **Dark Premium Glassmorphism**.
-- Por favor, utiliza los tokens CSS globales definidos en `packages/ui/src/index.css`. No abuses de colores arbitrarios; confía en los fondos semitransparentes, los bordes sutiles y los efectos de desenfoque (`backdrop-blur`).
+- Por favor, utiliza los tokens CSS globales definidos en `apps/atlas-scm/src/index.css`. No abuses de colores arbitrarios; confía en los fondos semitransparentes, los bordes sutiles y los efectos de desenfoque (`backdrop-blur`).

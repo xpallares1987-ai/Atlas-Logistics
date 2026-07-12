@@ -10,8 +10,7 @@
 import { setGlobalOptions } from "firebase-functions";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
-import { deployToCamunda } from "./camunda";
-import { startWorkers } from "./workers";
+
 import {
   generatePredictiveETA,
   processDocumentOCR,
@@ -23,9 +22,7 @@ export * from "./gemini";
 export * from "./webhooks";
 
 // Define secrets from Google Cloud Secret Manager
-const CAMUNDA_CLUSTER_ID = defineSecret("CAMUNDA_CLUSTER_ID");
-const CAMUNDA_CLIENT_ID = defineSecret("CAMUNDA_CLIENT_ID");
-const CAMUNDA_CLIENT_SECRET = defineSecret("CAMUNDA_CLIENT_SECRET");
+
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 
 setGlobalOptions({ maxInstances: 10 });
@@ -37,49 +34,7 @@ const allowedOrigins = [
   /https:\/\/.*\.firebaseapp\.com$/
 ];
 
-// Global initialization of Camunda Workers when instance warms up
-let workersStarted = false;
 
-export const deployBPMN = onCall(
-  {
-    secrets: [CAMUNDA_CLUSTER_ID, CAMUNDA_CLIENT_ID, CAMUNDA_CLIENT_SECRET],
-    cors: allowedOrigins,
-  },
-  async (request) => {
-    // Inicializar workers si no lo están
-    if (!workersStarted) {
-      try {
-        startWorkers(CAMUNDA_CLUSTER_ID.value(), CAMUNDA_CLIENT_ID.value(), CAMUNDA_CLIENT_SECRET.value());
-        workersStarted = true;
-      } catch (e) {
-        console.error("Failed to start workers", e);
-      }
-    }
-
-    const { xml } = request.data;
-    if (!xml) {
-      throw new HttpsError("invalid-argument", "El XML del diagrama es requerido.");
-    }
-
-    try {
-      const clusterId = CAMUNDA_CLUSTER_ID.value();
-      const clientId = CAMUNDA_CLIENT_ID.value();
-      const clientSecret = CAMUNDA_CLIENT_SECRET.value();
-
-      const result = await deployToCamunda(clusterId, clientId, clientSecret, xml);
-      
-      return {
-        success: true,
-        processId: result.deployments[0]?.process?.bpmnProcessId,
-        version: result.deployments[0]?.process?.version,
-        resourceId: result.deployments[0]?.process?.processDefinitionKey,
-      };
-    } catch (error) {
-      console.error("Deploy error:", error);
-      throw new HttpsError("internal", "No se pudo desplegar el proceso en Camunda 8.");
-    }
-  }
-);
 
 export const predictETA = onCall(
   {

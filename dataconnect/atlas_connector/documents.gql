@@ -1,0 +1,44 @@
+mutation CreateDocumentFromOcr($documentNumber: String, $documentType: String!, $fileName: String, $fileUrl: String!, $mimeType: String, $extractedData: Any) @auth(level: USER) {
+  document_insert(data: {
+    documentNumber: $documentNumber
+    documentType: $documentType
+    fileName: $fileName
+    fileUrl: $fileUrl
+    mimeType: $mimeType
+    status: "DRAFT"
+    ocrStatus: "PENDING"
+    extractedData: $extractedData
+  })
+}
+
+mutation ApproveOcrDocument($id: UUID!, $extractedData: Any, $shipmentId: UUID) @auth(level: USER) {
+  document_update(id: $id, data: {
+    ocrStatus: "APPROVED"
+    extractedData: $extractedData
+    shipmentId: $shipmentId
+  })
+}
+
+mutation RejectOcrDocument($id: UUID!) @auth(level: USER) {
+  document_update(id: $id, data: {
+    ocrStatus: "REJECTED"
+  })
+}
+
+query ListPendingOcrDocuments @auth(level: USER) {
+  documents(where: { ocrStatus: { eq: "PENDING" } }, orderBy: [{ uploadDate: DESC }]) {
+    id
+    documentNumber
+    documentType
+    fileName
+    fileUrl
+    mimeType
+    uploadDate
+    ocrStatus
+    extractedData
+    shipment {
+      id
+      trackingNumber
+    }
+  }
+}

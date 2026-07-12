@@ -1,144 +1,87 @@
 services:
-  app:
+  bpmn-modeler:
     build:
       context: .
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=redis://redis:6379
-      - ZEEBE_CLUSTER_ID=${ZEEBE_CLUSTER_ID}
-      - ZEEBE_CLIENT_ID=${ZEEBE_CLIENT_ID}
-      - ZEEBE_CLIENT_SECRET=${ZEEBE_CLIENT_SECRET}
-      - ZEEBE_CLUSTER_REGION=${ZEEBE_CLUSTER_REGION}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      orchestration:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:3000/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+      dockerfile: BPMN-Modeler/Dockerfile
     restart: unless-stopped
 
-  postgres:
-    image: postgres:15.18-alpine3.24
+  freight-comparer:
+    build:
+      context: .
+      dockerfile: Freight-Comparer/Dockerfile
+    restart: unless-stopped
+
+  shipment-dashboard:
+    build:
+      context: .
+      dockerfile: Shipment-Dashboard/Dockerfile
+    restart: unless-stopped
+
+  atlas-logistics:
+    build:
+      context: .
+      dockerfile: Atlas-Logistics/Dockerfile
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      db-migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  db-migrate:
+    build:
+      context: .
+      dockerfile: Atlas-Logistics/Dockerfile
+      target: builder
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    command: ["pnpm", "--filter", "atlas-logistics", "db:migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: no
+
+  db:
+    image: postgres:15-alpine
+    env_file:
+      - .env
     ports:
       - "5432:5432"
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-scm_user} -d ${POSTGRES_DB:-scm_db}",
-        ]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d atlas"]
+      interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 20s
     restart: unless-stopped
 
   redis:
-    image: redis:8.0.6-alpine3.21
+    image: redis:7-alpine
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     restart: unless-stopped
 
-  elasticsearch:
-    image: elasticsearch:8.17.0
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+  gateway:
+    image: nginx:alpine
     ports:
-      - "9200:9200"
+      - "8080:80"
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -sf http://localhost:9200/_cluster/health || exit 1",
-        ]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
-    restart: unless-stopped
-
-  # Initialise volume ownership before orchestration starts
-  camunda-data-init:
-    image: camunda/camunda:8.9.12
-    user: "0:0"
-    entrypoint:
-      [
-        "/bin/sh",
-        "-c",
-        "chown -R 1001:1001 /usr/local/camunda/camunda-data && chmod 775 /usr/local/camunda/camunda-data",
-      ]
-    volumes:
-      - camunda_data:/usr/local/camunda/camunda-data
-    restart: "no"
-
-  # Unified Camunda 8.9 orchestration: Zeebe + Operate + Tasklist in one container
-  orchestration:
-    image: camunda/camunda:8.9.12
-    environment:
-      # Workaround: elasticsearch-java 8.13.x bug — unassigned_primary_shards is marked
-      # as required but is never returned by ES cluster health API. This flag disables
-      # strict response parsing in the client.
-      - JAVA_TOOL_OPTIONS=-Dco.elastic.clients.util.ApiTypeHelper.DANGEROUS_DISABLE_STRICT_RESPONSE_PARSING=true
-    ports:
-      - "26500:26500" # Zeebe gRPC
-      - "9600:9600" # Zeebe management / health
-      - "8080:8080" # Operate UI + Tasklist UI
-    volumes:
-      - camunda:/usr/local/camunda/data
-      - camunda_data:/usr/local/camunda/camunda-data
-      - ./camunda-config/application.yaml:/usr/local/camunda/config/application.yaml:ro
+      - ./gateway.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      elasticsearch:
-        condition: service_healthy
-      camunda-data-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://localhost:9600/actuator/health/status || exit 1",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 30
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 1g
+      - bpmn-modeler
+      - freight-comparer
+      - shipment-dashboard
+      - atlas-logistics
     restart: unless-stopped
 
 volumes:
-  postgres_data:
-  redis_data:
-  elasticsearch_data:
-  camunda:
-  camunda_data:
+  pgdata:

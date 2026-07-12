@@ -1,0 +1,48 @@
+# =====================================================================
+# PROCUREMENT OPERATIONS
+# =====================================================================
+
+query ListCarriers($tenantId: String!) @auth(level: USER) {
+  companies(where: { tenantId: { eq: $tenantId }, entityType: { eq: "CARRIER" } }) {
+    id
+    name
+    email
+    phoneNumber
+    contactPerson
+    city
+    scacCode
+    paymentTerms
+    rating
+    isActive
+  }
+}
+
+query ListHauliers($tenantId: String!) @auth(level: USER) {
+  companies(where: { tenantId: { eq: $tenantId }, entityType: { eq: "HAULIER" } }) {
+    id
+    name
+    email
+    phoneNumber
+    contactPerson
+    city
+    taxId
+    paymentTerms
+    rating
+    isActive
+  }
+}
+
+query ListAgents($tenantId: String!) @auth(level: USER) {
+  companies(where: { tenantId: { eq: $tenantId }, entityType: { eq: "AGENT" } }) {
+    id
+    name
+    email
+    phoneNumber
+    contactPerson
+    city
+    countryCode
+    paymentTerms
+    rating
+    isActive
+  }
+}
