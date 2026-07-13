@@ -22,7 +22,7 @@ export default tseslint.config(
     },
     languageOptions: {
       parserOptions: {
-        project: ["./tsconfig.json", "./tsconfig.server.json"],
+        project: ["./apps/atlas-scm/tsconfig.json", "./functions/tsconfig.json"],
         tsconfigRootDir: import.meta.dirname,
       },
     },
