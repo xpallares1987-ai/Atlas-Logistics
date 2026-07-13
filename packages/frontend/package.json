@@ -14,11 +14,14 @@
         "@atlas/shared": "workspace:*",
         "@atlas/ui": "workspace:*",
         "@emotion/is-prop-valid": "^1.4.0",
+        "@react-three/drei": "^9.112.0",
+        "@react-three/fiber": "^8.17.7",
         "framer-motion": "^12.42.2",
         "lucide-react": "^1.24.0",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
-        "react-router-dom": "^6.26.0"
+        "react-router-dom": "^6.26.0",
+        "three": "^0.168.0"
     },
     "devDependencies": {
         "@types/three": "^0.168.0",
