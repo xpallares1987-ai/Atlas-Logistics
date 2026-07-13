@@ -98,7 +98,7 @@ export default function AIChainAssistantModule() {
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col relative bg-slate-950">
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-slate-950/20 pointer-events-none mix-blend-overlay"></div>
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-600/10 blur-[100px] rounded-full pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-purple-600/10 blur-[100px] rounded-full pointer-events-none"></div>
 

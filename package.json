@@ -80,6 +80,7 @@
       ]
     },
     "overrides": {
+      "three": "^0.168.0",
       "d3-color": "^3.1.0",
       "esbuild": "^0.25.0",
       "postcss": "^8.5.16",
