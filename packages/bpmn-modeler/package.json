@@ -1,0 +1,10 @@
+{
+    "name":  "@atlas/bpmn-modeler",
+    "version":  "1.0.0",
+    "private":  true,
+    "scripts":  {
+                    "preview":  "vite preview",
+                    "build":  "tsc \u0026\u0026 vite build",
+                    "dev":  "vite"
+                }
+}

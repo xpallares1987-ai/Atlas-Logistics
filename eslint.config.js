@@ -9,9 +9,11 @@ export default tseslint.config(
       "**/coverage/**",
       "packages/**",
       "functions/**",
-      "e2e/**",
+      "**/e2e/**",
       "scripts/**",
-      "playwright.config.ts",
+      "**/playwright.config.ts",
+      "fix-imports.ts",
+      "**/dataconnect-generated/**"
     ],
   },
   {

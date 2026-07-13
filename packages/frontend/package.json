@@ -1,0 +1,23 @@
+{
+    "name":  "@atlas/frontend",
+    "version":  "1.0.0",
+    "private":  true,
+    "scripts":  {
+                    "preview":  "vite preview",
+                    "build":  "tsc \u0026\u0026 vite build",
+                    "dev":  "vite"
+                },
+    "dependencies": {
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "react-router-dom": "^6.26.0",
+        "@atlas/dashboard": "workspace:*",
+        "@atlas/rate-comparer": "workspace:*",
+        "@atlas/ui": "workspace:*",
+        "@atlas/shared": "workspace:*"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-react": "^4.3.1",
+        "vite": "^5.4.1"
+    }
+}
