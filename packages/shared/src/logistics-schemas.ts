@@ -126,3 +126,7 @@ export const ExternalWarehousesSchema = z.object({
     WarehouseInfo: WarehouseInfoSchema.optional(),
   }),
 });
+
+export type BoardingItem = z.infer<typeof BoardingItemSchema>;
+export type ReceptionItem = z.infer<typeof ReceptionItemSchema>;
+export type StockItem = z.infer<typeof StockItemSchema>;

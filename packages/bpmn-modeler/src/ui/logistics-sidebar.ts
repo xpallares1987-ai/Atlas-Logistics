@@ -1,7 +1,7 @@
 import { calculateProcessAnalytics, importDiagram } from '../services/modeler-service';
 import { safeGetMetadata, validateProperty } from '../schemas/metadata';
 import type { AppState } from '../state';
-import { Toast } from '@/components';
+import { Toast } from '@atlas/ui';
 
 export function initLogisticsSidebar(state: AppState) {
   const sidebar = document.getElementById('propertiesSidebar');
@@ -527,3 +527,5 @@ async function renderXmlPanel(state: AppState, container: HTMLElement) {
     container.innerHTML = `<div class="no-selection-alert">No se pudo cargar el XML en este momento.</div>`;
   }
 }
+
+

@@ -100,8 +100,8 @@ export default function LocationAutocomplete({
         </div>
       </div>
 
-      {isOpen && debouncedQuery.length > 1 && (
-        <div className="absolute top-full left-0 w-full mt-2 bg-slate-800/95 backdrop-blur-3xl border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden z-50 max-h-72 overflow-y-auto">
+      {isOpen && debouncedQuery.length > 2 && (
+        <div className="absolute top-full left-0 w-[350px] md:w-[400px] mt-2 bg-slate-800/95 backdrop-blur-3xl border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden z-[100] max-h-72 overflow-y-auto">
           {isLoading && !locations.length && (
             <div className="p-6 text-center text-slate-400 text-sm flex flex-col items-center gap-2">
               <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
@@ -115,7 +115,7 @@ export default function LocationAutocomplete({
             </div>
           )}
 
-          {!isLoading && locations.length === 0 && debouncedQuery.length > 1 && (
+          {!isLoading && locations.length === 0 && debouncedQuery.length > 2 && (
             <div className="p-6 text-center text-slate-400 text-sm flex flex-col items-center gap-2">
               <Search className="w-6 h-6 text-slate-500" />
               No locations found matching "{debouncedQuery}"

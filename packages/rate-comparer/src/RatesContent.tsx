@@ -8,9 +8,7 @@ import React, { useState } from "react";
 import { useAppStore } from "@/shared/store";
 import RateTable from "./components/RateTable";
 import LocationAutocomplete from "./components/LocationAutocomplete";
-import { Zap, MapPin, Search, Ship, Plane, CalendarDays, Box, ArrowRightLeft } from "lucide-react";
-import { useListQuotes } from "@/dataconnect-generated/react";
-
+import { Search, Ship, Plane, CalendarDays, Box, ArrowRightLeft, MapPin, Zap } from "lucide-react";
 import { useAuth } from "@/components";
 
 export default function RatesContent() {
@@ -24,21 +22,41 @@ export default function RatesContent() {
   const [date, setDate] = useState<string>("");
   const [equipment, setEquipment] = useState<string>("40HC");
 
-  const [submittedOrigin, setSubmittedOrigin] = useState<string | null>(null);
-  const [submittedDestination, setSubmittedDestination] = useState<string | null>(null);
+  // Camunda Backend API State
+  const [quotes, setQuotes] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
 
-  // Fetch from Data Connect
-  const { data, isLoading, error } = useListQuotes({
-    tenantId: tenantId || "atlas-default-tenant",
-    origin: submittedOrigin || undefined,
-    destination: submittedDestination || undefined
-  });
-  
-  const quotes = data?.quotes || [];
+  const handleSearch = async () => {
+    if (!origin || !destination) return;
+    
+    setIsLoading(true);
+    setError(null);
+    setQuotes([]);
 
-  const handleSearch = () => {
-    setSubmittedOrigin(origin ? origin.locode : null);
-    setSubmittedDestination(destination ? destination.locode : null);
+    try {
+      const response = await fetch('http://localhost:3000/api/rates/compare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          origin: origin.locode || origin.name,
+          destination: destination.locode || destination.name,
+          containerType: equipment
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success && result.variables && result.variables.rates) {
+        setQuotes(result.variables.rates);
+      } else {
+        setError(result.error || "No rates found");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch from API");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const swapLocations = () => {
@@ -112,11 +130,12 @@ export default function RatesContent() {
             </div>
 
             {/* Main Search Row */}
-            <div className="flex flex-col xl:flex-row items-end gap-4">
+            <div className="flex flex-col xl:flex-row items-end gap-6">
               
               {/* Origin and Destination Group */}
-              <div className="flex flex-col md:flex-row items-center w-full xl:w-1/2 gap-2 relative bg-slate-950/50 p-2 rounded-3xl border border-slate-800">
-                <div className="flex-1 w-full relative z-30">
+              <div className="flex flex-col md:flex-row items-center w-full xl:w-[55%] gap-4 relative z-30 bg-slate-900/60 p-3 rounded-3xl border border-slate-700/50 shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all duration-300 hover:border-slate-600/60">
+                <div className="flex-1 w-full relative z-40 group">
+                  <div className="absolute inset-0 bg-indigo-500/0 group-focus-within:bg-indigo-500/10 rounded-2xl transition-colors duration-300 pointer-events-none" />
                   <LocationAutocomplete 
                     label="Origin" 
                     placeholder="Where from? (e.g. Shanghai)" 
@@ -125,15 +144,16 @@ export default function RatesContent() {
                   />
                 </div>
                 
-                {/* Swap Button (Absolute center on desktop, inline on mobile) */}
+                {/* Swap Button */}
                 <button 
                   onClick={swapLocations}
-                  className="z-40 h-10 w-10 shrink-0 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center hover:bg-slate-700 hover:scale-110 transition-all shadow-lg mx-auto md:absolute md:left-1/2 md:-ml-5"
+                  className="z-40 h-12 w-12 shrink-0 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center hover:bg-slate-700 hover:scale-110 transition-all duration-300 shadow-xl mx-auto md:absolute md:left-1/2 md:-ml-6 group"
                 >
-                  <ArrowRightLeft className="w-4 h-4 text-slate-400" />
+                  <ArrowRightLeft className="w-5 h-5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
                 </button>
 
-                <div className="flex-1 w-full relative z-20">
+                <div className="flex-1 w-full relative z-20 group">
+                  <div className="absolute inset-0 bg-indigo-500/0 group-focus-within:bg-indigo-500/10 rounded-2xl transition-colors duration-300 pointer-events-none" />
                   <LocationAutocomplete 
                     label="Destination" 
                     placeholder="Where to? (e.g. Rotterdam)" 
@@ -145,43 +165,43 @@ export default function RatesContent() {
               </div>
 
               {/* Date & Equipment Group */}
-              <div className="flex flex-row items-center w-full xl:w-auto gap-2">
-                <div className="flex-1 bg-slate-950/50 p-2 rounded-3xl border border-slate-800 flex items-center h-[72px]">
-                  <div className="px-4 flex items-center gap-3 w-full border-r border-slate-800/60">
-                    <CalendarDays className="w-5 h-5 text-slate-400" />
-                    <div className="flex flex-col w-full">
+              <div className="flex flex-row items-center w-full xl:w-auto gap-4 relative z-20">
+                <div className="flex-1 bg-slate-900/60 p-3 rounded-3xl border border-slate-700/50 shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)] backdrop-blur-md flex items-center h-[76px] transition-all duration-300 hover:border-slate-600/60">
+                  <div className="px-4 flex items-center gap-3 w-full border-r border-slate-700/60 group">
+                    <CalendarDays className="w-5 h-5 text-slate-400 group-focus-within:text-indigo-400 transition-colors" />
+                    <div className="flex flex-col w-full relative">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Departure</span>
                       <input 
                         type="date" 
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
-                        className="bg-transparent text-sm text-slate-200 outline-none w-full placeholder-slate-600 font-medium"
+                        className="bg-transparent text-sm text-slate-200 outline-none w-full placeholder-slate-600 font-medium cursor-pointer transition-colors"
                       />
                     </div>
                   </div>
                   
-                  <div className="px-4 flex items-center gap-3 w-full">
-                    <Box className="w-5 h-5 text-slate-400" />
+                  <div className="px-4 flex items-center gap-3 w-full group">
+                    <Box className="w-5 h-5 text-slate-400 group-focus-within:text-indigo-400 transition-colors" />
                     <div className="flex flex-col w-full">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Equipment</span>
                       <select 
                         value={equipment}
                         onChange={(e) => setEquipment(e.target.value)}
-                        className="bg-transparent text-sm text-slate-200 outline-none w-full appearance-none cursor-pointer font-medium"
+                        className="bg-transparent text-sm text-slate-200 outline-none w-full appearance-none cursor-pointer font-medium transition-colors"
                       >
                         {transportMode === "FCL" ? (
                           <>
-                            <option value="20GP">1 x 20' Standard</option>
-                            <option value="40GP">1 x 40' Standard</option>
-                            <option value="40HC">1 x 40' High Cube</option>
-                            <option value="45HC">1 x 45' High Cube</option>
-                            <option value="20RF">1 x 20' Reefer</option>
-                            <option value="40RF">1 x 40' Reefer</option>
+                            <option value="20GP" className="bg-slate-900">1 x 20' Standard</option>
+                            <option value="40GP" className="bg-slate-900">1 x 40' Standard</option>
+                            <option value="40HC" className="bg-slate-900">1 x 40' High Cube</option>
+                            <option value="45HC" className="bg-slate-900">1 x 45' High Cube</option>
+                            <option value="20RF" className="bg-slate-900">1 x 20' Reefer</option>
+                            <option value="40RF" className="bg-slate-900">1 x 40' Reefer</option>
                           </>
                         ) : transportMode === "LCL" ? (
-                          <option value="CBM">Volume (CBM)</option>
+                          <option value="CBM" className="bg-slate-900">Volume (CBM)</option>
                         ) : (
-                          <option value="KG">Weight (KG)</option>
+                          <option value="KG" className="bg-slate-900">Weight (KG)</option>
                         )}
                       </select>
                     </div>
@@ -190,8 +210,9 @@ export default function RatesContent() {
 
                 <button 
                   onClick={handleSearch}
-                  className="h-[72px] px-8 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-lg shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_30px_rgba(79,70,229,0.6)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3 shrink-0"
+                  className="h-[76px] px-10 bg-gradient-to-r from-indigo-500 via-indigo-600 to-blue-600 hover:from-indigo-400 hover:via-indigo-500 hover:to-blue-500 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-lg shadow-[0_0_25px_rgba(79,70,229,0.5)] hover:shadow-[0_0_35px_rgba(79,70,229,0.8)] hover:-translate-y-1 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 shrink-0 ring-1 ring-white/20"
                 >
+                  <Search className="w-6 h-6 animate-pulse" />
                   Search
                 </button>
               </div>

@@ -2,7 +2,8 @@ import { getDiagramVersions, saveDiagramVersion } from '../services/firestoreSer
 import { loadDiagramInNewTab } from '../state/tab-manager';
 import { state } from '../state';
 import { getDiagramXml } from '../services/xml-service';
-import { Toast, on } from '@/components';
+import { on } from '@atlas/shared';
+import { Toast } from '@atlas/ui';
 
 let container: HTMLElement | null = null;
 let currentDiagramId: string | null = null;
@@ -92,7 +93,7 @@ export async function refreshVersions() {
       .join('');
 
     listEl.querySelectorAll('.restore-btn').forEach((btn) => {
-      on(btn as HTMLElement, 'click', async (e) => {
+      on(btn as HTMLElement, 'click', async (e: any) => {
         const id = (e.target as HTMLElement).getAttribute('data-id');
         const version = versions.find((v: any) => v.id === id);
         if (version) {
@@ -115,3 +116,5 @@ export async function refreshVersions() {
     listEl.innerHTML = '<div class="error">Error al cargar las versiones desde Firebase Firestore.</div>';
   }
 }
+
+

@@ -17,7 +17,7 @@ export function loadTheme(storageKey: string = "theme"): Theme {
   return saved || getSystemTheme();
 }
 
-function saveTheme(theme: Theme, storageKey: string = "theme"): void {
+export function saveTheme(theme: Theme, storageKey: string = "theme"): void {
   if (typeof localStorage === "undefined") return;
   localStorage.setItem(storageKey, theme);
 }

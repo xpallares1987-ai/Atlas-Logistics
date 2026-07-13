@@ -10,7 +10,10 @@ query ListCompanies @auth(level: USER) {
 query SearchLocations($query: String!) @auth(level: USER) {
   locations(
     where: { 
-      name: { contains: $query }
+      _or: [
+        { name: { contains: $query } },
+        { locode: { contains: $query } }
+      ]
     }
     limit: 20
     orderBy: [{ name: ASC }]

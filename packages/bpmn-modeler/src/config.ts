@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createEnvValidator } from '@/components';
+import { createEnvValidator } from '@atlas/shared';
 
 const envSchema = {
   VITE_GITHUB_GIST_ID: z.string().optional(),
@@ -123,3 +123,4 @@ const APP_CONFIG = {
 };
 
 export default APP_CONFIG;
+

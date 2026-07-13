@@ -1,5 +1,5 @@
 import React from "react";
-import { BoardingItem, ReceptionItem, StockItem } from "@/shared";
+import { BoardingItem, ReceptionItem, StockItem } from "@atlas/shared";
 
 export type TableRowProps =
   | { type: "Boarding"; item: BoardingItem; statusColor?: string }
@@ -24,41 +24,41 @@ export const LogisticsRowContent: React.FC<TableRowProps> = (props) => {
       </td>
       {props.type === "Boarding" && (
         <>
-          <td className="bold">{props.item["Customer Order"]}</td>
+          <td className="bold">{props.item.CustomerOrder}</td>
           <td>{props.item.Warehouse}</td>
           <td>{props.item.POL}</td>
-          <td>{props.item["Final Destination"]}</td>
-          <td>{props.item["Fecha Lim. Carga"]}</td>
-          <td>{props.item["Delivery Date"]}</td>
-          <td>{props.item["Forecast Arrival"]}</td>
-          <td>{props.item.Bultos}</td>
-          <td>{props.item["Weight (Tons)"]}</td>
-          <td>{props.item["Ext. Addr. Number"]}</td>
+          <td>{props.item.FinalDestination}</td>
+          <td>{props.item.BoardingDate}</td>
+          <td>{props.item.DeliveryDate}</td>
+          <td>{props.item.ForecastArrivalDate}</td>
+          <td>{props.item.ReelsCount}</td>
+          <td>{props.item.Weight}</td>
+          <td>{props.item.ExtAddrNumber}</td>
         </>
       )}
       {props.type === "Receptions" && (
         <>
           <td>{props.item.Warehouse}</td>
           <td>{props.item.Status}</td>
-          <td className="bold">{props.item["Load Code"]}</td>
-          <td>{props.item["Plate Number"]}</td>
-          <td>{props.item["Estimated Arrival at WH"]}</td>
-          <td>{props.item["Customer Order"]}</td>
-          <td>{props.item["Product Description"]}</td>
-          <td>{props.item["Grammage (GM)"]}</td>
-          <td>{props.item["Weight (Kgs)"]}</td>
+          <td className="bold">{props.item.LoadCode}</td>
+          <td>{props.item.PlateNumber}</td>
+          <td>{props.item.ForecastArrivalDate}</td>
+          <td>{props.item.CustomerOrder}</td>
+          <td>{props.item.ProductDescription}</td>
+          <td>{props.item.Grammage}</td>
+          <td>{props.item.Weight}</td>
         </>
       )}
       {props.type === "Stock" && (
         <>
-          <td>{props.item.Warehouse}</td>
-          <td>{props.item["Ext. Addr. Number"]}</td>
-          <td>{props.item["Product Code"]}</td>
-          <td className="bold">{props.item["Item Number"]}</td>
-          <td className="text-muted">{props.item.Description}</td>
-          <td>{props.item.Grammage}</td>
+          <td>{props.item.WarehouseID}</td>
+          <td>{props.item.CustomerCode}</td>
+          <td>{props.item.ProductCode}</td>
+          <td className="bold">{props.item.ID}</td>
+          <td className="text-muted">{props.item.ProductDescription}</td>
+          <td>{props.item.BasisWeight}</td>
           <td>{props.item.Diameter}</td>
-          <td>{props.item["Roll Width"]}</td>
+          <td>{props.item.RollWidth}</td>
           <td>{props.item.Weight}</td>
         </>
       )}

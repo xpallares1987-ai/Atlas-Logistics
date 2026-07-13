@@ -9,11 +9,11 @@ export interface AppState {
   addToCart: (item: any) => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set: any) => ({
   currency: "USD",
   language: "es",
   quoteCart: [],
-  setCurrency: (currency) => set({ currency }),
-  setLanguage: (language) => set({ language }),
-  addToCart: (item) => set((state) => ({ quoteCart: [...state.quoteCart, item] })),
+  setCurrency: (currency: string) => set({ currency }),
+  setLanguage: (language: string) => set({ language }),
+  addToCart: (item: any) => set((state: AppState) => ({ quoteCart: [...state.quoteCart, item] })),
 }));

@@ -28,7 +28,7 @@ export type { ModalInstance } from "./Modal";
 export * from "./Toast";
 export * from "./Globe";
 export * from "./OmniSearch";
-export * from "@/shared";
+export * from "@atlas/shared";
 export * from "./firebase/FirebaseProvider";
 export * from "./hooks/useAuth";
 import "./i18n";

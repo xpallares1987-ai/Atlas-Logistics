@@ -1,4 +1,4 @@
-import { qs } from "@/shared";
+import { qs } from "@atlas/shared";
 
 export type ToastType = "info" | "success" | "warning" | "error";
 

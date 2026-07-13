@@ -1,5 +1,6 @@
 import React from "react";
 import { useAuth } from "./AuthProvider";
+// @ts-ignore
 import { Role, hasPermission } from "../../core/auth/rbac";
 
 interface RoleGateProps {

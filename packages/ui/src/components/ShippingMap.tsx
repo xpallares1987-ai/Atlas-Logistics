@@ -95,6 +95,7 @@ export function ShippingMap({ shipments = [], searchQuery = "" }: { shipments?: 
         }
 
         // Import leaflet styles dynamically
+        // @ts-ignore
         await import("leaflet/dist/leaflet.css");
 
         if (!isMounted || !mapContainerRef.current || mapRef.current) return;
@@ -119,10 +120,10 @@ export function ShippingMap({ shipments = [], searchQuery = "" }: { shipments?: 
         // Load marker cluster plugin and its CSS
         // Note: In a workspace setting, ensure 'leaflet.markercluster' is in dependencies
         await import("leaflet.markercluster");
-        // @ts-expect-error - TODO: fix type
-        await import("leaflet.markercluster/dist/MarkerCluster.css");
-        // @ts-expect-error - TODO: fix type
-        await import("leaflet.markercluster/dist/MarkerCluster.Default.css");
+        // @ts-ignore
+        await import('leaflet.markercluster/dist/MarkerCluster.css');
+        // @ts-ignore
+        await import('leaflet.markercluster/dist/MarkerCluster.Default.css');
 
         // Apply dark-themed beautiful tile layout
         L.tileLayer(
@@ -136,8 +137,7 @@ export function ShippingMap({ shipments = [], searchQuery = "" }: { shipments?: 
         ).addTo(map);
 
         // Create a Marker Cluster Group for better UX
-        // @ts-expect-error - markerClusterGroup is added by the plugin
-        const clusterGroup = L.markerClusterGroup({
+        const clusterGroup = (L as any).markerClusterGroup({
           showCoverageOnHover: false,
           spiderfyOnMaxZoom: true,
           zoomToBoundsOnClick: true,

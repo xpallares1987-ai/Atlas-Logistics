@@ -1,3 +1,2 @@
 // @ts-nocheck
-export { default as RateComparer } from './RatesContent';
-
+export { default as RateComparer } from './index.tsx';

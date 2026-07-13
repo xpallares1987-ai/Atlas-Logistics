@@ -1,4 +1,4 @@
-import { decryptToken, encryptToken } from '@/components';
+import { decryptToken, encryptToken } from '@atlas/shared';
 import { DiagramTab } from '../types';
 
 export { decryptToken, encryptToken };
@@ -76,3 +76,4 @@ export function loadTabsSession(keys: StorageKeys): { tabs: DiagramTab[]; active
     return null;
   }
 }
+

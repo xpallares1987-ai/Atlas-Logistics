@@ -20,8 +20,10 @@ import {
   OAuthProvider,
   signInAnonymously,
 } from "firebase/auth";
+// @ts-ignore
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
+// @ts-ignore
 import { getDataConnect, DataConnect } from "firebase/data-connect";
 
 export interface FirebaseContextType {

@@ -1,4 +1,4 @@
-import { ensureElement } from '@/components';
+import { ensureElement } from '@atlas/shared';
 
 export interface Statusbar {
   setStatus: (message: string, state?: string) => void;
@@ -38,3 +38,4 @@ export function createStatusbar({
     },
   };
 }
+

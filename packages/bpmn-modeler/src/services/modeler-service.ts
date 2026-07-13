@@ -1,6 +1,6 @@
 import Modeler from 'bpmn-js/lib/Modeler';
 import type EventBus from 'diagram-js/lib/core/EventBus';
-import { publishEvent } from '@/components';
+import { publishEvent } from '@atlas/shared';
 import { safeGetMetadata } from '../schemas/metadata';
 import { initCustomKeyboard } from './keyboard-service';
 import { getActiveTab } from '../state';
@@ -265,3 +265,4 @@ export function calculateProcessAnalytics(modeler: Modeler | null): ProcessAnaly
 
   return result;
 }
+

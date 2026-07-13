@@ -1,4 +1,5 @@
-import { Toast, publishEvent } from '@/components';
+import { publishEvent } from '@atlas/shared';
+import { Toast } from '@atlas/ui';
 import type { Statusbar } from './statusbar';
 import { getDiagramXml } from '../services/xml-service';
 import { AppState } from '../types';
@@ -118,3 +119,5 @@ export function initDeployModal(statusbar: Statusbar, state: AppState) {
     }
   });
 }
+
+

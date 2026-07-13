@@ -1,7 +1,7 @@
 "use client";
 import { FileText, Download, Printer, Stamp } from "lucide-react";
 
-import { useAuth } from "@/components/auth/AuthProvider";
+import { useAuth } from "./auth/AuthProvider";
 
 interface DocumentPreviewerProps {
   type: "HBL" | "CommercialInvoice" | "CertificateOfOrigin";
