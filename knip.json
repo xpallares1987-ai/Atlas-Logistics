@@ -17,31 +17,10 @@
     "prettier"
   ],
   "workspaces": {
-    ".": {
-      "entry": [
-        "src/server.ts",
-        "src/db/migrate.ts",
-        "src/db/seed.ts",
-        "src/scripts/**/*.ts"
-      ],
-      "project": ["src/**/*.ts"]
-    },
-    "packages/frontend": {
+    "apps/atlas-scm": {
       "entry": ["index.html", "src/main.tsx", "vite.config.ts"]
     },
-    "packages/dashboard": {
-      "entry": ["index.html", "src/main.tsx", "vite.config.ts"]
-    },
-    "packages/freight-comparer": {
-      "entry": ["index.html", "src/main.tsx", "vite.config.ts", "scripts/**/*.cjs"]
-    },
-    "packages/bpmn-modeler": {
-      "entry": ["index.html", "src/main.tsx", "src/index.ts", "vite.config.ts"]
-    },
-    "packages/ui": {
-      "entry": ["src/index.ts", "vite.config.ts"]
-    },
-    "packages/shared": {
+    "functions": {
       "entry": ["src/index.ts"]
     }
   }
