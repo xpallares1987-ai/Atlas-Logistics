@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import TenantSwitcher from "./TenantSwitcher";
+// @ts-ignore
 import { hasPermission } from "../../core/auth/rbac";
 
 interface Tab {

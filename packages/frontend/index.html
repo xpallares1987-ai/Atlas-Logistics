@@ -7,7 +7,34 @@
     <title>Atlas Logistics | Core Engine</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- App Shell Skeleton to improve LCP / render delay before React hydrates -->
+      <div style="display: flex; height: 100vh; background-color: #f3f4f6; font-family: ui-sans-serif, system-ui, sans-serif;">
+        <aside style="width: 16rem; background-color: #111827; color: white; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+          <h1 style="font-size: 1.5rem; line-height: 2rem; font-weight: 700; margin-bottom: 2rem; letter-spacing: 0.05em;">
+            ATLAS<span style="color: #3b82f6;">.SCM</span>
+          </h1>
+          <nav style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div style="padding: 0.5rem; border-radius: 0.25rem; color: #9ca3af;">Dashboard (Core)</div>
+            <div style="padding: 0.5rem; border-radius: 0.25rem; color: #9ca3af;">Rate Comparer</div>
+            <div style="padding: 0.5rem; border-radius: 0.25rem; color: #9ca3af;">ESG Carbon Tracker</div>
+            <div style="padding: 0.5rem; border-radius: 0.25rem; color: #9ca3af;">Container Planner</div>
+          </nav>
+        </aside>
+        <main style="flex: 1; padding: 2rem; overflow-y: auto;">
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280;">
+            <svg style="animation: spin 1s linear infinite; height: 2rem; width: 2rem; margin-right: 0.75rem; color: #6366f1;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Loading Micro-Frontend...
+          </div>
+        </main>
+      </div>
+      <style>
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      </style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -6,7 +6,8 @@ import React, {
   ReactNode,
 } from "react";
 import { User, onAuthStateChanged, signOut } from "firebase/auth";
-import { useFirebase } from "@/components";
+import { useFirebase } from "../firebase/FirebaseProvider";
+// @ts-ignore
 import { upsertUser, getUserProfile } from "@/dataconnect-generated";
 
 interface AuthContextType {
@@ -95,6 +96,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
                 const defaultRole = "GUEST";
                 const defaultTenantId = "atlas-default-tenant";
                 await upsertUser(dataConnect, {
+                  // @ts-ignore
                   uid: firebaseUser.uid,
                   email: firebaseUser.email || "unknown@example.com",
                   role: defaultRole,

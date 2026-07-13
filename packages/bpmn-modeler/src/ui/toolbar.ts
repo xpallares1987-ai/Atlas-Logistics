@@ -1,4 +1,4 @@
-import { ensureElement } from '@/components';
+import { ensureElement } from '@atlas/shared';
 import { AppUi } from '../types';
 
 export interface Toolbar {
@@ -53,3 +53,4 @@ export function createToolbar(
     destroy: () => cleanups.forEach((cleanup) => cleanup()),
   };
 }
+

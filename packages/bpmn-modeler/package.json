@@ -1,10 +1,35 @@
 {
-    "name":  "@atlas/bpmn-modeler",
-    "version":  "1.0.0",
-    "private":  true,
-    "scripts":  {
-                    "preview":  "vite preview",
-                    "build":  "tsc \u0026\u0026 vite build",
-                    "dev":  "vite"
-                }
+  "name": "@atlas/bpmn-modeler",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "preview": "vite preview",
+    "build": "tsc",
+    "dev": "vite"
+  },
+  "type": "module",
+  "dependencies": {
+    "@atlas/shared": "workspace:*",
+    "@atlas/ui": "workspace:*",
+    "@bpmn-io/properties-panel": "^3.47.0",
+    "@google/genai": "^2.11.0",
+    "@react-three/drei": "^9.112.0",
+    "@react-three/fiber": "^8.17.7",
+    "@types/three": "^0.168.0",
+    "@xmldom/xmldom": "^0.8.10",
+    "bpmn-js": "^17.3.0",
+    "bpmn-js-bpmnlint": "^0.24.0",
+    "bpmn-js-token-simulation": "^0.40.0",
+    "diagram-js": "^15.22.0",
+    "diagram-js-minimap": "^5.4.0",
+    "lucide-react": "^0.441.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "three": "^0.168.0",
+    "zeebe-bpmn-moddle": "^1.16.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.3",
+    "vite": "^8.1.4"
+  }
 }

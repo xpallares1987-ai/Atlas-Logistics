@@ -1,5 +1,5 @@
-import { qs } from '@/components';
-import { Toast } from '@/components';
+import { qs } from '@atlas/shared';
+import { Toast } from '@atlas/ui';
 import type { AppUi } from '../types';
 import { AppState, updateTheme } from '../state';
 
@@ -36,3 +36,5 @@ export function initUiManager(dependencies: { ui: AppUi; state: AppState }) {
   ui = dependencies.ui;
   state = dependencies.state;
 }
+
+

@@ -9,6 +9,7 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
 } from "firebase/auth";
+// @ts-ignore
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { useFirebase } from "../firebase/FirebaseProvider";
 

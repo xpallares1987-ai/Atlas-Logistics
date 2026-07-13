@@ -171,7 +171,7 @@ export function streamXml<T>(
     let currentTag: string | null = null;
     let stack: any[] = [];
 
-    parser.onopentag = (tag) => {
+    parser.onopentag = (tag: any) => {
       const tagName = tag.name.substring(tag.name.indexOf(":") + 1);
       if (tagName === recordTag) {
         currentRecord = {};
@@ -191,7 +191,7 @@ export function streamXml<T>(
       currentTag = tagName;
     };
 
-    parser.onclosetag = (tagNameRaw) => {
+    parser.onclosetag = (tagNameRaw: any) => {
       const tagName = tagNameRaw.substring(tagNameRaw.indexOf(":") + 1);
       if (tagName === recordTag) {
         onRecord(currentRecord as T);
@@ -203,7 +203,7 @@ export function streamXml<T>(
       currentTag = null;
     };
 
-    parser.ontext = (text) => {
+    parser.ontext = (text: any) => {
       if (currentRecord && currentTag && text.trim()) {
         // If the current object is empty, we can just set it to the text value
         // to mimic xml2js explicitArray: false behavior
@@ -220,7 +220,7 @@ export function streamXml<T>(
     };
 
     parser.onend = () => resolve();
-    parser.onerror = (err) => {
+    parser.onerror = (err: any) => {
       reject(err);
       parser.resume();
     };

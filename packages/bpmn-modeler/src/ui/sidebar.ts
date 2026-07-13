@@ -1,4 +1,4 @@
-import { ensureElement, qs } from '@/components';
+import { ensureElement, qs } from '@atlas/shared';
 
 export interface Sidebar {
   toggle: () => void;
@@ -54,3 +54,4 @@ export function createSidebar({
     },
   };
 }
+

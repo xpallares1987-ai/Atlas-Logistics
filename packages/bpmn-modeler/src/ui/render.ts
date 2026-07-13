@@ -1,4 +1,4 @@
-import { ensureElement } from '@/components';
+import { ensureElement } from '@atlas/shared';
 import { DiagramTab } from '../types';
 
 export function setDiagramName(element: HTMLElement | null, name: string) {
@@ -32,3 +32,4 @@ export function renderTabs(
     container.appendChild(tabEl);
   });
 }
+

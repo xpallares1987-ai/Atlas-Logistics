@@ -1,6 +1,6 @@
 'use client';
 import { ReactNode, useState } from 'react';
-import { useAuth } from '@/components';
+import { useAuth } from '@atlas/ui';
 
 export function AuthProvider({ children }: { children?: ReactNode }) {
   return <AuthGuard>{children}</AuthGuard>;
@@ -163,3 +163,4 @@ function AuthGuard({ children }: { children?: ReactNode }) {
 
   return <>{children}</>;
 }
+

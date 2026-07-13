@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { AlertTriangle, DollarSign, Percent } from "lucide-react";
+import { LogisticsSankey } from "./LogisticsSankey";
 
 export interface ProfitabilityData {
   category: string;
@@ -167,6 +168,32 @@ export const ProfitabilityDashboard: React.FC<ProfitabilityDashboardProps> = ({
             />
           </BarChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* Sankey Flow */}
+      <div className="mt-8">
+        <h3 className="text-sm font-bold text-slate-700 mb-4">Cash Flow Analysis</h3>
+        <LogisticsSankey 
+          data={{
+            nodes: [
+              { name: "Gross Revenue" },
+              { name: "Costs (AP)" },
+              { name: "Net Profit" },
+              ...data.map(d => ({ name: d.category }))
+            ],
+            links: [
+              // Revenue to Categories
+              ...data.map((d, i) => ({ source: 0, target: i + 3, value: d.ar })),
+              // Categories to AP (costs)
+              ...data.map((d, i) => ({ source: i + 3, target: 1, value: d.ap })),
+              // Remaining Category revenue to Net Profit
+              ...data.map((d, i) => {
+                const profit = d.ar - d.ap;
+                return profit > 0 ? { source: i + 3, target: 2, value: profit } : null;
+              }).filter(Boolean)
+            ]
+          }}
+        />
       </div>
     </div>
   );

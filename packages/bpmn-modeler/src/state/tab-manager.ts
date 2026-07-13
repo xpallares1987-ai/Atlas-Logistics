@@ -1,4 +1,5 @@
-import { safeTrim, ensureExtension, Toast } from '@/components';
+import { safeTrim, ensureExtension } from '@atlas/shared';
+import { Toast } from '@atlas/ui';
 import { createModeler, cleanupModeler, importDiagram } from '../services/modeler-service';
 import { getDiagramXml, loadXmlFromUrl } from '../services/xml-service';
 import { saveTabsSession } from '../services/storage-service';
@@ -114,3 +115,5 @@ export function initTabManager(dependencies: {
   getUi = dependencies.getUi;
   bindModelerEvents = dependencies.bindModelerEvents;
 }
+
+

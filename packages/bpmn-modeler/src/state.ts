@@ -1,6 +1,6 @@
 import { AppState } from './types';
 import APP_CONFIG from './config';
-import { loadTheme, saveTheme, applyTheme, publishEvent, Theme } from '@/components';
+import { loadTheme, saveTheme, applyTheme, publishEvent, Theme } from '@atlas/shared';
 
 export type { AppState };
 
@@ -33,3 +33,4 @@ export function updateTheme(theme: Theme, isFromBroadcast: boolean = false) {
     } catch {}
   }
 }
+

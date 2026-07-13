@@ -1,4 +1,5 @@
-import { on, debounce, formatError, Toast } from '@/components';
+import { on, debounce, formatError } from '@atlas/shared';
+import { Toast } from '@atlas/ui';
 import { getDiagramXml } from '../services/xml-service';
 import { saveTabsSession } from '../services/storage-service';
 import { updateTabsUi, handleNewDiagram } from '../state/tab-manager';
@@ -105,3 +106,5 @@ export function initEventBindings(dependencies: { state: AppState; ui: AppUi; st
   ui = dependencies.ui;
   statusbar = dependencies.statusbar;
 }
+
+

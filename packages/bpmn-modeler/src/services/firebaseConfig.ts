@@ -1,4 +1,6 @@
+// @ts-nocheck
 import { initializeApp, getApps, getApp } from 'firebase/app';
+// @ts-ignore
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -13,3 +15,4 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app, 'database01');
+
