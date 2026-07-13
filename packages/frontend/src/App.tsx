@@ -1,6 +1,6 @@
 import React, { Suspense, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes, Calendar, BookOpen, ShieldAlert, Landmark } from 'lucide-react';
+import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes, Calendar, BookOpen, ShieldAlert, Landmark, Users } from 'lucide-react';
 import { OmniSearch } from '@atlas/ui/src/components/OmniSearch';
 
 const DashboardModule = React.lazy(() => import('@atlas/dashboard').then(m => ({ default: m.Dashboard })));
@@ -21,6 +21,7 @@ const SailingSchedulesModule = React.lazy(() => import('./pages/SailingSchedules
 const BookingManagementModule = React.lazy(() => import('./pages/BookingManagementModule'));
 const CustomsClearanceModule = React.lazy(() => import('./pages/CustomsClearanceModule'));
 const InvoicingModule = React.lazy(() => import('./pages/InvoicingModule'));
+const CustomerPortalModule = React.lazy(() => import('./pages/CustomerPortalModule'));
 
 const AiCopilot = React.lazy(() => import('@atlas/ui/src/components/AiCopilot').then(m => ({ default: m.AiCopilot })));
 
@@ -86,6 +87,11 @@ export default function App() {
             <NavLink to="/tasks" icon={ListTodo}>Tasklist</NavLink>
             <NavLink to="/documents" icon={FileText}>Document Vault</NavLink>
             <NavLink to="/ai-assistant" icon={Bot}>AI Assistant</NavLink>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">External Views</span>
+            <NavLink to="/portal" icon={Users}>Client Portal</NavLink>
           </div>
         </aside>
 
@@ -185,6 +191,7 @@ export default function App() {
                 <Route path="/bookings" element={<BookingManagementModule />} />
                 <Route path="/customs" element={<CustomsClearanceModule />} />
                 <Route path="/invoices" element={<InvoicingModule />} />
+                <Route path="/portal" element={<CustomerPortalModule />} />
               </Routes>
             </Suspense>
           </div>
