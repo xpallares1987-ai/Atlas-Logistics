@@ -60,6 +60,14 @@ function hashPassword(password) {
         });
     });
 }
+function timingSafeEqual(a, b) {
+    if (a.length !== b.length) return false;
+    var result = 0;
+    for (var i = 0; i < a.length; i++) {
+        result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+    return result === 0;
+}
 function Login() {
     var _this = this;
     var _a = (0, components_1.useFirebase)(), auth = _a.auth, googleProvider = _a.googleProvider;
@@ -93,7 +101,7 @@ function Login() {
                 case 2:
                     enteredHash = _b.sent();
                     savedMockHash = localStorage.getItem("mock_admin_password_hash") || "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
-                    if (enteredHash === savedMockHash) {
+                    if (timingSafeEqual(enteredHash, savedMockHash)) {
                         if (password === "admin") {
                             setRequirePasswordChange(true);
                             setLoading(false);
