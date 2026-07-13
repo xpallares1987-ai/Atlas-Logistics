@@ -4,6 +4,21 @@ Atlas Logistics es una **Súper-App** integral para la gestión de la cadena de 
 
 ![Atlas Logistics Dashboard](https://img.shields.io/badge/Status-Active-success) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
+## 🌟 Características y Módulos (Suite ERP SCM)
+Atlas Logistics cuenta con módulos especializados para cubrir el ciclo de vida completo de un embarque marítimo y la operación de un transitario:
+
+**📦 Operaciones Core**
+- **Sailing Schedules**: Buscador de rutas marítimas y control de cut-offs.
+- **Booking & B/L**: Emisión del HBL y panel Kanban de las reservas.
+- **Rate Comparer**: Analítica y comparación de fletes en tiempo real.
+
+**⚖️ Finanzas y Cumplimiento (Compliance)**
+- **Customs Clearance**: Tracking del DUA, semáforo aduanero y cálculo de HS Code.
+- **Invoicing & Settlement**: Conciliación de A/R, A/P y rentabilidad.
+
+**🤝 Vista Externa (Cliente)**
+- **Customer Portal**: Portal "marca blanca" para que los clientes finales puedan realizar tracking de sus cargas y descargar documentos en tiempo real.
+
 ## 🏗️ Arquitectura y Tecnologías
 
 El proyecto opera como un **Monorepo (Turborepo)**, unificando múltiples submódulos bajo una misma súper-aplicación React (Vite).
