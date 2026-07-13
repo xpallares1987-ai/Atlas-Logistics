@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useListCrmDeals, useUpdateCrmDealStatus } from "../../dataconnect-generated";
-import { useAuth } from "../dashboard/components/AuthProvider";
+import { useListCrmDeals, useUpdateCrmDealStatus } from "@/dataconnect-generated/react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Plus, MoreHorizontal } from "lucide-react";
 
 const PIPELINE_STAGES = [

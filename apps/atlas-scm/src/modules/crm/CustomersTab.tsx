@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useListCustomers } from "../../dataconnect-generated";
-import { useAuth } from "../dashboard/components/AuthProvider";
+import { useListCustomers } from "@/dataconnect-generated/react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Search, Plus, Building, Mail, Phone, MoreVertical } from "lucide-react";
 
 export function CustomersTab() {

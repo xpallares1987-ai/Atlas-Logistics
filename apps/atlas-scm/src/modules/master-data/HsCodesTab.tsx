@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useListHsCodes, useCreateHsCode } from "../../dataconnect-generated";
+import { useListHsCodes, useCreateHsCode } from "@/dataconnect-generated/react";
 import { Plus, Search, Tag, AlertTriangle } from "lucide-react";
 
 export function HsCodesTab() {

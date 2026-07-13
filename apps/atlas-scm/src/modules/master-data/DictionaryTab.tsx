@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useListDictionaryTerms, useUpsertDictionaryTerm } from '@dataconnect/generated';
+import { useListDictionaryTerms, useUpsertDictionaryTerm } from '@/dataconnect-generated/react';
 import { Search, Plus, Save, Edit2, X, AlertCircle, BookOpen } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 

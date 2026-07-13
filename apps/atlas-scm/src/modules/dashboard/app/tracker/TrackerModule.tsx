@@ -28,7 +28,7 @@ import {
   MilestoneStepper,
   getStandardOceanMilestones,
 } from "@/components";
-import { listShipments } from "@dataconnect/generated";
+import { listShipments } from "@/dataconnect-generated";
 
 export default function TrackerModule() {
   const [shipments, setShipments] = useState<Shipment[]>([]);

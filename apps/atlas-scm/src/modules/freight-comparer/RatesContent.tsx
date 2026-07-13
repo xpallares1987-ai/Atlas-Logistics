@@ -10,7 +10,7 @@ import { setCurrency } from "./store/slices/currencySlice";
 import RateTable from "./components/RateTable";
 import LocationAutocomplete from "./components/LocationAutocomplete";
 import { Zap, MapPin, Search, Ship, Plane, CalendarDays, Box, ArrowRightLeft } from "lucide-react";
-import { useListQuotes } from "@dataconnect/generated/react";
+import { useListQuotes } from "@/dataconnect-generated/react";
 
 import { useAuth } from "@/components";
 

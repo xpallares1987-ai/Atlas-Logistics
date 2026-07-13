@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useFirebase } from "@/components";
-import { getAllUsers, updateUserRole } from "@dataconnect/generated";
+import { getAllUsers, updateUserRole } from "@/dataconnect-generated";
 import { Shield, ShieldAlert, ShieldCheck, User } from "lucide-react";
 import { useAuth } from "../components/auth/AuthProvider";
 

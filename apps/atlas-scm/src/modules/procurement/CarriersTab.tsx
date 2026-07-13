@@ -1,6 +1,6 @@
 import React from "react";
-import { useListCarriers } from "../../dataconnect-generated";
-import { useAuth } from "../dashboard/components/AuthProvider";
+import { useListCarriers } from "@/dataconnect-generated/react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Search, Plus, Ship, MapPin } from "lucide-react";
 
 export function CarriersTab() {
