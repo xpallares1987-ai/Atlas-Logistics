@@ -6,10 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Seguridad y RBAC (Role-Based Access Control)**: Implementado sistema de roles basado en Custom Claims de Firebase Auth, validado a nivel de frontend (`<RoleGate>`, `ProtectedRoute`) y a nivel de base de datos con reglas `@auth(level: USER)` en Firebase Data Connect.
+- **Integración Asíncrona ERP**: Nueva infraestructura para simular procesos en segundo plano del ERP heredado utilizando Google Cloud Tasks (`startErpSimulation` y `simulateErpCallback`).
+- **Data Analyst Chat (Gemini 3.1 Pro)**: Modificado el motor de IA Text-to-SQL para entender la tabla consolidada `DictionaryTerm`, permitiendo cruzar términos de la industria con datos locales.
+- **Data Seeding Automatizado**: Herramientas por CLI integradas para poblar inicialmente PostgreSQL desde archivos estáticos (`data/dictionary-seed.json`) usando mutaciones temporales autenticadas de Data Connect.
 - **Inteligencia Predictiva (Gemini AI)**: Nueva Firebase Function `predictETA` que utiliza Gemini 2.5 para analizar envíos y devolver un ETA ajustado con nivel de confianza.
 - **PostgreSQL Data Connect**: Migración completa de la capa de datos de Drizzle a Firebase Data Connect. Directivas `@auth` y esquema definido en `/dataconnect`.
 - **Nuevo Diseño UI**: Implementación global del diseño "Dark Premium Glassmorphism" en toda la Súper-App unificada.
-- **Roles y Permisos**: Se preparó la base de datos con la nueva tabla `DictionaryTerm` con PK compuesta para gestionar maestros de datos de forma segura.
 
 ### Changed
 - **Arquitectura Unificada (Frontend)**: Consolidación de todos los submódulos dispersos de la interfaz (`dashboard`, `bpmn-modeler`, etc.) en una sola Súper-App bajo el directorio `apps/atlas-scm`.

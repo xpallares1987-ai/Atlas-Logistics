@@ -73,28 +73,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (firebaseUser) {
         setUser(firebaseUser);
         try {
-          // Check if user exists in PostgreSQL via Data Connect
-          const response = await getUserProfile(dataConnect, {
-            uid: firebaseUser.uid,
-          });
-          if (response.data && response.data.user) {
-            setRole(response.data.user.role);
-            setTenantIdState(response.data.user.tenantId);
+          // Get Custom Claims from Firebase Auth token
+          const tokenResult = await firebaseUser.getIdTokenResult(true);
+          const customRole = tokenResult.claims.role as string | undefined;
+          
+          if (customRole) {
+            setRole(customRole);
+            // Default tenant since we haven't implemented multi-tenant claims yet
+            setTenantIdState("atlas-default-tenant");
           } else {
-            // New user, insert into Data Connect with GUEST role
-            const defaultRole = "GUEST";
-            const defaultTenantId = "atlas-default-tenant";
-            await upsertUser(dataConnect, {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || "unknown@example.com",
-              role: defaultRole,
-              tenantId: defaultTenantId,
-            });
-            setRole(defaultRole);
-            setTenantIdState(defaultTenantId);
+            // New user or claims not propagated yet, check Data Connect or default to GUEST
+            try {
+              const response = await getUserProfile(dataConnect, {
+                uid: firebaseUser.uid,
+              });
+              if (response.data && response.data.user) {
+                setRole(response.data.user.role);
+                setTenantIdState(response.data.user.tenantId);
+              } else {
+                // Completely new user without claims and without DB record
+                const defaultRole = "GUEST";
+                const defaultTenantId = "atlas-default-tenant";
+                await upsertUser(dataConnect, {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email || "unknown@example.com",
+                  role: defaultRole,
+                  tenantId: defaultTenantId,
+                });
+                setRole(defaultRole);
+                setTenantIdState(defaultTenantId);
+              }
+            } catch (dbError) {
+              console.warn("Could not sync with Data Connect, defaulting to GUEST", dbError);
+              setRole("GUEST");
+              setTenantIdState("atlas-default-tenant");
+            }
           }
         } catch (error) {
-          console.error("Error syncing user with Data Connect:", error);
+          console.error("Error reading custom claims:", error);
           setRole("GUEST"); // Fallback
           setTenantIdState("atlas-default-tenant");
         }

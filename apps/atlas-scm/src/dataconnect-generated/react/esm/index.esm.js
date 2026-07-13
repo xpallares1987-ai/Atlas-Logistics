@@ -1,4 +1,4 @@
-import { listCustomersRef, listCrmDealsRef, listCrmInteractionsRef, createCrmDealRef, updateCrmDealStatusRef, createCrmInteractionRef, createDocumentFromOcrRef, approveOcrDocumentRef, rejectOcrDocumentRef, listPendingOcrDocumentsRef, listIncotermsRef, listHsCodesRef, listVesselsRef, listSchedulesRef, listDictionaryTermsRef, upsertDictionaryTermRef, listCarriersRef, listHauliersRef, listAgentsRef, listCompaniesRef, searchLocationsRef, listQuotesRef, createCompanyRef, createLocationRef, createQuoteRef, createMilestoneRef, createHsCodeRef, createIncotermRef, createVesselRef, createScheduleRef, listShipmentsRef, getShipmentByIdRef, createShipmentRef, logShipmentEventRef, upsertUserRef, getUserProfileRef, getAllUsersRef, updateUserRoleRef, connectorConfig } from '../../esm/index.esm.js';
+import { listCustomersRef, listCrmDealsRef, listCrmInteractionsRef, createCrmDealRef, updateCrmDealStatusRef, createCrmInteractionRef, createDocumentFromOcrRef, approveOcrDocumentRef, rejectOcrDocumentRef, listPendingOcrDocumentsRef, listIncotermsRef, listHsCodesRef, listVesselsRef, listSchedulesRef, listDictionaryTermsRef, upsertDictionaryTermRef, listCarriersRef, listHauliersRef, listAgentsRef, listCompaniesRef, searchLocationsRef, listQuotesRef, createCompanyRef, createLocationRef, createQuoteRef, createMilestoneRef, createHsCodeRef, createIncotermRef, createVesselRef, createScheduleRef, insertDictionaryTermRef, listShipmentsRef, getShipmentByIdRef, createShipmentRef, logShipmentEventRef, upsertUserRef, getUserProfileRef, getAllUsersRef, updateUserRoleRef, connectorConfig } from '../../esm/index.esm.js';
 import { validateArgs, CallerSdkTypeEnum } from 'firebase/data-connect';
 import { useDataConnectQuery, useDataConnectMutation, validateReactArgs } from '@tanstack-query-firebase/react/data-connect';
 
@@ -208,6 +208,14 @@ export function useCreateSchedule(dcOrOptions, options) {
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
     return createScheduleRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+export function useInsertDictionaryTerm(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return insertDictionaryTermRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }

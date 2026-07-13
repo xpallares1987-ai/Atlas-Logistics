@@ -14,9 +14,37 @@ export default function Shipments() {
         <h2 className="text-2xl font-semibold text-slate-800">
           Gestión de Embarques
         </h2>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-          Nuevo Embarque
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={async () => {
+              try {
+                const { getApp } = await import("firebase/app");
+                const { getFunctions, httpsCallable } = await import("firebase/functions");
+                const app = getApp();
+                const functions = getFunctions(app, "europe-west1");
+                const startErpSimulation = httpsCallable(functions, "startErpSimulation");
+                
+                alert("Iniciando simulación del ERP...");
+                const result = await startErpSimulation({
+                  trackingNumber: "SIMULATION-TEST",
+                  expectedStatus: "AT_PORT",
+                  delaySeconds: 15
+                });
+                console.log("ERP Simulation Result:", result.data);
+                alert("Simulación encolada con éxito. Revisa los logs en 15 segundos.");
+              } catch (e) {
+                console.error(e);
+                alert("Error al iniciar simulación");
+              }
+            }}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            Simular ERP
+          </button>
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+            Nuevo Embarque
+          </button>
+        </div>
       </div>
 
       <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200">

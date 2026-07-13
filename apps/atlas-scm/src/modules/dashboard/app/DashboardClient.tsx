@@ -334,7 +334,7 @@ export default function DashboardClient() {
         const { getFunctions, httpsCallable } =
           await import("firebase/functions");
         const app = getApp();
-        const functions = getFunctions(app);
+        const functions = getFunctions(app, "europe-west1");
         const documentOCR = httpsCallable(functions, "documentOCR");
 
         const result = await documentOCR({

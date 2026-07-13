@@ -22,7 +22,7 @@ export function DataAnalystChat() {
       const { getApp } = await import("firebase/app");
       const { getFunctions, httpsCallable } = await import("firebase/functions");
       const app = getApp();
-      const functions = getFunctions(app);
+      const functions = getFunctions(app, "europe-west1");
       
       const chatWithData = httpsCallable(functions, "chatWithData");
       const result = await chatWithData({ question: userMsg });

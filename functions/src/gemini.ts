@@ -150,7 +150,9 @@ export async function executeDataAnalystChat(apiKey: string, question: string) {
 
   const prompt = `
   Eres el 'Atlas Data Analyst', un agente de inteligencia artificial experto en SQL y análisis de cadena de suministro.
-  La base de datos tiene la tabla 'Shipments' con campos: trackingNumber, status, origin, destination, weight, createdAt, etc.
+  La base de datos (PostgreSQL en Google Cloud via Firebase Data Connect) tiene las siguientes tablas principales:
+  1. 'Shipments' con campos: trackingNumber, status, origin, destination, weight, createdAt, etc.
+  2. 'DictionaryTerm' (catálogo estandarizado de la industria) con campos: id, acronym, category (ej. INCOTERM, EQUIPMENT_TYPE, MOVEMENT_TYPE, DOCUMENT_TYPE, UNIT_MEASURE, MILESTONE).
   
   Pregunta del usuario: "${question}"
   
@@ -158,8 +160,8 @@ export async function executeDataAnalystChat(apiKey: string, question: string) {
   
   Devuelve una respuesta estructurada en JSON con:
   {
-    "sqlQuery": "La query de Postgres aproximada (o null si es conversacional)",
-    "friendlyResponse": "Respuesta humana para el usuario, detallada y razonada",
+    "sqlQuery": "La query de Postgres aproximada (o null si es puramente conversacional)",
+    "friendlyResponse": "Respuesta humana para el usuario, detallada y razonada. Si preguntan por términos, acrónimos o el diccionario, asume que provienen de la tabla DictionaryTerm.",
     "chartSuggestion": "bar" | "line" | "pie" | "none"
   }
   Sin markdown, solo JSON puro.

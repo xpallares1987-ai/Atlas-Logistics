@@ -380,6 +380,18 @@ export function createSchedule(dcOrVars, vars) {
   return executeMutation(createScheduleRef(dcInstance, inputVars));
 }
 
+export const insertDictionaryTermRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'InsertDictionaryTerm', inputVars);
+}
+insertDictionaryTermRef.operationName = 'InsertDictionaryTerm';
+
+export function insertDictionaryTerm(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(insertDictionaryTermRef(dcInstance, inputVars));
+}
+
 export const listShipmentsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

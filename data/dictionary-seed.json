@@ -1,0 +1,137 @@
+[
+  {
+    "acronym": "FOB",
+    "meaning": "Free On Board",
+    "description": "El vendedor entrega la mercancía a bordo del buque designado por el comprador en el puerto de embarque. El riesgo se transmite cuando la mercancía está a bordo del buque.",
+    "category": "INCOTERM",
+    "subCategory": "Maritime",
+    "region": "GLOBAL",
+    "moduleScope": ["QUOTING", "OPERATIONS", "FINANCE"]
+  },
+  {
+    "acronym": "CIF",
+    "meaning": "Cost, Insurance and Freight",
+    "description": "El vendedor entrega la mercancía a bordo del buque o la proporciona ya así entregada. El riesgo se transmite cuando la mercancía está a bordo del buque. El vendedor debe contratar y pagar los costos y el flete necesarios para llevar la mercancía hasta el puerto de destino designado.",
+    "category": "INCOTERM",
+    "subCategory": "Maritime",
+    "region": "GLOBAL",
+    "moduleScope": ["QUOTING", "OPERATIONS", "FINANCE"]
+  },
+  {
+    "acronym": "EXW",
+    "meaning": "Ex Works",
+    "description": "El vendedor cumple su obligación de entrega cuando pone la mercancía a disposición del comprador en los locales del vendedor o en otro lugar designado (fábrica, almacén, etc.).",
+    "category": "INCOTERM",
+    "subCategory": "Any Mode",
+    "region": "GLOBAL",
+    "moduleScope": ["QUOTING", "OPERATIONS"]
+  },
+  {
+    "acronym": "DDP",
+    "meaning": "Delivered Duty Paid",
+    "description": "El vendedor entrega la mercancía poniéndola a disposición del comprador, despachada para la importación, en los medios de transporte de llegada preparada para la descarga en el lugar de destino designado.",
+    "category": "INCOTERM",
+    "subCategory": "Any Mode",
+    "region": "GLOBAL",
+    "moduleScope": ["QUOTING", "OPERATIONS", "CUSTOMS", "FINANCE"]
+  },
+  {
+    "acronym": "DAP",
+    "meaning": "Delivered at Place",
+    "description": "El vendedor entrega la mercancía poniéndola a disposición del comprador en el medio de transporte de llegada preparada para la descarga en el lugar de destino designado.",
+    "category": "INCOTERM",
+    "subCategory": "Any Mode",
+    "region": "GLOBAL",
+    "moduleScope": ["QUOTING", "OPERATIONS"]
+  },
+  {
+    "acronym": "20GP",
+    "meaning": "20 Foot General Purpose Container",
+    "description": "Contenedor estándar de 20 pies para carga seca general.",
+    "category": "EQUIPMENT_TYPE",
+    "subCategory": "FCL",
+    "region": "GLOBAL",
+    "moduleScope": ["QUOTING", "OPERATIONS"]
+  },
+  {
+    "acronym": "40GP",
+    "meaning": "40 Foot General Purpose Container",
+    "description": "Contenedor estándar de 40 pies para carga seca general.",
+    "category": "EQUIPMENT_TYPE",
+    "subCategory": "FCL",
+    "region": "GLOBAL",
+    "moduleScope": ["QUOTING", "OPERATIONS"]
+  },
+  {
+    "acronym": "40HC",
+    "meaning": "40 Foot High Cube Container",
+    "description": "Contenedor High Cube de 40 pies para carga seca, provee altura extra.",
+    "category": "EQUIPMENT_TYPE",
+    "subCategory": "FCL",
+    "region": "GLOBAL",
+    "moduleScope": ["QUOTING", "OPERATIONS"]
+  },
+  {
+    "acronym": "LCL",
+    "meaning": "Less than Container Load",
+    "description": "Carga que no llena completamente un contenedor estándar, por lo que se consolida con cargas de otros remitentes.",
+    "category": "MOVEMENT_TYPE",
+    "subCategory": "Ocean",
+    "region": "GLOBAL",
+    "moduleScope": ["QUOTING", "OPERATIONS", "WAREHOUSE"]
+  },
+  {
+    "acronym": "FCL",
+    "meaning": "Full Container Load",
+    "description": "El remitente tiene uso exclusivo del contenedor para su carga.",
+    "category": "MOVEMENT_TYPE",
+    "subCategory": "Ocean",
+    "region": "GLOBAL",
+    "moduleScope": ["QUOTING", "OPERATIONS"]
+  },
+  {
+    "acronym": "AWB",
+    "meaning": "Air Waybill",
+    "description": "Documento emitido por una aerolínea o su agente que evidencia el contrato de transporte.",
+    "category": "DOCUMENT_TYPE",
+    "subCategory": "Air",
+    "region": "GLOBAL",
+    "moduleScope": ["OPERATIONS", "DOCUMENTATION"]
+  },
+  {
+    "acronym": "BOL",
+    "meaning": "Bill of Lading",
+    "description": "Conocimiento de embarque marítimo emitido por un transportista al remitente como recibo de la carga.",
+    "category": "DOCUMENT_TYPE",
+    "subCategory": "Ocean",
+    "region": "GLOBAL",
+    "moduleScope": ["OPERATIONS", "DOCUMENTATION", "FINANCE"]
+  },
+  {
+    "acronym": "TEU",
+    "meaning": "Twenty-foot Equivalent Unit",
+    "description": "Unidad de medida equivalente a un contenedor de 20 pies.",
+    "category": "UNIT_MEASURE",
+    "subCategory": "Capacity",
+    "region": "GLOBAL",
+    "moduleScope": ["ANALYTICS", "OPERATIONS", "QUOTING"]
+  },
+  {
+    "acronym": "ETA",
+    "meaning": "Estimated Time of Arrival",
+    "description": "Fecha y hora estimadas de llegada a destino.",
+    "category": "MILESTONE",
+    "subCategory": "Time",
+    "region": "GLOBAL",
+    "moduleScope": ["OPERATIONS", "TRACKING"]
+  },
+  {
+    "acronym": "ETD",
+    "meaning": "Estimated Time of Departure",
+    "description": "Fecha y hora estimadas de salida desde origen.",
+    "category": "MILESTONE",
+    "subCategory": "Time",
+    "region": "GLOBAL",
+    "moduleScope": ["OPERATIONS", "TRACKING"]
+  }
+]

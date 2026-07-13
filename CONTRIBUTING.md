@@ -26,6 +26,13 @@ pnpm add lucide-react --filter atlas-scm
   firebase deploy --only dataconnect
   ```
 - **Prohibido**: No edites manualmente ningún archivo dentro de las carpetas generadas de dataconnect.
+- **Data Seeding**: Las inserciones en bloque deben realizarse mediante scripts (ej. `scripts/seed-dictionary.ts`) invocando mutaciones seguras. Si el esquema usa directivas estrictas (`@auth(level: USER)`), asegúrate de testear tus scripts contra el entorno autenticado o cambiar los permisos a `PUBLIC` exclusivamente durante las operaciones automatizadas de mantenimiento y revertirlos de inmediato.
+
+### Reglas para Funciones de Backend e IA
+- El código de backend se ubica en `functions/src`.
+- Para **procesos pesados o asíncronos**, utiliza *Cloud Tasks* (`onTaskDispatched`) en lugar de mantener en espera la solicitud HTTP. (Mira `erp.ts` como ejemplo).
+- Para **módulos de Inteligencia Artificial**, centralizamos la lógica en `gemini.ts`. Al crear nuevos prompts, asegúrate de documentar y sanitizar cuidadosamente las entradas (especialmente si se construyen queries SQL).
+- Las dependencias nativas en Python que necesite la IA se deben proporcionar mediante la herramienta de `code_execution` de Gemini, no agregando dependencias complejas al runtime de Node.js.
 
 ## Estilo y Diseño Visual
 - Atlas Logistics utiliza un estilo riguroso de **Dark Premium Glassmorphism**.
