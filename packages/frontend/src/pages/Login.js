@@ -102,7 +102,7 @@ function Login() {
                     enteredHash = _b.sent();
                     savedMockHash = localStorage.getItem("mock_admin_password_hash") || "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
                     if (timingSafeEqual(enteredHash, savedMockHash)) {
-                        if (password === "admin") {
+                        if (timingSafeEqual(password, "admin")) {
                             setRequirePasswordChange(true);
                             setLoading(false);
                             return [2 /*return*/];
