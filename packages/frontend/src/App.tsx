@@ -1,6 +1,6 @@
 import React, { Suspense, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes, Calendar, BookOpen } from 'lucide-react';
+import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes, Calendar, BookOpen, ShieldAlert, Landmark } from 'lucide-react';
 import { OmniSearch } from '@atlas/ui/src/components/OmniSearch';
 
 const DashboardModule = React.lazy(() => import('@atlas/dashboard').then(m => ({ default: m.Dashboard })));
@@ -19,6 +19,8 @@ const AIChainAssistantModule = React.lazy(() => import('./pages/AIChainAssistant
 const Warehouse3DModule = React.lazy(() => import('./pages/Warehouse3DModule'));
 const SailingSchedulesModule = React.lazy(() => import('./pages/SailingSchedulesModule'));
 const BookingManagementModule = React.lazy(() => import('./pages/BookingManagementModule'));
+const CustomsClearanceModule = React.lazy(() => import('./pages/CustomsClearanceModule'));
+const InvoicingModule = React.lazy(() => import('./pages/InvoicingModule'));
 
 const AiCopilot = React.lazy(() => import('@atlas/ui/src/components/AiCopilot').then(m => ({ default: m.AiCopilot })));
 
@@ -61,6 +63,12 @@ export default function App() {
             <NavLink to="/globe" icon={Globe2}>Globe Tracker</NavLink>
             <NavLink to="/schedules" icon={Calendar}>Sailing Schedules</NavLink>
             <NavLink to="/bookings" icon={BookOpen}>Booking & B/L</NavLink>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">Finance & Compliance</span>
+            <NavLink to="/invoices" icon={Landmark}>Invoicing</NavLink>
+            <NavLink to="/customs" icon={ShieldAlert}>Customs Clearance</NavLink>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -175,6 +183,8 @@ export default function App() {
                 <Route path="/ai-assistant" element={<AIChainAssistantModule />} />
                 <Route path="/schedules" element={<SailingSchedulesModule />} />
                 <Route path="/bookings" element={<BookingManagementModule />} />
+                <Route path="/customs" element={<CustomsClearanceModule />} />
+                <Route path="/invoices" element={<InvoicingModule />} />
               </Routes>
             </Suspense>
           </div>
