@@ -15,7 +15,8 @@
     "prepare": "husky",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "start:backend": "tsx --env-file=.env.local src/index.ts"
+    "start:backend": "tsx --env-file=.env.local src/index.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@camunda8/sdk": "^8.8.12",

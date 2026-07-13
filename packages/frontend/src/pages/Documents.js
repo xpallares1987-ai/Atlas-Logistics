@@ -69,7 +69,7 @@ function Documents() {
                     return [4 /*yield*/, createDoc({
                             documentNumber: data.documentNumber || null,
                             documentType: "UNKNOWN",
-                            fileName: "Scanned_Document_".concat(Math.floor(Math.random() * 1000), ".pdf"),
+                            fileName: "Scanned_Document_".concat(crypto.getRandomValues(new Uint32Array(1))[0] % 1000, ".pdf"),
                             fileUrl: "https://example.com/fake-url.pdf",
                             mimeType: "application/pdf",
                             extractedData: data
