@@ -24,7 +24,7 @@ export default tseslint.config(
     },
     languageOptions: {
       parserOptions: {
-        project: ["./apps/atlas-scm/tsconfig.json", "./functions/tsconfig.json"],
+        project: ["./tsconfig.json", "./functions/tsconfig.json"],
         tsconfigRootDir: import.meta.dirname,
       },
     },
