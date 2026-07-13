@@ -1,4 +1,0 @@
-shipment_ref,etd,eta,ata,carrier,trade_lane,mode,weight,volume
-SHP-001,2026-06-01,2026-06-15,2026-06-14,MSC,Asia-Europe,Ocean,12000,30
-SHP-002,2026-06-05,2026-06-20,,Maersk,Asia-Europe,Ocean,14000,35
-SHP-003,2026-06-10,2026-06-12,2026-06-12,DHL,US-Europe,Air,500,2
