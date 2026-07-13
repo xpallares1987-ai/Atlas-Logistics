@@ -18,9 +18,16 @@ Si descubres una vulnerabilidad en este proyecto, **POR FAVOR, NO la reportes a 
 Por favor, envía un correo electrónico al equipo de arquitectura. Proporcionaremos acuse de recibo en un plazo de 24 horas y emitiremos un parche (Hotfix) para vulnerabilidades críticas en menos de 48 horas.
 
 ### Áreas Críticas de Atención
-- **Secretos de GCP y Firebase:** Cualquier vulnerabilidad que permita la exposición de los Service Accounts de GCP o tokens API sin restricción en el navegador. Las claves de API públicas deben estar fuertemente restringidas por dominio en Google Cloud Console.
+- **Secretos de GCP y Firebase:** Los despliegues automáticos (CI/CD) utilizan **Google Cloud Workload Identity Federation (WIF)**, eliminando la necesidad de claves de servicio estáticas. Cualquier intento de inyectar o exfiltrar llaves privadas o *Service Accounts* tradicionales es considerado crítico. Las claves de API públicas están restringidas por dominio.
+- **Vulnerabilidades a Nivel de Código (Timing Attacks y Randomness):** El repositorio utiliza `timingSafeEqual` para comparaciones sensibles y `crypto.getRandomValues()` de forma estricta (sin sesgo de módulo o *modulo bias*) para evitar vulnerabilidades de predicción o análisis de tiempo.
 - **Firebase Data Connect y RBAC:** Escalada de privilegios a través de fallos en las directivas `@auth` del esquema GraphQL. Asegurar que las operaciones sensibles usen siempre `@auth(level: USER)` o controles de roles más avanzados basados en los **Custom Claims** inyectados por la función `assignUserRole`.
-- **Vulnerabilidades XSS en la Súper-App:** Cualquier vector que permita inyectar scripts en `apps/atlas-scm` y pueda robar tokens de sesión de Firebase Authentication.
+- **Vulnerabilidades XSS y Dependencias:** Cualquier vector que permita inyectar scripts en el frontend y pueda robar tokens de sesión de Firebase. Dependencias riesgosas han sido eliminadas (ej. migraciones hacia librerías robustas como `exceljs`).
 - **Inyección de Prompts en IA (AI Layer):** Manipulación intencionada de los modelos de Google Gemini (ej. `chatWithData`) a través de los inputs de usuario que pueda resultar en filtración de esquemas de bases de datos, inyecciones de código en `code_execution` o exfiltración de PII.
+
+## Auditoría Continua y Code Scanning
+
+Atlas Logistics emplea **GitHub Advanced Security** de forma obligatoria en la integración continua:
+- **CodeQL & njsscan:** Todo Pull Request es analizado estáticamente (SAST) buscando vulnerabilidades lógicas, de memoria, o exposición de secretos. No se permite la integración de código (merge) con alertas pendientes de CodeQL.
+- **Dependabot:** Monitoriza activamente el árbol de dependencias (`pnpm`) para forzar actualizaciones de librerías con CVEs detectados.
 
 Alentamos a los investigadores de seguridad a auditar los despliegues, siempre y cuando se haga de manera responsable y en entornos locales o *sandbox*.

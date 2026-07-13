@@ -13,12 +13,12 @@ El ecosistema está construido sobre un Monorepo gestionado por `Turborepo` y `p
 
 ### Estructura Principal
 
-- **`apps/atlas-scm` (Host App)**: Es el corazón de la aplicación. Actúa como el orquestador principal que consolida el enrutamiento (React Router), el layout general, y contiene todos los submódulos de la aplicación bajo `src/modules/`. Es el único frontend que se ejecuta para iniciar todo el ecosistema.
-- **Módulos Integrados (en `src/modules/`)**:
-  - **`bpmn-modeler`**: Modelador BPMN 2.0 que corre de manera nativa en el navegador.
-  - **`dashboard`**: Panel principal de embarques, telemetría logística y visibilidad de contenedores.
-  - **`freight-comparer`**: Módulo dedicado a la ingesta (Excel), comparación y analítica de tarifas de fletes.
-- **`packages/shared` y `packages/ui`**: (Si aplican) Contienen utilidades compartidas y componentes de UI consumidos por la aplicación principal.
+- **`packages/frontend` (Host App)**: Es el corazón de la aplicación. Actúa como el orquestador principal que consolida el enrutamiento (React Router), el layout general. Es el único frontend que se ejecuta para iniciar todo el ecosistema.
+- **Módulos Integrados (en `packages/`)**:
+  - **`packages/bpmn-modeler`**: Modelador BPMN 2.0 que corre de manera nativa en el navegador.
+  - **`packages/dashboard`**: Panel principal de embarques, telemetría logística y visibilidad de contenedores.
+  - **`packages/rate-comparer`**: Módulo dedicado a la ingesta (usando `exceljs` de forma segura para evitar vulnerabilidades de las librerías antiguas), comparación y analítica de tarifas de fletes.
+- **`packages/shared` y `packages/ui`**: Contienen utilidades compartidas y componentes de UI consumidos por la aplicación principal.
 
 ## 3. Capa de Datos (Firebase Data Connect)
 
@@ -26,14 +26,15 @@ Todo el estado persistente y las consultas a base de datos de la Súper-App se r
 
 1. **PostgreSQL en Cloud SQL**: La fuente única de verdad.
 2. **Esquema Declarativo**: Definido en el directorio `/dataconnect` a través de GraphQL.
-3. **SDKs Tipados de Extremo a Extremo**: Al ejecutar `firebase dataconnect:sdk:generate`, Firebase genera funciones de TypeScript (`src/dataconnect-generated`) que exponen de forma estrictamente tipada las *Queries* y *Mutations* de Postgres directamente hacia nuestros componentes de React. No existe intermediario Node.js.
+3. **SDKs Tipados de Extremo a Extremo**: Al ejecutar `firebase dataconnect:sdk:generate`, Firebase genera funciones de TypeScript que exponen de forma estrictamente tipada las *Queries* y *Mutations* de Postgres directamente hacia nuestros componentes de React. No existe intermediario Node.js.
 
-## 4. Pipeline de CI/CD
+## 4. Pipeline de CI/CD e Integración Continua
 
-El repositorio está configurado para integración continua ultra eficiente:
-- El comando de construcción oficial es `pnpm run build` en la raíz, que utiliza Turbo para empaquetar paralelamente usando cachés remotas/locales.
-- El linting (`pnpm run lint`) consolida tanto la verificación de TypeScript (`tsc --noEmit`) como el análisis estricto de ESLint a lo largo de todos los paquetes del monorepo.
-- Mínimos privilegios en GitHub Actions, exigiendo el uso de tokens con permisos estrictos de lectura.
+El repositorio está configurado para integración continua ultra eficiente automatizada con **GitHub Actions**:
+- **Despliegues Multi-entorno**: El frontend se compila y se despliega concurrentemente hacia **Firebase Hosting** (producción/preview) y **GitHub Pages**.
+- **Autenticación Zero-Trust (WIF)**: Se utiliza **Google Cloud Workload Identity Federation** (pool `github-pool`, provider `github-provider`) para autenticar los workflows contra Firebase de forma segura sin intercambiar Service Account Keys estáticas.
+- **Construcción y Testing**: El comando de construcción oficial es `pnpm run build` en la raíz, que utiliza Turbo para empaquetar paralelamente usando cachés remotas/locales. Adicionalmente, se ejecuta un suite de pruebas automatizadas **End-to-End (E2E)** con Playwright.
+- **Code Scanning y Seguridad**: Análisis constante del código en CI con CodeQL y `njsscan` para evitar regresiones de vulnerabilidades (ej. timing attacks, modulo biases).
 
 ## 5. Seguridad y Control de Acceso (RBAC)
 

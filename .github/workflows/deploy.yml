@@ -41,6 +41,8 @@ jobs:
         run: pnpm install --no-frozen-lockfile --ignore-scripts
 
       - name: Build
+        env:
+          VITE_BASE_PATH: "/Atlas-Logistics/"
         run: pnpm run build
 
       - name: Upload Artifacts
