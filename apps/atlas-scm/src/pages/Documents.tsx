@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { DocumentPreviewer } from '@/components';
 import { FileText, Wand2, UploadCloud, Search } from 'lucide-react';
-import { SmartOCRDropzone } from './SmartOCRDropzone';
-import { DocumentApprovalInbox } from './DocumentApprovalInbox';
+import { SmartOCRDropzone } from '@/modules/documents/SmartOCRDropzone';
+import { DocumentApprovalInbox } from '@/modules/documents/DocumentApprovalInbox';
 import { 
   useListShipments,
   useListPendingOcrDocuments,
   useCreateDocumentFromOcr,
   useApproveOcrDocument,
   useRejectOcrDocument
-} from '@dataconnect/generated';
+} from '@/dataconnect-generated/react';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 export default function Documents() {

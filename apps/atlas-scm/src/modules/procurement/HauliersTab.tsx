@@ -1,6 +1,6 @@
 import React from "react";
-import { useListHauliers } from "../../dataconnect-generated";
-import { useAuth } from "../dashboard/components/AuthProvider";
+import { useListHauliers } from "@/dataconnect-generated/react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Search, Plus, Truck, MapPin } from "lucide-react";
 
 export function HauliersTab() {

@@ -1,6 +1,6 @@
 import React from "react";
-import { useListAgents } from "../../dataconnect-generated";
-import { useAuth } from "../dashboard/components/AuthProvider";
+import { useListAgents } from "@/dataconnect-generated/react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Search, Plus, Globe, MapPin, Flag } from "lucide-react";
 
 export function AgentsTab() {

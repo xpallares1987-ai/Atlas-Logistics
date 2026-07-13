@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useListVessels, useCreateVessel } from "../../dataconnect-generated";
+import { useListVessels, useCreateVessel } from "@/dataconnect-generated/react";
 import { Plus, Search, Anchor } from "lucide-react";
 
 export function VesselsTab() {

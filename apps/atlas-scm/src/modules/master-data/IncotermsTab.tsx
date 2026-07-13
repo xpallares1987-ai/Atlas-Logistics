@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useListIncoterms, useCreateIncoterm } from "../../dataconnect-generated";
+import { useListIncoterms, useCreateIncoterm } from "@/dataconnect-generated/react";
 import { Plus, Search, Globe } from "lucide-react";
 
 export function IncotermsTab() {

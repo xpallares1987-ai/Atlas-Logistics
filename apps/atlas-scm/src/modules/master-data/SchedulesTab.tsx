@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useListSchedules, useCreateSchedule } from "../../dataconnect-generated";
-import { useAuth } from "../dashboard/components/AuthProvider";
+import { useListSchedules, useCreateSchedule } from "@/dataconnect-generated/react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Plus, Search, MapPin, Calendar, Anchor } from "lucide-react";
 
 export function SchedulesTab() {

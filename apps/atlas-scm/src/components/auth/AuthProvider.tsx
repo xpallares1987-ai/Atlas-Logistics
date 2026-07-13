@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { User, onAuthStateChanged, signOut } from "firebase/auth";
 import { useFirebase } from "@/components";
-import { upsertUser, getUserProfile } from "@dataconnect/generated";
+import { upsertUser, getUserProfile } from "@/dataconnect-generated";
 
 interface AuthContextType {
   user: User | null;

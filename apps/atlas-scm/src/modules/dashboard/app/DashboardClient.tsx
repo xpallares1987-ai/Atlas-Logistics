@@ -48,7 +48,7 @@ import { Package, Zap } from "lucide-react";
 import type { LclCargoItem, MasterContainer } from "@/components";
 import { INITIAL_POOL } from "@/components";
 
-import { useListShipments } from "../dataconnect-generated/react";
+import { useListShipments } from "@/dataconnect-generated/react";
 
 type TabType =
   | "Upload"
