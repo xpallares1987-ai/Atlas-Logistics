@@ -36,6 +36,8 @@ function NavLink({ to, icon: Icon, children }: { to: string, icon: any, children
 
 export default function App() {
   const [showCopilot, setShowCopilot] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -84,13 +86,66 @@ export default function App() {
               <OmniSearch />
             </div>
             <div className="flex items-center gap-4 ml-4">
-              <button className="p-2 text-slate-400 hover:text-indigo-600 transition-colors relative">
-                <Bell size={20} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
-              </button>
-              <button className="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
-                <Settings size={20} />
-              </button>
+              <div className="relative">
+                <button 
+                  onClick={() => { setShowNotifications(!showNotifications); setShowSettings(false); }}
+                  className="p-2 text-slate-400 hover:text-indigo-600 transition-colors relative"
+                >
+                  <Bell size={20} />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+                </button>
+                {showNotifications && (
+                  <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
+                    <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                      <h3 className="font-bold text-slate-800">Notifications</h3>
+                      <span className="text-xs text-indigo-600 cursor-pointer hover:underline font-medium">Mark all as read</span>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      <div className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
+                          <Activity size={14} className="text-rose-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-800 font-medium">Demurrage Risk High</p>
+                          <p className="text-xs text-slate-500 mt-0.5">Container MSK-99238 nearing free time limit at Port of Long Beach.</p>
+                          <p className="text-[10px] text-slate-400 mt-1">10 mins ago</p>
+                        </div>
+                      </div>
+                      <div className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                          <Package size={14} className="text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-800 font-medium">Customs Cleared</p>
+                          <p className="text-xs text-slate-500 mt-0.5">Shipment BL-44912 has been cleared by customs in Rotterdam.</p>
+                          <p className="text-[10px] text-slate-400 mt-1">2 hours ago</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                <button 
+                  onClick={() => { setShowSettings(!showSettings); setShowNotifications(false); }}
+                  className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                >
+                  <Settings size={20} />
+                </button>
+                {showSettings && (
+                  <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden py-2">
+                    <div className="px-4 py-3 border-b border-slate-100 mb-1">
+                      <p className="text-sm font-bold text-slate-800">John Doe</p>
+                      <p className="text-xs text-slate-500">john.doe@atlas.com</p>
+                    </div>
+                    <button className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Profile Preferences</button>
+                    <button className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Company Settings</button>
+                    <button className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">API Keys</button>
+                    <div className="h-px bg-slate-100 my-1"></div>
+                    <button className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors">Sign out</button>
+                  </div>
+                )}
+              </div>
               <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center border border-indigo-200 text-indigo-700 font-bold text-sm ml-2">
                 JD
               </div>
