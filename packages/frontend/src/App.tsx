@@ -1,6 +1,6 @@
 import React, { Suspense, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes } from 'lucide-react';
+import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes, Calendar, BookOpen } from 'lucide-react';
 import { OmniSearch } from '@atlas/ui/src/components/OmniSearch';
 
 const DashboardModule = React.lazy(() => import('@atlas/dashboard').then(m => ({ default: m.Dashboard })));
@@ -17,6 +17,8 @@ const DynamicPricingModule = React.lazy(() => import('./pages/DynamicPricingModu
 const DocumentVaultModule = React.lazy(() => import('./pages/DocumentVaultModule'));
 const AIChainAssistantModule = React.lazy(() => import('./pages/AIChainAssistantModule'));
 const Warehouse3DModule = React.lazy(() => import('./pages/Warehouse3DModule'));
+const SailingSchedulesModule = React.lazy(() => import('./pages/SailingSchedulesModule'));
+const BookingManagementModule = React.lazy(() => import('./pages/BookingManagementModule'));
 
 const AiCopilot = React.lazy(() => import('@atlas/ui/src/components/AiCopilot').then(m => ({ default: m.AiCopilot })));
 
@@ -57,6 +59,8 @@ export default function App() {
             <NavLink to="/quotes" icon={BadgeDollarSign}>Rate Comparer</NavLink>
             <NavLink to="/pricing" icon={Activity}>Dynamic Pricing</NavLink>
             <NavLink to="/globe" icon={Globe2}>Globe Tracker</NavLink>
+            <NavLink to="/schedules" icon={Calendar}>Sailing Schedules</NavLink>
+            <NavLink to="/bookings" icon={BookOpen}>Booking & B/L</NavLink>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -169,6 +173,8 @@ export default function App() {
                 <Route path="/documents" element={<DocumentVaultModule />} />
                 <Route path="/warehouse" element={<Warehouse3DModule />} />
                 <Route path="/ai-assistant" element={<AIChainAssistantModule />} />
+                <Route path="/schedules" element={<SailingSchedulesModule />} />
+                <Route path="/bookings" element={<BookingManagementModule />} />
               </Routes>
             </Suspense>
           </div>
