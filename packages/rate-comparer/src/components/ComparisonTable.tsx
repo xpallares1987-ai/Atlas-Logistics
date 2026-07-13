@@ -25,7 +25,8 @@ import {
   Leaf,
 } from "lucide-react";
 import { FreightRate, TranslationSet } from "../types";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import {
   estimateCarbonFootprint,
   getCarbonRating,
@@ -565,8 +566,10 @@ export default function ComparisonTable({
     await generateExecutiveReport(sortedRates, t, {});
   };
 
-  const handleExportExcel = () => {
-    const excelRows = sortedRates.map((rate) => ({
+  const handleExportExcel = async () => {
+    if (filteredRates.length === 0) return;
+
+    const excelRows = filteredRates.map((rate) => ({
       "Carrier / Lines (Naviera)": rate.carrier,
       "POL (Loading Port)": rate.pol,
       "POD (Discharge Port)": rate.pod,
@@ -582,36 +585,38 @@ export default function ComparisonTable({
       "Original Sheet Source": rate.sheetSource,
     }));
 
-    const worksheet = XLSX.utils.json_to_sheet(excelRows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheet,
-      "Carrier Analysis Matrix",
-    );
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Carrier Analysis Matrix");
+
+    // Add headers and rows
+    const headers = Object.keys(excelRows[0]);
+    worksheet.addRow(headers);
+    excelRows.forEach(row => worksheet.addRow(Object.values(row)));
 
     // Fit column widths elegantly
     const max_width = excelRows.reduce(
       (w, r) => Math.max(w, String(r["Carrier / Lines (Naviera)"]).length),
       15,
     );
-    worksheet["!cols"] = [
-      { wch: max_width },
-      { wch: 8 },
-      { wch: 8 },
-      { wch: 15 },
-      { wch: 22 },
-      { wch: 22 },
-      { wch: 22 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 18 },
-      { wch: 20 },
+    
+    worksheet.columns = [
+      { width: max_width + 2 },
+      { width: 20 },
+      { width: 20 },
+      { width: 15 },
+      { width: 22 },
+      { width: 22 },
+      { width: 22 },
+      { width: 16 },
+      { width: 16 },
+      { width: 16 },
+      { width: 16 },
+      { width: 18 },
+      { width: 20 },
     ];
 
-    XLSX.writeFile(workbook, "FreightSync_Ocean_Rates_Comparative.xlsx");
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), "FreightSync_Ocean_Rates_Comparative.xlsx");
   };
 
   const handleExportCSV = () => {
