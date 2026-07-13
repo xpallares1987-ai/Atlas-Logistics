@@ -16,10 +16,15 @@ El proyecto opera como un **Monorepo (Turborepo)**, unificando múltiples submó
 
 ## 📦 Estructura del Monorepo
 
-```
+```text
 Atlas-Logistics/
-├── apps/
-│   └── atlas-scm/         # Host App Vite (Súper-App Frontend que unifica todos los módulos)
+├── packages/
+│   ├── frontend/          # Host App Vite (Súper-App Frontend que unifica todos los módulos)
+│   ├── shared/            # Lógica de negocio compartida y tipos
+│   ├── ui/                # Sistema de diseño y componentes UI reutilizables
+│   ├── bpmn-modeler/      # Módulo modelador de flujos BPMN 2.0
+│   ├── dashboard/         # Dashboard principal y control
+│   └── rate-comparer/     # Analítica y comparación de fletes
 ├── dataconnect/           # Esquema declarativo de la base de datos (GraphQL -> Cloud SQL)
 └── firebase.json          # Configuración de Firebase Hosting y Data Connect
 ```
@@ -27,7 +32,7 @@ Atlas-Logistics/
 ## 🚀 Inicio Rápido (Desarrollo Local)
 
 ### Prerrequisitos
-- Node.js >= 18
+- Node.js >= 20
 - `pnpm` versión 10+
 - Firebase CLI (`npm install -g firebase-tools`)
 
@@ -35,8 +40,8 @@ Atlas-Logistics/
 
 1. Clona el repositorio e instala las dependencias:
 ```bash
-git clone https://github.com/tu-usuario/atlas-logistics.git
-cd atlas-logistics
+git clone https://github.com/xpallares1987-ai/Atlas-Logistics.git
+cd Atlas-Logistics
 pnpm install
 ```
 
@@ -49,6 +54,19 @@ npx firebase dataconnect:sdk:generate
 ```bash
 pnpm run dev
 ```
+
+### Testing E2E
+El ecosistema incluye tests End-to-End integrados con Playwright.
+```bash
+npx playwright install --with-deps
+pnpm run test:e2e
+```
+
+## 🌐 Integración Continua y Despliegues (CI/CD)
+
+Atlas Logistics cuenta con un pipeline completamente automatizado en **GitHub Actions**:
+- **Autenticación Cloud Segura:** Todos los despliegues utilizan **Google Cloud Workload Identity Federation (WIF)**, autenticándose directamente contra Google Cloud (`github-provider` / `github-pool`) sin necesidad de exportar llaves de Service Accounts (Zero-Trust Security).
+- **Entornos Multi-Target:** El código principal (`main`) se compila con Turborepo y se despliega simultáneamente hacia **Firebase Hosting** y **GitHub Pages**.
 
 ## 📖 Documentación Adicional
 - [Visión del SCM (SCM_VISION.md)](SCM_VISION.md)
