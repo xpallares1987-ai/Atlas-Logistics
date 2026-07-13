@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { MasterDataStats } from "../modules/master-data/MasterDataStats";
 import { FileCode2, Anchor, Database, Calendar, BookOpen } from "lucide-react";
 
 import { HsCodesTab } from "../modules/master-data/HsCodesTab";
@@ -24,7 +23,7 @@ export function MasterData() {
         </div>
       </div>
 
-      <MasterDataStats />
+      {/* <MasterDataStats /> */}
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="border-b border-gray-200">

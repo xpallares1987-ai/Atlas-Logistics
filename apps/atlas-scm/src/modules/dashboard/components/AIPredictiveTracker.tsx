@@ -26,7 +26,7 @@ export function AIPredictiveTracker({ shipment }: AIPredictiveTrackerProps) {
       const { getApp } = await import("firebase/app");
       const { getFunctions, httpsCallable } = await import("firebase/functions");
       const app = getApp();
-      const functions = getFunctions(app);
+      const functions = getFunctions(app, "europe-west1");
       
       const predictETA = httpsCallable(functions, "predictETA");
       

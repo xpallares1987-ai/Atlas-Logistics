@@ -284,6 +284,20 @@ export interface Incoterm_Key {
   __typename?: 'Incoterm_Key';
 }
 
+export interface InsertDictionaryTermData {
+  dictionaryTerm_upsert: DictionaryTerm_Key;
+}
+
+export interface InsertDictionaryTermVariables {
+  acronym: string;
+  meaning: string;
+  description?: string | null;
+  category: string;
+  subCategory?: string | null;
+  region?: string | null;
+  moduleScope?: string[] | null;
+}
+
 export interface Invoice_Key {
   id: UUIDString;
   __typename?: 'Invoice_Key';
@@ -1035,6 +1049,18 @@ export const createScheduleRef: CreateScheduleRef;
 
 export function createSchedule(vars: CreateScheduleVariables): MutationPromise<CreateScheduleData, CreateScheduleVariables>;
 export function createSchedule(dc: DataConnect, vars: CreateScheduleVariables): MutationPromise<CreateScheduleData, CreateScheduleVariables>;
+
+interface InsertDictionaryTermRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: InsertDictionaryTermVariables): MutationRef<InsertDictionaryTermData, InsertDictionaryTermVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: InsertDictionaryTermVariables): MutationRef<InsertDictionaryTermData, InsertDictionaryTermVariables>;
+  operationName: string;
+}
+export const insertDictionaryTermRef: InsertDictionaryTermRef;
+
+export function insertDictionaryTerm(vars: InsertDictionaryTermVariables): MutationPromise<InsertDictionaryTermData, InsertDictionaryTermVariables>;
+export function insertDictionaryTerm(dc: DataConnect, vars: InsertDictionaryTermVariables): MutationPromise<InsertDictionaryTermData, InsertDictionaryTermVariables>;
 
 interface ListShipmentsRef {
   /* Allow users to create refs without passing in DataConnect */

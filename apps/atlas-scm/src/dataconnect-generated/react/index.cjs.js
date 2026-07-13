@@ -1,4 +1,4 @@
-const { listCustomersRef, listCrmDealsRef, listCrmInteractionsRef, createCrmDealRef, updateCrmDealStatusRef, createCrmInteractionRef, createDocumentFromOcrRef, approveOcrDocumentRef, rejectOcrDocumentRef, listPendingOcrDocumentsRef, listIncotermsRef, listHsCodesRef, listVesselsRef, listSchedulesRef, listDictionaryTermsRef, upsertDictionaryTermRef, listCarriersRef, listHauliersRef, listAgentsRef, listCompaniesRef, searchLocationsRef, listQuotesRef, createCompanyRef, createLocationRef, createQuoteRef, createMilestoneRef, createHsCodeRef, createIncotermRef, createVesselRef, createScheduleRef, listShipmentsRef, getShipmentByIdRef, createShipmentRef, logShipmentEventRef, upsertUserRef, getUserProfileRef, getAllUsersRef, updateUserRoleRef, connectorConfig } = require('../index.cjs.js');
+const { listCustomersRef, listCrmDealsRef, listCrmInteractionsRef, createCrmDealRef, updateCrmDealStatusRef, createCrmInteractionRef, createDocumentFromOcrRef, approveOcrDocumentRef, rejectOcrDocumentRef, listPendingOcrDocumentsRef, listIncotermsRef, listHsCodesRef, listVesselsRef, listSchedulesRef, listDictionaryTermsRef, upsertDictionaryTermRef, listCarriersRef, listHauliersRef, listAgentsRef, listCompaniesRef, searchLocationsRef, listQuotesRef, createCompanyRef, createLocationRef, createQuoteRef, createMilestoneRef, createHsCodeRef, createIncotermRef, createVesselRef, createScheduleRef, insertDictionaryTermRef, listShipmentsRef, getShipmentByIdRef, createShipmentRef, logShipmentEventRef, upsertUserRef, getUserProfileRef, getAllUsersRef, updateUserRoleRef, connectorConfig } = require('../index.cjs.js');
 const { validateArgs, CallerSdkTypeEnum } = require('firebase/data-connect');
 const { useDataConnectQuery, useDataConnectMutation, validateReactArgs } = require('@tanstack-query-firebase/react/data-connect');
 
@@ -208,6 +208,14 @@ exports.useCreateSchedule = function useCreateSchedule(dcOrOptions, options) {
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
     return createScheduleRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useInsertDictionaryTerm = function useInsertDictionaryTerm(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return insertDictionaryTermRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }

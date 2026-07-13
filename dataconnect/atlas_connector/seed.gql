@@ -171,3 +171,24 @@ mutation CreateSchedule(
     }
   )
 }
+mutation InsertDictionaryTerm(
+  $acronym: String!
+  $meaning: String!
+  $description: String
+  $category: String!
+  $subCategory: String
+  $region: String
+  $moduleScope: [String!]
+) @auth(level: USER) {
+  dictionaryTerm_upsert(
+    data: {
+      acronym: $acronym
+      meaning: $meaning
+      description: $description
+      category: $category
+      subCategory: $subCategory
+      region: $region
+      moduleScope: $moduleScope
+    }
+  )
+}

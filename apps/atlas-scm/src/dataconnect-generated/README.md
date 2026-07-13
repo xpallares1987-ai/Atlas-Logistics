@@ -45,6 +45,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*CreateIncoterm*](#createincoterm)
   - [*CreateVessel*](#createvessel)
   - [*CreateSchedule*](#createschedule)
+  - [*InsertDictionaryTerm*](#insertdictionaryterm)
   - [*CreateShipment*](#createshipment)
   - [*LogShipmentEvent*](#logshipmentevent)
   - [*UpsertUser*](#upsertuser)
@@ -4125,6 +4126,133 @@ console.log(data.schedule_insert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.schedule_insert);
+});
+```
+
+## InsertDictionaryTerm
+You can execute the `InsertDictionaryTerm` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+insertDictionaryTerm(vars: InsertDictionaryTermVariables): MutationPromise<InsertDictionaryTermData, InsertDictionaryTermVariables>;
+
+interface InsertDictionaryTermRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: InsertDictionaryTermVariables): MutationRef<InsertDictionaryTermData, InsertDictionaryTermVariables>;
+}
+export const insertDictionaryTermRef: InsertDictionaryTermRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+insertDictionaryTerm(dc: DataConnect, vars: InsertDictionaryTermVariables): MutationPromise<InsertDictionaryTermData, InsertDictionaryTermVariables>;
+
+interface InsertDictionaryTermRef {
+  ...
+  (dc: DataConnect, vars: InsertDictionaryTermVariables): MutationRef<InsertDictionaryTermData, InsertDictionaryTermVariables>;
+}
+export const insertDictionaryTermRef: InsertDictionaryTermRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the insertDictionaryTermRef:
+```typescript
+const name = insertDictionaryTermRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `InsertDictionaryTerm` mutation requires an argument of type `InsertDictionaryTermVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface InsertDictionaryTermVariables {
+  acronym: string;
+  meaning: string;
+  description?: string | null;
+  category: string;
+  subCategory?: string | null;
+  region?: string | null;
+  moduleScope?: string[] | null;
+}
+```
+### Return Type
+Recall that executing the `InsertDictionaryTerm` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `InsertDictionaryTermData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface InsertDictionaryTermData {
+  dictionaryTerm_upsert: DictionaryTerm_Key;
+}
+```
+### Using `InsertDictionaryTerm`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, insertDictionaryTerm, InsertDictionaryTermVariables } from '@dataconnect/generated';
+
+// The `InsertDictionaryTerm` mutation requires an argument of type `InsertDictionaryTermVariables`:
+const insertDictionaryTermVars: InsertDictionaryTermVariables = {
+  acronym: ..., 
+  meaning: ..., 
+  description: ..., // optional
+  category: ..., 
+  subCategory: ..., // optional
+  region: ..., // optional
+  moduleScope: ..., // optional
+};
+
+// Call the `insertDictionaryTerm()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await insertDictionaryTerm(insertDictionaryTermVars);
+// Variables can be defined inline as well.
+const { data } = await insertDictionaryTerm({ acronym: ..., meaning: ..., description: ..., category: ..., subCategory: ..., region: ..., moduleScope: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await insertDictionaryTerm(dataConnect, insertDictionaryTermVars);
+
+console.log(data.dictionaryTerm_upsert);
+
+// Or, you can use the `Promise` API.
+insertDictionaryTerm(insertDictionaryTermVars).then((response) => {
+  const data = response.data;
+  console.log(data.dictionaryTerm_upsert);
+});
+```
+
+### Using `InsertDictionaryTerm`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, insertDictionaryTermRef, InsertDictionaryTermVariables } from '@dataconnect/generated';
+
+// The `InsertDictionaryTerm` mutation requires an argument of type `InsertDictionaryTermVariables`:
+const insertDictionaryTermVars: InsertDictionaryTermVariables = {
+  acronym: ..., 
+  meaning: ..., 
+  description: ..., // optional
+  category: ..., 
+  subCategory: ..., // optional
+  region: ..., // optional
+  moduleScope: ..., // optional
+};
+
+// Call the `insertDictionaryTermRef()` function to get a reference to the mutation.
+const ref = insertDictionaryTermRef(insertDictionaryTermVars);
+// Variables can be defined inline as well.
+const ref = insertDictionaryTermRef({ acronym: ..., meaning: ..., description: ..., category: ..., subCategory: ..., region: ..., moduleScope: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = insertDictionaryTermRef(dataConnect, insertDictionaryTermVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.dictionaryTerm_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.dictionaryTerm_upsert);
 });
 ```
 

@@ -9,7 +9,7 @@ const webhookRegistry: Record<string, { url: string; secret: string; events: str
   },
 };
 
-export const registerWebhook = onCall(async (request) => {
+export const registerWebhook = onCall({ region: "europe-west1" }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Debe iniciar sesión para registrar webhooks.");
   }
@@ -27,7 +27,7 @@ export const registerWebhook = onCall(async (request) => {
   return { success: true, message: "Webhook B2B registrado exitosamente." };
 });
 
-export const triggerWebhook = onCall(async (request) => {
+export const triggerWebhook = onCall({ region: "europe-west1" }, async (request) => {
   // Función auxiliar para emitir webhooks tras cambios de estado importantes.
   // En producción, esto sería llamado desde un onDocumentWritten trigger de Firestore
   // o desde Camunda Service Tasks, y usaría fetch() para notificar a la URL registrada.

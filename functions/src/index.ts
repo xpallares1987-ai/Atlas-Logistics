@@ -7,7 +7,6 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import { setGlobalOptions } from "firebase-functions";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 
@@ -20,12 +19,13 @@ import {
 
 export * from "./gemini";
 export * from "./webhooks";
+export * from "./auth";
+export * from "./erp";
 
 // Define secrets from Google Cloud Secret Manager
 
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 
-setGlobalOptions({ maxInstances: 10 });
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -38,6 +38,7 @@ const allowedOrigins = [
 
 export const predictETA = onCall(
   {
+    region: "europe-west1",
     secrets: [GEMINI_API_KEY],
     cors: allowedOrigins,
   },
@@ -60,6 +61,7 @@ export const predictETA = onCall(
 
 export const documentOCR = onCall(
   {
+    region: "europe-west1",
     secrets: [GEMINI_API_KEY],
     cors: allowedOrigins,
   },
@@ -79,6 +81,7 @@ export const documentOCR = onCall(
 
 export const chatWithData = onCall(
   {
+    region: "europe-west1",
     secrets: [GEMINI_API_KEY],
     cors: allowedOrigins,
   },
@@ -96,6 +99,7 @@ export const chatWithData = onCall(
 
 export const optimizeLCL = onCall(
   {
+    region: "europe-west1",
     secrets: [GEMINI_API_KEY],
     cors: allowedOrigins,
   },

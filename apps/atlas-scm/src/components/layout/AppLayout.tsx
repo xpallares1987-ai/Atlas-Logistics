@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import TenantSwitcher from "./TenantSwitcher";
+import { hasPermission } from "../../core/auth/rbac";
 
 interface Tab {
   id: string;
@@ -39,9 +40,6 @@ export default function AppLayout() {
   ]);
 
   const navItems = useMemo(() => {
-    const isSuper = role === "ADMIN" || role === "EXECUTIVE" || role === "ICT";
-    const isManager = isSuper || role === "MANAGER" || role === "TEAM_LEADER";
-
     const items = [
       { name: "Dashboard", path: "/", icon: LayoutDashboard },
       { name: "Shipments", path: "/shipments", icon: Ship },
@@ -49,20 +47,20 @@ export default function AppLayout() {
       { name: "Documents", path: "/docs", icon: FileText },
     ];
 
-    if (isSuper || isManager || role === "SALES") {
+    if (hasPermission(role, "SALES") || hasPermission(role, "MANAGER")) {
       items.push({ name: "CRM", path: "/crm", icon: Users });
     }
 
-    if (isSuper || isManager || role === "PROCUREMENT") {
+    if (hasPermission(role, "PROCUREMENT") || hasPermission(role, "MANAGER")) {
       items.push({ name: "Procurement", path: "/procurement", icon: Briefcase });
     }
 
-    if (isSuper || isManager || role === "OPERATOR") {
+    if (hasPermission(role, "OPERATOR")) {
       items.push({ name: "WMS", path: "/wms", icon: Package });
       items.push({ name: "Consolidation", path: "/consolidation", icon: Package });
     }
 
-    if (isSuper) {
+    if (hasPermission(role, "EXECUTIVE")) {
       items.push({ name: "Master Data", path: "/master-data", icon: Database });
       items.push({ name: "Workflows", path: "/workflows", icon: Settings });
       items.push({ name: "Team & Roles", path: "/settings/users", icon: Users });

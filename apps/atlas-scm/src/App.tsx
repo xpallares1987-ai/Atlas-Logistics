@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
 import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
 import Login from "./pages/Login";
-import { AdminRoute } from "./components/auth/AdminRoute";
+
 import ComingSoon from "./components/ComingSoon";
 
 // Lazy-loaded route modules — Vite code-splits each into its own async chunk,
@@ -29,10 +29,13 @@ const RouteLoader = () => (
   </div>
 );
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const { user, loading } = useAuth();
+import { Role, hasPermission } from "./core/auth/rbac";
+
+const ProtectedRoute: React.FC<{
+  children: React.ReactNode;
+  requiredRole?: Role;
+}> = ({ children, requiredRole }) => {
+  const { user, role, loading } = useAuth();
 
   if (loading) {
     return (
@@ -44,6 +47,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && !hasPermission(role, requiredRole)) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -146,21 +153,21 @@ export default function App() {
           <Route
             path="/settings/users"
             element={
-              <AdminRoute>
+              <ProtectedRoute requiredRole="EXECUTIVE">
                 <Suspense fallback={<RouteLoader />}>
                   <UserManagement />
                 </Suspense>
-              </AdminRoute>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/master-data"
             element={
-              <AdminRoute>
+              <ProtectedRoute requiredRole="EXECUTIVE">
                 <Suspense fallback={<RouteLoader />}>
                   <MasterDataPage />
                 </Suspense>
-              </AdminRoute>
+              </ProtectedRoute>
             }
           />
           <Route

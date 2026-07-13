@@ -506,7 +506,7 @@ export function LclConsolidationEngine({
                   const { getApp } = await import("firebase/app");
                   const { getFunctions, httpsCallable } = await import("firebase/functions");
                   const app = getApp();
-                  const functions = getFunctions(app);
+                  const functions = getFunctions(app, "europe-west1");
                   const optimizeLCL = httpsCallable(functions, "optimizeLCL");
                   const result = await optimizeLCL({
                     containerSpec: activeSpec,
