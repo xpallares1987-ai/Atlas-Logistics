@@ -46,7 +46,6 @@ const FirebaseContext = createContext<FirebaseContextType>({
   microsoftProvider: null,
 });
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useFirebase = () => useContext(FirebaseContext);
 
 export interface FirebaseProviderProps {

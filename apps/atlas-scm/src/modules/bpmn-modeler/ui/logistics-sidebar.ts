@@ -317,7 +317,7 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
     const btnApplyCondition = document.getElementById('btnApplyCondition');
 
     const updateConditionPreview = () => {
-      let conditions = [];
+      const conditions = [];
       if (condIncoterm.value) conditions.push(`incoterm = "${condIncoterm.value}"`);
       if (condMovement.value) conditions.push(`movementType = "${condMovement.value}"`);
       zeebeCondition.value = conditions.length > 0 ? '=' + conditions.join(' and ') : '';

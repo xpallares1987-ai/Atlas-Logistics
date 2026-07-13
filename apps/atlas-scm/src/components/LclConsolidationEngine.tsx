@@ -305,7 +305,7 @@ export function LclConsolidationEngine({
       }
     }
 
-    let packedVolume = packedItems.reduce(
+    const packedVolume = packedItems.reduce(
       (acc, p) => acc + p.length * p.width * p.height,
       0,
     );

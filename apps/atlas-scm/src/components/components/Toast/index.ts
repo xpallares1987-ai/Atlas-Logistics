@@ -66,6 +66,6 @@ class TorreToastElement extends HTMLElementClass {
 }
 
 if (typeof window !== "undefined" && !customElements.get("torre-toast")) {
-  // @ts-ignore - Valid at runtime in browser
+  // @ts-expect-error - Valid at runtime in browser
   customElements.define("torre-toast", TorreToastElement);
 }

@@ -121,6 +121,6 @@ class TorreModalElement extends HTMLElementClass {
 }
 
 if (typeof window !== "undefined" && !customElements.get("torre-modal")) {
-  // @ts-ignore
+  // @ts-expect-error - TODO: fix type
   customElements.define("torre-modal", TorreModalElement);
 }

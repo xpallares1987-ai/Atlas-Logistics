@@ -7,8 +7,7 @@ import { Provider as ReduxProvider } from "react-redux";
 import App from "./App";
 import "./index.css";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+// @ts-expect-error - TODO: fix type
 import { registerSW } from "virtual:pwa-register";
 import * as Sentry from "@sentry/react";
 

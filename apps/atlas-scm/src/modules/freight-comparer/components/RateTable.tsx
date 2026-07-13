@@ -61,7 +61,7 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
   };
 
   const filteredAndSortedRates = useMemo(() => {
-    let result = (rates || []).map((r) => {
+    const result = (rates || []).map((r) => {
       // Map DataConnect 'Quote' to table fields and add some pseudo-random visual flair
       const numId = parseInt(r.id?.substring(0,8) || "0", 16) || 0;
       const transitTimeDays = 20 + (numId % 20);
@@ -92,8 +92,8 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
     );
 
     result.sort((a, b) => {
-      let aVal = sortKey === "total" ? convertAmount(a.totalCost, a.currency) : a[sortKey];
-      let bVal = sortKey === "total" ? convertAmount(b.totalCost, b.currency) : b[sortKey];
+      const aVal = sortKey === "total" ? convertAmount(a.totalCost, a.currency) : a[sortKey];
+      const bVal = sortKey === "total" ? convertAmount(b.totalCost, b.currency) : b[sortKey];
 
       if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
       if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
