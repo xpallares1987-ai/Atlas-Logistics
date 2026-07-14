@@ -14,7 +14,8 @@ import {
   Printer as _Printer,
   ChevronRight, 
   Save, 
-  Trash2 
+  Trash2,
+  BookOpen
 } from "lucide-react";
 
 interface Booking {
