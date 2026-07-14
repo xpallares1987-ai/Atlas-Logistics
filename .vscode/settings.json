@@ -1,0 +1,13 @@
+{
+    "gemini-cli.debug.logging.enabled": true,
+    "gemini-cli.executablePath": "C:\\Users\\xpall\\AppData\\Roaming\\npm\\gemini.cmd",
+    "gemini-cli.port": 3000,
+    "docker.languageserver.formatter.ignoreMultilineInstructions": true,
+    "containers.truncateLongRegistryPaths": true,
+    "containers.contexts.showInStatusBar": true,
+    "containers.containerClient": "com.microsoft.visualstudio.containers.docker",
+    "containers.orchestratorClient": "com.microsoft.visualstudio.orchestrators.dockercompose",
+    "npm-intellisense.packageSubfoldersIntellisense": true,
+    "npm-intellisense.scanDevDependencies": true,
+    "npm-intellisense.showBuildInLibs": true
+}
