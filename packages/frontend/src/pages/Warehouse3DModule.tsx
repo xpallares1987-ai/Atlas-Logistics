@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { Suspense, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment, Box, Text, Plane, Html } from '@react-three/drei';
+import { OrbitControls, Environment, Box, Text, Plane, Html, AdaptiveDpr, BakeShadows } from '@react-three/drei';
 import { Package, Activity, Boxes } from 'lucide-react';
 import * as THREE from 'three';
 
@@ -91,6 +91,8 @@ export default function Warehouse3DModule() {
           <color attach="background" args={['#020617']} />
           <ambientLight intensity={0.5} />
           <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
+          <AdaptiveDpr pixelated />
+          <BakeShadows />
           
           <Suspense fallback={
             <Html center>
