@@ -1,94 +1,73 @@
 {
-  "name": "Atlas Logistics ERP — Dev Environment",
+  "name": "Node.js & TypeScript w/ PostgreSQL",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:22-bookworm",
-
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "22"
+      "version": "lts"
     },
     "ghcr.io/devcontainers/features/postgresql:1": {
-      "version": "16",
+      "version": "latest",
       "userName": "postgres",
-      "userPassword": "changeme",
-      "databaseName": "atlas_dev"
-    },
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+      "userPassword": "postgres",
+      "databaseName": "appdb"
+    }
   },
 
-  // Variables de entorno del contenedor — apuntan a la BD local del devcontainer
+  // =====================================================================================
+  // NOTA: Estas variables de entorno son EXCLUSIVAMENTE para la base de datos
+  //       PostgreSQL que se ejecuta DENTRO de este Dev Container para desarrollo local.
+  //       La aplicación en producción utiliza Firebase Data Connect para conectarse
+  //       a una instancia de Google Cloud SQL.
+  // =====================================================================================
   "containerEnv": {
-    "NODE_ENV": "development",
-    "PORT": "3001",
     "DATABASE_HOST": "localhost",
     "DATABASE_PORT": "5432",
     "DATABASE_USER": "postgres",
-    "DATABASE_PASSWORD": "changeme",
-    "DATABASE_NAME": "atlas_dev",
-    "DATABASE_URL": "postgresql://postgres:changeme@localhost:5432/atlas_dev",
-    // Las siguientes variables necesitan configurarse manualmente en tu .env.local
-    // CAMUNDA_CLIENT_ID, CAMUNDA_CLIENT_SECRET, CAMUNDA_CLUSTER_ID, GEMINI_API_KEY
-    "VITE_API_URL": "http://localhost:3001/api"
+    "DATABASE_PASSWORD": "postgres",
+    "DATABASE_NAME": "appdb",
+    "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/appdb",
+    "NODE_ENV": "development",
+    "PORT": "3000"
   },
 
-  // Puertos accesibles desde el host
-  "forwardPorts": [3001, 5173, 5432],
-  "portsAttributes": {
-    "3001": { "label": "Backend API", "onAutoForward": "notify" },
-    "5173": { "label": "Frontend (Vite)", "onAutoForward": "openBrowser" },
-    "5432": { "label": "PostgreSQL", "onAutoForward": "silent" }
-  },
+  // Forward the default PostgreSQL port so you can connect from your local machine.
+  "forwardPorts": [ 5432 ],
 
-  // Script de inicialización de la BD
+  // Mounts a folder of SQL scripts into the container to initialize the database.
   "mounts": [
-    "source=${localWorkspaceFolder}/.devcontainer,target=/docker-entrypoint-initdb.d,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder}/.devcontainer/init-scripts,target=/docker-entrypoint-initdb.d,type=bind,consistency=cached"
   ],
 
-  // Tras crear el contenedor: instalar dependencias, aplicar schema y hacer seed
-  "postCreateCommand": "npm install -g pnpm@10 && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run db:push && pnpm run db:seed",
+  // Run 'npm install' automatically after the container is created.
+  "postCreateCommand": "npm install",
 
+  // Configure editor-specific settings.
   "customizations": {
+    // Configure properties specific to VS Code.
     "vscode": {
+      // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
-        // TypeScript / JS
-        "ms-vscode.vscode-typescript-next",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        // Base de datos
-        "cweijan.vscode-postgresql-client2",
-        // Docker
         "ms-azuretools.vscode-docker",
-        // REST / API
-        "humao.rest-client",
-        // Git
-        "eamodio.gitlens",
-        // Tailwind CSS
-        "bradlc.vscode-tailwindcss",
-        // Drizzle ORM
-        "rphlmr.vscode-drizzle-orm",
-        // Remote / Dev Containers
+        "cweijan.vscode-postgresql-client2",
+        "ms-python.python",
+        "ms-python.vscode-pylance", // Included for Python development
+        "ms-toolsai.jupyter", // Included for Jupyter notebooks
         "ms-vscode-remote.vscode-remote-extensionpack",
-        // Live Share (colaboración)
+        "ms-vscode.vscode-typescript-next",
         "ms-vsliveshare.vsliveshare",
-        // GitHub Actions
-        "github.vscode-github-actions",
-        // Turbo (monorepo)
-        "vercel.turbo-vsc"
+        "ms-vsliveshare.vsliveshare-audio",
+        "ms-vsliveshare.vsliveshare-pack"
       ],
+      // Use 'settings' to set *default* container specific settings.json values on container create.
       "settings": {
         "editor.formatOnSave": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "editor.codeActionsOnSave": {
-          "source.fixAll.eslint": "explicit"
-        },
-        "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
-        "typescript.preferences.importModuleSpecifier": "relative",
-        "typescript.updateImportsOnFileMove.enabled": "always",
-        "[typescript]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        },
-        "[typescriptreact]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        }
+        "editor.formatOnType": true,
+        "eslint.validate": [
+          "javascript",
+          "typescript"
+        ]
       }
     }
   }
