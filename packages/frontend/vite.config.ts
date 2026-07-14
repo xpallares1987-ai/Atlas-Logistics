@@ -44,17 +44,25 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    // Vite 8 / Rolldown: use rolldownOptions instead of deprecated rollupOptions
+    rolldownOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router-dom/')) {
-            return 'react-vendor';
-          }
-          if (id.includes('node_modules/lucide-react/')) {
-            return 'ui-icons';
-          }
-        }
-      }
-    }
-  }
+        // Code splitting groups replace manualChunks in Rolldown
+        codeSplitting: {
+          groups: [
+            {
+              name: 'react-vendor',
+              test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+              priority: 20,
+            },
+            {
+              name: 'ui-icons',
+              test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
+              priority: 10,
+            },
+          ],
+        },
+      },
+    },
+  },
 });
