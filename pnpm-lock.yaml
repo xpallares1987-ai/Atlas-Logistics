@@ -37,7 +37,7 @@ importers:
         specifier: ^3.1.0
         version: 3.1.0
       default-connector:
-        specifier: link:..\..\AppData\Local\pnpm\global\5\node_modules\src\dataconnect-generated\js\default-connector
+        specifier: link:../../AppData/Local/pnpm/global/5/node_modules/src/dataconnect-generated/js/default-connector
         version: link:../../AppData/Local/pnpm/global/5/node_modules/src/dataconnect-generated/js/default-connector
       dotenv:
         specifier: ^17.4.2
