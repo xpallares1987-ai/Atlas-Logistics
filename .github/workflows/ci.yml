@@ -87,16 +87,26 @@ jobs:
           workload_identity_provider: 'projects/100198375762/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
           service_account: 'github-actions@gen-lang-client-0393063451.iam.gserviceaccount.com'
 
-      - name: Deploy to Firebase (Production)
+      - name: 'Set up Cloud SDK'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Deploy Backend to Cloud Run
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         run: |
-          npm install -g firebase-tools
-          firebase deploy --non-interactive
+          gcloud run deploy atlas-backend \
+            --source . \
+            --dockerfile Dockerfile.backend \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --quiet
 
-      - name: Deploy to Firebase (Preview Channel)
-        if: github.event_name == 'pull_request' && env.FIREBASE_TOKEN != ''
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+      - name: Deploy Frontend to Cloud Run
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         run: |
-          npm install -g firebase-tools
-          firebase hosting:channel:deploy pr-${{ github.event.number }} --expires 7d
+          gcloud run deploy atlas-frontend \
+            --source . \
+            --dockerfile Dockerfile \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --quiet
