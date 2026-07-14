@@ -15,7 +15,9 @@
     "prepare": "husky",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
+    "db:reset": "sh .devcontainer/reset-db.sh",
     "db:seed": "tsx src/db/seed.ts",
+    "db:reset-and-seed": "sh .devcontainer/reset-db.sh && tsx src/db/seed.ts",
     "start:backend": "tsx --env-file=.env.local src/index.ts",
     "test:e2e": "playwright test"
   },
