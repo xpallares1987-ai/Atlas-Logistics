@@ -1,0 +1,24 @@
+ARG NODE_VERSION=22
+ARG PNPM_VERSION=11.13.0
+
+FROM node:${NODE_VERSION}-alpine AS builder
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN apk add --no-cache git \
+    && npm install -g pnpm@${PNPM_VERSION}
+WORKDIR /app
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.base.json tsconfig.json ./
+COPY src ./src
+COPY packages ./packages
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install
+
+FROM node:${NODE_VERSION}-alpine AS production
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN npm install -g pnpm@${PNPM_VERSION}
+WORKDIR /app
+COPY --from=builder /app /app
+# Se asume que el contenedor inyectará las variables de entorno o usará secretos en GCP
+EXPOSE 3001
+CMD ["pnpm", "run", "start:backend"]

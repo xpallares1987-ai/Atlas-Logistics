@@ -1,26 +1,57 @@
-import { useState } from 'react';
-import { User, Building2, Key, Bell, Shield, PaintBucket, Smartphone, LogOut, Settings, Monitor, Moon, Sun } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Building2, Key, Bell, Shield, PaintBucket, Smartphone, LogOut, Settings, Monitor, Moon, Sun, Globe } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { useTranslation } from 'react-i18next';
 
 export default function SettingsModule() {
-  const [activeTab, setActiveTab] = useState('Appearance');
-  const { theme, setTheme, user } = useAppStore();
+  const location = window.location;
+  
+  const getInitialTab = () => {
+    const hash = location.hash.replace('#', '');
+    if (hash === 'profile') return 'Profile';
+    if (hash === 'company') return 'Company';
+    if (hash === 'security') return 'Security';
+    if (hash === 'apikeys') return 'API';
+    return 'Appearance';
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+  const { theme, setTheme, language, setLanguage, user } = useAppStore();
+  const { t, i18n } = useTranslation();
+
+  const handleTabChange = (id: string) => {
+    setActiveTab(id);
+    window.location.hash = id.toLowerCase().replace(' ', '');
+  };
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveTab(getInitialTab());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleLanguageChange = (lng: string) => {
+    setLanguage(lng);
+    i18n.changeLanguage(lng);
+  };
 
   const tabs = [
-    { id: 'Profile', icon: User, label: 'Profile Preferences' },
-    { id: 'Company', icon: Building2, label: 'Company Settings' },
-    { id: 'Security', icon: Shield, label: 'Security & Access' },
-    { id: 'API', icon: Key, label: 'API Keys & Webhooks' },
-    { id: 'Notifications', icon: Bell, label: 'Notification Rules' },
-    { id: 'Appearance', icon: PaintBucket, label: 'Appearance' },
-    { id: 'Devices', icon: Smartphone, label: 'Active Devices' },
+    { id: 'Profile', icon: User, label: t('settings.profile') },
+    { id: 'Company', icon: Building2, label: t('settings.company') },
+    { id: 'Security', icon: Shield, label: t('settings.security') },
+    { id: 'API', icon: Key, label: t('settings.apiKeys') },
+    { id: 'Notifications', icon: Bell, label: t('settings.notifications') },
+    { id: 'Appearance', icon: PaintBucket, label: t('settings.appearance') },
+    { id: 'Devices', icon: Smartphone, label: t('settings.devices') },
   ];
 
   return (
     <div className="flex flex-col h-full bg-transparent text-slate-900 dark:text-slate-100">
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-8 py-6 shrink-0 transition-colors">
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Settings</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage your account, team preferences, and system integrations.</p>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{t('settings.title')}</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('settings.description')}</p>
       </div>
 
       <div className="flex-1 overflow-auto p-8">
@@ -31,7 +62,7 @@ export default function SettingsModule() {
             {tabs.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                   activeTab === tab.id 
                     ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400' 
@@ -43,9 +74,9 @@ export default function SettingsModule() {
               </button>
             ))}
             <div className="h-px bg-slate-200 dark:bg-slate-800 my-4"></div>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors">
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
               <LogOut className="w-5 h-5" />
-              Sign out of all devices
+              {t('settings.signOut')}
             </button>
           </div>
 
@@ -93,6 +124,23 @@ export default function SettingsModule() {
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2"><Shield size={18} /> Role Simulator (RBAC Test)</h3>
+                  <p className="text-xs text-slate-500 mb-3">Change your current role to test the access control restrictions across different modules.</p>
+                  <select 
+                    value={user?.role || 'ADMIN'}
+                    onChange={(e) => user && useAppStore.getState().setUser({ ...user, role: e.target.value as any })}
+                    className="w-full px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
+                  >
+                    <option value="ADMIN">ADMIN (Full Access)</option>
+                    <option value="EXECUTIVE">EXECUTIVE (High Level & Finance)</option>
+                    <option value="MANAGER">MANAGER (Operations & Finance)</option>
+                    <option value="SALES">SALES (Pricing & Quotes)</option>
+                    <option value="OPERATIONS">OPERATIONS (Logistics & Customs)</option>
+                    <option value="CUSTOMER">CUSTOMER (Portal Only)</option>
+                  </select>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                   <button className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm">
                     Save Changes
                   </button>
@@ -103,7 +151,7 @@ export default function SettingsModule() {
             {activeTab === 'Appearance' && (
               <div className="max-w-xl space-y-6">
                 <div>
-                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Interface Theme</h3>
+                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">{t('settings.theme')}</h3>
                   <div className="grid grid-cols-3 gap-4">
                     <button 
                       onClick={() => setTheme('light')}
@@ -136,10 +184,34 @@ export default function SettingsModule() {
                 </div>
 
                 <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
-                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Density</h3>
+                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">{t('settings.density')}</h3>
                   <div className="flex gap-4">
                     <button className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300">Comfortable</button>
                     <button className="px-4 py-2 rounded-lg border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-sm font-medium text-indigo-700 dark:text-indigo-400">Compact</button>
+                  </div>
+                </div>
+
+                <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
+                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2"><Globe size={18} /> {t('settings.language')}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                      { code: 'en', label: 'English' },
+                      { code: 'es', label: 'Español' },
+                      { code: 'de', label: 'Deutsch' },
+                      { code: 'fr', label: 'Français' },
+                    ].map(lang => (
+                      <button 
+                        key={lang.code}
+                        onClick={() => handleLanguageChange(lang.code)}
+                        className={`px-4 py-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                          language === lang.code 
+                            ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400' 
+                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                        }`}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

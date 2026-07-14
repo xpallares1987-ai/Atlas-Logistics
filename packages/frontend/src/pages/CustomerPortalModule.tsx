@@ -1,46 +1,75 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PackageSearch, FileText, Anchor, Truck, ShieldCheck, MapPin, Search } from 'lucide-react';
 
 interface ClientShipment {
   id: string;
-  poNumber: string;
+  referenceNumber: string;
+  poNumber?: string;
   origin: string;
   destination: string;
-  status: 'In Transit' | 'Customs' | 'Delivered' | 'Pending';
-  eta: string;
+  status: string;
   progress: number;
 }
 
-const MOCK_CLIENT_SHIPMENTS: ClientShipment[] = [
-  { id: 'BL-99238', poNumber: 'PO-2026-441', origin: 'Shanghai, CN', destination: 'Los Angeles, US', status: 'In Transit', eta: '2026-08-15', progress: 65 },
-  { id: 'BL-99239', poNumber: 'PO-2026-442', origin: 'Rotterdam, NL', destination: 'New York, US', status: 'Customs', eta: '2026-07-20', progress: 90 },
-  { id: 'BL-99240', poNumber: 'PO-2026-443', origin: 'Shenzhen, CN', destination: 'Miami, US', status: 'Delivered', eta: '2026-07-10', progress: 100 },
-];
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export default function CustomerPortalModule() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [shipments, setShipments] = useState<ClientShipment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchShipments();
+  }, []);
+
+  const fetchShipments = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/shipments`);
+      const data = await res.json();
+      
+      const mapped = data.map((s: any) => {
+        // Calculate progress based on status (simplified)
+        let prog = 10;
+        if (s.status === 'IN_TRANSIT') prog = 60;
+        if (s.status === 'CUSTOMS_CLEARED') prog = 80;
+        if (s.status === 'DELIVERED') prog = 100;
+        
+        return {
+          id: s.id,
+          referenceNumber: s.referenceNumber,
+          poNumber: `PO-${s.referenceNumber}`,
+          origin: s.origin,
+          destination: s.destination,
+          status: s.status,
+          progress: prog,
+        };
+      });
+      setShipments(mapped);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'In Transit': return <Anchor className="w-5 h-5 text-blue-500" />;
-      case 'Customs': return <ShieldCheck className="w-5 h-5 text-amber-500" />;
-      case 'Delivered': return <Truck className="w-5 h-5 text-emerald-500" />;
-      default: return <PackageSearch className="w-5 h-5 text-slate-500" />;
-    }
+    if (status === 'IN_TRANSIT') return <Anchor className="w-5 h-5 text-blue-500" />;
+    if (status === 'CUSTOMS_CLEARED') return <ShieldCheck className="w-5 h-5 text-amber-500" />;
+    if (status === 'DELIVERED') return <Truck className="w-5 h-5 text-emerald-500" />;
+    return <PackageSearch className="w-5 h-5 text-slate-500" />;
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'In Transit': return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'Customs': return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'Delivered': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      default: return 'bg-slate-50 text-slate-700 border-slate-200';
-    }
+    if (status === 'IN_TRANSIT') return 'bg-blue-50 text-blue-700 border-blue-200';
+    if (status === 'CUSTOMS_CLEARED') return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (status === 'DELIVERED') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    return 'bg-slate-50 text-slate-700 border-slate-200';
   };
 
-  const filteredShipments = MOCK_CLIENT_SHIPMENTS.filter(s => 
-    s.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    s.poNumber.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredShipments = shipments.filter(s => 
+    s.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (s.poNumber && s.poNumber.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -82,7 +111,7 @@ export default function CustomerPortalModule() {
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-slate-800 flex items-center gap-3">
-                      {shipment.id}
+                      {shipment.referenceNumber}
                       <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${getStatusColor(shipment.status)}`}>
                         {shipment.status}
                       </span>
@@ -104,7 +133,7 @@ export default function CustomerPortalModule() {
               <div className="p-6 bg-slate-50/50">
                 <div className="flex justify-between text-sm font-bold text-slate-700 mb-2">
                   <span>{shipment.origin}</span>
-                  <span className="text-indigo-600">ETA: {shipment.eta}</span>
+                  <span className="text-indigo-600">En Tránsito</span>
                   <span>{shipment.destination}</span>
                 </div>
                 <div className="relative w-full h-3 bg-slate-200 rounded-full overflow-hidden">

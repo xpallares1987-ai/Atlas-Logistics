@@ -1,29 +1,29 @@
-# Código de Conducta
+# Code of Conduct
 
-## Nuestro Compromiso
+## Our Commitment
 
-En el interés de fomentar un entorno abierto, acogedor e inclusivo, nosotros como contribuyentes y administradores nos comprometemos a hacer de la participación en nuestro proyecto y en nuestra comunidad una experiencia libre de acoso para todos, independientemente de la edad, el tamaño corporal, la discapacidad, el origen étnico, las características sexuales, la identidad y expresión de género, el nivel de experiencia, la educación, el estado socioeconómico, la nacionalidad, la apariencia personal, la raza, la religión o la orientación sexual.
+In the interest of fostering an open, welcoming, and inclusive environment, we as contributors and administrators pledge to make participation in our project and our community a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual orientation.
 
-## Nuestros Estándares
+## Our Standards
 
-Ejemplos de comportamiento que contribuyen a crear un entorno positivo incluyen:
+Examples of behavior that contribute to creating a positive environment include:
 
-* Usar un lenguaje acogedor e inclusivo.
-* Ser respetuoso con los diferentes puntos de vista y experiencias.
-* Aceptar pacíficamente las críticas constructivas (especialmente en revisiones de código de infraestructura crítica como Camunda o esquemas de Base de Datos).
-* Mostrar empatía hacia otros miembros de la comunidad.
+* Using welcoming and inclusive language.
+* Being respectful of differing viewpoints and experiences.
+* Peacefully accepting constructive criticism (especially in reviews of critical infrastructure code like Camunda or Database schemas).
+* Showing empathy towards other community members.
 
-Ejemplos de comportamiento inaceptable incluyen:
+Examples of unacceptable behavior include:
 
-* El uso de lenguaje o imágenes sexualizadas.
-* Comentarios insultantes o despectivos, y ataques personales o políticos.
-* Acoso público o privado.
-* Modificar a propósito dependencias de infraestructura críticas sin consenso técnico, lo que podría afectar los despliegues de la cadena de suministro.
+* The use of sexualized language or imagery.
+* Insulting or derogatory comments, and personal or political attacks.
+* Public or private harassment.
+* Intentionally modifying critical infrastructure dependencies without technical consensus, which could affect supply chain deployments.
 
-## Alcance
+## Scope
 
-Este Código de Conducta aplica tanto a los espacios del proyecto como a los espacios públicos cuando un individuo representa al proyecto o a su comunidad. Representar al proyecto incluye usar una dirección de correo electrónico oficial, publicar en redes sociales o actuar como representante designado.
+This Code of Conduct applies to both project spaces and public spaces when an individual represents the project or its community. Representing the project includes using an official email address, posting on social media, or acting as an appointed representative.
 
-## Cumplimiento
+## Enforcement
 
-Las instancias de comportamiento abusivo, acosador o de otra manera inaceptable pueden ser reportadas contactando al equipo del proyecto. El equipo revisará e investigará todas las quejas, y responderá de una manera que se considere apropiada dadas las circunstancias.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team. The team will review and investigate all complaints and will respond in a manner deemed appropriate to the circumstances.

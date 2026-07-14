@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Search,
   TrendingUp,
@@ -26,54 +26,12 @@ export interface DynamicRateItem {
   thc: number; // Terminal Handling Charge Origin + Dest
 }
 
-const mockRates: DynamicRateItem[] = [
-  {
-    id: "RTE-001",
-    carrier: "Maersk",
-    serviceLine: "AE1",
-    transitTime: 28,
-    validTo: "2026-07-31",
-    baseOceanFreight: 1250,
-    baf: 180,
-    pss: 150,
-    thc: 320,
-  },
-  {
-    id: "RTE-002",
-    carrier: "MSC",
-    serviceLine: "Silk",
-    transitTime: 31,
-    validTo: "2026-07-15",
-    baseOceanFreight: 1100,
-    baf: 175,
-    pss: 120,
-    thc: 315,
-  },
-  {
-    id: "RTE-003",
-    carrier: "Hapag-Lloyd",
-    serviceLine: "FE2",
-    transitTime: 26,
-    validTo: "2026-07-20",
-    baseOceanFreight: 1450,
-    baf: 200,
-    pss: 150,
-    thc: 330,
-  },
-  {
-    id: "RTE-004",
-    carrier: "CMA CGM",
-    serviceLine: "FAL1",
-    transitTime: 29,
-    validTo: "2026-07-25",
-    baseOceanFreight: 1300,
-    baf: 190,
-    pss: 150,
-    thc: 325,
-  },
-];
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export function DynamicRateEngine() {
+  const [ratesData, setRatesData] = useState<DynamicRateItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [origin, setOrigin] = useState("CNSHA (Shanghai)");
   const [destination, setDestination] = useState("NLRTM (Rotterdam)");
   const [containerSize, setContainerSize] = useState("40HC");
@@ -84,10 +42,27 @@ export function DynamicRateEngine() {
   const [currency, setCurrency] = useState<"USD" | "EUR">("USD");
   const { rates, loading: ratesLoading } = useOpenExchangeRates("USD");
 
+  useEffect(() => {
+    fetchRates();
+  }, []);
+
+  const fetchRates = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/rates`);
+      const data = await res.json();
+      setRatesData(data);
+    } catch (err) {
+      console.error("Failed to fetch rates", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const calculatedRates = useMemo(() => {
     const exchangeRate = currency === "USD" ? 1 : rates["EUR"] || 0.9; // fallback 0.9
 
-    return mockRates
+    return ratesData
       .map((rate) => {
         // Convert base costs to selected currency
         const baseOceanFreight = rate.baseOceanFreight * exchangeRate;
@@ -118,7 +93,37 @@ export function DynamicRateEngine() {
         };
       })
       .sort((a, b) => a.sellRateTotal - b.sellRateTotal); // Sort cheapest first
-  }, [marginType, marginValue, currency, rates]);
+  }, [ratesData, marginType, marginValue, currency, rates]);
+
+  const generateQuote = async (rate: any) => {
+    try {
+      const quoteData = {
+        quoteNumber: `QT-2026-${Math.floor(Math.random() * 100000)}`,
+        customer: "Client From Portal",
+        origin,
+        destination,
+        equipment: containerSize,
+        buyRateTotal: rate.buyRateTotal,
+        sellMargin: rate.sellMargin,
+        sellRateTotal: rate.sellRateTotal,
+        status: "DRAFT",
+        validTo: rate.validTo,
+      };
+      
+      const res = await fetch(`${API_URL}/quotes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(quoteData),
+      });
+      if (res.ok) {
+        alert("Quote saved to DB successfully!");
+      } else {
+        alert("Error generating quote");
+      }
+    } catch(err) {
+      console.error("Error saving quote", err);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#0A0A0B] text-gray-200">
@@ -389,6 +394,7 @@ export function DynamicRateEngine() {
 
                     <td className="py-4 px-5 text-center">
                       <button
+                        onClick={() => generateQuote(rate)}
                         className="p-2 bg-gray-800 hover:bg-blue-600 hover:text-white text-gray-400 rounded-lg transition-colors"
                         title="Generar Cotización PDF"
                       >

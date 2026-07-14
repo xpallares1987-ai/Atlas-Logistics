@@ -1,40 +1,40 @@
 # Contributing to Atlas Logistics
 
-¡Gracias por tu interés en contribuir a Atlas Logistics! Al ser un proyecto de tipo monorepo (Turborepo) con integraciones complejas de base de datos e IA, hemos establecido las siguientes pautas para asegurar la estabilidad del proyecto.
+Thank you for your interest in contributing to Atlas Logistics! As a monorepo project (Turborepo) with complex database and AI integrations, we have established the following guidelines to ensure project stability.
 
-## Flujo de Trabajo (Git Flow)
+## Workflow (Git Flow)
 
-1. **Ramificación**: Crea una rama a partir de `main` siguiendo la nomenclatura `tipo/descripcion-corta` (ej. `feat/gemini-integration`, `fix/camunda-worker`).
-2. **Commits**: Utilizamos `commitlint`. Asegúrate de que tus mensajes sigan las [Conventional Commits](https://www.conventionalcommits.org/). Por ejemplo: `feat(dashboard): add predictive ETA badge`.
-3. **Pull Requests**: Abre la PR contra `main`. Tu PR debe pasar todos los tests y el linter (`pnpm run lint`) en el pipeline de GitHub Actions. **NOTA:** No se aceptarán PRs si el pipeline de Code Scanning (CodeQL o njsscan) reporta vulnerabilidades o alertas abiertas.
-4. **Testing**: Recomendamos encarecidamente correr localmente `pnpm run test:e2e` para validar la súper-app mediante **Playwright** antes de hacer push.
+1. **Branching**: Create a branch from `main` following the naming convention `type/short-description` (e.g., `feat/gemini-integration`, `fix/camunda-worker`).
+2. **Commits**: We use `commitlint`. Make sure your messages follow [Conventional Commits](https://www.conventionalcommits.org/). For example: `feat(dashboard): add predictive ETA badge`.
+3. **Pull Requests**: Open the PR against `main`. Your PR must pass all tests and the linter (`pnpm run lint`) in the GitHub Actions pipeline. **NOTE:** PRs will not be accepted if the Code Scanning pipeline (CodeQL or njsscan) reports vulnerabilities or open alerts.
+4. **Testing**: We strongly recommend running `pnpm run test:e2e` locally to validate the super-app using **Playwright** before pushing.
 
-## Desarrollo en el Monorepo
+## Monorepo Development
 
-Al trabajar en el proyecto unificado, puedes instalar dependencias directamente en la carpeta de la Súper-App o en el paquete deseado:
+When working on the unified project, you can install dependencies directly into the Super-App folder or the desired package:
 
 ```bash
-# Añadir una dependencia a la app principal:
+# Add a dependency to the main app:
 pnpm add lucide-react --filter @atlas/frontend
 ```
 
-### Reglas de Modificación de Base de Datos
-- La base de datos es gestionada por **Firebase Data Connect** hacia Google Cloud SQL.
-- Si necesitas alterar tablas, edita los archivos `.gql` en la carpeta `dataconnect/`.
-- Tras realizar cambios, DEBES regenerar el SDK de cliente para que TypeScript atrape los errores y hacer el deploy:
+### Database Modification Rules
+- The database is managed by **Firebase Data Connect** to Google Cloud SQL.
+- If you need to alter tables, edit the `.gql` files in the `dataconnect/` folder.
+- After making changes, you **MUST** regenerate the client SDK for TypeScript to catch errors and deploy:
   ```bash
   npx firebase dataconnect:sdk:generate
   npx firebase deploy --only dataconnect
   ```
-- **Prohibido**: No edites manualmente ningún archivo dentro de las carpetas generadas de dataconnect.
-- **Data Seeding**: Las inserciones en bloque deben realizarse mediante scripts invocando mutaciones seguras. Si el esquema usa directivas estrictas (`@auth(level: USER)`), asegúrate de testear tus scripts contra el entorno autenticado o cambiar los permisos a `PUBLIC` exclusivamente durante las operaciones automatizadas de mantenimiento y revertirlos de inmediato.
+- **Forbidden**: Do not manually edit any files within the generated dataconnect folders.
+- **Data Seeding**: Bulk insertions must be performed using scripts invoking secure mutations. If the schema uses strict directives (`@auth(level: USER)`), make sure to test your scripts against the authenticated environment or change permissions to `PUBLIC` exclusively during automated maintenance operations and revert them immediately.
 
-### Reglas para Funciones de Backend e IA
-- El código de backend se ubica en `functions/src`.
-- Para **procesos pesados o asíncronos**, utiliza *Cloud Tasks* (`onTaskDispatched`) en lugar de mantener en espera la solicitud HTTP. (Mira `erp.ts` como ejemplo).
-- Para **módulos de Inteligencia Artificial**, centralizamos la lógica en `gemini.ts`. Al crear nuevos prompts, asegúrate de documentar y sanitizar cuidadosamente las entradas (especialmente si se construyen queries SQL).
-- Las dependencias nativas en Python que necesite la IA se deben proporcionar mediante la herramienta de `code_execution` de Gemini, no agregando dependencias complejas al runtime de Node.js.
+### Backend and AI Functions Rules
+- Backend code is located in `functions/src`.
+- For **heavy or asynchronous processes**, use *Cloud Tasks* (`onTaskDispatched`) instead of keeping the HTTP request waiting. (See `erp.ts` as an example).
+- For **Artificial Intelligence modules**, we centralize the logic in `gemini.ts`. When creating new prompts, make sure to carefully document and sanitize inputs (especially if SQL queries are built).
+- Native Python dependencies required by the AI should be provided using Gemini's `code_execution` tool, not by adding complex dependencies to the Node.js runtime.
 
-## Estilo y Diseño Visual
-- Atlas Logistics utiliza un estilo riguroso de **Dark Premium Glassmorphism**.
-- Por favor, utiliza los tokens CSS globales definidos en `packages/frontend/src/index.css`. No abuses de colores arbitrarios; confía en los fondos semitransparentes, los bordes sutiles y los efectos de desenfoque (`backdrop-blur`).
+## Visual Style and Design
+- Atlas Logistics uses a rigorous **Dark Premium Glassmorphism** style.
+- Please use the global CSS tokens defined in `packages/frontend/src/index.css`. Do not overuse arbitrary colors; rely on semi-transparent backgrounds, subtle borders, and blur effects (`backdrop-blur`).

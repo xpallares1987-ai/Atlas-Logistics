@@ -1,20 +1,20 @@
-ARG NODE_VERSION=22.23.1
-ARG PNPM_VERSION=10.0.0
+ARG NODE_VERSION=22
+ARG PNPM_VERSION=11.13.0
 
-FROM node:${NODE_VERSION}-alpine3.24 AS builder
+FROM node:${NODE_VERSION}-alpine AS builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN apk add --no-cache git \
     && npm install -g pnpm@${PNPM_VERSION}
 WORKDIR /app
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.base.json tsconfig.json ./
 COPY src ./src
 COPY packages ./packages
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install
 RUN pnpm run build
 
-FROM nginx:1.27.4-alpine3.21 AS production
+FROM nginx:alpine AS production
 COPY --from=builder /app/packages/frontend/dist /usr/share/nginx/html
 RUN printf 'server {\n\
     listen 3000;\n\

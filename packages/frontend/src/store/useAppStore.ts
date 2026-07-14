@@ -20,6 +20,9 @@ interface AppState {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   
+  language: string;
+  setLanguage: (lang: string) => void;
+  
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   
@@ -49,6 +52,9 @@ export const useAppStore = create<AppState>((set) => ({
 
   theme: 'light',
   setTheme: (theme) => set({ theme }),
+
+  language: 'en',
+  setLanguage: (language) => set({ language }),
 
   isSidebarOpen: true,
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
