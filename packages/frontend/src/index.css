@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@source "../../ui";
+@source "../../rate-comparer";
+@source "../../dashboard";
+@source "../../shared";
 * {
   box-sizing: border-box;
   margin: 0;
