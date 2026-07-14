@@ -49,9 +49,39 @@ export default function App() {
     theme,
     isNotificationsOpen, toggleNotifications,
     isSettingsMenuOpen, toggleSettingsMenu, setSettingsMenuOpen,
-    isCopilotOpen, setCopilotOpen
+    isCopilotOpen, setCopilotOpen,
+    notifications, addNotification, markAllNotificationsAsRead
   } = useAppStore();
   const { t } = useTranslation();
+
+  React.useEffect(() => {
+    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const eventSource = new EventSource(`${backendUrl}/api/events`);
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'connected') return;
+        
+        if (data.title && data.message) {
+          addNotification({
+            id: data.id || Date.now().toString(),
+            title: data.title,
+            message: data.message,
+            type: data.type || 'info',
+            timestamp: data.timestamp || new Date().toISOString(),
+            read: false
+          });
+        }
+      } catch (e) {
+        console.error('SSE Error:', e);
+      }
+    };
+    
+    return () => {
+      eventSource.close();
+    };
+  }, [addNotification]);
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -119,35 +149,33 @@ export default function App() {
                   className="p-2 text-slate-400 hover:text-indigo-600 transition-colors relative"
                 >
                   <Bell size={20} />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+                  )}
                 </button>
                 {isNotificationsOpen && (
                   <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
                     <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                       <h3 className="font-bold text-slate-800">Notifications</h3>
-                      <span className="text-xs text-indigo-600 cursor-pointer hover:underline font-medium">Mark all as read</span>
+                      <span onClick={markAllNotificationsAsRead} className="text-xs text-indigo-600 cursor-pointer hover:underline font-medium">Mark all as read</span>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
-                      <div className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer flex gap-3">
-                        <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
-                          <Activity size={14} className="text-rose-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-slate-800 font-medium">Demurrage Risk High</p>
-                          <p className="text-xs text-slate-500 mt-0.5">Container MSK-99238 nearing free time limit at Port of Long Beach.</p>
-                          <p className="text-[10px] text-slate-400 mt-1">10 mins ago</p>
-                        </div>
-                      </div>
-                      <div className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer flex gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                          <Package size={14} className="text-emerald-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-slate-800 font-medium">Customs Cleared</p>
-                          <p className="text-xs text-slate-500 mt-0.5">Shipment BL-44912 has been cleared by customs in Rotterdam.</p>
-                          <p className="text-[10px] text-slate-400 mt-1">2 hours ago</p>
-                        </div>
-                      </div>
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-slate-500 text-sm">No new notifications</div>
+                      ) : (
+                        notifications.map((n, idx) => (
+                          <div key={n.id || idx} className={`p-4 border-b border-slate-50 transition-colors flex gap-3 ${n.read ? 'opacity-50 bg-white' : 'bg-slate-50'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${n.type === 'warning' ? 'bg-amber-100' : n.type === 'error' ? 'bg-rose-100' : 'bg-indigo-100'}`}>
+                              <Bell size={14} className={`${n.type === 'warning' ? 'text-amber-600' : n.type === 'error' ? 'text-rose-600' : 'text-indigo-600'}`} />
+                            </div>
+                            <div>
+                              <p className="text-sm text-slate-800 font-medium">{n.title}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">{n.message}</p>
+                              <p className="text-[10px] text-slate-400 mt-1">{new Date(n.timestamp).toLocaleTimeString()}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}

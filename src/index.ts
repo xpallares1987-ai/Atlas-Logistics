@@ -165,6 +165,59 @@ app.put('/api/invoices/:id', async (req, res) => {
   }
 });
 
+import { EventEmitter } from 'events';
+const eventEmitter = new EventEmitter();
+
+// SSE ENDPOINT (Real-time notifications)
+app.get('/api/events', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+  
+  res.write('data: {"type": "connected"}\n\n'); // Send initial ping
+  
+  const listener = (data: any) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+  eventEmitter.on('notification', listener);
+  
+  req.on('close', () => {
+    eventEmitter.off('notification', listener);
+  });
+});
+
+// Demo trigger endpoint
+app.post('/api/demo/trigger-alert', (req, res) => {
+  const { title, message, type = 'warning' } = req.body;
+  eventEmitter.emit('notification', { 
+    id: Date.now().toString(),
+    title: title || 'System Alert', 
+    message: message || 'Demo notification triggered', 
+    type,
+    timestamp: new Date().toISOString(),
+    read: false
+  });
+  res.json({ success: true });
+});
+
+// API Keys Demo Endpoint
+app.post('/api/keys/generate', (req, res) => {
+  const { name } = req.body;
+  const token = `sk_test_${Date.now().toString(36)}${Math.random().toString(36).substr(2)}`;
+  res.json({ 
+    success: true, 
+    key: { 
+      id: Date.now().toString(), 
+      name: name || 'API Key', 
+      token, 
+      createdAt: new Date().toISOString(),
+      lastUsed: null
+    } 
+  });
+});
+
 async function bootstrap() {
   console.log('Starting Atlas Logistics Backend...');
 
