@@ -47,7 +47,7 @@ async function main() {
       const randomUser = faker.helpers.arrayElement(insertedUsers);
       
       const [shipment] = await db.insert(shipments).values({
-        referenceNumber: `BKG-${faker.string.numeric(5)}`,
+        referenceNumber: `BKG-${faker.string.alphanumeric(8).toUpperCase()}`,
         customer: faker.company.name(),
         origin,
         destination,
@@ -92,7 +92,7 @@ async function main() {
       const buyRate = faker.number.int({ min: 1200, max: 3500 });
       const margin = faker.number.int({ min: 150, max: 500 });
       await db.insert(quotes).values({
-        quoteNumber: `QT-${faker.string.numeric(6)}`,
+        quoteNumber: `QT-${faker.string.alphanumeric(8).toUpperCase()}`,
         customer: faker.company.name(),
         origin: faker.helpers.arrayElement(ports),
         destination: faker.helpers.arrayElement(ports),
@@ -116,7 +116,7 @@ async function main() {
       const type = faker.helpers.arrayElement(invoiceTypes);
       const isAR = type === 'AR';
       await db.insert(invoices).values({
-        invoiceNumber: `INV-${type}-${faker.string.numeric(5)}`,
+        invoiceNumber: `INV-${type}-${faker.string.alphanumeric(8).toUpperCase()}`,
         type: type as any,
         party: isAR ? faker.company.name() : faker.helpers.arrayElement(carriers),
         amount: faker.number.int({ min: 500, max: 15000 }),
