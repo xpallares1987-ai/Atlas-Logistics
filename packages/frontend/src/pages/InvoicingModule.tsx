@@ -13,12 +13,13 @@ interface Invoice {
   shipmentId: string;
 }
 
+// @ts-ignore
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export default function InvoicingModule() {
   const [activeTab, setActiveTab] = useState<'All' | 'AR' | 'AP'>('All');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchInvoices();

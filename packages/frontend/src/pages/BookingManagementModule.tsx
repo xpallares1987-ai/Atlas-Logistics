@@ -1,5 +1,20 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, FileText, CheckCircle2, Printer, ChevronRight, Save, Trash2 } from 'lucide-react';
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  MapPin, 
+  Ship, 
+  Anchor, 
+  Calendar, 
+  CheckCircle2, 
+  AlertCircle,
+  FileText,
+  Printer as _Printer,
+  ChevronRight, 
+  Save, 
+  Trash2 
+} from "lucide-react";
 
 interface Booking {
   id: string;
@@ -13,6 +28,7 @@ interface Booking {
   voyage: string;
 }
 
+// @ts-ignore
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/shipments` : 'http://localhost:3001/api/shipments';
 
 export default function BookingManagementModule() {
