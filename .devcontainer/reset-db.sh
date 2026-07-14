@@ -11,7 +11,7 @@ DB_USER="${DATABASE_USER:-postgres}"
 DB_HOST="${DATABASE_HOST:-localhost}"
 DB_PORT="${DATABASE_PORT:-5432}"
 
-SCHEMA_SCRIPT="$(dirname "$0")/01-schema.sql"
+SCHEMA_SCRIPT="$(dirname "$0")/init-scripts/01-schema.sql"
 
 echo "⚠️  Preparando reset de la base de datos '$DB_NAME' en $DB_HOST:$DB_PORT..."
 
