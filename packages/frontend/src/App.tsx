@@ -22,6 +22,7 @@ const BookingManagementModule = React.lazy(() => import('./pages/BookingManageme
 const CustomsClearanceModule = React.lazy(() => import('./pages/CustomsClearanceModule'));
 const InvoicingModule = React.lazy(() => import('./pages/InvoicingModule'));
 const CustomerPortalModule = React.lazy(() => import('./pages/CustomerPortalModule'));
+const SettingsModule = React.lazy(() => import('./pages/SettingsModule'));
 
 const AiCopilot = React.lazy(() => import('@atlas/ui/src/components/AiCopilot').then(m => ({ default: m.AiCopilot })));
 
@@ -156,11 +157,11 @@ export default function App() {
                       <p className="text-sm font-bold text-slate-800">John Doe</p>
                       <p className="text-xs text-slate-500">john.doe@atlas.com</p>
                     </div>
-                    <button className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Profile Preferences</button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Company Settings</button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">API Keys</button>
+                    <Link to="/settings" onClick={() => setShowSettings(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Profile Preferences</Link>
+                    <Link to="/settings" onClick={() => setShowSettings(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Company Settings</Link>
+                    <Link to="/settings" onClick={() => setShowSettings(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">API Keys</Link>
                     <div className="h-px bg-slate-100 my-1"></div>
-                    <button className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors">Sign out</button>
+                    <button onClick={() => { setShowSettings(false); alert('Signed out successfully'); }} className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors">Sign out</button>
                   </div>
                 )}
               </div>
@@ -192,6 +193,7 @@ export default function App() {
                 <Route path="/customs" element={<CustomsClearanceModule />} />
                 <Route path="/invoices" element={<InvoicingModule />} />
                 <Route path="/portal" element={<CustomerPortalModule />} />
+                <Route path="/settings" element={<SettingsModule />} />
               </Routes>
             </Suspense>
           </div>
