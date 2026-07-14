@@ -18,7 +18,7 @@ export function useOpenExchangeRates(baseCurrency: string = 'USD') {
         setLoading(true);
         // Frankfurter API is a free, open-source API for current and historical foreign exchange rates published by the ECB.
         // It does not require an API key or registration.
-        const response = await fetch(`https://api.frankfurter.dev/latest?from=${baseCurrency}`);
+        const response = await fetch(`https://api.frankfurter.app/latest?base=${baseCurrency}`);
         if (!response.ok) {
           throw new Error('Failed to fetch exchange rates');
         }

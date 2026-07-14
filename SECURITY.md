@@ -1,33 +1,33 @@
-# Política de Seguridad de Atlas Logistics
+# Atlas Logistics Security Policy
 
-Nos tomamos muy en serio la seguridad de la información logística y aduanera que transita por Atlas Logistics. Debido a la naturaleza crítica del software de Supply Chain Management, aplicamos políticas estrictas.
+We take the security of logistics and customs information transiting through Atlas Logistics very seriously. Due to the critical nature of Supply Chain Management software, we enforce strict policies.
 
-## Versiones Soportadas
+## Supported Versions
 
-Actualmente, solo aplicamos parches de seguridad a las últimas versiones estables.
+Currently, we only apply security patches to the latest stable versions.
 
-| Versión | Soportada          |
+| Version | Supported          |
 | ------- | ------------------ |
 | 1.x.x   | :white_check_mark: |
 | < 1.0.0 | :x:                |
 
-## Reporte de Vulnerabilidades
+## Vulnerability Reporting
 
-Si descubres una vulnerabilidad en este proyecto, **POR FAVOR, NO la reportes a través de Issues públicos**. La información logística y los conectores a GCP/Camunda son confidenciales.
+If you discover a vulnerability in this project, **PLEASE DO NOT report it via public Issues**. Logistics information and connectors to GCP/Camunda are confidential.
 
-Por favor, envía un correo electrónico al equipo de arquitectura. Proporcionaremos acuse de recibo en un plazo de 24 horas y emitiremos un parche (Hotfix) para vulnerabilidades críticas en menos de 48 horas.
+Please send an email to the architecture team. We will acknowledge receipt within 24 hours and issue a patch (Hotfix) for critical vulnerabilities in less than 48 hours.
 
-### Áreas Críticas de Atención
-- **Secretos de GCP y Firebase:** Los despliegues automáticos (CI/CD) utilizan **Google Cloud Workload Identity Federation (WIF)**, eliminando la necesidad de claves de servicio estáticas. Cualquier intento de inyectar o exfiltrar llaves privadas o *Service Accounts* tradicionales es considerado crítico. Las claves de API públicas están restringidas por dominio.
-- **Vulnerabilidades a Nivel de Código (Timing Attacks y Randomness):** El repositorio utiliza `timingSafeEqual` para comparaciones sensibles y `crypto.getRandomValues()` de forma estricta (sin sesgo de módulo o *modulo bias*) para evitar vulnerabilidades de predicción o análisis de tiempo.
-- **Firebase Data Connect y RBAC:** Escalada de privilegios a través de fallos en las directivas `@auth` del esquema GraphQL. Asegurar que las operaciones sensibles usen siempre `@auth(level: USER)` o controles de roles más avanzados basados en los **Custom Claims** inyectados por la función `assignUserRole`.
-- **Vulnerabilidades XSS y Dependencias:** Cualquier vector que permita inyectar scripts en el frontend y pueda robar tokens de sesión de Firebase. Dependencias riesgosas han sido eliminadas (ej. migraciones hacia librerías robustas como `exceljs`).
-- **Inyección de Prompts en IA (AI Layer):** Manipulación intencionada de los modelos de Google Gemini (ej. `chatWithData`) a través de los inputs de usuario que pueda resultar en filtración de esquemas de bases de datos, inyecciones de código en `code_execution` o exfiltración de PII.
+### Critical Areas of Focus
+- **GCP and Firebase Secrets:** Automated deployments (CI/CD) use **Google Cloud Workload Identity Federation (WIF)**, eliminating the need for static service keys. Any attempt to inject or exfiltrate private keys or traditional *Service Accounts* is considered critical. Public API keys are restricted by domain.
+- **Code-Level Vulnerabilities (Timing Attacks and Randomness):** The repository uses `timingSafeEqual` for sensitive comparisons and `crypto.getRandomValues()` strictly (without modulo bias) to prevent prediction or timing analysis vulnerabilities.
+- **Firebase Data Connect and RBAC:** Privilege escalation through failures in GraphQL schema `@auth` directives. Ensure that sensitive operations always use `@auth(level: USER)` or more advanced role controls based on **Custom Claims** injected by the `assignUserRole` function.
+- **XSS Vulnerabilities and Dependencies:** Any vector that allows injecting scripts into the frontend and can steal Firebase session tokens. Risky dependencies have been removed (e.g., migrations towards robust libraries like `exceljs`).
+- **Prompt Injection in AI (AI Layer)::** Intentional manipulation of Google Gemini models (e.g., `chatWithData`) through user inputs that could result in database schema leakage, code injections in `code_execution`, or PII exfiltration.
 
-## Auditoría Continua y Code Scanning
+## Continuous Auditing and Code Scanning
 
-Atlas Logistics emplea **GitHub Advanced Security** de forma obligatoria en la integración continua:
-- **CodeQL & njsscan:** Todo Pull Request es analizado estáticamente (SAST) buscando vulnerabilidades lógicas, de memoria, o exposición de secretos. No se permite la integración de código (merge) con alertas pendientes de CodeQL.
-- **Dependabot:** Monitoriza activamente el árbol de dependencias (`pnpm`) para forzar actualizaciones de librerías con CVEs detectados.
+Atlas Logistics mandatorily employs **GitHub Advanced Security** in continuous integration:
+- **CodeQL & njsscan:** Every Pull Request is statically analyzed (SAST) looking for logical, memory, or secret exposure vulnerabilities. Code integration (merge) is not allowed with pending CodeQL alerts.
+- **Dependabot:** Actively monitors the dependency tree (`pnpm`) to enforce updates of libraries with detected CVEs.
 
-Alentamos a los investigadores de seguridad a auditar los despliegues, siempre y cuando se haga de manera responsable y en entornos locales o *sandbox*.
+We encourage security researchers to audit deployments, provided it is done responsibly and in local or *sandbox* environments.

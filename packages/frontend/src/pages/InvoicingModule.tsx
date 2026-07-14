@@ -1,32 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Receipt, Download, FileSignature, Landmark, ArrowUpRight, ArrowDownRight, DollarSign } from 'lucide-react';
 
 interface Invoice {
   id: string;
-  type: 'AR' | 'AP'; // Accounts Receivable (Cliente) vs Accounts Payable (Naviera/Agente)
+  invoiceNumber: string;
+  type: 'AR' | 'AP';
   party: string;
   amount: number;
   currency: string;
   status: 'Paid' | 'Pending' | 'Overdue';
   dueDate: string;
-  ref: string;
+  shipmentId: string;
 }
 
-const MOCK_INVOICES: Invoice[] = [
-  { id: 'INV-AR-4001', type: 'AR', party: 'Global Electronics Ltd', amount: 12500, currency: 'USD', status: 'Pending', dueDate: '2026-08-30', ref: 'BKG-99238' },
-  { id: 'INV-AR-4002', type: 'AR', party: 'Automotive Parts Inc', amount: 4800, currency: 'USD', status: 'Paid', dueDate: '2026-07-15', ref: 'BKG-99239' },
-  { id: 'INV-AP-8001', type: 'AP', party: 'Maersk Line', amount: 9200, currency: 'USD', status: 'Pending', dueDate: '2026-08-25', ref: 'BKG-99238' },
-  { id: 'INV-AP-8002', type: 'AP', party: 'Port of Los Angeles', amount: 850, currency: 'USD', status: 'Overdue', dueDate: '2026-07-10', ref: 'BKG-99238' },
-  { id: 'INV-AR-4003', type: 'AR', party: 'Fashion Retailers Group', amount: 28400, currency: 'EUR', status: 'Overdue', dueDate: '2026-06-30', ref: 'BKG-99240' },
-];
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export default function InvoicingModule() {
   const [activeTab, setActiveTab] = useState<'All' | 'AR' | 'AP'>('All');
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredInvoices = MOCK_INVOICES.filter(i => activeTab === 'All' || i.type === activeTab);
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
 
-  const totalAR = MOCK_INVOICES.filter(i => i.type === 'AR').reduce((acc, curr) => acc + curr.amount, 0);
-  const totalAP = MOCK_INVOICES.filter(i => i.type === 'AP').reduce((acc, curr) => acc + curr.amount, 0);
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/invoices`);
+      const data = await res.json();
+      setInvoices(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredInvoices = invoices.filter(i => activeTab === 'All' || i.type === activeTab);
+
+  const totalAR = invoices.filter(i => i.type === 'AR').reduce((acc, curr) => acc + curr.amount, 0);
+  const totalAP = invoices.filter(i => i.type === 'AP').reduce((acc, curr) => acc + curr.amount, 0);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -123,9 +137,9 @@ export default function InvoicingModule() {
                   {filteredInvoices.map(inv => (
                     <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="p-4 font-mono font-bold text-slate-800 flex items-center gap-2">
-                        <Receipt className="w-4 h-4 text-slate-400" /> {inv.id}
+                        <Receipt className="w-4 h-4 text-slate-400" /> {inv.invoiceNumber}
                       </td>
-                      <td className="p-4 text-sm text-indigo-600 font-medium hover:underline cursor-pointer">{inv.ref}</td>
+                      <td className="p-4 text-sm text-indigo-600 font-medium hover:underline cursor-pointer">Booking Link</td>
                       <td className="p-4">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${inv.type === 'AR' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                           {inv.type}

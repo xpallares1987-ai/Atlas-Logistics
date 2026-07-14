@@ -1,92 +1,94 @@
 # Atlas Logistics 🌍🚢
 
-Atlas Logistics es una **Súper-App** integral para la gestión de la cadena de suministro (SCM). Ofrece herramientas avanzadas para transitarios, navieras y operadores logísticos, centralizando cotizaciones de fletes, gestión de embarques e inteligencia predictiva impulsada por IA.
+Atlas Logistics is a comprehensive **Super-App** for Supply Chain Management (SCM). It offers advanced tools for freight forwarders, shipping lines, and logistics operators, centralizing freight quotes, shipment management, and AI-powered predictive intelligence.
 
 ![Atlas Logistics Dashboard](https://img.shields.io/badge/Status-Active-success) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-## 🌟 Características y Módulos (Suite ERP SCM)
-Atlas Logistics cuenta con módulos especializados para cubrir el ciclo de vida completo de un embarque marítimo y la operación de un transitario:
+## 🌟 Features and Modules (ERP SCM Suite)
+Atlas Logistics features specialized modules to cover the complete lifecycle of an ocean shipment and the operation of a freight forwarder:
 
-**📦 Operaciones Core**
-- **Sailing Schedules**: Buscador de rutas marítimas y control de cut-offs.
-- **Booking & B/L**: Emisión del HBL y panel Kanban de las reservas.
-- **Rate Comparer**: Analítica y comparación de fletes en tiempo real.
+**📦 Core Operations**
+- **Sailing Schedules**: Search engine for maritime routes and cut-off control.
+- **Booking & B/L**: HBL issuance and Kanban board for bookings.
+- **Rate Comparer**: Real-time freight analytics and comparison.
 
-**⚖️ Finanzas y Cumplimiento (Compliance)**
-- **Customs Clearance**: Tracking del DUA, semáforo aduanero y cálculo de HS Code.
-- **Invoicing & Settlement**: Conciliación de A/R, A/P y rentabilidad.
+**⚖️ Finance and Compliance**
+- **Customs Clearance**: DUA tracking, customs traffic light, and HS Code calculation.
+- **Invoicing & Settlement**: A/R, A/P reconciliation, and profitability.
 
-**🤝 Vista Externa (Cliente)**
-- **Customer Portal**: Portal "marca blanca" para que los clientes finales puedan realizar tracking de sus cargas y descargar documentos en tiempo real.
+**🤝 External View (Client)**
+- **Customer Portal**: "White-label" portal for end customers to track their cargo and download documents in real-time.
 
-## 🏗️ Arquitectura y Tecnologías
+## 🏗️ Architecture and Technologies
 
-El proyecto opera como un **Monorepo (Turborepo)**, unificando múltiples submódulos bajo una misma súper-aplicación React (Vite).
+The project operates as a **Monorepo (Turborepo)**, unifying multiple submodules under a single React Super-App (Vite).
 
 ### Core Stack
-- **Frontend (Host App):** React, Vite, React Router, TailwindCSS (Dark Premium Glassmorphism).
-- **Capa de Datos Backend:** Google Cloud SQL (PostgreSQL) integrado nativamente y tipado de extremo a extremo mediante **Firebase Data Connect**.
-- **Inteligencia Predictiva:** Google Gen AI (Gemini 2.5 Flash) para cálculos de ETA predictivo y riesgos.
-- **Gestión de Paquetes:** `pnpm` (v10+) y Turborepo para cachés ultrarrápidas e integración continua eficiente.
+- **Frontend (Client App):** React, Vite, React Router, TailwindCSS (Dark Premium Glassmorphism).
+- **Backend (API Service):** Node.js, Express, Drizzle ORM.
+- **Database:** PostgreSQL (Google Cloud SQL for Production, local Postgres for Development).
+- **Predictive Intelligence:** Google Gen AI (Gemini 2.5 Flash) for predictive ETA calculations and risks.
+- **Package Management:** `pnpm` (v10+) and Turborepo for ultra-fast caches and efficient continuous integration.
 
-## 📦 Estructura del Monorepo
+## 📦 Monorepo Structure
 
 ```text
 Atlas-Logistics/
 ├── packages/
-│   ├── frontend/          # Host App Vite (Súper-App Frontend que unifica todos los módulos)
-│   ├── shared/            # Lógica de negocio compartida y tipos
-│   ├── ui/                # Sistema de diseño y componentes UI reutilizables
-│   ├── bpmn-modeler/      # Módulo modelador de flujos BPMN 2.0
-│   ├── dashboard/         # Dashboard principal y control
-│   └── rate-comparer/     # Analítica y comparación de fletes
-├── dataconnect/           # Esquema declarativo de la base de datos (GraphQL -> Cloud SQL)
-└── firebase.json          # Configuración de Firebase Hosting y Data Connect
+│   ├── frontend/          # Host App Vite (Frontend Super-App)
+│   ├── ui/                # Design system and reusable UI components
+├── src/                   # Backend API (Express & Drizzle ORM)
+├── Dockerfile             # Container definition for Frontend (Nginx)
+├── Dockerfile.backend     # Container definition for Backend API (Node)
+└── docker-compose.yml     # Local orchestration
 ```
 
-## 🚀 Inicio Rápido (Desarrollo Local)
+## 🚀 Quick Start (Local Development)
 
-### Prerrequisitos
+### Prerequisites
 - Node.js >= 20
-- `pnpm` versión 10+
-- Firebase CLI (`npm install -g firebase-tools`)
+- `pnpm` version 10+
+- [Docker & Docker Compose](https://docs.docker.com/get-docker/)
 
-### Instalación
+### Installation & Execution
 
-1. Clona el repositorio e instala las dependencias:
+We provide a complete containerized local environment mirroring production. See [README.Docker.md](README.Docker.md) for detailed instructions.
+
+1. Clone the repository and install dependencies:
 ```bash
 git clone https://github.com/xpallares1987-ai/Atlas-Logistics.git
 cd Atlas-Logistics
 pnpm install
 ```
 
-2. (Opcional) Si hay cambios en la estructura de base de datos, sincroniza los SDKs tipados de Firebase Data Connect:
+2. Start the application locally using Docker:
 ```bash
-npx firebase dataconnect:sdk:generate
+docker compose up -d
 ```
 
-3. Levanta la aplicación localmente:
+3. Seed the database with realistic test data:
 ```bash
-pnpm run dev
+pnpm run db:push
+npx tsx src/db/seed.ts
 ```
 
-### Testing E2E
-El ecosistema incluye tests End-to-End integrados con Playwright.
+### E2E Testing
+The ecosystem includes End-to-End tests integrated with Playwright.
 ```bash
 npx playwright install --with-deps
 pnpm run test:e2e
 ```
 
-## 🌐 Integración Continua y Despliegues (CI/CD)
+## 🌐 Continuous Integration and Deployments (CI/CD)
 
-Atlas Logistics cuenta con un pipeline completamente automatizado en **GitHub Actions**:
-- **Autenticación Cloud Segura:** Todos los despliegues utilizan **Google Cloud Workload Identity Federation (WIF)**, autenticándose directamente contra Google Cloud (`github-provider` / `github-pool`) sin necesidad de exportar llaves de Service Accounts (Zero-Trust Security).
-- **Entornos Multi-Target:** El código principal (`main`) se compila con Turborepo y se despliega simultáneamente hacia **Firebase Hosting** y **GitHub Pages**.
+Atlas Logistics features a fully automated pipeline in **GitHub Actions**:
+- **Multi-Container Architecture:** The repository maintains two distinct images: one for the Nginx Frontend and one for the Node.js Backend API.
+- **Google Cloud Run (Production):** The application is designed to be deployed as stateless microservices on Google Cloud Run, seamlessly scaling to zero or thousands of instances, backed by Google Cloud SQL.
 
-## 📖 Documentación Adicional
-- [Visión del SCM (SCM_VISION.md)](SCM_VISION.md)
-- [Guía de Contribución](CONTRIBUTING.md)
-- [Políticas de Seguridad](SECURITY.md)
+## 📖 Additional Documentation
+- [SCM Vision (SCM_VISION.md)](SCM_VISION.md)
+- [Contribution Guide](CONTRIBUTING.md)
+- [Security Policies](SECURITY.md)
 
-## 🤝 Soporte
-Si tienes dudas o encuentras problemas con los conectores de Firebase, por favor, abre un Issue o revisa la documentación oficial de Firebase Data Connect.
+## 🤝 Support
+If you have questions or encounter issues with Firebase connectors, please open an Issue or review the official Firebase Data Connect documentation.

@@ -1,60 +1,60 @@
-# Arquitectura de Atlas Logistics
+# Atlas Logistics Architecture
 
-Este documento detalla la estructura y diseño arquitectónico actual de **Atlas Logistics**.
+This document details the current architectural structure and design of **Atlas Logistics**.
 
-## 1. Visión General: Frontend-First y Súper-App
+## 1. Overview: Frontend-First and Super-App
 
-El proyecto ha abandonado las arquitecturas tradicionales de API backend pesadas (servidores Node.js independientes, Fastify, Drizzle, Zeebe backend) en favor de un modelo **Frontend-First** unificado. 
-Toda la aplicación se ejecuta y renderiza directamente en el navegador como una Súper-App impulsada por **Vite** y **React Router**.
+The project has moved away from traditional heavy backend API architectures (independent Node.js servers, Fastify, Drizzle, Zeebe backend) in favor of a unified **Frontend-First** model.
+The entire application runs and renders directly in the browser as a Super-App powered by **Vite** and **React Router**.
 
-## 2. Turborepo y Gestión de Paquetes
+## 2. Turborepo and Package Management
 
-El ecosistema está construido sobre un Monorepo gestionado por `Turborepo` y `pnpm` (versión 10+). Las dependencias se enlazan mediante *symlinks* locales (`workspace:*`) garantizando la máxima reutilización de código y tiempos de compilación paralelos.
+The ecosystem is built on a Monorepo managed by `Turborepo` and `pnpm` (version 10+). Dependencies are linked using local *symlinks* (`workspace:*`) ensuring maximum code reuse and parallel compilation times.
 
-### Estructura Principal
+### Main Structure
 
-- **`packages/frontend` (Host App)**: Es el corazón de la aplicación. Actúa como el orquestador principal que consolida el enrutamiento (React Router), el layout general. Es el único frontend que se ejecuta para iniciar todo el ecosistema.
-- **Módulos Integrados (en `packages/`)**:
-  - **`packages/bpmn-modeler`**: Modelador BPMN 2.0 que corre de manera nativa en el navegador.
-  - **`packages/dashboard`**: Panel principal de embarques, telemetría logística y visibilidad de contenedores.
-  - **`packages/rate-comparer`**: Módulo dedicado a la ingesta (usando `exceljs` de forma segura para evitar vulnerabilidades de las librerías antiguas), comparación y analítica de tarifas de fletes.
-- **`packages/shared` y `packages/ui`**: Contienen utilidades compartidas y componentes de UI consumidos por la aplicación principal.
+- **`packages/frontend` (Host App)**: This is the heart of the application. It acts as the main orchestrator that consolidates routing (React Router) and the general layout. It is the only frontend that runs to start the entire ecosystem.
+- **Integrated Modules (in `packages/`)**:
+  - **`packages/bpmn-modeler`**: BPMN 2.0 modeler that runs natively in the browser.
+  - **`packages/dashboard`**: Main panel for shipments, logistics telemetry, and container visibility.
+  - **`packages/rate-comparer`**: Module dedicated to the ingestion (using `exceljs` safely to avoid vulnerabilities of older libraries), comparison, and analytics of freight rates.
+- **`packages/shared` and `packages/ui`**: Contain shared utilities and UI components consumed by the main application.
 
-## 3. Capa de Datos (Firebase Data Connect)
+## 3. Data Layer (Firebase Data Connect)
 
-Todo el estado persistente y las consultas a base de datos de la Súper-App se realizan mediante **Firebase Data Connect**.
+All persistent state and database queries for the Super-App are performed using **Firebase Data Connect**.
 
-1. **PostgreSQL en Cloud SQL**: La fuente única de verdad.
-2. **Esquema Declarativo**: Definido en el directorio `/dataconnect` a través de GraphQL.
-3. **SDKs Tipados de Extremo a Extremo**: Al ejecutar `firebase dataconnect:sdk:generate`, Firebase genera funciones de TypeScript que exponen de forma estrictamente tipada las *Queries* y *Mutations* de Postgres directamente hacia nuestros componentes de React. No existe intermediario Node.js.
+1. **PostgreSQL on Cloud SQL**: The single source of truth.
+2. **Declarative Schema**: Defined in the `/dataconnect` directory via GraphQL.
+3. **End-to-End Typed SDKs**: By running `firebase dataconnect:sdk:generate`, Firebase generates TypeScript functions that strictly type-expose Postgres *Queries* and *Mutations* directly to our React components. There is no Node.js intermediary.
 
-## 4. Pipeline de CI/CD e Integración Continua
+## 4. CI/CD Pipeline and Continuous Integration
 
-El repositorio está configurado para integración continua ultra eficiente automatizada con **GitHub Actions**:
-- **Despliegues Multi-entorno**: El frontend se compila y se despliega concurrentemente hacia **Firebase Hosting** (producción/preview) y **GitHub Pages**.
-- **Autenticación Zero-Trust (WIF)**: Se utiliza **Google Cloud Workload Identity Federation** (pool `github-pool`, provider `github-provider`) para autenticar los workflows contra Firebase de forma segura sin intercambiar Service Account Keys estáticas.
-- **Construcción y Testing**: El comando de construcción oficial es `pnpm run build` en la raíz, que utiliza Turbo para empaquetar paralelamente usando cachés remotas/locales. Adicionalmente, se ejecuta un suite de pruebas automatizadas **End-to-End (E2E)** con Playwright.
-- **Code Scanning y Seguridad**: Análisis constante del código en CI con CodeQL y `njsscan` para evitar regresiones de vulnerabilidades (ej. timing attacks, modulo biases).
+The repository is configured for ultra-efficient continuous integration automated with **GitHub Actions**:
+- **Multi-environment Deployments**: The frontend is compiled and deployed concurrently to **Firebase Hosting** (production/preview) and **GitHub Pages**.
+- **Zero-Trust Authentication (WIF)**: **Google Cloud Workload Identity Federation** (pool `github-pool`, provider `github-provider`) is used to securely authenticate workflows against Firebase without exchanging static Service Account Keys.
+- **Build and Testing**: The official build command is `pnpm run build` at the root, which uses Turbo to package in parallel using remote/local caches. Additionally, an automated **End-to-End (E2E)** test suite is run with Playwright.
+- **Code Scanning and Security**: Constant code analysis in CI with CodeQL and `njsscan` to prevent vulnerability regressions (e.g., timing attacks, modulo biases).
 
-## 5. Seguridad y Control de Acceso (RBAC)
+## 5. Security and Access Control (RBAC)
 
-La autenticación primaria se gestiona con **Firebase Authentication**. Los roles y jerarquías (e.g. `ADMIN`, `MANAGER`, `USER`) se manejan mediante **Custom Claims**:
-- Una Cloud Function (`assignUserRole`) actualiza los claims del usuario en Firebase Auth de forma segura.
-- El frontend consume el token JWT actualizado para mostrar u ocultar rutas e interfaces (usando componentes como `<RoleGate>`).
-- Todas las consultas críticas de base de datos en **Data Connect** implementan directivas directas de GraphQL como `@auth(level: USER)` para rechazar de facto solicitudes públicas no autenticadas.
+Primary authentication is managed with **Firebase Authentication**. Roles and hierarchies (e.g., `ADMIN`, `MANAGER`, `USER`) are handled using **Custom Claims**:
+- A Cloud Function (`assignUserRole`) securely updates the user's claims in Firebase Auth.
+- The frontend consumes the updated JWT token to show or hide routes and interfaces (using components like `<RoleGate>`).
+- All critical database queries in **Data Connect** implement direct GraphQL directives like `@auth(level: USER)` to de facto reject unauthenticated public requests.
 
-## 6. Integración Asíncrona con Cloud Tasks (ERP)
+## 6. Asynchronous Integration with Cloud Tasks (ERP)
 
-Los flujos de trabajo pesados o las integraciones con sistemas de terceros heredados (como el ERP corporativo) están desacoplados del hilo principal del frontend mediante **Google Cloud Tasks**:
-- El cliente invoca funciones `onCall` (e.g., `startErpSimulation`) de forma síncrona, proporcionando validación inmediata.
-- Estas funciones encolan tareas asíncronas con retrasos programables (`scheduleDelaySeconds`).
-- Funciones `onTaskDispatched` (e.g., `simulateErpCallback`) reaccionan a las colas garantizando reintentos y tolerancia a fallos.
+Heavy workflows or integrations with legacy third-party systems (like the corporate ERP) are decoupled from the frontend's main thread using **Google Cloud Tasks**:
+- The client invokes `onCall` functions (e.g., `startErpSimulation`) synchronously, providing immediate validation.
+- These functions enqueue asynchronous tasks with programmable delays (`scheduleDelaySeconds`).
+- `onTaskDispatched` functions (e.g., `simulateErpCallback`) react to queues, ensuring retries and fault tolerance.
 
-## 7. Inteligencia Artificial (AI Layer)
+## 7. Artificial Intelligence (AI Layer)
 
-Atlas Logistics está fuertemente impulsado por Modelos Fundacionales (*Gemini 2.5 y 3.1 Pro*) ejecutados nativamente en Google Cloud Functions. 
-El ecosistema de IA provee funcionalidades como:
-- **Data Analyst Chat (`chatWithData`)**: Interfaz Text-to-SQL que consulta directamente el esquema estandarizado (Data Connect) y devuelve insights basados en la tabla `Shipments` y catálogos globales (`DictionaryTerm`).
-- **Logistics OCR (`documentOCR`)**: Extracción automatizada de JSON desde documentos físicos (Bill of Lading).
-- **Predictive ETA (`predictETA`)**: Evaluación de riesgo de retrasos usando búsquedas web en vivo para obtener condiciones reales del mundo físico.
-- **Bin Packing (`optimizeLCL`)**: Empleo de `code_execution` para resolver algoritmos NP-Hard en 3D sobre Python bajo demanda.
+Atlas Logistics is strongly powered by Foundational Models (*Gemini 2.5 and 3.1 Pro*) executed natively in Google Cloud Functions.
+The AI ecosystem provides functionalities such as:
+- **Data Analyst Chat (`chatWithData`)**: Text-to-SQL interface that directly queries the standardized schema (Data Connect) and returns insights based on the `Shipments` table and global catalogs (`DictionaryTerm`).
+- **Logistics OCR (`documentOCR`)**: Automated JSON extraction from physical documents (Bill of Lading).
+- **Predictive ETA (`predictETA`)**: Risk assessment of delays using live web searches to obtain real-world conditions.
+- **Bin Packing (`optimizeLCL`)**: Use of `code_execution` to solve NP-Hard algorithms in 3D using Python on demand.

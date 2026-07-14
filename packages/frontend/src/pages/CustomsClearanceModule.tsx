@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShieldAlert, Search, FileCheck, CheckCircle2, AlertTriangle, AlertCircle, Calculator } from 'lucide-react';
+import { ShieldAlert, Search, FileCheck, CheckCircle2, AlertTriangle, AlertCircle, Calculator, Bot, Activity } from 'lucide-react';
 
 interface CustomsDeclaration {
   id: string;
@@ -20,6 +20,30 @@ const MOCK_DECLARATIONS: CustomsDeclaration[] = [
 export default function CustomsClearanceModule() {
   const [hsCode, setHsCode] = useState('');
   const [calculatedDuty, setCalculatedDuty] = useState<number | null>(null);
+  
+  // AI Micro-analysis State
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<Record<string, { riskScore: number, channelPrediction: string, flag: string }>>({});
+
+  const handleAiAnalysis = (id: string) => {
+    setAnalyzingId(id);
+    // Simulate AI API Call
+    setTimeout(() => {
+      const risks = [
+        { riskScore: 12, channelPrediction: 'Green', flag: 'Low risk. Historical compliance is 98%.' },
+        { riskScore: 78, channelPrediction: 'Red', flag: 'High risk. HS Code mismatch probability.' },
+        { riskScore: 45, channelPrediction: 'Orange', flag: 'Medium risk. New consignee detected.' },
+        { riskScore: 5, channelPrediction: 'Green', flag: 'Low risk. Fast-track eligible.' }
+      ];
+      const randomRisk = risks[Math.floor(Math.random() * risks.length)];
+      
+      setAiAnalysis(prev => ({
+        ...prev,
+        [id]: randomRisk
+      }));
+      setAnalyzingId(null);
+    }, 1500);
+  };
 
   const handleCalculate = () => {
     if (hsCode) {
@@ -80,6 +104,7 @@ export default function CustomsClearanceModule() {
                   <th className="p-4 font-bold">Description</th>
                   <th className="p-4 font-bold text-right">Est. Duties</th>
                   <th className="p-4 font-bold">Status</th>
+                  <th className="p-4 font-bold text-center">AI Risk</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -95,6 +120,34 @@ export default function CustomsClearanceModule() {
                         {getStatusIcon(dec.status)}
                         {dec.status}
                       </span>
+                    </td>
+                    <td className="p-4 text-center">
+                      {aiAnalysis[dec.id] ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`text-xs font-bold px-2 py-1 rounded-md ${
+                            aiAnalysis[dec.id].riskScore > 60 ? 'bg-rose-100 text-rose-700' :
+                            aiAnalysis[dec.id].riskScore > 30 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                          }`}>
+                            {aiAnalysis[dec.id].riskScore}% Risk
+                          </span>
+                          <span className="text-[10px] text-slate-500 max-w-[120px] truncate" title={aiAnalysis[dec.id].flag}>
+                            {aiAnalysis[dec.id].flag}
+                          </span>
+                        </div>
+                      ) : analyzingId === dec.id ? (
+                        <div className="flex items-center justify-center gap-2 text-indigo-600 text-xs font-medium">
+                          <Activity className="w-4 h-4 animate-pulse" />
+                          Analyzing...
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => handleAiAnalysis(dec.id)}
+                          className="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-colors group flex items-center justify-center gap-2 mx-auto w-full max-w-[120px]"
+                        >
+                          <Bot className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          <span className="text-xs font-bold">AI Scan</span>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

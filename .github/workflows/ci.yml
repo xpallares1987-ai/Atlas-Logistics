@@ -60,6 +60,12 @@ jobs:
       - name: Run Tests
         run: pnpm run test
 
+      - name: Test Docker Frontend Build
+        run: docker build -t atlas-frontend:test -f Dockerfile .
+
+      - name: Test Docker Backend Build
+        run: docker build -t atlas-backend:test -f Dockerfile.backend .
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 

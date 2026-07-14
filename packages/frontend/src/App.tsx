@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes, Calendar, BookOpen, ShieldAlert, Landmark, Users } from 'lucide-react';
 import { OmniSearch } from '@atlas/ui/src/components/OmniSearch';
 import { useAppStore } from './store/useAppStore';
+import { useTranslation } from 'react-i18next';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 const DashboardModule = React.lazy(() => import('@atlas/dashboard').then(m => ({ default: m.Dashboard })));
 // @ts-ignore
@@ -49,6 +51,7 @@ export default function App() {
     isSettingsMenuOpen, toggleSettingsMenu, setSettingsMenuOpen,
     isCopilotOpen, setCopilotOpen
   } = useAppStore();
+  const { t } = useTranslation();
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -64,40 +67,40 @@ export default function App() {
           
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">Core</span>
-            <NavLink to="/" icon={LayoutDashboard}>Dashboard</NavLink>
-            <NavLink to="/quotes" icon={BadgeDollarSign}>Rate Comparer</NavLink>
-            <NavLink to="/pricing" icon={Activity}>Dynamic Pricing</NavLink>
-            <NavLink to="/globe" icon={Globe2}>Globe Tracker</NavLink>
-            <NavLink to="/schedules" icon={Calendar}>Sailing Schedules</NavLink>
-            <NavLink to="/bookings" icon={BookOpen}>Booking & B/L</NavLink>
+            <NavLink to="/" icon={LayoutDashboard}>{t('sidebar.dashboard')}</NavLink>
+            <NavLink to="/quotes" icon={BadgeDollarSign}>{t('sidebar.rateComparer')}</NavLink>
+            <NavLink to="/pricing" icon={Activity}>{t('sidebar.pricing')}</NavLink>
+            <NavLink to="/globe" icon={Globe2}>{t('sidebar.globeTracker')}</NavLink>
+            <NavLink to="/schedules" icon={Calendar}>{t('sidebar.schedules')}</NavLink>
+            <NavLink to="/bookings" icon={BookOpen}>{t('sidebar.bookings')}</NavLink>
           </div>
 
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">Finance & Compliance</span>
-            <NavLink to="/invoices" icon={Landmark}>Invoicing</NavLink>
-            <NavLink to="/customs" icon={ShieldAlert}>Customs Clearance</NavLink>
+            <NavLink to="/invoices" icon={Landmark}>{t('sidebar.invoicing')}</NavLink>
+            <NavLink to="/customs" icon={ShieldAlert}>{t('sidebar.customs')}</NavLink>
           </div>
 
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">Analytics</span>
-            <NavLink to="/profitability" icon={Activity}>Profitability</NavLink>
-            <NavLink to="/esg-tracker" icon={Leaf}>Carbon Tracker</NavLink>
-            <NavLink to="/demurrage" icon={Clock}>Demurrage Alerts</NavLink>
+            <NavLink to="/profitability" icon={Activity}>{t('sidebar.profitability')}</NavLink>
+            <NavLink to="/esg-tracker" icon={Leaf}>{t('sidebar.carbonTracker')}</NavLink>
+            <NavLink to="/demurrage" icon={Clock}>{t('sidebar.demurrage')}</NavLink>
           </div>
 
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">Operations</span>
-            <NavLink to="/planner" icon={Package}>Container Planner</NavLink>
-            <NavLink to="/lcl" icon={Cuboid}>LCL Engine</NavLink>
-            <NavLink to="/warehouse" icon={Boxes}>Warehouse 3D</NavLink>
-            <NavLink to="/tasks" icon={ListTodo}>Tasklist</NavLink>
-            <NavLink to="/documents" icon={FileText}>Document Vault</NavLink>
-            <NavLink to="/ai-assistant" icon={Bot}>AI Assistant</NavLink>
+            <NavLink to="/planner" icon={Package}>{t('sidebar.planner')}</NavLink>
+            <NavLink to="/lcl" icon={Cuboid}>{t('sidebar.lclEngine')}</NavLink>
+            <NavLink to="/warehouse" icon={Boxes}>{t('sidebar.warehouse')}</NavLink>
+            <NavLink to="/tasks" icon={ListTodo}>{t('sidebar.tasklist')}</NavLink>
+            <NavLink to="/documents" icon={FileText}>{t('sidebar.documents')}</NavLink>
+            <NavLink to="/ai-assistant" icon={Bot}>{t('sidebar.aiAssistant')}</NavLink>
           </div>
 
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">External Views</span>
-            <NavLink to="/portal" icon={Users}>Client Portal</NavLink>
+            <NavLink to="/portal" icon={Users}>{t('sidebar.customerPortal')}</NavLink>
           </div>
         </aside>
 
@@ -162,11 +165,11 @@ export default function App() {
                       <p className="text-sm font-bold text-slate-800">{user?.name}</p>
                       <p className="text-xs text-slate-500">{user?.email}</p>
                     </div>
-                    <Link to="/settings" onClick={() => setSettingsMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Profile Preferences</Link>
-                    <Link to="/settings" onClick={() => setSettingsMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Company Settings</Link>
-                    <Link to="/settings" onClick={() => setSettingsMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">API Keys</Link>
+                    <Link to="/settings#profile" onClick={() => setSettingsMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">{t('settings.profile')}</Link>
+                    <Link to="/settings#company" onClick={() => setSettingsMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">{t('settings.company')}</Link>
+                    <Link to="/settings#apikeys" onClick={() => setSettingsMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">{t('settings.apiKeys')}</Link>
                     <div className="h-px bg-slate-100 my-1"></div>
-                    <button onClick={() => { setSettingsMenuOpen(false); alert('Signed out successfully'); }} className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors">Sign out</button>
+                    <button onClick={() => { setSettingsMenuOpen(false); alert('Signed out successfully'); }} className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors">{t('settings.signOut')}</button>
                   </div>
                 )}
               </div>
@@ -180,24 +183,35 @@ export default function App() {
           <div className="flex-1 overflow-hidden relative">
             <Suspense fallback={<div className="flex items-center justify-center h-full text-slate-500 font-medium">Loading Module...</div>}>
               <Routes>
-                <Route path="/" element={<DashboardModule />} />
-                <Route path="/quotes" element={<RateComparerModule />} />
-                <Route path="/pricing" element={<DynamicPricingModule />} />
-                <Route path="/esg-tracker" element={<ESGCarbonTrackerModule />} />
-                <Route path="/planner" element={<ContainerPlannerModule />} />
-                <Route path="/profitability" element={<ProfitabilityModule />} />
-                <Route path="/tasks" element={<HumanTasklistModule />} />
-                <Route path="/globe" element={<GlobeTrackerModule />} />
-                <Route path="/demurrage" element={<DemurrageAlertsModule />} />
-                <Route path="/lcl" element={<LclConsolidationModule />} />
-                <Route path="/documents" element={<DocumentVaultModule />} />
-                <Route path="/warehouse" element={<Warehouse3DModule />} />
-                <Route path="/ai-assistant" element={<AIChainAssistantModule />} />
-                <Route path="/schedules" element={<SailingSchedulesModule />} />
-                <Route path="/bookings" element={<BookingManagementModule />} />
-                <Route path="/customs" element={<CustomsClearanceModule />} />
-                <Route path="/invoices" element={<InvoicingModule />} />
-                <Route path="/portal" element={<CustomerPortalModule />} />
+                {/* Core Modules - Accessible by internal roles */}
+                <Route path="/" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><DashboardModule /></ProtectedRoute>} />
+                <Route path="/quotes" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><RateComparerModule /></ProtectedRoute>} />
+                <Route path="/pricing" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES']}><DynamicPricingModule /></ProtectedRoute>} />
+                <Route path="/globe" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><GlobeTrackerModule /></ProtectedRoute>} />
+                <Route path="/schedules" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><SailingSchedulesModule /></ProtectedRoute>} />
+                <Route path="/bookings" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><BookingManagementModule /></ProtectedRoute>} />
+                
+                {/* Finance & Compliance - High Privilege */}
+                <Route path="/invoices" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER']}><InvoicingModule /></ProtectedRoute>} />
+                <Route path="/customs" element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'OPERATIONS']}><CustomsClearanceModule /></ProtectedRoute>} />
+                
+                {/* Analytics */}
+                <Route path="/profitability" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER']}><ProfitabilityModule /></ProtectedRoute>} />
+                <Route path="/esg-tracker" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'OPERATIONS']}><ESGCarbonTrackerModule /></ProtectedRoute>} />
+                <Route path="/demurrage" element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'OPERATIONS']}><DemurrageAlertsModule /></ProtectedRoute>} />
+                
+                {/* Operations */}
+                <Route path="/planner" element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'OPERATIONS']}><ContainerPlannerModule /></ProtectedRoute>} />
+                <Route path="/lcl" element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'OPERATIONS']}><LclConsolidationModule /></ProtectedRoute>} />
+                <Route path="/warehouse" element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'OPERATIONS']}><Warehouse3DModule /></ProtectedRoute>} />
+                <Route path="/tasks" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><HumanTasklistModule /></ProtectedRoute>} />
+                <Route path="/documents" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><DocumentVaultModule /></ProtectedRoute>} />
+                <Route path="/ai-assistant" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><AIChainAssistantModule /></ProtectedRoute>} />
+                
+                {/* External Portal */}
+                <Route path="/portal" element={<ProtectedRoute allowedRoles={['ADMIN', 'CUSTOMER']}><CustomerPortalModule /></ProtectedRoute>} />
+                
+                {/* Global Settings */}
                 <Route path="/settings" element={<SettingsModule />} />
               </Routes>
             </Suspense>
