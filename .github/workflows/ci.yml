@@ -97,8 +97,10 @@ jobs:
           gcloud run deploy atlas-backend \
             --source . \
             --dockerfile Dockerfile.backend \
-            --region us-central1 \
+            --region europe-west1 \
             --allow-unauthenticated \
+            --set-secrets="DATABASE_URL=DATABASE_URL:latest,CAMUNDA_CLIENT_ID=CAMUNDA_CLIENT_ID:latest,CAMUNDA_CLIENT_SECRET=CAMUNDA_CLIENT_SECRET:latest,CAMUNDA_CLUSTER_ID=CAMUNDA_CLUSTER_ID:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest" \
+            --add-cloudsql-instances="gen-lang-client-0393063451:europe-west1:atlas-db-prod" \
             --quiet
 
       - name: Deploy Frontend to Cloud Run
@@ -107,6 +109,7 @@ jobs:
           gcloud run deploy atlas-frontend \
             --source . \
             --dockerfile Dockerfile \
-            --region us-central1 \
+            --region europe-west1 \
             --allow-unauthenticated \
+            --set-build-env-vars="VITE_API_URL=https://atlas-backend-100198375762.europe-west1.run.app/api" \
             --quiet
