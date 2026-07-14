@@ -1,7 +1,8 @@
-import React, { Suspense, useState } from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes, Calendar, BookOpen, ShieldAlert, Landmark, Users } from 'lucide-react';
 import { OmniSearch } from '@atlas/ui/src/components/OmniSearch';
+import { useAppStore } from './store/useAppStore';
 
 const DashboardModule = React.lazy(() => import('@atlas/dashboard').then(m => ({ default: m.Dashboard })));
 // @ts-ignore
@@ -41,13 +42,17 @@ function NavLink({ to, icon: Icon, children }: { to: string, icon: any, children
 }
 
 export default function App() {
-  const [showCopilot, setShowCopilot] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const { 
+    user,
+    theme,
+    isNotificationsOpen, toggleNotifications,
+    isSettingsMenuOpen, toggleSettingsMenu, setSettingsMenuOpen,
+    isCopilotOpen, setCopilotOpen
+  } = useAppStore();
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <div className="flex h-screen bg-slate-50 font-sans">
+      <div className={`flex h-screen font-sans ${theme === 'dark' ? 'dark bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
         {/* Sidebar Shell */}
         <aside className="w-72 bg-slate-950 text-slate-300 p-6 flex flex-col gap-8 z-50 shadow-2xl border-r border-slate-800/60 overflow-y-auto">
           <div className="flex items-center gap-3">
@@ -107,13 +112,13 @@ export default function App() {
             <div className="flex items-center gap-4 ml-4">
               <div className="relative">
                 <button 
-                  onClick={() => { setShowNotifications(!showNotifications); setShowSettings(false); }}
+                  onClick={toggleNotifications}
                   className="p-2 text-slate-400 hover:text-indigo-600 transition-colors relative"
                 >
                   <Bell size={20} />
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
                 </button>
-                {showNotifications && (
+                {isNotificationsOpen && (
                   <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
                     <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                       <h3 className="font-bold text-slate-800">Notifications</h3>
@@ -146,27 +151,27 @@ export default function App() {
               </div>
               <div className="relative">
                 <button 
-                  onClick={() => { setShowSettings(!showSettings); setShowNotifications(false); }}
+                  onClick={toggleSettingsMenu}
                   className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
                 >
                   <Settings size={20} />
                 </button>
-                {showSettings && (
+                {isSettingsMenuOpen && (
                   <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden py-2">
                     <div className="px-4 py-3 border-b border-slate-100 mb-1">
-                      <p className="text-sm font-bold text-slate-800">John Doe</p>
-                      <p className="text-xs text-slate-500">john.doe@atlas.com</p>
+                      <p className="text-sm font-bold text-slate-800">{user?.name}</p>
+                      <p className="text-xs text-slate-500">{user?.email}</p>
                     </div>
-                    <Link to="/settings" onClick={() => setShowSettings(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Profile Preferences</Link>
-                    <Link to="/settings" onClick={() => setShowSettings(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Company Settings</Link>
-                    <Link to="/settings" onClick={() => setShowSettings(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">API Keys</Link>
+                    <Link to="/settings" onClick={() => setSettingsMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Profile Preferences</Link>
+                    <Link to="/settings" onClick={() => setSettingsMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Company Settings</Link>
+                    <Link to="/settings" onClick={() => setSettingsMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">API Keys</Link>
                     <div className="h-px bg-slate-100 my-1"></div>
-                    <button onClick={() => { setShowSettings(false); alert('Signed out successfully'); }} className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors">Sign out</button>
+                    <button onClick={() => { setSettingsMenuOpen(false); alert('Signed out successfully'); }} className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors">Sign out</button>
                   </div>
                 )}
               </div>
               <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center border border-indigo-200 text-indigo-700 font-bold text-sm ml-2">
-                JD
+                {user?.avatarInitials}
               </div>
             </div>
           </header>
@@ -200,10 +205,10 @@ export default function App() {
 
           {/* Floating AI Copilot */}
           <div className="absolute bottom-6 right-6 z-[100]">
-            {showCopilot ? (
+            {isCopilotOpen ? (
               <div className="w-[400px] h-[600px] rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-700 bg-slate-900 relative">
                 <button 
-                  onClick={() => setShowCopilot(false)}
+                  onClick={() => setCopilotOpen(false)}
                   className="absolute top-4 right-4 text-slate-400 hover:text-white z-10"
                 >
                   ✕
@@ -214,7 +219,7 @@ export default function App() {
               </div>
             ) : (
               <button 
-                onClick={() => setShowCopilot(true)}
+                onClick={() => setCopilotOpen(true)}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-full shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all hover:scale-105 flex items-center justify-center group"
               >
                 <div className="absolute -inset-1 bg-indigo-500 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
