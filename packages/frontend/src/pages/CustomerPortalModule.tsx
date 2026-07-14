@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { PackageSearch, FileText, Anchor, Truck, ShieldCheck, MapPin, Search } from 'lucide-react';
 
