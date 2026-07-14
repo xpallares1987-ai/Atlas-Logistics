@@ -109,7 +109,7 @@ jobs:
       - name: Deploy Frontend to Cloud Run
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         run: |
-          gcloud run deploy atlas-frontend \
+          gcloud run deploy atlas-logistics \
             --image europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-frontend:latest \
             --region europe-west1 \
             --allow-unauthenticated \
