@@ -89,17 +89,17 @@ jobs:
       - name: Build and Push Docker Images
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         run: |
-          gcloud auth configure-docker gcr.io --quiet
-          docker build -t gcr.io/gen-lang-client-0393063451/atlas-backend:latest -f Dockerfile.backend .
-          docker push gcr.io/gen-lang-client-0393063451/atlas-backend:latest
-          docker build --build-arg VITE_API_URL=https://atlas-backend-100198375762.europe-west1.run.app/api -t gcr.io/gen-lang-client-0393063451/atlas-frontend:latest -f Dockerfile .
-          docker push gcr.io/gen-lang-client-0393063451/atlas-frontend:latest
+          gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+          docker build -t europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-backend:latest -f Dockerfile.backend .
+          docker push europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-backend:latest
+          docker build --build-arg VITE_API_URL=https://atlas-backend-100198375762.europe-west1.run.app/api -t europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-frontend:latest -f Dockerfile .
+          docker push europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-frontend:latest
 
       - name: Deploy Backend to Cloud Run
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         run: |
           gcloud run deploy atlas-backend \
-            --image gcr.io/gen-lang-client-0393063451/atlas-backend:latest \
+            --image europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-backend:latest \
             --region europe-west1 \
             --allow-unauthenticated \
             --set-secrets="DATABASE_URL=DATABASE_URL:latest,CAMUNDA_CLIENT_ID=CAMUNDA_CLIENT_ID:latest,CAMUNDA_CLIENT_SECRET=CAMUNDA_CLIENT_SECRET:latest,CAMUNDA_CLUSTER_ID=CAMUNDA_CLUSTER_ID:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest" \
@@ -110,7 +110,7 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         run: |
           gcloud run deploy atlas-frontend \
-            --image gcr.io/gen-lang-client-0393063451/atlas-frontend:latest \
+            --image europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-frontend:latest \
             --region europe-west1 \
             --allow-unauthenticated \
             --quiet
