@@ -19,7 +19,7 @@ RUN pnpm run build
 FROM nginx:alpine AS production
 COPY --from=builder /app/packages/frontend/dist /usr/share/nginx/html
 RUN printf 'server {\n\
-    listen 3000;\n\
+    listen 8080;\n\
     server_name localhost;\n\
     root /usr/share/nginx/html;\n\
     index index.html;\n\
@@ -34,5 +34,5 @@ RUN printf 'server {\n\
         add_header Cache-Control "public";\n\
     }\n\
 }' > /etc/nginx/conf.d/default.conf
-EXPOSE 3000
+EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]
