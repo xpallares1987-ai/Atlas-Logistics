@@ -19,6 +19,6 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN npm install -g pnpm@${PNPM_VERSION}
 WORKDIR /app
 COPY --from=builder /app /app
-# Se asume que el contenedor inyectará las variables de entorno o usará secretos en GCP
-EXPOSE 3001
-CMD ["npx", "tsx", "src/index.ts"]
+# Cloud Run inyecta PORT=8080 por defecto; el código usa process.env.PORT || 3001
+EXPOSE 8080
+CMD ["node", "--import", "tsx/esm", "src/index.ts"]

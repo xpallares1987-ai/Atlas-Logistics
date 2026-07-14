@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
+// En producción (Cloud Run), las variables de entorno vienen de Secret Manager.
+// En desarrollo local, se cargan desde .env.local si existe.
+dotenv.config({ path: '.env.local', override: false });
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
