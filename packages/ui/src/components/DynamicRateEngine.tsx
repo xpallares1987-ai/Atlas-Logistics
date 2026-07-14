@@ -26,11 +26,12 @@ export interface DynamicRateItem {
   thc: number; // Terminal Handling Charge Origin + Dest
 }
 
+// @ts-ignore
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export function DynamicRateEngine() {
   const [ratesData, setRatesData] = useState<DynamicRateItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
 
   const [origin, setOrigin] = useState("CNSHA (Shanghai)");
   const [destination, setDestination] = useState("NLRTM (Rotterdam)");
