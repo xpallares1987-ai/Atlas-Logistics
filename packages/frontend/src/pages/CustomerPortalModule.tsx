@@ -11,12 +11,14 @@ interface ClientShipment {
   progress: number;
 }
 
+// @ts-ignore
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export default function CustomerPortalModule() {
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState('');
-  const [shipments, setShipments] = useState<ClientShipment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [shipments, setShipments] = useState<any[]>([]);
+  const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchShipments();
