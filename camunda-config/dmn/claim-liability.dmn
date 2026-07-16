@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1l9a2b" name="Claim Liability" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Modeler" exporterVersion="5.25.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.5.0">
+  <decision id="claim-liability" name="Claim Liability Assessment">
+    <decisionTable id="DecisionTable_1v9q8h2" hitPolicy="FIRST">
+      <input id="Input_1" label="Claim Type">
+        <inputExpression id="InputExpression_1" typeRef="string">
+          <text>claimType</text>
+        </inputExpression>
+      </input>
+      <input id="Input_2" label="Incident Location">
+        <inputExpression id="InputExpression_2" typeRef="string">
+          <text>incidentLocation</text>
+        </inputExpression>
+      </input>
+      <input id="Input_3" label="Incoterms">
+        <inputExpression id="InputExpression_3" typeRef="string">
+          <text>incoterms</text>
+        </inputExpression>
+      </input>
+      <output id="Output_1" label="Liable Party" name="liableParty" typeRef="string" />
+      <output id="Output_2" label="Require Insurance Eval" name="requireInsuranceEval" typeRef="boolean" />
+      <rule id="DecisionRule_1a2b3c">
+        <inputEntry id="UnaryTests_1q2w3e">
+          <text>"DAMAGE"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_2a3s4d">
+          <text>"WAREHOUSE"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_3z4x5c">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_4q5w6e">
+          <text>"ATLAS_WAREHOUSE"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_5a6s7d">
+          <text>false</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_2b3c4d">
+        <inputEntry id="UnaryTests_4q5w6e">
+          <text>"DAMAGE"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_5a6s7d">
+          <text>"TRANSIT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_6z7x8c">
+          <text>"FOB"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_7q8w9e">
+          <text>"BUYER"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_8a9s0d">
+          <text>true</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_3c4d5e">
+        <inputEntry id="UnaryTests_7q8w9e">
+          <text>"DELAY"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_8a9s0d">
+          <text>"CUSTOMS"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_9z0x1c">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_0q1w2e">
+          <text>"GOVERNMENT"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1a2s3d">
+          <text>false</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_4d5e6f">
+        <inputEntry id="UnaryTests_0q9w8e">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_9a8s7d">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_8z7x6c">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_7q6w5e">
+          <text>"UNKNOWN_INVESTIGATE"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_6a5s4d">
+          <text>true</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram>
+      <dmndi:DMNShape dmnElementRef="claim-liability">
+        <dc:Bounds height="80" width="180" x="160" y="100" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

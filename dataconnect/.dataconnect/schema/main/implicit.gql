@@ -1,0 +1,172 @@
+extend type Company {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Company", purpose: IMPLICIT_KEY_FIELD)
+}
+extend type CrmDeal {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "CrmDeal", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `CrmDeal`.`customer`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  customerId: UUID! @fdc_generated(from: "CrmDeal.customer", purpose: IMPLICIT_REF_FIELD)
+}
+extend type CrmInteraction {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "CrmInteraction", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `CrmInteraction`.`customer`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  customerId: UUID! @fdc_generated(from: "CrmInteraction.customer", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Document {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Document", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Document`.`issuedBy`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  issuedById: UUID @fdc_generated(from: "Document.issuedBy", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Document`.`shipment`. It must match the value of `Shipment`.`id`. See `@ref` for how to customize it.
+  """
+  shipmentId: UUID @fdc_generated(from: "Document.shipment", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Invoice {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Invoice", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Invoice`.`createdBy`. It must match the value of `User`.`uid`. See `@ref` for how to customize it.
+  """
+  createdByUid: String @fdc_generated(from: "Invoice.createdBy", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Invoice`.`customer`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  customerId: UUID @fdc_generated(from: "Invoice.customer", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Invoice`.`shipment`. It must match the value of `Shipment`.`id`. See `@ref` for how to customize it.
+  """
+  shipmentId: UUID @fdc_generated(from: "Invoice.shipment", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Milestone {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Milestone", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Milestone`.`shipment`. It must match the value of `Shipment`.`id`. See `@ref` for how to customize it.
+  """
+  shipmentId: UUID! @fdc_generated(from: "Milestone.shipment", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Quote {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Quote", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Quote`.`carrier`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  carrierId: UUID @fdc_generated(from: "Quote.carrier", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Quote`.`customer`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  customerId: UUID! @fdc_generated(from: "Quote.customer", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Quote`.`hsCode`. It must match the value of `HsCode`.`code`. See `@ref` for how to customize it.
+  """
+  hsCodeCode: String @fdc_generated(from: "Quote.hsCode", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Quote`.`incoterm`. It must match the value of `Incoterm`.`code`. See `@ref` for how to customize it.
+  """
+  incotermCode: String @fdc_generated(from: "Quote.incoterm", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Schedule {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Schedule", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Schedule`.`pod`. It must match the value of `Location`.`locode`. See `@ref` for how to customize it.
+  """
+  podLocode: String! @fdc_generated(from: "Schedule.pod", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Schedule`.`pol`. It must match the value of `Location`.`locode`. See `@ref` for how to customize it.
+  """
+  polLocode: String! @fdc_generated(from: "Schedule.pol", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Schedule`.`vessel`. It must match the value of `Vessel`.`imoNumber`. See `@ref` for how to customize it.
+  """
+  vesselImoNumber: String! @fdc_generated(from: "Schedule.vessel", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Shipment {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Shipment", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Shipment`.`carrier`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  carrierId: UUID @fdc_generated(from: "Shipment.carrier", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Shipment`.`customer`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  customerId: UUID! @fdc_generated(from: "Shipment.customer", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Shipment`.`haulierDestination`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  haulierDestinationId: UUID @fdc_generated(from: "Shipment.haulierDestination", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Shipment`.`haulierOrigin`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  haulierOriginId: UUID @fdc_generated(from: "Shipment.haulierOrigin", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Shipment`.`hsCode`. It must match the value of `HsCode`.`code`. See `@ref` for how to customize it.
+  """
+  hsCodeCode: String @fdc_generated(from: "Shipment.hsCode", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Shipment`.`incoterm`. It must match the value of `Incoterm`.`code`. See `@ref` for how to customize it.
+  """
+  incotermCode: String @fdc_generated(from: "Shipment.incoterm", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Shipment`.`supplier`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  supplierId: UUID @fdc_generated(from: "Shipment.supplier", purpose: IMPLICIT_REF_FIELD)
+}
+extend type ShipmentEventLog {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "ShipmentEventLog", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `ShipmentEventLog`.`performedBy`. It must match the value of `User`.`uid`. See `@ref` for how to customize it.
+  """
+  performedByUid: String @fdc_generated(from: "ShipmentEventLog.performedBy", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `ShipmentEventLog`.`shipment`. It must match the value of `Shipment`.`id`. See `@ref` for how to customize it.
+  """
+  shipmentId: UUID! @fdc_generated(from: "ShipmentEventLog.shipment", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Vessel {
+  """
+  ✨ Implicit foreign key field based on `Vessel`.`carrier`. It must match the value of `Company`.`id`. See `@ref` for how to customize it.
+  """
+  carrierId: UUID! @fdc_generated(from: "Vessel.carrier", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Workflow {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Workflow", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Workflow`.`shipment`. It must match the value of `Shipment`.`id`. See `@ref` for how to customize it.
+  """
+  shipmentId: UUID! @fdc_generated(from: "Workflow.shipment", purpose: IMPLICIT_REF_FIELD)
+}

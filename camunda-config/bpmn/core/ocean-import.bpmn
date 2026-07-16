@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  id="Definitions_OceanImport"
+  targetNamespace="http://bpmn.io/schema/bpmn"
+  exporter="Camunda Modeler"
+  exporterVersion="5.0.0">
+
+  <bpmn:process id="ocean-import-process" name="Ocean Import Process" isExecutable="true">
+
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_1" name="Arrival Notice Received">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Validate Arrival Notice -->
+    <bpmn:serviceTask id="Task_ValidateArrival" name="Validate Arrival Notice">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.import.validate-arrival" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Check Vessel Schedule -->
+    <bpmn:serviceTask id="Task_CheckVessel" name="Check Vessel Schedule">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.tracking.check-vessel" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Vessel Arrived? Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_VesselArrived" name="Vessel Arrived?">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Wait for Vessel Timer -->
+    <bpmn:intermediateCatchEvent id="Event_WaitVessel" name="Wait for Vessel">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_WaitVessel">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT12H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+
+    <!-- Parallel Fork -->
+    <bpmn:parallelGateway id="Gateway_ParallelFork" name="Fork Parallel Tasks">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <!-- Branch A: Customs Clearance -->
+    <bpmn:serviceTask id="Task_InitiateCustoms" name="Initiate Customs Clearance">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.customs.initiate" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_AwaitCustoms" name="Await Customs Release">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.customs.await-release" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Non-Interrupting Timer Boundary: Demurrage Alert -->
+    <bpmn:boundaryEvent id="BoundaryEvent_Demurrage" name="Demurrage Timer" cancelActivity="false" attachedToRef="Task_AwaitCustoms">
+      <bpmn:outgoing>Flow_23</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_Demurrage">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT48H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_DemurrageAlert" name="Send Demurrage Alert">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.alerts.demurrage" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_23</bpmn:incoming>
+      <bpmn:outgoing>Flow_24</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_Demurrage" name="Demurrage Alert Sent">
+      <bpmn:incoming>Flow_24</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Branch B: Container Drayage -->
+    <bpmn:serviceTask id="Task_ArrangeDrayage" name="Arrange Container Drayage">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.transport.arrange-drayage" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Branch C: Notify Consignee -->
+    <bpmn:serviceTask id="Task_NotifyConsignee" name="Notify Consignee">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.notify.consignee" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Parallel Join -->
+    <bpmn:parallelGateway id="Gateway_ParallelJoin" name="Join Parallel Tasks">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <!-- User Task: Verify Cargo Condition -->
+    <bpmn:userTask id="Task_VerifyCargo" name="Verify Cargo Condition">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:cargo-inspection" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Cargo OK? Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_CargoOK" name="Cargo OK?">
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+      <bpmn:outgoing>Flow_17</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- File Damage Claim -->
+    <bpmn:serviceTask id="Task_FileClaim" name="File Damage Claim">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.claims.file" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_18</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Cargo Merge Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_CargoMerge" name="Merge">
+      <bpmn:incoming>Flow_17</bpmn:incoming>
+      <bpmn:incoming>Flow_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_19</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Schedule Delivery -->
+    <bpmn:serviceTask id="Task_ScheduleDelivery" name="Schedule Delivery">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.transport.schedule-delivery" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_20</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Complete Delivery -->
+    <bpmn:serviceTask id="Task_CompleteDelivery" name="Complete Delivery">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.transport.complete-delivery" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_21</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Generate Import Invoice -->
+    <bpmn:serviceTask id="Task_GenerateInvoice" name="Generate Import Invoice">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.generate-import" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_21</bpmn:incoming>
+      <bpmn:outgoing>Flow_22</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- End Event -->
+    <bpmn:endEvent id="EndEvent_1" name="Import Completed">
+      <bpmn:incoming>Flow_22</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_ValidateArrival" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_ValidateArrival" targetRef="Task_CheckVessel" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CheckVessel" targetRef="Gateway_VesselArrived" />
+    <bpmn:sequenceFlow id="Flow_4" name="No" sourceRef="Gateway_VesselArrived" targetRef="Event_WaitVessel">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=vesselArrived = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Event_WaitVessel" targetRef="Task_CheckVessel" />
+    <bpmn:sequenceFlow id="Flow_6" name="Yes" sourceRef="Gateway_VesselArrived" targetRef="Gateway_ParallelFork">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=vesselArrived = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Gateway_ParallelFork" targetRef="Task_InitiateCustoms" />
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_InitiateCustoms" targetRef="Task_AwaitCustoms" />
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Gateway_ParallelFork" targetRef="Task_ArrangeDrayage" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Gateway_ParallelFork" targetRef="Task_NotifyConsignee" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_AwaitCustoms" targetRef="Gateway_ParallelJoin" />
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_ArrangeDrayage" targetRef="Gateway_ParallelJoin" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_NotifyConsignee" targetRef="Gateway_ParallelJoin" />
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="Gateway_ParallelJoin" targetRef="Task_VerifyCargo" />
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="Task_VerifyCargo" targetRef="Gateway_CargoOK" />
+    <bpmn:sequenceFlow id="Flow_16" name="Damaged" sourceRef="Gateway_CargoOK" targetRef="Task_FileClaim">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=cargoCondition = "damaged"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_17" name="OK" sourceRef="Gateway_CargoOK" targetRef="Gateway_CargoMerge">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=cargoCondition = "ok"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="Task_FileClaim" targetRef="Gateway_CargoMerge" />
+    <bpmn:sequenceFlow id="Flow_19" sourceRef="Gateway_CargoMerge" targetRef="Task_ScheduleDelivery" />
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="Task_ScheduleDelivery" targetRef="Task_CompleteDelivery" />
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="Task_CompleteDelivery" targetRef="Task_GenerateInvoice" />
+    <bpmn:sequenceFlow id="Flow_22" sourceRef="Task_GenerateInvoice" targetRef="EndEvent_1" />
+    <bpmn:sequenceFlow id="Flow_23" sourceRef="BoundaryEvent_Demurrage" targetRef="Task_DemurrageAlert" />
+    <bpmn:sequenceFlow id="Flow_24" sourceRef="Task_DemurrageAlert" targetRef="EndEvent_Demurrage" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ocean-import-process">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="162" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="138" y="335" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Validate Arrival Notice -->
+      <bpmndi:BPMNShape id="Task_ValidateArrival_di" bpmnElement="Task_ValidateArrival">
+        <dc:Bounds x="250" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Check Vessel Schedule -->
+      <bpmndi:BPMNShape id="Task_CheckVessel_di" bpmnElement="Task_CheckVessel">
+        <dc:Bounds x="400" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Vessel Arrived? Gateway -->
+      <bpmndi:BPMNShape id="Gateway_VesselArrived_di" bpmnElement="Gateway_VesselArrived" isMarkerVisible="true">
+        <dc:Bounds x="550" y="285" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="538" y="261" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Wait for Vessel Timer -->
+      <bpmndi:BPMNShape id="Event_WaitVessel_di" bpmnElement="Event_WaitVessel">
+        <dc:Bounds x="557" y="400" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="539" y="443" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Parallel Fork -->
+      <bpmndi:BPMNShape id="Gateway_ParallelFork_di" bpmnElement="Gateway_ParallelFork">
+        <dc:Bounds x="650" y="285" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="631" y="261" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Branch A: Initiate Customs Clearance -->
+      <bpmndi:BPMNShape id="Task_InitiateCustoms_di" bpmnElement="Task_InitiateCustoms">
+        <dc:Bounds x="760" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Branch A: Await Customs Release -->
+      <bpmndi:BPMNShape id="Task_AwaitCustoms_di" bpmnElement="Task_AwaitCustoms">
+        <dc:Bounds x="910" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Demurrage Boundary Timer -->
+      <bpmndi:BPMNShape id="BoundaryEvent_Demurrage_di" bpmnElement="BoundaryEvent_Demurrage">
+        <dc:Bounds x="942" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="920" y="165" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Send Demurrage Alert -->
+      <bpmndi:BPMNShape id="Task_DemurrageAlert_di" bpmnElement="Task_DemurrageAlert">
+        <dc:Bounds x="1010" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Demurrage Alert Sent End Event -->
+      <bpmndi:BPMNShape id="EndEvent_Demurrage_di" bpmnElement="EndEvent_Demurrage">
+        <dc:Bounds x="1152" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1124" y="255" width="93" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Branch B: Arrange Container Drayage -->
+      <bpmndi:BPMNShape id="Task_ArrangeDrayage_di" bpmnElement="Task_ArrangeDrayage">
+        <dc:Bounds x="760" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Branch C: Notify Consignee -->
+      <bpmndi:BPMNShape id="Task_NotifyConsignee_di" bpmnElement="Task_NotifyConsignee">
+        <dc:Bounds x="760" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Parallel Join -->
+      <bpmndi:BPMNShape id="Gateway_ParallelJoin_di" bpmnElement="Gateway_ParallelJoin">
+        <dc:Bounds x="1060" y="285" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1041" y="342" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Verify Cargo Condition -->
+      <bpmndi:BPMNShape id="Task_VerifyCargo_di" bpmnElement="Task_VerifyCargo">
+        <dc:Bounds x="1160" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Cargo OK? Gateway -->
+      <bpmndi:BPMNShape id="Gateway_CargoOK_di" bpmnElement="Gateway_CargoOK" isMarkerVisible="true">
+        <dc:Bounds x="1310" y="285" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1310" y="261" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- File Damage Claim -->
+      <bpmndi:BPMNShape id="Task_FileClaim_di" bpmnElement="Task_FileClaim">
+        <dc:Bounds x="1355" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Cargo Merge Gateway -->
+      <bpmndi:BPMNShape id="Gateway_CargoMerge_di" bpmnElement="Gateway_CargoMerge" isMarkerVisible="true">
+        <dc:Bounds x="1510" y="285" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Schedule Delivery -->
+      <bpmndi:BPMNShape id="Task_ScheduleDelivery_di" bpmnElement="Task_ScheduleDelivery">
+        <dc:Bounds x="1610" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Complete Delivery -->
+      <bpmndi:BPMNShape id="Task_CompleteDelivery_di" bpmnElement="Task_CompleteDelivery">
+        <dc:Bounds x="1760" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Generate Import Invoice -->
+      <bpmndi:BPMNShape id="Task_GenerateInvoice_di" bpmnElement="Task_GenerateInvoice">
+        <dc:Bounds x="1910" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event -->
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="2062" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2038" y="335" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="198" y="310" />
+        <di:waypoint x="250" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="350" y="310" />
+        <di:waypoint x="400" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="500" y="310" />
+        <di:waypoint x="550" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="575" y="335" />
+        <di:waypoint x="575" y="400" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="583" y="363" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="557" y="418" />
+        <di:waypoint x="450" y="418" />
+        <di:waypoint x="450" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="600" y="310" />
+        <di:waypoint x="650" y="310" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="618" y="292" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="675" y="285" />
+        <di:waypoint x="675" y="100" />
+        <di:waypoint x="760" y="100" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="860" y="100" />
+        <di:waypoint x="910" y="100" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="700" y="310" />
+        <di:waypoint x="760" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="675" y="335" />
+        <di:waypoint x="675" y="490" />
+        <di:waypoint x="760" y="490" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1010" y="100" />
+        <di:waypoint x="1085" y="100" />
+        <di:waypoint x="1085" y="285" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="860" y="310" />
+        <di:waypoint x="1060" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="860" y="490" />
+        <di:waypoint x="1085" y="490" />
+        <di:waypoint x="1085" y="335" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1110" y="310" />
+        <di:waypoint x="1160" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="1260" y="310" />
+        <di:waypoint x="1310" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="1335" y="335" />
+        <di:waypoint x="1335" y="460" />
+        <di:waypoint x="1355" y="460" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1280" y="393" width="47" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="1360" y="310" />
+        <di:waypoint x="1510" y="310" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1429" y="292" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint x="1455" y="460" />
+        <di:waypoint x="1535" y="460" />
+        <di:waypoint x="1535" y="335" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_19_di" bpmnElement="Flow_19">
+        <di:waypoint x="1560" y="310" />
+        <di:waypoint x="1610" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_20_di" bpmnElement="Flow_20">
+        <di:waypoint x="1710" y="310" />
+        <di:waypoint x="1760" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_21_di" bpmnElement="Flow_21">
+        <di:waypoint x="1860" y="310" />
+        <di:waypoint x="1910" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_22_di" bpmnElement="Flow_22">
+        <di:waypoint x="2010" y="310" />
+        <di:waypoint x="2062" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_23_di" bpmnElement="Flow_23">
+        <di:waypoint x="960" y="158" />
+        <di:waypoint x="960" y="230" />
+        <di:waypoint x="1010" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_24_di" bpmnElement="Flow_24">
+        <di:waypoint x="1110" y="230" />
+        <di:waypoint x="1152" y="230" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

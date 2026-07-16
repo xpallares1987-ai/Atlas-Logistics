@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_CustomsClearance"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:process id="customs-clearance-process" name="Customs Clearance Process" isExecutable="true">
+
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_ClearanceInitiated" name="Clearance Initiated">
+      <bpmn:outgoing>Flow_Start_ValidateHS</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Business Rule Task: Validate HS Codes -->
+    <bpmn:businessRuleTask id="Task_ValidateHSCodes" name="Validate HS Codes">
+      <bpmn:extensionElements>
+        <zeebe:calledDecision decisionId="customs-hs-validation" resultVariable="hsValidation" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Start_ValidateHS</bpmn:incoming>
+      <bpmn:outgoing>Flow_ValidateHS_GwRestrictions</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+
+    <!-- Exclusive Gateway: Restrictions Found? -->
+    <bpmn:exclusiveGateway id="Gateway_RestrictionsFound" name="Restrictions Found?">
+      <bpmn:incoming>Flow_ValidateHS_GwRestrictions</bpmn:incoming>
+      <bpmn:outgoing>Flow_Restrictions_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Restrictions_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- User Task: Review Restrictions (Yes branch) -->
+    <bpmn:userTask id="Task_ReviewRestrictions" name="Review Restrictions">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:customs-review" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Restrictions_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReviewRestr_GwProceed</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Exclusive Gateway: Proceed? -->
+    <bpmn:exclusiveGateway id="Gateway_Proceed" name="Proceed?">
+      <bpmn:incoming>Flow_ReviewRestr_GwProceed</bpmn:incoming>
+      <bpmn:outgoing>Flow_Proceed_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Proceed_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Service Task: Block Shipment (Proceed = No) -->
+    <bpmn:serviceTask id="Task_BlockShipment" name="Block Shipment">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.customs.block-shipment" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Proceed_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_Block_EndBlocked</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- End Event: Shipment Blocked -->
+    <bpmn:endEvent id="EndEvent_ShipmentBlocked" name="Shipment Blocked">
+      <bpmn:incoming>Flow_Block_EndBlocked</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Merge Gateway (after restrictions check / proceed) -->
+    <bpmn:exclusiveGateway id="Gateway_MergeRestrictions" name="Continue to Declaration">
+      <bpmn:incoming>Flow_Restrictions_No</bpmn:incoming>
+      <bpmn:incoming>Flow_Proceed_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_Merge_PrepareDecl</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Service Task: Prepare Declaration -->
+    <bpmn:serviceTask id="Task_PrepareDeclaration" name="Prepare Declaration">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.customs.prepare-declaration" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Merge_PrepareDecl</bpmn:incoming>
+      <bpmn:incoming>Flow_Rejection_PrepareDecl</bpmn:incoming>
+      <bpmn:outgoing>Flow_PrepareDecl_Submit</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Service Task: Submit to Customs Authority -->
+    <bpmn:serviceTask id="Task_SubmitDeclaration" name="Submit to Customs Authority">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.customs.submit-declaration" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_PrepareDecl_Submit</bpmn:incoming>
+      <bpmn:outgoing>Flow_Submit_AwaitResponse</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Message Intermediate Catch Event: Await Customs Response -->
+    <bpmn:intermediateCatchEvent id="Event_AwaitCustomsResponse" name="Await Customs Response">
+      <bpmn:incoming>Flow_Submit_AwaitResponse</bpmn:incoming>
+      <bpmn:outgoing>Flow_Response_GwDecision</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_CustomsResponse" messageRef="Message_CustomsAuthorityResponse" />
+    </bpmn:intermediateCatchEvent>
+
+    <!-- Exclusive Gateway: Customs Decision? -->
+    <bpmn:exclusiveGateway id="Gateway_CustomsDecision" name="Customs Decision?">
+      <bpmn:incoming>Flow_Response_GwDecision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Decision_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Decision_Inspection</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Decision_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Service Task: Release Goods (Approved / post-Inspection) -->
+    <bpmn:serviceTask id="Task_ReleaseGoods" name="Release Goods">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.customs.release-goods" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Decision_Approved</bpmn:incoming>
+      <bpmn:incoming>Flow_Inspection_Release</bpmn:incoming>
+      <bpmn:outgoing>Flow_Release_EndCleared</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- End Event: Goods Cleared -->
+    <bpmn:endEvent id="EndEvent_GoodsCleared" name="Goods Cleared">
+      <bpmn:incoming>Flow_Release_EndCleared</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- User Task: Attend Inspection (Inspection Required branch) -->
+    <bpmn:userTask id="Task_AttendInspection" name="Attend Inspection">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:customs-review" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Decision_Inspection</bpmn:incoming>
+      <bpmn:outgoing>Flow_Inspection_Release</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Service Task: Review & Prepare Resubmission (Rejected branch) -->
+    <bpmn:serviceTask id="Task_ReviewRejection" name="Review &amp; Prepare Resubmission">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.customs.review-rejection" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Decision_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_Rejection_PrepareDecl</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_Start_ValidateHS" sourceRef="StartEvent_ClearanceInitiated" targetRef="Task_ValidateHSCodes" />
+    <bpmn:sequenceFlow id="Flow_ValidateHS_GwRestrictions" sourceRef="Task_ValidateHSCodes" targetRef="Gateway_RestrictionsFound" />
+
+    <bpmn:sequenceFlow id="Flow_Restrictions_Yes" name="Yes" sourceRef="Gateway_RestrictionsFound" targetRef="Task_ReviewRestrictions">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=hsValidation.restrictionsFound = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Restrictions_No" name="No" sourceRef="Gateway_RestrictionsFound" targetRef="Gateway_MergeRestrictions">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=hsValidation.restrictionsFound = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_ReviewRestr_GwProceed" sourceRef="Task_ReviewRestrictions" targetRef="Gateway_Proceed" />
+
+    <bpmn:sequenceFlow id="Flow_Proceed_Yes" name="Yes" sourceRef="Gateway_Proceed" targetRef="Gateway_MergeRestrictions">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=proceedWithShipment = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Proceed_No" name="No" sourceRef="Gateway_Proceed" targetRef="Task_BlockShipment">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=proceedWithShipment = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Block_EndBlocked" sourceRef="Task_BlockShipment" targetRef="EndEvent_ShipmentBlocked" />
+    <bpmn:sequenceFlow id="Flow_Merge_PrepareDecl" sourceRef="Gateway_MergeRestrictions" targetRef="Task_PrepareDeclaration" />
+    <bpmn:sequenceFlow id="Flow_PrepareDecl_Submit" sourceRef="Task_PrepareDeclaration" targetRef="Task_SubmitDeclaration" />
+    <bpmn:sequenceFlow id="Flow_Submit_AwaitResponse" sourceRef="Task_SubmitDeclaration" targetRef="Event_AwaitCustomsResponse" />
+    <bpmn:sequenceFlow id="Flow_Response_GwDecision" sourceRef="Event_AwaitCustomsResponse" targetRef="Gateway_CustomsDecision" />
+
+    <bpmn:sequenceFlow id="Flow_Decision_Approved" name="Approved" sourceRef="Gateway_CustomsDecision" targetRef="Task_ReleaseGoods">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=customsDecision = "approved"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Decision_Inspection" name="Inspection Required" sourceRef="Gateway_CustomsDecision" targetRef="Task_AttendInspection">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=customsDecision = "inspection_required"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Decision_Rejected" name="Rejected" sourceRef="Gateway_CustomsDecision" targetRef="Task_ReviewRejection">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=customsDecision = "rejected"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Inspection_Release" sourceRef="Task_AttendInspection" targetRef="Task_ReleaseGoods" />
+    <bpmn:sequenceFlow id="Flow_Release_EndCleared" sourceRef="Task_ReleaseGoods" targetRef="EndEvent_GoodsCleared" />
+    <bpmn:sequenceFlow id="Flow_Rejection_PrepareDecl" sourceRef="Task_ReviewRejection" targetRef="Task_PrepareDeclaration" />
+
+  </bpmn:process>
+
+  <!-- Message Definition -->
+  <bpmn:message id="Message_CustomsAuthorityResponse" name="customs-authority-response">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=declarationId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+
+  <!-- BPMN Diagram -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_CustomsClearance">
+    <bpmndi:BPMNPlane id="BPMNPlane_CustomsClearance" bpmnElement="customs-clearance-process">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="Shape_StartClearance" bpmnElement="StartEvent_ClearanceInitiated">
+        <dc:Bounds x="162" y="252" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="136" y="295" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Validate HS Codes -->
+      <bpmndi:BPMNShape id="Shape_ValidateHS" bpmnElement="Task_ValidateHSCodes">
+        <dc:Bounds x="260" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Restrictions Found? -->
+      <bpmndi:BPMNShape id="Shape_GwRestrictions" bpmnElement="Gateway_RestrictionsFound" isMarkerVisible="true">
+        <dc:Bounds x="415" y="245" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="393" y="215" width="95" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Review Restrictions (above main flow, Yes branch) -->
+      <bpmndi:BPMNShape id="Shape_ReviewRestrictions" bpmnElement="Task_ReviewRestrictions">
+        <dc:Bounds x="390" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Proceed? -->
+      <bpmndi:BPMNShape id="Shape_GwProceed" bpmnElement="Gateway_Proceed" isMarkerVisible="true">
+        <dc:Bounds x="545" y="115" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="545" y="85" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Block Shipment (above, No-Proceed branch) -->
+      <bpmndi:BPMNShape id="Shape_BlockShipment" bpmnElement="Task_BlockShipment">
+        <dc:Bounds x="660" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event: Shipment Blocked -->
+      <bpmndi:BPMNShape id="Shape_EndBlocked" bpmnElement="EndEvent_ShipmentBlocked">
+        <dc:Bounds x="822" y="52" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="798" y="95" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Merge Gateway -->
+      <bpmndi:BPMNShape id="Shape_GwMerge" bpmnElement="Gateway_MergeRestrictions" isMarkerVisible="true">
+        <dc:Bounds x="615" y="245" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="593" y="302" width="95" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Prepare Declaration -->
+      <bpmndi:BPMNShape id="Shape_PrepareDecl" bpmnElement="Task_PrepareDeclaration">
+        <dc:Bounds x="730" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Submit to Customs Authority -->
+      <bpmndi:BPMNShape id="Shape_SubmitDecl" bpmnElement="Task_SubmitDeclaration">
+        <dc:Bounds x="890" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Message Catch: Await Customs Response -->
+      <bpmndi:BPMNShape id="Shape_AwaitResponse" bpmnElement="Event_AwaitCustomsResponse">
+        <dc:Bounds x="1052" y="252" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1026" y="295" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Customs Decision? -->
+      <bpmndi:BPMNShape id="Shape_GwCustomsDecision" bpmnElement="Gateway_CustomsDecision" isMarkerVisible="true">
+        <dc:Bounds x="1145" y="245" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1125" y="215" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Release Goods -->
+      <bpmndi:BPMNShape id="Shape_ReleaseGoods" bpmnElement="Task_ReleaseGoods">
+        <dc:Bounds x="1340" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event: Goods Cleared -->
+      <bpmndi:BPMNShape id="Shape_EndCleared" bpmnElement="EndEvent_GoodsCleared">
+        <dc:Bounds x="1502" y="252" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1483" y="295" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Attend Inspection (below main) -->
+      <bpmndi:BPMNShape id="Shape_AttendInspection" bpmnElement="Task_AttendInspection">
+        <dc:Bounds x="1220" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Review & Prepare Resubmission (far below) -->
+      <bpmndi:BPMNShape id="Shape_ReviewRejection" bpmnElement="Task_ReviewRejection">
+        <dc:Bounds x="1120" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Edge_Start_ValidateHS" bpmnElement="Flow_Start_ValidateHS">
+        <di:waypoint x="198" y="270" />
+        <di:waypoint x="260" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_ValidateHS_GwRestrictions" bpmnElement="Flow_ValidateHS_GwRestrictions">
+        <di:waypoint x="360" y="270" />
+        <di:waypoint x="415" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Restrictions_Yes" bpmnElement="Flow_Restrictions_Yes">
+        <di:waypoint x="440" y="245" />
+        <di:waypoint x="440" y="180" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="448" y="210" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Restrictions_No" bpmnElement="Flow_Restrictions_No">
+        <di:waypoint x="465" y="270" />
+        <di:waypoint x="615" y="270" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="533" y="252" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_ReviewRestr_GwProceed" bpmnElement="Flow_ReviewRestr_GwProceed">
+        <di:waypoint x="490" y="140" />
+        <di:waypoint x="545" y="140" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Proceed_Yes" bpmnElement="Flow_Proceed_Yes">
+        <di:waypoint x="570" y="165" />
+        <di:waypoint x="570" y="270" />
+        <di:waypoint x="615" y="270" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="578" y="210" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Proceed_No" bpmnElement="Flow_Proceed_No">
+        <di:waypoint x="570" y="115" />
+        <di:waypoint x="570" y="70" />
+        <di:waypoint x="660" y="70" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="600" y="52" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Block_EndBlocked" bpmnElement="Flow_Block_EndBlocked">
+        <di:waypoint x="760" y="70" />
+        <di:waypoint x="822" y="70" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Merge_PrepareDecl" bpmnElement="Flow_Merge_PrepareDecl">
+        <di:waypoint x="665" y="270" />
+        <di:waypoint x="730" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_PrepareDecl_Submit" bpmnElement="Flow_PrepareDecl_Submit">
+        <di:waypoint x="830" y="270" />
+        <di:waypoint x="890" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Submit_AwaitResponse" bpmnElement="Flow_Submit_AwaitResponse">
+        <di:waypoint x="990" y="270" />
+        <di:waypoint x="1052" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Response_GwDecision" bpmnElement="Flow_Response_GwDecision">
+        <di:waypoint x="1088" y="270" />
+        <di:waypoint x="1145" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Decision_Approved" bpmnElement="Flow_Decision_Approved">
+        <di:waypoint x="1195" y="270" />
+        <di:waypoint x="1340" y="270" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1240" y="252" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Decision_Inspection" bpmnElement="Flow_Decision_Inspection">
+        <di:waypoint x="1170" y="295" />
+        <di:waypoint x="1170" y="400" />
+        <di:waypoint x="1220" y="400" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1100" y="378" width="100" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Decision_Rejected" bpmnElement="Flow_Decision_Rejected">
+        <di:waypoint x="1170" y="295" />
+        <di:waypoint x="1170" y="480" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1178" y="450" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Inspection_Release" bpmnElement="Flow_Inspection_Release">
+        <di:waypoint x="1320" y="400" />
+        <di:waypoint x="1390" y="400" />
+        <di:waypoint x="1390" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Release_EndCleared" bpmnElement="Flow_Release_EndCleared">
+        <di:waypoint x="1440" y="270" />
+        <di:waypoint x="1502" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Rejection_PrepareDecl" bpmnElement="Flow_Rejection_PrepareDecl">
+        <di:waypoint x="1120" y="520" />
+        <di:waypoint x="780" y="520" />
+        <di:waypoint x="780" y="310" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

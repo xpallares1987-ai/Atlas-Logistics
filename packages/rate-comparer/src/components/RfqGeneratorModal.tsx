@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from "motion/react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { FreightRateMock } from "../data/mockRates";
-import { useAppStore } from "@/shared/store";
+import { useAppStore } from "../shared/store";
 
 interface RfqGeneratorModalProps {
   rate: FreightRateMock | null;

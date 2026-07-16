@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1vdr1a" name="Vendor Risk Assessment" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Modeler" exporterVersion="5.25.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.5.0">
+  <decision id="vendor-risk" name="Vendor Risk">
+    <decisionTable id="DecisionTable_1r8k3q" hitPolicy="FIRST">
+      <input id="Input_1" label="Years in Business">
+        <inputExpression id="InputExpression_1" typeRef="number">
+          <text>yearsInBusiness</text>
+        </inputExpression>
+      </input>
+      <input id="Input_2" label="Insurance Coverage ($)">
+        <inputExpression id="InputExpression_2" typeRef="number">
+          <text>insuranceCoverage</text>
+        </inputExpression>
+      </input>
+      <input id="Input_3" label="Has Safety Violations">
+        <inputExpression id="InputExpression_3" typeRef="boolean">
+          <text>hasSafetyViolations</text>
+        </inputExpression>
+      </input>
+      <output id="Output_1" label="Risk Level" name="riskLevel" typeRef="string" />
+      <output id="Output_2" label="Requires Manual Review" name="requireManualReview" typeRef="boolean" />
+      <rule id="DecisionRule_1">
+        <inputEntry id="UnaryTests_1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_2">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_3">
+          <text>true</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1">
+          <text>"HIGH"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_2">
+          <text>true</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_2">
+        <inputEntry id="UnaryTests_4">
+          <text>&lt; 2</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_5">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_6">
+          <text>false</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_3">
+          <text>"MEDIUM"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_4">
+          <text>true</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_3">
+        <inputEntry id="UnaryTests_7">
+          <text>&gt;= 2</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_8">
+          <text>&lt; 1000000</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_9">
+          <text>false</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_5">
+          <text>"MEDIUM"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_6">
+          <text>true</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_4">
+        <inputEntry id="UnaryTests_10">
+          <text>&gt;= 2</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_11">
+          <text>&gt;= 1000000</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_12">
+          <text>false</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_7">
+          <text>"LOW"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_8">
+          <text>false</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram>
+      <dmndi:DMNShape dmnElementRef="vendor-risk">
+        <dc:Bounds height="80" width="180" x="160" y="100" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

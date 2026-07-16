@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0l8qj8a" name="Carrier Selection" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Modeler" exporterVersion="5.25.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.5.0">
+  <decision id="carrier-selection" name="Carrier Selection">
+    <decisionTable id="DecisionTable_1v9q8g1" hitPolicy="FIRST">
+      <input id="Input_1" label="Region">
+        <inputExpression id="InputExpression_1" typeRef="string">
+          <text>region</text>
+        </inputExpression>
+      </input>
+      <input id="Input_2" label="Weight (kg)">
+        <inputExpression id="InputExpression_2" typeRef="number">
+          <text>weight</text>
+        </inputExpression>
+      </input>
+      <input id="Input_3" label="Hazmat">
+        <inputExpression id="InputExpression_3" typeRef="boolean">
+          <text>isHazmat</text>
+        </inputExpression>
+      </input>
+      <output id="Output_1" label="Carrier ID" name="carrierId" typeRef="string" />
+      <output id="Output_2" label="Service Level" name="serviceLevel" typeRef="string" />
+      <rule id="DecisionRule_0a1b2c3">
+        <inputEntry id="UnaryTests_0q1w2e3">
+          <text>"EU"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1a2s3d4">
+          <text>&gt; 1000</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_2z3x4c5">
+          <text>true</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_3q4w5e6">
+          <text>"DHL-FREIGHT-HAZ"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_4a5s6d7">
+          <text>"SPECIAL"</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_1b2c3d4">
+        <inputEntry id="UnaryTests_1q2w3e4">
+          <text>"EU"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_2a3s4d5">
+          <text>&gt; 5000</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_3z4x5c6">
+          <text>false</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_4q5w6e7">
+          <text>"DB-SCHENKER-FTL"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_5a6s7d8">
+          <text>"STANDARD"</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_2c3d4e5">
+        <inputEntry id="UnaryTests_2q3w4e5">
+          <text>"NA"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_3a4s5d6">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_4z5x6c7">
+          <text>false</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_5q6w7e8">
+          <text>"FEDEX-FREIGHT"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_6a7s8d9">
+          <text>"EXPRESS"</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_3d4e5f6">
+        <inputEntry id="UnaryTests_3q4w5e6">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_4a5s6d7">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_5z6x7c8">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_6q7w8e9">
+          <text>"DEFAULT-CARRIER"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_7a8s9d0">
+          <text>"ECONOMY"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram>
+      <dmndi:DMNShape dmnElementRef="carrier-selection">
+        <dc:Bounds height="80" width="180" x="160" y="100" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_DocumentGeneration"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:process id="document-generation-process" name="Document Generation Process" isExecutable="true">
+
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_GenerateDocs" name="Generate Documents">
+      <bpmn:outgoing>Flow_Start_CollectData</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Service Task: Collect Shipment Data -->
+    <bpmn:serviceTask id="Task_CollectShipmentData" name="Collect Shipment Data">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.collect-data" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Start_CollectData</bpmn:incoming>
+      <bpmn:outgoing>Flow_CollectData_Validate</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Service Task: Validate Data Completeness -->
+    <bpmn:serviceTask id="Task_ValidateCompleteness" name="Validate Data Completeness">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.validate-completeness" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_CollectData_Validate</bpmn:incoming>
+      <bpmn:incoming>Flow_ProvideMissing_Validate</bpmn:incoming>
+      <bpmn:outgoing>Flow_Validate_GwComplete</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Exclusive Gateway: Data Complete? -->
+    <bpmn:exclusiveGateway id="Gateway_DataComplete" name="Data Complete?">
+      <bpmn:incoming>Flow_Validate_GwComplete</bpmn:incoming>
+      <bpmn:outgoing>Flow_Complete_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Complete_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- User Task: Provide Missing Data (No branch, loops back) -->
+    <bpmn:userTask id="Task_ProvideMissingData" name="Provide Missing Data">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:document-data-input" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Complete_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_ProvideMissing_Validate</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Parallel Gateway: Fork -->
+    <bpmn:parallelGateway id="Gateway_ParallelFork" name="Generate All Documents">
+      <bpmn:incoming>Flow_Complete_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_Fork_HBL</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Fork_MBL</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Fork_Manifest</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <!-- Service Task: Generate HBL -->
+    <bpmn:serviceTask id="Task_GenerateHBL" name="Generate HBL">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.generate-hbl" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Fork_HBL</bpmn:incoming>
+      <bpmn:outgoing>Flow_HBL_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Service Task: Generate MBL -->
+    <bpmn:serviceTask id="Task_GenerateMBL" name="Generate MBL">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.generate-mbl" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Fork_MBL</bpmn:incoming>
+      <bpmn:outgoing>Flow_MBL_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Service Task: Generate Manifest -->
+    <bpmn:serviceTask id="Task_GenerateManifest" name="Generate Manifest">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.generate-manifest" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Fork_Manifest</bpmn:incoming>
+      <bpmn:outgoing>Flow_Manifest_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Parallel Gateway: Join -->
+    <bpmn:parallelGateway id="Gateway_ParallelJoin" name="All Documents Generated">
+      <bpmn:incoming>Flow_HBL_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_MBL_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_Manifest_Join</bpmn:incoming>
+      <bpmn:outgoing>Flow_Join_ReviewSign</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <!-- User Task: Review & Sign Documents -->
+    <bpmn:userTask id="Task_ReviewSignDocuments" name="Review &amp; Sign Documents">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:document-approval" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Join_ReviewSign</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReviewSign_StoreDMS</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Service Task: Store in Document Management -->
+    <bpmn:serviceTask id="Task_StoreDMS" name="Store in Document Management">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.store-dms" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ReviewSign_StoreDMS</bpmn:incoming>
+      <bpmn:outgoing>Flow_StoreDMS_Distribute</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Service Task: Distribute to Parties -->
+    <bpmn:serviceTask id="Task_Distribute" name="Distribute to Parties">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.distribute" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_StoreDMS_Distribute</bpmn:incoming>
+      <bpmn:outgoing>Flow_Distribute_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- End Event -->
+    <bpmn:endEvent id="EndEvent_DocumentsComplete" name="Documents Complete">
+      <bpmn:incoming>Flow_Distribute_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_Start_CollectData" sourceRef="StartEvent_GenerateDocs" targetRef="Task_CollectShipmentData" />
+    <bpmn:sequenceFlow id="Flow_CollectData_Validate" sourceRef="Task_CollectShipmentData" targetRef="Task_ValidateCompleteness" />
+    <bpmn:sequenceFlow id="Flow_Validate_GwComplete" sourceRef="Task_ValidateCompleteness" targetRef="Gateway_DataComplete" />
+
+    <bpmn:sequenceFlow id="Flow_Complete_No" name="No" sourceRef="Gateway_DataComplete" targetRef="Task_ProvideMissingData">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=dataComplete = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ProvideMissing_Validate" sourceRef="Task_ProvideMissingData" targetRef="Task_ValidateCompleteness" />
+
+    <bpmn:sequenceFlow id="Flow_Complete_Yes" name="Yes" sourceRef="Gateway_DataComplete" targetRef="Gateway_ParallelFork">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=dataComplete = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Fork_HBL" sourceRef="Gateway_ParallelFork" targetRef="Task_GenerateHBL" />
+    <bpmn:sequenceFlow id="Flow_Fork_MBL" sourceRef="Gateway_ParallelFork" targetRef="Task_GenerateMBL" />
+    <bpmn:sequenceFlow id="Flow_Fork_Manifest" sourceRef="Gateway_ParallelFork" targetRef="Task_GenerateManifest" />
+
+    <bpmn:sequenceFlow id="Flow_HBL_Join" sourceRef="Task_GenerateHBL" targetRef="Gateway_ParallelJoin" />
+    <bpmn:sequenceFlow id="Flow_MBL_Join" sourceRef="Task_GenerateMBL" targetRef="Gateway_ParallelJoin" />
+    <bpmn:sequenceFlow id="Flow_Manifest_Join" sourceRef="Task_GenerateManifest" targetRef="Gateway_ParallelJoin" />
+
+    <bpmn:sequenceFlow id="Flow_Join_ReviewSign" sourceRef="Gateway_ParallelJoin" targetRef="Task_ReviewSignDocuments" />
+    <bpmn:sequenceFlow id="Flow_ReviewSign_StoreDMS" sourceRef="Task_ReviewSignDocuments" targetRef="Task_StoreDMS" />
+    <bpmn:sequenceFlow id="Flow_StoreDMS_Distribute" sourceRef="Task_StoreDMS" targetRef="Task_Distribute" />
+    <bpmn:sequenceFlow id="Flow_Distribute_End" sourceRef="Task_Distribute" targetRef="EndEvent_DocumentsComplete" />
+
+  </bpmn:process>
+
+  <!-- BPMN Diagram -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_DocumentGeneration">
+    <bpmndi:BPMNPlane id="BPMNPlane_DocumentGeneration" bpmnElement="document-generation-process">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="Shape_StartGenDocs" bpmnElement="StartEvent_GenerateDocs">
+        <dc:Bounds x="162" y="252" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="140" y="295" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Collect Shipment Data -->
+      <bpmndi:BPMNShape id="Shape_CollectData" bpmnElement="Task_CollectShipmentData">
+        <dc:Bounds x="260" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Validate Data Completeness -->
+      <bpmndi:BPMNShape id="Shape_ValidateComplete" bpmnElement="Task_ValidateCompleteness">
+        <dc:Bounds x="420" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Data Complete? -->
+      <bpmndi:BPMNShape id="Shape_GwDataComplete" bpmnElement="Gateway_DataComplete" isMarkerVisible="true">
+        <dc:Bounds x="575" y="245" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="559" y="215" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Provide Missing Data (below, loop back) -->
+      <bpmndi:BPMNShape id="Shape_ProvideMissing" bpmnElement="Task_ProvideMissingData">
+        <dc:Bounds x="550" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Parallel Gateway: Fork -->
+      <bpmndi:BPMNShape id="Shape_ParallelFork" bpmnElement="Gateway_ParallelFork">
+        <dc:Bounds x="695" y="245" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="673" y="215" width="95" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Generate HBL (top parallel) -->
+      <bpmndi:BPMNShape id="Shape_GenHBL" bpmnElement="Task_GenerateHBL">
+        <dc:Bounds x="810" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Generate MBL (middle parallel) -->
+      <bpmndi:BPMNShape id="Shape_GenMBL" bpmnElement="Task_GenerateMBL">
+        <dc:Bounds x="810" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Generate Manifest (bottom parallel) -->
+      <bpmndi:BPMNShape id="Shape_GenManifest" bpmnElement="Task_GenerateManifest">
+        <dc:Bounds x="810" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Parallel Gateway: Join -->
+      <bpmndi:BPMNShape id="Shape_ParallelJoin" bpmnElement="Gateway_ParallelJoin">
+        <dc:Bounds x="975" y="245" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="953" y="302" width="95" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Review & Sign Documents -->
+      <bpmndi:BPMNShape id="Shape_ReviewSign" bpmnElement="Task_ReviewSignDocuments">
+        <dc:Bounds x="1090" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Store in Document Management -->
+      <bpmndi:BPMNShape id="Shape_StoreDMS" bpmnElement="Task_StoreDMS">
+        <dc:Bounds x="1250" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Distribute to Parties -->
+      <bpmndi:BPMNShape id="Shape_Distribute" bpmnElement="Task_Distribute">
+        <dc:Bounds x="1410" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event -->
+      <bpmndi:BPMNShape id="Shape_EndDocsComplete" bpmnElement="EndEvent_DocumentsComplete">
+        <dc:Bounds x="1572" y="252" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1548" y="295" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Edge_Start_CollectData" bpmnElement="Flow_Start_CollectData">
+        <di:waypoint x="198" y="270" />
+        <di:waypoint x="260" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_CollectData_Validate" bpmnElement="Flow_CollectData_Validate">
+        <di:waypoint x="360" y="270" />
+        <di:waypoint x="420" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Validate_GwComplete" bpmnElement="Flow_Validate_GwComplete">
+        <di:waypoint x="520" y="270" />
+        <di:waypoint x="575" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Complete_No" bpmnElement="Flow_Complete_No">
+        <di:waypoint x="600" y="295" />
+        <di:waypoint x="600" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="608" y="330" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_ProvideMissing_Validate" bpmnElement="Flow_ProvideMissing_Validate">
+        <di:waypoint x="550" y="420" />
+        <di:waypoint x="470" y="420" />
+        <di:waypoint x="470" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Complete_Yes" bpmnElement="Flow_Complete_Yes">
+        <di:waypoint x="625" y="270" />
+        <di:waypoint x="695" y="270" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="650" y="252" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Fork_HBL" bpmnElement="Flow_Fork_HBL">
+        <di:waypoint x="720" y="245" />
+        <di:waypoint x="720" y="170" />
+        <di:waypoint x="810" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Fork_MBL" bpmnElement="Flow_Fork_MBL">
+        <di:waypoint x="745" y="270" />
+        <di:waypoint x="810" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Fork_Manifest" bpmnElement="Flow_Fork_Manifest">
+        <di:waypoint x="720" y="295" />
+        <di:waypoint x="720" y="370" />
+        <di:waypoint x="810" y="370" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_HBL_Join" bpmnElement="Flow_HBL_Join">
+        <di:waypoint x="910" y="170" />
+        <di:waypoint x="1000" y="170" />
+        <di:waypoint x="1000" y="245" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_MBL_Join" bpmnElement="Flow_MBL_Join">
+        <di:waypoint x="910" y="270" />
+        <di:waypoint x="975" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Manifest_Join" bpmnElement="Flow_Manifest_Join">
+        <di:waypoint x="910" y="370" />
+        <di:waypoint x="1000" y="370" />
+        <di:waypoint x="1000" y="295" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Join_ReviewSign" bpmnElement="Flow_Join_ReviewSign">
+        <di:waypoint x="1025" y="270" />
+        <di:waypoint x="1090" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_ReviewSign_StoreDMS" bpmnElement="Flow_ReviewSign_StoreDMS">
+        <di:waypoint x="1190" y="270" />
+        <di:waypoint x="1250" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_StoreDMS_Distribute" bpmnElement="Flow_StoreDMS_Distribute">
+        <di:waypoint x="1350" y="270" />
+        <di:waypoint x="1410" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Distribute_End" bpmnElement="Flow_Distribute_End">
+        <di:waypoint x="1510" y="270" />
+        <di:waypoint x="1572" y="270" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

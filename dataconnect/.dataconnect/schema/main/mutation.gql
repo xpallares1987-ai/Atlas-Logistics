@@ -1,0 +1,1846 @@
+extend type Mutation {
+  """
+  ✨ Insert a single `Company` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  company_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Company_Data!
+  ): Company_KeyOutput! @fdc_generated(from: "Company", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `CrmDeal` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  crmDeal_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: CrmDeal_Data!
+  ): CrmDeal_KeyOutput! @fdc_generated(from: "CrmDeal", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `CrmInteraction` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  crmInteraction_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: CrmInteraction_Data!
+  ): CrmInteraction_KeyOutput! @fdc_generated(from: "CrmInteraction", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `DictionaryTerm` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  dictionaryTerm_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: DictionaryTerm_Data!
+  ): DictionaryTerm_KeyOutput! @fdc_generated(from: "DictionaryTerm", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Document` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  document_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Document_Data!
+  ): Document_KeyOutput! @fdc_generated(from: "Document", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `HsCode` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  hsCode_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: HsCode_Data!
+  ): HsCode_KeyOutput! @fdc_generated(from: "HsCode", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Incoterm` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  incoterm_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Incoterm_Data!
+  ): Incoterm_KeyOutput! @fdc_generated(from: "Incoterm", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Invoice` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  invoice_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Invoice_Data!
+  ): Invoice_KeyOutput! @fdc_generated(from: "Invoice", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Location` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  location_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Location_Data!
+  ): Location_KeyOutput! @fdc_generated(from: "Location", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Milestone` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  milestone_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Milestone_Data!
+  ): Milestone_KeyOutput! @fdc_generated(from: "Milestone", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Quote` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  quote_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Quote_Data!
+  ): Quote_KeyOutput! @fdc_generated(from: "Quote", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Schedule` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  schedule_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Schedule_Data!
+  ): Schedule_KeyOutput! @fdc_generated(from: "Schedule", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Shipment` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  shipment_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Shipment_Data!
+  ): Shipment_KeyOutput! @fdc_generated(from: "Shipment", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `ShipmentEventLog` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  shipmentEventLog_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: ShipmentEventLog_Data!
+  ): ShipmentEventLog_KeyOutput! @fdc_generated(from: "ShipmentEventLog", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `User` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  user_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: User_Data!
+  ): User_KeyOutput! @fdc_generated(from: "User", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Vessel` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  vessel_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Vessel_Data!
+  ): Vessel_KeyOutput! @fdc_generated(from: "Vessel", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Workflow` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  workflow_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Workflow_Data!
+  ): Workflow_KeyOutput! @fdc_generated(from: "Workflow", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert `Company` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  company_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Company_Data!]!
+  ): [Company_KeyOutput!]! @fdc_generated(from: "Company", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `CrmDeal` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  crmDeal_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [CrmDeal_Data!]!
+  ): [CrmDeal_KeyOutput!]! @fdc_generated(from: "CrmDeal", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `CrmInteraction` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  crmInteraction_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [CrmInteraction_Data!]!
+  ): [CrmInteraction_KeyOutput!]! @fdc_generated(from: "CrmInteraction", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `DictionaryTerm` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  dictionaryTerm_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [DictionaryTerm_Data!]!
+  ): [DictionaryTerm_KeyOutput!]! @fdc_generated(from: "DictionaryTerm", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Document` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  document_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Document_Data!]!
+  ): [Document_KeyOutput!]! @fdc_generated(from: "Document", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `HsCode` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  hsCode_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [HsCode_Data!]!
+  ): [HsCode_KeyOutput!]! @fdc_generated(from: "HsCode", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Incoterm` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  incoterm_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Incoterm_Data!]!
+  ): [Incoterm_KeyOutput!]! @fdc_generated(from: "Incoterm", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Invoice` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  invoice_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Invoice_Data!]!
+  ): [Invoice_KeyOutput!]! @fdc_generated(from: "Invoice", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Location` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  location_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Location_Data!]!
+  ): [Location_KeyOutput!]! @fdc_generated(from: "Location", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Milestone` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  milestone_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Milestone_Data!]!
+  ): [Milestone_KeyOutput!]! @fdc_generated(from: "Milestone", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Quote` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  quote_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Quote_Data!]!
+  ): [Quote_KeyOutput!]! @fdc_generated(from: "Quote", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Schedule` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  schedule_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Schedule_Data!]!
+  ): [Schedule_KeyOutput!]! @fdc_generated(from: "Schedule", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Shipment` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  shipment_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Shipment_Data!]!
+  ): [Shipment_KeyOutput!]! @fdc_generated(from: "Shipment", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `ShipmentEventLog` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  shipmentEventLog_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [ShipmentEventLog_Data!]!
+  ): [ShipmentEventLog_KeyOutput!]! @fdc_generated(from: "ShipmentEventLog", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `User` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  user_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [User_Data!]!
+  ): [User_KeyOutput!]! @fdc_generated(from: "User", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Vessel` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  vessel_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Vessel_Data!]!
+  ): [Vessel_KeyOutput!]! @fdc_generated(from: "Vessel", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Workflow` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  workflow_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Workflow_Data!]!
+  ): [Workflow_KeyOutput!]! @fdc_generated(from: "Workflow", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert or update a single `Company` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Company`.
+  """
+  company_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Company_Data!
+  ): Company_KeyOutput! @fdc_generated(from: "Company", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `CrmDeal` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `CrmDeal`.
+  """
+  crmDeal_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: CrmDeal_Data!
+  ): CrmDeal_KeyOutput! @fdc_generated(from: "CrmDeal", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `CrmInteraction` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `CrmInteraction`.
+  """
+  crmInteraction_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: CrmInteraction_Data!
+  ): CrmInteraction_KeyOutput! @fdc_generated(from: "CrmInteraction", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `DictionaryTerm` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `DictionaryTerm`.
+  """
+  dictionaryTerm_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: DictionaryTerm_Data!
+  ): DictionaryTerm_KeyOutput! @fdc_generated(from: "DictionaryTerm", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Document` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Document`.
+  """
+  document_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Document_Data!
+  ): Document_KeyOutput! @fdc_generated(from: "Document", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `HsCode` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `HsCode`.
+  """
+  hsCode_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: HsCode_Data!
+  ): HsCode_KeyOutput! @fdc_generated(from: "HsCode", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Incoterm` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Incoterm`.
+  """
+  incoterm_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Incoterm_Data!
+  ): Incoterm_KeyOutput! @fdc_generated(from: "Incoterm", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Invoice` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Invoice`.
+  """
+  invoice_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Invoice_Data!
+  ): Invoice_KeyOutput! @fdc_generated(from: "Invoice", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Location` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Location`.
+  """
+  location_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Location_Data!
+  ): Location_KeyOutput! @fdc_generated(from: "Location", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Milestone` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Milestone`.
+  """
+  milestone_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Milestone_Data!
+  ): Milestone_KeyOutput! @fdc_generated(from: "Milestone", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Quote` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Quote`.
+  """
+  quote_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Quote_Data!
+  ): Quote_KeyOutput! @fdc_generated(from: "Quote", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Schedule` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Schedule`.
+  """
+  schedule_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Schedule_Data!
+  ): Schedule_KeyOutput! @fdc_generated(from: "Schedule", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Shipment` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Shipment`.
+  """
+  shipment_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Shipment_Data!
+  ): Shipment_KeyOutput! @fdc_generated(from: "Shipment", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `ShipmentEventLog` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `ShipmentEventLog`.
+  """
+  shipmentEventLog_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: ShipmentEventLog_Data!
+  ): ShipmentEventLog_KeyOutput! @fdc_generated(from: "ShipmentEventLog", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `User` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `User`.
+  """
+  user_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: User_Data!
+  ): User_KeyOutput! @fdc_generated(from: "User", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Vessel` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Vessel`.
+  """
+  vessel_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Vessel_Data!
+  ): Vessel_KeyOutput! @fdc_generated(from: "Vessel", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Workflow` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Workflow`.
+  """
+  workflow_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Workflow_Data!
+  ): Workflow_KeyOutput! @fdc_generated(from: "Workflow", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update `Company` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Company`.
+  """
+  company_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Company_Data!]!
+  ): [Company_KeyOutput!]! @fdc_generated(from: "Company", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `CrmDeal` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `CrmDeal`.
+  """
+  crmDeal_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [CrmDeal_Data!]!
+  ): [CrmDeal_KeyOutput!]! @fdc_generated(from: "CrmDeal", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `CrmInteraction` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `CrmInteraction`.
+  """
+  crmInteraction_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [CrmInteraction_Data!]!
+  ): [CrmInteraction_KeyOutput!]! @fdc_generated(from: "CrmInteraction", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `DictionaryTerm` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `DictionaryTerm`.
+  """
+  dictionaryTerm_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [DictionaryTerm_Data!]!
+  ): [DictionaryTerm_KeyOutput!]! @fdc_generated(from: "DictionaryTerm", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Document` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Document`.
+  """
+  document_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Document_Data!]!
+  ): [Document_KeyOutput!]! @fdc_generated(from: "Document", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `HsCode` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `HsCode`.
+  """
+  hsCode_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [HsCode_Data!]!
+  ): [HsCode_KeyOutput!]! @fdc_generated(from: "HsCode", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Incoterm` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Incoterm`.
+  """
+  incoterm_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Incoterm_Data!]!
+  ): [Incoterm_KeyOutput!]! @fdc_generated(from: "Incoterm", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Invoice` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Invoice`.
+  """
+  invoice_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Invoice_Data!]!
+  ): [Invoice_KeyOutput!]! @fdc_generated(from: "Invoice", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Location` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Location`.
+  """
+  location_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Location_Data!]!
+  ): [Location_KeyOutput!]! @fdc_generated(from: "Location", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Milestone` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Milestone`.
+  """
+  milestone_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Milestone_Data!]!
+  ): [Milestone_KeyOutput!]! @fdc_generated(from: "Milestone", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Quote` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Quote`.
+  """
+  quote_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Quote_Data!]!
+  ): [Quote_KeyOutput!]! @fdc_generated(from: "Quote", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Schedule` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Schedule`.
+  """
+  schedule_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Schedule_Data!]!
+  ): [Schedule_KeyOutput!]! @fdc_generated(from: "Schedule", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Shipment` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Shipment`.
+  """
+  shipment_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Shipment_Data!]!
+  ): [Shipment_KeyOutput!]! @fdc_generated(from: "Shipment", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `ShipmentEventLog` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `ShipmentEventLog`.
+  """
+  shipmentEventLog_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [ShipmentEventLog_Data!]!
+  ): [ShipmentEventLog_KeyOutput!]! @fdc_generated(from: "ShipmentEventLog", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `User` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `User`.
+  """
+  user_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [User_Data!]!
+  ): [User_KeyOutput!]! @fdc_generated(from: "User", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Vessel` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Vessel`.
+  """
+  vessel_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Vessel_Data!]!
+  ): [Vessel_KeyOutput!]! @fdc_generated(from: "Vessel", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Workflow` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Workflow`.
+  """
+  workflow_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Workflow_Data!]!
+  ): [Workflow_KeyOutput!]! @fdc_generated(from: "Workflow", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Update a single `Company` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Company` or `null` if not found.
+  """
+  company_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Company_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Company_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Company_Data!
+  ): Company_KeyOutput @fdc_generated(from: "Company", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `CrmDeal` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `CrmDeal` or `null` if not found.
+  """
+  crmDeal_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: CrmDeal_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: CrmDeal_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: CrmDeal_Data!
+  ): CrmDeal_KeyOutput @fdc_generated(from: "CrmDeal", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `CrmInteraction` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `CrmInteraction` or `null` if not found.
+  """
+  crmInteraction_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: CrmInteraction_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: CrmInteraction_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: CrmInteraction_Data!
+  ): CrmInteraction_KeyOutput @fdc_generated(from: "CrmInteraction", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `DictionaryTerm` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `DictionaryTerm` or `null` if not found.
+  """
+  dictionaryTerm_update(
+    """
+    The key used to identify the object.
+    """
+    key: DictionaryTerm_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: DictionaryTerm_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: DictionaryTerm_Data!
+  ): DictionaryTerm_KeyOutput @fdc_generated(from: "DictionaryTerm", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Document` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Document` or `null` if not found.
+  """
+  document_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Document_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Document_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Document_Data!
+  ): Document_KeyOutput @fdc_generated(from: "Document", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `HsCode` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `HsCode` or `null` if not found.
+  """
+  hsCode_update(
+    """
+    The key used to identify the object.
+    """
+    key: HsCode_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: HsCode_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: HsCode_Data!
+  ): HsCode_KeyOutput @fdc_generated(from: "HsCode", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Incoterm` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Incoterm` or `null` if not found.
+  """
+  incoterm_update(
+    """
+    The key used to identify the object.
+    """
+    key: Incoterm_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Incoterm_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Incoterm_Data!
+  ): Incoterm_KeyOutput @fdc_generated(from: "Incoterm", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Invoice` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Invoice` or `null` if not found.
+  """
+  invoice_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Invoice_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Invoice_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Invoice_Data!
+  ): Invoice_KeyOutput @fdc_generated(from: "Invoice", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Location` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Location` or `null` if not found.
+  """
+  location_update(
+    """
+    The key used to identify the object.
+    """
+    key: Location_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Location_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Location_Data!
+  ): Location_KeyOutput @fdc_generated(from: "Location", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Milestone` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Milestone` or `null` if not found.
+  """
+  milestone_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Milestone_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Milestone_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Milestone_Data!
+  ): Milestone_KeyOutput @fdc_generated(from: "Milestone", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Quote` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Quote` or `null` if not found.
+  """
+  quote_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Quote_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Quote_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Quote_Data!
+  ): Quote_KeyOutput @fdc_generated(from: "Quote", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Schedule` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Schedule` or `null` if not found.
+  """
+  schedule_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Schedule_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Schedule_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Schedule_Data!
+  ): Schedule_KeyOutput @fdc_generated(from: "Schedule", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Shipment` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Shipment` or `null` if not found.
+  """
+  shipment_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Shipment_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Shipment_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Shipment_Data!
+  ): Shipment_KeyOutput @fdc_generated(from: "Shipment", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `ShipmentEventLog` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `ShipmentEventLog` or `null` if not found.
+  """
+  shipmentEventLog_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: ShipmentEventLog_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: ShipmentEventLog_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: ShipmentEventLog_Data!
+  ): ShipmentEventLog_KeyOutput @fdc_generated(from: "ShipmentEventLog", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `User` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `User` or `null` if not found.
+  """
+  user_update(
+    """
+    The key used to identify the object.
+    """
+    key: User_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: User_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: User_Data!
+  ): User_KeyOutput @fdc_generated(from: "User", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Vessel` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Vessel` or `null` if not found.
+  """
+  vessel_update(
+    """
+    The key used to identify the object.
+    """
+    key: Vessel_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Vessel_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Vessel_Data!
+  ): Vessel_KeyOutput @fdc_generated(from: "Vessel", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Workflow` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Workflow` or `null` if not found.
+  """
+  workflow_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Workflow_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Workflow_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Workflow_Data!
+  ): Workflow_KeyOutput @fdc_generated(from: "Workflow", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update `Company` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  company_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Company_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Company_Data!
+  ): Int! @fdc_generated(from: "Company", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `CrmDeal` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  crmDeal_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: CrmDeal_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: CrmDeal_Data!
+  ): Int! @fdc_generated(from: "CrmDeal", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `CrmInteraction` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  crmInteraction_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: CrmInteraction_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: CrmInteraction_Data!
+  ): Int! @fdc_generated(from: "CrmInteraction", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `DictionaryTerm` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  dictionaryTerm_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: DictionaryTerm_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: DictionaryTerm_Data!
+  ): Int! @fdc_generated(from: "DictionaryTerm", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Document` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  document_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Document_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Document_Data!
+  ): Int! @fdc_generated(from: "Document", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `HsCode` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  hsCode_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: HsCode_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: HsCode_Data!
+  ): Int! @fdc_generated(from: "HsCode", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Incoterm` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  incoterm_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Incoterm_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Incoterm_Data!
+  ): Int! @fdc_generated(from: "Incoterm", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Invoice` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  invoice_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Invoice_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Invoice_Data!
+  ): Int! @fdc_generated(from: "Invoice", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Location` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  location_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Location_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Location_Data!
+  ): Int! @fdc_generated(from: "Location", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Milestone` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  milestone_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Milestone_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Milestone_Data!
+  ): Int! @fdc_generated(from: "Milestone", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Quote` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  quote_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Quote_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Quote_Data!
+  ): Int! @fdc_generated(from: "Quote", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Schedule` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  schedule_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Schedule_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Schedule_Data!
+  ): Int! @fdc_generated(from: "Schedule", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Shipment` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  shipment_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Shipment_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Shipment_Data!
+  ): Int! @fdc_generated(from: "Shipment", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `ShipmentEventLog` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  shipmentEventLog_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: ShipmentEventLog_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: ShipmentEventLog_Data!
+  ): Int! @fdc_generated(from: "ShipmentEventLog", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `User` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  user_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: User_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: User_Data!
+  ): Int! @fdc_generated(from: "User", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Vessel` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  vessel_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Vessel_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Vessel_Data!
+  ): Int! @fdc_generated(from: "Vessel", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Workflow` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  workflow_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Workflow_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Workflow_Data!
+  ): Int! @fdc_generated(from: "Workflow", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Delete a single `Company` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  company_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Company_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Company_FirstRow
+  ): Company_KeyOutput @fdc_generated(from: "Company", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `CrmDeal` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  crmDeal_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: CrmDeal_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: CrmDeal_FirstRow
+  ): CrmDeal_KeyOutput @fdc_generated(from: "CrmDeal", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `CrmInteraction` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  crmInteraction_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: CrmInteraction_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: CrmInteraction_FirstRow
+  ): CrmInteraction_KeyOutput @fdc_generated(from: "CrmInteraction", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `DictionaryTerm` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  dictionaryTerm_delete(
+    """
+    The key used to identify the object.
+    """
+    key: DictionaryTerm_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: DictionaryTerm_FirstRow
+  ): DictionaryTerm_KeyOutput @fdc_generated(from: "DictionaryTerm", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Document` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  document_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Document_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Document_FirstRow
+  ): Document_KeyOutput @fdc_generated(from: "Document", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `HsCode` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  hsCode_delete(
+    """
+    The key used to identify the object.
+    """
+    key: HsCode_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: HsCode_FirstRow
+  ): HsCode_KeyOutput @fdc_generated(from: "HsCode", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Incoterm` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  incoterm_delete(
+    """
+    The key used to identify the object.
+    """
+    key: Incoterm_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Incoterm_FirstRow
+  ): Incoterm_KeyOutput @fdc_generated(from: "Incoterm", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Invoice` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  invoice_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Invoice_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Invoice_FirstRow
+  ): Invoice_KeyOutput @fdc_generated(from: "Invoice", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Location` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  location_delete(
+    """
+    The key used to identify the object.
+    """
+    key: Location_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Location_FirstRow
+  ): Location_KeyOutput @fdc_generated(from: "Location", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Milestone` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  milestone_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Milestone_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Milestone_FirstRow
+  ): Milestone_KeyOutput @fdc_generated(from: "Milestone", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Quote` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  quote_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Quote_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Quote_FirstRow
+  ): Quote_KeyOutput @fdc_generated(from: "Quote", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Schedule` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  schedule_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Schedule_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Schedule_FirstRow
+  ): Schedule_KeyOutput @fdc_generated(from: "Schedule", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Shipment` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  shipment_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Shipment_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Shipment_FirstRow
+  ): Shipment_KeyOutput @fdc_generated(from: "Shipment", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `ShipmentEventLog` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  shipmentEventLog_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: ShipmentEventLog_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: ShipmentEventLog_FirstRow
+  ): ShipmentEventLog_KeyOutput @fdc_generated(from: "ShipmentEventLog", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `User` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  user_delete(
+    """
+    The key used to identify the object.
+    """
+    key: User_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: User_FirstRow
+  ): User_KeyOutput @fdc_generated(from: "User", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Vessel` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  vessel_delete(
+    """
+    The key used to identify the object.
+    """
+    key: Vessel_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Vessel_FirstRow
+  ): Vessel_KeyOutput @fdc_generated(from: "Vessel", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Workflow` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  workflow_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Workflow_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Workflow_FirstRow
+  ): Workflow_KeyOutput @fdc_generated(from: "Workflow", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete `Company` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  company_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Company_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Company", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `CrmDeal` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  crmDeal_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: CrmDeal_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "CrmDeal", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `CrmInteraction` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  crmInteraction_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: CrmInteraction_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "CrmInteraction", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `DictionaryTerm` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  dictionaryTerm_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: DictionaryTerm_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "DictionaryTerm", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Document` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  document_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Document_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Document", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `HsCode` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  hsCode_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: HsCode_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "HsCode", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Incoterm` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  incoterm_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Incoterm_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Incoterm", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Invoice` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  invoice_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Invoice_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Invoice", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Location` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  location_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Location_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Location", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Milestone` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  milestone_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Milestone_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Milestone", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Quote` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  quote_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Quote_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Quote", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Schedule` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  schedule_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Schedule_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Schedule", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Shipment` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  shipment_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Shipment_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Shipment", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `ShipmentEventLog` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  shipmentEventLog_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: ShipmentEventLog_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "ShipmentEventLog", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `User` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  user_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: User_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "User", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Vessel` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  vessel_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Vessel_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Vessel", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Workflow` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  workflow_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Workflow_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Workflow", purpose: DELETE_MULTIPLE)
+}

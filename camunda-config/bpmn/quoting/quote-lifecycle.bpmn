@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_QuoteLifecycle"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:process id="quote-lifecycle-process" name="Quote Lifecycle Process" isExecutable="true">
+
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_QuoteRequested" name="Quote Requested">
+      <bpmn:outgoing>Flow_Start_CalcCosts</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Service Task: Calculate Costs -->
+    <bpmn:serviceTask id="Task_CalculateCosts" name="Calculate Costs">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.quote.calculate-costs" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Start_CalcCosts</bpmn:incoming>
+      <bpmn:incoming>Flow_Revision_CalcCosts</bpmn:incoming>
+      <bpmn:outgoing>Flow_CalcCosts_ApplyMargins</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Service Task: Apply Margins -->
+    <bpmn:serviceTask id="Task_ApplyMargins" name="Apply Margins">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.quote.apply-margins" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_CalcCosts_ApplyMargins</bpmn:incoming>
+      <bpmn:outgoing>Flow_ApplyMargins_GenPDF</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Service Task: Generate Quote PDF -->
+    <bpmn:serviceTask id="Task_GenerateQuotePDF" name="Generate Quote PDF">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.generate-quote-pdf" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ApplyMargins_GenPDF</bpmn:incoming>
+      <bpmn:outgoing>Flow_GenPDF_Review</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- User Task: Internal Review -->
+    <bpmn:userTask id="Task_InternalReview" name="Internal Review">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:quote-approval" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_GenPDF_Review</bpmn:incoming>
+      <bpmn:outgoing>Flow_Review_GwApproved</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Exclusive Gateway: Approved Internally? -->
+    <bpmn:exclusiveGateway id="Gateway_ApprovedInternally" name="Approved Internally?">
+      <bpmn:incoming>Flow_Review_GwApproved</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Approved_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Service Task: Return for Revision (No branch) -->
+    <bpmn:serviceTask id="Task_ReturnForRevision" name="Return for Revision">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.quote.flag-revision" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Approved_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_Revision_CalcCosts</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Service Task: Send Quote to Customer (Yes branch) -->
+    <bpmn:serviceTask id="Task_SendQuoteToCustomer" name="Send Quote to Customer">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.quote.send-to-customer" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Approved_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_SendQuote_EventGw</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Event-Based Gateway -->
+    <bpmn:eventBasedGateway id="Gateway_EventBased" name="Await Customer Response">
+      <bpmn:incoming>Flow_SendQuote_EventGw</bpmn:incoming>
+      <bpmn:incoming>Flow_Followup_EventGw</bpmn:incoming>
+      <bpmn:outgoing>Flow_EventGw_Timer</bpmn:outgoing>
+      <bpmn:outgoing>Flow_EventGw_Message</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <!-- Timer Intermediate Catch Event: Wait for Response (72h) -->
+    <bpmn:intermediateCatchEvent id="Event_TimerWait" name="Wait for Response">
+      <bpmn:incoming>Flow_EventGw_Timer</bpmn:incoming>
+      <bpmn:outgoing>Flow_Timer_Followup</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_Wait72h">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT72H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+
+    <!-- Message Intermediate Catch Event: Customer Response -->
+    <bpmn:intermediateCatchEvent id="Event_CustomerResponse" name="Customer Response">
+      <bpmn:incoming>Flow_EventGw_Message</bpmn:incoming>
+      <bpmn:outgoing>Flow_Message_Decision</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_CustomerResponse" messageRef="Message_QuoteCustomerResponse" />
+    </bpmn:intermediateCatchEvent>
+
+    <!-- Service Task: Send Follow-up (Timeout branch) -->
+    <bpmn:serviceTask id="Task_SendFollowup" name="Send Follow-up">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.quote.follow-up" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Timer_Followup</bpmn:incoming>
+      <bpmn:outgoing>Flow_Followup_EventGw</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Exclusive Gateway: Customer Decision? -->
+    <bpmn:exclusiveGateway id="Gateway_CustomerDecision" name="Customer Decision?">
+      <bpmn:incoming>Flow_Message_Decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Decision_Accepted</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Decision_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Service Task: Convert to Booking (Accepted) -->
+    <bpmn:serviceTask id="Task_ConvertToBooking" name="Convert to Booking">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.quote.convert-to-booking" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Decision_Accepted</bpmn:incoming>
+      <bpmn:outgoing>Flow_Convert_EndWon</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Service Task: Archive & Capture Feedback (Rejected) -->
+    <bpmn:serviceTask id="Task_ArchiveFeedback" name="Archive &amp; Capture Feedback">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.quote.archive-feedback" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Decision_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_Archive_EndLost</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- End Events -->
+    <bpmn:endEvent id="EndEvent_QuoteWon" name="Quote Won">
+      <bpmn:incoming>Flow_Convert_EndWon</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_QuoteLost" name="Quote Lost">
+      <bpmn:incoming>Flow_Archive_EndLost</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_Start_CalcCosts" sourceRef="StartEvent_QuoteRequested" targetRef="Task_CalculateCosts" />
+    <bpmn:sequenceFlow id="Flow_CalcCosts_ApplyMargins" sourceRef="Task_CalculateCosts" targetRef="Task_ApplyMargins" />
+    <bpmn:sequenceFlow id="Flow_ApplyMargins_GenPDF" sourceRef="Task_ApplyMargins" targetRef="Task_GenerateQuotePDF" />
+    <bpmn:sequenceFlow id="Flow_GenPDF_Review" sourceRef="Task_GenerateQuotePDF" targetRef="Task_InternalReview" />
+    <bpmn:sequenceFlow id="Flow_Review_GwApproved" sourceRef="Task_InternalReview" targetRef="Gateway_ApprovedInternally" />
+
+    <bpmn:sequenceFlow id="Flow_Approved_Yes" name="Yes" sourceRef="Gateway_ApprovedInternally" targetRef="Task_SendQuoteToCustomer">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approved = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Approved_No" name="No" sourceRef="Gateway_ApprovedInternally" targetRef="Task_ReturnForRevision">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approved = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Revision_CalcCosts" sourceRef="Task_ReturnForRevision" targetRef="Task_CalculateCosts" />
+
+    <bpmn:sequenceFlow id="Flow_SendQuote_EventGw" sourceRef="Task_SendQuoteToCustomer" targetRef="Gateway_EventBased" />
+    <bpmn:sequenceFlow id="Flow_EventGw_Timer" sourceRef="Gateway_EventBased" targetRef="Event_TimerWait" />
+    <bpmn:sequenceFlow id="Flow_EventGw_Message" sourceRef="Gateway_EventBased" targetRef="Event_CustomerResponse" />
+    <bpmn:sequenceFlow id="Flow_Timer_Followup" sourceRef="Event_TimerWait" targetRef="Task_SendFollowup" />
+    <bpmn:sequenceFlow id="Flow_Followup_EventGw" sourceRef="Task_SendFollowup" targetRef="Gateway_EventBased" />
+    <bpmn:sequenceFlow id="Flow_Message_Decision" sourceRef="Event_CustomerResponse" targetRef="Gateway_CustomerDecision" />
+
+    <bpmn:sequenceFlow id="Flow_Decision_Accepted" name="Accepted" sourceRef="Gateway_CustomerDecision" targetRef="Task_ConvertToBooking">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=customerDecision = "accepted"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Decision_Rejected" name="Rejected" sourceRef="Gateway_CustomerDecision" targetRef="Task_ArchiveFeedback">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=customerDecision = "rejected"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Convert_EndWon" sourceRef="Task_ConvertToBooking" targetRef="EndEvent_QuoteWon" />
+    <bpmn:sequenceFlow id="Flow_Archive_EndLost" sourceRef="Task_ArchiveFeedback" targetRef="EndEvent_QuoteLost" />
+
+  </bpmn:process>
+
+  <!-- Message Definition -->
+  <bpmn:message id="Message_QuoteCustomerResponse" name="quote-customer-response">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=quoteId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+
+  <!-- BPMN Diagram -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_QuoteLifecycle">
+    <bpmndi:BPMNPlane id="BPMNPlane_QuoteLifecycle" bpmnElement="quote-lifecycle-process">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="Shape_StartEvent" bpmnElement="StartEvent_QuoteRequested">
+        <dc:Bounds x="162" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="140" y="225" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Calculate Costs -->
+      <bpmndi:BPMNShape id="Shape_CalculateCosts" bpmnElement="Task_CalculateCosts">
+        <dc:Bounds x="260" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Apply Margins -->
+      <bpmndi:BPMNShape id="Shape_ApplyMargins" bpmnElement="Task_ApplyMargins">
+        <dc:Bounds x="420" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Generate Quote PDF -->
+      <bpmndi:BPMNShape id="Shape_GeneratePDF" bpmnElement="Task_GenerateQuotePDF">
+        <dc:Bounds x="580" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Internal Review -->
+      <bpmndi:BPMNShape id="Shape_InternalReview" bpmnElement="Task_InternalReview">
+        <dc:Bounds x="740" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Approved Internally? -->
+      <bpmndi:BPMNShape id="Shape_GwApproved" bpmnElement="Gateway_ApprovedInternally" isMarkerVisible="true">
+        <dc:Bounds x="895" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="878" y="145" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Return for Revision (below gateway) -->
+      <bpmndi:BPMNShape id="Shape_ReturnRevision" bpmnElement="Task_ReturnForRevision">
+        <dc:Bounds x="870" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Send Quote to Customer -->
+      <bpmndi:BPMNShape id="Shape_SendQuote" bpmnElement="Task_SendQuoteToCustomer">
+        <dc:Bounds x="1010" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Event-Based Gateway -->
+      <bpmndi:BPMNShape id="Shape_EventBasedGw" bpmnElement="Gateway_EventBased">
+        <dc:Bounds x="1175" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1148" y="145" width="105" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Timer Catch: Wait for Response (below) -->
+      <bpmndi:BPMNShape id="Shape_TimerWait" bpmnElement="Event_TimerWait">
+        <dc:Bounds x="1272" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1246" y="335" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Message Catch: Customer Response (above) -->
+      <bpmndi:BPMNShape id="Shape_MsgCustomerResponse" bpmnElement="Event_CustomerResponse">
+        <dc:Bounds x="1272" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1246" y="78" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Send Follow-up (below, after timer) -->
+      <bpmndi:BPMNShape id="Shape_SendFollowup" bpmnElement="Task_SendFollowup">
+        <dc:Bounds x="1370" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Customer Decision? -->
+      <bpmndi:BPMNShape id="Shape_GwDecision" bpmnElement="Gateway_CustomerDecision" isMarkerVisible="true">
+        <dc:Bounds x="1375" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1355" y="65" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Convert to Booking -->
+      <bpmndi:BPMNShape id="Shape_ConvertBooking" bpmnElement="Task_ConvertToBooking">
+        <dc:Bounds x="1490" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Archive & Capture Feedback -->
+      <bpmndi:BPMNShape id="Shape_ArchiveFeedback" bpmnElement="Task_ArchiveFeedback">
+        <dc:Bounds x="1490" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event: Quote Won -->
+      <bpmndi:BPMNShape id="Shape_EndWon" bpmnElement="EndEvent_QuoteWon">
+        <dc:Bounds x="1652" y="52" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1640" y="95" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- End Event: Quote Lost -->
+      <bpmndi:BPMNShape id="Shape_EndLost" bpmnElement="EndEvent_QuoteLost">
+        <dc:Bounds x="1652" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1640" y="225" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Edge_Start_CalcCosts" bpmnElement="Flow_Start_CalcCosts">
+        <di:waypoint x="198" y="200" />
+        <di:waypoint x="260" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_CalcCosts_ApplyMargins" bpmnElement="Flow_CalcCosts_ApplyMargins">
+        <di:waypoint x="360" y="200" />
+        <di:waypoint x="420" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_ApplyMargins_GenPDF" bpmnElement="Flow_ApplyMargins_GenPDF">
+        <di:waypoint x="520" y="200" />
+        <di:waypoint x="580" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_GenPDF_Review" bpmnElement="Flow_GenPDF_Review">
+        <di:waypoint x="680" y="200" />
+        <di:waypoint x="740" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Review_GwApproved" bpmnElement="Flow_Review_GwApproved">
+        <di:waypoint x="840" y="200" />
+        <di:waypoint x="895" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Approved_Yes" bpmnElement="Flow_Approved_Yes">
+        <di:waypoint x="945" y="200" />
+        <di:waypoint x="1010" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="968" y="182" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Approved_No" bpmnElement="Flow_Approved_No">
+        <di:waypoint x="920" y="225" />
+        <di:waypoint x="920" y="330" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="928" y="270" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Revision_CalcCosts" bpmnElement="Flow_Revision_CalcCosts">
+        <di:waypoint x="870" y="370" />
+        <di:waypoint x="310" y="370" />
+        <di:waypoint x="310" y="240" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_SendQuote_EventGw" bpmnElement="Flow_SendQuote_EventGw">
+        <di:waypoint x="1110" y="200" />
+        <di:waypoint x="1175" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_EventGw_Timer" bpmnElement="Flow_EventGw_Timer">
+        <di:waypoint x="1200" y="225" />
+        <di:waypoint x="1200" y="310" />
+        <di:waypoint x="1272" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_EventGw_Message" bpmnElement="Flow_EventGw_Message">
+        <di:waypoint x="1200" y="175" />
+        <di:waypoint x="1200" y="120" />
+        <di:waypoint x="1272" y="120" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Timer_Followup" bpmnElement="Flow_Timer_Followup">
+        <di:waypoint x="1308" y="310" />
+        <di:waypoint x="1370" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Followup_EventGw" bpmnElement="Flow_Followup_EventGw">
+        <di:waypoint x="1420" y="350" />
+        <di:waypoint x="1420" y="420" />
+        <di:waypoint x="1150" y="420" />
+        <di:waypoint x="1150" y="200" />
+        <di:waypoint x="1175" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Message_Decision" bpmnElement="Flow_Message_Decision">
+        <di:waypoint x="1308" y="120" />
+        <di:waypoint x="1375" y="120" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Decision_Accepted" bpmnElement="Flow_Decision_Accepted">
+        <di:waypoint x="1400" y="95" />
+        <di:waypoint x="1400" y="70" />
+        <di:waypoint x="1490" y="70" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1425" y="52" width="48" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Decision_Rejected" bpmnElement="Flow_Decision_Rejected">
+        <di:waypoint x="1400" y="145" />
+        <di:waypoint x="1400" y="200" />
+        <di:waypoint x="1490" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1425" y="182" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Convert_EndWon" bpmnElement="Flow_Convert_EndWon">
+        <di:waypoint x="1590" y="70" />
+        <di:waypoint x="1652" y="70" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Archive_EndLost" bpmnElement="Flow_Archive_EndLost">
+        <di:waypoint x="1590" y="200" />
+        <di:waypoint x="1652" y="200" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+  xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+  xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+  id="Definitions_PricingRules"
+  name="Dynamic Pricing Rules"
+  namespace="http://camunda.org/schema/1.0/dmn"
+  exporter="Camunda Modeler"
+  exporterVersion="5.0.0"
+  modeler:executionPlatform="Camunda Cloud"
+  modeler:executionPlatformVersion="8.0.0">
+
+  <decision id="pricing-rules" name="Dynamic Pricing Rules">
+    <decisionTable id="DecisionTable_Pricing" hitPolicy="COLLECT">
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- INPUTS                                                  -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <input id="Input_CustomerTier" label="Customer Tier">
+        <inputExpression id="InputExpr_CustomerTier" typeRef="string">
+          <text>customerTier</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_LaneVolume" label="Lane Volume">
+        <inputExpression id="InputExpr_LaneVolume" typeRef="number">
+          <text>laneVolume</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_ContractType" label="Contract Type">
+        <inputExpression id="InputExpr_ContractType" typeRef="string">
+          <text>contractType</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_Seasonality" label="Seasonality">
+        <inputExpression id="InputExpr_Seasonality" typeRef="string">
+          <text>seasonality</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_CompetitorRate" label="Competitor Rate">
+        <inputExpression id="InputExpr_CompetitorRate" typeRef="number">
+          <text>competitorRate</text>
+        </inputExpression>
+      </input>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- OUTPUTS                                                 -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <output id="Output_MarginAdj" label="Margin Adjustment" name="marginAdjustment" typeRef="number" />
+      <output id="Output_Discount" label="Discount Percent" name="discountPercent" typeRef="number" />
+      <output id="Output_Reason" label="Reason" name="reason" typeRef="string" />
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- RULES                                                   -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+
+      <!-- Rule 1: Platinum loyalty discount -->
+      <rule id="Rule_1">
+        <description>Platinum tier customers receive the highest loyalty discount</description>
+        <inputEntry id="Rule_1_IE_1"><text>"PLATINUM"</text></inputEntry>
+        <inputEntry id="Rule_1_IE_2"><text></text></inputEntry>
+        <inputEntry id="Rule_1_IE_3"><text></text></inputEntry>
+        <inputEntry id="Rule_1_IE_4"><text></text></inputEntry>
+        <inputEntry id="Rule_1_IE_5"><text></text></inputEntry>
+        <outputEntry id="Rule_1_OE_1"><text>-3</text></outputEntry>
+        <outputEntry id="Rule_1_OE_2"><text>8</text></outputEntry>
+        <outputEntry id="Rule_1_OE_3"><text>"Platinum loyalty discount"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 2: Gold tier discount -->
+      <rule id="Rule_2">
+        <description>Gold tier customers receive a moderate loyalty discount</description>
+        <inputEntry id="Rule_2_IE_1"><text>"GOLD"</text></inputEntry>
+        <inputEntry id="Rule_2_IE_2"><text></text></inputEntry>
+        <inputEntry id="Rule_2_IE_3"><text></text></inputEntry>
+        <inputEntry id="Rule_2_IE_4"><text></text></inputEntry>
+        <inputEntry id="Rule_2_IE_5"><text></text></inputEntry>
+        <outputEntry id="Rule_2_OE_1"><text>-1.5</text></outputEntry>
+        <outputEntry id="Rule_2_OE_2"><text>5</text></outputEntry>
+        <outputEntry id="Rule_2_OE_3"><text>"Gold tier discount"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 3: High volume lane discount -->
+      <rule id="Rule_3">
+        <description>Lanes with more than 100 shipments qualify for volume discount</description>
+        <inputEntry id="Rule_3_IE_1"><text></text></inputEntry>
+        <inputEntry id="Rule_3_IE_2"><text>&gt; 100</text></inputEntry>
+        <inputEntry id="Rule_3_IE_3"><text></text></inputEntry>
+        <inputEntry id="Rule_3_IE_4"><text></text></inputEntry>
+        <inputEntry id="Rule_3_IE_5"><text></text></inputEntry>
+        <outputEntry id="Rule_3_OE_1"><text>-2</text></outputEntry>
+        <outputEntry id="Rule_3_OE_2"><text>3</text></outputEntry>
+        <outputEntry id="Rule_3_OE_3"><text>"High volume lane discount"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 4: Tender contract rate -->
+      <rule id="Rule_4">
+        <description>Tender contracts receive aggressive pricing to win bids</description>
+        <inputEntry id="Rule_4_IE_1"><text></text></inputEntry>
+        <inputEntry id="Rule_4_IE_2"><text></text></inputEntry>
+        <inputEntry id="Rule_4_IE_3"><text>"TENDER"</text></inputEntry>
+        <inputEntry id="Rule_4_IE_4"><text></text></inputEntry>
+        <inputEntry id="Rule_4_IE_5"><text></text></inputEntry>
+        <outputEntry id="Rule_4_OE_1"><text>-4</text></outputEntry>
+        <outputEntry id="Rule_4_OE_2"><text>10</text></outputEntry>
+        <outputEntry id="Rule_4_OE_3"><text>"Tender contract rate"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 5: Spot market premium -->
+      <rule id="Rule_5">
+        <description>Spot market shipments carry a premium due to volatility</description>
+        <inputEntry id="Rule_5_IE_1"><text></text></inputEntry>
+        <inputEntry id="Rule_5_IE_2"><text></text></inputEntry>
+        <inputEntry id="Rule_5_IE_3"><text>"SPOT"</text></inputEntry>
+        <inputEntry id="Rule_5_IE_4"><text></text></inputEntry>
+        <inputEntry id="Rule_5_IE_5"><text></text></inputEntry>
+        <outputEntry id="Rule_5_OE_1"><text>5</text></outputEntry>
+        <outputEntry id="Rule_5_OE_2"><text>0</text></outputEntry>
+        <outputEntry id="Rule_5_OE_3"><text>"Spot market premium"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 6: Peak season surcharge -->
+      <rule id="Rule_6">
+        <description>Peak season increases margins to manage capacity constraints</description>
+        <inputEntry id="Rule_6_IE_1"><text></text></inputEntry>
+        <inputEntry id="Rule_6_IE_2"><text></text></inputEntry>
+        <inputEntry id="Rule_6_IE_3"><text></text></inputEntry>
+        <inputEntry id="Rule_6_IE_4"><text>"PEAK"</text></inputEntry>
+        <inputEntry id="Rule_6_IE_5"><text></text></inputEntry>
+        <outputEntry id="Rule_6_OE_1"><text>3</text></outputEntry>
+        <outputEntry id="Rule_6_OE_2"><text>0</text></outputEntry>
+        <outputEntry id="Rule_6_OE_3"><text>"Peak season surcharge"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 7: Low season incentive -->
+      <rule id="Rule_7">
+        <description>Low season offers incentives to attract volume</description>
+        <inputEntry id="Rule_7_IE_1"><text></text></inputEntry>
+        <inputEntry id="Rule_7_IE_2"><text></text></inputEntry>
+        <inputEntry id="Rule_7_IE_3"><text></text></inputEntry>
+        <inputEntry id="Rule_7_IE_4"><text>"LOW"</text></inputEntry>
+        <inputEntry id="Rule_7_IE_5"><text></text></inputEntry>
+        <outputEntry id="Rule_7_OE_1"><text>-1</text></outputEntry>
+        <outputEntry id="Rule_7_OE_2"><text>2</text></outputEntry>
+        <outputEntry id="Rule_7_OE_3"><text>"Low season incentive"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 8: Default / Standard pricing -->
+      <rule id="Rule_8">
+        <description>Default rule when no other condition matches</description>
+        <inputEntry id="Rule_8_IE_1"><text></text></inputEntry>
+        <inputEntry id="Rule_8_IE_2"><text></text></inputEntry>
+        <inputEntry id="Rule_8_IE_3"><text></text></inputEntry>
+        <inputEntry id="Rule_8_IE_4"><text></text></inputEntry>
+        <inputEntry id="Rule_8_IE_5"><text></text></inputEntry>
+        <outputEntry id="Rule_8_OE_1"><text>0</text></outputEntry>
+        <outputEntry id="Rule_8_OE_2"><text>0</text></outputEntry>
+        <outputEntry id="Rule_8_OE_3"><text>"Standard pricing"</text></outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- DMN DIAGRAM                                                 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="DMNDiagram_Pricing">
+      <dmndi:DMNShape id="DMNShape_PricingRules" dmnElementRef="pricing-rules">
+        <dc:Bounds x="200" y="200" width="180" height="80" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

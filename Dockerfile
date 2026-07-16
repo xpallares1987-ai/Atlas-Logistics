@@ -1,12 +1,12 @@
 ARG NODE_VERSION=22
 ARG PNPM_VERSION=11.13.0
 
+# 1. Builder Stage
 FROM node:${NODE_VERSION}-alpine AS builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN apk add --no-cache git \
-    && npm install -g pnpm@${PNPM_VERSION}
+RUN apk add --no-cache git && npm install -g pnpm@${PNPM_VERSION}
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.base.json tsconfig.json ./
 COPY src ./src
@@ -16,8 +16,7 @@ ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 RUN pnpm run build
 
-FROM nginx:alpine AS production
-COPY --from=builder /app/packages/frontend/dist /usr/share/nginx/html
+# Generate Nginx config in builder because Chainguard has no shell
 RUN printf 'server {\n\
     listen 8080;\n\
     server_name localhost;\n\
@@ -33,6 +32,12 @@ RUN printf 'server {\n\
         access_log off;\n\
         add_header Cache-Control "public";\n\
     }\n\
-}' > /etc/nginx/conf.d/default.conf
+}' > /app/default.conf
+
+# 2. Production Stage (Chainguard Hardened)
+FROM cgr.dev/chainguard/nginx:latest AS production
+COPY --from=builder /app/packages/frontend/dist /usr/share/nginx/html
+# Chainguard Nginx uses /etc/nginx/conf.d for custom configs by default
+COPY --from=builder /app/default.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8080
-CMD ["nginx", "-g", "daemon off;"]
+# Chainguard automatically runs nginx, no need for CMD unless overriding

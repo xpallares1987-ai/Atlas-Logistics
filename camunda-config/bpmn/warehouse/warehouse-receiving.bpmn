@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  id="Definitions_WarehouseReceiving"
+  targetNamespace="http://bpmn.io/schema/bpmn"
+  exporter="Camunda Modeler"
+  exporterVersion="5.0.0">
+
+  <bpmn:process id="warehouse-receiving-process" name="Warehouse Receiving Process" isExecutable="true">
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- START EVENT                                                 -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:startEvent id="StartEvent_1" name="Cargo Arrival at Gate">
+      <bpmn:outgoing>Flow_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- GATE-IN REGISTRATION                                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:serviceTask id="Task_GateIn" name="Register Gate-In">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.warehouse.gate-in" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_01</bpmn:incoming>
+      <bpmn:outgoing>Flow_02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- DOCUMENT VERIFICATION (accepts loop-back from resolution)   -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:serviceTask id="Task_VerifyDocs" name="Verify Documents">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.warehouse.verify-docs" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_02</bpmn:incoming>
+      <bpmn:incoming>Flow_06</bpmn:incoming>
+      <bpmn:outgoing>Flow_03</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- DOCUMENTS OK? — Exclusive Gateway                           -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:exclusiveGateway id="Gateway_DocsOK" name="Documents OK?">
+      <bpmn:incoming>Flow_03</bpmn:incoming>
+      <bpmn:outgoing>Flow_04</bpmn:outgoing>
+      <bpmn:outgoing>Flow_05</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- NO branch — Resolve Document Issue (loops back) -->
+    <bpmn:userTask id="Task_ResolveDoc" name="Resolve Document Issue">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:warehouse-docs" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_05</bpmn:incoming>
+      <bpmn:outgoing>Flow_06</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- CARGO INSPECTION                                            -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:serviceTask id="Task_InspectCargo" name="Inspect Cargo">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.warehouse.inspect-cargo" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_04</bpmn:incoming>
+      <bpmn:outgoing>Flow_07</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- CARGO CONDITION? — Exclusive Gateway                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:exclusiveGateway id="Gateway_Condition" name="Cargo Condition?">
+      <bpmn:incoming>Flow_07</bpmn:incoming>
+      <bpmn:outgoing>Flow_08</bpmn:outgoing>
+      <bpmn:outgoing>Flow_09</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- DAMAGED branch -->
+    <bpmn:serviceTask id="Task_DamageReport" name="Create Damage Report">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.warehouse.damage-report" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_09</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_ReviewDamage" name="Review Damage">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:cargo-inspection" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- MERGE GATEWAY — OK + Damaged paths converge                 -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:exclusiveGateway id="Gateway_Merge1" name="Merge Condition">
+      <bpmn:incoming>Flow_08</bpmn:incoming>
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- POST-INSPECTION PROCESSING                                  -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:serviceTask id="Task_AssignLocation" name="Assign Storage Location">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.warehouse.assign-location" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_UpdateInventory" name="Update Inventory">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.warehouse.update-inventory" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_GenerateReceipt" name="Generate Receipt">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.warehouse.generate-receipt" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- END EVENT                                                   -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:endEvent id="EndEvent_1" name="Cargo Received">
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SEQUENCE FLOWS                                              -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:sequenceFlow id="Flow_01" sourceRef="StartEvent_1" targetRef="Task_GateIn" />
+    <bpmn:sequenceFlow id="Flow_02" sourceRef="Task_GateIn" targetRef="Task_VerifyDocs" />
+    <bpmn:sequenceFlow id="Flow_03" sourceRef="Task_VerifyDocs" targetRef="Gateway_DocsOK" />
+
+    <bpmn:sequenceFlow id="Flow_04" name="Yes" sourceRef="Gateway_DocsOK" targetRef="Task_InspectCargo">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=documentsValid = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_05" name="No" sourceRef="Gateway_DocsOK" targetRef="Task_ResolveDoc">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=documentsValid = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_06" sourceRef="Task_ResolveDoc" targetRef="Task_VerifyDocs" />
+
+    <bpmn:sequenceFlow id="Flow_07" sourceRef="Task_InspectCargo" targetRef="Gateway_Condition" />
+
+    <bpmn:sequenceFlow id="Flow_08" name="OK" sourceRef="Gateway_Condition" targetRef="Gateway_Merge1">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=cargoCondition = "OK"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_09" name="Damaged" sourceRef="Gateway_Condition" targetRef="Task_DamageReport">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=cargoCondition = "DAMAGED"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_DamageReport" targetRef="Task_ReviewDamage" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_ReviewDamage" targetRef="Gateway_Merge1" />
+
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Gateway_Merge1" targetRef="Task_AssignLocation" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_AssignLocation" targetRef="Task_UpdateInventory" />
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="Task_UpdateInventory" targetRef="Task_GenerateReceipt" />
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="Task_GenerateReceipt" targetRef="EndEvent_1" />
+  </bpmn:process>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- BPMN DIAGRAM                                                    -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="warehouse-receiving-process">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="180" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="155" y="225" width="86" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Register Gate-In -->
+      <bpmndi:BPMNShape id="Task_GateIn_di" bpmnElement="Task_GateIn">
+        <dc:Bounds x="276" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Verify Documents -->
+      <bpmndi:BPMNShape id="Task_VerifyDocs_di" bpmnElement="Task_VerifyDocs">
+        <dc:Bounds x="436" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Documents OK? Gateway -->
+      <bpmndi:BPMNShape id="Gateway_DocsOK_di" bpmnElement="Gateway_DocsOK" isMarkerVisible="true">
+        <dc:Bounds x="596" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="580" y="148" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Resolve Document Issue (below gateway) -->
+      <bpmndi:BPMNShape id="Task_ResolveDoc_di" bpmnElement="Task_ResolveDoc">
+        <dc:Bounds x="571" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Inspect Cargo -->
+      <bpmndi:BPMNShape id="Task_InspectCargo_di" bpmnElement="Task_InspectCargo">
+        <dc:Bounds x="706" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Cargo Condition? Gateway -->
+      <bpmndi:BPMNShape id="Gateway_Condition_di" bpmnElement="Gateway_Condition" isMarkerVisible="true">
+        <dc:Bounds x="866" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="846" y="148" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Create Damage Report (below condition gateway) -->
+      <bpmndi:BPMNShape id="Task_DamageReport_di" bpmnElement="Task_DamageReport">
+        <dc:Bounds x="841" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Review Damage -->
+      <bpmndi:BPMNShape id="Task_ReviewDamage_di" bpmnElement="Task_ReviewDamage">
+        <dc:Bounds x="1001" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Merge Gateway -->
+      <bpmndi:BPMNShape id="Gateway_Merge1_di" bpmnElement="Gateway_Merge1" isMarkerVisible="true">
+        <dc:Bounds x="1126" y="175" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Assign Storage Location -->
+      <bpmndi:BPMNShape id="Task_AssignLocation_di" bpmnElement="Task_AssignLocation">
+        <dc:Bounds x="1236" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Update Inventory -->
+      <bpmndi:BPMNShape id="Task_UpdateInventory_di" bpmnElement="Task_UpdateInventory">
+        <dc:Bounds x="1396" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Generate Receipt -->
+      <bpmndi:BPMNShape id="Task_GenerateReceipt_di" bpmnElement="Task_GenerateReceipt">
+        <dc:Bounds x="1556" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event -->
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1716" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1697" y="225" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ═══════ Sequence Flow Edges ═══════ -->
+
+      <bpmndi:BPMNEdge id="Flow_01_di" bpmnElement="Flow_01">
+        <di:waypoint x="216" y="200" />
+        <di:waypoint x="276" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_02_di" bpmnElement="Flow_02">
+        <di:waypoint x="376" y="200" />
+        <di:waypoint x="436" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_03_di" bpmnElement="Flow_03">
+        <di:waypoint x="536" y="200" />
+        <di:waypoint x="596" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Yes → Inspect Cargo -->
+      <bpmndi:BPMNEdge id="Flow_04_di" bpmnElement="Flow_04">
+        <di:waypoint x="646" y="200" />
+        <di:waypoint x="706" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="668" y="182" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- No → Resolve Doc (downward) -->
+      <bpmndi:BPMNEdge id="Flow_05_di" bpmnElement="Flow_05">
+        <di:waypoint x="621" y="225" />
+        <di:waypoint x="621" y="310" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="629" y="263" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Loop back: Resolve Doc → Verify Docs -->
+      <bpmndi:BPMNEdge id="Flow_06_di" bpmnElement="Flow_06">
+        <di:waypoint x="571" y="350" />
+        <di:waypoint x="486" y="350" />
+        <di:waypoint x="486" y="240" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_07_di" bpmnElement="Flow_07">
+        <di:waypoint x="806" y="200" />
+        <di:waypoint x="866" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- OK → Merge Gateway (straight across) -->
+      <bpmndi:BPMNEdge id="Flow_08_di" bpmnElement="Flow_08">
+        <di:waypoint x="916" y="200" />
+        <di:waypoint x="1126" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1014" y="182" width="16" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Damaged → Create Damage Report (downward) -->
+      <bpmndi:BPMNEdge id="Flow_09_di" bpmnElement="Flow_09">
+        <di:waypoint x="891" y="225" />
+        <di:waypoint x="891" y="310" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="897" y="263" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="941" y="350" />
+        <di:waypoint x="1001" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Review Damage → Merge Gateway (upward) -->
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1101" y="350" />
+        <di:waypoint x="1151" y="350" />
+        <di:waypoint x="1151" y="225" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1176" y="200" />
+        <di:waypoint x="1236" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1336" y="200" />
+        <di:waypoint x="1396" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1496" y="200" />
+        <di:waypoint x="1556" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="1656" y="200" />
+        <di:waypoint x="1716" y="200" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

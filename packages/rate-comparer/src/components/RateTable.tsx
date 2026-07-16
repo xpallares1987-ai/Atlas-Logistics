@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import RfqGeneratorModal from "./RfqGeneratorModal";
-import { useAppStore } from "@/shared/store";
+import { useAppStore } from "../shared/store";
 
 interface RateTableProps {
   rates: any[];

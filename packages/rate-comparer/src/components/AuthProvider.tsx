@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 import { ReactNode, useState } from "react";
-import { useAuth, FirebaseProvider } from "@/components";
+import { useAuth, FirebaseProvider } from ".";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const firebaseConfig = {

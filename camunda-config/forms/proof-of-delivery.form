@@ -1,0 +1,70 @@
+{
+  "components": [
+    {
+      "text": "# Proof of Delivery (POD)",
+      "type": "text",
+      "id": "Field_1v8mxg1"
+    },
+    {
+      "label": "Shipment ID",
+      "type": "textfield",
+      "id": "Field_1g6x8q2",
+      "key": "shipmentId",
+      "disabled": true
+    },
+    {
+      "label": "Carrier ID",
+      "type": "textfield",
+      "id": "Field_0f2z9w4",
+      "key": "carrierId",
+      "disabled": true
+    },
+    {
+      "label": "Delivery Status",
+      "type": "radio",
+      "id": "Field_1k5l9m3",
+      "key": "deliveryStatus",
+      "values": [
+        {
+          "label": "Delivered Complete",
+          "value": "DELIVERED"
+        },
+        {
+          "label": "Partial/Damaged",
+          "value": "PARTIAL"
+        },
+        {
+          "label": "Rejected",
+          "value": "REJECTED"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Receiver Name",
+      "type": "textfield",
+      "id": "Field_0m9n2b4",
+      "key": "receiverName",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Delivery Remarks / Exceptions",
+      "type": "textarea",
+      "id": "Field_1b8v4c5",
+      "key": "deliveryRemarks"
+    }
+  ],
+  "type": "default",
+  "id": "proof-of-delivery",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.5.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.25.0"
+  },
+  "schemaVersion": 16
+}

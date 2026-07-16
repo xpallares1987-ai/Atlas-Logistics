@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  id="Definitions_AirImport"
+  targetNamespace="http://bpmn.io/schema/bpmn"
+  exporter="Camunda Modeler"
+  exporterVersion="5.0.0">
+
+  <bpmn:process id="air-import-process" name="Air Import Process" isExecutable="true">
+
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_1" name="Flight Manifest Received">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Validate Flight Details -->
+    <bpmn:serviceTask id="Task_ValidateFlight" name="Validate Flight Details">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.air.validate-flight" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Track Flight Status -->
+    <bpmn:serviceTask id="Task_TrackFlight" name="Track Flight Status">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.tracking.track-flight" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Flight Landed? Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_FlightLanded" name="Flight Landed?">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Wait for Landing Timer -->
+    <bpmn:intermediateCatchEvent id="Event_WaitFlight" name="Wait for Landing">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_WaitFlight">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT4H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+
+    <!-- Customs Import Declaration -->
+    <bpmn:serviceTask id="Task_CustomsDeclaration" name="Customs Import Declaration">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.customs.import-declaration" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Customs Cleared? Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_CustomsCleared" name="Customs Cleared?">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Resolve Customs Issue (User Task) -->
+    <bpmn:userTask id="Task_ResolveCustoms" name="Resolve Customs Issue">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:customs-review" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Cargo Breakdown -->
+    <bpmn:serviceTask id="Task_CargoBreakdown" name="Cargo Breakdown">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.air.cargo-breakdown" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Notify Consignee -->
+    <bpmn:serviceTask id="Task_NotifyConsignee" name="Notify Consignee">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.notify.consignee" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Arrange Delivery -->
+    <bpmn:serviceTask id="Task_ArrangeDelivery" name="Arrange Delivery">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.transport.arrange-delivery" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Confirm Delivery -->
+    <bpmn:serviceTask id="Task_ConfirmDelivery" name="Confirm Delivery">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.transport.confirm-delivery" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Close Job & Invoice -->
+    <bpmn:serviceTask id="Task_CloseJob" name="Close Job &amp; Invoice">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.generate" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- End Event -->
+    <bpmn:endEvent id="EndEvent_1" name="Air Import Completed">
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_ValidateFlight" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_ValidateFlight" targetRef="Task_TrackFlight" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_TrackFlight" targetRef="Gateway_FlightLanded" />
+    <bpmn:sequenceFlow id="Flow_4" name="No" sourceRef="Gateway_FlightLanded" targetRef="Event_WaitFlight">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=flightLanded = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Event_WaitFlight" targetRef="Task_TrackFlight" />
+    <bpmn:sequenceFlow id="Flow_6" name="Yes" sourceRef="Gateway_FlightLanded" targetRef="Task_CustomsDeclaration">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=flightLanded = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_CustomsDeclaration" targetRef="Gateway_CustomsCleared" />
+    <bpmn:sequenceFlow id="Flow_8" name="No" sourceRef="Gateway_CustomsCleared" targetRef="Task_ResolveCustoms">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=customsCleared = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_ResolveCustoms" targetRef="Task_CustomsDeclaration" />
+    <bpmn:sequenceFlow id="Flow_10" name="Yes" sourceRef="Gateway_CustomsCleared" targetRef="Task_CargoBreakdown">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=customsCleared = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_CargoBreakdown" targetRef="Task_NotifyConsignee" />
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_NotifyConsignee" targetRef="Task_ArrangeDelivery" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_ArrangeDelivery" targetRef="Task_ConfirmDelivery" />
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="Task_ConfirmDelivery" targetRef="Task_CloseJob" />
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="Task_CloseJob" targetRef="EndEvent_1" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="air-import-process">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="162" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="138" y="335" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Validate Flight Details -->
+      <bpmndi:BPMNShape id="Task_ValidateFlight_di" bpmnElement="Task_ValidateFlight">
+        <dc:Bounds x="250" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Track Flight Status -->
+      <bpmndi:BPMNShape id="Task_TrackFlight_di" bpmnElement="Task_TrackFlight">
+        <dc:Bounds x="400" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Flight Landed? Gateway -->
+      <bpmndi:BPMNShape id="Gateway_FlightLanded_di" bpmnElement="Gateway_FlightLanded" isMarkerVisible="true">
+        <dc:Bounds x="550" y="285" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="538" y="261" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Wait for Landing Timer -->
+      <bpmndi:BPMNShape id="Event_WaitFlight_di" bpmnElement="Event_WaitFlight">
+        <dc:Bounds x="557" y="400" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="537" y="443" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Customs Import Declaration -->
+      <bpmndi:BPMNShape id="Task_CustomsDeclaration_di" bpmnElement="Task_CustomsDeclaration">
+        <dc:Bounds x="660" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Customs Cleared? Gateway -->
+      <bpmndi:BPMNShape id="Gateway_CustomsCleared_di" bpmnElement="Gateway_CustomsCleared" isMarkerVisible="true">
+        <dc:Bounds x="810" y="285" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="793" y="261" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Resolve Customs Issue -->
+      <bpmndi:BPMNShape id="Task_ResolveCustoms_di" bpmnElement="Task_ResolveCustoms">
+        <dc:Bounds x="785" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Cargo Breakdown -->
+      <bpmndi:BPMNShape id="Task_CargoBreakdown_di" bpmnElement="Task_CargoBreakdown">
+        <dc:Bounds x="920" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Notify Consignee -->
+      <bpmndi:BPMNShape id="Task_NotifyConsignee_di" bpmnElement="Task_NotifyConsignee">
+        <dc:Bounds x="1070" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Arrange Delivery -->
+      <bpmndi:BPMNShape id="Task_ArrangeDelivery_di" bpmnElement="Task_ArrangeDelivery">
+        <dc:Bounds x="1220" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Confirm Delivery -->
+      <bpmndi:BPMNShape id="Task_ConfirmDelivery_di" bpmnElement="Task_ConfirmDelivery">
+        <dc:Bounds x="1370" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Close Job & Invoice -->
+      <bpmndi:BPMNShape id="Task_CloseJob_di" bpmnElement="Task_CloseJob">
+        <dc:Bounds x="1520" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event -->
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1672" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1648" y="335" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="198" y="310" />
+        <di:waypoint x="250" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="350" y="310" />
+        <di:waypoint x="400" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="500" y="310" />
+        <di:waypoint x="550" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="575" y="335" />
+        <di:waypoint x="575" y="400" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="583" y="363" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="557" y="418" />
+        <di:waypoint x="450" y="418" />
+        <di:waypoint x="450" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="600" y="310" />
+        <di:waypoint x="660" y="310" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="623" y="292" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="760" y="310" />
+        <di:waypoint x="810" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="835" y="335" />
+        <di:waypoint x="835" y="420" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="843" y="373" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="785" y="460" />
+        <di:waypoint x="710" y="460" />
+        <di:waypoint x="710" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="860" y="310" />
+        <di:waypoint x="920" y="310" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="883" y="292" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1020" y="310" />
+        <di:waypoint x="1070" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1170" y="310" />
+        <di:waypoint x="1220" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1320" y="310" />
+        <di:waypoint x="1370" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1470" y="310" />
+        <di:waypoint x="1520" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="1620" y="310" />
+        <di:waypoint x="1672" y="310" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

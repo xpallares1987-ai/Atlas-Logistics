@@ -5,11 +5,11 @@
  * (e.g. @atlas/frontend AppLayout). App.tsx retains the full-page standalone version.
  */
 import React, { useState } from "react";
-import { useAppStore } from "@/shared/store";
+import { useAppStore } from "./shared/store";
 import RateTable from "./components/RateTable";
 import LocationAutocomplete from "./components/LocationAutocomplete";
 import { Search, Ship, Plane, CalendarDays, Box, ArrowRightLeft, MapPin, Zap } from "lucide-react";
-import { useAuth } from "@/components";
+import { useAuth } from "./components";
 
 export default function RatesContent() {
   const { currency, setCurrency } = useAppStore();

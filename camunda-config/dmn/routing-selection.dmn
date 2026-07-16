@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+             xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+             id="Definitions_RoutingSelection"
+             name="Routing Selection"
+             namespace="http://camunda.org/schema/1.0/dmn"
+             exporter="Camunda Modeler"
+             exporterVersion="5.0.0"
+             modeler:executionPlatform="Camunda Cloud"
+             modeler:executionPlatformVersion="8.8.0">
+
+  <decision id="routing-selection" name="Transport Mode Selection">
+    <decisionTable id="DecisionTable_RoutingSelection" hitPolicy="FIRST">
+
+      <input id="Input_OriginRegion" label="Origin Region">
+        <inputExpression id="InputExpression_OriginRegion" typeRef="string">
+          <text>originRegion</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_DestRegion" label="Destination Region">
+        <inputExpression id="InputExpression_DestRegion" typeRef="string">
+          <text>destinationRegion</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_CargoType" label="Cargo Type">
+        <inputExpression id="InputExpression_CargoType" typeRef="string">
+          <text>cargoType</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_WeightKg" label="Weight (kg)">
+        <inputExpression id="InputExpression_WeightKg" typeRef="number">
+          <text>weightKg</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_Urgency" label="Urgency">
+        <inputExpression id="InputExpression_Urgency" typeRef="string">
+          <text>urgency</text>
+        </inputExpression>
+      </input>
+
+      <output id="Output_TransportMode" label="Transport Mode" name="transportMode" typeRef="string" />
+      <output id="Output_ContainerType" label="Container Type" name="containerType" typeRef="string" />
+      <output id="Output_EstTransitDays" label="Est. Transit Days" name="estimatedTransitDays" typeRef="number" />
+
+      <!-- Rule 1: Perishable goods always air -->
+      <rule id="Rule_Perishable">
+        <inputEntry id="U_Perish_Origin"><text></text></inputEntry>
+        <inputEntry id="U_Perish_Dest"><text></text></inputEntry>
+        <inputEntry id="U_Perish_Cargo"><text>"PERISHABLE"</text></inputEntry>
+        <inputEntry id="U_Perish_Weight"><text></text></inputEntry>
+        <inputEntry id="U_Perish_Urgency"><text></text></inputEntry>
+        <outputEntry id="O_Perish_Mode"><text>"AIR"</text></outputEntry>
+        <outputEntry id="O_Perish_Container"><text>"AIR_TEMP_CONTROLLED"</text></outputEntry>
+        <outputEntry id="O_Perish_Transit"><text>3</text></outputEntry>
+      </rule>
+
+      <!-- Rule 2: Critical urgency always air -->
+      <rule id="Rule_Critical">
+        <inputEntry id="U_Crit_Origin"><text></text></inputEntry>
+        <inputEntry id="U_Crit_Dest"><text></text></inputEntry>
+        <inputEntry id="U_Crit_Cargo"><text></text></inputEntry>
+        <inputEntry id="U_Crit_Weight"><text>&lt;= 5000</text></inputEntry>
+        <inputEntry id="U_Crit_Urgency"><text>"CRITICAL"</text></inputEntry>
+        <outputEntry id="O_Crit_Mode"><text>"AIR"</text></outputEntry>
+        <outputEntry id="O_Crit_Container"><text>"AIR_STANDARD"</text></outputEntry>
+        <outputEntry id="O_Crit_Transit"><text>2</text></outputEntry>
+      </rule>
+
+      <!-- Rule 3: Heavy urgent cargo - express ocean -->
+      <rule id="Rule_HeavyUrgent">
+        <inputEntry id="U_HU_Origin"><text></text></inputEntry>
+        <inputEntry id="U_HU_Dest"><text></text></inputEntry>
+        <inputEntry id="U_HU_Cargo"><text></text></inputEntry>
+        <inputEntry id="U_HU_Weight"><text>&gt; 5000</text></inputEntry>
+        <inputEntry id="U_HU_Urgency"><text>"CRITICAL"</text></inputEntry>
+        <outputEntry id="O_HU_Mode"><text>"OCEAN_EXPRESS"</text></outputEntry>
+        <outputEntry id="O_HU_Container"><text>"20DC"</text></outputEntry>
+        <outputEntry id="O_HU_Transit"><text>14</text></outputEntry>
+      </rule>
+
+      <!-- Rule 4: Dangerous goods (special handling) -->
+      <rule id="Rule_DangerousGoods">
+        <inputEntry id="U_DG_Origin"><text></text></inputEntry>
+        <inputEntry id="U_DG_Dest"><text></text></inputEntry>
+        <inputEntry id="U_DG_Cargo"><text>"DANGEROUS_GOODS"</text></inputEntry>
+        <inputEntry id="U_DG_Weight"><text></text></inputEntry>
+        <inputEntry id="U_DG_Urgency"><text></text></inputEntry>
+        <outputEntry id="O_DG_Mode"><text>"OCEAN_FCL"</text></outputEntry>
+        <outputEntry id="O_DG_Container"><text>"20DG"</text></outputEntry>
+        <outputEntry id="O_DG_Transit"><text>28</text></outputEntry>
+      </rule>
+
+      <!-- Rule 5: Europe-Asia heavy cargo FCL -->
+      <rule id="Rule_EuAsia_FCL">
+        <inputEntry id="U_EuAs_Origin"><text>"EUROPE"</text></inputEntry>
+        <inputEntry id="U_EuAs_Dest"><text>"ASIA"</text></inputEntry>
+        <inputEntry id="U_EuAs_Cargo"><text></text></inputEntry>
+        <inputEntry id="U_EuAs_Weight"><text>&gt; 15000</text></inputEntry>
+        <inputEntry id="U_EuAs_Urgency"><text></text></inputEntry>
+        <outputEntry id="O_EuAs_Mode"><text>"OCEAN_FCL"</text></outputEntry>
+        <outputEntry id="O_EuAs_Container"><text>"40HC"</text></outputEntry>
+        <outputEntry id="O_EuAs_Transit"><text>30</text></outputEntry>
+      </rule>
+
+      <!-- Rule 6: Europe-Asia medium cargo LCL -->
+      <rule id="Rule_EuAsia_LCL">
+        <inputEntry id="U_EuAsL_Origin"><text>"EUROPE"</text></inputEntry>
+        <inputEntry id="U_EuAsL_Dest"><text>"ASIA"</text></inputEntry>
+        <inputEntry id="U_EuAsL_Cargo"><text></text></inputEntry>
+        <inputEntry id="U_EuAsL_Weight"><text>&lt;= 15000</text></inputEntry>
+        <inputEntry id="U_EuAsL_Urgency"><text></text></inputEntry>
+        <outputEntry id="O_EuAsL_Mode"><text>"OCEAN_LCL"</text></outputEntry>
+        <outputEntry id="O_EuAsL_Container"><text>"LCL"</text></outputEntry>
+        <outputEntry id="O_EuAsL_Transit"><text>35</text></outputEntry>
+      </rule>
+
+      <!-- Rule 7: Americas heavy cargo FCL -->
+      <rule id="Rule_Americas_FCL">
+        <inputEntry id="U_Am_Origin"><text>"EUROPE"</text></inputEntry>
+        <inputEntry id="U_Am_Dest"><text>"AMERICAS"</text></inputEntry>
+        <inputEntry id="U_Am_Cargo"><text></text></inputEntry>
+        <inputEntry id="U_Am_Weight"><text>&gt; 10000</text></inputEntry>
+        <inputEntry id="U_Am_Urgency"><text></text></inputEntry>
+        <outputEntry id="O_Am_Mode"><text>"OCEAN_FCL"</text></outputEntry>
+        <outputEntry id="O_Am_Container"><text>"40HC"</text></outputEntry>
+        <outputEntry id="O_Am_Transit"><text>18</text></outputEntry>
+      </rule>
+
+      <!-- Rule 8: Default - LCL for everything else -->
+      <rule id="Rule_Default">
+        <inputEntry id="U_Def_Origin"><text></text></inputEntry>
+        <inputEntry id="U_Def_Dest"><text></text></inputEntry>
+        <inputEntry id="U_Def_Cargo"><text></text></inputEntry>
+        <inputEntry id="U_Def_Weight"><text></text></inputEntry>
+        <inputEntry id="U_Def_Urgency"><text></text></inputEntry>
+        <outputEntry id="O_Def_Mode"><text>"OCEAN_LCL"</text></outputEntry>
+        <outputEntry id="O_Def_Container"><text>"LCL"</text></outputEntry>
+        <outputEntry id="O_Def_Transit"><text>30</text></outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram>
+      <dmndi:DMNShape dmnElementRef="routing-selection">
+        <dc:Bounds height="80" width="180" x="160" y="100" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

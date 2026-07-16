@@ -59,11 +59,46 @@ app.get('/api/shipments', async (req, res) => {
   }
 });
 
+import { Storage } from '@google-cloud/storage';
+import { shipmentDocuments } from './db/schema.js';
+
+const storage = new Storage();
+const BUCKET_NAME = 'atlas-logistics-docs-100198375762';
+
 app.post('/api/shipments', async (req, res) => {
   try {
-    const newShipment = await db.insert(shipments).values(req.body).returning();
-    res.json(newShipment[0]);
+    const { documentBase64, documentMimeType, documentName, ...shipmentData } = req.body;
+    
+    // 1. Insert shipment
+    const newShipment = await db.insert(shipments).values(shipmentData).returning();
+    const shipment = newShipment[0];
+
+    // 2. Upload document to GCS if provided
+    if (documentBase64 && documentName) {
+      const bucket = storage.bucket(BUCKET_NAME);
+      const uniqueFileName = `bookings/${shipment.id}-${documentName}`;
+      const file = bucket.file(uniqueFileName);
+      
+      const buffer = Buffer.from(documentBase64, 'base64');
+      await file.save(buffer, {
+        contentType: documentMimeType || 'application/pdf',
+      });
+      
+      const gcsUrl = `gs://${BUCKET_NAME}/${uniqueFileName}`;
+      
+      // 3. Insert into shipment_documents
+      await db.insert(shipmentDocuments).values({
+        shipmentId: shipment.id,
+        documentType: 'BOOKING_INSTRUCTION',
+        fileName: documentName,
+        mimeType: documentMimeType || 'application/pdf',
+        gcsUrl: gcsUrl
+      });
+    }
+
+    res.json(shipment);
   } catch (error: any) {
+    console.error('Error creating shipment:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -132,12 +167,27 @@ app.put('/api/quotes/:id', async (req, res) => {
   }
 });
 
-import { invoices } from './db/schema.js';
+import { invoices, invoiceLines, agentSettlements, companies } from './db/schema.js';
+import { sql } from 'drizzle-orm';
 
 // INVOICES API
 app.get('/api/invoices', async (req, res) => {
   try {
-    const allInvoices = await db.select().from(invoices);
+    const allInvoices = await db.select({
+      id: invoices.id,
+      invoiceNumber: invoices.invoiceNumber,
+      type: invoices.type,
+      amount: invoices.totalAmount,
+      currency: invoices.currency,
+      status: invoices.status,
+      dueDate: invoices.dueDate,
+      shipmentId: invoices.shipmentId,
+      partyId: invoices.partyId,
+      party: companies.name
+    })
+    .from(invoices)
+    .leftJoin(companies, eq(invoices.partyId, companies.id))
+    .orderBy(invoices.issuedAt);
     res.json(allInvoices);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -146,12 +196,21 @@ app.get('/api/invoices', async (req, res) => {
 
 app.post('/api/invoices', async (req, res) => {
   try {
-    const newInvoice = await db.insert(invoices).values(req.body).returning();
+    const { lines, ...invoiceData } = req.body;
+    const newInvoice = await db.insert(invoices).values(invoiceData).returning();
+    
+    if (lines && lines.length > 0) {
+      const linesData = lines.map((l: any) => ({ ...l, invoiceId: newInvoice[0].id }));
+      await db.insert(invoiceLines).values(linesData);
+    }
+    
     res.json(newInvoice[0]);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
+
+import PDFDocument from 'pdfkit';
 
 app.put('/api/invoices/:id', async (req, res) => {
   try {
@@ -160,6 +219,174 @@ app.put('/api/invoices/:id', async (req, res) => {
       .where(eq(invoices.id, req.params.id))
       .returning();
     res.json(updatedInvoice[0]);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/invoices/:id/pdf', async (req, res) => {
+  try {
+    const invoice = await db.select({
+      id: invoices.id,
+      invoiceNumber: invoices.invoiceNumber,
+      type: invoices.type,
+      totalAmount: invoices.totalAmount,
+      currency: invoices.currency,
+      dueDate: invoices.dueDate,
+      party: companies.name
+    })
+    .from(invoices)
+    .leftJoin(companies, eq(invoices.partyId, companies.id))
+    .where(eq(invoices.id, req.params.id))
+    .limit(1);
+
+    if (!invoice || invoice.length === 0) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    const lines = await db.select().from(invoiceLines).where(eq(invoiceLines.invoiceId, req.params.id));
+
+    const doc = new PDFDocument({ margin: 50 });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=invoice-${invoice[0].invoiceNumber}.pdf`);
+    
+    doc.pipe(res);
+
+    // Header
+    doc.fontSize(20).text('Atlas Logistics', { align: 'right' });
+    doc.fontSize(10).text('123 Global Way, Logistics City, LC 12345', { align: 'right' });
+    doc.moveDown();
+
+    // Invoice Info
+    doc.fontSize(20).text('INVOICE', { align: 'left' });
+    doc.fontSize(12).text(`Invoice Number: ${invoice[0].invoiceNumber}`);
+    doc.text(`Type: ${invoice[0].type}`);
+    doc.text(`Party: ${invoice[0].party || 'Unknown'}`);
+    doc.text(`Due Date: ${new Date(invoice[0].dueDate).toLocaleDateString()}`);
+    doc.moveDown(2);
+
+    // Lines
+    let currentY = doc.y;
+    doc.fontSize(12).text('Description', 50, currentY);
+    doc.text('Qty', 300, currentY);
+    doc.text('Unit Price', 380, currentY);
+    doc.text('Amount', 480, currentY);
+    
+    doc.moveDown(0.5);
+    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+    doc.moveDown(0.5);
+
+    lines.forEach(line => {
+      let y = doc.y;
+      doc.fontSize(10).text(line.description || 'Item', 50, y);
+      doc.text(line.quantity.toString(), 300, y);
+      doc.text(line.unitPrice.toString(), 380, y);
+      doc.text(line.amount.toString(), 480, y);
+      doc.moveDown(0.5);
+    });
+
+    doc.moveDown(2);
+    doc.fontSize(14).text(`Total: ${invoice[0].totalAmount} ${invoice[0].currency}`, { align: 'right' });
+
+    doc.end();
+
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// FINANCIAL STATS API (For Dashboard)
+app.get('/api/financial-stats', async (req, res) => {
+  try {
+    const stats = await db.select({
+      type: invoices.type,
+      total: sql<number>`sum(${invoices.totalAmount})`
+    }).from(invoices).groupBy(invoices.type);
+    
+    let totalAR = 0;
+    let totalAP = 0;
+    
+    stats.forEach(s => {
+      if (s.type === 'AR' || s.type === 'DN') totalAR += Number(s.total || 0);
+      if (s.type === 'AP' || s.type === 'CN') totalAP += Number(s.total || 0);
+    });
+
+    const netProfit = totalAR - totalAP;
+
+    res.json({
+      totalAR,
+      totalAP,
+      netProfit,
+      profitShareOwed: totalAP * 0.1
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+import { inArray } from 'drizzle-orm';
+
+// AGENT SETTLEMENTS API
+app.get('/api/agent-settlements', async (req, res) => {
+  try {
+    const settlements = await db.select({
+      id: agentSettlements.id,
+      statementNumber: agentSettlements.statementNumber,
+      agentId: agentSettlements.agentId,
+      agentName: companies.name,
+      periodStart: agentSettlements.periodStart,
+      periodEnd: agentSettlements.periodEnd,
+      netBalance: agentSettlements.netBalance,
+      currency: agentSettlements.currency,
+      status: agentSettlements.status
+    })
+    .from(agentSettlements)
+    .leftJoin(companies, eq(agentSettlements.agentId, companies.id))
+    .orderBy(agentSettlements.createdAt);
+    res.json(settlements);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/agent-settlements', async (req, res) => {
+  try {
+    const { agentId, periodStart, periodEnd, invoiceIds } = req.body;
+    
+    let agentShare = 0;
+    
+    if (invoiceIds && invoiceIds.length > 0) {
+      const relatedInvoices = await db.select().from(invoices).where(inArray(invoices.id, invoiceIds));
+      let totalAR = 0;
+      let totalAP = 0;
+      relatedInvoices.forEach(inv => {
+        if (inv.type === 'AR' || inv.type === 'DN') totalAR += inv.totalAmount;
+        if (inv.type === 'AP' || inv.type === 'CN') totalAP += inv.totalAmount;
+      });
+      const netProfit = totalAR - totalAP;
+      agentShare = netProfit * 0.5; // 50% Profit share
+    }
+
+    const statementNumber = `SET-${Date.now()}`;
+    const newSettlement = await db.insert(agentSettlements).values({
+      statementNumber,
+      agentId,
+      periodStart: new Date(periodStart).toISOString().split('T')[0],
+      periodEnd: new Date(periodEnd).toISOString().split('T')[0],
+      netBalance: agentShare,
+      currency: 'USD',
+      status: 'PENDING'
+    }).returning();
+
+    if (invoiceIds && invoiceIds.length > 0) {
+      const bridgeData = invoiceIds.map((id: string) => ({
+        settlementId: newSettlement[0].id,
+        invoiceId: id
+      }));
+      await db.insert(settlementInvoices).values(bridgeData);
+    }
+
+    res.json(newSettlement[0]);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -200,6 +427,104 @@ app.post('/api/demo/trigger-alert', (req, res) => {
     read: false
   });
   res.json({ success: true });
+});
+
+import { GoogleGenAI, Type, Schema } from '@google/genai';
+import { ilike } from 'drizzle-orm';
+import { companies } from './db/schema.js';
+
+// AI Parser Endpoint
+app.post('/api/ai/parse-shipping-instructions', async (req, res) => {
+  try {
+    const { fileBase64, mimeType } = req.body;
+    
+    if (!process.env.GOOGLE_API_KEY) {
+      return res.status(500).json({ success: false, error: 'GOOGLE_API_KEY not configured in backend.' });
+    }
+
+    const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
+    
+    const prompt = `Extract shipping instruction details from this document.
+    Focus on extracting the Shipper, Consignee, Notify Party, Ports of Loading and Discharge, Containers, Commodities, Incoterm, and Marks and Numbers.`;
+
+    const responseSchema: Schema = {
+      type: Type.OBJECT,
+      properties: {
+        shipperText: { type: Type.STRING },
+        consigneeText: { type: Type.STRING },
+        notifyText: { type: Type.STRING },
+        portOfLoading: { type: Type.STRING },
+        portOfDischarge: { type: Type.STRING },
+        containers: { 
+          type: Type.ARRAY, 
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              isoCode: { type: Type.STRING },
+              count: { type: Type.INTEGER },
+              weight: { type: Type.NUMBER }
+            }
+          }
+        },
+        commodities: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              hsCode: { type: Type.STRING },
+              description: { type: Type.STRING },
+              weight: { type: Type.NUMBER },
+              volume: { type: Type.NUMBER }
+            }
+          }
+        },
+        incoterm: { type: Type.STRING },
+        marksAndNumbers: { type: Type.STRING }
+      }
+    };
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: [
+        { role: 'user', parts: [
+          { text: prompt },
+          { inlineData: { data: fileBase64, mimeType: mimeType } }
+        ]}
+      ],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: responseSchema,
+      }
+    });
+
+    const text = response.text;
+    const extractedData = JSON.parse(text || "{}");
+
+    // Match logic for suggestions
+    const suggestions: any = {};
+    if (extractedData.shipperText) {
+      // Very basic keyword matching just taking the first word for demo purposes.
+      // In production, we could use full-text search or vector search.
+      const firstWord = extractedData.shipperText.split(/[\s,]+/)[0];
+      const match = await db.select().from(companies).where(ilike(companies.name, `%${firstWord}%`)).limit(1);
+      if (match.length > 0) {
+        suggestions.shipper = { exactMatch: true, company: { id: match[0].id, name: match[0].name } };
+      }
+    }
+
+    if (extractedData.consigneeText) {
+      const firstWord = extractedData.consigneeText.split(/[\s,]+/)[0];
+      const match = await db.select().from(companies).where(ilike(companies.name, `%${firstWord}%`)).limit(1);
+      if (match.length > 0) {
+        suggestions.consignee = { exactMatch: true, company: { id: match[0].id, name: match[0].name } };
+      }
+    }
+
+    res.json({ success: true, extractedData, suggestions });
+  } catch (error: any) {
+    console.error('AI Parse Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // API Keys Demo Endpoint
