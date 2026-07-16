@@ -44,6 +44,7 @@ export default defineConfig({
     },
   },
   build: {
+    crossorigin: 'use-credentials',
     // Vite 8 / Rolldown: use rolldownOptions instead of deprecated rollupOptions
     rolldownOptions: {
       output: {
