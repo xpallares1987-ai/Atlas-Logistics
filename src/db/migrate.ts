@@ -11,3 +11,12 @@ export async function runMigrations() {
     throw error;
   }
 }
+
+// Automatically run if executed directly
+runMigrations().then(() => {
+  client.end();
+  process.exit(0);
+}).catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
