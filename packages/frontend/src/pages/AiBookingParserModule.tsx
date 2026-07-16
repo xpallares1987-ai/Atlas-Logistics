@@ -2,9 +2,7 @@ import React, { useState, useRef } from 'react';
 import { UploadCloud, FileText, CheckCircle2, AlertCircle, Loader2, Save, ScanLine, Bot, Building2, Package, ArrowRight, X } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { Worker, Viewer } from '@react-pdf-viewer/core';
-import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import '@react-pdf-viewer/core/lib/styles/index.css';
-import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
 interface ParsedData {
   shipperText?: string;
@@ -281,7 +279,7 @@ export default function AiBookingParserModule() {
             
             {!parsedData && file && !isParsing && (
               <button 
-                onClick={processDocument}
+                onClick={handleFileProcess}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
               >
                 <Bot className="w-4 h-4" />
