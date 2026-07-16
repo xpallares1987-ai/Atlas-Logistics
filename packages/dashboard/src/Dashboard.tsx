@@ -1,9 +1,13 @@
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KpiPanel } from './components/KpiPanel';
 import { FinancialPanel } from './components/FinancialPanel';
 import { ExceptionPanel } from './components/ExceptionPanel';
 import type { KpiMetrics, FinancialRow, ExceptionRow } from './types/dashboard';
 
-const mockKpiMetrics: KpiMetrics = {
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+
+const defaultKpiMetrics: KpiMetrics = {
   totalShipments: 1250,
   onTimePercent: 92.5,
   costPerShipment: 450,
@@ -55,16 +59,36 @@ const mockExceptions: ExceptionRow[] = [
 ];
 
 export function Dashboard() {
+  const { t } = useTranslation();
+  const [metrics, setMetrics] = useState<KpiMetrics>(defaultKpiMetrics);
+
+  useEffect(() => {
+    fetch(`${API_URL}/financial-stats`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.totalAR !== undefined) {
+          setMetrics(prev => ({
+            ...prev,
+            revenueMtd: data.totalAR,
+            costMtd: data.totalAP,
+            profitMtd: data.netProfit,
+            profitMarginPercent: data.totalAR > 0 ? Number(((data.netProfit / data.totalAR) * 100).toFixed(1)) : 0
+          }));
+        }
+      })
+      .catch(console.error);
+  }, []);
+
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Executive Dashboard</h1>
-          <p className="text-slate-400 mt-1">Real-time global logistics overview</p>
+          <h1 className="text-3xl font-black text-white tracking-tight">{t('sidebar.dashboard')}</h1>
+          <p className="text-slate-400 mt-1">{t('dashboard.overview', 'Real-time global logistics overview')}</p>
         </div>
       </div>
 
-      <KpiPanel metrics={mockKpiMetrics} isEmpty={false} />
+      <KpiPanel metrics={metrics} isEmpty={false} />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <FinancialPanel data={mockFinancials} />

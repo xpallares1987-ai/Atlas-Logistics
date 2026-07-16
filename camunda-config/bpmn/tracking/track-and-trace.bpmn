@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_TrackTrace"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:error id="Error_AIS" name="AIS Unavailable" errorCode="AIS_UNAVAILABLE" />
+
+  <bpmn:process id="track-and-trace-process" name="Track and Trace Process" isExecutable="true">
+
+    <bpmn:startEvent id="StartEvent_1" name="Tracking Initiated">
+      <bpmn:documentation>Triggered when shipment status = BOOKED</bpmn:documentation>
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_Register" name="Register Tracking">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.tracking.register" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_FetchAIS" name="Fetch AIS Position">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.tracking.fetch-ais" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:incoming>Flow_LoopBack</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:boundaryEvent id="BoundaryEvent_AIS" name="AIS Unavailable" attachedToRef="Task_FetchAIS" cancelActivity="true">
+      <bpmn:outgoing>Flow_Error1</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorDef_AIS" errorRef="Error_AIS" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_LogError" name="Log AIS Error">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.tracking.log-error" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Error1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Error2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_Error" name="AIS Error Logged">
+      <bpmn:incoming>Flow_Error2</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:serviceTask id="Task_PredictETA" name="Calculate Predictive ETA">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.tracking.predict-eta" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ETAChanged" name="ETA Changed Significantly?" default="Flow_ETANo">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_ETAYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ETANo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_SendETAUpdate" name="Send ETA Update Notification">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.notify.eta-update" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ETAYes</bpmn:incoming>
+      <bpmn:outgoing>Flow_ETAMerge1</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ETAMerge" name="ETA Merge">
+      <bpmn:incoming>Flow_ETANo</bpmn:incoming>
+      <bpmn:incoming>Flow_ETAMerge1</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_UpdateMilestone" name="Update Milestone">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.tracking.update-milestone" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Delivered" name="Shipment Delivered?" default="Flow_DeliveredNo">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_DeliveredYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_DeliveredNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:intermediateCatchEvent id="Timer_Wait" name="Wait for Next Check">
+      <bpmn:incoming>Flow_DeliveredNo</bpmn:incoming>
+      <bpmn:outgoing>Flow_LoopBack</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_Wait">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT6H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:serviceTask id="Task_FinalUpdate" name="Final Status Update">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.tracking.final-update" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_DeliveredYes</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_Complete" name="Tracking Complete">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Register" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Register" targetRef="Task_FetchAIS" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_FetchAIS" targetRef="Task_PredictETA" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_PredictETA" targetRef="Gateway_ETAChanged" />
+    <bpmn:sequenceFlow id="Flow_ETAYes" name="Yes" sourceRef="Gateway_ETAChanged" targetRef="Task_SendETAUpdate">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=etaChangedSignificantly = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ETANo" name="No" sourceRef="Gateway_ETAChanged" targetRef="Gateway_ETAMerge" />
+    <bpmn:sequenceFlow id="Flow_ETAMerge1" sourceRef="Task_SendETAUpdate" targetRef="Gateway_ETAMerge" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Gateway_ETAMerge" targetRef="Task_UpdateMilestone" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_UpdateMilestone" targetRef="Gateway_Delivered" />
+    <bpmn:sequenceFlow id="Flow_DeliveredYes" name="Yes" sourceRef="Gateway_Delivered" targetRef="Task_FinalUpdate">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=shipmentDelivered = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_DeliveredNo" name="No" sourceRef="Gateway_Delivered" targetRef="Timer_Wait" />
+    <bpmn:sequenceFlow id="Flow_LoopBack" sourceRef="Timer_Wait" targetRef="Task_FetchAIS" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_FinalUpdate" targetRef="EndEvent_Complete" />
+    <bpmn:sequenceFlow id="Flow_Error1" sourceRef="BoundaryEvent_AIS" targetRef="Task_LogError" />
+    <bpmn:sequenceFlow id="Flow_Error2" sourceRef="Task_LogError" targetRef="EndEvent_Error" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="track-and-trace-process">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="162" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="138" y="225" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Register Tracking -->
+      <bpmndi:BPMNShape id="Task_Register_di" bpmnElement="Task_Register">
+        <dc:Bounds x="260" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Fetch AIS Position -->
+      <bpmndi:BPMNShape id="Task_FetchAIS_di" bpmnElement="Task_FetchAIS">
+        <dc:Bounds x="430" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Boundary Event: AIS Unavailable -->
+      <bpmndi:BPMNShape id="BoundaryEvent_AIS_di" bpmnElement="BoundaryEvent_AIS">
+        <dc:Bounds x="492" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="530" y="253" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Log AIS Error -->
+      <bpmndi:BPMNShape id="Task_LogError_di" bpmnElement="Task_LogError">
+        <dc:Bounds x="460" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event: AIS Error -->
+      <bpmndi:BPMNShape id="EndEvent_Error_di" bpmnElement="EndEvent_Error">
+        <dc:Bounds x="492" y="462" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="474" y="505" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Calculate Predictive ETA -->
+      <bpmndi:BPMNShape id="Task_PredictETA_di" bpmnElement="Task_PredictETA">
+        <dc:Bounds x="600" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: ETA Changed? -->
+      <bpmndi:BPMNShape id="Gateway_ETAChanged_di" bpmnElement="Gateway_ETAChanged" isMarkerVisible="true">
+        <dc:Bounds x="765" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="746" y="145" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Send ETA Update Notification -->
+      <bpmndi:BPMNShape id="Task_SendETAUpdate_di" bpmnElement="Task_SendETAUpdate">
+        <dc:Bounds x="830" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: ETA Merge -->
+      <bpmndi:BPMNShape id="Gateway_ETAMerge_di" bpmnElement="Gateway_ETAMerge" isMarkerVisible="true">
+        <dc:Bounds x="975" y="175" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Update Milestone -->
+      <bpmndi:BPMNShape id="Task_UpdateMilestone_di" bpmnElement="Task_UpdateMilestone">
+        <dc:Bounds x="1080" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Shipment Delivered? -->
+      <bpmndi:BPMNShape id="Gateway_Delivered_di" bpmnElement="Gateway_Delivered" isMarkerVisible="true">
+        <dc:Bounds x="1245" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1225" y="145" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Timer: Wait for Next Check -->
+      <bpmndi:BPMNShape id="Timer_Wait_di" bpmnElement="Timer_Wait">
+        <dc:Bounds x="1252" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1296" y="303" width="86" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Final Status Update -->
+      <bpmndi:BPMNShape id="Task_FinalUpdate_di" bpmnElement="Task_FinalUpdate">
+        <dc:Bounds x="1380" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event: Tracking Complete -->
+      <bpmndi:BPMNShape id="EndEvent_Complete_di" bpmnElement="EndEvent_Complete">
+        <dc:Bounds x="1542" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1518" y="225" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="198" y="200" />
+        <di:waypoint x="260" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="360" y="200" />
+        <di:waypoint x="430" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="530" y="200" />
+        <di:waypoint x="600" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="700" y="200" />
+        <di:waypoint x="765" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ETAYes_di" bpmnElement="Flow_ETAYes">
+        <di:waypoint x="790" y="225" />
+        <di:waypoint x="790" y="340" />
+        <di:waypoint x="830" y="340" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="796" y="263" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ETANo_di" bpmnElement="Flow_ETANo">
+        <di:waypoint x="815" y="200" />
+        <di:waypoint x="975" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="889" y="182" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ETAMerge1_di" bpmnElement="Flow_ETAMerge1">
+        <di:waypoint x="930" y="340" />
+        <di:waypoint x="1000" y="340" />
+        <di:waypoint x="1000" y="225" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="1025" y="200" />
+        <di:waypoint x="1080" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1180" y="200" />
+        <di:waypoint x="1245" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_DeliveredYes_di" bpmnElement="Flow_DeliveredYes">
+        <di:waypoint x="1295" y="200" />
+        <di:waypoint x="1380" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1330" y="182" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_DeliveredNo_di" bpmnElement="Flow_DeliveredNo">
+        <di:waypoint x="1270" y="225" />
+        <di:waypoint x="1270" y="292" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1278" y="253" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_LoopBack_di" bpmnElement="Flow_LoopBack">
+        <di:waypoint x="1270" y="328" />
+        <di:waypoint x="1270" y="480" />
+        <di:waypoint x="480" y="480" />
+        <di:waypoint x="480" y="240" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1480" y="200" />
+        <di:waypoint x="1542" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Error1_di" bpmnElement="Flow_Error1">
+        <di:waypoint x="510" y="258" />
+        <di:waypoint x="510" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Error2_di" bpmnElement="Flow_Error2">
+        <di:waypoint x="510" y="420" />
+        <di:waypoint x="510" y="462" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+

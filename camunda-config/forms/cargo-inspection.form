@@ -1,0 +1,75 @@
+{
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": { "name": "Camunda Modeler", "version": "5.0.0" },
+  "schemaVersion": 16,
+  "id": "cargo-inspection",
+  "components": [
+    {
+      "type": "text",
+      "text": "# 🔍 Cargo Inspection Report\nInspect the cargo condition and document any findings.",
+      "id": "header"
+    },
+    { "type": "separator", "id": "sep1" },
+    {
+      "type": "textfield",
+      "label": "Shipment Reference",
+      "key": "referenceNumber",
+      "id": "refNumber",
+      "readonly": true
+    },
+    {
+      "type": "textfield",
+      "label": "Container / Tracking Number",
+      "key": "containerNumber",
+      "id": "containerNumber",
+      "readonly": true
+    },
+    {
+      "type": "columns",
+      "id": "quantities",
+      "columns": [
+        { "components": [{ "type": "number", "label": "Expected Packages", "key": "expectedPieces", "id": "expectedPieces", "readonly": true }] },
+        { "components": [{ "type": "number", "label": "Received Packages", "key": "receivedPieces", "id": "receivedPieces", "validate": { "required": true, "min": 0 } }] }
+      ]
+    },
+    { "type": "separator", "id": "sep2" },
+    {
+      "type": "select",
+      "label": "Cargo Condition",
+      "key": "cargoCondition",
+      "id": "condition",
+      "validate": { "required": true },
+      "values": [
+        { "label": "✅ Good — no damage", "value": "GOOD" },
+        { "label": "⚠️ Minor damage — cosmetic only", "value": "MINOR_DAMAGE" },
+        { "label": "🔴 Significant damage — affects contents", "value": "MAJOR_DAMAGE" },
+        { "label": "❌ Total loss", "value": "TOTAL_LOSS" },
+        { "label": "📦 Short shipment — pieces missing", "value": "SHORT" },
+        { "label": "💧 Wet damage", "value": "WET_DAMAGE" }
+      ]
+    },
+    {
+      "type": "textarea",
+      "label": "Damage Description",
+      "key": "damageDescription",
+      "id": "damageDesc",
+      "description": "Describe the nature and extent of any damage"
+    },
+    {
+      "type": "textarea",
+      "label": "Inspector Notes",
+      "key": "inspectorNotes",
+      "id": "notes",
+      "validate": { "required": true, "minLength": 5 }
+    },
+    {
+      "type": "textfield",
+      "label": "Inspector Name",
+      "key": "inspectorName",
+      "id": "inspector",
+      "validate": { "required": true }
+    }
+  ],
+  "type": "default"
+}

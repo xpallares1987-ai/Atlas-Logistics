@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+  xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+  xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+  xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+  id="Definitions_SlaEscalation"
+  name="SLA Escalation Rules"
+  namespace="http://camunda.org/schema/1.0/dmn"
+  exporter="Camunda Modeler"
+  exporterVersion="5.0.0"
+  modeler:executionPlatform="Camunda Cloud"
+  modeler:executionPlatformVersion="8.0.0">
+
+  <decision id="sla-escalation" name="SLA Escalation Rules">
+    <decisionTable id="DecisionTable_SlaEscalation" hitPolicy="FIRST">
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- INPUTS                                                  -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <input id="Input_DelayHours" label="Delay Hours">
+        <inputExpression id="InputExpr_DelayHours" typeRef="number">
+          <text>delayHours</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_ShipmentPriority" label="Shipment Priority">
+        <inputExpression id="InputExpr_ShipmentPriority" typeRef="string">
+          <text>shipmentPriority</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_CustomerTier" label="Customer Tier">
+        <inputExpression id="InputExpr_CustomerTier" typeRef="string">
+          <text>customerTier</text>
+        </inputExpression>
+      </input>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- OUTPUTS                                                 -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <output id="Output_EscalationLevel" label="Escalation Level" name="escalationLevel" typeRef="string" />
+      <output id="Output_NotifyRole" label="Notify Role" name="notifyRole" typeRef="string" />
+      <output id="Output_Action" label="Action" name="action" typeRef="string" />
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- RULES (ordered by severity — FIRST hit policy)          -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+
+      <!-- Rule 1: P1 Critical — Platinum + Critical + 72h+ delay -->
+      <rule id="Rule_1">
+        <description>Maximum severity: critical shipment for platinum customer delayed over 72 hours</description>
+        <inputEntry id="Rule_1_IE_1"><text>&gt; 72</text></inputEntry>
+        <inputEntry id="Rule_1_IE_2"><text>"CRITICAL"</text></inputEntry>
+        <inputEntry id="Rule_1_IE_3"><text>"PLATINUM"</text></inputEntry>
+        <outputEntry id="Rule_1_OE_1"><text>"P1_CRITICAL"</text></outputEntry>
+        <outputEntry id="Rule_1_OE_2"><text>"VP_OPERATIONS"</text></outputEntry>
+        <outputEntry id="Rule_1_OE_3"><text>"IMMEDIATE_INTERVENTION"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 2: P2 High — Critical priority + 48h+ delay -->
+      <rule id="Rule_2">
+        <description>Critical priority shipment delayed beyond 48 hours requires priority rerouting</description>
+        <inputEntry id="Rule_2_IE_1"><text>&gt; 48</text></inputEntry>
+        <inputEntry id="Rule_2_IE_2"><text>"CRITICAL"</text></inputEntry>
+        <inputEntry id="Rule_2_IE_3"><text></text></inputEntry>
+        <outputEntry id="Rule_2_OE_1"><text>"P2_HIGH"</text></outputEntry>
+        <outputEntry id="Rule_2_OE_2"><text>"OPERATIONS_MANAGER"</text></outputEntry>
+        <outputEntry id="Rule_2_OE_3"><text>"PRIORITY_REROUTE"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 3: P2 High — Platinum customer + 24h+ delay -->
+      <rule id="Rule_3">
+        <description>Platinum customer with 24h+ delay triggers proactive account management</description>
+        <inputEntry id="Rule_3_IE_1"><text>&gt; 24</text></inputEntry>
+        <inputEntry id="Rule_3_IE_2"><text></text></inputEntry>
+        <inputEntry id="Rule_3_IE_3"><text>"PLATINUM"</text></inputEntry>
+        <outputEntry id="Rule_3_OE_1"><text>"P2_HIGH"</text></outputEntry>
+        <outputEntry id="Rule_3_OE_2"><text>"ACCOUNT_MANAGER"</text></outputEntry>
+        <outputEntry id="Rule_3_OE_3"><text>"PROACTIVE_COMMUNICATION"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 4: P3 Medium — 48h+ delay (any priority/tier) -->
+      <rule id="Rule_4">
+        <description>General 48h+ delay requires monitoring and status updates</description>
+        <inputEntry id="Rule_4_IE_1"><text>&gt; 48</text></inputEntry>
+        <inputEntry id="Rule_4_IE_2"><text></text></inputEntry>
+        <inputEntry id="Rule_4_IE_3"><text></text></inputEntry>
+        <outputEntry id="Rule_4_OE_1"><text>"P3_MEDIUM"</text></outputEntry>
+        <outputEntry id="Rule_4_OE_2"><text>"OPERATIONS_TEAM"</text></outputEntry>
+        <outputEntry id="Rule_4_OE_3"><text>"MONITOR_AND_UPDATE"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 5: P4 Low — 24h+ delay (any priority/tier) -->
+      <rule id="Rule_5">
+        <description>Minor 24h+ delay is tracked and logged for reporting</description>
+        <inputEntry id="Rule_5_IE_1"><text>&gt; 24</text></inputEntry>
+        <inputEntry id="Rule_5_IE_2"><text></text></inputEntry>
+        <inputEntry id="Rule_5_IE_3"><text></text></inputEntry>
+        <outputEntry id="Rule_5_OE_1"><text>"P4_LOW"</text></outputEntry>
+        <outputEntry id="Rule_5_OE_2"><text>"OPERATIONS_TEAM"</text></outputEntry>
+        <outputEntry id="Rule_5_OE_3"><text>"TRACK_AND_LOG"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 6: Default — No escalation needed -->
+      <rule id="Rule_6">
+        <description>Default catch-all: delay within SLA thresholds, no action required</description>
+        <inputEntry id="Rule_6_IE_1"><text></text></inputEntry>
+        <inputEntry id="Rule_6_IE_2"><text></text></inputEntry>
+        <inputEntry id="Rule_6_IE_3"><text></text></inputEntry>
+        <outputEntry id="Rule_6_OE_1"><text>"NONE"</text></outputEntry>
+        <outputEntry id="Rule_6_OE_2"><text>"SYSTEM"</text></outputEntry>
+        <outputEntry id="Rule_6_OE_3"><text>"NO_ACTION"</text></outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- DMN DIAGRAM                                                 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="DMNDiagram_SlaEscalation">
+      <dmndi:DMNShape id="DMNShape_SlaEscalation" dmnElementRef="sla-escalation">
+        <dc:Bounds x="200" y="200" width="180" height="80" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

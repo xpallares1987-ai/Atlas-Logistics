@@ -1,0 +1,162 @@
+# =============================================================================
+# Atlas Logistics — Camunda 8 Self-Managed (Local Development)
+# =============================================================================
+# Based on: https://docs.camunda.io/docs/self-managed/deployment/docker/
+# Version:  Camunda 8.9.0 (uses unified CamundaExporter)
+#
+# Usage:
+#   docker compose up -d              # Start all services
+#   docker compose down               # Stop all services  
+#   docker compose down -v            # Stop + remove volumes (clean slate)
+#   docker compose logs -f zeebe      # Follow Zeebe logs
+#
+# Access Points:
+#   Operate:   http://localhost:8081   (demo/demo)
+#   Tasklist:  http://localhost:8082   (demo/demo)
+#   Zeebe:     localhost:26500        (gRPC)
+#   Elasticsearch: http://localhost:9200
+# =============================================================================
+
+services:
+  # ─────────────── Elasticsearch: Data Store ───────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: atlas-elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - cluster.name=atlas-elasticsearch
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.ml.enabled=false
+      - action.auto_create_index=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    restart: unless-stopped
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    networks:
+      - camunda-network
+
+  # ─────────────── Zeebe: Workflow Engine ───────────────
+  zeebe:
+    image: camunda/zeebe:8.9.0
+    container_name: atlas-zeebe
+    ports:
+      - "26500:26500"   # gRPC (for workers and zbctl)
+      - "9600:9600"     # Monitoring
+    environment:
+      # Use legacy Elasticsearch exporter (stable for self-managed)
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_CLASSNAME=io.camunda.zeebe.exporter.ElasticsearchExporter
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_ARGS_URL=http://elasticsearch:9200
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_ARGS_BULK_SIZE=1
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_ARGS_INDEX_PREFIX=zeebe-record
+      # Disable the new CamundaExporter (conflicts with standalone Operate/Tasklist in 8.9)
+      - ZEEBE_BROKER_EXPORTERS_CAMUNDAEXPORTER_ARGS_CONNECT_URL=
+      - CAMUNDA_DATABASE_URL=
+      # Gateway & monitoring
+      - ZEEBE_BROKER_GATEWAY_MONITORING_ENABLED=true
+      - ZEEBE_BROKER_DATA_SNAPSHOTPERIOD=1m
+      - JAVA_TOOL_OPTIONS=-Xms512m -Xmx512m
+    restart: unless-stopped
+    volumes:
+      - zeebe-data:/usr/local/zeebe/data
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9600/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+    networks:
+      - camunda-network
+
+  # ─────────────── Operate: Process Monitoring UI ───────────────
+  operate:
+    image: camunda/operate:8.9.0
+    container_name: atlas-operate
+    ports:
+      - "8081:8080"
+    environment:
+      - CAMUNDA_OPERATE_ZEEBE_GATEWAYADDRESS=zeebe:26500
+      - CAMUNDA_OPERATE_ELASTICSEARCH_URL=http://elasticsearch:9200
+      - CAMUNDA_OPERATE_ZEEBEELASTICSEARCH_URL=http://elasticsearch:9200
+      - CAMUNDA_OPERATE_ELASTICSEARCH_INDEXPREFIX=operate
+      - CAMUNDA_OPERATE_ZEEBE_ELASTICSEARCH_PREFIX=zeebe-record
+      - SPRING_PROFILES_ACTIVE=dev-data
+      - CAMUNDA_OPERATE_AUTH_TYPE=BASIC
+      - CAMUNDA_OPERATE_AUTH_USERNAME=demo
+      - CAMUNDA_OPERATE_AUTH_PASSWORD=demo
+      - CAMUNDA_OPERATE_IMPORTER_READERBACKOFF=1000
+      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx256m
+    restart: unless-stopped
+    depends_on:
+      zeebe:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+      start_period: 90s
+    networks:
+      - camunda-network
+
+  # ─────────────── Tasklist: Human Task UI ───────────────
+  tasklist:
+    image: camunda/tasklist:8.9.0
+    container_name: atlas-tasklist
+    ports:
+      - "8082:8080"
+    environment:
+      - CAMUNDA_TASKLIST_ZEEBE_GATEWAYADDRESS=zeebe:26500
+      - CAMUNDA_TASKLIST_ELASTICSEARCH_URL=http://elasticsearch:9200
+      - CAMUNDA_TASKLIST_ZEEBEELASTICSEARCH_URL=http://elasticsearch:9200
+      - CAMUNDA_TASKLIST_ELASTICSEARCH_INDEXPREFIX=tasklist
+      - CAMUNDA_TASKLIST_ZEEBE_ELASTICSEARCH_PREFIX=zeebe-record
+      - SPRING_PROFILES_ACTIVE=dev-data
+      - CAMUNDA_TASKLIST_AUTH_TYPE=BASIC
+      - CAMUNDA_TASKLIST_AUTH_USERNAME=demo
+      - CAMUNDA_TASKLIST_AUTH_PASSWORD=demo
+      - CAMUNDA_TASKLIST_IMPORTER_READERBACKOFF=1000
+      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx256m
+    restart: unless-stopped
+    depends_on:
+      zeebe:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+      start_period: 90s
+    networks:
+      - camunda-network
+
+volumes:
+  zeebe-data:
+    driver: local
+  elastic-data:
+    driver: local
+
+networks:
+  camunda-network:
+    driver: bridge
+    name: atlas-camunda

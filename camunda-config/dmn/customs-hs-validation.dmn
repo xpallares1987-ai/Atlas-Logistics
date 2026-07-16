@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+             xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+             id="Definitions_CustomsHsValidation"
+             name="Customs HS Code Validation"
+             namespace="http://camunda.org/schema/1.0/dmn"
+             exporter="Camunda Modeler"
+             exporterVersion="5.0.0"
+             modeler:executionPlatform="Camunda Cloud"
+             modeler:executionPlatformVersion="8.8.0">
+
+  <decision id="customs-hs-validation" name="HS Code Validation">
+    <decisionTable id="DecisionTable_HsValidation" hitPolicy="FIRST">
+
+      <input id="Input_HsCode" label="HS Code">
+        <inputExpression id="InputExpression_HsCode" typeRef="string">
+          <text>hsCode</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_OriginCountry" label="Origin Country">
+        <inputExpression id="InputExpression_OriginCountry" typeRef="string">
+          <text>originCountry</text>
+        </inputExpression>
+      </input>
+
+      <input id="Input_DestCountry" label="Destination Country">
+        <inputExpression id="InputExpression_DestCountry" typeRef="string">
+          <text>destinationCountry</text>
+        </inputExpression>
+      </input>
+
+      <output id="Output_RestrictionLevel" label="Restriction Level" name="restrictionLevel" typeRef="string" />
+      <output id="Output_Action" label="Required Action" name="requiredAction" typeRef="string" />
+      <output id="Output_Reason" label="Reason" name="reason" typeRef="string" />
+
+      <!-- Rule 1: Embargoed countries (highest priority) -->
+      <rule id="Rule_Embargo">
+        <inputEntry id="UnaryTests_Embargo_Hs"><text></text></inputEntry>
+        <inputEntry id="UnaryTests_Embargo_Origin"><text></text></inputEntry>
+        <inputEntry id="UnaryTests_Embargo_Dest"><text>"KP","IR","SY","CU","VE"</text></inputEntry>
+        <outputEntry id="LiteralExpression_Embargo_Level"><text>"EMBARGO"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Embargo_Action"><text>"BLOCK_AND_ALERT"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Embargo_Reason"><text>"Destination country under trade embargo"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 2: Weapons and munitions (always prohibited) -->
+      <rule id="Rule_Weapons">
+        <inputEntry id="UnaryTests_Weapons_Hs"><text>starts with(hsCode, "9301") or starts with(hsCode, "9302") or starts with(hsCode, "9303") or starts with(hsCode, "9304") or starts with(hsCode, "9305") or starts with(hsCode, "9306")</text></inputEntry>
+        <inputEntry id="UnaryTests_Weapons_Origin"><text></text></inputEntry>
+        <inputEntry id="UnaryTests_Weapons_Dest"><text></text></inputEntry>
+        <outputEntry id="LiteralExpression_Weapons_Level"><text>"PROHIBITED"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Weapons_Action"><text>"BLOCK"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Weapons_Reason"><text>"Arms and munitions - prohibited goods"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 3: Alcoholic beverages (controlled) -->
+      <rule id="Rule_Alcohol">
+        <inputEntry id="UnaryTests_Alcohol_Hs"><text>starts with(hsCode, "2208")</text></inputEntry>
+        <inputEntry id="UnaryTests_Alcohol_Origin"><text></text></inputEntry>
+        <inputEntry id="UnaryTests_Alcohol_Dest"><text></text></inputEntry>
+        <outputEntry id="LiteralExpression_Alcohol_Level"><text>"CONTROLLED"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Alcohol_Action"><text>"REQUIRE_LICENSE"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Alcohol_Reason"><text>"Alcoholic beverages - import license required"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 4: Dual-use technology (US export controls) -->
+      <rule id="Rule_DualUse_US">
+        <inputEntry id="UnaryTests_DualUse_Hs"><text>starts with(hsCode, "8471") or starts with(hsCode, "8542") or starts with(hsCode, "8543")</text></inputEntry>
+        <inputEntry id="UnaryTests_DualUse_Origin"><text>"US"</text></inputEntry>
+        <inputEntry id="UnaryTests_DualUse_Dest"><text></text></inputEntry>
+        <outputEntry id="LiteralExpression_DualUse_Level"><text>"DUAL_USE"</text></outputEntry>
+        <outputEntry id="LiteralExpression_DualUse_Action"><text>"EAR_CHECK"</text></outputEntry>
+        <outputEntry id="LiteralExpression_DualUse_Reason"><text>"US dual-use technology - EAR compliance check required"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 5: Dual-use technology (EU export controls) -->
+      <rule id="Rule_DualUse_EU">
+        <inputEntry id="UnaryTests_DualUse_EU_Hs"><text>starts with(hsCode, "8471") or starts with(hsCode, "8542") or starts with(hsCode, "8543")</text></inputEntry>
+        <inputEntry id="UnaryTests_DualUse_EU_Origin"><text>"DE","FR","IT","ES","NL","BE"</text></inputEntry>
+        <inputEntry id="UnaryTests_DualUse_EU_Dest"><text></text></inputEntry>
+        <outputEntry id="LiteralExpression_DualUse_EU_Level"><text>"DUAL_USE"</text></outputEntry>
+        <outputEntry id="LiteralExpression_DualUse_EU_Action"><text>"EU_DUAL_USE_CHECK"</text></outputEntry>
+        <outputEntry id="LiteralExpression_DualUse_EU_Reason"><text>"EU dual-use regulation check required"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 6: Pharmaceuticals (controlled) -->
+      <rule id="Rule_Pharma">
+        <inputEntry id="UnaryTests_Pharma_Hs"><text>starts with(hsCode, "3003") or starts with(hsCode, "3004")</text></inputEntry>
+        <inputEntry id="UnaryTests_Pharma_Origin"><text></text></inputEntry>
+        <inputEntry id="UnaryTests_Pharma_Dest"><text></text></inputEntry>
+        <outputEntry id="LiteralExpression_Pharma_Level"><text>"CONTROLLED"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Pharma_Action"><text>"REQUIRE_LICENSE"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Pharma_Reason"><text>"Pharmaceutical products - import permit required"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 7: Hazardous chemicals (requires DG declaration) -->
+      <rule id="Rule_Hazmat">
+        <inputEntry id="UnaryTests_Hazmat_Hs"><text>starts with(hsCode, "2801") or starts with(hsCode, "2802") or starts with(hsCode, "2811") or starts with(hsCode, "3808")</text></inputEntry>
+        <inputEntry id="UnaryTests_Hazmat_Origin"><text></text></inputEntry>
+        <inputEntry id="UnaryTests_Hazmat_Dest"><text></text></inputEntry>
+        <outputEntry id="LiteralExpression_Hazmat_Level"><text>"HAZARDOUS"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Hazmat_Action"><text>"REQUIRE_DG_DECLARATION"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Hazmat_Reason"><text>"Hazardous chemicals - Dangerous Goods declaration required"</text></outputEntry>
+      </rule>
+
+      <!-- Rule 8: Default - no restrictions -->
+      <rule id="Rule_Default">
+        <inputEntry id="UnaryTests_Default_Hs"><text></text></inputEntry>
+        <inputEntry id="UnaryTests_Default_Origin"><text></text></inputEntry>
+        <inputEntry id="UnaryTests_Default_Dest"><text></text></inputEntry>
+        <outputEntry id="LiteralExpression_Default_Level"><text>"NONE"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Default_Action"><text>"PROCEED"</text></outputEntry>
+        <outputEntry id="LiteralExpression_Default_Reason"><text>"No restrictions - goods may proceed"</text></outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram>
+      <dmndi:DMNShape dmnElementRef="customs-hs-validation">
+        <dc:Bounds height="80" width="180" x="160" y="100" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_DocApproval"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:process id="document-approval-process" name="Document Approval Process" isExecutable="true">
+
+    <bpmn:startEvent id="StartEvent_1" name="Approval Requested">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_Validate" name="Validate Document">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.validate" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_AutoApprovable" name="Auto-Approvable?" default="Flow_AutoNo">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_AutoYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_AutoNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_AutoApprove" name="Auto-Approve">
+      <bpmn:documentation>Automatic approval for low-risk, standard documents</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.auto-approve" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_AutoYes</bpmn:incoming>
+      <bpmn:outgoing>Flow_AutoMerge</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_PrimaryReview" name="Primary Review">
+      <bpmn:documentation>Assigned to ops team for initial document review</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:document-approval" />
+        <zeebe:assignmentDefinition candidateGroups="ops-team" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_AutoNo</bpmn:incoming>
+      <bpmn:outgoing>Flow_PrimaryDecision</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Timer Boundary: Escalation after 48 hours -->
+    <bpmn:boundaryEvent id="BoundaryEvent_ReviewTimer" name="48h Escalation" attachedToRef="Task_PrimaryReview" cancelActivity="false">
+      <bpmn:outgoing>Flow_Timer1</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_Escalation">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT48H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_EscalationNotice" name="Escalation Notice">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.notify.escalation" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Timer1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Timer2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_Escalation" name="Escalation Sent">
+      <bpmn:incoming>Flow_Timer2</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_PrimaryDecision" name="Primary Decision?" default="Flow_Approved">
+      <bpmn:incoming>Flow_PrimaryDecision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Escalate</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Rejected path -->
+    <bpmn:serviceTask id="Task_ReturnComments" name="Return with Comments">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.return-comments" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_RejectedEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_Rejected" name="Document Rejected">
+      <bpmn:incoming>Flow_RejectedEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Escalate path -->
+    <bpmn:userTask id="Task_SecondaryReview" name="Secondary Review">
+      <bpmn:documentation>Assigned to manager for escalated document review</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:document-approval" />
+        <zeebe:assignmentDefinition candidateGroups="managers" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Escalate</bpmn:incoming>
+      <bpmn:outgoing>Flow_SecondaryMerge</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Approval merge -->
+    <bpmn:exclusiveGateway id="Gateway_ApprovalMerge" name="Approval Merge">
+      <bpmn:incoming>Flow_Approved</bpmn:incoming>
+      <bpmn:incoming>Flow_AutoMerge</bpmn:incoming>
+      <bpmn:incoming>Flow_SecondaryMerge</bpmn:incoming>
+      <bpmn:outgoing>Flow_PostMerge</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_ApplySignature" name="Apply Digital Signature">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.apply-signature" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_PostMerge</bpmn:incoming>
+      <bpmn:outgoing>Flow_Post1</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Archive" name="Archive Approved Document">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.archive" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Post1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Post2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_NotifyStakeholders" name="Notify Stakeholders">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.notify.doc-approved" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Post2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Post3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_Approved" name="Document Approved">
+      <bpmn:incoming>Flow_Post3</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ===== Sequence Flows ===== -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Validate" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Validate" targetRef="Gateway_AutoApprovable" />
+
+    <!-- Auto-approve path -->
+    <bpmn:sequenceFlow id="Flow_AutoYes" name="Yes" sourceRef="Gateway_AutoApprovable" targetRef="Task_AutoApprove">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=autoApprovable = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_AutoMerge" sourceRef="Task_AutoApprove" targetRef="Gateway_ApprovalMerge" />
+
+    <!-- Manual review path -->
+    <bpmn:sequenceFlow id="Flow_AutoNo" name="No" sourceRef="Gateway_AutoApprovable" targetRef="Task_PrimaryReview" />
+    <bpmn:sequenceFlow id="Flow_PrimaryDecision" sourceRef="Task_PrimaryReview" targetRef="Gateway_PrimaryDecision" />
+
+    <!-- Timer boundary path -->
+    <bpmn:sequenceFlow id="Flow_Timer1" sourceRef="BoundaryEvent_ReviewTimer" targetRef="Task_EscalationNotice" />
+    <bpmn:sequenceFlow id="Flow_Timer2" sourceRef="Task_EscalationNotice" targetRef="EndEvent_Escalation" />
+
+    <!-- Decision outcomes -->
+    <bpmn:sequenceFlow id="Flow_Approved" name="Approved" sourceRef="Gateway_PrimaryDecision" targetRef="Gateway_ApprovalMerge" />
+    <bpmn:sequenceFlow id="Flow_Rejected" name="Rejected" sourceRef="Gateway_PrimaryDecision" targetRef="Task_ReturnComments">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=decision = "rejected"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_RejectedEnd" sourceRef="Task_ReturnComments" targetRef="EndEvent_Rejected" />
+    <bpmn:sequenceFlow id="Flow_Escalate" name="Escalate" sourceRef="Gateway_PrimaryDecision" targetRef="Task_SecondaryReview">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=decision = "escalate"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_SecondaryMerge" sourceRef="Task_SecondaryReview" targetRef="Gateway_ApprovalMerge" />
+
+    <!-- Post-approval -->
+    <bpmn:sequenceFlow id="Flow_PostMerge" sourceRef="Gateway_ApprovalMerge" targetRef="Task_ApplySignature" />
+    <bpmn:sequenceFlow id="Flow_Post1" sourceRef="Task_ApplySignature" targetRef="Task_Archive" />
+    <bpmn:sequenceFlow id="Flow_Post2" sourceRef="Task_Archive" targetRef="Task_NotifyStakeholders" />
+    <bpmn:sequenceFlow id="Flow_Post3" sourceRef="Task_NotifyStakeholders" targetRef="EndEvent_Approved" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="document-approval-process">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="162" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="155" y="225" width="51" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Validate Document -->
+      <bpmndi:BPMNShape id="Task_Validate_di" bpmnElement="Task_Validate">
+        <dc:Bounds x="270" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Auto-Approvable? -->
+      <bpmndi:BPMNShape id="Gateway_AutoApprovable_di" bpmnElement="Gateway_AutoApprovable" isMarkerVisible="true">
+        <dc:Bounds x="445" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="427" y="151" width="86" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Auto-Approve (upper branch) -->
+      <bpmndi:BPMNShape id="Task_AutoApprove_di" bpmnElement="Task_AutoApprove">
+        <dc:Bounds x="570" y="40" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Primary Review -->
+      <bpmndi:BPMNShape id="Task_PrimaryReview_di" bpmnElement="Task_PrimaryReview">
+        <dc:Bounds x="570" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Timer Boundary: 48h -->
+      <bpmndi:BPMNShape id="BoundaryEvent_ReviewTimer_di" bpmnElement="BoundaryEvent_ReviewTimer">
+        <dc:Bounds x="572" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="523" y="263" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Escalation Notice -->
+      <bpmndi:BPMNShape id="Task_EscalationNotice_di" bpmnElement="Task_EscalationNotice">
+        <dc:Bounds x="540" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event: Escalation -->
+      <bpmndi:BPMNShape id="EndEvent_Escalation_di" bpmnElement="EndEvent_Escalation">
+        <dc:Bounds x="572" y="452" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="551" y="495" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Primary Decision? -->
+      <bpmndi:BPMNShape id="Gateway_PrimaryDecision_di" bpmnElement="Gateway_PrimaryDecision" isMarkerVisible="true">
+        <dc:Bounds x="755" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="735" y="151" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Return with Comments (rejected path) -->
+      <bpmndi:BPMNShape id="Task_ReturnComments_di" bpmnElement="Task_ReturnComments">
+        <dc:Bounds x="870" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event: Rejected -->
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="1032" y="502" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1006" y="545" width="89" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Secondary Review (escalate path) -->
+      <bpmndi:BPMNShape id="Task_SecondaryReview_di" bpmnElement="Task_SecondaryReview">
+        <dc:Bounds x="870" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Approval Merge -->
+      <bpmndi:BPMNShape id="Gateway_ApprovalMerge_di" bpmnElement="Gateway_ApprovalMerge" isMarkerVisible="true">
+        <dc:Bounds x="1055" y="175" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Apply Digital Signature -->
+      <bpmndi:BPMNShape id="Task_ApplySignature_di" bpmnElement="Task_ApplySignature">
+        <dc:Bounds x="1160" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Archive Approved Document -->
+      <bpmndi:BPMNShape id="Task_Archive_di" bpmnElement="Task_Archive">
+        <dc:Bounds x="1320" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Notify Stakeholders -->
+      <bpmndi:BPMNShape id="Task_NotifyStakeholders_di" bpmnElement="Task_NotifyStakeholders">
+        <dc:Bounds x="1480" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event: Approved -->
+      <bpmndi:BPMNShape id="EndEvent_Approved_di" bpmnElement="EndEvent_Approved">
+        <dc:Bounds x="1642" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1613" y="225" width="94" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ===== Edges ===== -->
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="198" y="200" />
+        <di:waypoint x="270" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="370" y="200" />
+        <di:waypoint x="445" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Auto-Approve: Yes branch (up) -->
+      <bpmndi:BPMNEdge id="Flow_AutoYes_di" bpmnElement="Flow_AutoYes">
+        <di:waypoint x="470" y="175" />
+        <di:waypoint x="470" y="80" />
+        <di:waypoint x="570" y="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="476" y="123" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Auto-Approve → Merge -->
+      <bpmndi:BPMNEdge id="Flow_AutoMerge_di" bpmnElement="Flow_AutoMerge">
+        <di:waypoint x="670" y="80" />
+        <di:waypoint x="1080" y="80" />
+        <di:waypoint x="1080" y="175" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Manual: No branch (straight) -->
+      <bpmndi:BPMNEdge id="Flow_AutoNo_di" bpmnElement="Flow_AutoNo">
+        <di:waypoint x="495" y="200" />
+        <di:waypoint x="570" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="526" y="182" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Primary Review → Decision Gateway -->
+      <bpmndi:BPMNEdge id="Flow_PrimaryDecision_di" bpmnElement="Flow_PrimaryDecision">
+        <di:waypoint x="670" y="200" />
+        <di:waypoint x="755" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Timer → Escalation Notice -->
+      <bpmndi:BPMNEdge id="Flow_Timer1_di" bpmnElement="Flow_Timer1">
+        <di:waypoint x="590" y="258" />
+        <di:waypoint x="590" y="330" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Escalation Notice → End -->
+      <bpmndi:BPMNEdge id="Flow_Timer2_di" bpmnElement="Flow_Timer2">
+        <di:waypoint x="590" y="410" />
+        <di:waypoint x="590" y="452" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Approved → Merge (straight right) -->
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <di:waypoint x="805" y="200" />
+        <di:waypoint x="1055" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="905" y="182" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Rejected → Return with Comments (down) -->
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <di:waypoint x="780" y="225" />
+        <di:waypoint x="780" y="520" />
+        <di:waypoint x="870" y="520" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="788" y="493" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Return with Comments → End Rejected -->
+      <bpmndi:BPMNEdge id="Flow_RejectedEnd_di" bpmnElement="Flow_RejectedEnd">
+        <di:waypoint x="970" y="520" />
+        <di:waypoint x="1032" y="520" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Escalate → Secondary Review -->
+      <bpmndi:BPMNEdge id="Flow_Escalate_di" bpmnElement="Flow_Escalate">
+        <di:waypoint x="780" y="225" />
+        <di:waypoint x="780" y="360" />
+        <di:waypoint x="870" y="360" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="788" y="333" width="42" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Secondary Review → Merge -->
+      <bpmndi:BPMNEdge id="Flow_SecondaryMerge_di" bpmnElement="Flow_SecondaryMerge">
+        <di:waypoint x="970" y="360" />
+        <di:waypoint x="1080" y="360" />
+        <di:waypoint x="1080" y="225" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Merge → Apply Signature -->
+      <bpmndi:BPMNEdge id="Flow_PostMerge_di" bpmnElement="Flow_PostMerge">
+        <di:waypoint x="1105" y="200" />
+        <di:waypoint x="1160" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Apply Signature → Archive -->
+      <bpmndi:BPMNEdge id="Flow_Post1_di" bpmnElement="Flow_Post1">
+        <di:waypoint x="1260" y="200" />
+        <di:waypoint x="1320" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Archive → Notify -->
+      <bpmndi:BPMNEdge id="Flow_Post2_di" bpmnElement="Flow_Post2">
+        <di:waypoint x="1420" y="200" />
+        <di:waypoint x="1480" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Notify → End Approved -->
+      <bpmndi:BPMNEdge id="Flow_Post3_di" bpmnElement="Flow_Post3">
+        <di:waypoint x="1580" y="200" />
+        <di:waypoint x="1642" y="200" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

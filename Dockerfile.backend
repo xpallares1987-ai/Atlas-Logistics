@@ -1,24 +1,34 @@
 ARG NODE_VERSION=22
 ARG PNPM_VERSION=11.13.0
 
+# 1. Builder Stage
 FROM node:${NODE_VERSION}-alpine AS builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN apk add --no-cache git \
-    && npm install -g pnpm@${PNPM_VERSION}
+RUN apk add --no-cache git && npm install -g pnpm@${PNPM_VERSION}
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.base.json tsconfig.json ./
 COPY src ./src
 COPY packages ./packages
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install
 
-FROM node:${NODE_VERSION}-alpine AS production
+# 2. Pruner Stage (Install only prod dependencies)
+FROM node:${NODE_VERSION}-alpine AS pruner
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN npm install -g pnpm@${PNPM_VERSION}
 WORKDIR /app
-COPY --from=builder /app /app
-# Cloud Run inyecta PORT=8080 por defecto; el código usa process.env.PORT || 3001
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.base.json tsconfig.json ./
+COPY src ./src
+COPY packages ./packages
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile --ignore-scripts
+
+# 3. Production Stage (Chainguard Hardened)
+FROM cgr.dev/chainguard/node:latest AS production
+WORKDIR /app
+# Copy only the pruned node_modules and source code
+COPY --from=pruner /app /app
 EXPOSE 8080
-CMD ["node", "--import", "tsx/esm", "src/index.ts"]
+# Run the application using the local tsx module
+CMD ["--import", "tsx/esm", "src/index.ts"]

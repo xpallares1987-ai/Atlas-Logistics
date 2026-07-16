@@ -1,0 +1,578 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_RateComparison"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:process id="rate-comparison-process" name="Rate Comparison Process" isExecutable="true">
+
+    <!-- ───────────────────── Start Event ───────────────────── -->
+    <bpmn:startEvent id="StartEvent_RateRequest" name="Rate Request Received">
+      <bpmn:outgoing>Flow_ToValidate</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- ───────────────────── Validate Route ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_ToValidate" sourceRef="StartEvent_RateRequest" targetRef="Task_ValidateRoute" />
+
+    <bpmn:serviceTask id="Task_ValidateRoute" name="Validate Route">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.route.validate" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToValidate</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToFork</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ───────────────────── Parallel Fork ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_ToFork" sourceRef="Task_ValidateRoute" targetRef="Gateway_Fork" />
+
+    <bpmn:parallelGateway id="Gateway_Fork" name="Fork Carrier Queries">
+      <bpmn:incoming>Flow_ToFork</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToMaersk</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToMSC</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToHapag</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToContracts</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <!-- ═══════════ Branch A – Maersk ═══════════ -->
+    <bpmn:sequenceFlow id="Flow_ToMaersk" sourceRef="Gateway_Fork" targetRef="Task_FetchMaersk" />
+
+    <bpmn:serviceTask id="Task_FetchMaersk" name="Fetch Maersk Rates">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.rates.fetch-maersk" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToMaersk</bpmn:incoming>
+      <bpmn:outgoing>Flow_MaerskToJoin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:boundaryEvent id="BoundaryError_Maersk" name="Maersk Timeout Error" attachedToRef="Task_FetchMaersk" cancelActivity="true">
+      <bpmn:outgoing>Flow_MaerskError</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorDef_Maersk" errorRef="Error_CarrierTimeout" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:boundaryEvent id="BoundaryTimer_Maersk" name="10s Timeout" attachedToRef="Task_FetchMaersk" cancelActivity="true">
+      <bpmn:outgoing>Flow_MaerskTimerToJoin</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_Maersk">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT10S</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:sequenceFlow id="Flow_MaerskError" sourceRef="BoundaryError_Maersk" targetRef="Task_LogMaerskError" />
+    <bpmn:serviceTask id="Task_LogMaerskError" name="Log Maersk Error">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.rates.log-error" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="carrier" value="Maersk" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_MaerskError</bpmn:incoming>
+      <bpmn:outgoing>Flow_MaerskErrorEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_MaerskErrorEnd" sourceRef="Task_LogMaerskError" targetRef="EndEvent_MaerskError" />
+    <bpmn:endEvent id="EndEvent_MaerskError" name="Maersk Error Logged">
+      <bpmn:incoming>Flow_MaerskErrorEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_MaerskToJoin" sourceRef="Task_FetchMaersk" targetRef="Gateway_Join" />
+    <bpmn:sequenceFlow id="Flow_MaerskTimerToJoin" sourceRef="BoundaryTimer_Maersk" targetRef="Gateway_Join" />
+
+    <!-- ═══════════ Branch B – MSC ═══════════ -->
+    <bpmn:sequenceFlow id="Flow_ToMSC" sourceRef="Gateway_Fork" targetRef="Task_FetchMSC" />
+
+    <bpmn:serviceTask id="Task_FetchMSC" name="Fetch MSC Rates">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.rates.fetch-msc" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToMSC</bpmn:incoming>
+      <bpmn:outgoing>Flow_MSCToJoin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:boundaryEvent id="BoundaryError_MSC" name="MSC Timeout Error" attachedToRef="Task_FetchMSC" cancelActivity="true">
+      <bpmn:outgoing>Flow_MSCError</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorDef_MSC" errorRef="Error_CarrierTimeout" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:boundaryEvent id="BoundaryTimer_MSC" name="10s Timeout" attachedToRef="Task_FetchMSC" cancelActivity="true">
+      <bpmn:outgoing>Flow_MSCTimerToJoin</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_MSC">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT10S</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:sequenceFlow id="Flow_MSCError" sourceRef="BoundaryError_MSC" targetRef="Task_LogMSCError" />
+    <bpmn:serviceTask id="Task_LogMSCError" name="Log MSC Error">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.rates.log-error" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="carrier" value="MSC" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_MSCError</bpmn:incoming>
+      <bpmn:outgoing>Flow_MSCErrorEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_MSCErrorEnd" sourceRef="Task_LogMSCError" targetRef="EndEvent_MSCError" />
+    <bpmn:endEvent id="EndEvent_MSCError" name="MSC Error Logged">
+      <bpmn:incoming>Flow_MSCErrorEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_MSCToJoin" sourceRef="Task_FetchMSC" targetRef="Gateway_Join" />
+    <bpmn:sequenceFlow id="Flow_MSCTimerToJoin" sourceRef="BoundaryTimer_MSC" targetRef="Gateway_Join" />
+
+    <!-- ═══════════ Branch C – Hapag-Lloyd ═══════════ -->
+    <bpmn:sequenceFlow id="Flow_ToHapag" sourceRef="Gateway_Fork" targetRef="Task_FetchHapag" />
+
+    <bpmn:serviceTask id="Task_FetchHapag" name="Fetch Hapag-Lloyd Rates">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.rates.fetch-hapag" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToHapag</bpmn:incoming>
+      <bpmn:outgoing>Flow_HapagToJoin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:boundaryEvent id="BoundaryError_Hapag" name="Hapag Timeout Error" attachedToRef="Task_FetchHapag" cancelActivity="true">
+      <bpmn:outgoing>Flow_HapagError</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorDef_Hapag" errorRef="Error_CarrierTimeout" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:boundaryEvent id="BoundaryTimer_Hapag" name="10s Timeout" attachedToRef="Task_FetchHapag" cancelActivity="true">
+      <bpmn:outgoing>Flow_HapagTimerToJoin</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_Hapag">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT10S</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:sequenceFlow id="Flow_HapagError" sourceRef="BoundaryError_Hapag" targetRef="Task_LogHapagError" />
+    <bpmn:serviceTask id="Task_LogHapagError" name="Log Hapag Error">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.rates.log-error" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="carrier" value="Hapag-Lloyd" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_HapagError</bpmn:incoming>
+      <bpmn:outgoing>Flow_HapagErrorEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_HapagErrorEnd" sourceRef="Task_LogHapagError" targetRef="EndEvent_HapagError" />
+    <bpmn:endEvent id="EndEvent_HapagError" name="Hapag Error Logged">
+      <bpmn:incoming>Flow_HapagErrorEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_HapagToJoin" sourceRef="Task_FetchHapag" targetRef="Gateway_Join" />
+    <bpmn:sequenceFlow id="Flow_HapagTimerToJoin" sourceRef="BoundaryTimer_Hapag" targetRef="Gateway_Join" />
+
+    <!-- ═══════════ Branch D – Internal Contracts ═══════════ -->
+    <bpmn:sequenceFlow id="Flow_ToContracts" sourceRef="Gateway_Fork" targetRef="Task_FetchContracts" />
+
+    <bpmn:serviceTask id="Task_FetchContracts" name="Fetch Internal Contract Rates">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.rates.fetch-contracts" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToContracts</bpmn:incoming>
+      <bpmn:outgoing>Flow_ContractsToJoin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:boundaryEvent id="BoundaryError_Contracts" name="Contracts Timeout Error" attachedToRef="Task_FetchContracts" cancelActivity="true">
+      <bpmn:outgoing>Flow_ContractsError</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorDef_Contracts" errorRef="Error_CarrierTimeout" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:boundaryEvent id="BoundaryTimer_Contracts" name="10s Timeout" attachedToRef="Task_FetchContracts" cancelActivity="true">
+      <bpmn:outgoing>Flow_ContractsTimerToJoin</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_Contracts">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT10S</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:sequenceFlow id="Flow_ContractsError" sourceRef="BoundaryError_Contracts" targetRef="Task_LogContractsError" />
+    <bpmn:serviceTask id="Task_LogContractsError" name="Log Contracts Error">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.rates.log-error" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="carrier" value="InternalContracts" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ContractsError</bpmn:incoming>
+      <bpmn:outgoing>Flow_ContractsErrorEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_ContractsErrorEnd" sourceRef="Task_LogContractsError" targetRef="EndEvent_ContractsError" />
+    <bpmn:endEvent id="EndEvent_ContractsError" name="Contracts Error Logged">
+      <bpmn:incoming>Flow_ContractsErrorEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_ContractsToJoin" sourceRef="Task_FetchContracts" targetRef="Gateway_Join" />
+    <bpmn:sequenceFlow id="Flow_ContractsTimerToJoin" sourceRef="BoundaryTimer_Contracts" targetRef="Gateway_Join" />
+
+    <!-- ───────────────────── Parallel Join ───────────────────── -->
+    <bpmn:parallelGateway id="Gateway_Join" name="Join Carrier Results">
+      <bpmn:incoming>Flow_MaerskToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_MaerskTimerToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_MSCToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_MSCTimerToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_HapagToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_HapagTimerToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_ContractsToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_ContractsTimerToJoin</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToPricingRules</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <!-- ───────────────────── Apply Pricing Rules ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_ToPricingRules" sourceRef="Gateway_Join" targetRef="Task_PricingRules" />
+
+    <bpmn:businessRuleTask id="Task_PricingRules" name="Apply Pricing Rules">
+      <bpmn:extensionElements>
+        <zeebe:calledDecision decisionId="pricing-rules" resultVariable="pricingResult" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToPricingRules</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToRank</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+
+    <!-- ───────────────────── Rank and Score ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_ToRank" sourceRef="Task_PricingRules" targetRef="Task_RankResults" />
+
+    <bpmn:serviceTask id="Task_RankResults" name="Rank and Score Results">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.rates.rank" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToRank</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToStore</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ───────────────────── Store Results ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_ToStore" sourceRef="Task_RankResults" targetRef="Task_StoreResults" />
+
+    <bpmn:serviceTask id="Task_StoreResults" name="Store Comparison Results">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.rates.store-results" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToStore</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ───────────────────── End Event ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_ToEnd" sourceRef="Task_StoreResults" targetRef="EndEvent_Complete" />
+
+    <bpmn:endEvent id="EndEvent_Complete" name="Comparison Complete">
+      <bpmn:incoming>Flow_ToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+  </bpmn:process>
+
+  <!-- ───────────────────── Error Definition ───────────────────── -->
+  <bpmn:error id="Error_CarrierTimeout" name="Carrier Timeout" errorCode="CARRIER_TIMEOUT" />
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       BPMN DIAGRAM – Horizontal left-to-right layout
+       
+       Layout grid (Y-axis centers):
+         Branch A (Maersk)     y = 120
+         Branch B (MSC)        y = 260
+         Branch C (Hapag)      y = 400
+         Branch D (Contracts)  y = 540
+         Main axis             y = 330  (midpoint of 4 branches)
+       ═══════════════════════════════════════════════════════════════ -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="rate-comparison-process">
+
+      <!-- ── Start Event ── -->
+      <bpmndi:BPMNShape id="Shape_StartEvent" bpmnElement="StartEvent_RateRequest">
+        <dc:Bounds x="180" y="312" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="155" y="355" width="86" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ── Validate Route ── -->
+      <bpmndi:BPMNShape id="Shape_ValidateRoute" bpmnElement="Task_ValidateRoute">
+        <dc:Bounds x="280" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- ── Parallel Fork ── -->
+      <bpmndi:BPMNShape id="Shape_Fork" bpmnElement="Gateway_Fork" isMarkerVisible="true">
+        <dc:Bounds x="445" y="305" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="425" y="362" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ── Branch A: Fetch Maersk ── -->
+      <bpmndi:BPMNShape id="Shape_FetchMaersk" bpmnElement="Task_FetchMaersk">
+        <dc:Bounds x="570" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_BoundaryError_Maersk" bpmnElement="BoundaryError_Maersk">
+        <dc:Bounds x="602" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="576" y="183" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_BoundaryTimer_Maersk" bpmnElement="BoundaryTimer_Maersk">
+        <dc:Bounds x="642" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="630" y="183" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_LogMaerskError" bpmnElement="Task_LogMaerskError">
+        <dc:Bounds x="570" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndMaerskError" bpmnElement="EndEvent_MaerskError">
+        <dc:Bounds x="700" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="680" y="265" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ── Branch B: Fetch MSC ── -->
+      <bpmndi:BPMNShape id="Shape_FetchMSC" bpmnElement="Task_FetchMSC">
+        <dc:Bounds x="570" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_BoundaryError_MSC" bpmnElement="BoundaryError_MSC">
+        <dc:Bounds x="602" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="580" y="393" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_BoundaryTimer_MSC" bpmnElement="BoundaryTimer_MSC">
+        <dc:Bounds x="642" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="630" y="393" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_LogMSCError" bpmnElement="Task_LogMSCError">
+        <dc:Bounds x="570" y="410" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndMSCError" bpmnElement="EndEvent_MSCError">
+        <dc:Bounds x="700" y="432" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="680" y="475" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ── Branch C: Fetch Hapag-Lloyd ── -->
+      <bpmndi:BPMNShape id="Shape_FetchHapag" bpmnElement="Task_FetchHapag">
+        <dc:Bounds x="570" y="500" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_BoundaryError_Hapag" bpmnElement="BoundaryError_Hapag">
+        <dc:Bounds x="602" y="562" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="576" y="603" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_BoundaryTimer_Hapag" bpmnElement="BoundaryTimer_Hapag">
+        <dc:Bounds x="642" y="562" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="630" y="603" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_LogHapagError" bpmnElement="Task_LogHapagError">
+        <dc:Bounds x="570" y="620" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndHapagError" bpmnElement="EndEvent_HapagError">
+        <dc:Bounds x="700" y="642" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="680" y="685" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ── Branch D: Fetch Internal Contracts ── -->
+      <bpmndi:BPMNShape id="Shape_FetchContracts" bpmnElement="Task_FetchContracts">
+        <dc:Bounds x="570" y="710" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_BoundaryError_Contracts" bpmnElement="BoundaryError_Contracts">
+        <dc:Bounds x="602" y="772" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="572" y="813" width="96" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_BoundaryTimer_Contracts" bpmnElement="BoundaryTimer_Contracts">
+        <dc:Bounds x="642" y="772" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="630" y="813" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_LogContractsError" bpmnElement="Task_LogContractsError">
+        <dc:Bounds x="570" y="830" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndContractsError" bpmnElement="EndEvent_ContractsError">
+        <dc:Bounds x="700" y="852" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="674" y="895" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ── Parallel Join ── -->
+      <bpmndi:BPMNShape id="Shape_Join" bpmnElement="Gateway_Join" isMarkerVisible="true">
+        <dc:Bounds x="785" y="305" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="766" y="362" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ── Apply Pricing Rules ── -->
+      <bpmndi:BPMNShape id="Shape_PricingRules" bpmnElement="Task_PricingRules">
+        <dc:Bounds x="900" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- ── Rank and Score ── -->
+      <bpmndi:BPMNShape id="Shape_RankResults" bpmnElement="Task_RankResults">
+        <dc:Bounds x="1060" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- ── Store Results ── -->
+      <bpmndi:BPMNShape id="Shape_StoreResults" bpmnElement="Task_StoreResults">
+        <dc:Bounds x="1220" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- ── End Event ── -->
+      <bpmndi:BPMNShape id="Shape_EndEvent" bpmnElement="EndEvent_Complete">
+        <dc:Bounds x="1382" y="312" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1358" y="355" width="84" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ════════════════════ EDGES ════════════════════ -->
+
+      <!-- Main spine -->
+      <bpmndi:BPMNEdge id="Edge_ToValidate" bpmnElement="Flow_ToValidate">
+        <di:waypoint x="216" y="330" />
+        <di:waypoint x="280" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToFork" bpmnElement="Flow_ToFork">
+        <di:waypoint x="380" y="330" />
+        <di:waypoint x="445" y="330" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Fork → Branches -->
+      <bpmndi:BPMNEdge id="Edge_ToMaersk" bpmnElement="Flow_ToMaersk">
+        <di:waypoint x="470" y="305" />
+        <di:waypoint x="470" y="120" />
+        <di:waypoint x="570" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToMSC" bpmnElement="Flow_ToMSC">
+        <di:waypoint x="495" y="330" />
+        <di:waypoint x="570" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToHapag" bpmnElement="Flow_ToHapag">
+        <di:waypoint x="470" y="355" />
+        <di:waypoint x="470" y="540" />
+        <di:waypoint x="570" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToContracts" bpmnElement="Flow_ToContracts">
+        <di:waypoint x="470" y="355" />
+        <di:waypoint x="470" y="750" />
+        <di:waypoint x="570" y="750" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Branches → Join (normal) -->
+      <bpmndi:BPMNEdge id="Edge_MaerskToJoin" bpmnElement="Flow_MaerskToJoin">
+        <di:waypoint x="670" y="120" />
+        <di:waypoint x="810" y="120" />
+        <di:waypoint x="810" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MSCToJoin" bpmnElement="Flow_MSCToJoin">
+        <di:waypoint x="670" y="330" />
+        <di:waypoint x="785" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_HapagToJoin" bpmnElement="Flow_HapagToJoin">
+        <di:waypoint x="670" y="540" />
+        <di:waypoint x="810" y="540" />
+        <di:waypoint x="810" y="355" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ContractsToJoin" bpmnElement="Flow_ContractsToJoin">
+        <di:waypoint x="670" y="750" />
+        <di:waypoint x="810" y="750" />
+        <di:waypoint x="810" y="355" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Branches → Join (timer) -->
+      <bpmndi:BPMNEdge id="Edge_MaerskTimerToJoin" bpmnElement="Flow_MaerskTimerToJoin">
+        <di:waypoint x="660" y="178" />
+        <di:waypoint x="660" y="190" />
+        <di:waypoint x="750" y="190" />
+        <di:waypoint x="750" y="315" />
+        <di:waypoint x="785" y="315" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MSCTimerToJoin" bpmnElement="Flow_MSCTimerToJoin">
+        <di:waypoint x="660" y="388" />
+        <di:waypoint x="660" y="400" />
+        <di:waypoint x="750" y="400" />
+        <di:waypoint x="750" y="340" />
+        <di:waypoint x="785" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_HapagTimerToJoin" bpmnElement="Flow_HapagTimerToJoin">
+        <di:waypoint x="660" y="598" />
+        <di:waypoint x="660" y="610" />
+        <di:waypoint x="750" y="610" />
+        <di:waypoint x="750" y="345" />
+        <di:waypoint x="785" y="345" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ContractsTimerToJoin" bpmnElement="Flow_ContractsTimerToJoin">
+        <di:waypoint x="660" y="808" />
+        <di:waypoint x="660" y="820" />
+        <di:waypoint x="750" y="820" />
+        <di:waypoint x="750" y="350" />
+        <di:waypoint x="785" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Error boundary flows -->
+      <bpmndi:BPMNEdge id="Edge_MaerskError" bpmnElement="Flow_MaerskError">
+        <di:waypoint x="620" y="178" />
+        <di:waypoint x="620" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MaerskErrorEnd" bpmnElement="Flow_MaerskErrorEnd">
+        <di:waypoint x="670" y="240" />
+        <di:waypoint x="700" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MSCError" bpmnElement="Flow_MSCError">
+        <di:waypoint x="620" y="388" />
+        <di:waypoint x="620" y="410" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MSCErrorEnd" bpmnElement="Flow_MSCErrorEnd">
+        <di:waypoint x="670" y="450" />
+        <di:waypoint x="700" y="450" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_HapagError" bpmnElement="Flow_HapagError">
+        <di:waypoint x="620" y="598" />
+        <di:waypoint x="620" y="620" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_HapagErrorEnd" bpmnElement="Flow_HapagErrorEnd">
+        <di:waypoint x="670" y="660" />
+        <di:waypoint x="700" y="660" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ContractsError" bpmnElement="Flow_ContractsError">
+        <di:waypoint x="620" y="808" />
+        <di:waypoint x="620" y="830" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ContractsErrorEnd" bpmnElement="Flow_ContractsErrorEnd">
+        <di:waypoint x="670" y="870" />
+        <di:waypoint x="700" y="870" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Post-join spine -->
+      <bpmndi:BPMNEdge id="Edge_ToPricingRules" bpmnElement="Flow_ToPricingRules">
+        <di:waypoint x="835" y="330" />
+        <di:waypoint x="900" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToRank" bpmnElement="Flow_ToRank">
+        <di:waypoint x="1000" y="330" />
+        <di:waypoint x="1060" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToStore" bpmnElement="Flow_ToStore">
+        <di:waypoint x="1160" y="330" />
+        <di:waypoint x="1220" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToEnd" bpmnElement="Flow_ToEnd">
+        <di:waypoint x="1320" y="330" />
+        <di:waypoint x="1382" y="330" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>
+
+

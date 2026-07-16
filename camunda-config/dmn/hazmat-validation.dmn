@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1hz2a" name="Hazmat Validation" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Modeler" exporterVersion="5.25.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.5.0">
+  <decision id="hazmat-validation" name="Hazmat Class Validation">
+    <decisionTable id="DecisionTable_1h9z2v" hitPolicy="FIRST">
+      <input id="Input_1" label="IMO Class">
+        <inputExpression id="InputExpression_1" typeRef="string">
+          <text>imoClass</text>
+        </inputExpression>
+      </input>
+      <input id="Input_2" label="Transport Mode">
+        <inputExpression id="InputExpression_2" typeRef="string">
+          <text>transportMode</text>
+        </inputExpression>
+      </input>
+      <output id="Output_1" label="Is Approved" name="isApproved" typeRef="boolean" />
+      <output id="Output_2" label="Rejection Reason" name="rejectionReason" typeRef="string" />
+      <rule id="DecisionRule_1">
+        <inputEntry id="UnaryTests_1">
+          <text>"1"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_2">
+          <text>"AIR"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_2">
+          <text>"Explosives (Class 1) strictly prohibited on Air Freight."</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_2">
+        <inputEntry id="UnaryTests_3">
+          <text>"7"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_3">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_4">
+          <text>"Radioactive materials (Class 7) require manual CEO approval."</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_3">
+        <inputEntry id="UnaryTests_5">
+          <text>"3", "8"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_6">
+          <text>"OCEAN"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_5">
+          <text>true</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_6">
+          <text>null</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_4">
+        <inputEntry id="UnaryTests_7">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_8">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_7">
+          <text>true</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_8">
+          <text>"Standard Hazmat Class. Approved pending DGD document."</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram>
+      <dmndi:DMNShape dmnElementRef="hazmat-validation">
+        <dc:Bounds height="80" width="180" x="160" y="100" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

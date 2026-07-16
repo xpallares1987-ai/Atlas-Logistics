@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  id="Definitions_LclConsolidation"
+  targetNamespace="http://bpmn.io/schema/bpmn"
+  exporter="Camunda Modeler"
+  exporterVersion="5.0.0">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ERROR DEFINITION                                            -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <bpmn:error id="Error_Overweight" name="Overweight Error" errorCode="OVERWEIGHT" />
+
+  <bpmn:process id="lcl-consolidation-process" name="LCL Consolidation Process" isExecutable="true">
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- START EVENT                                                 -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:startEvent id="StartEvent_1" name="Consolidation Initiated">
+      <bpmn:outgoing>Flow_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- COLLECT PENDING LCL SHIPMENTS                               -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:serviceTask id="Task_CollectShipments" name="Collect Pending LCL Shipments">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.lcl.collect-shipments" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_01</bpmn:incoming>
+      <bpmn:outgoing>Flow_02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- OPTIMIZE CONTAINER LOADING (with error boundary)            -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:serviceTask id="Task_OptimizeLoading" name="Optimize Container Loading">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.lcl.optimize-loading" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_02</bpmn:incoming>
+      <bpmn:incoming>Flow_07</bpmn:incoming>
+      <bpmn:outgoing>Flow_03</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Error Boundary Event — catches OVERWEIGHT -->
+    <bpmn:boundaryEvent id="BoundaryEvent_Overweight" name="Overweight" attachedToRef="Task_OptimizeLoading">
+      <bpmn:outgoing>Flow_Error</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDef_Overweight" errorRef="Error_Overweight" />
+    </bpmn:boundaryEvent>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- APPROVE LOADING PLAN                                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:userTask id="Task_ApprovePlan" name="Approve Loading Plan">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:loading-plan" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_03</bpmn:incoming>
+      <bpmn:outgoing>Flow_04</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- PLAN APPROVED? — Exclusive Gateway                          -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:exclusiveGateway id="Gateway_Approved" name="Plan Approved?">
+      <bpmn:incoming>Flow_04</bpmn:incoming>
+      <bpmn:outgoing>Flow_05</bpmn:outgoing>
+      <bpmn:outgoing>Flow_06</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- NO branch — Revise Loading (loops back to optimize) -->
+    <bpmn:serviceTask id="Task_ReviseLoading" name="Revise Loading">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.lcl.revise-loading" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_06</bpmn:incoming>
+      <bpmn:outgoing>Flow_07</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- POST-APPROVAL: MANIFEST → ASSIGN → STUFF → VERIFY → SEAL   -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:serviceTask id="Task_GenManifest" name="Generate Consolidation Manifest">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.lcl.generate-manifest" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_05</bpmn:incoming>
+      <bpmn:outgoing>Flow_08</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_AssignContainer" name="Assign Container">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.lcl.assign-container" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_08</bpmn:incoming>
+      <bpmn:outgoing>Flow_09</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_CommenceStuffing" name="Commence Stuffing">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.lcl.commence-stuffing" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_09</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_VerifyStuffing" name="Verify Stuffing">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:stuffing-verification" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="Task_SealContainer" name="Seal Container">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.lcl.seal-container" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_UpdateRecords" name="Update All Shipment Records">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.lcl.update-records" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- END EVENTS                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:endEvent id="EndEvent_1" name="Consolidation Complete">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_Error" name="Overweight Error">
+      <bpmn:incoming>Flow_Error</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SEQUENCE FLOWS                                              -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <bpmn:sequenceFlow id="Flow_01" sourceRef="StartEvent_1" targetRef="Task_CollectShipments" />
+    <bpmn:sequenceFlow id="Flow_02" sourceRef="Task_CollectShipments" targetRef="Task_OptimizeLoading" />
+    <bpmn:sequenceFlow id="Flow_03" sourceRef="Task_OptimizeLoading" targetRef="Task_ApprovePlan" />
+    <bpmn:sequenceFlow id="Flow_04" sourceRef="Task_ApprovePlan" targetRef="Gateway_Approved" />
+
+    <bpmn:sequenceFlow id="Flow_05" name="Yes" sourceRef="Gateway_Approved" targetRef="Task_GenManifest">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=planApproved = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_06" name="No" sourceRef="Gateway_Approved" targetRef="Task_ReviseLoading">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=planApproved = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_07" sourceRef="Task_ReviseLoading" targetRef="Task_OptimizeLoading" />
+
+    <bpmn:sequenceFlow id="Flow_08" sourceRef="Task_GenManifest" targetRef="Task_AssignContainer" />
+    <bpmn:sequenceFlow id="Flow_09" sourceRef="Task_AssignContainer" targetRef="Task_CommenceStuffing" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_CommenceStuffing" targetRef="Task_VerifyStuffing" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_VerifyStuffing" targetRef="Task_SealContainer" />
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_SealContainer" targetRef="Task_UpdateRecords" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_UpdateRecords" targetRef="EndEvent_1" />
+
+    <!-- Error boundary → Error End Event -->
+    <bpmn:sequenceFlow id="Flow_Error" sourceRef="BoundaryEvent_Overweight" targetRef="EndEvent_Error" />
+  </bpmn:process>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- BPMN DIAGRAM                                                    -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="lcl-consolidation-process">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="180" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="158" y="225" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Collect Pending LCL Shipments -->
+      <bpmndi:BPMNShape id="Task_CollectShipments_di" bpmnElement="Task_CollectShipments">
+        <dc:Bounds x="276" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Optimize Container Loading -->
+      <bpmndi:BPMNShape id="Task_OptimizeLoading_di" bpmnElement="Task_OptimizeLoading">
+        <dc:Bounds x="436" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Error Boundary Event (bottom of Optimize task) -->
+      <bpmndi:BPMNShape id="BoundaryEvent_Overweight_di" bpmnElement="BoundaryEvent_Overweight">
+        <dc:Bounds x="468" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="505" y="253" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Error End Event (below boundary) -->
+      <bpmndi:BPMNShape id="EndEvent_Error_di" bpmnElement="EndEvent_Error">
+        <dc:Bounds x="468" y="342" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="447" y="385" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Approve Loading Plan -->
+      <bpmndi:BPMNShape id="Task_ApprovePlan_di" bpmnElement="Task_ApprovePlan">
+        <dc:Bounds x="596" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Plan Approved? Gateway -->
+      <bpmndi:BPMNShape id="Gateway_Approved_di" bpmnElement="Gateway_Approved" isMarkerVisible="true">
+        <dc:Bounds x="756" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="740" y="148" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Revise Loading (below gateway, for No branch) -->
+      <bpmndi:BPMNShape id="Task_ReviseLoading_di" bpmnElement="Task_ReviseLoading">
+        <dc:Bounds x="731" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Generate Consolidation Manifest -->
+      <bpmndi:BPMNShape id="Task_GenManifest_di" bpmnElement="Task_GenManifest">
+        <dc:Bounds x="866" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Assign Container -->
+      <bpmndi:BPMNShape id="Task_AssignContainer_di" bpmnElement="Task_AssignContainer">
+        <dc:Bounds x="1026" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Commence Stuffing -->
+      <bpmndi:BPMNShape id="Task_CommenceStuffing_di" bpmnElement="Task_CommenceStuffing">
+        <dc:Bounds x="1186" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Verify Stuffing -->
+      <bpmndi:BPMNShape id="Task_VerifyStuffing_di" bpmnElement="Task_VerifyStuffing">
+        <dc:Bounds x="1346" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Seal Container -->
+      <bpmndi:BPMNShape id="Task_SealContainer_di" bpmnElement="Task_SealContainer">
+        <dc:Bounds x="1506" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Update All Shipment Records -->
+      <bpmndi:BPMNShape id="Task_UpdateRecords_di" bpmnElement="Task_UpdateRecords">
+        <dc:Bounds x="1666" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event -->
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1826" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1804" y="225" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ═══════ Sequence Flow Edges ═══════ -->
+
+      <bpmndi:BPMNEdge id="Flow_01_di" bpmnElement="Flow_01">
+        <di:waypoint x="216" y="200" />
+        <di:waypoint x="276" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_02_di" bpmnElement="Flow_02">
+        <di:waypoint x="376" y="200" />
+        <di:waypoint x="436" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_03_di" bpmnElement="Flow_03">
+        <di:waypoint x="536" y="200" />
+        <di:waypoint x="596" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_04_di" bpmnElement="Flow_04">
+        <di:waypoint x="696" y="200" />
+        <di:waypoint x="756" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Yes → Generate Manifest -->
+      <bpmndi:BPMNEdge id="Flow_05_di" bpmnElement="Flow_05">
+        <di:waypoint x="806" y="200" />
+        <di:waypoint x="866" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="828" y="182" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- No → Revise Loading (downward) -->
+      <bpmndi:BPMNEdge id="Flow_06_di" bpmnElement="Flow_06">
+        <di:waypoint x="781" y="225" />
+        <di:waypoint x="781" y="310" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="789" y="263" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Loop back: Revise → Optimize Loading -->
+      <bpmndi:BPMNEdge id="Flow_07_di" bpmnElement="Flow_07">
+        <di:waypoint x="731" y="350" />
+        <di:waypoint x="420" y="350" />
+        <di:waypoint x="420" y="200" />
+        <di:waypoint x="436" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_08_di" bpmnElement="Flow_08">
+        <di:waypoint x="966" y="200" />
+        <di:waypoint x="1026" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_09_di" bpmnElement="Flow_09">
+        <di:waypoint x="1126" y="200" />
+        <di:waypoint x="1186" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1286" y="200" />
+        <di:waypoint x="1346" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1446" y="200" />
+        <di:waypoint x="1506" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1606" y="200" />
+        <di:waypoint x="1666" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1766" y="200" />
+        <di:waypoint x="1826" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Error Boundary → Error End Event -->
+      <bpmndi:BPMNEdge id="Flow_Error_di" bpmnElement="Flow_Error">
+        <di:waypoint x="486" y="258" />
+        <di:waypoint x="486" y="342" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

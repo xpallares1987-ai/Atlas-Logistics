@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_Invoice"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:process id="invoice-handling-process" name="Invoice Handling Process" isExecutable="true">
+
+    <bpmn:startEvent id="StartEvent_1" name="Job Closed">
+      <bpmn:documentation>Triggered when shipment job is closed</bpmn:documentation>
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_CollectCosts" name="Collect Cost Items">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.collect-costs" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_CalculatePnL" name="Calculate P&amp;L">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.calculate-pnl" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:parallelGateway id="Gateway_Fork" name="Fork AR/AP">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_ForkAR</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ForkAP</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <!-- ===== Branch A: Accounts Receivable ===== -->
+    <bpmn:serviceTask id="Task_GenerateAR" name="Generate Customer Invoice">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.generate-ar" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ForkAR</bpmn:incoming>
+      <bpmn:outgoing>Flow_AR1</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_SendAR" name="Send Invoice to Customer">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.send-ar" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_AR1</bpmn:incoming>
+      <bpmn:outgoing>Flow_AR_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Timer Boundary: Payment overdue after 30 days -->
+    <bpmn:boundaryEvent id="BoundaryEvent_PaymentTimer" name="30 Days Overdue" attachedToRef="Task_SendAR" cancelActivity="false">
+      <bpmn:outgoing>Flow_Timer1</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_Payment">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P30D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_PaymentReminder" name="Send Payment Reminder">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.payment-reminder" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Timer1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Timer2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_Reminder" name="Reminder Sent">
+      <bpmn:incoming>Flow_Timer2</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ===== Branch B: Accounts Payable ===== -->
+    <bpmn:serviceTask id="Task_MatchAP" name="Match Vendor Invoices">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.match-ap" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ForkAP</bpmn:incoming>
+      <bpmn:outgoing>Flow_AP1</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_AllMatched" name="All Matched?" default="Flow_MatchNo">
+      <bpmn:incoming>Flow_AP1</bpmn:incoming>
+      <bpmn:outgoing>Flow_MatchYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_MatchNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_ReviewDiscrepancies" name="Review Discrepancies">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:invoice-review" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_MatchNo</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReviewMerge</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_MatchMerge" name="Match Merge">
+      <bpmn:incoming>Flow_MatchYes</bpmn:incoming>
+      <bpmn:incoming>Flow_ReviewMerge</bpmn:incoming>
+      <bpmn:outgoing>Flow_AP2</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_ApproveAP" name="Approve Vendor Payments">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.approve-ap" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_AP2</bpmn:incoming>
+      <bpmn:outgoing>Flow_AP_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ===== Join and Post-Processing ===== -->
+    <bpmn:parallelGateway id="Gateway_Join" name="Join AR/AP">
+      <bpmn:incoming>Flow_AR_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_AP_Join</bpmn:incoming>
+      <bpmn:outgoing>Flow_Join1</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:serviceTask id="Task_UpdateRecords" name="Update Financial Records">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.update-records" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Join1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Join2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Profitable" name="Profitable?" default="Flow_ProfitYes">
+      <bpmn:incoming>Flow_Join2</bpmn:incoming>
+      <bpmn:outgoing>Flow_ProfitYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ProfitNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_FlagReview" name="Flag for Management Review">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.flag-review" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ProfitNo</bpmn:incoming>
+      <bpmn:outgoing>Flow_FlagMerge</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ProfitMerge" name="Profit Merge">
+      <bpmn:incoming>Flow_ProfitYes</bpmn:incoming>
+      <bpmn:incoming>Flow_FlagMerge</bpmn:incoming>
+      <bpmn:outgoing>Flow_End</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="EndEvent_Complete" name="Invoicing Complete">
+      <bpmn:incoming>Flow_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ===== Sequence Flows ===== -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_CollectCosts" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_CollectCosts" targetRef="Task_CalculatePnL" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CalculatePnL" targetRef="Gateway_Fork" />
+
+    <!-- Fork -->
+    <bpmn:sequenceFlow id="Flow_ForkAR" sourceRef="Gateway_Fork" targetRef="Task_GenerateAR" />
+    <bpmn:sequenceFlow id="Flow_ForkAP" sourceRef="Gateway_Fork" targetRef="Task_MatchAP" />
+
+    <!-- Branch A: AR -->
+    <bpmn:sequenceFlow id="Flow_AR1" sourceRef="Task_GenerateAR" targetRef="Task_SendAR" />
+    <bpmn:sequenceFlow id="Flow_AR_Join" sourceRef="Task_SendAR" targetRef="Gateway_Join" />
+
+    <!-- Timer boundary path -->
+    <bpmn:sequenceFlow id="Flow_Timer1" sourceRef="BoundaryEvent_PaymentTimer" targetRef="Task_PaymentReminder" />
+    <bpmn:sequenceFlow id="Flow_Timer2" sourceRef="Task_PaymentReminder" targetRef="EndEvent_Reminder" />
+
+    <!-- Branch B: AP -->
+    <bpmn:sequenceFlow id="Flow_AP1" sourceRef="Task_MatchAP" targetRef="Gateway_AllMatched" />
+    <bpmn:sequenceFlow id="Flow_MatchYes" name="Yes" sourceRef="Gateway_AllMatched" targetRef="Gateway_MatchMerge">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=allMatched = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_MatchNo" name="No" sourceRef="Gateway_AllMatched" targetRef="Task_ReviewDiscrepancies" />
+    <bpmn:sequenceFlow id="Flow_ReviewMerge" sourceRef="Task_ReviewDiscrepancies" targetRef="Gateway_MatchMerge" />
+    <bpmn:sequenceFlow id="Flow_AP2" sourceRef="Gateway_MatchMerge" targetRef="Task_ApproveAP" />
+    <bpmn:sequenceFlow id="Flow_AP_Join" sourceRef="Task_ApproveAP" targetRef="Gateway_Join" />
+
+    <!-- Post-Join -->
+    <bpmn:sequenceFlow id="Flow_Join1" sourceRef="Gateway_Join" targetRef="Task_UpdateRecords" />
+    <bpmn:sequenceFlow id="Flow_Join2" sourceRef="Task_UpdateRecords" targetRef="Gateway_Profitable" />
+    <bpmn:sequenceFlow id="Flow_ProfitYes" name="Yes" sourceRef="Gateway_Profitable" targetRef="Gateway_ProfitMerge" />
+    <bpmn:sequenceFlow id="Flow_ProfitNo" name="No" sourceRef="Gateway_Profitable" targetRef="Task_FlagReview">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=profitable = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_FlagMerge" sourceRef="Task_FlagReview" targetRef="Gateway_ProfitMerge" />
+    <bpmn:sequenceFlow id="Flow_End" sourceRef="Gateway_ProfitMerge" targetRef="EndEvent_Complete" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="invoice-handling-process">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="162" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="153" y="275" width="54" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Collect Cost Items -->
+      <bpmndi:BPMNShape id="Task_CollectCosts_di" bpmnElement="Task_CollectCosts">
+        <dc:Bounds x="260" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Calculate P&L -->
+      <bpmndi:BPMNShape id="Task_CalculatePnL_di" bpmnElement="Task_CalculatePnL">
+        <dc:Bounds x="420" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Parallel Fork -->
+      <bpmndi:BPMNShape id="Gateway_Fork_di" bpmnElement="Gateway_Fork">
+        <dc:Bounds x="585" y="225" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="581" y="282" width="58" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Branch A: Generate Customer Invoice -->
+      <bpmndi:BPMNShape id="Task_GenerateAR_di" bpmnElement="Task_GenerateAR">
+        <dc:Bounds x="710" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Branch A: Send Invoice to Customer -->
+      <bpmndi:BPMNShape id="Task_SendAR_di" bpmnElement="Task_SendAR">
+        <dc:Bounds x="870" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Timer Boundary: 30 Days -->
+      <bpmndi:BPMNShape id="BoundaryEvent_PaymentTimer_di" bpmnElement="BoundaryEvent_PaymentTimer">
+        <dc:Bounds x="922" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="958" y="173" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Send Payment Reminder -->
+      <bpmndi:BPMNShape id="Task_PaymentReminder_di" bpmnElement="Task_PaymentReminder">
+        <dc:Bounds x="1000" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event: Reminder Sent -->
+      <bpmndi:BPMNShape id="EndEvent_Reminder_di" bpmnElement="EndEvent_Reminder">
+        <dc:Bounds x="1142" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1126" y="235" width="69" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Branch B: Match Vendor Invoices -->
+      <bpmndi:BPMNShape id="Task_MatchAP_di" bpmnElement="Task_MatchAP">
+        <dc:Bounds x="710" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: All Matched? -->
+      <bpmndi:BPMNShape id="Gateway_AllMatched_di" bpmnElement="Gateway_AllMatched" isMarkerVisible="true">
+        <dc:Bounds x="875" y="395" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="868" y="371" width="64" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- User Task: Review Discrepancies -->
+      <bpmndi:BPMNShape id="Task_ReviewDiscrepancies_di" bpmnElement="Task_ReviewDiscrepancies">
+        <dc:Bounds x="940" y="510" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Match Merge -->
+      <bpmndi:BPMNShape id="Gateway_MatchMerge_di" bpmnElement="Gateway_MatchMerge" isMarkerVisible="true">
+        <dc:Bounds x="1075" y="395" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Approve Vendor Payments -->
+      <bpmndi:BPMNShape id="Task_ApproveAP_di" bpmnElement="Task_ApproveAP">
+        <dc:Bounds x="1170" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Parallel Join -->
+      <bpmndi:BPMNShape id="Gateway_Join_di" bpmnElement="Gateway_Join">
+        <dc:Bounds x="1325" y="225" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1321" y="282" width="58" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Update Financial Records -->
+      <bpmndi:BPMNShape id="Task_UpdateRecords_di" bpmnElement="Task_UpdateRecords">
+        <dc:Bounds x="1430" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Profitable? -->
+      <bpmndi:BPMNShape id="Gateway_Profitable_di" bpmnElement="Gateway_Profitable" isMarkerVisible="true">
+        <dc:Bounds x="1585" y="225" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1585" y="201" width="51" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Flag for Management Review -->
+      <bpmndi:BPMNShape id="Task_FlagReview_di" bpmnElement="Task_FlagReview">
+        <dc:Bounds x="1660" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Profit Merge -->
+      <bpmndi:BPMNShape id="Gateway_ProfitMerge_di" bpmnElement="Gateway_ProfitMerge" isMarkerVisible="true">
+        <dc:Bounds x="1815" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event -->
+      <bpmndi:BPMNShape id="EndEvent_Complete_di" bpmnElement="EndEvent_Complete">
+        <dc:Bounds x="1922" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1898" y="275" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ===== Edges ===== -->
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="198" y="250" />
+        <di:waypoint x="260" y="250" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="360" y="250" />
+        <di:waypoint x="420" y="250" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="520" y="250" />
+        <di:waypoint x="585" y="250" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Fork to AR branch -->
+      <bpmndi:BPMNEdge id="Flow_ForkAR_di" bpmnElement="Flow_ForkAR">
+        <di:waypoint x="610" y="225" />
+        <di:waypoint x="610" y="120" />
+        <di:waypoint x="710" y="120" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Fork to AP branch -->
+      <bpmndi:BPMNEdge id="Flow_ForkAP_di" bpmnElement="Flow_ForkAP">
+        <di:waypoint x="610" y="275" />
+        <di:waypoint x="610" y="420" />
+        <di:waypoint x="710" y="420" />
+      </bpmndi:BPMNEdge>
+
+      <!-- AR: Generate → Send -->
+      <bpmndi:BPMNEdge id="Flow_AR1_di" bpmnElement="Flow_AR1">
+        <di:waypoint x="810" y="120" />
+        <di:waypoint x="870" y="120" />
+      </bpmndi:BPMNEdge>
+
+      <!-- AR: Send → Join -->
+      <bpmndi:BPMNEdge id="Flow_AR_Join_di" bpmnElement="Flow_AR_Join">
+        <di:waypoint x="970" y="120" />
+        <di:waypoint x="1350" y="120" />
+        <di:waypoint x="1350" y="225" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Timer boundary → Payment Reminder -->
+      <bpmndi:BPMNEdge id="Flow_Timer1_di" bpmnElement="Flow_Timer1">
+        <di:waypoint x="940" y="178" />
+        <di:waypoint x="940" y="210" />
+        <di:waypoint x="1000" y="210" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Payment Reminder → End -->
+      <bpmndi:BPMNEdge id="Flow_Timer2_di" bpmnElement="Flow_Timer2">
+        <di:waypoint x="1100" y="210" />
+        <di:waypoint x="1142" y="210" />
+      </bpmndi:BPMNEdge>
+
+      <!-- AP: Match → All Matched? -->
+      <bpmndi:BPMNEdge id="Flow_AP1_di" bpmnElement="Flow_AP1">
+        <di:waypoint x="810" y="420" />
+        <di:waypoint x="875" y="420" />
+      </bpmndi:BPMNEdge>
+
+      <!-- All Matched? Yes → Merge -->
+      <bpmndi:BPMNEdge id="Flow_MatchYes_di" bpmnElement="Flow_MatchYes">
+        <di:waypoint x="925" y="420" />
+        <di:waypoint x="1075" y="420" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="994" y="402" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- All Matched? No → Review -->
+      <bpmndi:BPMNEdge id="Flow_MatchNo_di" bpmnElement="Flow_MatchNo">
+        <di:waypoint x="900" y="445" />
+        <di:waypoint x="900" y="550" />
+        <di:waypoint x="940" y="550" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="908" y="483" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Review → Match Merge -->
+      <bpmndi:BPMNEdge id="Flow_ReviewMerge_di" bpmnElement="Flow_ReviewMerge">
+        <di:waypoint x="1040" y="550" />
+        <di:waypoint x="1100" y="550" />
+        <di:waypoint x="1100" y="445" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Match Merge → Approve AP -->
+      <bpmndi:BPMNEdge id="Flow_AP2_di" bpmnElement="Flow_AP2">
+        <di:waypoint x="1125" y="420" />
+        <di:waypoint x="1170" y="420" />
+      </bpmndi:BPMNEdge>
+
+      <!-- AP: Approve → Join -->
+      <bpmndi:BPMNEdge id="Flow_AP_Join_di" bpmnElement="Flow_AP_Join">
+        <di:waypoint x="1270" y="420" />
+        <di:waypoint x="1350" y="420" />
+        <di:waypoint x="1350" y="275" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Join → Update Records -->
+      <bpmndi:BPMNEdge id="Flow_Join1_di" bpmnElement="Flow_Join1">
+        <di:waypoint x="1375" y="250" />
+        <di:waypoint x="1430" y="250" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Update Records → Profitable? -->
+      <bpmndi:BPMNEdge id="Flow_Join2_di" bpmnElement="Flow_Join2">
+        <di:waypoint x="1530" y="250" />
+        <di:waypoint x="1585" y="250" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Profitable? Yes → Profit Merge -->
+      <bpmndi:BPMNEdge id="Flow_ProfitYes_di" bpmnElement="Flow_ProfitYes">
+        <di:waypoint x="1635" y="250" />
+        <di:waypoint x="1815" y="250" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1719" y="232" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Profitable? No → Flag Review -->
+      <bpmndi:BPMNEdge id="Flow_ProfitNo_di" bpmnElement="Flow_ProfitNo">
+        <di:waypoint x="1610" y="275" />
+        <di:waypoint x="1610" y="380" />
+        <di:waypoint x="1660" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1618" y="313" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Flag Review → Profit Merge -->
+      <bpmndi:BPMNEdge id="Flow_FlagMerge_di" bpmnElement="Flow_FlagMerge">
+        <di:waypoint x="1760" y="380" />
+        <di:waypoint x="1840" y="380" />
+        <di:waypoint x="1840" y="275" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Profit Merge → End -->
+      <bpmndi:BPMNEdge id="Flow_End_di" bpmnElement="Flow_End">
+        <di:waypoint x="1865" y="250" />
+        <di:waypoint x="1922" y="250" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

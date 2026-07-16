@@ -2,7 +2,7 @@
 import React from "react";
 import { Ship, Anchor, LayoutDashboard, Settings } from "lucide-react";
 import { useSelector } from "react-redux";
-import type { RootState } from "@/components";
+import type { RootState } from "./components";
 import { useTranslation } from "react-i18next";
 import RatesContent from "./RatesContent";
 

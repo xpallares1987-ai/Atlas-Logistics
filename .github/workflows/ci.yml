@@ -89,11 +89,20 @@ jobs:
       - name: Build and Push Docker Images
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         run: |
+          # Authenticate to Docker Hub
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          # Authenticate to Google Artifact Registry
           gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
-          docker build -t europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-backend:latest -f Dockerfile.backend .
+          
+          # Build Backend
+          docker build -t europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-backend:latest -t esxpa/main:backend -f Dockerfile.backend .
           docker push europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-backend:latest
-          docker build --build-arg VITE_API_URL=https://atlas-backend-100198375762.europe-west1.run.app/api -t europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-frontend:latest -f Dockerfile .
+          docker push esxpa/main:backend
+          
+          # Build Frontend
+          docker build --build-arg VITE_API_URL=https://atlas-backend-100198375762.europe-west1.run.app/api -t europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-frontend:latest -t esxpa/main:frontend -f Dockerfile .
           docker push europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-frontend:latest
+          docker push esxpa/main:frontend
 
       - name: Deploy Backend to Cloud Run
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'

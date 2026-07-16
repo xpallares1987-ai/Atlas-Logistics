@@ -1,7 +1,8 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from "react";
 import { Search, MapPin, Plane, Anchor, Loader2 } from "lucide-react";
-import { useSearchLocations } from "@/dataconnect-generated/react";
+import { motion, AnimatePresence } from "motion/react";
+import { useSearchLocations } from "../dataconnect-generated/react";
 
 interface Location {
   locode: string;

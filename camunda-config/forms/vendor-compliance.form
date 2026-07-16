@@ -1,0 +1,73 @@
+{
+  "components": [
+    {
+      "text": "# Vendor Compliance Review",
+      "type": "text",
+      "id": "Field_1v8mxg1"
+    },
+    {
+      "label": "Vendor Name",
+      "type": "textfield",
+      "id": "Field_1g6x8q2",
+      "key": "vendorName",
+      "disabled": true
+    },
+    {
+      "label": "Years in Business",
+      "type": "number",
+      "id": "Field_0f2z9w4",
+      "key": "yearsInBusiness",
+      "disabled": true
+    },
+    {
+      "label": "Insurance Coverage ($)",
+      "type": "number",
+      "id": "Field_1k5l9m3",
+      "key": "insuranceCoverage",
+      "disabled": true
+    },
+    {
+      "label": "Has Safety Violations?",
+      "type": "checkbox",
+      "id": "Field_0m9n2b4",
+      "key": "hasSafetyViolations",
+      "disabled": true
+    },
+    {
+      "label": "Risk Level",
+      "type": "textfield",
+      "id": "Field_1p2o3i4",
+      "key": "riskLevel",
+      "disabled": true
+    },
+    {
+      "label": "Compliance Decision",
+      "type": "radio",
+      "id": "Field_2c9x5v6",
+      "key": "complianceDecision",
+      "values": [
+        { "label": "Approve", "value": "APPROVED" },
+        { "label": "Reject", "value": "REJECTED" },
+        { "label": "Request More Info", "value": "MORE_INFO" }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Reviewer Comments",
+      "type": "textarea",
+      "id": "Field_3m4n5b6",
+      "key": "reviewerComments"
+    }
+  ],
+  "type": "default",
+  "id": "vendor-compliance",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.5.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.25.0"
+  },
+  "schemaVersion": 16
+}

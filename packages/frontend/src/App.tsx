@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes, Calendar, BookOpen, ShieldAlert, Landmark, Users } from 'lucide-react';
+import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes, Calendar, BookOpen, ShieldAlert, Landmark, Users, ScanLine } from 'lucide-react';
 import { OmniSearch } from '@atlas/ui/src/components/OmniSearch';
 import { useAppStore } from './store/useAppStore';
 import { useTranslation } from 'react-i18next';
@@ -25,7 +25,10 @@ const BookingManagementModule = React.lazy(() => import('./pages/BookingManageme
 const CustomsClearanceModule = React.lazy(() => import('./pages/CustomsClearanceModule'));
 const InvoicingModule = React.lazy(() => import('./pages/InvoicingModule'));
 const CustomerPortalModule = React.lazy(() => import('./pages/CustomerPortalModule'));
+const AiBookingParserModule = React.lazy(() => import('./pages/AiBookingParserModule'));
 const SettingsModule = React.lazy(() => import('./pages/SettingsModule'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
 
 const AiCopilot = React.lazy(() => import('@atlas/ui/src/components/AiCopilot').then(m => ({ default: m.AiCopilot })));
 
@@ -125,6 +128,7 @@ export default function App() {
             <NavLink to="/warehouse" icon={Boxes}>{t('sidebar.warehouse')}</NavLink>
             <NavLink to="/tasks" icon={ListTodo}>{t('sidebar.tasklist')}</NavLink>
             <NavLink to="/documents" icon={FileText}>{t('sidebar.documents')}</NavLink>
+            <NavLink to="/smart-booking" icon={ScanLine}>Smart Booking OCR</NavLink>
             <NavLink to="/ai-assistant" icon={Bot}>{t('sidebar.aiAssistant')}</NavLink>
           </div>
 
@@ -234,6 +238,7 @@ export default function App() {
                 <Route path="/warehouse" element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'OPERATIONS']}><Warehouse3DModule /></ProtectedRoute>} />
                 <Route path="/tasks" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><HumanTasklistModule /></ProtectedRoute>} />
                 <Route path="/documents" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><DocumentVaultModule /></ProtectedRoute>} />
+                <Route path="/smart-booking" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><AiBookingParserModule /></ProtectedRoute>} />
                 <Route path="/ai-assistant" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><AIChainAssistantModule /></ProtectedRoute>} />
                 
                 {/* External Portal */}
@@ -241,9 +246,25 @@ export default function App() {
                 
                 {/* Global Settings */}
                 <Route path="/settings" element={<SettingsModule />} />
+                
+                {/* Legal Pages */}
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                
+                {/* Fallback 404 Route */}
+                <Route path="*" element={<div className="flex items-center justify-center h-full text-slate-500 font-medium">404 - Page Not Found</div>} />
               </Routes>
             </Suspense>
           </div>
+
+          {/* Footer */}
+          <footer className="h-12 border-t border-slate-200 bg-white flex items-center justify-between px-8 text-xs text-slate-500 z-40 shrink-0">
+            <div>&copy; {new Date().getFullYear()} Atlas Logistics Enterprise. All rights reserved.</div>
+            <div className="flex gap-4">
+              <Link to="/privacy" className="hover:text-indigo-600 transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-indigo-600 transition-colors">Terms of Service</Link>
+            </div>
+          </footer>
 
           {/* Floating AI Copilot */}
           <div className="absolute bottom-6 right-6 z-[100]">

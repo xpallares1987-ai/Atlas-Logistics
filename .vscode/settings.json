@@ -1,13 +1,30 @@
 {
     "gemini-cli.debug.logging.enabled": true,
-    "gemini-cli.executablePath": "C:\\Users\\xpall\\AppData\\Roaming\\npm\\gemini.cmd",
+    "gemini-cli.executablePath": "C:\\Users\\xpall\\AppData\\Local\\agy\\bin\\agy.exe",
     "gemini-cli.port": 3000,
+    
     "docker.languageserver.formatter.ignoreMultilineInstructions": true,
     "containers.truncateLongRegistryPaths": true,
     "containers.contexts.showInStatusBar": true,
     "containers.containerClient": "com.microsoft.visualstudio.containers.docker",
     "containers.orchestratorClient": "com.microsoft.visualstudio.orchestrators.dockercompose",
+    
     "npm-intellisense.packageSubfoldersIntellisense": true,
     "npm-intellisense.scanDevDependencies": true,
-    "npm-intellisense.showBuildInLibs": true
+    "npm-intellisense.showBuildInLibs": true,
+
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "tailwindCSS.experimental.classRegex": [
+        ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+    ]
 }

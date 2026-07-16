@@ -1,0 +1,93 @@
+{
+  "components": [
+    {
+      "text": "# Cargo Claim Form",
+      "type": "text",
+      "id": "Field_1v8mxg1"
+    },
+    {
+      "label": "Claim ID",
+      "type": "textfield",
+      "id": "Field_1g6x8q2",
+      "key": "claimId",
+      "disabled": true
+    },
+    {
+      "label": "Shipment ID",
+      "type": "textfield",
+      "id": "Field_0f2z9w4",
+      "key": "shipmentId",
+      "disabled": true
+    },
+    {
+      "label": "Claim Type",
+      "type": "select",
+      "id": "Field_1k5l9m3",
+      "key": "claimType",
+      "values": [
+        {
+          "label": "Damage",
+          "value": "DAMAGE"
+        },
+        {
+          "label": "Loss / Missing",
+          "value": "LOSS"
+        },
+        {
+          "label": "Delay",
+          "value": "DELAY"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Incident Location",
+      "type": "select",
+      "id": "Field_0m9n2b4",
+      "key": "incidentLocation",
+      "values": [
+        {
+          "label": "Warehouse",
+          "value": "WAREHOUSE"
+        },
+        {
+          "label": "In Transit",
+          "value": "TRANSIT"
+        },
+        {
+          "label": "Customs",
+          "value": "CUSTOMS"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Incoterms",
+      "type": "textfield",
+      "id": "Field_1b8v4c5",
+      "key": "incoterms"
+    },
+    {
+      "label": "Claim Description",
+      "type": "textarea",
+      "id": "Field_2c9x5v6",
+      "key": "claimDescription",
+      "validate": {
+        "required": true
+      }
+    }
+  ],
+  "type": "default",
+  "id": "cargo-claim",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.5.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.25.0"
+  },
+  "schemaVersion": 16
+}
