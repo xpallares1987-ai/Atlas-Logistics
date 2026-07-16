@@ -2,7 +2,7 @@ import { PubSub } from '@google-cloud/pubsub';
 import { Storage } from '@google-cloud/storage';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { db } from '../db/db.config.js';
-import { shipments, companies } from '../db/schema.js';
+import { shipments, companies, shipmentDocuments } from '../db/schema.js';
 import { eq, ilike } from 'drizzle-orm';
 import { EventEmitter } from 'events';
 
@@ -113,11 +113,16 @@ async function processDocument(shipmentId: string, gcsUrl: string, mimeType: str
     updatedAt: new Date()
   }).where(eq(shipments.id, shipmentId));
 
+  // Save parsed data to document metadata securely
+  await db.update(shipmentDocuments).set({
+    parsedData: extractedData
+  }).where(eq(shipmentDocuments.gcsUrl, gcsUrl));
+
   // Notificar al Frontend
   eventEmitter.emit('notification', {
     id: Date.now().toString(),
     title: 'Análisis IA Completado',
-    message: \`El documento del embarque \${shipmentId} ha sido procesado exitosamente.\`,
+    message: `El documento del embarque ${shipmentId} ha sido procesado exitosamente.`,
     type: 'success',
     timestamp: new Date().toISOString(),
     shipmentId: shipmentId,
