@@ -29,6 +29,7 @@ const AiBookingParserModule = React.lazy(() => import('./pages/AiBookingParserMo
 const SettingsModule = React.lazy(() => import('./pages/SettingsModule'));
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
+const PublicTracking = React.lazy(() => import('./pages/PublicTracking'));
 
 const AiCopilot = React.lazy(() => import('@atlas/ui/src/components/AiCopilot').then(m => ({ default: m.AiCopilot })));
 
@@ -243,6 +244,7 @@ export default function App() {
                 
                 {/* External Portal */}
                 <Route path="/portal" element={<ProtectedRoute allowedRoles={['ADMIN', 'CUSTOMER']}><CustomerPortalModule /></ProtectedRoute>} />
+                <Route path="/track/:referenceNumber?" element={<PublicTracking />} />
                 
                 {/* Global Settings */}
                 <Route path="/settings" element={<SettingsModule />} />

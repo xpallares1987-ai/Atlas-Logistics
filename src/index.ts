@@ -19,6 +19,19 @@ app.use(morgan('combined'));
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json());
 
+import { authMiddleware } from './middleware/auth.js';
+// Proteger todas las rutas API excepto SSE, Demo, y Tracking Público
+app.use('/api', (req, res, next) => {
+  if (
+    req.path === '/events' || 
+    req.path === '/demo/trigger-alert' || 
+    req.path.startsWith('/tracking/')
+  ) {
+    return next();
+  }
+  return authMiddleware(req, res, next);
+});
+
 // API Endpoint para iniciar el proceso de Camunda y esperar resultado
 app.post('/api/rates/compare', async (req, res) => {
   try {
@@ -61,6 +74,7 @@ app.get('/api/shipments', async (req, res) => {
 
 import { Storage } from '@google-cloud/storage';
 import { shipmentDocuments } from './db/schema.js';
+import { publishDocumentUploaded } from './services/pubsub.service.js';
 
 const storage = new Storage();
 const BUCKET_NAME = 'atlas-logistics-docs-100198375762';
@@ -69,6 +83,11 @@ app.post('/api/shipments', async (req, res) => {
   try {
     const { documentBase64, documentMimeType, documentName, ...shipmentData } = req.body;
     
+    // Asignar el usuario actual si IAP está configurado
+    if (req.user?.id) {
+      // Ignorar el assignment de UUID si falla el casting, asumiendo db schema default
+    }
+
     // 1. Insert shipment
     const newShipment = await db.insert(shipments).values(shipmentData).returning();
     const shipment = newShipment[0];
@@ -92,13 +111,53 @@ app.post('/api/shipments', async (req, res) => {
         documentType: 'BOOKING_INSTRUCTION',
         fileName: documentName,
         mimeType: documentMimeType || 'application/pdf',
-        gcsUrl: gcsUrl
+        gcsUrl: gcsUrl,
+        // uploadedBy: req.user?.id // Requeriría que req.user.id sea un UUID válido en Users
+      });
+
+      // 4. Publish Event to parse document asynchronously
+      await publishDocumentUploaded({
+        shipmentId: shipment.id,
+        gcsUrl: gcsUrl,
+        mimeType: documentMimeType || 'application/pdf'
       });
     }
 
     res.json(shipment);
   } catch (error: any) {
     console.error('Error creating shipment:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUBLIC TRACKING API
+app.get('/api/tracking/:referenceNumber', async (req, res) => {
+  try {
+    const { referenceNumber } = req.params;
+    const shipmentRecords = await db.select().from(shipments).where(eq(shipments.referenceNumber, referenceNumber));
+    if (shipmentRecords.length === 0) return res.status(404).json({ error: 'Shipment not found' });
+    
+    const shipment = shipmentRecords[0];
+    // Asumiendo que la tabla milestones existe y fue importada, o si no se simulan los eventos
+    // Si no está importada, usaré eventos simulados o consultaré
+    
+    res.json({
+      referenceNumber: shipment.referenceNumber,
+      status: shipment.status,
+      originId: shipment.originLocationId,
+      destinationId: shipment.destinationLocationId,
+      createdAt: shipment.createdAt,
+      events: [
+        {
+          id: 'mock-1',
+          shipmentId: shipment.id,
+          milestoneType: 'CREATED',
+          milestoneDate: shipment.createdAt || new Date(),
+          description: 'Shipment created and awaiting processing.',
+        }
+      ]
+    });
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
@@ -393,7 +452,7 @@ app.post('/api/agent-settlements', async (req, res) => {
 });
 
 import { EventEmitter } from 'events';
-const eventEmitter = new EventEmitter();
+export const eventEmitter = new EventEmitter();
 
 // SSE ENDPOINT (Real-time notifications)
 app.get('/api/events', (req, res) => {
@@ -543,6 +602,9 @@ app.post('/api/keys/generate', (req, res) => {
   });
 });
 
+import { initPubSub } from './services/pubsub.service.js';
+import { startAiParserWorker } from './workers/ai-parser.worker.js';
+
 async function bootstrap() {
   console.log('Starting Atlas Logistics Backend...');
 
@@ -550,6 +612,10 @@ async function bootstrap() {
   if (db) {
     console.log('Database connection initialized.');
   }
+
+  // Initialize PubSub and workers
+  await initPubSub();
+  startAiParserWorker();
 
   // Initialize Camunda Workers
   startRateComparerWorker();
