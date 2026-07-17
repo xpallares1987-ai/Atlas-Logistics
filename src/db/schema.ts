@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, pgEnum, integer, real, date, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, pgEnum, integer, real, date, boolean, jsonb } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // ============================================================================
@@ -184,6 +184,7 @@ export const shipmentDocuments = pgTable('shipment_documents', {
   fileSize: integer('file_size'),
   mimeType: varchar('mime_type', { length: 100 }),
   gcsUrl: varchar('gcs_url', { length: 500 }).notNull(),
+  parsedData: jsonb('parsed_data'), // Stores AI extraction results securely
   uploadedBy: uuid('uploaded_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
