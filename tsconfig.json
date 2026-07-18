@@ -9,5 +9,5 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist"
   },
-  "include": ["src/**/*", "drizzle.config.ts", "vite.config.ts", "camunda-config/**/*"]
+  "include": ["src/**/*", "drizzle.config.ts", "vite.config.ts", "camunda-config/**/*", "drop-schema.ts"]
 }

@@ -1,10 +1,10 @@
 import { PubSub } from '@google-cloud/pubsub';
 import { Storage } from '@google-cloud/storage';
-import { GoogleGenAI, Type, Schema } from '@google/genai';
+import { Type, Schema } from '@google/genai';
+import { AIService } from '../services/ai.service.js';
 import { db } from '../db/db.config.js';
 import { shipments, companies, shipmentDocuments } from '../db/schema.js';
 import { eq, ilike } from 'drizzle-orm';
-import { EventEmitter } from 'events';
 
 const pubsub = new PubSub();
 const storage = new Storage();
@@ -60,7 +60,6 @@ async function processDocument(shipmentId: string, gcsUrl: string, mimeType: str
   const [fileBuffer] = await storage.bucket(bucketName).file(filePath).download();
   const fileBase64 = fileBuffer.toString('base64');
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
   const prompt = `Extract shipping instruction details from this document. Focus on Shipper, Consignee, Ports, Containers, Commodities, and Marks.`;
 
   const responseSchema: Schema = {
@@ -73,21 +72,7 @@ async function processDocument(shipmentId: string, gcsUrl: string, mimeType: str
     }
   };
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
-    contents: [
-      { role: 'user', parts: [
-        { text: prompt },
-        { inlineData: { data: fileBase64, mimeType: mimeType || 'application/pdf' } }
-      ]}
-    ],
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: responseSchema,
-    }
-  });
-
-  const extractedData = JSON.parse(response.text || "{}");
+  const extractedData = await AIService.parseDocument(fileBase64, mimeType, prompt, responseSchema);
 
   let supplierId = null;
   let billingPartyId = null;

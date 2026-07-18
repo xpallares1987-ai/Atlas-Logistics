@@ -9,6 +9,7 @@ import morgan from 'morgan';
 import { db } from './db/db.config.js';
 import { startRateComparerWorker } from './bpm/workers/rate-comparer.worker.js';
 import { zbc } from './bpm/client.js';
+import rateLimit from 'express-rate-limit';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,8 +17,17 @@ const PORT = process.env.PORT || 3001;
 // Middlewares de Seguridad y Registro
 app.use(helmet());
 app.use(morgan('combined'));
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
 app.use(express.json());
+
+// Rate Limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // Límite por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(apiLimiter);
 
 import { authMiddleware } from './middleware/auth.js';
 // Proteger todas las rutas API excepto SSE, Demo, y Tracking Público
@@ -325,7 +335,7 @@ app.get('/api/invoices/:id/pdf', async (req, res) => {
     doc.moveDown(2);
 
     // Lines
-    let currentY = doc.y;
+    const currentY = doc.y;
     doc.fontSize(12).text('Description', 50, currentY);
     doc.text('Qty', 300, currentY);
     doc.text('Unit Price', 380, currentY);
@@ -336,7 +346,7 @@ app.get('/api/invoices/:id/pdf', async (req, res) => {
     doc.moveDown(0.5);
 
     lines.forEach(line => {
-      let y = doc.y;
+      const y = doc.y;
       doc.fontSize(10).text(line.description || 'Item', 50, y);
       doc.text(line.quantity.toString(), 300, y);
       doc.text(line.unitPrice.toString(), 380, y);
@@ -604,6 +614,13 @@ app.post('/api/keys/generate', (req, res) => {
 
 import { initPubSub } from './services/pubsub.service.js';
 import { startAiParserWorker } from './workers/ai-parser.worker.js';
+
+import aiRoutes from './routes/ai.routes.js';
+import documentsRoutes from './routes/documents.routes.js';
+
+app.use('/api/ai', aiRoutes);
+app.use('/api/documents', documentsRoutes);
+
 
 async function bootstrap() {
   console.log('Starting Atlas Logistics Backend...');
