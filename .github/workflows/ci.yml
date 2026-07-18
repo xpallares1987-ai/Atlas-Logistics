@@ -115,18 +115,16 @@ jobs:
             --add-cloudsql-instances="gen-lang-client-0393063451:europe-west1:atlas-db-prod" \
             --quiet
 
-      - name: Setup Cloud SQL Proxy
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        uses: google-github-actions/setup-cloudsql-proxy@v2
-
       - name: Run Database Migrations
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         env:
           # Assumes the secret DATABASE_URL points to the Cloud SQL Proxy or is accessible.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          # Run Cloud SQL Auth Proxy
-          cloud-sql-proxy gen-lang-client-0393063451:europe-west1:atlas-db-prod &
+          # Download and run Cloud SQL Auth Proxy
+          wget https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.1/cloud-sql-proxy.linux.amd64 -O cloud-sql-proxy
+          chmod +x cloud-sql-proxy
+          ./cloud-sql-proxy gen-lang-client-0393063451:europe-west1:atlas-db-prod &
           PROXY_PID=$!
           sleep 5
           # Execute migrations using tsx
