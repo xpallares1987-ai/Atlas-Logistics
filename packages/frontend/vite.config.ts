@@ -43,27 +43,5 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
-    crossorigin: 'use-credentials',
-    // Vite 8 / Rolldown: use rolldownOptions instead of deprecated rollupOptions
-    rolldownOptions: {
-      output: {
-        // Code splitting groups replace manualChunks in Rolldown
-        codeSplitting: {
-          groups: [
-            {
-              name: 'react-vendor',
-              test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
-              priority: 20,
-            },
-            {
-              name: 'ui-icons',
-              test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
-              priority: 10,
-            },
-          ],
-        },
-      },
-    },
-  },
+
 });

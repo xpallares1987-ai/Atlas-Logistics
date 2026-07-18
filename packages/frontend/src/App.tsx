@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes, Calendar, BookOpen, ShieldAlert, Landmark, Users, ScanLine } from 'lucide-react';
+import { LayoutDashboard, BadgeDollarSign, Globe2, Activity, Leaf, Clock, Package, Cuboid, ListTodo, FileText, Settings, Bell, Bot, Boxes, Calendar, Book, ShieldAlert, Landmark, Users, ScanLine } from 'lucide-react';
 import { OmniSearch } from '@atlas/ui/src/components/OmniSearch';
 import { useAppStore } from './store/useAppStore';
 import { useTranslation } from 'react-i18next';
@@ -107,7 +107,7 @@ export default function App() {
             <NavLink to="/pricing" icon={Activity}>{t('sidebar.pricing')}</NavLink>
             <NavLink to="/globe" icon={Globe2}>{t('sidebar.globeTracker')}</NavLink>
             <NavLink to="/schedules" icon={Calendar}>{t('sidebar.schedules')}</NavLink>
-            <NavLink to="/bookings" icon={BookOpen}>{t('sidebar.bookings')}</NavLink>
+            <NavLink to="/bookings" icon={Book}>{t('sidebar.bookings')}</NavLink>
           </div>
 
           <div className="flex flex-col gap-2">

@@ -15,7 +15,7 @@ import {
   ChevronRight, 
   Save, 
   Trash2,
-  BookOpen
+  Book
 } from "lucide-react";
 
 interface Booking {
@@ -151,7 +151,7 @@ export default function BookingManagementModule() {
       <div className="bg-white border-b border-slate-200 px-8 py-6 shrink-0 flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-indigo-600" />
+            <Book className="w-6 h-6 text-indigo-600" />
             Booking & B/L Management
           </h1>
           <p className="text-sm text-slate-500 mt-1">Convert quotes to bookings and issue House Bills of Lading.</p>
