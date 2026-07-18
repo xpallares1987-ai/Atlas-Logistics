@@ -1,5 +1,6 @@
 export * from "./analysis-cache";
 export * from "./hooks";
+export * from "./types/warehouse";
 export * from "./dom";
 export * from "./db";
 export * from "./config";

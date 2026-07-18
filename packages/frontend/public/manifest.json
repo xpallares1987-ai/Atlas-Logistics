@@ -3,13 +3,13 @@
   "name": "Atlas Logistics Enterprise",
   "icons": [
     {
-      "src": "/vite.svg",
-      "type": "image/svg+xml",
+      "src": "/pwa-192x192.png",
+      "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "/vite.svg",
-      "type": "image/svg+xml",
+      "src": "/pwa-512x512.png",
+      "type": "image/png",
       "sizes": "512x512"
     }
   ],

@@ -38,16 +38,34 @@ export function ExceptionPanel({ data }: ExceptionPanelProps) {
     switch (severity?.toUpperCase()) {
       case "CRITICAL":
         return (
-          <span className="badge badge--danger animate-pulse">CRITICAL</span>
+          <span className="px-2 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded text-[10px] font-bold uppercase tracking-wider animate-pulse">
+            CRITICAL
+          </span>
         );
       case "HIGH":
-        return <span className="badge badge--warning text-red-300">HIGH</span>;
+        return (
+          <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded text-[10px] font-bold uppercase tracking-wider">
+            HIGH
+          </span>
+        );
       case "MEDIUM":
-        return <span className="badge badge--warning">MEDIUM</span>;
+        return (
+          <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded text-[10px] font-bold uppercase tracking-wider">
+            MEDIUM
+          </span>
+        );
       case "LOW":
-        return <span className="badge badge--info">LOW</span>;
+        return (
+          <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded text-[10px] font-bold uppercase tracking-wider">
+            LOW
+          </span>
+        );
       default:
-        return <span className="badge badge--muted">UNKNOWN</span>;
+        return (
+          <span className="px-2 py-0.5 bg-slate-700/50 text-slate-400 border border-slate-600/50 rounded text-[10px] font-bold uppercase tracking-wider">
+            UNKNOWN
+          </span>
+        );
     }
   };
 
@@ -67,45 +85,57 @@ export function ExceptionPanel({ data }: ExceptionPanelProps) {
   };
 
   return (
-    <div className="exception-panel">
+    <div className="flex flex-col gap-8">
       {/* Summary Stats */}
-      <div className="exception-summary grid grid-cols-4 gap-4 mb-6">
-        <div className="fin-stat fin-stat--danger border-red-500/30 bg-red-500/10">
-          <ShieldAlert size={20} className="text-red-400" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-2">
+        <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-xl border border-red-500/30 rounded-3xl p-6 shadow-[0_4px_20px_rgba(239,68,68,0.15)] flex items-center gap-4">
+          <div className="p-3 bg-red-500/10 rounded-2xl">
+            <ShieldAlert size={24} className="text-red-400" />
+          </div>
           <div>
-            <span className="fin-stat__label text-red-200">
+            <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider block mb-1">
               Critical Active
             </span>
-            <span className="fin-stat__value text-red-400">
+            <span className="text-3xl font-black text-white tracking-tight">
               {critical.length}
             </span>
           </div>
         </div>
-        <div className="fin-stat fin-stat--warning border-amber-500/30 bg-amber-500/10">
-          <AlertTriangle size={20} className="text-amber-400" />
+        <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-xl border border-amber-500/30 rounded-3xl p-6 shadow-[0_4px_20px_rgba(245,158,11,0.15)] flex items-center gap-4">
+          <div className="p-3 bg-amber-500/10 rounded-2xl">
+            <AlertTriangle size={24} className="text-amber-400" />
+          </div>
           <div>
-            <span className="fin-stat__label text-amber-200">
+            <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider block mb-1">
               High/Med Active
             </span>
-            <span className="fin-stat__value text-amber-400">
+            <span className="text-3xl font-black text-white tracking-tight">
               {high.length + medium.length}
             </span>
           </div>
         </div>
-        <div className="fin-stat fin-stat--info border-blue-500/30 bg-blue-500/10">
-          <Clock size={20} className="text-blue-400" />
+        <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-xl border border-blue-500/30 rounded-3xl p-6 shadow-[0_4px_20px_rgba(59,130,246,0.15)] flex items-center gap-4">
+          <div className="p-3 bg-blue-500/10 rounded-2xl">
+            <Clock size={24} className="text-blue-400" />
+          </div>
           <div>
-            <span className="fin-stat__label text-blue-200">Total Active</span>
-            <span className="fin-stat__value text-blue-400">
+            <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider block mb-1">
+              Total Active
+            </span>
+            <span className="text-3xl font-black text-white tracking-tight">
               {active.length}
             </span>
           </div>
         </div>
-        <div className="fin-stat fin-stat--success border-emerald-500/30 bg-emerald-500/10">
-          <CheckCircle2 size={20} className="text-emerald-400" />
+        <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-xl border border-emerald-500/30 rounded-3xl p-6 shadow-[0_4px_20px_rgba(16,185,129,0.15)] flex items-center gap-4">
+          <div className="p-3 bg-emerald-500/10 rounded-2xl">
+            <CheckCircle2 size={24} className="text-emerald-400" />
+          </div>
           <div>
-            <span className="fin-stat__label text-emerald-200">Resolved</span>
-            <span className="fin-stat__value text-emerald-400">
+            <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider block mb-1">
+              Resolved
+            </span>
+            <span className="text-3xl font-black text-white tracking-tight">
               {resolved.length}
             </span>
           </div>
@@ -114,15 +144,21 @@ export function ExceptionPanel({ data }: ExceptionPanelProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Active Exceptions List */}
-        <div className="fin-table-card">
-          <div className="card-header flex justify-between items-center">
+        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="px-8 py-6 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/30">
             <div>
-              <h3 className="text-red-400">Active Exceptions</h3>
-              <p>Needs immediate attention</p>
+              <h3 className="text-xl font-black text-red-400">
+                Active Exceptions
+              </h3>
+              <p className="text-slate-400 text-sm font-medium mt-1">
+                Needs immediate attention
+              </p>
             </div>
-            <span className="badge badge--danger">{active.length}</span>
+            <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider rounded-full border border-red-500/30">
+              {active.length}
+            </span>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-6 space-y-4">
             {active.length === 0 ? (
               <p className="text-slate-400 text-sm text-center py-4">
                 No active exceptions
@@ -131,28 +167,29 @@ export function ExceptionPanel({ data }: ExceptionPanelProps) {
               active.map((row, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700"
+                  className="flex items-start gap-4 p-4 rounded-2xl bg-slate-800/50 border border-slate-700 transition-colors hover:bg-slate-800/70"
                 >
-                  <div className="mt-0.5">
+                  <div className="mt-1 p-2 bg-slate-900/50 rounded-xl border border-slate-700/50">
                     {getTypeIcon(row.exception_type)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-mono text-xs font-semibold text-slate-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-mono text-sm font-bold text-slate-200">
                         {row.shipment_ref}
                       </span>
                       {getSeverityBadge(row.severity)}
                     </div>
-                    <p className="text-sm text-slate-300 font-medium">
+                    <p className="text-sm text-slate-300 font-bold mb-1">
                       {row.exception_type}
                     </p>
                     {row.description && (
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                      <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
                         {row.description}
                       </p>
                     )}
-                    <div className="text-[10px] text-slate-500 mt-2">
-                      Detected: {row.detected_date ?? "Unknown"}
+                    <div className="text-[10px] font-medium uppercase tracking-wider text-slate-500 mt-3 flex items-center gap-1.5">
+                      <Clock size={10} /> Detected:{" "}
+                      {row.detected_date ?? "Unknown"}
                     </div>
                   </div>
                 </div>
@@ -162,15 +199,21 @@ export function ExceptionPanel({ data }: ExceptionPanelProps) {
         </div>
 
         {/* Resolved Exceptions List */}
-        <div className="fin-table-card">
-          <div className="card-header flex justify-between items-center">
+        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="px-8 py-6 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/30">
             <div>
-              <h3 className="text-emerald-400">Recently Resolved</h3>
-              <p>Historical issues</p>
+              <h3 className="text-xl font-black text-emerald-400">
+                Recently Resolved
+              </h3>
+              <p className="text-slate-400 text-sm font-medium mt-1">
+                Historical issues
+              </p>
             </div>
-            <span className="badge badge--success">{resolved.length}</span>
+            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider rounded-full border border-emerald-500/30">
+              {resolved.length}
+            </span>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-6 space-y-4">
             {resolved.length === 0 ? (
               <p className="text-slate-400 text-sm text-center py-4">
                 No resolved exceptions
@@ -179,22 +222,22 @@ export function ExceptionPanel({ data }: ExceptionPanelProps) {
               resolved.map((row, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-slate-800/20 border border-slate-700/50 opacity-75"
+                  className="flex items-start gap-4 p-4 rounded-2xl bg-slate-800/20 border border-slate-700/50 opacity-80 transition-opacity hover:opacity-100"
                 >
-                  <div className="mt-0.5">
+                  <div className="mt-1 p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
                     <CheckCircle2 size={16} className="text-emerald-500" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-mono text-xs font-semibold text-slate-300">
+                      <span className="font-mono text-sm font-bold text-slate-300">
                         {row.shipment_ref}
                       </span>
-                      <span className="text-[10px] text-slate-500">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-900/50 px-2 py-1 rounded border border-slate-800">
                         {row.exception_type}
                       </span>
                     </div>
                     {row.description && (
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-1">
+                      <p className="text-xs text-slate-400 leading-relaxed mt-2 line-clamp-1">
                         {row.description}
                       </p>
                     )}

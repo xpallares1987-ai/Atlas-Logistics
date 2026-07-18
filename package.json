@@ -18,7 +18,7 @@
     "db:reset": "sh .devcontainer/reset-db.sh",
     "db:seed": "tsx src/db/seed.ts",
     "db:reset-and-seed": "sh .devcontainer/reset-db.sh && tsx src/db/seed.ts",
-    "start:backend": "tsx --env-file=.env.local src/index.ts",
+    "start:backend": "tsx --env-file=.env.local src/index.ts | pino-pretty",
     "test:e2e": "playwright test"
   },
   "dependencies": {

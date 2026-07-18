@@ -45,14 +45,20 @@ export function DocumentPreviewer(props: DocumentPreviewerProps) {
     TENANT_HEADERS["atlas-default-tenant"];
 
   // Safe extractors
-  const polCountry = props.pol?.includes(",") ? props.pol.split(",")[1]?.trim() : props.pol;
-  const polCity = props.pol?.includes(",") ? props.pol.split(",")[0]?.trim() : props.pol;
-  const bkgRef = props.reference?.includes("-") ? props.reference.split("-")[1] : props.reference;
+  const polCountry = props.pol?.includes(",")
+    ? props.pol.split(",")[1]?.trim()
+    : props.pol;
+  const polCity = props.pol?.includes(",")
+    ? props.pol.split(",")[0]?.trim()
+    : props.pol;
+  const bkgRef = props.reference?.includes("-")
+    ? props.reference.split("-")[1]
+    : props.reference;
 
   return (
-    <div className="bg-slate-200 rounded-lg p-1 max-w-4xl mx-auto shadow-2xl overflow-auto h-full">
+    <div className="bg-slate-900/40 backdrop-blur-xl rounded-xl p-1.5 max-w-4xl mx-auto shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/10 overflow-auto h-full scrollbar-thin scrollbar-thumb-slate-700">
       {/* Viewer Toolbar */}
-      <div className="bg-slate-800 text-slate-300 px-4 py-2 flex justify-between items-center rounded-t-md">
+      <div className="bg-slate-800/60 backdrop-blur-md text-slate-200 px-4 py-3 flex justify-between items-center rounded-t-lg border-b border-white/5 shadow-sm">
         <div className="flex items-center gap-2">
           <FileText size={18} className="text-blue-400" />
           <span className="font-semibold text-sm">
@@ -141,7 +147,9 @@ export function DocumentPreviewer(props: DocumentPreviewerProps) {
               <span className="text-[10px] font-bold uppercase">
                 4. Booking Reference
               </span>
-              <p className="text-xs font-mono mt-1">BKG-{bkgRef || "PENDING"}</p>
+              <p className="text-xs font-mono mt-1">
+                BKG-{bkgRef || "PENDING"}
+              </p>
             </div>
             <div className="border-b border-slate-900 p-2 h-24 bg-slate-50">
               <span className="text-[10px] font-bold uppercase">
