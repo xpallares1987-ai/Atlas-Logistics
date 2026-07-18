@@ -97,7 +97,7 @@ export function AiCopilot() {
         const base64Data = (reader.result as string).split(',')[1];
         
         // Usar VITE_API_URL o fallback a localhost
-        const apiUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001';
+        const apiUrl = (import.meta as any).env?.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001';
         
         const res = await fetch(`${apiUrl}/api/ai/parse-invoice`, {
           method: 'POST',
