@@ -5,15 +5,12 @@ const IAP_AUDIENCE = process.env.IAP_AUDIENCE || '';
 const client = new OAuth2Client();
 
 // Extending Express Request to hold user info
-// eslint-disable-next-line @typescript-eslint/no-namespace
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        email: string;
-        id: string;
-      };
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: {
+      email: string;
+      id: string;
+    };
   }
 }
 
