@@ -120,7 +120,7 @@ export default function PublicTracking() {
                 {/* Animated Ship */}
                 <div 
                   className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-1000 ease-in-out z-20"
-                  style={{ left: \`\${trackingData.status === 'DELIVERED' ? 90 : trackingData.status === 'IN_TRANSIT' ? 50 : 10}%\` }}
+                  style={{ left: `${trackingData.status === 'DELIVERED' ? 90 : trackingData.status === 'IN_TRANSIT' ? 50 : 10}%` }}
                 >
                   <div className="bg-indigo-500 p-2 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.6)] relative">
                     <Ship className="text-white w-6 h-6" />
