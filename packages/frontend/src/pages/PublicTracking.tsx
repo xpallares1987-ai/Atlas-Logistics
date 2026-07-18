@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Ship, MapPin } from 'lucide-react';
 
 export default function PublicTracking() {
   const { referenceNumber } = useParams();
@@ -97,6 +98,39 @@ export default function PublicTracking() {
               </div>
             </div>
             
+            {/* Visual Animated Map */}
+            <div className="bg-slate-900 px-6 py-12 relative overflow-hidden flex flex-col items-center justify-center border-y border-slate-800">
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+              
+              <div className="w-full max-w-lg relative h-32 flex items-center">
+                {/* Ports */}
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-center z-10">
+                  <MapPin className="text-rose-500 w-8 h-8 mb-2" />
+                  <span className="text-white font-bold text-sm">{trackingData.origin || 'Origin'}</span>
+                </div>
+                
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center z-10">
+                  <MapPin className="text-emerald-500 w-8 h-8 mb-2" />
+                  <span className="text-white font-bold text-sm">{trackingData.destination || 'Destination'}</span>
+                </div>
+
+                {/* Dashed route line */}
+                <div className="absolute left-10 right-10 top-1/2 border-t-2 border-dashed border-slate-600"></div>
+
+                {/* Animated Ship */}
+                <div 
+                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-1000 ease-in-out z-20"
+                  style={{ left: \`\${trackingData.status === 'DELIVERED' ? 90 : trackingData.status === 'IN_TRANSIT' ? 50 : 10}%\` }}
+                >
+                  <div className="bg-indigo-500 p-2 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.6)] relative">
+                    <Ship className="text-white w-6 h-6" />
+                    {/* Ripple effect */}
+                    <div className="absolute inset-0 border-2 border-indigo-400 rounded-full animate-ping opacity-50"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="border-t border-gray-200 px-4 py-5 sm:p-0">
               <dl className="sm:divide-y sm:divide-gray-200">
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
