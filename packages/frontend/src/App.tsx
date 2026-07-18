@@ -5,6 +5,7 @@ import { OmniSearch } from '@atlas/ui/src/components/OmniSearch';
 import { useAppStore } from './store/useAppStore';
 import { useTranslation } from 'react-i18next';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { SkeletonLoader } from './components/SkeletonLoader';
 
 const DashboardModule = React.lazy(() => import('@atlas/dashboard').then(m => ({ default: m.Dashboard })));
 // @ts-ignore
@@ -213,8 +214,16 @@ export default function App() {
           </header>
 
           {/* Page Content */}
-          <div className="flex-1 overflow-hidden relative">
-            <Suspense fallback={<div className="flex items-center justify-center h-full text-slate-500 font-medium">Loading Module...</div>}>
+          <div className="flex-1 overflow-hidden relative p-6">
+            <Suspense fallback={
+              <div className="flex flex-col gap-4 h-full w-full">
+                <SkeletonLoader height="8rem" borderRadius="1rem" />
+                <SkeletonLoader height="3rem" borderRadius="0.5rem" count={3} />
+                <div className="flex-1">
+                  <SkeletonLoader height="100%" borderRadius="1rem" />
+                </div>
+              </div>
+            }>
               <Routes>
                 {/* Core Modules - Accessible by internal roles */}
                 <Route path="/" element={<ProtectedRoute allowedRoles={['ADMIN', 'EXECUTIVE', 'MANAGER', 'SALES', 'OPERATIONS']}><DashboardModule /></ProtectedRoute>} />

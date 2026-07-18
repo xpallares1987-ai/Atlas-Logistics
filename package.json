@@ -54,6 +54,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/express-rate-limit": "^6.0.2",
+    "@types/helmet": "^4.0.0",
     "@types/morgan": "^1.9.10",
     "@types/node": "^20.19.43",
     "@types/pdfkit": "^0.17.6",

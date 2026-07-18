@@ -112,6 +112,9 @@ importers:
       '@types/express-rate-limit':
         specifier: ^6.0.2
         version: 6.0.2(express@5.2.1)
+      '@types/helmet':
+        specifier: ^4.0.0
+        version: 4.0.0
       '@types/morgan':
         specifier: ^1.9.10
         version: 1.9.10
@@ -3007,6 +3010,10 @@ packages:
 
   '@types/geojson@7946.0.16':
     resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
+  '@types/helmet@4.0.0':
+    resolution: {integrity: sha512-ONIn/nSNQA57yRge3oaMQESef/6QhoeX7llWeDli0UZIfz8TQMkfNPTXA8VnnyeA1WUjG2pGqdjEIueYonMdfQ==}
+    deprecated: This is a stub types definition. helmet provides its own type definitions, so you do not need this installed.
 
   '@types/http-cache-semantics@4.2.0':
     resolution: {integrity: sha512-L3LgimLHXtGkWikKnsPg0/VFx9OGZaC+eN1u4r+OB1XRqH3meBIAVC2zr1WdMH+RHmnRkqliQAOHNJ/E0j/e0Q==}
@@ -10878,6 +10885,10 @@ snapshots:
       form-data: 4.0.6
 
   '@types/geojson@7946.0.16': {}
+
+  '@types/helmet@4.0.0':
+    dependencies:
+      helmet: 8.3.0
 
   '@types/http-cache-semantics@4.2.0': {}
 
