@@ -1,7 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
 import { db } from '../db/index';
-import { companies, companyBlAliases } from '../db/schema';
-import { eq, or } from 'drizzle-orm';
 import { z } from 'zod';
 
 // Initialize Gemini Client

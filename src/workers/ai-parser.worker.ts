@@ -4,7 +4,6 @@ import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { db } from '../db/db.config.js';
 import { shipments, companies, shipmentDocuments } from '../db/schema.js';
 import { eq, ilike } from 'drizzle-orm';
-import { EventEmitter } from 'events';
 
 const pubsub = new PubSub();
 const storage = new Storage();
