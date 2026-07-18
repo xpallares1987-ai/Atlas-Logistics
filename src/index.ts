@@ -615,6 +615,13 @@ app.post('/api/keys/generate', (req, res) => {
 import { initPubSub } from './services/pubsub.service.js';
 import { startAiParserWorker } from './workers/ai-parser.worker.js';
 
+import aiRoutes from './routes/ai.routes.js';
+import documentsRoutes from './routes/documents.routes.js';
+
+app.use('/api/ai', aiRoutes);
+app.use('/api/documents', documentsRoutes);
+
+
 async function bootstrap() {
   console.log('Starting Atlas Logistics Backend...');
 
