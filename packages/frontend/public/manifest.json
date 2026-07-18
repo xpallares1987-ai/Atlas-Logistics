@@ -1,0 +1,20 @@
+{
+  "short_name": "Atlas",
+  "name": "Atlas Logistics Enterprise",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1e1b4b",
+  "background_color": "#020617"
+}

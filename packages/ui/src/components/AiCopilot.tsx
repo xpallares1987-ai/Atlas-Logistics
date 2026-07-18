@@ -74,7 +74,7 @@ export function AiCopilot() {
     }, 1500);
   };
 
-  const simulateOCR = (file: File) => {
+  const simulateOCR = async (file: File) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -90,33 +90,52 @@ export function AiCopilot() {
     setMessages((prev) => [...prev, userMessage]);
     setIsTyping(true);
 
-    // Simulate Document Parsing with Gemini Pro Vision
-    setTimeout(() => {
-      const parsedData = {
-        documentType: "Bill of Lading",
-        shipper: "Global Tech Components Ltd.",
-        consignee: "EuroAuto Manufacturing Spain",
-        vessel: "MSC ISABELLA",
-        voyage: "921W",
-        portOfLoading: "Shanghai, China",
-        portOfDischarge: "Valencia, Spain",
-        containerCount: 2,
-        containers: ["MSCU1928374", "HLXU9988112"],
-        grossWeight: "24,500 KGS",
-        description: "Automotive Spare Parts (HS 8708)",
-        confidenceScore: 0.98,
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        const base64Data = (reader.result as string).split(',')[1];
+        
+        // Usar VITE_API_URL o fallback a localhost
+        const apiUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001';
+        
+        const res = await fetch(`${apiUrl}/api/ai/parse-invoice`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ documentBase64: base64Data, mimeType: file.type })
+        });
+        
+        if (!res.ok) {
+          throw new Error("Error en la conexión con la API de IA");
+        }
+        
+        const responseData = await res.json();
+        
+        const botMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: `¡Documento procesado con éxito usando Gemini 1.5 Flash Vision! He extraído los siguientes datos estructurados. ¿Deseas inyectar esta factura automáticamente en el módulo de Cuentas a Pagar (AP)?`,
+          timestamp: new Date().toISOString(),
+          jsonResult: responseData.data || responseData,
+        };
+        setMessages((prev) => [...prev, botMessage]);
+        setIsTyping(false);
       };
-
-      const botMessage: Message = {
+      
+      reader.onerror = () => {
+        throw new Error("Failed to read file");
+      };
+    } catch (err: any) {
+      console.error(err);
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: `¡Documento procesado con éxito usando Gemini Pro Vision! He extraído los siguientes datos estructurados. ¿Deseas inyectar esta reserva automáticamente en el TMS?`,
-        timestamp: new Date().toISOString(),
-        jsonResult: parsedData,
+        content: `Lo siento, ocurrió un error procesando el documento: ${err.message}`,
+        timestamp: new Date().toISOString()
       };
-      setMessages((prev) => [...prev, botMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
       setIsTyping(false);
-    }, 3000);
+    }
   };
 
   const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
