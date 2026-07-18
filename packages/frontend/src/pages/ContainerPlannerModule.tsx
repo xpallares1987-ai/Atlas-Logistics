@@ -1,4 +1,4 @@
-import { ContainerPlanner } from '@atlas/ui/src/components';
+import { ContainerPlanner } from "@atlas/ui/src/components/ContainerPlanner";
 
 export default function ContainerPlannerModule() {
   return (
@@ -7,4 +7,3 @@ export default function ContainerPlannerModule() {
     </div>
   );
 }
-

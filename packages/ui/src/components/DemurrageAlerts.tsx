@@ -228,195 +228,177 @@ Control Tower Global Logistics`;
   };
 
   return (
-    <div className="demurrage-dashboard">
+    <div className="p-6 space-y-6 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tight">
+            Demurrage Alerts
+          </h1>
+          <p className="text-slate-400 mt-1">
+            Gestión de tiempos libres y riesgo de penalizaciones
+          </p>
+        </div>
+      </div>
+
       {/* 1. Header & Quick Analytics Cards */}
-      <div className="report-kpi-grid" style={{ marginBottom: "2rem" }}>
-        <div
-          className="kpi-panel-card"
-          style={{ borderLeft: "4px solid #ef4444" }}
-        >
-          <span className="kpi-label">Riesgo Total de Demoras</span>
-          <h2 className="kpi-value text-accent" style={{ color: "#ef4444" }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="bg-slate-900/50 backdrop-blur-md p-5 rounded-2xl border border-red-500/30 shadow-[0_4px_20px_rgba(239,68,68,0.15)] flex flex-col justify-between">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Riesgo Total de Demoras
+          </span>
+          <h2 className="text-3xl font-black text-red-500 my-2">
             USD {metrics.totalExposure.toLocaleString("es-ES")}
           </h2>
-          <span className="kpi-detail">Cargos devengados acumulados</span>
+          <span className="text-xs text-red-400/80 font-medium">
+            Cargos devengados acumulados
+          </span>
         </div>
 
-        <div
-          className="kpi-panel-card"
-          style={{ borderLeft: "4px solid #f59e0b" }}
-        >
-          <span className="kpi-label">Equipos en Sobrecoste</span>
-          <h2 className="kpi-value text-warning">
+        <div className="bg-slate-900/50 backdrop-blur-md p-5 rounded-2xl border border-amber-500/30 shadow-[0_4px_20px_rgba(245,158,11,0.15)] flex flex-col justify-between">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Equipos en Sobrecoste
+          </span>
+          <h2 className="text-3xl font-black text-amber-500 my-2">
             {metrics.criticalCount} / {metrics.totalContainers}
           </h2>
-          <span className="kpi-detail">Contenedores con free-time agotado</span>
+          <span className="text-xs text-amber-400/80 font-medium">
+            Contenedores con free-time agotado
+          </span>
         </div>
 
-        <div
-          className="kpi-panel-card"
-          style={{ borderLeft: "4px solid #3b82f6" }}
-        >
-          <span className="kpi-label">Próximos a Vencer (≤48h)</span>
-          <h2 className="kpi-value" style={{ color: "#3b82f6" }}>
+        <div className="bg-slate-900/50 backdrop-blur-md p-5 rounded-2xl border border-blue-500/30 shadow-[0_4px_20px_rgba(59,130,246,0.15)] flex flex-col justify-between">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Próximos a Vencer (≤48h)
+          </span>
+          <h2 className="text-3xl font-black text-blue-500 my-2">
             {metrics.warningCount}
           </h2>
-          <span className="kpi-detail">Contenedores en zona de alerta</span>
+          <span className="text-xs text-blue-400/80 font-medium">
+            Contenedores en zona de alerta
+          </span>
         </div>
 
-        <div
-          className="kpi-panel-card"
-          style={{ borderLeft: "4px solid #10b981" }}
-        >
-          <span className="kpi-label">Dwell Time Promedio</span>
-          <h2 className="kpi-value" style={{ color: "#10b981" }}>
+        <div className="bg-slate-900/50 backdrop-blur-md p-5 rounded-2xl border border-emerald-500/30 shadow-[0_4px_20px_rgba(16,185,129,0.15)] flex flex-col justify-between">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Dwell Time Promedio
+          </span>
+          <h2 className="text-3xl font-black text-emerald-500 my-2">
             {metrics.avgDwell} días
           </h2>
-          <span className="kpi-detail">
+          <span className="text-xs text-emerald-400/80 font-medium">
             Estancia media en terminal portuaria
           </span>
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 380px",
-          gap: "2rem",
-        }}
-      >
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* 2. Primary Warning Log Table */}
-        <div className="card table-card" style={{ marginBottom: 0 }}>
-          <div className="card-header">
-            <div
-              style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
-            >
-              <ShieldAlert
-                className="text-accent"
-                style={{ color: "#ef4444" }}
-              />
-              <h3>Registro de Penalizaciones Portuarias</h3>
+        <div className="xl:col-span-2 bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+          <div className="p-6 border-b border-white/5 flex items-center justify-between bg-slate-800/30">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-500/10 text-red-500 rounded-xl border border-red-500/20">
+                <ShieldAlert size={20} />
+              </div>
+              <h3 className="text-lg font-bold text-white">
+                Registro de Penalizaciones Portuarias
+              </h3>
             </div>
 
-            {/* Search Input */}
-            <div className="search-wrapper" style={{ maxWidth: "250px" }}>
-              <Search className="search-icon" size={16} />
+            <div className="relative">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                size={16}
+              />
               <input
                 type="text"
                 placeholder="Buscar contenedor, naviera..."
-                className="search-input"
-                style={{
-                  padding: "0.5rem 0.5rem 0.5rem 2.2rem",
-                  fontSize: "0.85rem",
-                }}
+                className="w-64 bg-slate-950/50 border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="table-responsive">
-            <table className="custom-report-table">
-              <thead>
+          <div className="overflow-x-auto flex-1">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-slate-950/80 text-xs uppercase text-slate-400 font-bold sticky top-0">
                 <tr>
-                  <th>Contenedor</th>
-                  <th>Naviera</th>
-                  <th>Ruta (POD)</th>
-                  <th>Fecha Arribo</th>
-                  <th>Estancia</th>
-                  <th>Plazo Libre</th>
-                  <th>Plazo Restante</th>
-                  <th>Tarifa/Día</th>
-                  <th>Penalización</th>
-                  <th>Acción</th>
+                  <th className="px-6 py-4">Contenedor</th>
+                  <th className="px-6 py-4">Naviera</th>
+                  <th className="px-6 py-4">Ruta (POD)</th>
+                  <th className="px-6 py-4">Estancia</th>
+                  <th className="px-6 py-4">Plazo Restante</th>
+                  <th className="px-6 py-4">Tarifa/Día</th>
+                  <th className="px-6 py-4">Penalización</th>
+                  <th className="px-6 py-4">Acción</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-white/5 text-sm">
                 {filteredContainers.map((c) => {
                   const remaining = c.freeTimeDays - c.dwellDays;
                   const exposure =
                     remaining < 0 ? Math.abs(remaining) * c.ratePerDay : 0;
 
                   return (
-                    <tr key={c.id}>
-                      <td className="bold" style={{ fontFamily: "monospace" }}>
+                    <tr
+                      key={c.id}
+                      className="hover:bg-slate-800/40 transition-colors"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap font-mono font-bold text-slate-200">
                         {c.container}
                       </td>
-                      <td>{c.carrier}</td>
-                      <td>{c.pod}</td>
-                      <td>{c.portArrivalDate}</td>
-                      <td>
-                        <strong>{c.dwellDays} días</strong>
+                      <td className="px-6 py-4 text-slate-300 font-medium">
+                        {c.carrier}
                       </td>
-                      <td>{c.freeTimeDays} días</td>
-                      <td>
+                      <td className="px-6 py-4 text-slate-400">{c.pod}</td>
+                      <td className="px-6 py-4">
+                        <span className="px-2 py-1 bg-slate-800/80 rounded-md text-slate-200 font-bold border border-white/5">
+                          {c.dwellDays} d
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
                         {remaining < 0 ? (
-                          <span
-                            style={{ color: "#ef4444", fontWeight: "bold" }}
-                          >
+                          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 text-red-400 font-bold border border-red-500/20 text-xs">
                             Agotado ({Math.abs(remaining)}d)
                           </span>
                         ) : remaining === 0 ? (
-                          <span
-                            style={{ color: "#f59e0b", fontWeight: "bold" }}
-                          >
+                          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20 text-xs">
                             Vence Hoy
                           </span>
                         ) : (
-                          <span
-                            style={{ color: "#10b981", fontWeight: "bold" }}
-                          >
-                            {remaining} días libres
+                          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20 text-xs">
+                            {remaining} d libres
                           </span>
                         )}
                       </td>
-                      <td>USD {c.ratePerDay}</td>
-                      <td>
+                      <td className="px-6 py-4 text-slate-400 font-mono">
+                        ${c.ratePerDay}
+                      </td>
+                      <td className="px-6 py-4">
                         {exposure > 0 ? (
-                          <strong style={{ color: "#ef4444" }}>
-                            USD {exposure.toLocaleString("es-ES")}
+                          <strong className="text-red-400 font-mono text-base">
+                            ${exposure.toLocaleString("es-ES")}
                           </strong>
                         ) : (
-                          <span
-                            className="text-success"
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.25rem",
-                              fontSize: "0.85rem",
-                            }}
-                          >
-                            <CheckCircle size={14} /> Sin recargos
+                          <span className="flex items-center gap-1 text-emerald-500/80 text-xs font-bold uppercase tracking-wider">
+                            <CheckCircle size={14} /> Safe
                           </span>
                         )}
                       </td>
-                      <td>
+                      <td className="px-6 py-4">
                         {exposure > 0 ? (
                           <button
-                            className="btn-primary"
-                            style={{
-                              padding: "0.4rem 0.75rem",
-                              fontSize: "0.75rem",
-                              background: "#ef4444",
-                              boxShadow: "none",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.25rem",
-                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all"
                             onClick={() => openEmailDraft(c)}
                           >
-                            <Mail size={12} /> Exención
+                            <Mail size={14} /> Exención
                           </button>
                         ) : (
                           <button
-                            className="btn-secondary"
-                            style={{
-                              padding: "0.4rem 0.75rem",
-                              fontSize: "0.75rem",
-                            }}
+                            className="px-3 py-1.5 bg-slate-800 text-slate-500 text-xs font-bold rounded-lg cursor-not-allowed"
                             disabled
                           >
-                            A Salvo
+                            -
                           </button>
                         )}
                       </td>
@@ -429,32 +411,13 @@ Control Tower Global Logistics`;
         </div>
 
         {/* 3. Carrier Risk Analytics Visualization Panel */}
-        <div
-          className="card"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "1.5rem",
-            marginBottom: 0,
-          }}
-        >
-          <div
-            className="card-header"
-            style={{
-              padding: 0,
-              paddingBottom: "1rem",
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            <h3>Exposición de Riesgo por Naviera</h3>
-          </div>
+        <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-6">
+          <h3 className="text-lg font-bold text-white border-b border-white/5 pb-4">
+            Exposición de Riesgo por Naviera
+          </h3>
 
-          <div
-            className="carrier-bar-chart-list"
-            style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
-          >
+          <div className="flex flex-col gap-5 flex-1">
             {carrierRiskData.map((carrier, idx) => {
-              // Calculate percent width of progress bar based on highest exposure
               const maxExposure = Math.max(
                 ...carrierRiskData.map((d) => d.exposure),
                 1,
@@ -462,60 +425,35 @@ Control Tower Global Logistics`;
               const percent = (carrier.exposure / maxExposure) * 100;
 
               return (
-                <div
-                  key={idx}
-                  className="carrier-chart-row"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.4rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "0.9rem",
-                      fontWeight: 600,
-                    }}
-                  >
-                    <span>
-                      {carrier.name} ({carrier.count} cont.)
+                <div key={idx} className="flex flex-col gap-2">
+                  <div className="flex justify-between text-sm font-semibold">
+                    <span className="text-slate-300">
+                      {carrier.name}{" "}
+                      <span className="text-slate-500 text-xs">
+                        ({carrier.count} cont.)
+                      </span>
                     </span>
-                    <strong
-                      style={{
-                        color:
-                          carrier.exposure > 0
-                            ? "#ef4444"
-                            : "var(--text-muted)",
-                      }}
+                    <span
+                      className={
+                        carrier.exposure > 0
+                          ? "text-red-400 font-mono font-bold"
+                          : "text-slate-500"
+                      }
                     >
-                      USD {carrier.exposure.toLocaleString("es-ES")}
-                    </strong>
+                      ${carrier.exposure.toLocaleString("es-ES")}
+                    </span>
                   </div>
-                  <div
-                    className="custom-progress-bar-bg"
-                    style={{
-                      width: "100%",
-                      height: "10px",
-                      background: "var(--bg-tertiary)",
-                      borderRadius: "999px",
-                      overflow: "hidden",
-                    }}
-                  >
+                  <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-white/5 shadow-inner">
                     <div
-                      className="custom-progress-bar-fill"
+                      className="h-full rounded-full transition-all duration-1000 ease-out"
                       style={{
                         width: `${percent}%`,
-                        height: "100%",
                         background:
                           carrier.exposure > 1000
                             ? "linear-gradient(90deg, #f59e0b 0%, #ef4444 100%)"
                             : carrier.exposure > 0
                               ? "#f59e0b"
                               : "#10b981",
-                        borderRadius: "999px",
-                        transition: "width 0.5s ease-out",
                       }}
                     ></div>
                   </div>
@@ -524,38 +462,19 @@ Control Tower Global Logistics`;
             })}
           </div>
 
-          <div
-            className="card-notes-panel"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(239, 68, 68, 0.05) 100%)",
-              border: "1px solid rgba(245, 158, 11, 0.2)",
-              padding: "1rem",
-              borderRadius: "12px",
-              display: "flex",
-              gap: "0.75rem",
-              alignItems: "flex-start",
-            }}
-          >
+          <div className="mt-auto bg-gradient-to-br from-amber-500/10 to-red-500/10 border border-amber-500/20 p-4 rounded-2xl flex gap-3 items-start backdrop-blur-md">
             <AlertTriangle
-              className="text-warning"
-              size={24}
-              style={{ flexShrink: 0, marginTop: "0.1rem", color: "#f59e0b" }}
+              className="text-amber-500 shrink-0 mt-0.5"
+              size={20}
             />
-            <div style={{ fontSize: "0.85rem", lineHeight: "1.4" }}>
-              <h4
-                style={{
-                  fontWeight: "bold",
-                  marginBottom: "0.25rem",
-                  color: "#f59e0b",
-                }}
-              >
+            <div>
+              <h4 className="font-bold text-amber-500 text-sm mb-1">
                 Protocolo de Retención D&D
               </h4>
-              <p className="text-muted">
+              <p className="text-slate-400 text-xs leading-relaxed font-medium">
                 Las navieras aplican recargos exponenciales tras agotar el plazo
                 libre. Priorice la retirada del contenedor de{" "}
-                <strong>
+                <strong className="text-amber-400">
                   {carrierRiskData[0]?.name || "la naviera principal"}
                 </strong>{" "}
                 para frenar pérdidas diarias.
@@ -567,161 +486,74 @@ Control Tower Global Logistics`;
 
       {/* 4. Custom Fee Mitigation Email Drawer / Modal */}
       {emailModalOpen && selectedContainer && (
-        <div className="sheet-picker-modal-backdrop">
-          <div
-            className="sheet-picker-modal"
-            style={{ maxWidth: "650px", width: "95%" }}
-          >
-            <div
-              className="modal-header"
-              style={{ justifyContent: "space-between" }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                }}
-              >
-                <Mail
-                  size={24}
-                  className="text-accent"
-                  style={{ color: "#ef4444" }}
-                />
-                <h3>Redactar Carta de Mitigación / Exención</h3>
+        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 duration-300">
+            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-slate-800/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-500/10 text-red-500 rounded-xl border border-red-500/20">
+                  <Mail size={20} />
+                </div>
+                <h3 className="text-lg font-bold text-white">
+                  Redactar Carta de Mitigación / Exención
+                </h3>
               </div>
               <button
                 onClick={() => setEmailModalOpen(false)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--text-muted)",
-                  cursor: "pointer",
-                }}
+                className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div
-              className="email-form-fields"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "1rem",
-                marginTop: "0.5rem",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.25rem",
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: "0.8rem",
-                    fontWeight: "bold",
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  Destinatario:
+            <div className="p-6 flex flex-col gap-5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Destinatario
                 </label>
                 <input
                   type="text"
-                  className="search-input"
-                  style={{ padding: "0.6rem 1rem" }}
+                  className="bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                   value={emailTo}
                   onChange={(e) => setEmailTo(e.target.value)}
                 />
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.25rem",
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: "0.8rem",
-                    fontWeight: "bold",
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  Asunto del Email:
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Asunto
                 </label>
                 <input
                   type="text"
-                  className="search-input"
-                  style={{ padding: "0.6rem 1rem" }}
+                  className="bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
                 />
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.25rem",
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: "0.8rem",
-                    fontWeight: "bold",
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  Cuerpo de la Solicitud:
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Cuerpo del Mensaje
                 </label>
                 <textarea
-                  className="search-input"
-                  style={{
-                    padding: "1rem",
-                    height: "240px",
-                    resize: "none",
-                    fontSize: "0.85rem",
-                    lineHeight: "1.5",
-                    fontFamily: "inherit",
-                  }}
+                  className="bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/50 h-64 resize-none leading-relaxed"
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
                 />
               </div>
             </div>
 
-            <div
-              className="modal-footer"
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "0.75rem",
-                marginTop: "1rem",
-                paddingTop: "1rem",
-                borderTop: "1px solid var(--border)",
-              }}
-            >
+            <div className="p-6 border-t border-white/5 bg-slate-800/20 flex justify-end gap-3">
               <button
-                className="btn-secondary"
+                className="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
                 onClick={() => setEmailModalOpen(false)}
               >
                 Cancelar
               </button>
               <button
-                className="btn-primary"
-                style={{
-                  background: "#ef4444",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                }}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm bg-red-600 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all"
                 onClick={handleSendEmail}
               >
-                <Send size={16} /> <span>Enviar Solicitud</span>
+                <Send size={16} /> Enviar Solicitud
               </button>
             </div>
           </div>

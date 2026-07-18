@@ -13,7 +13,8 @@ export default tseslint.config(
       "scripts/**",
       "**/playwright.config.ts",
       "fix-imports.ts",
-      "**/dataconnect-generated/**"
+      "test-db.ts",
+      "**/dataconnect-generated/**",
     ],
   },
   {

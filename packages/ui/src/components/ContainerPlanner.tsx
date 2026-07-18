@@ -9,7 +9,21 @@ import {
   Truck,
   Layers,
 } from "lucide-react";
-import { ContainerScene, PackedItem } from "./ContainerScene";
+
+export interface PackedItem {
+  id: string;
+  clientId: string;
+  clientName: string;
+  color: string;
+  x: number;
+  y: number;
+  z: number;
+  length: number;
+  width: number;
+  height: number;
+  weight: number;
+  isStacked: boolean;
+}
 
 interface ContainerType {
   name: string;
@@ -627,11 +641,9 @@ export function ContainerPlanner() {
                   height: "100%",
                 }}
               >
-                <ContainerScene
-                  container={container}
-                  packedItems={packingResult.items}
-                  viewMode={viewMode}
-                />
+                <div className="flex items-center justify-center h-full text-slate-500 font-bold uppercase tracking-widest">
+                  Visualización 3D Deshabilitada
+                </div>
               </div>
 
               <div

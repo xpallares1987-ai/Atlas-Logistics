@@ -11,7 +11,21 @@ import {
   Plus,
   Sparkles,
 } from "lucide-react";
-import { ContainerScene, PackedItem } from "./ContainerScene";
+
+export interface PackedItem {
+  id: string;
+  clientId: string;
+  clientName: string;
+  color: string;
+  x: number;
+  y: number;
+  z: number;
+  length: number;
+  width: number;
+  height: number;
+  weight: number;
+  isStacked: boolean;
+}
 
 interface ContainerSpec {
   id: string;
@@ -486,7 +500,9 @@ export function LclConsolidationEngine({
           <div style={{ display: "flex", gap: "0.5rem", width: "100%" }}>
             <button
               className="btn btn-primary"
-              disabled={selectedPoolIds.size === 0 || !activeContainerId || isOptimizing}
+              disabled={
+                selectedPoolIds.size === 0 || !activeContainerId || isOptimizing
+              }
               onClick={assignSelected}
               style={{
                 display: "flex",
@@ -500,20 +516,26 @@ export function LclConsolidationEngine({
             </button>
             <button
               onClick={async () => {
-                if (!autoOptimize || unassignedPool.length === 0 || !activeContainer) return;
+                if (
+                  !autoOptimize ||
+                  unassignedPool.length === 0 ||
+                  !activeContainer
+                )
+                  return;
                 setIsOptimizing(true);
                 try {
                   const { getApp } = await import("firebase/app");
-                  const { getFunctions, httpsCallable } = await import("firebase/functions");
+                  const { getFunctions, httpsCallable } =
+                    await import("firebase/functions");
                   const app = getApp();
                   const functions = getFunctions(app, "europe-west1");
                   const optimizeLCL = httpsCallable(functions, "optimizeLCL");
                   const result = await optimizeLCL({
                     containerSpec: activeSpec,
-                    cargoPool: unassignedPool.map(c => ({
+                    cargoPool: unassignedPool.map((c) => ({
                       ...CARGO_TYPES[c.typeId],
-                      id: c.id
-                    }))
+                      id: c.id,
+                    })),
                   });
                   const data = result.data as any;
                   if (data.success && data.data && data.data.selectedCargoIds) {
@@ -522,12 +544,20 @@ export function LclConsolidationEngine({
                 } catch (e) {
                   console.error(e);
                   // Fallback mock optimization
-                  autoOptimize(unassignedPool.slice(0, Math.min(3, unassignedPool.length)).map(c => c.id));
+                  autoOptimize(
+                    unassignedPool
+                      .slice(0, Math.min(3, unassignedPool.length))
+                      .map((c) => c.id),
+                  );
                 } finally {
                   setIsOptimizing(false);
                 }
               }}
-              disabled={!activeContainerId || unassignedPool.length === 0 || isOptimizing}
+              disabled={
+                !activeContainerId ||
+                unassignedPool.length === 0 ||
+                isOptimizing
+              }
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -539,12 +569,18 @@ export function LclConsolidationEngine({
                 border: "none",
                 borderRadius: "8px",
                 fontWeight: "bold",
-                cursor: (isOptimizing || unassignedPool.length === 0) ? "not-allowed" : "pointer",
-                opacity: (isOptimizing || unassignedPool.length === 0) ? 0.5 : 1,
+                cursor:
+                  isOptimizing || unassignedPool.length === 0
+                    ? "not-allowed"
+                    : "pointer",
+                opacity: isOptimizing || unassignedPool.length === 0 ? 0.5 : 1,
               }}
               title="Bin-Packing IA (Gemini)"
             >
-              <Sparkles size={16} className={isOptimizing ? "animate-pulse" : ""} />
+              <Sparkles
+                size={16}
+                className={isOptimizing ? "animate-pulse" : ""}
+              />
             </button>
           </div>
         </div>
@@ -667,11 +703,9 @@ export function LclConsolidationEngine({
                   position: "relative",
                 }}
               >
-                <ContainerScene
-                  container={activeSpec}
-                  packedItems={packingResult.items}
-                  viewMode={viewMode}
-                />
+                <div className="flex items-center justify-center h-full text-slate-500 font-bold uppercase tracking-widest">
+                  Visualización 3D Deshabilitada
+                </div>
 
                 {packingResult.leftOut > 0 && (
                   <div

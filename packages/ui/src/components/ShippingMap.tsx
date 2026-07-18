@@ -8,7 +8,13 @@ import { useNominatimGeocoding } from "./hooks/useNominatimGeocoding";
  * Advanced Shipping Map component with Marker Clustering support.
  * Consolidated from Shipment-Dashboard into @torre/ui.
  */
-export function ShippingMap({ shipments = [], searchQuery = "" }: { shipments?: any[]; searchQuery?: string }) {
+export function ShippingMap({
+  shipments = [],
+  searchQuery = "",
+}: {
+  shipments?: any[];
+  searchQuery?: string;
+}) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
@@ -17,7 +23,10 @@ export function ShippingMap({ shipments = [], searchQuery = "" }: { shipments?: 
 
   useEffect(() => {
     if (searchedCoords && mapRef.current) {
-      mapRef.current.flyTo([searchedCoords.lat, searchedCoords.lon], 8, { animate: true, duration: 1.5 });
+      mapRef.current.flyTo([searchedCoords.lat, searchedCoords.lon], 8, {
+        animate: true,
+        duration: 1.5,
+      });
     }
   }, [searchedCoords]);
 
@@ -121,9 +130,9 @@ export function ShippingMap({ shipments = [], searchQuery = "" }: { shipments?: 
         // Note: In a workspace setting, ensure 'leaflet.markercluster' is in dependencies
         await import("leaflet.markercluster");
         // @ts-ignore
-        await import('leaflet.markercluster/dist/MarkerCluster.css');
+        await import("leaflet.markercluster/dist/MarkerCluster.css");
         // @ts-ignore
-        await import('leaflet.markercluster/dist/MarkerCluster.Default.css');
+        await import("leaflet.markercluster/dist/MarkerCluster.Default.css");
 
         // Apply dark-themed beautiful tile layout
         L.tileLayer(
@@ -320,33 +329,18 @@ export function ShippingMap({ shipments = [], searchQuery = "" }: { shipments?: 
   }, [locations, routes, shipments]);
 
   return (
-    <div
-      style={{
-        position: "relative",
-        width: "100%",
-        height: "400px",
-        borderRadius: "1.5rem",
-        overflow: "hidden",
-        border: "1px solid rgba(255, 255, 255, 0.1)",
-      }}
-    >
+    <div className="relative w-full h-[400px] rounded-2xl overflow-hidden border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] bg-slate-900/40 backdrop-blur-xl group">
+      <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 to-transparent pointer-events-none z-10 rounded-2xl" />
+
       {!leafletLoaded && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "rgba(15, 23, 42, 0.9)",
-            color: "#94a3b8",
-            zIndex: 10,
-          }}
-        >
-          <span>Cargando Mapa de Seguimiento...</span>
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 backdrop-blur-lg text-slate-400 z-20">
+          <span className="flex items-center gap-3 font-medium tracking-wide">
+            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+            Initializing Tracking Map...
+          </span>
         </div>
       )}
-      <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
+      <div ref={mapContainerRef} className="w-full h-full relative z-0" />
       <LogisticsOverlay />
     </div>
   );

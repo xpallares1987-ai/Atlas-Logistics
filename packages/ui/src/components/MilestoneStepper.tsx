@@ -18,11 +18,20 @@ export interface StepperMilestone {
 function MilestoneWeather({ lat, lon }: { lat: number; lon: number }) {
   const { weather, loading } = usePortWeather(lat, lon);
 
-  if (loading || !weather) return <span className="animate-pulse w-4 h-4 bg-slate-700 rounded-full inline-block" />;
+  if (loading || !weather)
+    return (
+      <span className="animate-pulse w-4 h-4 bg-slate-700 rounded-full inline-block" />
+    );
 
   return (
-    <div className="flex items-center gap-1.5 mt-2 bg-slate-800/80 w-fit px-2 py-1 rounded-md border border-slate-700/50">
-      {weather.icon === 'CloudRain' || weather.icon === 'CloudSnow' || weather.icon === 'CloudLightning' ? <CloudRain className="w-3 h-3 text-blue-400" /> : <Sun className="w-3 h-3 text-yellow-400" />}
+    <div className="flex items-center gap-1.5 mt-2 bg-slate-900/60 backdrop-blur-md w-fit px-2 py-1 rounded-lg border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
+      {weather.icon === "CloudRain" ||
+      weather.icon === "CloudSnow" ||
+      weather.icon === "CloudLightning" ? (
+        <CloudRain className="w-3 h-3 text-blue-400" />
+      ) : (
+        <Sun className="w-3 h-3 text-yellow-400" />
+      )}
       <span className="text-[10px] text-slate-300 font-medium">
         {weather.temp}°C, {weather.description}
       </span>
@@ -57,27 +66,31 @@ export function MilestoneStepper({
 
         let StatusIcon = Circle;
         let iconColor = "text-slate-500";
-        let bgColor = "bg-slate-800";
-        let borderColor = "border-slate-700";
-        let lineColor = "bg-slate-700";
+        let bgColor = "bg-slate-800/40 backdrop-blur-md";
+        let borderColor = "border-white/10";
+        let lineColor = "bg-white/10";
+        let shadowClass = "";
 
         if (isCompleted) {
           StatusIcon = CheckCircle2;
           iconColor = "text-emerald-400";
-          bgColor = "bg-emerald-900/30";
-          borderColor = "border-emerald-500";
-          lineColor = "bg-emerald-500";
+          bgColor = "bg-emerald-500/10 backdrop-blur-md";
+          borderColor = "border-emerald-500/50";
+          lineColor = "bg-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
+          shadowClass = "shadow-[0_0_15px_rgba(16,185,129,0.2)]";
         } else if (isCurrent) {
           StatusIcon = Clock;
           iconColor = "text-blue-400";
-          bgColor = "bg-blue-900/30";
-          borderColor = "border-blue-500";
+          bgColor = "bg-blue-500/10 backdrop-blur-md";
+          borderColor = "border-blue-500/50";
+          shadowClass = "shadow-[0_0_15px_rgba(59,130,246,0.3)]";
         } else if (isDelayed) {
           StatusIcon = Clock;
           iconColor = "text-red-400";
-          bgColor = "bg-red-900/30";
-          borderColor = "border-red-500";
-          lineColor = "bg-red-500/50";
+          bgColor = "bg-red-500/10 backdrop-blur-md";
+          borderColor = "border-red-500/50";
+          lineColor = "bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.5)]";
+          shadowClass = "shadow-[0_0_15px_rgba(239,68,68,0.2)]";
         }
 
         return (
@@ -90,7 +103,7 @@ export function MilestoneStepper({
               className={`relative flex items-center justify-center ${isVertical ? "flex-col mr-4" : "w-full mb-3"}`}
             >
               <div
-                className={`z-10 flex items-center justify-center w-10 h-10 rounded-full border-2 ${bgColor} ${borderColor} ${iconColor} transition-all duration-300 shadow-lg`}
+                className={`z-10 flex items-center justify-center w-10 h-10 rounded-full border ${bgColor} ${borderColor} ${iconColor} transition-all duration-300 ${shadowClass}`}
               >
                 {milestone.icon || <StatusIcon size={20} />}
               </div>
@@ -105,7 +118,7 @@ export function MilestoneStepper({
             {/* Content */}
             <div className={`${isVertical ? "pb-8 pt-1" : "text-center px-2"}`}>
               <h4
-                className={`text-sm font-bold ${isCompleted ? "text-slate-200" : isCurrent ? "text-blue-400" : isDelayed ? "text-red-400" : "text-slate-400"}`}
+                className={`text-sm font-bold ${isCompleted ? "text-slate-200" : isCurrent ? "text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" : isDelayed ? "text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" : "text-slate-400"}`}
               >
                 {milestone.title}
               </h4>
@@ -113,7 +126,7 @@ export function MilestoneStepper({
                 {milestone.location}
               </p>
               {milestone.date && (
-                <p className="text-xs text-slate-500 mt-1 font-mono bg-slate-800/50 inline-block px-1.5 py-0.5 rounded">
+                <p className="text-xs text-slate-400 mt-1.5 font-mono bg-slate-900/50 border border-white/5 backdrop-blur-sm px-2 py-1 rounded-md shadow-inner inline-block">
                   {milestone.date}
                 </p>
               )}

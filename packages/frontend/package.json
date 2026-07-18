@@ -6,7 +6,8 @@
     "scripts": {
         "preview": "vite preview",
         "build": "tsc && vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "type-check": "tsc --noEmit"
     },
     "dependencies": {
         "@atlas/dashboard": "workspace:*",
