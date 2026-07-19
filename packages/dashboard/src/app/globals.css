@@ -146,7 +146,7 @@
   --skeleton-highlight: var(--ff-bg-main);
 }
 
-[data-theme='dark'] {
+[data-theme="dark"] {
   /* Mapped via :root + data-theme in shared-theme.css */
   --card-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5);
 }
@@ -159,7 +159,7 @@
 
 body {
   font-family:
-    'Inter',
+    "Inter",
     -apple-system,
     sans-serif;
   background-color: var(--bg-primary);
@@ -391,13 +391,18 @@ tr:last-child td {
 }
 
 .skeleton-box::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
   animation: shimmer 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -410,8 +415,13 @@ tr:last-child td {
   }
 }
 
-[data-theme='dark'] .skeleton-box::after {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+[data-theme="dark"] .skeleton-box::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.03),
+    transparent
+  );
 }
 
 .last-sync-info {
@@ -465,7 +475,11 @@ tr:last-child td {
   flex-direction: column;
   justify-content: space-around;
   padding: 2rem;
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--bg-secondary) 0%,
+    var(--bg-primary) 100%
+  );
 }
 .stat-item {
   text-align: center;
@@ -831,20 +845,28 @@ tr:last-child td {
 }
 
 .report-advisory-intro {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(139, 92, 246, 0.03) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.03) 0%,
+    rgba(139, 92, 246, 0.03) 100%
+  );
   border: 1px solid rgba(139, 92, 246, 0.15);
   margin-bottom: 0;
   position: relative;
 }
 
 .report-advisory-intro::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   right: 0;
   width: 150px;
   height: 100%;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.05) 0%, transparent 80%);
+  background: radial-gradient(
+    circle,
+    rgba(139, 92, 246, 0.05) 0%,
+    transparent 80%
+  );
   pointer-events: none;
 }
 
@@ -990,17 +1012,29 @@ tr:last-child td {
 
 .risk-panel-item.severity-high {
   border-left-color: #ef4444;
-  background: linear-gradient(90deg, rgba(239, 68, 68, 0.03) 0%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(239, 68, 68, 0.03) 0%,
+    transparent 100%
+  );
 }
 
 .risk-panel-item.severity-medium {
   border-left-color: #f59e0b;
-  background: linear-gradient(90deg, rgba(245, 158, 11, 0.03) 0%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(245, 158, 11, 0.03) 0%,
+    transparent 100%
+  );
 }
 
 .risk-panel-item.severity-low {
   border-left-color: #3b82f6;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.03) 0%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(59, 130, 246, 0.03) 0%,
+    transparent 100%
+  );
 }
 
 .risk-item-header {

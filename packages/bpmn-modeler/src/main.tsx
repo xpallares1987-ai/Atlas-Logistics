@@ -674,6 +674,6 @@ async function init() {
 }
 
 // React Auth Mounting was removed. Authentication is inherited from the host application.
-export function mountBPMNModeler() { init(); }
-
-
+export function mountBPMNModeler() {
+  init();
+}

@@ -1,21 +1,25 @@
-import tseslint from 'typescript-eslint';
-import reactPlugin from 'eslint-plugin-react';
+import tseslint from "typescript-eslint";
+import reactPlugin from "eslint-plugin-react";
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "**/coverage/**", "packages/**", "functions/**"],
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/coverage/**",
+      "packages/**",
+      "functions/**",
+    ],
   },
   {
     files: ["**/*.ts", "**/*.tsx"],
-    extends: [
-      ...tseslint.configs.recommended,
-    ],
+    extends: [...tseslint.configs.recommended],
     plugins: {
       react: reactPlugin,
     },
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.json', './tsconfig.server.json'],
+        project: ["./tsconfig.json", "./tsconfig.server.json"],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -25,5 +29,5 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": ["warn"],
       "no-console": "off",
     },
-  }
+  },
 );

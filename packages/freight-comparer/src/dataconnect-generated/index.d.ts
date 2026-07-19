@@ -1,4 +1,13 @@
-import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, ExecuteQueryOptions, MutationRef, MutationPromise, DataConnectSettings } from 'firebase/data-connect';
+import {
+  ConnectorConfig,
+  DataConnect,
+  QueryRef,
+  QueryPromise,
+  ExecuteQueryOptions,
+  MutationRef,
+  MutationPromise,
+  DataConnectSettings,
+} from "firebase/data-connect";
 
 export const connectorConfig: ConnectorConfig;
 export const dataConnectSettings: DataConnectSettings;
@@ -8,12 +17,9 @@ export type UUIDString = string;
 export type Int64String = string;
 export type DateString = string;
 
-
-
-
 export interface Company_Key {
   id: UUIDString;
-  __typename?: 'Company_Key';
+  __typename?: "Company_Key";
 }
 
 export interface CreateShipmentData {
@@ -38,7 +44,7 @@ export interface DeleteShipmentVariables {
 
 export interface Document_Key {
   id: UUIDString;
-  __typename?: 'Document_Key';
+  __typename?: "Document_Key";
 }
 
 export interface GetAllUsersData {
@@ -50,10 +56,10 @@ export interface GetAllUsersData {
 }
 
 export interface GetUserRoleData {
-  users: ({
+  users: {
     role: string;
     email: string;
-  })[];
+  }[];
 }
 
 export interface GetUserRoleVariables {
@@ -61,7 +67,7 @@ export interface GetUserRoleVariables {
 }
 
 export interface ListShipmentsData {
-  shipments: ({
+  shipments: {
     trackingNumber: string;
     status: string;
     origin: string;
@@ -69,22 +75,22 @@ export interface ListShipmentsData {
     shipper: {
       name: string;
     };
-  })[];
+  }[];
 }
 
 export interface Milestone_Key {
   id: UUIDString;
-  __typename?: 'Milestone_Key';
+  __typename?: "Milestone_Key";
 }
 
 export interface Quote_Key {
   id: UUIDString;
-  __typename?: 'Quote_Key';
+  __typename?: "Quote_Key";
 }
 
 export interface Shipment_Key {
   id: UUIDString;
-  __typename?: 'Shipment_Key';
+  __typename?: "Shipment_Key";
 }
 
 export interface UpdateShipmentStatusData {
@@ -117,37 +123,55 @@ export interface UpsertUserVariables {
 
 export interface User_Key {
   uid: string;
-  __typename?: 'User_Key';
+  __typename?: "User_Key";
 }
 
 export interface Workflow_Key {
   id: UUIDString;
-  __typename?: 'Workflow_Key';
+  __typename?: "Workflow_Key";
 }
 
 interface UpsertUserRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: UpsertUserVariables): MutationRef<UpsertUserData, UpsertUserVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: UpsertUserVariables): MutationRef<UpsertUserData, UpsertUserVariables>;
+  (
+    dc: DataConnect,
+    vars: UpsertUserVariables,
+  ): MutationRef<UpsertUserData, UpsertUserVariables>;
   operationName: string;
 }
 export const upsertUserRef: UpsertUserRef;
 
-export function upsertUser(vars: UpsertUserVariables): MutationPromise<UpsertUserData, UpsertUserVariables>;
-export function upsertUser(dc: DataConnect, vars: UpsertUserVariables): MutationPromise<UpsertUserData, UpsertUserVariables>;
+export function upsertUser(
+  vars: UpsertUserVariables,
+): MutationPromise<UpsertUserData, UpsertUserVariables>;
+export function upsertUser(
+  dc: DataConnect,
+  vars: UpsertUserVariables,
+): MutationPromise<UpsertUserData, UpsertUserVariables>;
 
 interface GetUserRoleRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: GetUserRoleVariables): QueryRef<GetUserRoleData, GetUserRoleVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: GetUserRoleVariables): QueryRef<GetUserRoleData, GetUserRoleVariables>;
+  (
+    dc: DataConnect,
+    vars: GetUserRoleVariables,
+  ): QueryRef<GetUserRoleData, GetUserRoleVariables>;
   operationName: string;
 }
 export const getUserRoleRef: GetUserRoleRef;
 
-export function getUserRole(vars: GetUserRoleVariables, options?: ExecuteQueryOptions): QueryPromise<GetUserRoleData, GetUserRoleVariables>;
-export function getUserRole(dc: DataConnect, vars: GetUserRoleVariables, options?: ExecuteQueryOptions): QueryPromise<GetUserRoleData, GetUserRoleVariables>;
+export function getUserRole(
+  vars: GetUserRoleVariables,
+  options?: ExecuteQueryOptions,
+): QueryPromise<GetUserRoleData, GetUserRoleVariables>;
+export function getUserRole(
+  dc: DataConnect,
+  vars: GetUserRoleVariables,
+  options?: ExecuteQueryOptions,
+): QueryPromise<GetUserRoleData, GetUserRoleVariables>;
 
 interface GetAllUsersRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -158,32 +182,57 @@ interface GetAllUsersRef {
 }
 export const getAllUsersRef: GetAllUsersRef;
 
-export function getAllUsers(options?: ExecuteQueryOptions): QueryPromise<GetAllUsersData, undefined>;
-export function getAllUsers(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetAllUsersData, undefined>;
+export function getAllUsers(
+  options?: ExecuteQueryOptions,
+): QueryPromise<GetAllUsersData, undefined>;
+export function getAllUsers(
+  dc: DataConnect,
+  options?: ExecuteQueryOptions,
+): QueryPromise<GetAllUsersData, undefined>;
 
 interface UpdateUserRoleRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: UpdateUserRoleVariables): MutationRef<UpdateUserRoleData, UpdateUserRoleVariables>;
+  (
+    vars: UpdateUserRoleVariables,
+  ): MutationRef<UpdateUserRoleData, UpdateUserRoleVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: UpdateUserRoleVariables): MutationRef<UpdateUserRoleData, UpdateUserRoleVariables>;
+  (
+    dc: DataConnect,
+    vars: UpdateUserRoleVariables,
+  ): MutationRef<UpdateUserRoleData, UpdateUserRoleVariables>;
   operationName: string;
 }
 export const updateUserRoleRef: UpdateUserRoleRef;
 
-export function updateUserRole(vars: UpdateUserRoleVariables): MutationPromise<UpdateUserRoleData, UpdateUserRoleVariables>;
-export function updateUserRole(dc: DataConnect, vars: UpdateUserRoleVariables): MutationPromise<UpdateUserRoleData, UpdateUserRoleVariables>;
+export function updateUserRole(
+  vars: UpdateUserRoleVariables,
+): MutationPromise<UpdateUserRoleData, UpdateUserRoleVariables>;
+export function updateUserRole(
+  dc: DataConnect,
+  vars: UpdateUserRoleVariables,
+): MutationPromise<UpdateUserRoleData, UpdateUserRoleVariables>;
 
 interface CreateShipmentRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: CreateShipmentVariables): MutationRef<CreateShipmentData, CreateShipmentVariables>;
+  (
+    vars: CreateShipmentVariables,
+  ): MutationRef<CreateShipmentData, CreateShipmentVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: CreateShipmentVariables): MutationRef<CreateShipmentData, CreateShipmentVariables>;
+  (
+    dc: DataConnect,
+    vars: CreateShipmentVariables,
+  ): MutationRef<CreateShipmentData, CreateShipmentVariables>;
   operationName: string;
 }
 export const createShipmentRef: CreateShipmentRef;
 
-export function createShipment(vars: CreateShipmentVariables): MutationPromise<CreateShipmentData, CreateShipmentVariables>;
-export function createShipment(dc: DataConnect, vars: CreateShipmentVariables): MutationPromise<CreateShipmentData, CreateShipmentVariables>;
+export function createShipment(
+  vars: CreateShipmentVariables,
+): MutationPromise<CreateShipmentData, CreateShipmentVariables>;
+export function createShipment(
+  dc: DataConnect,
+  vars: CreateShipmentVariables,
+): MutationPromise<CreateShipmentData, CreateShipmentVariables>;
 
 interface ListShipmentsRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -194,30 +243,54 @@ interface ListShipmentsRef {
 }
 export const listShipmentsRef: ListShipmentsRef;
 
-export function listShipments(options?: ExecuteQueryOptions): QueryPromise<ListShipmentsData, undefined>;
-export function listShipments(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListShipmentsData, undefined>;
+export function listShipments(
+  options?: ExecuteQueryOptions,
+): QueryPromise<ListShipmentsData, undefined>;
+export function listShipments(
+  dc: DataConnect,
+  options?: ExecuteQueryOptions,
+): QueryPromise<ListShipmentsData, undefined>;
 
 interface UpdateShipmentStatusRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: UpdateShipmentStatusVariables): MutationRef<UpdateShipmentStatusData, UpdateShipmentStatusVariables>;
+  (
+    vars: UpdateShipmentStatusVariables,
+  ): MutationRef<UpdateShipmentStatusData, UpdateShipmentStatusVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: UpdateShipmentStatusVariables): MutationRef<UpdateShipmentStatusData, UpdateShipmentStatusVariables>;
+  (
+    dc: DataConnect,
+    vars: UpdateShipmentStatusVariables,
+  ): MutationRef<UpdateShipmentStatusData, UpdateShipmentStatusVariables>;
   operationName: string;
 }
 export const updateShipmentStatusRef: UpdateShipmentStatusRef;
 
-export function updateShipmentStatus(vars: UpdateShipmentStatusVariables): MutationPromise<UpdateShipmentStatusData, UpdateShipmentStatusVariables>;
-export function updateShipmentStatus(dc: DataConnect, vars: UpdateShipmentStatusVariables): MutationPromise<UpdateShipmentStatusData, UpdateShipmentStatusVariables>;
+export function updateShipmentStatus(
+  vars: UpdateShipmentStatusVariables,
+): MutationPromise<UpdateShipmentStatusData, UpdateShipmentStatusVariables>;
+export function updateShipmentStatus(
+  dc: DataConnect,
+  vars: UpdateShipmentStatusVariables,
+): MutationPromise<UpdateShipmentStatusData, UpdateShipmentStatusVariables>;
 
 interface DeleteShipmentRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: DeleteShipmentVariables): MutationRef<DeleteShipmentData, DeleteShipmentVariables>;
+  (
+    vars: DeleteShipmentVariables,
+  ): MutationRef<DeleteShipmentData, DeleteShipmentVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: DeleteShipmentVariables): MutationRef<DeleteShipmentData, DeleteShipmentVariables>;
+  (
+    dc: DataConnect,
+    vars: DeleteShipmentVariables,
+  ): MutationRef<DeleteShipmentData, DeleteShipmentVariables>;
   operationName: string;
 }
 export const deleteShipmentRef: DeleteShipmentRef;
 
-export function deleteShipment(vars: DeleteShipmentVariables): MutationPromise<DeleteShipmentData, DeleteShipmentVariables>;
-export function deleteShipment(dc: DataConnect, vars: DeleteShipmentVariables): MutationPromise<DeleteShipmentData, DeleteShipmentVariables>;
-
+export function deleteShipment(
+  vars: DeleteShipmentVariables,
+): MutationPromise<DeleteShipmentData, DeleteShipmentVariables>;
+export function deleteShipment(
+  dc: DataConnect,
+  vars: DeleteShipmentVariables,
+): MutationPromise<DeleteShipmentData, DeleteShipmentVariables>;

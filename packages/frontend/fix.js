@@ -1,7 +1,8 @@
-const fs = require('fs');
-let code = fs.readFileSync('app/rates/page.tsx', 'utf8');
+const fs = require("fs");
+let code = fs.readFileSync("app/rates/page.tsx", "utf8");
 
-const regex = /const getRouteBafMetrics = React\.useCallback\(\(\) => \{\n\}, \[[^\]]+\]\);/;
+const regex =
+  /const getRouteBafMetrics = React\.useCallback\(\(\) => \{\n\}, \[[^\]]+\]\);/;
 
 const replacement = `const getRouteBafMetrics = React.useCallback(() => {
     const allRoutes = Array.from(new Set(rates.map(r => \`\${r.pol} → \${r.pod}\`)));
@@ -44,5 +45,5 @@ const replacement = `const getRouteBafMetrics = React.useCallback(() => {
   }, [rates, displayCurrency, bafSensitivity, bafSimulatedVolume, getMonthlyBafsForRoute]);`;
 
 code = code.replace(regex, replacement);
-fs.writeFileSync('app/rates/page.tsx', code);
-console.log('Restored getRouteBafMetrics');
+fs.writeFileSync("app/rates/page.tsx", code);
+console.log("Restored getRouteBafMetrics");

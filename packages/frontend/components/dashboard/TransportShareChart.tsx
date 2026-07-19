@@ -1,8 +1,14 @@
 "use client";
-import React from 'react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import React from "react";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
-export default function TransportShareChart({ data, colors }: { data: any[], colors: Record<string, string> }) {
+export default function TransportShareChart({
+  data,
+  colors,
+}: {
+  data: any[];
+  colors: Record<string, string>;
+}) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <PieChart>
@@ -17,12 +23,18 @@ export default function TransportShareChart({ data, colors }: { data: any[], col
           stroke="none"
         >
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={colors[entry.name] || '#666'} />
+            <Cell key={`cell-${index}`} fill={colors[entry.name] || "#666"} />
           ))}
         </Pie>
-        <Tooltip 
-          contentStyle={{ backgroundColor: '#111114', borderColor: '#333', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold' }}
-          itemStyle={{ color: '#fff' }}
+        <Tooltip
+          contentStyle={{
+            backgroundColor: "#111114",
+            borderColor: "#333",
+            borderRadius: "8px",
+            fontSize: "11px",
+            fontWeight: "bold",
+          }}
+          itemStyle={{ color: "#fff" }}
         />
       </PieChart>
     </ResponsiveContainer>

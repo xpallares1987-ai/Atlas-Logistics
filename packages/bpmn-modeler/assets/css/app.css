@@ -45,9 +45,15 @@
   border-radius: 2px;
 }
 
-.legend-item.added::before { background-color: #10b981; }
-.legend-item.changed::before { background-color: #f59e0b; }
-.legend-item.removed::before { background-color: #ef4444; }
+.legend-item.added::before {
+  background-color: #10b981;
+}
+.legend-item.changed::before {
+  background-color: #f59e0b;
+}
+.legend-item.removed::before {
+  background-color: #ef4444;
+}
 
 .diff-canvas {
   flex: 1;

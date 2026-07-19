@@ -4,7 +4,15 @@
  */
 
 import React, { useState } from "react";
-import { Sparkles, RefreshCw, AlertCircle, TrendingDown, Users, Activity, FileDown } from "lucide-react";
+import {
+  Sparkles,
+  RefreshCw,
+  AlertCircle,
+  TrendingDown,
+  Users,
+  Activity,
+  FileDown,
+} from "lucide-react";
 import { FreightRate } from "../types";
 import { getLogisticsInsights } from "../services/geminiService";
 import { generateExecutiveReport } from "../services/reportService";
@@ -47,15 +55,23 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({ rates }) => {
   };
 
   return (
-    <div id="ai-insights-container" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-6">
+    <div
+      id="ai-insights-container"
+      className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-6"
+    >
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Análisis Estratégico IA (Phase 4)</h3>
-            <p className="text-[10px] text-slate-400 font-medium">Reportes ejecutivos e insights generados mediante Gemini 1.5 Flash.</p>
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">
+              Análisis Estratégico IA (Phase 4)
+            </h3>
+            <p className="text-[10px] text-slate-400 font-medium">
+              Reportes ejecutivos e insights generados mediante Gemini 1.5
+              Flash.
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -65,7 +81,11 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({ rates }) => {
               disabled={isExporting}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-100"
             >
-              {isExporting ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+              {isExporting ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileDown className="h-3.5 w-3.5" />
+              )}
               EXPORT PDF
             </button>
           )}
@@ -92,7 +112,8 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({ rates }) => {
         <div className="border-2 border-dashed border-slate-100 rounded-2xl p-10 text-center">
           <Sparkles className="h-8 w-8 text-slate-200 mx-auto mb-3" />
           <p className="text-xs text-slate-400 font-medium max-w-xs mx-auto">
-            Haga clic en el botón superior para realizar un análisis avanzado de las tarifas cargadas actualmente.
+            Haga clic en el botón superior para realizar un análisis avanzado de
+            las tarifas cargadas actualmente.
           </p>
         </div>
       )}
@@ -120,19 +141,25 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({ rates }) => {
               {insights}
             </div>
           </div>
-          
+
           <div className="mt-6 pt-4 border-t border-slate-150 grid grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
               <TrendingDown className="h-3.5 w-3.5 text-emerald-500" />
-              <span className="text-[9px] font-black text-slate-400 uppercase">Ahorro Estimado</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase">
+                Ahorro Estimado
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <Users className="h-3.5 w-3.5 text-indigo-500" />
-              <span className="text-[9px] font-black text-slate-400 uppercase">Competencia Detectada</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase">
+                Competencia Detectada
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <Activity className="h-3.5 w-3.5 text-amber-500" />
-              <span className="text-[9px] font-black text-slate-400 uppercase">Volatilidad de Rutas</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase">
+                Volatilidad de Rutas
+              </span>
             </div>
           </div>
         </div>
