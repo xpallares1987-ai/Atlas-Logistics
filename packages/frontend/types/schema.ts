@@ -1,5 +1,5 @@
-export type DocumentType = 'HBL' | 'MBL' | 'MANIFEST' | 'COMMERCIAL_INVOICE';
-export type DocumentStatus = 'DRAFT' | 'ISSUED' | 'APPROVED' | 'VOID';
+export type DocumentType = "HBL" | "MBL" | "MANIFEST" | "COMMERCIAL_INVOICE";
+export type DocumentStatus = "DRAFT" | "ISSUED" | "APPROVED" | "VOID";
 
 export interface BLLineItem {
   id: string;
@@ -24,7 +24,7 @@ export interface BLPayload {
   numberOfOriginals: string;
   declaredValue: string;
   lines: BLLineItem[];
-  freightTerms: 'PREPAID' | 'COLLECT';
+  freightTerms: "PREPAID" | "COLLECT";
   remarks: string;
 }
 
@@ -59,7 +59,17 @@ export interface DocumentRecord {
   updatedAt: string;
 }
 
-export type MilestoneType = 'BOOKING_CONFIRMED' | 'EMPTY_PICKUP' | 'GATE_IN' | 'LOADED_ON_VESSEL' | 'ETD' | 'TRANSSHIPMENT' | 'ETA' | 'DISCHARGED' | 'GATE_OUT' | 'DELIVERED';
+export type MilestoneType =
+  | "BOOKING_CONFIRMED"
+  | "EMPTY_PICKUP"
+  | "GATE_IN"
+  | "LOADED_ON_VESSEL"
+  | "ETD"
+  | "TRANSSHIPMENT"
+  | "ETA"
+  | "DISCHARGED"
+  | "GATE_OUT"
+  | "DELIVERED";
 
 export interface TrackingMilestone {
   id: string;
@@ -69,7 +79,7 @@ export interface TrackingMilestone {
   location: string;
   date: string;
   description: string;
-  status: 'PENDING' | 'COMPLETED' | 'DELAYED';
+  status: "PENDING" | "COMPLETED" | "DELAYED";
   createdAt: string;
 }
 

@@ -12,7 +12,8 @@ module.exports = {
     { type: "build", section: "Build System", hidden: true },
     { type: "ci", section: "CI/CD", hidden: true },
   ],
-  commitUrlFormat: "{{host}}/xpallares1987-ai/Shipment-Dashboard/commit/{{hash}}",
+  commitUrlFormat:
+    "{{host}}/xpallares1987-ai/Shipment-Dashboard/commit/{{hash}}",
   compareUrlFormat:
     "{{host}}/xpallares1987-ai/Shipment-Dashboard/compare/{{previousTag}}...{{currentTag}}",
   issueUrlFormat: "{{host}}/xpallares1987-ai/Shipment-Dashboard/issues/{{id}}",

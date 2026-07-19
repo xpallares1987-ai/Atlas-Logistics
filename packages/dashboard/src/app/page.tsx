@@ -1,4 +1,4 @@
-import ClientDashboard from './ClientDashboard';
+import ClientDashboard from "./ClientDashboard";
 
 /**
  * Dashboard Page (Server Component)
@@ -8,4 +8,3 @@ import ClientDashboard from './ClientDashboard';
 export default function DashboardPage() {
   return <ClientDashboard />;
 }
-

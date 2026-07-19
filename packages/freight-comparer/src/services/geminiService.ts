@@ -7,7 +7,9 @@ import { GoogleGenAI } from "@google/genai";
 import { FreightRate } from "../types";
 import { analysisCache, AnalysisCache } from "@atlas/ui";
 
-const API_KEY = (import.meta as unknown as { env: Record<string, string> }).env.VITE_GEMINI_API_KEY || "";
+const API_KEY =
+  (import.meta as unknown as { env: Record<string, string> }).env
+    .VITE_GEMINI_API_KEY || "";
 
 /**
  * Summarizes freight rate data to optimize token usage before sending to Gemini.
@@ -16,17 +18,20 @@ const API_KEY = (import.meta as unknown as { env: Record<string, string> }).env.
 export function summarizeRatesForAI(rates: FreightRate[]) {
   if (rates.length === 0) return [];
 
-  const lanes: Record<string, {
-    pol: string;
-    pod: string;
-    carriers: Set<string>;
-    prices: number[];
-    min: number;
-    max: number;
-    avg: number;
-  }> = {};
+  const lanes: Record<
+    string,
+    {
+      pol: string;
+      pod: string;
+      carriers: Set<string>;
+      prices: number[];
+      min: number;
+      max: number;
+      avg: number;
+    }
+  > = {};
 
-  rates.forEach(r => {
+  rates.forEach((r) => {
     const key = `${r.pol} -> ${r.pod}`;
     if (!lanes[key]) {
       lanes[key] = {
@@ -36,7 +41,7 @@ export function summarizeRatesForAI(rates: FreightRate[]) {
         prices: [],
         min: Infinity,
         max: -Infinity,
-        avg: 0
+        avg: 0,
       };
     }
     lanes[key].carriers.add(r.carrier);
@@ -45,7 +50,7 @@ export function summarizeRatesForAI(rates: FreightRate[]) {
     if (r.total > lanes[key].max) lanes[key].max = r.total;
   });
 
-  return Object.values(lanes).map(l => {
+  return Object.values(lanes).map((l) => {
     const sum = l.prices.reduce((a, b) => a + b, 0);
     l.avg = Math.round(sum / l.prices.length);
     return {
@@ -55,7 +60,7 @@ export function summarizeRatesForAI(rates: FreightRate[]) {
       min_rate: l.min,
       max_rate: l.max,
       avg_rate: l.avg,
-      sample_size: l.prices.length
+      sample_size: l.prices.length,
     };
   });
 }
@@ -64,9 +69,13 @@ export function summarizeRatesForAI(rates: FreightRate[]) {
  * Calls Gemini API to get strategic logistics insights based on summarized data.
  * Results are cached in IndexedDB to minimize token usage and improve performance.
  */
-export async function getLogisticsInsights(rates: FreightRate[]): Promise<string> {
+export async function getLogisticsInsights(
+  rates: FreightRate[],
+): Promise<string> {
   if (!API_KEY) {
-    console.warn("[GeminiService] VITE_GEMINI_API_KEY not found in environment.");
+    console.warn(
+      "[GeminiService] VITE_GEMINI_API_KEY not found in environment.",
+    );
     return "Error: API Key de Gemini no configurada.";
   }
 
@@ -75,7 +84,7 @@ export async function getLogisticsInsights(rates: FreightRate[]): Promise<string
   }
 
   const summary = summarizeRatesForAI(rates);
-  
+
   // 1. Check cache first
   const cacheKey = AnalysisCache.generateKey(summary);
   const cachedResult = await analysisCache.get<string>(cacheKey);
@@ -112,17 +121,16 @@ export async function getLogisticsInsights(rates: FreightRate[]): Promise<string
       config: {
         temperature: 0.2,
         topP: 0.8,
-      }
+      },
     });
     const text = (response.text || "").trim();
-    
+
     // 2. Store in cache
     await analysisCache.set(cacheKey, text);
-    
+
     return text;
   } catch (error) {
     console.error("[GeminiService] Error calling Gemini API:", error);
     return "Error al generar insights de IA. Por favor, revise la consola para más detalles.";
   }
 }
-

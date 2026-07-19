@@ -27,28 +27,48 @@ interface CarrierData {
 function aggregateCarrierPerformance(rates: FreightRate[]): CarrierData[] {
   const carrierStats: Record<
     string,
-    { total: number; sumPrice: number; lFreeO: number; lFreeD: number; freeCountO: number; freeCountD: number }
+    {
+      total: number;
+      sumPrice: number;
+      lFreeO: number;
+      lFreeD: number;
+      freeCountO: number;
+      freeCountD: number;
+    }
   > = {};
 
   rates.forEach((r) => {
     const k = r.carrier.trim();
     if (!k) return;
     if (!carrierStats[k]) {
-      carrierStats[k] = { total: 0, sumPrice: 0, lFreeO: 0, lFreeD: 0, freeCountO: 0, freeCountD: 0 };
+      carrierStats[k] = {
+        total: 0,
+        sumPrice: 0,
+        lFreeO: 0,
+        lFreeD: 0,
+        freeCountO: 0,
+        freeCountD: 0,
+      };
     }
     carrierStats[k].total += 1;
     carrierStats[k].sumPrice += r.total || 0;
 
     // Accumulate free days if available
     if (r.diasLibresOrigen !== undefined) {
-      const parsed = typeof r.diasLibresOrigen === "number" ? r.diasLibresOrigen : parseInt(String(r.diasLibresOrigen), 10);
+      const parsed =
+        typeof r.diasLibresOrigen === "number"
+          ? r.diasLibresOrigen
+          : parseInt(String(r.diasLibresOrigen), 10);
       if (!isNaN(parsed) && parsed > 0) {
         carrierStats[k].lFreeO += parsed;
         carrierStats[k].freeCountO += 1;
       }
     }
     if (r.diasLibresDestino !== undefined) {
-      const parsed = typeof r.diasLibresDestino === "number" ? r.diasLibresDestino : parseInt(String(r.diasLibresDestino), 10);
+      const parsed =
+        typeof r.diasLibresDestino === "number"
+          ? r.diasLibresDestino
+          : parseInt(String(r.diasLibresDestino), 10);
       if (!isNaN(parsed) && parsed > 0) {
         carrierStats[k].lFreeD += parsed;
         carrierStats[k].freeCountD += 1;
@@ -59,11 +79,11 @@ function aggregateCarrierPerformance(rates: FreightRate[]): CarrierData[] {
   return Object.entries(carrierStats).map(([name, data]) => {
     const avgPrice = data.sumPrice / data.total;
     const norm = name.toUpperCase();
-    
+
     // Baseline values for top providers
-    let baseReliability = 76; 
+    let baseReliability = 76;
     let baseDelay = 3.0;
-    
+
     if (norm.includes("MAERSK")) {
       baseReliability = 84.5;
       baseDelay = 1.9;
@@ -112,8 +132,10 @@ function aggregateCarrierPerformance(rates: FreightRate[]): CarrierData[] {
     adjustedReliability = Math.min(97.2, Math.max(54.0, adjustedReliability));
     adjustedDelay = Math.min(6.3, Math.max(0.7, adjustedDelay));
 
-    const finalFreeO = data.freeCountO > 0 ? Math.round(data.lFreeO / data.freeCountO) : 7;
-    const finalFreeD = data.freeCountD > 0 ? Math.round(data.lFreeD / data.freeCountD) : 7;
+    const finalFreeO =
+      data.freeCountO > 0 ? Math.round(data.lFreeO / data.freeCountO) : 7;
+    const finalFreeD =
+      data.freeCountD > 0 ? Math.round(data.lFreeD / data.freeCountD) : 7;
 
     return {
       carrierName: name,
@@ -122,22 +144,32 @@ function aggregateCarrierPerformance(rates: FreightRate[]): CarrierData[] {
       avgPrice: Math.round(avgPrice),
       lanesCount: data.total,
       freeDaysOrigin: finalFreeO,
-      freeDaysDest: finalFreeD
+      freeDaysDest: finalFreeD,
     };
   });
 }
 
-export default function CarrierPerformance({ filteredRates }: CarrierPerformanceProps) {
+export default function CarrierPerformance({
+  filteredRates,
+}: CarrierPerformanceProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const reliabilitySvgRef = useRef<SVGSVGElement>(null);
   const delaySvgRef = useRef<SVGSVGElement>(null);
 
-  const [hoveredCarrier, setHoveredCarrier] = useState<CarrierData | null>(null);
-  const [activeTab, setActiveTab] = useState<"reliability" | "delay">("reliability");
-  const prevDataRef = useRef<Record<string, { reliability: number; delay: number; y: number }>>({});
+  const [hoveredCarrier, setHoveredCarrier] = useState<CarrierData | null>(
+    null,
+  );
+  const [activeTab, setActiveTab] = useState<"reliability" | "delay">(
+    "reliability",
+  );
+  const prevDataRef = useRef<
+    Record<string, { reliability: number; delay: number; y: number }>
+  >({});
 
   const carrierData = useMemo(() => {
-    return aggregateCarrierPerformance(filteredRates).sort((a, b) => b.carrierName.localeCompare(a.carrierName));
+    return aggregateCarrierPerformance(filteredRates).sort((a, b) =>
+      b.carrierName.localeCompare(a.carrierName),
+    );
   }, [filteredRates]);
 
   // Handle D3 rendering for Schedule Reliability (Horizontal Bar Chart)
@@ -180,7 +212,7 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
           .axisBottom(x)
           .ticks(5)
           .tickSize(-innerHeight)
-          .tickFormat(() => "")
+          .tickFormat(() => ""),
       )
       .call((gGroup) => gGroup.select(".domain").remove())
       .selectAll(".tick line")
@@ -195,7 +227,7 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
         d3
           .axisBottom(x)
           .ticks(5)
-          .tickFormat((v) => `${v}%`)
+          .tickFormat((v) => `${v}%`),
       )
       .call((gGroup) => gGroup.select(".domain").attr("stroke", "#cbd5e1"))
       .selectAll("text")
@@ -215,14 +247,26 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
 
     // Gradients for bars
     const defs = svgElement.append("defs");
-    
+
     // Emerald gradient (High)
-    const emGrad = defs.append("linearGradient").attr("id", "em-grad").attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "0%");
+    const emGrad = defs
+      .append("linearGradient")
+      .attr("id", "em-grad")
+      .attr("x1", "0%")
+      .attr("y1", "0%")
+      .attr("x2", "100%")
+      .attr("y2", "0%");
     emGrad.append("stop").attr("offset", "0%").attr("stop-color", "#6ee7b7");
     emGrad.append("stop").attr("offset", "100%").attr("stop-color", "#10b981");
 
     // Orange gradient (Mid)
-    const orGrad = defs.append("linearGradient").attr("id", "or-grad").attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "0%");
+    const orGrad = defs
+      .append("linearGradient")
+      .attr("id", "or-grad")
+      .attr("x1", "0%")
+      .attr("y1", "0%")
+      .attr("x2", "100%")
+      .attr("y2", "0%");
     orGrad.append("stop").attr("offset", "0%").attr("stop-color", "#fdba74");
     orGrad.append("stop").attr("offset", "100%").attr("stop-color", "#f97316");
 
@@ -239,7 +283,7 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("class", "color-bar")
       .attr("y", (d: any) => {
         const prev = prevDataRef.current[d.carrierName];
-        return prev !== undefined ? prev.y : (y(d.carrierName) || 0);
+        return prev !== undefined ? prev.y : y(d.carrierName) || 0;
       })
       .attr("height", y.bandwidth())
       .attr("x", 0)
@@ -261,15 +305,19 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .ease(d3.easeCubicOut)
       .attr("y", (d: any) => y(d.carrierName) || 0)
       .attr("width", (d: any) => x(d.reliability))
-      .attr("fill", (d: any) => (d.reliability >= 78 ? "url(#em-grad)" : "url(#or-grad)"));
+      .attr("fill", (d: any) =>
+        d.reliability >= 78 ? "url(#em-grad)" : "url(#or-grad)",
+      );
 
     // Custom SVG tooltip overlay for reliability chart
-    const tooltipGroup = svgElement.append("g")
+    const tooltipGroup = svgElement
+      .append("g")
       .attr("class", "svg-tooltip")
       .style("pointer-events", "none")
       .style("opacity", 0);
 
-    tooltipGroup.append("rect")
+    tooltipGroup
+      .append("rect")
       .attr("width", 285)
       .attr("height", 58)
       .attr("rx", 6)
@@ -279,7 +327,8 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("opacity", 0.96);
 
     // Divider line between carrier details and thresholds dynamic legend
-    tooltipGroup.append("line")
+    tooltipGroup
+      .append("line")
       .attr("x1", 145)
       .attr("y1", 8)
       .attr("x2", 145)
@@ -289,10 +338,12 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("stroke-dasharray", "2,2");
 
     // Dynamic legend labels in top-right corner of the tooltip box
-    const legendBoxGroup = tooltipGroup.append("g")
+    const legendBoxGroup = tooltipGroup
+      .append("g")
       .attr("transform", "translate(152, 0)");
 
-    legendBoxGroup.append("text")
+    legendBoxGroup
+      .append("text")
       .attr("x", 0)
       .attr("y", 15)
       .attr("fill", "#94a3b8")
@@ -302,37 +353,44 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("letter-spacing", "0.5px")
       .text("METRIC BENCHMARKS");
 
-    const legRelIndicator = legendBoxGroup.append("g")
+    const legRelIndicator = legendBoxGroup
+      .append("g")
       .attr("transform", "translate(0, 27)");
 
-    const legRelDot = legRelIndicator.append("circle")
+    const legRelDot = legRelIndicator
+      .append("circle")
       .attr("cx", 4)
       .attr("cy", -1.5)
       .attr("r", 3);
 
-    const legRelText = legRelIndicator.append("text")
+    const legRelText = legRelIndicator
+      .append("text")
       .attr("x", 12)
       .attr("y", 1.5)
       .attr("font-size", "8px")
       .attr("font-weight", "bold")
       .attr("font-family", "sans-serif");
 
-    const legDelayIndicator = legendBoxGroup.append("g")
+    const legDelayIndicator = legendBoxGroup
+      .append("g")
       .attr("transform", "translate(0, 42)");
 
-    const legDelayDot = legDelayIndicator.append("circle")
+    const legDelayDot = legDelayIndicator
+      .append("circle")
       .attr("cx", 4)
       .attr("cy", -1.5)
       .attr("r", 3);
 
-    const legDelayText = legDelayIndicator.append("text")
+    const legDelayText = legDelayIndicator
+      .append("text")
       .attr("x", 12)
       .attr("y", 1.5)
       .attr("font-size", "8px")
       .attr("font-weight", "bold")
       .attr("font-family", "sans-serif");
 
-    const tooltipTitle = tooltipGroup.append("text")
+    const tooltipTitle = tooltipGroup
+      .append("text")
       .attr("x", 10)
       .attr("y", 16)
       .attr("fill", "#ffffff")
@@ -340,7 +398,8 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("font-weight", "extrabold")
       .attr("font-family", "sans-serif");
 
-    const tooltipRel = tooltipGroup.append("text")
+    const tooltipRel = tooltipGroup
+      .append("text")
       .attr("x", 10)
       .attr("y", 31)
       .attr("fill", "#10b981") // emerald for reliability
@@ -348,7 +407,8 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("font-weight", "bold")
       .attr("font-family", "monospace");
 
-    const tooltipDelay = tooltipGroup.append("text")
+    const tooltipDelay = tooltipGroup
+      .append("text")
       .attr("x", 10)
       .attr("y", 45)
       .attr("fill", "#38bdf8") // sky for delay
@@ -381,7 +441,7 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
         const [mx, my] = d3.pointer(event, svgElement.node());
         const tx = mx + 20 > width - 285 ? mx - 285 - 15 : mx + 20;
         const ty = my - 25 < 0 ? my + 15 : my - 25;
-        
+
         tooltipGroup.attr("transform", `translate(${tx}, ${ty})`);
         tooltipTitle.text(d.carrierName);
         tooltipRel.text(`Reliability: ${d.reliability}%`);
@@ -422,7 +482,7 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("class", "bar-label")
       .attr("y", (d: any) => {
         const prev = prevDataRef.current[d.carrierName];
-        const prevY = prev !== undefined ? prev.y : (y(d.carrierName) || 0);
+        const prevY = prev !== undefined ? prev.y : y(d.carrierName) || 0;
         return prevY + y.bandwidth() / 2 + 3.5;
       })
       .attr("x", (d: any) => {
@@ -441,16 +501,19 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("x", (d: any) => x(d.reliability) + 8);
 
     // D3 Legend Below Chart
-    const legend = g.append("g")
+    const legend = g
+      .append("g")
       .attr("transform", `translate(0, ${innerHeight + 32})`);
 
     const leg1 = legend.append("g").attr("transform", "translate(15, 0)");
-    leg1.append("rect")
+    leg1
+      .append("rect")
       .attr("width", 12)
       .attr("height", 8)
       .attr("rx", 2)
       .attr("fill", "url(#em-grad)");
-    leg1.append("text")
+    leg1
+      .append("text")
       .attr("x", 18)
       .attr("y", 8)
       .attr("fill", "#475569")
@@ -460,7 +523,8 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .text("Excellent Reliability (≥ 78%)");
 
     // Interactive hitbox for Legend 1
-    leg1.append("rect")
+    leg1
+      .append("rect")
       .attr("width", 160)
       .attr("height", 14)
       .attr("y", -3)
@@ -472,41 +536,58 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
         d3.selectAll(".color-bar")
           .transition()
           .duration(200)
-          .attr("opacity", (d: any) => d.reliability >= 78 ? 1.0 : 0.15)
-          .attr("transform", (d: any) => d.reliability >= 78 ? "scale(1, 1.25)" : "scale(1, 1)")
-          .style("transform-origin", (d: any) => `0px ${(y(d.carrierName) || 0) + y.bandwidth() / 2}px`);
+          .attr("opacity", (d: any) => (d.reliability >= 78 ? 1.0 : 0.15))
+          .attr("transform", (d: any) =>
+            d.reliability >= 78 ? "scale(1, 1.25)" : "scale(1, 1)",
+          )
+          .style(
+            "transform-origin",
+            (d: any) => `0px ${(y(d.carrierName) || 0) + y.bandwidth() / 2}px`,
+          );
 
         d3.selectAll(".bar-label")
           .transition()
           .duration(200)
-          .attr("opacity", (d: any) => d.reliability >= 78 ? 1.0 : 0.15)
-          .attr("transform", (d: any) => d.reliability >= 78 ? "scale(1.2)" : "scale(1)")
-          .style("transform-origin", (d: any) => `${x(d.reliability) + 8}px ${(y(d.carrierName) || 0) + y.bandwidth() / 2}px`);
+          .attr("opacity", (d: any) => (d.reliability >= 78 ? 1.0 : 0.15))
+          .attr("transform", (d: any) =>
+            d.reliability >= 78 ? "scale(1.2)" : "scale(1)",
+          )
+          .style(
+            "transform-origin",
+            (d: any) =>
+              `${x(d.reliability) + 8}px ${(y(d.carrierName) || 0) + y.bandwidth() / 2}px`,
+          );
 
         leg1.select("text").attr("fill", "#4f46e5");
 
-        const parentNode = document.querySelector("#carrier-performance-analytics-card .lg\\:col-span-8");
+        const parentNode = document.querySelector(
+          "#carrier-performance-analytics-card .lg\\:col-span-8",
+        );
         if (parentNode) {
           const rect = parentNode.getBoundingClientRect();
           const left = event.clientX - rect.left + 15;
           const top = event.clientY - rect.top - 65;
-          
+
           d3.select("#legend-tooltip-d3")
             .style("left", `${left}px`)
             .style("top", `${top}px`)
             .style("opacity", 1);
-            
+
           d3.select("#legend-tooltip-title").text("Excellent Reliability");
-          d3.select("#legend-tooltip-desc").text("Consistently high schedule adherence. Minimizes supply chain disruption and ensures timely cargo handling.");
+          d3.select("#legend-tooltip-desc").text(
+            "Consistently high schedule adherence. Minimizes supply chain disruption and ensures timely cargo handling.",
+          );
         }
       })
       .on("mousemove", (event) => {
-        const parentNode = document.querySelector("#carrier-performance-analytics-card .lg\\:col-span-8");
+        const parentNode = document.querySelector(
+          "#carrier-performance-analytics-card .lg\\:col-span-8",
+        );
         if (parentNode) {
           const rect = parentNode.getBoundingClientRect();
           const left = event.clientX - rect.left + 15;
           const top = event.clientY - rect.top - 65;
-          
+
           d3.select("#legend-tooltip-d3")
             .style("left", `${left}px`)
             .style("top", `${top}px`);
@@ -530,12 +611,14 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       });
 
     const leg2 = legend.append("g").attr("transform", "translate(195, 0)");
-    leg2.append("rect")
+    leg2
+      .append("rect")
       .attr("width", 12)
       .attr("height", 8)
       .attr("rx", 2)
       .attr("fill", "url(#or-grad)");
-    leg2.append("text")
+    leg2
+      .append("text")
       .attr("x", 18)
       .attr("y", 8)
       .attr("fill", "#475569")
@@ -545,7 +628,8 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .text("Standard Reliability (< 78%)");
 
     // Interactive hitbox for Legend 2
-    leg2.append("rect")
+    leg2
+      .append("rect")
       .attr("width", 160)
       .attr("height", 14)
       .attr("y", -3)
@@ -557,41 +641,58 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
         d3.selectAll(".color-bar")
           .transition()
           .duration(200)
-          .attr("opacity", (d: any) => d.reliability < 78 ? 1.0 : 0.15)
-          .attr("transform", (d: any) => d.reliability < 78 ? "scale(1, 1.25)" : "scale(1, 1)")
-          .style("transform-origin", (d: any) => `0px ${(y(d.carrierName) || 0) + y.bandwidth() / 2}px`);
+          .attr("opacity", (d: any) => (d.reliability < 78 ? 1.0 : 0.15))
+          .attr("transform", (d: any) =>
+            d.reliability < 78 ? "scale(1, 1.25)" : "scale(1, 1)",
+          )
+          .style(
+            "transform-origin",
+            (d: any) => `0px ${(y(d.carrierName) || 0) + y.bandwidth() / 2}px`,
+          );
 
         d3.selectAll(".bar-label")
           .transition()
           .duration(200)
-          .attr("opacity", (d: any) => d.reliability < 78 ? 1.0 : 0.15)
-          .attr("transform", (d: any) => d.reliability < 78 ? "scale(1.2)" : "scale(1)")
-          .style("transform-origin", (d: any) => `${x(d.reliability) + 8}px ${(y(d.carrierName) || 0) + y.bandwidth() / 2}px`);
+          .attr("opacity", (d: any) => (d.reliability < 78 ? 1.0 : 0.15))
+          .attr("transform", (d: any) =>
+            d.reliability < 78 ? "scale(1.2)" : "scale(1)",
+          )
+          .style(
+            "transform-origin",
+            (d: any) =>
+              `${x(d.reliability) + 8}px ${(y(d.carrierName) || 0) + y.bandwidth() / 2}px`,
+          );
 
         leg2.select("text").attr("fill", "#4f46e5");
 
-        const parentNode = document.querySelector("#carrier-performance-analytics-card .lg\\:col-span-8");
+        const parentNode = document.querySelector(
+          "#carrier-performance-analytics-card .lg\\:col-span-8",
+        );
         if (parentNode) {
           const rect = parentNode.getBoundingClientRect();
           const left = event.clientX - rect.left + 15;
           const top = event.clientY - rect.top - 65;
-          
+
           d3.select("#legend-tooltip-d3")
             .style("left", `${left}px`)
             .style("top", `${top}px`)
             .style("opacity", 1);
-            
+
           d3.select("#legend-tooltip-title").text("Standard Reliability");
-          d3.select("#legend-tooltip-desc").text("Standard or below-average schedule adherence. Subject to potential port congestion and transit variations.");
+          d3.select("#legend-tooltip-desc").text(
+            "Standard or below-average schedule adherence. Subject to potential port congestion and transit variations.",
+          );
         }
       })
       .on("mousemove", (event) => {
-        const parentNode = document.querySelector("#carrier-performance-analytics-card .lg\\:col-span-8");
+        const parentNode = document.querySelector(
+          "#carrier-performance-analytics-card .lg\\:col-span-8",
+        );
         if (parentNode) {
           const rect = parentNode.getBoundingClientRect();
           const left = event.clientX - rect.left + 15;
           const top = event.clientY - rect.top - 65;
-          
+
           d3.select("#legend-tooltip-d3")
             .style("left", `${left}px`)
             .style("top", `${top}px`);
@@ -622,7 +723,6 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
         y: y(d.carrierName) || 0,
       };
     });
-
   }, [carrierData]);
 
   // Handle D3 rendering for Transit Delay in Days (Lollipop Plot)
@@ -683,7 +783,7 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
         d3
           .axisBottom(x)
           .ticks(6)
-          .tickFormat((v) => `${v}d`)
+          .tickFormat((v) => `${v}d`),
       )
       .call((gGroup) => gGroup.select(".domain").attr("stroke", "#cbd5e1"))
       .selectAll("text")
@@ -707,17 +807,21 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .data(carrierData)
       .enter()
       .append("g")
-      .attr("class", "lollipop-row");    // Lollipop Stick line (starts at 0/previous and grows/moves)
+      .attr("class", "lollipop-row"); // Lollipop Stick line (starts at 0/previous and grows/moves)
     rows
       .append("line")
       .attr("class", "lollipop-line")
       .attr("y1", (d: any) => {
         const prev = prevDataRef.current[d.carrierName];
-        return prev !== undefined ? (prev.y + y.bandwidth() / 2) : ((y(d.carrierName) || 0) + y.bandwidth() / 2);
+        return prev !== undefined
+          ? prev.y + y.bandwidth() / 2
+          : (y(d.carrierName) || 0) + y.bandwidth() / 2;
       })
       .attr("y2", (d: any) => {
         const prev = prevDataRef.current[d.carrierName];
-        return prev !== undefined ? (prev.y + y.bandwidth() / 2) : ((y(d.carrierName) || 0) + y.bandwidth() / 2);
+        return prev !== undefined
+          ? prev.y + y.bandwidth() / 2
+          : (y(d.carrierName) || 0) + y.bandwidth() / 2;
       })
       .attr("x1", 0)
       .attr("stroke", (d: any) => {
@@ -739,14 +843,16 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("y2", (d: any) => (y(d.carrierName) || 0) + y.bandwidth() / 2)
       .attr("x2", (d: any) => x(d.delay))
       .attr("stroke", (d: any) => (d.delay > 3 ? "#fee2e2" : "#e0e7ff"));
- 
+
     // Lollipop Node (animated)
     rows
       .append("circle")
       .attr("class", "lollipop-circle")
       .attr("cy", (d: any) => {
         const prev = prevDataRef.current[d.carrierName];
-        return prev !== undefined ? (prev.y + y.bandwidth() / 2) : ((y(d.carrierName) || 0) + y.bandwidth() / 2);
+        return prev !== undefined
+          ? prev.y + y.bandwidth() / 2
+          : (y(d.carrierName) || 0) + y.bandwidth() / 2;
       })
       .attr("r", 5.5)
       .attr("fill", (d: any) => {
@@ -769,12 +875,14 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("fill", (d: any) => (d.delay > 3 ? "#ef4444" : "#4f46e5"));
 
     // Custom SVG tooltip overlay for transit delay chart
-    const tooltipGroup = svgElement.append("g")
+    const tooltipGroup = svgElement
+      .append("g")
       .attr("class", "svg-tooltip")
       .style("pointer-events", "none")
       .style("opacity", 0);
 
-    tooltipGroup.append("rect")
+    tooltipGroup
+      .append("rect")
       .attr("width", 285)
       .attr("height", 58)
       .attr("rx", 6)
@@ -784,7 +892,8 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("opacity", 0.96);
 
     // Divider line between carrier details and thresholds dynamic legend
-    tooltipGroup.append("line")
+    tooltipGroup
+      .append("line")
       .attr("x1", 145)
       .attr("y1", 8)
       .attr("x2", 145)
@@ -794,10 +903,12 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("stroke-dasharray", "2,2");
 
     // Dynamic legend labels in top-right corner of the tooltip box
-    const legendBoxGroup = tooltipGroup.append("g")
+    const legendBoxGroup = tooltipGroup
+      .append("g")
       .attr("transform", "translate(152, 0)");
 
-    legendBoxGroup.append("text")
+    legendBoxGroup
+      .append("text")
       .attr("x", 0)
       .attr("y", 15)
       .attr("fill", "#94a3b8")
@@ -807,37 +918,44 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("letter-spacing", "0.5px")
       .text("METRIC BENCHMARKS");
 
-    const legRelIndicator = legendBoxGroup.append("g")
+    const legRelIndicator = legendBoxGroup
+      .append("g")
       .attr("transform", "translate(0, 27)");
 
-    const legRelDot = legRelIndicator.append("circle")
+    const legRelDot = legRelIndicator
+      .append("circle")
       .attr("cx", 4)
       .attr("cy", -1.5)
       .attr("r", 3);
 
-    const legRelText = legRelIndicator.append("text")
+    const legRelText = legRelIndicator
+      .append("text")
       .attr("x", 12)
       .attr("y", 1.5)
       .attr("font-size", "8px")
       .attr("font-weight", "bold")
       .attr("font-family", "sans-serif");
 
-    const legDelayIndicator = legendBoxGroup.append("g")
+    const legDelayIndicator = legendBoxGroup
+      .append("g")
       .attr("transform", "translate(0, 42)");
 
-    const legDelayDot = legDelayIndicator.append("circle")
+    const legDelayDot = legDelayIndicator
+      .append("circle")
       .attr("cx", 4)
       .attr("cy", -1.5)
       .attr("r", 3);
 
-    const legDelayText = legDelayIndicator.append("text")
+    const legDelayText = legDelayIndicator
+      .append("text")
       .attr("x", 12)
       .attr("y", 1.5)
       .attr("font-size", "8px")
       .attr("font-weight", "bold")
       .attr("font-family", "sans-serif");
 
-    const tooltipTitle = tooltipGroup.append("text")
+    const tooltipTitle = tooltipGroup
+      .append("text")
       .attr("x", 10)
       .attr("y", 16)
       .attr("fill", "#ffffff")
@@ -845,7 +963,8 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("font-weight", "extrabold")
       .attr("font-family", "sans-serif");
 
-    const tooltipRel = tooltipGroup.append("text")
+    const tooltipRel = tooltipGroup
+      .append("text")
       .attr("x", 10)
       .attr("y", 31)
       .attr("fill", "#10b981") // emerald for reliability
@@ -853,7 +972,8 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("font-weight", "bold")
       .attr("font-family", "monospace");
 
-    const tooltipDelay = tooltipGroup.append("text")
+    const tooltipDelay = tooltipGroup
+      .append("text")
       .attr("x", 10)
       .attr("y", 45)
       .attr("fill", "#38bdf8") // sky for delay
@@ -886,7 +1006,7 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
         const [mx, my] = d3.pointer(event, svgElement.node());
         const tx = mx + 20 > width - 285 ? mx - 285 - 15 : mx + 20;
         const ty = my - 25 < 0 ? my + 15 : my - 25;
-        
+
         tooltipGroup.attr("transform", `translate(${tx}, ${ty})`);
         tooltipTitle.text(d.carrierName);
         tooltipRel.text(`Reliability: ${d.reliability}%`);
@@ -927,7 +1047,9 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("class", "lollipop-label")
       .attr("y", (d: any) => {
         const prev = prevDataRef.current[d.carrierName];
-        return prev !== undefined ? (prev.y + y.bandwidth() / 2 + 3.5) : ((y(d.carrierName) || 0) + y.bandwidth() / 2 + 3.5);
+        return prev !== undefined
+          ? prev.y + y.bandwidth() / 2 + 3.5
+          : (y(d.carrierName) || 0) + y.bandwidth() / 2 + 3.5;
       })
       .attr("x", (d: any) => {
         const prev = prevDataRef.current[d.carrierName];
@@ -945,12 +1067,14 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("x", (d: any) => x(d.delay) + 10);
 
     // D3 Legend Below Chart
-    const legend = g.append("g")
+    const legend = g
+      .append("g")
       .attr("transform", `translate(0, ${innerHeight + 32})`);
 
     const leg1 = legend.append("g").attr("transform", "translate(15, 0)");
-    
-    leg1.append("line")
+
+    leg1
+      .append("line")
       .attr("x1", 0)
       .attr("y1", 4)
       .attr("x2", 12)
@@ -958,13 +1082,15 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("stroke", "#cbd5e1")
       .attr("stroke-width", 2);
 
-    leg1.append("circle")
+    leg1
+      .append("circle")
       .attr("cx", 6)
       .attr("cy", 4)
       .attr("r", 4)
       .attr("fill", "#4f46e5");
 
-    leg1.append("text")
+    leg1
+      .append("text")
       .attr("x", 18)
       .attr("y", 7)
       .attr("fill", "#475569")
@@ -973,7 +1099,8 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("font-family", "sans-serif")
       .text("Normal Transit (≤ 3 Days)");
 
-    leg1.append("rect")
+    leg1
+      .append("rect")
       .attr("width", 160)
       .attr("height", 14)
       .attr("y", -3)
@@ -985,46 +1112,58 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
         d3.selectAll(".lollipop-circle")
           .transition()
           .duration(200)
-          .attr("opacity", (d: any) => d.delay <= 3 ? 1.0 : 0.15)
-          .attr("r", (d: any) => d.delay <= 3 ? 8.5 : 5.5);
+          .attr("opacity", (d: any) => (d.delay <= 3 ? 1.0 : 0.15))
+          .attr("r", (d: any) => (d.delay <= 3 ? 8.5 : 5.5));
 
         d3.selectAll(".lollipop-line")
           .transition()
           .duration(200)
-          .attr("opacity", (d: any) => d.delay <= 3 ? 1.0 : 0.15)
-          .attr("stroke-width", (d: any) => d.delay <= 3 ? 4 : 2);
+          .attr("opacity", (d: any) => (d.delay <= 3 ? 1.0 : 0.15))
+          .attr("stroke-width", (d: any) => (d.delay <= 3 ? 4 : 2));
 
         d3.selectAll(".lollipop-label")
           .transition()
           .duration(200)
-          .attr("opacity", (d: any) => d.delay <= 3 ? 1.0 : 0.15)
-          .attr("transform", (d: any) => d.delay <= 3 ? "scale(1.2)" : "scale(1)")
-          .style("transform-origin", (d: any) => `${x(d.delay) + 10}px ${(y(d.carrierName) || 0) + y.bandwidth() / 2 + 3.5}px`);
+          .attr("opacity", (d: any) => (d.delay <= 3 ? 1.0 : 0.15))
+          .attr("transform", (d: any) =>
+            d.delay <= 3 ? "scale(1.2)" : "scale(1)",
+          )
+          .style(
+            "transform-origin",
+            (d: any) =>
+              `${x(d.delay) + 10}px ${(y(d.carrierName) || 0) + y.bandwidth() / 2 + 3.5}px`,
+          );
 
         leg1.select("text").attr("fill", "#4f46e5");
 
-        const parentNode = document.querySelector("#carrier-performance-analytics-card .lg\\:col-span-8");
+        const parentNode = document.querySelector(
+          "#carrier-performance-analytics-card .lg\\:col-span-8",
+        );
         if (parentNode) {
           const rect = parentNode.getBoundingClientRect();
           const left = event.clientX - rect.left + 15;
           const top = event.clientY - rect.top - 65;
-          
+
           d3.select("#legend-tooltip-d3")
             .style("left", `${left}px`)
             .style("top", `${top}px`)
             .style("opacity", 1);
-            
+
           d3.select("#legend-tooltip-title").text("Normal Transit");
-          d3.select("#legend-tooltip-desc").text("Delays within acceptable operational limits. Indicates swift terminal clearance and fluid customs processing.");
+          d3.select("#legend-tooltip-desc").text(
+            "Delays within acceptable operational limits. Indicates swift terminal clearance and fluid customs processing.",
+          );
         }
       })
       .on("mousemove", (event) => {
-        const parentNode = document.querySelector("#carrier-performance-analytics-card .lg\\:col-span-8");
+        const parentNode = document.querySelector(
+          "#carrier-performance-analytics-card .lg\\:col-span-8",
+        );
         if (parentNode) {
           const rect = parentNode.getBoundingClientRect();
           const left = event.clientX - rect.left + 15;
           const top = event.clientY - rect.top - 65;
-          
+
           d3.select("#legend-tooltip-d3")
             .style("left", `${left}px`)
             .style("top", `${top}px`);
@@ -1054,8 +1193,9 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       });
 
     const leg2 = legend.append("g").attr("transform", "translate(195, 0)");
-    
-    leg2.append("line")
+
+    leg2
+      .append("line")
       .attr("x1", 0)
       .attr("y1", 4)
       .attr("x2", 12)
@@ -1063,13 +1203,15 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("stroke", "#fee2e2")
       .attr("stroke-width", 2);
 
-    leg2.append("circle")
+    leg2
+      .append("circle")
       .attr("cx", 6)
       .attr("cy", 4)
       .attr("r", 4)
       .attr("fill", "#ef4444");
 
-    leg2.append("text")
+    leg2
+      .append("text")
       .attr("x", 18)
       .attr("y", 7)
       .attr("fill", "#475569")
@@ -1078,7 +1220,8 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
       .attr("font-family", "sans-serif")
       .text("Port Congestion Warning (> 3 Days)");
 
-    leg2.append("rect")
+    leg2
+      .append("rect")
       .attr("width", 160)
       .attr("height", 14)
       .attr("y", -3)
@@ -1090,46 +1233,58 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
         d3.selectAll(".lollipop-circle")
           .transition()
           .duration(200)
-          .attr("opacity", (d: any) => d.delay > 3 ? 1.0 : 0.15)
-          .attr("r", (d: any) => d.delay > 3 ? 8.5 : 5.5);
+          .attr("opacity", (d: any) => (d.delay > 3 ? 1.0 : 0.15))
+          .attr("r", (d: any) => (d.delay > 3 ? 8.5 : 5.5));
 
         d3.selectAll(".lollipop-line")
           .transition()
           .duration(200)
-          .attr("opacity", (d: any) => d.delay > 3 ? 1.0 : 0.15)
-          .attr("stroke-width", (d: any) => d.delay > 3 ? 4 : 2);
+          .attr("opacity", (d: any) => (d.delay > 3 ? 1.0 : 0.15))
+          .attr("stroke-width", (d: any) => (d.delay > 3 ? 4 : 2));
 
         d3.selectAll(".lollipop-label")
           .transition()
           .duration(200)
-          .attr("opacity", (d: any) => d.delay > 3 ? 1.0 : 0.15)
-          .attr("transform", (d: any) => d.delay > 3 ? "scale(1.2)" : "scale(1)")
-          .style("transform-origin", (d: any) => `${x(d.delay) + 10}px ${(y(d.carrierName) || 0) + y.bandwidth() / 2 + 3.5}px`);
+          .attr("opacity", (d: any) => (d.delay > 3 ? 1.0 : 0.15))
+          .attr("transform", (d: any) =>
+            d.delay > 3 ? "scale(1.2)" : "scale(1)",
+          )
+          .style(
+            "transform-origin",
+            (d: any) =>
+              `${x(d.delay) + 10}px ${(y(d.carrierName) || 0) + y.bandwidth() / 2 + 3.5}px`,
+          );
 
         leg2.select("text").attr("fill", "#4f46e5");
 
-        const parentNode = document.querySelector("#carrier-performance-analytics-card .lg\\:col-span-8");
+        const parentNode = document.querySelector(
+          "#carrier-performance-analytics-card .lg\\:col-span-8",
+        );
         if (parentNode) {
           const rect = parentNode.getBoundingClientRect();
           const left = event.clientX - rect.left + 15;
           const top = event.clientY - rect.top - 65;
-          
+
           d3.select("#legend-tooltip-d3")
             .style("left", `${left}px`)
             .style("top", `${top}px`)
             .style("opacity", 1);
-            
+
           d3.select("#legend-tooltip-title").text("Port Congestion Warning");
-          d3.select("#legend-tooltip-desc").text("Significant transit bottleneck. Common triggers include marine terminal delays, customs audits, or chassis shortages.");
+          d3.select("#legend-tooltip-desc").text(
+            "Significant transit bottleneck. Common triggers include marine terminal delays, customs audits, or chassis shortages.",
+          );
         }
       })
       .on("mousemove", (event) => {
-        const parentNode = document.querySelector("#carrier-performance-analytics-card .lg\\:col-span-8");
+        const parentNode = document.querySelector(
+          "#carrier-performance-analytics-card .lg\\:col-span-8",
+        );
         if (parentNode) {
           const rect = parentNode.getBoundingClientRect();
           const left = event.clientX - rect.left + 15;
           const top = event.clientY - rect.top - 65;
-          
+
           d3.select("#legend-tooltip-d3")
             .style("left", `${left}px`)
             .style("top", `${top}px`);
@@ -1166,14 +1321,16 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
         y: y(d.carrierName) || 0,
       };
     });
-
   }, [carrierData]);
 
   if (filteredRates.length === 0) return null;
 
   return (
-    <div id="carrier-performance-analytics-card" ref={containerRef} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-      
+    <div
+      id="carrier-performance-analytics-card"
+      ref={containerRef}
+      className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"
+    >
       {/* Title block */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
         <div className="flex items-start gap-2.5">
@@ -1188,7 +1345,8 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
               </span>
             </h3>
             <p className="text-[10px] text-slate-400 mt-0.5">
-              Dynamic schedules reliability audit and average container transit delay in days correlation.
+              Dynamic schedules reliability audit and average container transit
+              delay in days correlation.
             </p>
           </div>
         </div>
@@ -1220,38 +1378,58 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
 
       {/* Grid Layout containing chart + mini info board */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
         {/* SVG charts wrapper (8/12 space) */}
         <div className="lg:col-span-8 bg-slate-50/50 rounded-xl border border-slate-150 p-4 relative min-h-[190px] transition-all duration-500 ease-in-out">
-          
           {/* Custom D3 Legend Tooltip */}
           <div
             id="legend-tooltip-d3"
             className="absolute bg-slate-900/95 border border-indigo-500 text-white p-2.5 rounded-lg shadow-lg pointer-events-none opacity-0 transition-opacity duration-200 z-50 max-w-[220px]"
             style={{ left: 0, top: 0 }}
           >
-            <div id="legend-tooltip-title" className="font-extrabold text-[10px] text-indigo-300 uppercase tracking-wider mb-1" />
-            <div id="legend-tooltip-desc" className="text-[9px] text-slate-200 leading-relaxed font-sans" />
+            <div
+              id="legend-tooltip-title"
+              className="font-extrabold text-[10px] text-indigo-300 uppercase tracking-wider mb-1"
+            />
+            <div
+              id="legend-tooltip-desc"
+              className="text-[9px] text-slate-200 leading-relaxed font-sans"
+            />
           </div>
 
-          <div className={`${activeTab === "reliability" ? "block animate-none" : "hidden"}`}>
+          <div
+            className={`${activeTab === "reliability" ? "block animate-none" : "hidden"}`}
+          >
             <div className="flex justify-between items-center mb-2 px-1">
               <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1 font-mono">
-                <Zap className="h-3 w-3 text-emerald-500" /> Average Schedule Reliability %
+                <Zap className="h-3 w-3 text-emerald-500" /> Average Schedule
+                Reliability %
               </span>
-              <span className="text-[8px] text-slate-400 italic font-mono">Target: &gt;80%</span>
+              <span className="text-[8px] text-slate-400 italic font-mono">
+                Target: &gt;80%
+              </span>
             </div>
-            <svg ref={reliabilitySvgRef} className="w-full h-auto overflow-visible transition-all duration-500 ease-in-out" />
+            <svg
+              ref={reliabilitySvgRef}
+              className="w-full h-auto overflow-visible transition-all duration-500 ease-in-out"
+            />
           </div>
 
-          <div className={`${activeTab === "delay" ? "block animate-none" : "hidden"}`}>
+          <div
+            className={`${activeTab === "delay" ? "block animate-none" : "hidden"}`}
+          >
             <div className="flex justify-between items-center mb-2 px-1">
               <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1 font-mono">
-                <Clock className="h-3 w-3 text-indigo-500" /> Average Schedule Transit Delay
+                <Clock className="h-3 w-3 text-indigo-500" /> Average Schedule
+                Transit Delay
               </span>
-              <span className="text-[8px] text-red-500 font-bold italic font-mono">Warning: &gt;3 Days</span>
+              <span className="text-[8px] text-red-500 font-bold italic font-mono">
+                Warning: &gt;3 Days
+              </span>
             </div>
-            <svg ref={delaySvgRef} className="w-full h-auto overflow-visible transition-all duration-500 ease-in-out" />
+            <svg
+              ref={delaySvgRef}
+              className="w-full h-auto overflow-visible transition-all duration-500 ease-in-out"
+            />
           </div>
 
           {/* D3 dynamic cursor feedback overlay */}
@@ -1262,49 +1440,69 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
 
         {/* Sidebar Info & Active Benchmarks Board (4/12 space) */}
         <div className="lg:col-span-4 space-y-4">
-          
           {/* Real-time Tooltip Inspector Box */}
           <div className="bg-slate-950/95 border border-slate-800 text-slate-200 p-4 rounded-xl shadow-lg relative min-h-[145px] flex flex-col justify-between">
             {hoveredCarrier ? (
               <div className="space-y-3">
                 <div className="flex justify-between items-start border-b border-indigo-500/20 pb-2">
-                  <h4 className="text-xs font-black text-indigo-300 tracking-wide uppercase truncate w-32" title={hoveredCarrier.carrierName}>
+                  <h4
+                    className="text-xs font-black text-indigo-300 tracking-wide uppercase truncate w-32"
+                    title={hoveredCarrier.carrierName}
+                  >
                     {hoveredCarrier.carrierName}
                   </h4>
-                  <span className={`text-[8.5px] px-2 py-0.5 rounded font-black tracking-widest leading-none ${
-                    hoveredCarrier.reliability >= 80 
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
-                      : "bg-orange-500/25 text-orange-400 border border-orange-500/20"
-                  }`}>
+                  <span
+                    className={`text-[8.5px] px-2 py-0.5 rounded font-black tracking-widest leading-none ${
+                      hoveredCarrier.reliability >= 80
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        : "bg-orange-500/25 text-orange-400 border border-orange-500/20"
+                    }`}
+                  >
                     {hoveredCarrier.reliability >= 80 ? "EXCELLENT" : "AVERAGE"}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="bg-slate-900 px-2 py-1.5 rounded border border-slate-800/80">
-                    <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider">Reliability</p>
-                    <p className="text-sm font-mono font-extrabold text-white mt-0.5">{hoveredCarrier.reliability}%</p>
+                    <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider">
+                      Reliability
+                    </p>
+                    <p className="text-sm font-mono font-extrabold text-white mt-0.5">
+                      {hoveredCarrier.reliability}%
+                    </p>
                   </div>
                   <div className="bg-slate-900 px-2 py-1.5 rounded border border-slate-800/80">
-                    <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider">Average Delay</p>
-                    <p className={`text-sm font-mono font-extrabold mt-0.5 ${hoveredCarrier.delay > 3.0 ? "text-red-400" : "text-emerald-400"}`}>
+                    <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider">
+                      Average Delay
+                    </p>
+                    <p
+                      className={`text-sm font-mono font-extrabold mt-0.5 ${hoveredCarrier.delay > 3.0 ? "text-red-400" : "text-emerald-400"}`}
+                    >
                       {hoveredCarrier.delay} Days
                     </p>
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center text-[9px] text-slate-400 pt-1 border-t border-slate-900 font-mono">
-                  <span>Free Days: O {hoveredCarrier.freeDaysOrigin}d / D {hoveredCarrier.freeDaysDest}d</span>
-                  <span className="text-slate-500">{hoveredCarrier.lanesCount} Lanes Analyzed</span>
+                  <span>
+                    Free Days: O {hoveredCarrier.freeDaysOrigin}d / D{" "}
+                    {hoveredCarrier.freeDaysDest}d
+                  </span>
+                  <span className="text-slate-500">
+                    {hoveredCarrier.lanesCount} Lanes Analyzed
+                  </span>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center text-center h-full text-slate-400 my-auto py-4 space-y-2">
                 <AlertCircle className="h-6 w-6 text-slate-600 animate-pulse" />
                 <div>
-                  <h5 className="text-[10px] uppercase tracking-wider font-extrabold text-slate-300">Inspector Terminal</h5>
+                  <h5 className="text-[10px] uppercase tracking-wider font-extrabold text-slate-300">
+                    Inspector Terminal
+                  </h5>
                   <p className="text-[9px] text-slate-500 leading-normal max-w-[190px] mt-1 mx-auto">
-                    Move your cursor over any carrier node in the D3 layout to view localized diagnostic information.
+                    Move your cursor over any carrier node in the D3 layout to
+                    view localized diagnostic information.
                   </p>
                 </div>
               </div>
@@ -1318,16 +1516,18 @@ export default function CarrierPerformance({ filteredRates }: CarrierPerformance
               How are these statistics calculated?
             </h5>
             <p>
-              Schedule reliability values simulate actual historic booking success and port clearance times tracked contextually across the selected trade-lanes.
+              Schedule reliability values simulate actual historic booking
+              success and port clearance times tracked contextually across the
+              selected trade-lanes.
             </p>
             <p>
-              Port Congestion Delay captures the median departure/arrival variance relative to the carrier's published pro-forma billing rules.
+              Port Congestion Delay captures the median departure/arrival
+              variance relative to the carrier's published pro-forma billing
+              rules.
             </p>
           </div>
         </div>
-
       </div>
-
     </div>
   );
 }

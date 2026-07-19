@@ -11,5 +11,6 @@
   --spacing-lg: 1.5rem;
 
   /* Tipografía */
-  --font-family-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
