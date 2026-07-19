@@ -4,11 +4,18 @@ import App from "./App";
 import "./i18n";
 import "./index.css";
 import { registerSW } from "virtual:pwa-register";
+import { syncManager } from "@atlas/shared";
 
 // Register service worker for PWA offline capabilities
 if ("serviceWorker" in navigator) {
   registerSW({ immediate: true });
 }
+
+// Automatically sync when connection is restored
+window.addEventListener("online", () => {
+  console.log("Online again. Processing sync queue...");
+  syncManager.processQueue();
+});
 
 // Suppress harmless Three.js deprecation warnings from React-Three-Fiber
 const originalWarn = console.warn;

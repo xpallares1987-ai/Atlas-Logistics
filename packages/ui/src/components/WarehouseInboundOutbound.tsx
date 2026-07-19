@@ -1,6 +1,14 @@
-import { useState } from "react";
-import { ArrowDown, ArrowUp, Zap, Search, Filter, Truck } from "lucide-react";
-import type { WarehouseInventoryItem } from "@atlas/shared";
+import { useState, useEffect } from "react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Zap,
+  Search,
+  Filter,
+  Truck,
+  Save,
+} from "lucide-react";
+import { WarehouseInventoryItem, db, syncManager } from "@atlas/shared";
 
 interface Props {
   mode: "inbound" | "outbound";
@@ -53,10 +61,59 @@ const mockData: WarehouseInventoryItem[] = [
 ];
 
 export function WarehouseInboundOutbound({ mode }: Props) {
-  const [items] = useState<WarehouseInventoryItem[]>(mockData);
+  const [items, setItems] = useState<WarehouseInventoryItem[]>([]);
   const [deviceNumber, setDeviceNumber] = useState(
     mode === "inbound" ? "1234-ABC (Truck)" : "HLXU1234567 (Container)",
   );
+
+  useEffect(() => {
+    const loadData = async () => {
+      let data = await db.warehouseInventory.toArray();
+      if (data.length === 0) {
+        await db.warehouseInventory.bulkAdd(mockData);
+        data = mockData;
+      }
+      setItems(data);
+    };
+    loadData();
+  }, []);
+
+  const saveReceiptOffline = async () => {
+    // Generate a mock new item for demonstration based on mode
+    const newItem: WarehouseInventoryItem = {
+      id: `WHR-${Math.floor(Math.random() * 1000)}`,
+      warehouseId: "WH-BCN-01",
+      ownership: "INTERNAL",
+      customer: "Auto-Generated Receipt",
+      productCode: "NEW-RLL-99",
+      description: `Receipt from ${deviceNumber}`,
+      quantity: 1,
+      zone: mode === "inbound" ? "DRY" : "CROSS_DOCK",
+      metadata: {
+        grammage: 90,
+        diameter: 100,
+        rollWidth: 100,
+        rollLength: 2000,
+        netWeight: 1000,
+        grossWeight: 1050,
+      },
+      receivedAt: new Date().toISOString(),
+      status: "IN_STOCK",
+    };
+
+    // Optimistic UI
+    setItems([newItem, ...items]);
+
+    try {
+      // Persist to Dexie
+      await db.warehouseInventory.add(newItem);
+      // Queue for Backend Sync
+      await syncManager.addToQueue("warehouseInventory", "CREATE", newItem);
+      alert(`✅ Guardado localmente. Se sincronizará en cuanto haya conexión.`);
+    } catch (err) {
+      console.error("Error saving offline:", err);
+    }
+  };
 
   const runAiOptimization = () => {
     alert(
@@ -105,6 +162,12 @@ export function WarehouseInboundOutbound({ mode }: Props) {
               />
             </div>
           </div>
+          <button
+            onClick={saveReceiptOffline}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-sm transition-colors shadow-lg flex items-center gap-2 whitespace-nowrap"
+          >
+            <Save size={18} /> Save Offline
+          </button>
           <button
             onClick={runAiOptimization}
             className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-sm transition-colors shadow-lg flex items-center gap-2 whitespace-nowrap"

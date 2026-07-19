@@ -13,3 +13,5 @@ export * from "./logistics-schemas";
 export * from "./logistics";
 export * from "./theme";
 export * from "./store";
+export * from "./syncManager";
+export * from "./instances";

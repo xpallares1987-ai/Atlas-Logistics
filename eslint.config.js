@@ -14,6 +14,7 @@ export default tseslint.config(
       "**/playwright.config.ts",
       "fix-imports.ts",
       "test-db.ts",
+      "test-pw.ts",
       "**/dataconnect-generated/**",
     ],
   },

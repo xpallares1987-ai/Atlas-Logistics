@@ -66,6 +66,12 @@ export const companyTypeEnum = pgEnum("company_type", [
   "Depot",
 ]);
 
+export const aiReviewStatusEnum = pgEnum("ai_review_status", [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+]);
+
 // ============================================================================
 // CORE ENTITIES
 // ============================================================================
@@ -215,6 +221,18 @@ export const shipmentDocuments = pgTable("shipment_documents", {
   gcsUrl: varchar("gcs_url", { length: 500 }).notNull(),
   parsedData: jsonb("parsed_data"), // Stores AI extraction results securely
   uploadedBy: uuid("uploaded_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const pendingAiReviews = pgTable("pending_ai_reviews", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  shipmentId: uuid("shipment_id")
+    .references(() => shipments.id)
+    .notNull(),
+  documentUrl: varchar("document_url", { length: 500 }).notNull(),
+  extractedData: jsonb("extracted_data").notNull(),
+  confidenceScore: real("confidence_score"),
+  status: aiReviewStatusEnum("status").default("PENDING").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
