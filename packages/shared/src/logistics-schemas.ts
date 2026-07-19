@@ -130,3 +130,132 @@ export const ExternalWarehousesSchema = z.object({
 export type BoardingItem = z.infer<typeof BoardingItemSchema>;
 export type ReceptionItem = z.infer<typeof ReceptionItemSchema>;
 export type StockItem = z.infer<typeof StockItemSchema>;
+
+// ============================================================================
+// API VALIDATION SCHEMAS (END-TO-END)
+// ============================================================================
+
+export const CreateShipmentSchema = z.object({
+  body: z
+    .object({
+      referenceNumber: z.string().min(1, "Reference Number is required"),
+      status: z
+        .enum([
+          "DRAFT",
+          "CONFIRMED",
+          "DOCUMENTATION",
+          "ON_BOARD",
+          "BOOKED",
+          "IN_TRANSIT",
+          "ARRIVED",
+          "CUSTOMS_CLEARED",
+          "DELIVERED",
+          "CANCELLED",
+        ])
+        .optional(),
+      supplierId: z.string().uuid().optional(),
+      billingPartyId: z.string().uuid().optional(),
+      originLocationId: z.string().uuid().optional(),
+      destinationLocationId: z.string().uuid().optional(),
+      vessel: z.string().optional(),
+      voyage: z.string().optional(),
+      documentBase64: z.string().optional(),
+      documentName: z.string().optional(),
+      documentMimeType: z.string().optional(),
+    })
+    .passthrough(),
+});
+
+export const UpdateShipmentSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid Shipment ID format"),
+  }),
+  body: z
+    .object({
+      status: z
+        .enum([
+          "DRAFT",
+          "CONFIRMED",
+          "DOCUMENTATION",
+          "ON_BOARD",
+          "BOOKED",
+          "IN_TRANSIT",
+          "ARRIVED",
+          "CUSTOMS_CLEARED",
+          "DELIVERED",
+          "CANCELLED",
+        ])
+        .optional(),
+      vessel: z.string().optional(),
+      voyage: z.string().optional(),
+    })
+    .passthrough(),
+});
+
+export const CreateQuoteSchema = z.object({
+  body: z
+    .object({
+      quoteNumber: z.string().min(1),
+      customerId: z.string().uuid(),
+      originLocationId: z.string().uuid().optional(),
+      destinationLocationId: z.string().uuid().optional(),
+      equipment: z.string().min(1),
+      buyRateTotal: z.number().nonnegative(),
+      sellMargin: z.number(),
+      sellRateTotal: z.number().nonnegative(),
+      status: z
+        .enum(["DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED"])
+        .optional(),
+      validTo: z.string().or(z.date()),
+    })
+    .passthrough(),
+});
+
+export const CreateInvoiceSchema = z.object({
+  body: z
+    .object({
+      invoiceNumber: z.string().min(1),
+      type: z.enum(["AR", "AP", "CN", "DN"]),
+      partyId: z.string().uuid(),
+      shipmentId: z.string().uuid().optional(),
+      currency: z.string().length(3).default("USD"),
+      subtotal: z.number().nonnegative().optional(),
+      taxAmount: z.number().nonnegative().optional(),
+      totalAmount: z.number().nonnegative(),
+      dueDate: z.string().or(z.date()),
+      lines: z
+        .array(
+          z.object({
+            description: z.string().min(1),
+            quantity: z.number().min(1).default(1),
+            unitPrice: z.number().nonnegative(),
+            amount: z.number().nonnegative(),
+            taxRate: z.number().nonnegative().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .passthrough(),
+});
+
+export const BatchSyncJobSchema = z.object({
+  body: z
+    .object({
+      jobs: z
+        .array(
+          z.object({
+            id: z.string(),
+            entity: z.enum([
+              "shipments",
+              "invoices",
+              "warehouseTraffic",
+              "warehouseInventory",
+            ]),
+            action: z.enum(["CREATE", "UPDATE", "DELETE"]),
+            payload: z.any(),
+          }),
+        )
+        .min(1, "At least one job is required"),
+    })
+    .passthrough(),
+});

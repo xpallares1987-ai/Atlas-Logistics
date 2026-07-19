@@ -1,4 +1,5 @@
 import Dexie, { Table } from "dexie";
+import { WarehouseTraffic, WarehouseInventoryItem } from "./types/warehouse";
 
 export interface DbShipment {
   id?: string | number;
@@ -28,10 +29,22 @@ export interface DbDiagram {
   updatedAt: number;
 }
 
+export interface DbSyncJob {
+  id?: number;
+  entity: string; // e.g., 'shipments', 'warehouseTraffic'
+  action: "CREATE" | "UPDATE" | "DELETE";
+  payload: any;
+  status: "PENDING" | "COMPLETED" | "FAILED";
+  createdAt: number;
+}
+
 export class SharedDatabase extends Dexie {
   shipments!: Table<DbShipment>;
   xmlCache!: Table<DbXmlCache>;
   diagrams!: Table<DbDiagram>;
+  syncQueue!: Table<DbSyncJob>;
+  warehouseTraffic!: Table<WarehouseTraffic>;
+  warehouseInventory!: Table<WarehouseInventoryItem>;
 
   constructor(dbName: string = "ControlTowerDB") {
     super(dbName);
@@ -46,6 +59,21 @@ export class SharedDatabase extends Dexie {
       shipments: "++id, customerOrder, warehouse, origin, loadCode, status",
       xmlCache: "key, updatedAt",
       diagrams: "id, name, updatedAt",
+    });
+    this.version(4).stores({
+      shipments: "++id, customerOrder, warehouse, origin, loadCode, status",
+      xmlCache: "key, updatedAt",
+      diagrams: "id, name, updatedAt",
+      syncQueue: "++id, entity, status, createdAt",
+    });
+    this.version(5).stores({
+      shipments: "++id, customerOrder, warehouse, origin, loadCode, status",
+      xmlCache: "key, updatedAt",
+      diagrams: "id, name, updatedAt",
+      syncQueue: "++id, entity, status, createdAt",
+      warehouseTraffic: "id, shipmentId, status, type, createdAt",
+      warehouseInventory:
+        "id, warehouseId, ownership, customer, productCode, zone, status",
     });
   }
 }

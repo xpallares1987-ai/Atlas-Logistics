@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Truck, ShieldCheck, Box, Anchor } from "lucide-react";
-import type { WarehouseTraffic, DeviceType } from "@atlas/shared";
+import { WarehouseTraffic, DeviceType, db, syncManager } from "@atlas/shared";
 
-// Mock Shipment Data representing an incoming operation (e.g. 4 Reels, 100,000 Kgs -> translates to 4 trucks of 25k)
+// Mock Shipment Data representing an incoming operation
 const mockIncomingShipment = {
   id: "SHP-99120",
   description: "4 Reels (Paper Rolls)",
@@ -12,11 +12,10 @@ const mockIncomingShipment = {
   customer: "PrintSolutions Corp",
 };
 
-// 1. Shipment Parser Logic: Infers individual traffic from a bulk shipment
 function inferTrafficFromShipment(
   shipment: typeof mockIncomingShipment,
 ): WarehouseTraffic[] {
-  const qty = 4; // inferred from "4 Reels" / "4x40' HC"
+  const qty = 4;
   const weightPerTruck = shipment.totalWeight / qty;
 
   return Array.from({ length: qty }).map((_, i) => ({
@@ -25,7 +24,7 @@ function inferTrafficFromShipment(
     driverName: `Pending Driver ${i + 1}`,
     deviceNumber: `TBD-PLATE-${i + 1}`,
     deviceType: "TRUCK" as DeviceType,
-    status: i === 0 ? "WAITING" : "DISPATCHED", // 1st is waiting, others en route
+    status: i === 0 ? "WAITING" : "DISPATCHED",
     eta: i === 0 ? "-5 min" : `+${i * 45} min`,
     cargoDescription: `1 Reel (${shipment.hsCode})`,
     totalWeightExpected: weightPerTruck,
@@ -65,28 +64,60 @@ const initialTraffic: WarehouseTraffic[] = [
 ];
 
 export function WarehouseTrafficControl() {
-  const [traffic, setTraffic] = useState<WarehouseTraffic[]>(initialTraffic);
+  const [traffic, setTraffic] = useState<WarehouseTraffic[]>([]);
   const docks = ["Dock 1", "Dock 2", "Dock 3", "Dock 4"];
 
-  // FCFS Logic: Assigns the waiting vehicle that has been waiting the longest to the first free dock
-  const assignNextAvailableDock = () => {
+  useEffect(() => {
+    const loadData = async () => {
+      let data = await db.warehouseTraffic.toArray();
+      if (data.length === 0) {
+        // Seed Dexie if empty for demo
+        await db.warehouseTraffic.bulkAdd(initialTraffic);
+        data = initialTraffic;
+      }
+      setTraffic(data);
+    };
+    loadData();
+  }, []);
+
+  const assignNextAvailableDock = async () => {
     const freeDocks = docks.filter(
       (d) => !traffic.some((t) => t.assignedDock === d),
     );
     if (freeDocks.length === 0) return alert("No hay muelles disponibles.");
 
-    // Find oldest waiting vehicle (we mock this by just taking the first WAITING in array for now, but in reality it's ordered by ETA/time)
     const nextVehicleIndex = traffic.findIndex((t) => t.status === "WAITING");
     if (nextVehicleIndex === -1) return alert("No hay vehículos en espera.");
 
-    const newTraffic = [...traffic];
-    newTraffic[nextVehicleIndex] = {
-      ...newTraffic[nextVehicleIndex],
-      status: "DOCK_ASSIGNED",
+    const updatedVehicle = {
+      ...traffic[nextVehicleIndex],
+      status: "DOCK_ASSIGNED" as const,
       assignedDock: freeDocks[0],
       eta: "Now",
     };
+
+    const newTraffic = [...traffic];
+    newTraffic[nextVehicleIndex] = updatedVehicle;
+
+    // Optimistic UI Update
     setTraffic(newTraffic);
+
+    try {
+      // 1. Update local database
+      await db.warehouseTraffic.update(updatedVehicle.id, {
+        status: updatedVehicle.status,
+        assignedDock: updatedVehicle.assignedDock,
+        eta: updatedVehicle.eta,
+      });
+      // 2. Queue for backend sync
+      await syncManager.addToQueue(
+        "warehouseTraffic",
+        "UPDATE",
+        updatedVehicle,
+      );
+    } catch (err) {
+      console.error("Failed to persist offline", err);
+    }
   };
 
   return (

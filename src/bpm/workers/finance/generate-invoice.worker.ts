@@ -1,11 +1,11 @@
-import { AtlasWorker } from '../../utils/worker-base.js';
-import { invoices } from '../../../db/schema.js';
+import { AtlasWorker } from "../../utils/worker-base.js";
+import { invoices } from "../../../db/schema.js";
 
 interface GenerateInvoiceInput {
   shipmentId: string;
   referenceNumber: string;
-  customer: string;
-  invoiceType: 'AR' | 'AP';
+  customerId: string; // Updated from 'customer' to 'customerId' to map to partyId
+  invoiceType: "AR" | "AP";
   lineItems: Array<{
     description: string;
     amount: number;
@@ -26,25 +26,41 @@ interface GenerateInvoiceOutput {
  * Generates AR (Accounts Receivable) or AP (Accounts Payable) invoices
  * and stores them in the database.
  */
-class GenerateInvoiceWorker extends AtlasWorker<GenerateInvoiceInput, GenerateInvoiceOutput> {
-  readonly taskType = 'atlas.invoice.generate';
+class GenerateInvoiceWorker extends AtlasWorker<
+  GenerateInvoiceInput,
+  GenerateInvoiceOutput
+> {
+  readonly taskType = "atlas.invoice.generate";
 
   async execute(job: any): Promise<GenerateInvoiceOutput> {
-    const { shipmentId, referenceNumber, customer, invoiceType = 'AR', lineItems = [] } = job.variables;
+    const {
+      shipmentId,
+      referenceNumber,
+      customerId,
+      invoiceType = "AR",
+      lineItems = [],
+    } = job.variables;
 
-    // Calculate total
-    const totalAmount = lineItems.length > 0
-      ? lineItems.reduce((sum: number, item: any) => sum + (item.amount || 0), 0)
-      : Math.round((500 + Math.random() * 3000) * 100) / 100; // Mock if no line items
+    // Calculate subtotal
+    const subtotal =
+      lineItems.length > 0
+        ? lineItems.reduce(
+            (sum: number, item: any) => sum + (item.amount || 0),
+            0,
+          )
+        : Math.round((500 + Math.random() * 3000) * 100) / 100;
 
-    const currency = lineItems[0]?.currency || 'USD';
-    const prefix = invoiceType === 'AR' ? 'INV' : 'VND';
+    const taxAmount = Math.round(subtotal * 0.16 * 100) / 100; // 16% IVA as example
+    const totalAmount = subtotal + taxAmount;
+
+    const currency = lineItems[0]?.currency || "USD";
+    const prefix = invoiceType === "AR" ? "INV" : "VND";
     const invoiceNumber = `${prefix}-${Date.now().toString(36).toUpperCase()}`;
 
     // Due date: 30 days for AR, 45 days for AP
     const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + (invoiceType === 'AR' ? 30 : 45));
-    const dueDateStr = dueDate.toISOString().split('T')[0];
+    dueDate.setDate(dueDate.getDate() + (invoiceType === "AR" ? 30 : 45));
+    const dueDateStr = dueDate.toISOString().split("T")[0];
 
     // Store in database
     const [newInvoice] = await this.db
@@ -52,16 +68,20 @@ class GenerateInvoiceWorker extends AtlasWorker<GenerateInvoiceInput, GenerateIn
       .values({
         invoiceNumber,
         type: invoiceType,
-        party: customer,
-        amount: totalAmount,
+        partyId: customerId, // Using partyId from new schema
+        subtotal,
+        taxAmount,
+        totalAmount, // amount changed to totalAmount
         currency,
-        status: 'Pending',
+        status: "Pending",
         dueDate: dueDateStr,
         shipmentId,
       })
       .returning();
 
-    console.log(`[GenerateInvoice] ${invoiceType} ${invoiceNumber}: $${totalAmount} ${currency} due ${dueDateStr} for ${referenceNumber}`);
+    console.log(
+      `[GenerateInvoice] ${invoiceType} ${invoiceNumber}: $${totalAmount} ${currency} due ${dueDateStr} for ${referenceNumber}`,
+    );
 
     return {
       invoiceId: newInvoice.id,
