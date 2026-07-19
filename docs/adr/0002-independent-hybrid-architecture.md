@@ -1,8 +1,8 @@
 # 0002 Independent Hybrid Architecture
 
-* **Status**: Superseded by [0003 Transition to Internal Monorepo Workspace](./0003-transition-to-internal-monorepo-workspace.md)
-* **Deciders**: AI Assistant
-* **Date**: 2026-06-12
+- **Status**: Superseded by [0003 Transition to Internal Monorepo Workspace](./0003-transition-to-internal-monorepo-workspace.md)
+- **Deciders**: AI Assistant
+- **Date**: 2026-06-12
 
 ## Context and Problem Statement
 
@@ -10,9 +10,9 @@ The project mandate at the time required active repositories to remain independe
 
 ## Decision Drivers
 
-* Strict independence mandate.
-* Need for shared domain logic consistency.
-* Deployment speed and reliability.
+- Strict independence mandate.
+- Need for shared domain logic consistency.
+- Deployment speed and reliability.
 
 ## Decision Outcome
 
@@ -20,5 +20,5 @@ Chosen option at the time: **Local Shared Copies**. Each repository maintained i
 
 ### Consequences
 
-* **Good**: Repositories could be built and deployed in complete isolation.
-* **Bad**: Code redundancy and manual synchronization across repositories.
+- **Good**: Repositories could be built and deployed in complete isolation.
+- **Bad**: Code redundancy and manual synchronization across repositories.

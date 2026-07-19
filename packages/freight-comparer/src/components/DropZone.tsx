@@ -5,17 +5,32 @@
 
 import React, { useState, useRef } from "react";
 import * as XLSX from "xlsx";
-import { PlayCircle, AlertTriangle, CheckCircle2, FileSpreadsheet, Upload } from "lucide-react";
+import {
+  PlayCircle,
+  AlertTriangle,
+  CheckCircle2,
+  FileSpreadsheet,
+  Upload,
+} from "lucide-react";
 // import { FreightDB } from '@atlas/shared';
 
 const FreightDB = {
-  saveRates: async (rates: any[]) => { console.log('Mock saveRates', rates); },
-  clearAll: async () => { console.log('Mock clearAll'); }
+  saveRates: async (rates: any[]) => {
+    console.log("Mock saveRates", rates);
+  },
+  clearAll: async () => {
+    console.log("Mock clearAll");
+  },
 };
 
 import { eventBus } from "../services/eventBus";
 import { FreightRate, TranslationSet } from "../types";
-import { parseRawSheetRows, parseDatosJsRows, parseSemicolonCSV, parseMappedSheetRows } from "../services/rateParser";
+import {
+  parseRawSheetRows,
+  parseDatosJsRows,
+  parseSemicolonCSV,
+  parseMappedSheetRows,
+} from "../services/rateParser";
 import { DATA_INJECTED } from "../data/datos";
 import ExcelValidator, { ColumnStatus } from "./ExcelValidator";
 import { downloadRateTemplate } from "../utils/excelTemplate";
@@ -86,7 +101,11 @@ export default function DropZone({ t }: DropZoneProps) {
   const processFile = async (file: File) => {
     const nameLower = file.name.toLowerCase();
     const isCsv = nameLower.endsWith(".csv");
-    const isExcel = nameLower.endsWith(".xlsx") || nameLower.endsWith(".xls") || nameLower.endsWith(".xlsb") || nameLower.endsWith(".xlsm");
+    const isExcel =
+      nameLower.endsWith(".xlsx") ||
+      nameLower.endsWith(".xls") ||
+      nameLower.endsWith(".xlsb") ||
+      nameLower.endsWith(".xlsm");
 
     if (!isCsv && !isExcel) {
       setFeedback({
@@ -112,7 +131,9 @@ export default function DropZone({ t }: DropZoneProps) {
             const text = e.target?.result as string;
             parsedRates = parseSemicolonCSV(text, file.name);
             if (parsedRates.length === 0) {
-              throw new Error("No rate records could be successfully parsed from this CSV file.");
+              throw new Error(
+                "No rate records could be successfully parsed from this CSV file.",
+              );
             }
           } else {
             const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -123,7 +144,7 @@ export default function DropZone({ t }: DropZoneProps) {
 
             for (const sheetName of workbook.SheetNames) {
               const matchedName = sheetsToRead.find(
-                (s) => s.toLowerCase() === sheetName.toLowerCase()
+                (s) => s.toLowerCase() === sheetName.toLowerCase(),
               );
 
               if (!matchedName) {
@@ -132,21 +153,45 @@ export default function DropZone({ t }: DropZoneProps) {
 
               readAnySheet = true;
               const worksheet = workbook.Sheets[sheetName];
-              const rawRows = XLSX.utils.sheet_to_json<Record<string, string | number>>(worksheet, { defval: "" });
+              const rawRows = XLSX.utils.sheet_to_json<
+                Record<string, string | number>
+              >(worksheet, { defval: "" });
 
               if (rawRows.length === 0) continue;
 
               const sheetRates = parseRawSheetRows(rawRows, matchedName);
-              
+
               // Phase 3: Visual Validation feedback (Simple logic check)
               if (rawRows.length > 0) {
                 const firstRow = rawRows[0];
                 const columns: ColumnStatus[] = [
-                  { name: "POL", required: true, found: !!(firstRow["POL"] || firstRow["Puerto Origen"]) },
-                  { name: "POD", required: true, found: !!(firstRow["POD"] || firstRow["Puerto Destino"]) },
-                  { name: "Carrier", required: true, found: !!(firstRow["Carrier"] || firstRow["Naviera"]) },
-                  { name: "Total", required: true, found: !!(firstRow["Total"] || firstRow["Flete Total"]) },
-                  { name: "BAF", required: false, found: !!(firstRow["BAF"] || firstRow["Recargo Combustible"]) },
+                  {
+                    name: "POL",
+                    required: true,
+                    found: !!(firstRow["POL"] || firstRow["Puerto Origen"]),
+                  },
+                  {
+                    name: "POD",
+                    required: true,
+                    found: !!(firstRow["POD"] || firstRow["Puerto Destino"]),
+                  },
+                  {
+                    name: "Carrier",
+                    required: true,
+                    found: !!(firstRow["Carrier"] || firstRow["Naviera"]),
+                  },
+                  {
+                    name: "Total",
+                    required: true,
+                    found: !!(firstRow["Total"] || firstRow["Flete Total"]),
+                  },
+                  {
+                    name: "BAF",
+                    required: false,
+                    found: !!(
+                      firstRow["BAF"] || firstRow["Recargo Combustible"]
+                    ),
+                  },
                 ];
                 setValidationData({ sheetName: matchedName, columns });
               }
@@ -158,11 +203,13 @@ export default function DropZone({ t }: DropZoneProps) {
             if (parsedRates.length === 0 && workbook.SheetNames.length > 0) {
               const firstSheetName = workbook.SheetNames[0];
               const worksheet = workbook.Sheets[firstSheetName];
-              const rawRows = XLSX.utils.sheet_to_json<Record<string, string | number>>(worksheet, { defval: "" });
+              const rawRows = XLSX.utils.sheet_to_json<
+                Record<string, string | number>
+              >(worksheet, { defval: "" });
               if (rawRows.length > 0) {
                 const sheetRates = parseRawSheetRows(rawRows, firstSheetName);
                 readAnySheet = true;
-                
+
                 // If we didn't get any parsed rates automatically, trigger the mapper modal
                 if (sheetRates.length === 0) {
                   const headers = Object.keys(rawRows[0] || {});
@@ -170,7 +217,7 @@ export default function DropZone({ t }: DropZoneProps) {
                     isOpen: true,
                     rawHeaders: headers,
                     rawRows: rawRows as Record<string, unknown>[],
-                    sheetName: firstSheetName
+                    sheetName: firstSheetName,
                   });
                   setLoading(false);
                   return; // Wait for mapper
@@ -178,10 +225,26 @@ export default function DropZone({ t }: DropZoneProps) {
                   parsedRates.push(...sheetRates);
                   const firstRow = rawRows[0];
                   const columns: ColumnStatus[] = [
-                    { name: "POL", required: true, found: !!(firstRow["POL"] || firstRow["Puerto Origen"]) },
-                    { name: "POD", required: true, found: !!(firstRow["POD"] || firstRow["Puerto Destino"]) },
-                    { name: "Carrier", required: true, found: !!(firstRow["Carrier"] || firstRow["Naviera"]) },
-                    { name: "Total", required: true, found: !!(firstRow["Total"] || firstRow["Flete Total"]) },
+                    {
+                      name: "POL",
+                      required: true,
+                      found: !!(firstRow["POL"] || firstRow["Puerto Origen"]),
+                    },
+                    {
+                      name: "POD",
+                      required: true,
+                      found: !!(firstRow["POD"] || firstRow["Puerto Destino"]),
+                    },
+                    {
+                      name: "Carrier",
+                      required: true,
+                      found: !!(firstRow["Carrier"] || firstRow["Naviera"]),
+                    },
+                    {
+                      name: "Total",
+                      required: true,
+                      found: !!(firstRow["Total"] || firstRow["Flete Total"]),
+                    },
                   ];
                   setValidationData({ sheetName: firstSheetName, columns });
                 }
@@ -189,7 +252,9 @@ export default function DropZone({ t }: DropZoneProps) {
             }
 
             if (!readAnySheet || parsedRates.length === 0) {
-              throw new Error("No matching spreadsheet records (sheets 'DATOS', 'MESES ANTERIORES' or 'Buscador' with corresponding columns) could be found.");
+              throw new Error(
+                "No matching spreadsheet records (sheets 'DATOS', 'MESES ANTERIORES' or 'Buscador' with corresponding columns) could be found.",
+              );
             }
           }
 
@@ -202,13 +267,15 @@ export default function DropZone({ t }: DropZoneProps) {
           });
 
           eventBus.emit("data_loaded");
-
         } catch (err: unknown) {
           console.error("[DropZone] Parsing error:", err);
           setFeedback({
             type: "error",
             message: t.uploadError,
-            details: err instanceof Error ? err.message : "Spreadsheet columns could not be correlated properly.",
+            details:
+              err instanceof Error
+                ? err.message
+                : "Spreadsheet columns could not be correlated properly.",
           });
         } finally {
           setLoading(false);
@@ -268,17 +335,21 @@ export default function DropZone({ t }: DropZoneProps) {
     setLoading(true);
 
     try {
-      const parsedRates = parseMappedSheetRows(mapperState.rawRows, mapperState.sheetName, mapping);
+      const parsedRates = parseMappedSheetRows(
+        mapperState.rawRows,
+        mapperState.sheetName,
+        mapping,
+      );
       if (parsedRates.length === 0) {
         throw new Error("Mapped columns produced zero valid rate records.");
       }
 
       await FreightDB.saveRates(parsedRates);
-      
+
       setFeedback({
         type: "success",
         message: "Custom mapping successful",
-        details: `Imported ${parsedRates.length} rate configurations.`
+        details: `Imported ${parsedRates.length} rate configurations.`,
       });
 
       eventBus.emit("data_loaded");
@@ -286,14 +357,14 @@ export default function DropZone({ t }: DropZoneProps) {
         id: crypto.randomUUID(),
         timestamp: new Date(),
         level: "info",
-        message: `Custom Column Mapping imported ${parsedRates.length} records from ${mapperState.sheetName}`
+        message: `Custom Column Mapping imported ${parsedRates.length} records from ${mapperState.sheetName}`,
       });
     } catch (err: any) {
       console.error(err);
       setFeedback({
         type: "error",
         message: "Mapping failed",
-        details: err.message || "Could not map columns to expected standard."
+        details: err.message || "Could not map columns to expected standard.",
       });
     } finally {
       setLoading(false);
@@ -301,7 +372,10 @@ export default function DropZone({ t }: DropZoneProps) {
   };
 
   return (
-    <div id="file-uploader-section" className="bg-slate-800 rounded-xl border border-slate-700/80 p-4 shadow-md text-white relative mt-4">
+    <div
+      id="file-uploader-section"
+      className="bg-slate-800 rounded-xl border border-slate-700/80 p-4 shadow-md text-white relative mt-4"
+    >
       {mapperState?.isOpen && (
         <ColumnMapperModal
           rawHeaders={mapperState.rawHeaders}
@@ -309,7 +383,7 @@ export default function DropZone({ t }: DropZoneProps) {
           onCancel={() => setMapperState(null)}
         />
       )}
-      
+
       <div className="flex items-center justify-between mb-3">
         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
           Rate Source Manager
@@ -362,19 +436,22 @@ export default function DropZone({ t }: DropZoneProps) {
       </div>
 
       {loading && (
-        <div id="loader-indicator" className="w-full flex items-center justify-center p-2.5 mt-2 bg-slate-900 rounded-lg text-[10px] text-slate-350 gap-2 border border-slate-750">
+        <div
+          id="loader-indicator"
+          className="w-full flex items-center justify-center p-2.5 mt-2 bg-slate-900 rounded-lg text-[10px] text-slate-350 gap-2 border border-slate-750"
+        >
           <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
           {t.loadingData}
         </div>
       )}
 
       {validationData && (
-        <ExcelValidator 
-          columns={validationData.columns} 
-          sheetName={validationData.sheetName} 
+        <ExcelValidator
+          columns={validationData.columns}
+          sheetName={validationData.sheetName}
         />
       )}
-      
+
       <div className="mt-4 flex flex-col gap-2">
         <button
           onClick={downloadRateTemplate}
@@ -401,7 +478,11 @@ export default function DropZone({ t }: DropZoneProps) {
           )}
           <div className="flex-1 space-y-0.5 min-w-0">
             <p className="font-semibold truncate">{feedback.message}</p>
-            {feedback.details && <p className="text-slate-450 font-mono text-[9px] truncate">{feedback.details}</p>}
+            {feedback.details && (
+              <p className="text-slate-450 font-mono text-[9px] truncate">
+                {feedback.details}
+              </p>
+            )}
           </div>
         </div>
       )}

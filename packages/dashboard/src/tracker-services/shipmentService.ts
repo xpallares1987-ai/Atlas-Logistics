@@ -1,9 +1,9 @@
-import { DbShipment, SharedDatabase } from '@atlas/ui';
-import { AuditLog, Note, Shipment, ShipmentFilters } from '../types';
+import { DbShipment, SharedDatabase } from "@atlas/ui";
+import { AuditLog, Note, Shipment, ShipmentFilters } from "../types";
 
-const db = new SharedDatabase('shipment_tracker_db');
+const db = new SharedDatabase("shipment_tracker_db");
 
-const FILTERS_KEY = 'shipment_filters';
+const FILTERS_KEY = "shipment_filters";
 
 export const ShipmentService = {
   async getShipments(): Promise<Shipment[]> {
@@ -19,7 +19,7 @@ export const ShipmentService = {
     shipmentId: string,
     action: string,
     details: string,
-    author: string = 'Operador',
+    author: string = "Operador",
   ) {
     const shipments = await this.getShipments();
     const index = shipments.findIndex((s) => s.id === shipmentId);
@@ -39,7 +39,7 @@ export const ShipmentService = {
     return null;
   },
 
-  async addNote(shipmentId: string, text: string, author: string = 'Operador') {
+  async addNote(shipmentId: string, text: string, author: string = "Operador") {
     const shipments = await this.getShipments();
     const index = shipments.findIndex((s) => s.id === shipmentId);
 
@@ -49,7 +49,7 @@ export const ShipmentService = {
 
       const auditEntry: AuditLog = {
         id: crypto.randomUUID(),
-        action: 'NOTE_ADDED',
+        action: "NOTE_ADDED",
         author,
         timestamp,
         details: `Nota: ${text.substring(0, 20)}...`,
@@ -75,19 +75,21 @@ export const ShipmentService = {
   },
 
   checkExceptions(s: Shipment) {
-    const today = new Date('2026-04-25');
+    const today = new Date("2026-04-25");
     const eta = new Date(s.eta);
     const exceptions = [];
-    if (today > eta && s.status !== 'delivered')
-      exceptions.push({ type: 'delay', message: 'RETRASO' });
+    if (today > eta && s.status !== "delivered")
+      exceptions.push({ type: "delay", message: "RETRASO" });
     return exceptions;
   },
 
   filterShipments(shipments: Shipment[], filters: ShipmentFilters): Shipment[] {
-    const term = (filters.term || '').toLowerCase();
+    const term = (filters.term || "").toLowerCase();
     return shipments.filter((s) => {
-      const m = s.reference.toLowerCase().includes(term) || s.origin.toLowerCase().includes(term);
-      const ms = filters.status === 'all' || s.status === filters.status;
+      const m =
+        s.reference.toLowerCase().includes(term) ||
+        s.origin.toLowerCase().includes(term);
+      const ms = filters.status === "all" || s.status === filters.status;
       return m && ms;
     });
   },
@@ -100,4 +102,3 @@ export const ShipmentService = {
     return data ? JSON.parse(data) : null;
   },
 };
-

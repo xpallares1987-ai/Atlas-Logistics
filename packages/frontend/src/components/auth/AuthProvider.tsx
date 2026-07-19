@@ -1,7 +1,13 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, onAuthStateChanged, signOut } from 'firebase/auth';
-import { useFirebase } from '@atlas/ui';
-import { upsertUser, getUserRole } from '@dataconnect/generated';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { User, onAuthStateChanged, signOut } from "firebase/auth";
+import { useFirebase } from "@atlas/ui";
+import { upsertUser, getUserRole } from "@dataconnect/generated";
 
 interface AuthContextType {
   user: User | null;
@@ -19,7 +25,9 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const { auth, dataConnect } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
@@ -33,22 +41,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(firebaseUser);
         try {
           // Check if user exists in PostgreSQL via Data Connect
-          const response = await getUserRole(dataConnect, { uid: firebaseUser.uid });
+          const response = await getUserRole(dataConnect, {
+            uid: firebaseUser.uid,
+          });
           if (response.data && response.data.users.length > 0) {
             setRole(response.data.users[0].role);
           } else {
             // New user, insert into Data Connect with GUEST role
-            const defaultRole = 'GUEST';
+            const defaultRole = "GUEST";
             await upsertUser(dataConnect, {
               uid: firebaseUser.uid,
-              email: firebaseUser.email || 'unknown@example.com',
-              role: defaultRole
+              email: firebaseUser.email || "unknown@example.com",
+              role: defaultRole,
             });
             setRole(defaultRole);
           }
         } catch (error) {
           console.error("Error syncing user with Data Connect:", error);
-          setRole('GUEST'); // Fallback
+          setRole("GUEST"); // Fallback
         }
       } else {
         setUser(null);

@@ -1,0 +1,368 @@
+extend type Query {
+  """
+  ✨ Look up a single `Company` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  company(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Company_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Company_FirstRow
+  ): Company @fdc_generated(from: "Company", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `Document` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  document(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Document_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Document_FirstRow
+  ): Document @fdc_generated(from: "Document", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `Milestone` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  milestone(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Milestone_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Milestone_FirstRow
+  ): Milestone @fdc_generated(from: "Milestone", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `Quote` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  quote(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Quote_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Quote_FirstRow
+  ): Quote @fdc_generated(from: "Quote", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `Shipment` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  shipment(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Shipment_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Shipment_FirstRow
+  ): Shipment @fdc_generated(from: "Shipment", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `User` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  user(
+    """
+    The key used to identify the object.
+    """
+    key: User_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: User_FirstRow
+  ): User @fdc_generated(from: "User", purpose: QUERY_SINGLE)
+  """
+  ✨ Look up a single `Workflow` based on `id`, `key` or `first` and return selected fields (or `null` if not found).
+  """
+  workflow(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Workflow_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Workflow_FirstRow
+  ): Workflow @fdc_generated(from: "Workflow", purpose: QUERY_SINGLE)
+  """
+  ✨ List `Company` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  companies(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Company_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Company_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Company_Having
+  ): [Company!]! @fdc_generated(from: "Company", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `Document` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  documents(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Document_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Document_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Document_Having
+  ): [Document!]! @fdc_generated(from: "Document", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `Milestone` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  milestones(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Milestone_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Milestone_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Milestone_Having
+  ): [Milestone!]! @fdc_generated(from: "Milestone", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `Quote` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  quotes(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Quote_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Quote_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Quote_Having
+  ): [Quote!]! @fdc_generated(from: "Quote", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `Shipment` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  shipments(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Shipment_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Shipment_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Shipment_Having
+  ): [Shipment!]! @fdc_generated(from: "Shipment", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `User` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  users(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: User_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [User_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: User_Having
+  ): [User!]! @fdc_generated(from: "User", purpose: QUERY_MULTIPLE)
+  """
+  ✨ List `Workflow` objects in the table and return selected fields, optionally filtered by `where` conditions
+  """
+  workflows(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Workflow_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Workflow_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Workflow_Having
+  ): [Workflow!]! @fdc_generated(from: "Workflow", purpose: QUERY_MULTIPLE)
+}

@@ -342,8 +342,7 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
     item.addEventListener('click', () => {
       const elementId = item.getAttribute('data-element-id')!;
       const elementRegistry = modeler?.get('elementRegistry') as
-        | { get: (id: string) => BpmnElement }
-        | undefined;
+        { get: (id: string) => BpmnElement } | undefined;
       const element = elementRegistry?.get(elementId);
       if (modeler && element) {
         const selection = modeler.get('selection') as { select: (el: BpmnElement) => void };

@@ -56,4 +56,3 @@ export function initUiManager(dependencies: { ui: AppUi; state: AppState }) {
   ui = dependencies.ui;
   state = dependencies.state;
 }
-

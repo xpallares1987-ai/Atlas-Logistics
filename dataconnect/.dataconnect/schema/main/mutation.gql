@@ -1,0 +1,776 @@
+extend type Mutation {
+  """
+  ✨ Insert a single `Company` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  company_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Company_Data!
+  ): Company_KeyOutput! @fdc_generated(from: "Company", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Document` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  document_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Document_Data!
+  ): Document_KeyOutput! @fdc_generated(from: "Document", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Milestone` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  milestone_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Milestone_Data!
+  ): Milestone_KeyOutput! @fdc_generated(from: "Milestone", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Quote` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  quote_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Quote_Data!
+  ): Quote_KeyOutput! @fdc_generated(from: "Quote", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Shipment` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  shipment_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Shipment_Data!
+  ): Shipment_KeyOutput! @fdc_generated(from: "Shipment", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `User` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  user_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: User_Data!
+  ): User_KeyOutput! @fdc_generated(from: "User", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Workflow` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  workflow_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Workflow_Data!
+  ): Workflow_KeyOutput! @fdc_generated(from: "Workflow", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert `Company` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  company_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Company_Data!]!
+  ): [Company_KeyOutput!]! @fdc_generated(from: "Company", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Document` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  document_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Document_Data!]!
+  ): [Document_KeyOutput!]! @fdc_generated(from: "Document", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Milestone` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  milestone_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Milestone_Data!]!
+  ): [Milestone_KeyOutput!]! @fdc_generated(from: "Milestone", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Quote` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  quote_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Quote_Data!]!
+  ): [Quote_KeyOutput!]! @fdc_generated(from: "Quote", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Shipment` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  shipment_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Shipment_Data!]!
+  ): [Shipment_KeyOutput!]! @fdc_generated(from: "Shipment", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `User` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  user_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [User_Data!]!
+  ): [User_KeyOutput!]! @fdc_generated(from: "User", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Workflow` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  workflow_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Workflow_Data!]!
+  ): [Workflow_KeyOutput!]! @fdc_generated(from: "Workflow", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert or update a single `Company` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Company`.
+  """
+  company_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Company_Data!
+  ): Company_KeyOutput! @fdc_generated(from: "Company", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Document` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Document`.
+  """
+  document_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Document_Data!
+  ): Document_KeyOutput! @fdc_generated(from: "Document", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Milestone` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Milestone`.
+  """
+  milestone_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Milestone_Data!
+  ): Milestone_KeyOutput! @fdc_generated(from: "Milestone", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Quote` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Quote`.
+  """
+  quote_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Quote_Data!
+  ): Quote_KeyOutput! @fdc_generated(from: "Quote", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Shipment` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Shipment`.
+  """
+  shipment_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Shipment_Data!
+  ): Shipment_KeyOutput! @fdc_generated(from: "Shipment", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `User` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `User`.
+  """
+  user_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: User_Data!
+  ): User_KeyOutput! @fdc_generated(from: "User", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Workflow` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Workflow`.
+  """
+  workflow_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Workflow_Data!
+  ): Workflow_KeyOutput! @fdc_generated(from: "Workflow", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update `Company` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Company`.
+  """
+  company_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Company_Data!]!
+  ): [Company_KeyOutput!]! @fdc_generated(from: "Company", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Document` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Document`.
+  """
+  document_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Document_Data!]!
+  ): [Document_KeyOutput!]! @fdc_generated(from: "Document", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Milestone` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Milestone`.
+  """
+  milestone_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Milestone_Data!]!
+  ): [Milestone_KeyOutput!]! @fdc_generated(from: "Milestone", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Quote` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Quote`.
+  """
+  quote_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Quote_Data!]!
+  ): [Quote_KeyOutput!]! @fdc_generated(from: "Quote", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Shipment` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Shipment`.
+  """
+  shipment_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Shipment_Data!]!
+  ): [Shipment_KeyOutput!]! @fdc_generated(from: "Shipment", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `User` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `User`.
+  """
+  user_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [User_Data!]!
+  ): [User_KeyOutput!]! @fdc_generated(from: "User", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Workflow` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Workflow`.
+  """
+  workflow_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Workflow_Data!]!
+  ): [Workflow_KeyOutput!]! @fdc_generated(from: "Workflow", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Update a single `Company` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Company` or `null` if not found.
+  """
+  company_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Company_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Company_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Company_Data!
+  ): Company_KeyOutput @fdc_generated(from: "Company", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Document` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Document` or `null` if not found.
+  """
+  document_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Document_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Document_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Document_Data!
+  ): Document_KeyOutput @fdc_generated(from: "Document", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Milestone` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Milestone` or `null` if not found.
+  """
+  milestone_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Milestone_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Milestone_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Milestone_Data!
+  ): Milestone_KeyOutput @fdc_generated(from: "Milestone", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Quote` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Quote` or `null` if not found.
+  """
+  quote_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Quote_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Quote_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Quote_Data!
+  ): Quote_KeyOutput @fdc_generated(from: "Quote", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Shipment` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Shipment` or `null` if not found.
+  """
+  shipment_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Shipment_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Shipment_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Shipment_Data!
+  ): Shipment_KeyOutput @fdc_generated(from: "Shipment", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `User` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `User` or `null` if not found.
+  """
+  user_update(
+    """
+    The key used to identify the object.
+    """
+    key: User_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: User_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: User_Data!
+  ): User_KeyOutput @fdc_generated(from: "User", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Workflow` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Workflow` or `null` if not found.
+  """
+  workflow_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Workflow_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Workflow_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Workflow_Data!
+  ): Workflow_KeyOutput @fdc_generated(from: "Workflow", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update `Company` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  company_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Company_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Company_Data!
+  ): Int! @fdc_generated(from: "Company", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Document` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  document_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Document_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Document_Data!
+  ): Int! @fdc_generated(from: "Document", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Milestone` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  milestone_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Milestone_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Milestone_Data!
+  ): Int! @fdc_generated(from: "Milestone", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Quote` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  quote_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Quote_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Quote_Data!
+  ): Int! @fdc_generated(from: "Quote", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Shipment` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  shipment_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Shipment_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Shipment_Data!
+  ): Int! @fdc_generated(from: "Shipment", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `User` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  user_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: User_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: User_Data!
+  ): Int! @fdc_generated(from: "User", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Workflow` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  workflow_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Workflow_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Workflow_Data!
+  ): Int! @fdc_generated(from: "Workflow", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Delete a single `Company` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  company_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Company_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Company_FirstRow
+  ): Company_KeyOutput @fdc_generated(from: "Company", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Document` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  document_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Document_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Document_FirstRow
+  ): Document_KeyOutput @fdc_generated(from: "Document", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Milestone` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  milestone_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Milestone_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Milestone_FirstRow
+  ): Milestone_KeyOutput @fdc_generated(from: "Milestone", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Quote` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  quote_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Quote_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Quote_FirstRow
+  ): Quote_KeyOutput @fdc_generated(from: "Quote", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Shipment` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  shipment_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Shipment_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Shipment_FirstRow
+  ): Shipment_KeyOutput @fdc_generated(from: "Shipment", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `User` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  user_delete(
+    """
+    The key used to identify the object.
+    """
+    key: User_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: User_FirstRow
+  ): User_KeyOutput @fdc_generated(from: "User", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Workflow` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  workflow_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Workflow_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Workflow_FirstRow
+  ): Workflow_KeyOutput @fdc_generated(from: "Workflow", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete `Company` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  company_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Company_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Company", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Document` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  document_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Document_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Document", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Milestone` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  milestone_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Milestone_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Milestone", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Quote` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  quote_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Quote_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Quote", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Shipment` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  shipment_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Shipment_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Shipment", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `User` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  user_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: User_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "User", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Workflow` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  workflow_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Workflow_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Workflow", purpose: DELETE_MULTIPLE)
+}
