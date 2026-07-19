@@ -58,4 +58,3 @@ export interface AppState {
   sidebar: Sidebar | null;
   cleanups: (() => void)[];
 }
-

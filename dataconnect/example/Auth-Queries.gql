@@ -1,11 +1,5 @@
 mutation UpsertUser($uid: String!, $email: String!, $role: String!) {
-  user_upsert(
-    data: {
-      uid: $uid
-      email: $email
-      role: $role
-    }
-  )
+  user_upsert(data: { uid: $uid, email: $email, role: $role })
 }
 
 query GetUserRole($uid: String!) {

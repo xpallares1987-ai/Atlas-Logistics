@@ -1,6 +1,12 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const customsStatusSchema = z.enum(['Pending', 'Submitted', 'UnderReview', 'Cleared', 'Rejected']);
+export const customsStatusSchema = z.enum([
+  "Pending",
+  "Submitted",
+  "UnderReview",
+  "Cleared",
+  "Rejected",
+]);
 
 export const hsCodeSchema = z.object({
   id: z.number().int().positive(),
@@ -10,7 +16,7 @@ export const hsCodeSchema = z.object({
 });
 
 export const createHsCodeSchema = hsCodeSchema.omit({
-  id: true
+  id: true,
 });
 
 export const customsDeclarationItemSchema = z.object({
@@ -23,10 +29,11 @@ export const customsDeclarationItemSchema = z.object({
   weight_kg: z.number(),
 });
 
-export const createCustomsDeclarationItemSchema = customsDeclarationItemSchema.omit({
-  id: true,
-  declaration_id: true,
-});
+export const createCustomsDeclarationItemSchema =
+  customsDeclarationItemSchema.omit({
+    id: true,
+    declaration_id: true,
+  });
 
 export const customsDeclarationSchema = z.object({
   id: z.number().int().positive(),
@@ -37,20 +44,22 @@ export const customsDeclarationSchema = z.object({
   clearance_date: z.string().datetime().nullable().optional(),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional(),
-  items: z.array(customsDeclarationItemSchema).optional()
+  items: z.array(customsDeclarationItemSchema).optional(),
 });
 
-export const createCustomsDeclarationSchema = customsDeclarationSchema.omit({
-  id: true,
-  status: true,
-  submission_date: true,
-  clearance_date: true,
-  created_at: true,
-  updated_at: true,
-  items: true
-}).extend({
-  items: z.array(createCustomsDeclarationItemSchema).optional()
-});
+export const createCustomsDeclarationSchema = customsDeclarationSchema
+  .omit({
+    id: true,
+    status: true,
+    submission_date: true,
+    clearance_date: true,
+    created_at: true,
+    updated_at: true,
+    items: true,
+  })
+  .extend({
+    items: z.array(createCustomsDeclarationItemSchema).optional(),
+  });
 
 export const updateCustomsStatusSchema = z.object({
   status: customsStatusSchema,
