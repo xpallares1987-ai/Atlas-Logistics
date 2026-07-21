@@ -28,7 +28,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-l
 FROM cgr.dev/chainguard/node:latest AS production
 WORKDIR /app
 # Copy only the pruned node_modules and source code
-COPY --from=pruner /app /app
+COPY --chown=nonroot:nonroot --from=pruner /app /app
 EXPOSE 8080
 # Run the application using the local tsx module
 CMD ["--import", "tsx/esm", "src/index.ts"]
