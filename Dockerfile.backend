@@ -31,4 +31,4 @@ WORKDIR /app
 COPY --chown=nonroot:nonroot --from=pruner /app /app
 EXPOSE 8080
 # Run the application using the local tsx module
-CMD ["--import", "tsx/esm", "src/index.ts"]
+CMD ["--import", "tsx/esm", "src/server.ts"]

@@ -38,6 +38,9 @@ import { receiveCargoWorker } from "./warehouse/receive-cargo.worker.js";
 import { optimizeLoadingWorker } from "./warehouse/optimize-loading.worker.js";
 import { sealContainerWorker } from "./warehouse/seal-container.worker.js";
 
+// ── Claims workers ──────────────────────────────────────────────────
+import { fileInsuranceClaimWorker } from "./claims/file-insurance-claim.worker.js";
+
 import type { AtlasWorker } from "../utils/worker-base.js";
 
 /** All registered workers */
@@ -68,6 +71,8 @@ const workers: AtlasWorker[] = [
   receiveCargoWorker,
   optimizeLoadingWorker,
   sealContainerWorker,
+  // Claims
+  fileInsuranceClaimWorker,
 ];
 
 /**
