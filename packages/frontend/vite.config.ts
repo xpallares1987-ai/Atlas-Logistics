@@ -48,16 +48,27 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react';
-            }
             if (id.includes('three') || id.includes('@react-three')) {
-              return 'three';
+              return 'vendor-three';
             }
-            if (id.includes('lucide-react') || id.includes('recharts')) {
-              return 'ui';
+            if (id.includes('bpmn-js') || id.includes('diagram-js') || id.includes('bpmn-moddle')) {
+              return 'vendor-bpmn';
             }
-            return 'vendor';
+            if (id.includes('recharts') || id.includes('chart.js') || id.includes('d3')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('firebase')) {
+              return 'vendor-firebase';
+            }
+            if (id.includes('@tanstack') || id.includes('trpc')) {
+              return 'vendor-query';
+            }
+            if (id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react';
+            }
           }
         },
       }

@@ -23,7 +23,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "pnpm run dev --filter @atlas/frontend",
+    command: "pnpm --filter @atlas/frontend dev",
     url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
