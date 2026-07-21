@@ -83,7 +83,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-workspaces": "^0.8.0",
     "fast-uri": "^4.1.0",
-    "fast-xml-parser": "^5.10.0",
+    "fast-xml-parser": "^5.10.1",
     "firebase": "^12.16.0",
     "husky": "^9.1.7",
     "i18next": "^26.3.6",
