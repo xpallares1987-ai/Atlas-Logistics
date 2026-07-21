@@ -13,23 +13,23 @@
     "@atlas/ui": "workspace:*",
     "@bpmn-io/properties-panel": "^3.47.0",
     "@google/genai": "^2.11.0",
-    "@react-three/drei": "^9.122.0",
-    "@react-three/fiber": "^8.18.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@types/three": "^0.185.1",
-    "@xmldom/xmldom": "^0.8.13",
-    "bpmn-js": "^17.11.1",
+    "@xmldom/xmldom": "^0.9.10",
+    "bpmn-js": "^18.21.0",
     "bpmn-js-bpmnlint": "^0.24.0",
     "bpmn-js-token-simulation": "^0.40.0",
     "diagram-js": "^15.22.0",
     "diagram-js-minimap": "^5.4.0",
-    "lucide-react": "^0.441.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "lucide-react": "^1.25.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "three": "^0.168.0",
-    "zeebe-bpmn-moddle": "^1.16.0"
+    "zeebe-bpmn-moddle": "^1.17.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.3",
-    "vite": "^8.1.4"
+    "vite": "^8.1.5"
   }
 }
