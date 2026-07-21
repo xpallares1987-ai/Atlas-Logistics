@@ -1,13 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "ignoreDeprecations": "5.0",
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
     "allowArbitraryExtensions": true,
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"]
