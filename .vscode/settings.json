@@ -2,16 +2,17 @@
     "gemini-cli.debug.logging.enabled": true,
     "gemini-cli.executablePath": "C:\\Users\\xpall\\AppData\\Local\\agy\\bin\\agy.exe",
     "gemini-cli.port": 3000,
-    
+
     "docker.languageserver.formatter.ignoreMultilineInstructions": true,
     "containers.truncateLongRegistryPaths": true,
     "containers.contexts.showInStatusBar": true,
     "containers.containerClient": "com.microsoft.visualstudio.containers.docker",
     "containers.orchestratorClient": "com.microsoft.visualstudio.orchestrators.dockercompose",
-    
+
     "npm-intellisense.packageSubfoldersIntellisense": true,
     "npm-intellisense.scanDevDependencies": true,
     "npm-intellisense.showBuildInLibs": true,
+    "npm.packageManager": "pnpm",
 
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -25,6 +26,13 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "tailwindCSS.experimental.classRegex": [
-        ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
-    ]
+        [ "cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]" ]
+    ],
+    "firebase.dataConnect.alwaysAllowMutationsInProduction": true,
+    "firebase.dataConnect.skipToAppFolderSelect": true,
+    "firebase.emulators.exportOnExit": true,
+    "firebase.debug": true,
+    "firebase.emulators.exportPath": "./.firebase-data",
+    "firebase.emulators.importPath": "./.firebase-data",
+    "firebase.firebasePath": "./node_modules/firebase"
 }

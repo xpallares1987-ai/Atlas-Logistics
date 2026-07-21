@@ -31,3 +31,8 @@ export const publishDocumentUploaded = async (payload: {
     throw error;
   }
 };
+
+export const publishInvoiceGenerated = async (payload: any) => {
+  console.log(`[PubSub Mock] publishInvoiceGenerated:`, payload);
+  return "mock-message-id";
+};

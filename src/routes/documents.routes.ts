@@ -1,25 +1,26 @@
-import { Router } from 'express';
-import { PDFService, HBLData } from '../services/pdf.service.js';
+import { FastifyPluginAsync } from "fastify";
+import { PDFService, HBLData } from "../services/pdf.service.js";
 
-const router = Router();
+const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
+  fastify.post("/hbl", async (request, reply) => {
+    try {
+      const data: HBLData = request.body as HBLData;
 
-router.post('/hbl', async (req, res) => {
-  try {
-    const data: HBLData = req.body;
+      if (!data.shipmentId || !data.shipper || !data.consignee) {
+        reply.code(400).send({ error: "Missing required HBL fields" });
+        return;
+      }
 
-    if (!data.shipmentId || !data.shipper || !data.consignee) {
-      return res.status(400).json({ error: 'Missing required HBL fields' });
+      const pdfBuffer = await PDFService.generateHBL(data);
+
+      reply.header("Content-Type", "application/pdf");
+      reply.header("Content-Disposition", `attachment; filename=HBL-${data.shipmentId}.pdf`);
+      reply.send(pdfBuffer);
+    } catch (error: any) {
+      fastify.log.error("PDF Generation Error:", error);
+      reply.code(500).send({ error: "Failed to generate PDF" });
     }
+  });
+};
 
-    const pdfBuffer = await PDFService.generateHBL(data);
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=HBL-${data.shipmentId}.pdf`);
-    res.send(pdfBuffer);
-  } catch (error: any) {
-    console.error('PDF Generation Error:', error);
-    res.status(500).json({ error: 'Failed to generate PDF' });
-  }
-});
-
-export default router;
+export default documentsRoutes;

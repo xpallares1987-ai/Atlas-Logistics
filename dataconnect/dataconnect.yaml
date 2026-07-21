@@ -1,12 +1,11 @@
-specVersion: "v1"
-serviceId: "gen-lang-client-0393063451-service"
-location: "europe-west1"
-schemas:
-  - source: "./schema"
-    datasource:
-      postgresql:
-        database: "gen-lang-client-0393063451-2-database"
-        cloudSql:
-          instanceId: "gen-lang-client-0393063451-2-instance"
-          schemaValidation: "COMPATIBLE"
 connectorDirs: ["./atlas_connector"]
+location: 'europe-west1'
+schema:
+  datasource:
+    postgresql:
+      cloudSql:
+        instanceId: 'gen-lang-client-0393063451-2-instance'
+      database: 'gen-lang-client-0393063451-2-database'
+  source: './schema'
+serviceId: 'gen-lang-client-0393063451-service'
+specVersion: 'v1'

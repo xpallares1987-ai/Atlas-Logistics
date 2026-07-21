@@ -33,6 +33,7 @@ import { useAppStore } from "./store/useAppStore";
 import { useTranslation } from "react-i18next";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { SkeletonLoader } from "./components/SkeletonLoader";
+import { TRPCStatus } from "./components/TRPCStatus";
 
 const DashboardModule = React.lazy(() =>
   import("@atlas/dashboard").then((m) => ({ default: m.Dashboard })),
@@ -280,8 +281,9 @@ export default function App() {
         <main className="flex-1 flex flex-col overflow-hidden relative bg-slate-50">
           {/* Top Navbar */}
           <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-40 shrink-0">
-            <div className="flex-1 max-w-xl">
+            <div className="flex-1 max-w-xl flex items-center gap-6">
               <OmniSearch />
+              <TRPCStatus />
             </div>
             <div className="flex items-center gap-4 ml-4">
               <div className="relative">

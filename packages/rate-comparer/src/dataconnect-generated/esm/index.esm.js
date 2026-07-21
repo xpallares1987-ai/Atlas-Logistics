@@ -1,9 +1,14 @@
-import { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs } from 'firebase/data-connect';
+import { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs, makeMemoryCacheProvider } from 'firebase/data-connect';
 
 export const connectorConfig = {
   connector: 'atlas',
   service: 'gen-lang-client-0393063451-service',
   location: 'europe-west1'
+};
+export const dataConnectSettings = {
+  cacheSettings: {
+    cacheProvider: makeMemoryCacheProvider()
+  }
 };
 export const listCustomersRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);

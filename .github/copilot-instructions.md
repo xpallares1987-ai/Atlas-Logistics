@@ -2,70 +2,46 @@
 
 ## Repository scope
 
-This repository is the monorepo at `C:\Users\xpall\Source\Atlas-Logistics`, not the older `Source\` meta-repo README. Treat `Atlas-Logistics` as the working root.
+This repository root is `C:\Users\xpall\Source\Atlas-Logistics`. An SCM based super App `pnpm` workspaces and Turborepo.
 
-## Build, test, lint, and dev commands
+## Build, test, lint, and install commands
 
-Run commands from the monorepo root with `pnpm`:
+Run these from the repository root:
 
 ```bash
 pnpm install
-pnpm run dev --filter @atlas/frontend
 pnpm run build
-pnpm run type-check
+pnpm run test
 pnpm run lint
 ```
 
-For tests, prefer package-level commands from the root with `--filter`:
+For focused testing, most real application code currently lives in `Atlas-Logistics`, so run single tests there:
 
 ```bash
-pnpm --filter @atlas/shared test
-pnpm --filter @atlas/dashboard test
-pnpm --filter @atlas/freight-comparer test
-pnpm --filter @atlas/bpmn-modeler test
-```
-
-Single-test examples:
-
-```bash
+cd Atlas-Logistics
 pnpm --filter @atlas/shared test -- src/crypto.test.ts
 pnpm --filter @atlas/dashboard exec vitest run src/app/dashboard.test.ts
 pnpm --filter @atlas/dashboard exec playwright test tests/e2e/logistics.spec.ts
-pnpm --filter @atlas/freight-comparer exec vitest run src/services/rateParser.test.ts
-pnpm --filter @atlas/bpmn-modeler exec vitest run src/services/storage-service.test.ts
 ```
 
-Notes that matter in this repo:
+Important command quirks:
 
-- The root `pnpm run test` script currently filters `@torre/shared`, so it does **not** execute the Atlas workspace tests. Use package-level test commands instead.
-- `packages/dashboard/playwright.config.ts` expects `dashboard.localhost:8080`; run `scripts/add-dev-hosts.bat` as Administrator if you need that host locally.
+- Root CI in `.github/workflows/ci.yml` installs dependencies at both the meta-repo root and inside `Atlas-Logistics`.
+- `.github/workflows/ci.yml` references `pnpm run coverage:check`, but the root `package.json` does not currently define that script.
+- The `Atlas-Logistics/package.json` `test` script still targets `@torre/shared`, so package-level test commands are more reliable there than `pnpm test`.
 
 ## High-level architecture
 
-- `packages/frontend` is the host shell. It owns the top-level React Router tree, auth gating, layout, and route mapping for `/`, `/shipments`, `/rates`, `/workflows`, and admin settings.
-- The host shell composes the feature packages directly from source:
-  - `@atlas/dashboard/src/app/DashboardClient` for the shipments/dashboard experience
-  - `@atlas/freight-comparer/src/index` for the rates module
-  - `@atlas/bpmn-modeler/src/main` through `mountBPMNModeler()` inside `frontend/src/pages/Workflows.tsx`
-- `packages/ui` is the shared design system and integration layer. It exports shared components plus the Firebase/Data Connect context (`FirebaseProvider`, `useFirebase`) and also re-exports `@atlas/shared`.
-- `packages/shared` contains low-level reusable logic (DOM helpers, IndexedDB/db helpers, XML utilities, crypto, theme, schemas, i18n). Put non-visual cross-package utilities here first.
-- `packages/dashboard` is a Next 16 preview app, but inside the monorepo it is also imported into the Vite host as a client component. Its local state is managed with Zustand and persisted to IndexedDB.
-- `packages/bpmn-modeler` is not routed as a normal React subtree. The frontend renders a static HTML wrapper and then imperatively mounts the modeler into it; auth is inherited from the host app.
-- Firebase Data Connect is the main typed data boundary. Packages link the generated SDK from the repository-level generated output instead of defining ad hoc query types in each package.
+- The root repo is an orchestration layer, not the main product app. `pnpm-workspace.yaml` registers five top-level workspaces: `BPMN-Modeler`, `Freight-Comparer`, `Shipment-Dashboard`, `Atlas-Logistics`, and `Control-Tower-UI`.
+- Those top-level folders are also Git submodule mount points defined in `.gitmodules`. If a folder looks empty, assume the submodule is not populated rather than that the project does not exist.
+- `turbo.json` coordinates cross-project tasks from the root and makes the four application builds depend on `@xpallares1987-ai/control-tower-ui#build`.
+- In the current checkout, `Atlas-Logistics` is the populated application codebase. It is itself a nested monorepo containing the active frontend shell plus the logistics modules.
+- Inside `Atlas-Logistics`, the host app is `@atlas/frontend`; it composes `@atlas/dashboard`, `@atlas/freight-comparer`, `@atlas/bpmn-modeler`, `@atlas/ui`, and `@atlas/shared`.
 
 ## Key conventions
 
-- Prefer `pnpm --filter <workspace>` from the repo root over ad hoc commands inside package directories; the workspace is wired around pnpm + Turbo.
-- Keep shared concerns in the right layer:
-  - `@atlas/shared` for core utilities and schemas
-  - `@atlas/ui` for reusable UI, hooks, theme helpers, and Firebase context
-  - feature packages for module-specific screens and logic
-- Do not hand-edit Data Connect generated code. Regenerate it with:
-
-```bash
-firebase init dataconnect
-firebase dataconnect:sdk:generate
-```
-
-- The dashboard package has explicit AI guidance in `packages/dashboard/AGENTS.md` and `packages/dashboard/CLAUDE.md`: treat its Next.js version as non-standard and check `node_modules/next/dist/docs/` before making framework-specific changes.
-- Preserve the CI permission baseline in `.github/workflows/ci.yml`: workflows are expected to keep `permissions: contents: read`.
+- Treat root-level changes as workspace-orchestration work: Turborepo config, CI, docs, submodule wiring, and shared repository policy.
+- Treat feature and product-code changes as `Atlas-Logistics` work unless the task clearly targets another initialized top-level submodule.
+- Use the root docs together: `README.md` describes the meta-repo, while `GEMINI.md` captures the current strategic direction that most active development has consolidated into `Atlas-Logistics`.
+- When you work inside `Atlas-Logistics`, also consult `Atlas-Logistics/.github/copilot-instructions.md` for package-level commands and architecture details.
+- Preserve the existing repo conventions from `CONTRIBUTING.md`: Node 20, pnpm 10+, and Conventional Commits.

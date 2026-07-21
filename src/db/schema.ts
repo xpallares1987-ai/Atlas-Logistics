@@ -560,3 +560,39 @@ export const warehouseInventoryRelations = relations(
     }),
   }),
 );
+
+// ============================================================================
+// WEBHOOKS
+// ============================================================================
+
+export const webhooks = pgTable("webhooks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id").references(() => companies.id), // Si es multi-tenant
+  endpointUrl: varchar("endpoint_url", { length: 500 }).notNull(),
+  secret: varchar("secret", { length: 255 }).notNull(),
+  events: jsonb("events").notNull(), // array of strings (e.g. ["shipment.created", "invoice.paid"])
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  webhookId: uuid("webhook_id").references(() => webhooks.id).notNull(),
+  eventType: varchar("event_type", { length: 100 }).notNull(),
+  payload: jsonb("payload").notNull(),
+  status: varchar("status", { length: 50 }).notNull(), // 'SUCCESS' or 'FAILED'
+  responseCode: integer("response_code"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const webhooksRelations = relations(webhooks, ({ many }) => ({
+  deliveries: many(webhookDeliveries),
+}));
+
+export const webhookDeliveriesRelations = relations(webhookDeliveries, ({ one }) => ({
+  webhook: one(webhooks, {
+    fields: [webhookDeliveries.webhookId],
+    references: [webhooks.id],
+  }),
+}));
