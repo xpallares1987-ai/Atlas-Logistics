@@ -2,9 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./i18n";
-import "./index.css";
 import { registerSW } from "virtual:pwa-register";
 import { syncManager } from "@atlas/shared";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { httpBatchLink } from "@trpc/client";
+import { trpc } from "./utils/trpc";
 
 // Register service worker for PWA offline capabilities
 if ("serviceWorker" in navigator) {
@@ -31,8 +33,21 @@ console.warn = (...args) => {
   originalWarn(...args);
 };
 
+const queryClient = new QueryClient();
+const trpcClient = trpc.createClient({
+  links: [
+    httpBatchLink({
+      url: "http://localhost:3001/trpc",
+    }),
+  ],
+});
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <App />
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </trpc.Provider>
   </React.StrictMode>,
 );

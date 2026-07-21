@@ -1,0 +1,67 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+  SERVICE_NAME: atlas-backend
+  IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/atlas-backend
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Type Check & Linter
+        run: pnpm run lint
+
+      - name: Run Tests
+        run: pnpm run test
+
+      - name: Build Turbo
+        run: pnpm run build
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ env.IMAGE }}:${{ github.sha }} -f Dockerfile.backend .
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --service-account atlas-backend-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
+            --set-env-vars NODE_ENV=production,GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}

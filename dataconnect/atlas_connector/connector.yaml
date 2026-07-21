@@ -1,7 +1,74 @@
-connectorId: "atlas"
+connectorId: atlas
 generate:
   javascriptSdk:
-    outputDir: "../../apps/atlas-scm/src/dataconnect-generated"
-    package: "@dataconnect/generated"
-    packageJsonDir: "../../apps/atlas-scm"
-    react: true
+    - outputDir: ../../apps/atlas-scm/src/dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ../../apps/atlas-scm
+      react: true
+    - outputDir: ..\..\src\dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ..\..
+      react: true
+      angular: false
+      clientCache: {}
+    - outputDir: ..\..\test-prune\src\dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ..\..\test-prune
+      react: true
+      angular: false
+      clientCache: {}
+    - outputDir: ..\..\packages\ui\src\dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ..\..\packages\ui
+      react: true
+      angular: false
+      clientCache: {}
+    - outputDir: ..\..\packages\shared\src\dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ..\..\packages\shared
+      react: false
+      angular: false
+      clientCache: {}
+    - outputDir: ..\..\packages\rate-comparer\src\dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ..\..\packages\rate-comparer
+      react: true
+      angular: false
+      clientCache: {}
+    - outputDir: ..\..\packages\frontend\src\dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ..\..\packages\frontend
+      react: true
+      angular: false
+      clientCache: {}
+    - outputDir: ..\..\packages\dashboard\src\dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ..\..\packages\dashboard
+      react: true
+      angular: false
+      clientCache: {}
+    - outputDir: ..\..\packages\bpmn-modeler\src\dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ..\..\packages\bpmn-modeler
+      react: true
+      angular: false
+      clientCache: {}
+    - outputDir: ..\..\camunda-config\official-8.9\tests\src\dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ..\..\camunda-config\official-8.9\tests
+      react: false
+      angular: false
+      clientCache: {}
+  adminNodeSdk:
+    - outputDir: ..\..\src\dataconnect-admin-generated
+      package: "@dataconnect/admin-generated"
+      packageJsonDir: ..\..
+    - outputDir: ..\..\test-prune\src\dataconnect-admin-generated
+      package: "@dataconnect/admin-generated"
+      packageJsonDir: ..\..\test-prune
+    - outputDir: ..\..\functions\src\dataconnect-admin-generated
+      package: "@dataconnect/admin-generated"
+      packageJsonDir: ..\..\functions
+    - outputDir: ..\..\packages\rate-comparer\src\dataconnect-admin-generated
+      package: "@dataconnect/admin-generated"
+      packageJsonDir: ..\..\packages\rate-comparer

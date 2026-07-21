@@ -1,12 +1,12 @@
-import { Request, Response, NextFunction } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { OAuth2Client } from 'google-auth-library';
+import { logger } from '../config/logger.js';
 
 const IAP_AUDIENCE = process.env.IAP_AUDIENCE || ''; 
 const client = new OAuth2Client();
 
-// Extending Express Request to hold user info
-declare module 'express-serve-static-core' {
-  interface Request {
+declare module 'fastify' {
+  interface FastifyRequest {
     user?: {
       email: string;
       id: string;
@@ -14,26 +14,23 @@ declare module 'express-serve-static-core' {
   }
 }
 
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+export const authMiddleware = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const iapJwt = req.headers['x-goog-iap-jwt-assertion'] as string;
+    const iapJwt = request.headers['x-goog-iap-jwt-assertion'] as string;
     
-    // Si no hay IAP JWT y estamos en entorno local, creamos un mock o rechazamos.
-    // Para simplificar localmente, si no hay IAP y no estamos en producción estricta, lo permitimos.
     if (!iapJwt) {
       if (process.env.NODE_ENV === 'production' && IAP_AUDIENCE) {
-        return res.status(401).json({ error: 'Missing IAP JWT header.' });
+        reply.code(401).send({ error: 'Missing IAP JWT header.' });
+        throw new Error("Unauthorized");
       } else {
-        // Local Mock
-        req.user = {
+        request.user = {
           email: 'localdev@atlaslogistics.com',
           id: '00000000-0000-0000-0000-000000000000'
         };
-        return next();
+        return;
       }
     }
 
-    // Verificar Token IAP
     const response = await client.getIapPublicKeys();
     const ticket = await client.verifySignedJwtWithCertsAsync(
       iapJwt,
@@ -44,15 +41,14 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
     const payload = ticket.getPayload();
     if (payload) {
-      req.user = {
+      request.user = {
         email: payload.email,
-        id: payload.sub // El subject actua como ID unico de Google
+        id: payload.sub
       };
     }
-    
-    next();
   } catch (error) {
-    console.error('Error verificando IAP JWT:', error);
-    return res.status(401).json({ error: 'Invalid Identity Token' });
+    logger.error('Error verificando IAP JWT:', error);
+    reply.code(401).send({ error: 'Invalid Identity Token' });
+    throw new Error("Unauthorized");
   }
 };

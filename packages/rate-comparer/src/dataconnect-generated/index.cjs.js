@@ -1,4 +1,4 @@
-const { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs } = require('firebase/data-connect');
+const { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs, makeMemoryCacheProvider } = require('firebase/data-connect');
 
 const connectorConfig = {
   connector: 'atlas',
@@ -6,6 +6,12 @@ const connectorConfig = {
   location: 'europe-west1'
 };
 exports.connectorConfig = connectorConfig;
+const dataConnectSettings = {
+  cacheSettings: {
+    cacheProvider: makeMemoryCacheProvider()
+  }
+};
+exports.dataConnectSettings = dataConnectSettings;
 
 const listCustomersRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);

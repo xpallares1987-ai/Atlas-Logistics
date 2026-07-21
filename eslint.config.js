@@ -1,5 +1,6 @@
 import tseslint from "typescript-eslint";
 import reactPlugin from "eslint-plugin-react";
+import workspacesPlugin from "eslint-plugin-workspaces";
 
 export default tseslint.config(
   {
@@ -23,6 +24,7 @@ export default tseslint.config(
     extends: [...tseslint.configs.recommended],
     plugins: {
       react: reactPlugin,
+      workspaces: workspacesPlugin,
     },
     languageOptions: {
       parserOptions: {
@@ -35,6 +37,8 @@ export default tseslint.config(
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": ["warn"],
       "no-console": "off",
+      "workspaces/no-relative-imports": "error",
+      "workspaces/require-dependency": "error"
     },
   },
 );

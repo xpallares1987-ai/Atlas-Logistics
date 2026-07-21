@@ -1,24 +1,25 @@
-import { Request, Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { z, AnyZodObject } from "zod";
 
-export const validate =
-  (schema: AnyZodObject) =>
-  async (req: Request, res: Response, next: NextFunction) => {
+export const validate = (schema: AnyZodObject) => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       await schema.parseAsync({
-        body: req.body,
-        query: req.query,
-        params: req.params,
+        body: request.body,
+        query: request.query,
+        params: request.params,
       });
-      return next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({
+        reply.code(400).send({
           success: false,
           error: "Validation failed",
           issues: error.issues,
         });
+        throw new Error("Validation failed");
       }
-      return res.status(400).json({ success: false, error: "Bad Request" });
+      reply.code(400).send({ success: false, error: "Bad Request" });
+      throw new Error("Bad Request");
     }
   };
+};

@@ -9,7 +9,11 @@
     "test:debug": "npx playwright test --debug",
     "report": "npx playwright show-report"
   },
-  "keywords": ["camunda", "e2e", "playwright"],
+  "keywords": [
+    "camunda",
+    "e2e",
+    "playwright"
+  ],
   "author": "",
   "license": "Apache-2.0",
   "devDependencies": {
@@ -17,5 +21,8 @@
     "@types/node": "^18.0.0",
     "playwright": "^1.61.1",
     "playwright-core": "^1.61.1"
+  },
+  "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated"
   }
 }

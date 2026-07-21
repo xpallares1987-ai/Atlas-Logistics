@@ -1,6 +1,7 @@
 import { zbc } from '../client.js';
 import { db } from '../../db/db.config.js';
 import type { ICustomHeaders, IInputVariables, IOutputVariables, ZeebeJob } from '@camunda8/sdk/dist/zeebe/types';
+import { logger } from '../../config/logger.js';
 
 /**
  * Atlas Logistics — Base class for Zeebe Job Workers.
@@ -52,7 +53,7 @@ export abstract class AtlasWorker<
 
   /** Register this worker with the Zeebe client. */
   register(): void {
-    console.log(`[Worker] Registering: ${this.workerName} (type: ${this.taskType})`);
+    logger.info(`[Worker] Registering: ${this.workerName} (type: ${this.taskType})`);
 
     zbc.createWorker<TInput, THeaders, TOutput>({
       taskType: this.taskType,
@@ -60,24 +61,23 @@ export abstract class AtlasWorker<
       timeout: this.timeout,
       taskHandler: async (job) => {
         const start = Date.now();
-        console.log(
-          `[${this.workerName}] ▶ Job ${job.key} started | processInstance=${job.processInstanceKey}`,
+        logger.info(
+          `[${this.workerName}] ▶ Job ${job.key} started | processInstance=${job.processInstanceKey}`
         );
 
         try {
           const result = await this.execute(job);
           const elapsed = Date.now() - start;
-          console.log(
-            `[${this.workerName}] ✓ Job ${job.key} completed in ${elapsed}ms`,
+          logger.info(
+            `[${this.workerName}] ✓ Job ${job.key} completed in ${elapsed}ms`
           );
           return job.complete(result);
         } catch (error: unknown) {
           const elapsed = Date.now() - start;
 
-          // BPMN-level error (caught by Error Boundary Events)
           if (error instanceof AtlasBpmnError) {
-            console.error(
-              `[${this.workerName}] ⚠ Job ${job.key} BPMN error "${error.code}" after ${elapsed}ms: ${error.message}`,
+            logger.error(
+              `[${this.workerName}] ⚠ Job ${job.key} BPMN error "${error.code}" after ${elapsed}ms: ${error.message}`
             );
             return job.error({
               errorCode: error.code,
@@ -85,12 +85,27 @@ export abstract class AtlasWorker<
             });
           }
 
-          // Technical failure — retry or create incident
           const msg = error instanceof Error ? error.message : String(error);
           const remainingRetries = (job.retries ?? this.retries) - 1;
-          console.error(
-            `[${this.workerName}] ✗ Job ${job.key} failed after ${elapsed}ms (retries left: ${remainingRetries}): ${msg}`,
-          );
+          
+          if (remainingRetries <= 0) {
+            logger.fatal(
+              {
+                dlq: true,
+                jobKey: job.key,
+                processInstanceKey: job.processInstanceKey,
+                taskType: this.taskType,
+                variables: job.variables,
+                error: msg
+              },
+              `[${this.workerName}] ☠️ DEAD LETTER QUEUE: Job ${job.key} exhausted all retries. Payload dumped.`
+            );
+          } else {
+            logger.error(
+              `[${this.workerName}] ✗ Job ${job.key} failed after ${elapsed}ms (retries left: ${remainingRetries}): ${msg}`
+            );
+          }
+
           return job.fail({
             errorMessage: msg,
             retries: Math.max(0, remainingRetries),

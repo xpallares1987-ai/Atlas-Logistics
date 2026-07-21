@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { FastifyPluginAsync } from "fastify";
 import { AIService } from "../services/ai.service.js";
 import {
   geminiInvoiceSchema,
@@ -8,84 +8,72 @@ import { db } from "../db/db.config.js";
 import { pendingAiReviews, shipments } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 
-const router = Router();
+const aiRoutes: FastifyPluginAsync = async (fastify, opts) => {
+  fastify.post("/parse-invoice", async (request, reply) => {
+    try {
+      const { documentBase64, mimeType } = request.body as any;
 
-router.post("/parse-invoice", async (req, res) => {
-  try {
-    const { documentBase64, mimeType } = req.body;
+      if (!documentBase64) {
+        reply.code(400).send({ success: false, error: "documentBase64 is required" });
+        return;
+      }
 
-    if (!documentBase64) {
-      return res
-        .status(400)
-        .json({ success: false, error: "documentBase64 is required" });
+      const prompt = `Extract the invoice details from this document. Ensure you capture the invoice number, supplier name, total amount, currency, and list of line items.`;
+
+      const parsedData = await AIService.parseDocument(
+        documentBase64,
+        mimeType || "application/pdf",
+        prompt,
+        geminiInvoiceSchema,
+      );
+
+      const validatedData = invoiceDataSchema.parse(parsedData);
+      return { success: true, data: validatedData };
+    } catch (error: any) {
+      fastify.log.error("Invoice Parser Error:", error);
+      reply.code(500).send({ success: false, error: error.message });
     }
+  });
 
-    const prompt = `Extract the invoice details from this document. Ensure you capture the invoice number, supplier name, total amount, currency, and list of line items.`;
+  fastify.post("/reviews/:id/approve", async (request, reply) => {
+    try {
+      const { id: reviewId } = request.params as any;
+      const { approvedData } = request.body as any;
 
-    const parsedData = await AIService.parseDocument(
-      documentBase64,
-      mimeType || "application/pdf",
-      prompt,
-      geminiInvoiceSchema,
-    );
-
-    // Validate structured output via Zod
-    const validatedData = invoiceDataSchema.parse(parsedData);
-
-    res.json({ success: true, data: validatedData });
-  } catch (error: any) {
-    console.error("Invoice Parser Error:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-router.post("/reviews/:id/approve", async (req, res) => {
-  try {
-    const reviewId = req.params.id;
-    // La UI puede mandar los datos corregidos si el operador modificó algo.
-    const approvedData = req.body.approvedData;
-
-    const [review] = await db
-      .select()
-      .from(pendingAiReviews)
-      .where(eq(pendingAiReviews.id, reviewId));
-    if (!review || review.status !== "PENDING") {
-      return res
-        .status(400)
-        .json({
+      const [review] = await db
+        .select()
+        .from(pendingAiReviews)
+        .where(eq(pendingAiReviews.id, reviewId));
+        
+      if (!review || review.status !== "PENDING") {
+        reply.code(400).send({
           success: false,
           error: "Review not found or already processed",
         });
+        return;
+      }
+
+      const dataToApply = approvedData || review.extractedData;
+
+      await db
+        .update(shipments)
+        .set({ status: "DOCUMENTATION", updatedAt: new Date() })
+        .where(eq(shipments.id, review.shipmentId));
+
+      await db
+        .update(pendingAiReviews)
+        .set({ status: "APPROVED" })
+        .where(eq(pendingAiReviews.id, reviewId));
+
+      return {
+        success: true,
+        message: "Review approved and shipment updated.",
+      };
+    } catch (error: any) {
+      fastify.log.error("Approve Review Error:", error);
+      reply.code(500).send({ success: false, error: error.message });
     }
+  });
+};
 
-    const dataToApply = approvedData || review.extractedData;
-
-    // Actualizamos el embarque con los datos extraídos (ejemplo básico)
-    // En producción habría un mapeo más complejo.
-    await db
-      .update(shipments)
-      .set({
-        status: "DOCUMENTATION", // Avanzamos el estado
-        updatedAt: new Date(),
-      })
-      .where(eq(shipments.id, review.shipmentId));
-
-    // Marcamos la revisión como aprobada
-    await db
-      .update(pendingAiReviews)
-      .set({
-        status: "APPROVED",
-      })
-      .where(eq(pendingAiReviews.id, reviewId));
-
-    res.json({
-      success: true,
-      message: "Review approved and shipment updated.",
-    });
-  } catch (error: any) {
-    console.error("Approve Review Error:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-export default router;
+export default aiRoutes;

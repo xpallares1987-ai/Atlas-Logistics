@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
     "dexie": "^4.4.4",
     "idb": "^8.0.3",
     "lz-string": "^1.5.0",
