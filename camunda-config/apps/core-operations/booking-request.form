@@ -1,0 +1,224 @@
+{
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.0.0"
+  },
+  "schemaVersion": 16,
+  "id": "booking-request",
+  "components": [
+    {
+      "type": "text",
+      "text": "# 📦 New Booking Request\nFill in the shipment details to initiate an ocean export booking.",
+      "id": "header"
+    },
+    {
+      "type": "separator",
+      "id": "sep1"
+    },
+    {
+      "type": "text",
+      "text": "## Parties",
+      "id": "partiesHeader"
+    },
+    {
+      "type": "textfield",
+      "label": "Shipper / Exporter",
+      "key": "shipperName",
+      "id": "shipper",
+      "validate": { "required": true, "minLength": 2 }
+    },
+    {
+      "type": "textfield",
+      "label": "Consignee / Importer",
+      "key": "consigneeName",
+      "id": "consignee",
+      "validate": { "required": true, "minLength": 2 }
+    },
+    {
+      "type": "textfield",
+      "label": "Notify Party",
+      "key": "notifyParty",
+      "id": "notifyParty"
+    },
+    {
+      "type": "separator",
+      "id": "sep2"
+    },
+    {
+      "type": "text",
+      "text": "## Routing",
+      "id": "routingHeader"
+    },
+    {
+      "type": "columns",
+      "id": "routeColumns",
+      "columns": [
+        {
+          "components": [
+            {
+              "type": "textfield",
+              "label": "Port of Loading (POL)",
+              "key": "origin",
+              "id": "pol",
+              "validate": { "required": true },
+              "description": "e.g. ESVLC (Valencia)"
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "type": "textfield",
+              "label": "Port of Discharge (POD)",
+              "key": "destination",
+              "id": "pod",
+              "validate": { "required": true },
+              "description": "e.g. CNSHA (Shanghai)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textfield",
+      "label": "Place of Delivery (Final)",
+      "key": "placeOfDelivery",
+      "id": "placeOfDelivery",
+      "description": "If different from POD"
+    },
+    {
+      "type": "separator",
+      "id": "sep3"
+    },
+    {
+      "type": "text",
+      "text": "## Cargo Details",
+      "id": "cargoHeader"
+    },
+    {
+      "type": "select",
+      "label": "Equipment Type",
+      "key": "equipment",
+      "id": "equipment",
+      "validate": { "required": true },
+      "values": [
+        { "label": "20' Dry Container (20DC)", "value": "20DC" },
+        { "label": "40' Dry Container (40DC)", "value": "40DC" },
+        { "label": "40' High Cube (40HC)", "value": "40HC" },
+        { "label": "20' Reefer (20RF)", "value": "20RF" },
+        { "label": "40' Reefer (40RF)", "value": "40RF" },
+        { "label": "20' Open Top (20OT)", "value": "20OT" },
+        { "label": "40' Flat Rack (40FR)", "value": "40FR" },
+        { "label": "LCL (Less than Container Load)", "value": "LCL" }
+      ]
+    },
+    {
+      "type": "number",
+      "label": "Number of Containers",
+      "key": "containerCount",
+      "id": "containerCount",
+      "validate": { "required": true, "min": 1, "max": 100 },
+      "defaultValue": 1
+    },
+    {
+      "type": "textfield",
+      "label": "Commodity / Product Description",
+      "key": "commodity",
+      "id": "commodity",
+      "validate": { "required": true, "minLength": 3 }
+    },
+    {
+      "type": "textfield",
+      "label": "HS Code",
+      "key": "hsCode",
+      "id": "hsCode",
+      "validate": { "required": true, "pattern": "^\\d{4,10}$" },
+      "description": "Harmonized System code (4-10 digits)"
+    },
+    {
+      "type": "columns",
+      "id": "weightColumns",
+      "columns": [
+        {
+          "components": [
+            {
+              "type": "number",
+              "label": "Gross Weight (kg)",
+              "key": "grossWeightKg",
+              "id": "grossWeight",
+              "validate": { "required": true, "min": 1 },
+              "decimalDigits": 2
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "type": "number",
+              "label": "Volume (CBM)",
+              "key": "volumeCbm",
+              "id": "volume",
+              "validate": { "required": true, "min": 0.01 },
+              "decimalDigits": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "number",
+      "label": "Number of Packages",
+      "key": "packageCount",
+      "id": "packageCount",
+      "validate": { "required": true, "min": 1 }
+    },
+    {
+      "type": "separator",
+      "id": "sep4"
+    },
+    {
+      "type": "text",
+      "text": "## Preferences",
+      "id": "prefHeader"
+    },
+    {
+      "type": "select",
+      "label": "Incoterm",
+      "key": "incoterm",
+      "id": "incoterm",
+      "validate": { "required": true },
+      "values": [
+        { "label": "FOB - Free On Board", "value": "FOB" },
+        { "label": "CIF - Cost, Insurance & Freight", "value": "CIF" },
+        { "label": "CFR - Cost & Freight", "value": "CFR" },
+        { "label": "EXW - Ex Works", "value": "EXW" },
+        { "label": "DDP - Delivered Duty Paid", "value": "DDP" },
+        { "label": "DAP - Delivered At Place", "value": "DAP" },
+        { "label": "FCA - Free Carrier", "value": "FCA" },
+        { "label": "CPT - Carriage Paid To", "value": "CPT" }
+      ]
+    },
+    {
+      "type": "select",
+      "label": "Urgency",
+      "key": "urgency",
+      "id": "urgency",
+      "defaultValue": "STANDARD",
+      "values": [
+        { "label": "🟢 Standard", "value": "STANDARD" },
+        { "label": "🟡 Express", "value": "EXPRESS" },
+        { "label": "🔴 Critical", "value": "CRITICAL" }
+      ]
+    },
+    {
+      "type": "textarea",
+      "label": "Special Instructions",
+      "key": "specialInstructions",
+      "id": "instructions",
+      "description": "Any special requirements (temperature, fumigation, IMO class, etc.)"
+    }
+  ],
+  "type": "default"
+}

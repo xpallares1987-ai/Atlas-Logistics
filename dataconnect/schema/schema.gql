@@ -75,6 +75,9 @@ type Quote @table {
   customer: Company! @ref
   carrier: Company @ref
   notes: String
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp
+  isDeleted: Boolean! @default(value: false)
 }
 
 type Shipment @table {
@@ -147,6 +150,9 @@ type Shipment @table {
   ets: Timestamp
   isEstimated: Boolean! @default(value: false)
   source: String # MANUAL, AIS, EDI, API
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp
+  isDeleted: Boolean! @default(value: false)
 }
 
 type Document @table {
@@ -185,6 +191,9 @@ type Milestone @table {
   isEstimated: Boolean! @default(value: false)
   source: String # MANUAL, AIS, EDI, API
   shipment: Shipment! @ref
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp
+  isDeleted: Boolean! @default(value: false)
 }
 
 type Invoice @table {
@@ -204,6 +213,9 @@ type Invoice @table {
   customer: Company @ref
   createdBy: User @ref
   notes: String
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp
+  isDeleted: Boolean! @default(value: false)
 }
 
 type Workflow @table {
@@ -303,5 +315,17 @@ type DictionaryTerm @table(key: ["acronym", "category"]) {
   region: String
   moduleScope: [String!]
   isActive: Boolean! @default(value: true)
+}
+
+type CustomsEventLog @table {
+  tenantId: String! @default(value: "atlas-default-tenant")
+  shipment: Shipment! @ref
+  declarationNumber: String
+  customsStatus: String! # PENDING, CLEARED, INSPECTION, HOLD
+  timestamp: Timestamp! @default(expr: "request.time")
+  performedBy: User! @ref
+  inspectorName: String
+  remarks: String
+  isDeleted: Boolean! @default(value: false)
 }
 

@@ -1,4 +1,9 @@
-import { ConnectorConfig, DataConnect, OperationOptions, ExecuteOperationResponse } from 'firebase-admin/data-connect';
+import {
+  ConnectorConfig,
+  DataConnect,
+  OperationOptions,
+  ExecuteOperationResponse,
+} from "firebase-admin/data-connect";
 
 export const connectorConfig: ConnectorConfig;
 
@@ -6,7 +11,6 @@ export type TimestampString = string;
 export type UUIDString = string;
 export type Int64String = string;
 export type DateString = string;
-
 
 export interface ApproveOcrDocumentData {
   document_update?: Document_Key | null;
@@ -20,7 +24,7 @@ export interface ApproveOcrDocumentVariables {
 
 export interface Company_Key {
   id: UUIDString;
-  __typename?: 'Company_Key';
+  __typename?: "Company_Key";
 }
 
 export interface CreateCompanyData {
@@ -197,23 +201,28 @@ export interface CreateVesselVariables {
 
 export interface CrmDeal_Key {
   id: UUIDString;
-  __typename?: 'CrmDeal_Key';
+  __typename?: "CrmDeal_Key";
 }
 
 export interface CrmInteraction_Key {
   id: UUIDString;
-  __typename?: 'CrmInteraction_Key';
+  __typename?: "CrmInteraction_Key";
+}
+
+export interface CustomsEventLog_Key {
+  id: UUIDString;
+  __typename?: "CustomsEventLog_Key";
 }
 
 export interface DictionaryTerm_Key {
   acronym: string;
   category: string;
-  __typename?: 'DictionaryTerm_Key';
+  __typename?: "DictionaryTerm_Key";
 }
 
 export interface Document_Key {
   id: UUIDString;
-  __typename?: 'Document_Key';
+  __typename?: "Document_Key";
 }
 
 export interface GetAllUsersData {
@@ -274,12 +283,12 @@ export interface GetUserProfileVariables {
 
 export interface HsCode_Key {
   code: string;
-  __typename?: 'HsCode_Key';
+  __typename?: "HsCode_Key";
 }
 
 export interface Incoterm_Key {
   code: string;
-  __typename?: 'Incoterm_Key';
+  __typename?: "Incoterm_Key";
 }
 
 export interface InsertDictionaryTermData {
@@ -298,7 +307,7 @@ export interface InsertDictionaryTermVariables {
 
 export interface Invoice_Key {
   id: UUIDString;
-  __typename?: 'Invoice_Key';
+  __typename?: "Invoice_Key";
 }
 
 export interface ListAgentsData {
@@ -528,7 +537,7 @@ export interface ListSchedulesVariables {
 }
 
 export interface ListShipmentsData {
-  shipments: ({
+  shipments: {
     trackingNumber: string;
     status: string;
     origin: string;
@@ -544,7 +553,7 @@ export interface ListShipmentsData {
     supplier?: {
       name: string;
     };
-  })[];
+  }[];
 }
 
 export interface ListShipmentsVariables {
@@ -567,7 +576,7 @@ export interface ListVesselsData {
 
 export interface Location_Key {
   locode: string;
-  __typename?: 'Location_Key';
+  __typename?: "Location_Key";
 }
 
 export interface LogShipmentEventData {
@@ -584,12 +593,12 @@ export interface LogShipmentEventVariables {
 
 export interface Milestone_Key {
   id: UUIDString;
-  __typename?: 'Milestone_Key';
+  __typename?: "Milestone_Key";
 }
 
 export interface Quote_Key {
   id: UUIDString;
-  __typename?: 'Quote_Key';
+  __typename?: "Quote_Key";
 }
 
 export interface RejectOcrDocumentData {
@@ -602,7 +611,7 @@ export interface RejectOcrDocumentVariables {
 
 export interface Schedule_Key {
   id: UUIDString;
-  __typename?: 'Schedule_Key';
+  __typename?: "Schedule_Key";
 }
 
 export interface SearchLocationsData {
@@ -621,12 +630,12 @@ export interface SearchLocationsVariables {
 
 export interface ShipmentEventLog_Key {
   id: UUIDString;
-  __typename?: 'ShipmentEventLog_Key';
+  __typename?: "ShipmentEventLog_Key";
 }
 
 export interface Shipment_Key {
   id: UUIDString;
-  __typename?: 'Shipment_Key';
+  __typename?: "Shipment_Key";
 }
 
 export interface UpdateCrmDealStatusData {
@@ -675,211 +684,469 @@ export interface UpsertUserVariables {
 
 export interface User_Key {
   uid: string;
-  __typename?: 'User_Key';
+  __typename?: "User_Key";
 }
 
 export interface Vessel_Key {
   imoNumber: string;
-  __typename?: 'Vessel_Key';
+  __typename?: "Vessel_Key";
 }
 
 export interface Workflow_Key {
   id: UUIDString;
-  __typename?: 'Workflow_Key';
+  __typename?: "Workflow_Key";
 }
 
 /** Generated Node Admin SDK operation action function for the 'ListCustomers' Query. Allow users to execute without passing in DataConnect. */
-export function listCustomers(dc: DataConnect, vars: ListCustomersVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListCustomersData>>;
+export function listCustomers(
+  dc: DataConnect,
+  vars: ListCustomersVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListCustomersData>>;
 /** Generated Node Admin SDK operation action function for the 'ListCustomers' Query. Allow users to pass in custom DataConnect instances. */
-export function listCustomers(vars: ListCustomersVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListCustomersData>>;
+export function listCustomers(
+  vars: ListCustomersVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListCustomersData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListCrmDeals' Query. Allow users to execute without passing in DataConnect. */
-export function listCrmDeals(dc: DataConnect, vars: ListCrmDealsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListCrmDealsData>>;
+export function listCrmDeals(
+  dc: DataConnect,
+  vars: ListCrmDealsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListCrmDealsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListCrmDeals' Query. Allow users to pass in custom DataConnect instances. */
-export function listCrmDeals(vars: ListCrmDealsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListCrmDealsData>>;
+export function listCrmDeals(
+  vars: ListCrmDealsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListCrmDealsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListCrmInteractions' Query. Allow users to execute without passing in DataConnect. */
-export function listCrmInteractions(dc: DataConnect, vars: ListCrmInteractionsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListCrmInteractionsData>>;
+export function listCrmInteractions(
+  dc: DataConnect,
+  vars: ListCrmInteractionsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListCrmInteractionsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListCrmInteractions' Query. Allow users to pass in custom DataConnect instances. */
-export function listCrmInteractions(vars: ListCrmInteractionsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListCrmInteractionsData>>;
+export function listCrmInteractions(
+  vars: ListCrmInteractionsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListCrmInteractionsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateCrmDeal' Mutation. Allow users to execute without passing in DataConnect. */
-export function createCrmDeal(dc: DataConnect, vars: CreateCrmDealVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateCrmDealData>>;
+export function createCrmDeal(
+  dc: DataConnect,
+  vars: CreateCrmDealVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateCrmDealData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateCrmDeal' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createCrmDeal(vars: CreateCrmDealVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateCrmDealData>>;
+export function createCrmDeal(
+  vars: CreateCrmDealVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateCrmDealData>>;
 
 /** Generated Node Admin SDK operation action function for the 'UpdateCrmDealStatus' Mutation. Allow users to execute without passing in DataConnect. */
-export function updateCrmDealStatus(dc: DataConnect, vars: UpdateCrmDealStatusVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateCrmDealStatusData>>;
+export function updateCrmDealStatus(
+  dc: DataConnect,
+  vars: UpdateCrmDealStatusVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateCrmDealStatusData>>;
 /** Generated Node Admin SDK operation action function for the 'UpdateCrmDealStatus' Mutation. Allow users to pass in custom DataConnect instances. */
-export function updateCrmDealStatus(vars: UpdateCrmDealStatusVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateCrmDealStatusData>>;
+export function updateCrmDealStatus(
+  vars: UpdateCrmDealStatusVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateCrmDealStatusData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateCrmInteraction' Mutation. Allow users to execute without passing in DataConnect. */
-export function createCrmInteraction(dc: DataConnect, vars: CreateCrmInteractionVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateCrmInteractionData>>;
+export function createCrmInteraction(
+  dc: DataConnect,
+  vars: CreateCrmInteractionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateCrmInteractionData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateCrmInteraction' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createCrmInteraction(vars: CreateCrmInteractionVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateCrmInteractionData>>;
+export function createCrmInteraction(
+  vars: CreateCrmInteractionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateCrmInteractionData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateDocumentFromOcr' Mutation. Allow users to execute without passing in DataConnect. */
-export function createDocumentFromOcr(dc: DataConnect, vars: CreateDocumentFromOcrVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateDocumentFromOcrData>>;
+export function createDocumentFromOcr(
+  dc: DataConnect,
+  vars: CreateDocumentFromOcrVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateDocumentFromOcrData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateDocumentFromOcr' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createDocumentFromOcr(vars: CreateDocumentFromOcrVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateDocumentFromOcrData>>;
+export function createDocumentFromOcr(
+  vars: CreateDocumentFromOcrVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateDocumentFromOcrData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ApproveOcrDocument' Mutation. Allow users to execute without passing in DataConnect. */
-export function approveOcrDocument(dc: DataConnect, vars: ApproveOcrDocumentVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ApproveOcrDocumentData>>;
+export function approveOcrDocument(
+  dc: DataConnect,
+  vars: ApproveOcrDocumentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ApproveOcrDocumentData>>;
 /** Generated Node Admin SDK operation action function for the 'ApproveOcrDocument' Mutation. Allow users to pass in custom DataConnect instances. */
-export function approveOcrDocument(vars: ApproveOcrDocumentVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ApproveOcrDocumentData>>;
+export function approveOcrDocument(
+  vars: ApproveOcrDocumentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ApproveOcrDocumentData>>;
 
 /** Generated Node Admin SDK operation action function for the 'RejectOcrDocument' Mutation. Allow users to execute without passing in DataConnect. */
-export function rejectOcrDocument(dc: DataConnect, vars: RejectOcrDocumentVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<RejectOcrDocumentData>>;
+export function rejectOcrDocument(
+  dc: DataConnect,
+  vars: RejectOcrDocumentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RejectOcrDocumentData>>;
 /** Generated Node Admin SDK operation action function for the 'RejectOcrDocument' Mutation. Allow users to pass in custom DataConnect instances. */
-export function rejectOcrDocument(vars: RejectOcrDocumentVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<RejectOcrDocumentData>>;
+export function rejectOcrDocument(
+  vars: RejectOcrDocumentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RejectOcrDocumentData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListPendingOcrDocuments' Query. Allow users to execute without passing in DataConnect. */
-export function listPendingOcrDocuments(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListPendingOcrDocumentsData>>;
+export function listPendingOcrDocuments(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListPendingOcrDocumentsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListPendingOcrDocuments' Query. Allow users to pass in custom DataConnect instances. */
-export function listPendingOcrDocuments(options?: OperationOptions): Promise<ExecuteOperationResponse<ListPendingOcrDocumentsData>>;
+export function listPendingOcrDocuments(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListPendingOcrDocumentsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListIncoterms' Query. Allow users to execute without passing in DataConnect. */
-export function listIncoterms(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListIncotermsData>>;
+export function listIncoterms(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListIncotermsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListIncoterms' Query. Allow users to pass in custom DataConnect instances. */
-export function listIncoterms(options?: OperationOptions): Promise<ExecuteOperationResponse<ListIncotermsData>>;
+export function listIncoterms(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListIncotermsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListHsCodes' Query. Allow users to execute without passing in DataConnect. */
-export function listHsCodes(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListHsCodesData>>;
+export function listHsCodes(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListHsCodesData>>;
 /** Generated Node Admin SDK operation action function for the 'ListHsCodes' Query. Allow users to pass in custom DataConnect instances. */
-export function listHsCodes(options?: OperationOptions): Promise<ExecuteOperationResponse<ListHsCodesData>>;
+export function listHsCodes(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListHsCodesData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListVessels' Query. Allow users to execute without passing in DataConnect. */
-export function listVessels(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListVesselsData>>;
+export function listVessels(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListVesselsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListVessels' Query. Allow users to pass in custom DataConnect instances. */
-export function listVessels(options?: OperationOptions): Promise<ExecuteOperationResponse<ListVesselsData>>;
+export function listVessels(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListVesselsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListSchedules' Query. Allow users to execute without passing in DataConnect. */
-export function listSchedules(dc: DataConnect, vars: ListSchedulesVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSchedulesData>>;
+export function listSchedules(
+  dc: DataConnect,
+  vars: ListSchedulesVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListSchedulesData>>;
 /** Generated Node Admin SDK operation action function for the 'ListSchedules' Query. Allow users to pass in custom DataConnect instances. */
-export function listSchedules(vars: ListSchedulesVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSchedulesData>>;
+export function listSchedules(
+  vars: ListSchedulesVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListSchedulesData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListDictionaryTerms' Query. Allow users to execute without passing in DataConnect. */
-export function listDictionaryTerms(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListDictionaryTermsData>>;
+export function listDictionaryTerms(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListDictionaryTermsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListDictionaryTerms' Query. Allow users to pass in custom DataConnect instances. */
-export function listDictionaryTerms(options?: OperationOptions): Promise<ExecuteOperationResponse<ListDictionaryTermsData>>;
+export function listDictionaryTerms(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListDictionaryTermsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'UpsertDictionaryTerm' Mutation. Allow users to execute without passing in DataConnect. */
-export function upsertDictionaryTerm(dc: DataConnect, vars: UpsertDictionaryTermVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertDictionaryTermData>>;
+export function upsertDictionaryTerm(
+  dc: DataConnect,
+  vars: UpsertDictionaryTermVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpsertDictionaryTermData>>;
 /** Generated Node Admin SDK operation action function for the 'UpsertDictionaryTerm' Mutation. Allow users to pass in custom DataConnect instances. */
-export function upsertDictionaryTerm(vars: UpsertDictionaryTermVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertDictionaryTermData>>;
+export function upsertDictionaryTerm(
+  vars: UpsertDictionaryTermVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpsertDictionaryTermData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListCarriers' Query. Allow users to execute without passing in DataConnect. */
-export function listCarriers(dc: DataConnect, vars: ListCarriersVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListCarriersData>>;
+export function listCarriers(
+  dc: DataConnect,
+  vars: ListCarriersVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListCarriersData>>;
 /** Generated Node Admin SDK operation action function for the 'ListCarriers' Query. Allow users to pass in custom DataConnect instances. */
-export function listCarriers(vars: ListCarriersVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListCarriersData>>;
+export function listCarriers(
+  vars: ListCarriersVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListCarriersData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListHauliers' Query. Allow users to execute without passing in DataConnect. */
-export function listHauliers(dc: DataConnect, vars: ListHauliersVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListHauliersData>>;
+export function listHauliers(
+  dc: DataConnect,
+  vars: ListHauliersVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListHauliersData>>;
 /** Generated Node Admin SDK operation action function for the 'ListHauliers' Query. Allow users to pass in custom DataConnect instances. */
-export function listHauliers(vars: ListHauliersVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListHauliersData>>;
+export function listHauliers(
+  vars: ListHauliersVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListHauliersData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListAgents' Query. Allow users to execute without passing in DataConnect. */
-export function listAgents(dc: DataConnect, vars: ListAgentsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListAgentsData>>;
+export function listAgents(
+  dc: DataConnect,
+  vars: ListAgentsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListAgentsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListAgents' Query. Allow users to pass in custom DataConnect instances. */
-export function listAgents(vars: ListAgentsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListAgentsData>>;
+export function listAgents(
+  vars: ListAgentsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListAgentsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListCompanies' Query. Allow users to execute without passing in DataConnect. */
-export function listCompanies(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListCompaniesData>>;
+export function listCompanies(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListCompaniesData>>;
 /** Generated Node Admin SDK operation action function for the 'ListCompanies' Query. Allow users to pass in custom DataConnect instances. */
-export function listCompanies(options?: OperationOptions): Promise<ExecuteOperationResponse<ListCompaniesData>>;
+export function listCompanies(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListCompaniesData>>;
 
 /** Generated Node Admin SDK operation action function for the 'SearchLocations' Query. Allow users to execute without passing in DataConnect. */
-export function searchLocations(dc: DataConnect, vars: SearchLocationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<SearchLocationsData>>;
+export function searchLocations(
+  dc: DataConnect,
+  vars: SearchLocationsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<SearchLocationsData>>;
 /** Generated Node Admin SDK operation action function for the 'SearchLocations' Query. Allow users to pass in custom DataConnect instances. */
-export function searchLocations(vars: SearchLocationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<SearchLocationsData>>;
+export function searchLocations(
+  vars: SearchLocationsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<SearchLocationsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListQuotes' Query. Allow users to execute without passing in DataConnect. */
-export function listQuotes(dc: DataConnect, vars: ListQuotesVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListQuotesData>>;
+export function listQuotes(
+  dc: DataConnect,
+  vars: ListQuotesVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListQuotesData>>;
 /** Generated Node Admin SDK operation action function for the 'ListQuotes' Query. Allow users to pass in custom DataConnect instances. */
-export function listQuotes(vars: ListQuotesVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListQuotesData>>;
+export function listQuotes(
+  vars: ListQuotesVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListQuotesData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateCompany' Mutation. Allow users to execute without passing in DataConnect. */
-export function createCompany(dc: DataConnect, vars: CreateCompanyVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateCompanyData>>;
+export function createCompany(
+  dc: DataConnect,
+  vars: CreateCompanyVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateCompanyData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateCompany' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createCompany(vars: CreateCompanyVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateCompanyData>>;
+export function createCompany(
+  vars: CreateCompanyVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateCompanyData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateLocation' Mutation. Allow users to execute without passing in DataConnect. */
-export function createLocation(dc: DataConnect, vars: CreateLocationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateLocationData>>;
+export function createLocation(
+  dc: DataConnect,
+  vars: CreateLocationVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateLocationData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateLocation' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createLocation(vars: CreateLocationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateLocationData>>;
+export function createLocation(
+  vars: CreateLocationVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateLocationData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateQuote' Mutation. Allow users to execute without passing in DataConnect. */
-export function createQuote(dc: DataConnect, vars: CreateQuoteVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateQuoteData>>;
+export function createQuote(
+  dc: DataConnect,
+  vars: CreateQuoteVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateQuoteData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateQuote' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createQuote(vars: CreateQuoteVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateQuoteData>>;
+export function createQuote(
+  vars: CreateQuoteVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateQuoteData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateMilestone' Mutation. Allow users to execute without passing in DataConnect. */
-export function createMilestone(dc: DataConnect, vars: CreateMilestoneVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateMilestoneData>>;
+export function createMilestone(
+  dc: DataConnect,
+  vars: CreateMilestoneVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateMilestoneData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateMilestone' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createMilestone(vars: CreateMilestoneVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateMilestoneData>>;
+export function createMilestone(
+  vars: CreateMilestoneVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateMilestoneData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateHsCode' Mutation. Allow users to execute without passing in DataConnect. */
-export function createHsCode(dc: DataConnect, vars: CreateHsCodeVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateHsCodeData>>;
+export function createHsCode(
+  dc: DataConnect,
+  vars: CreateHsCodeVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateHsCodeData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateHsCode' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createHsCode(vars: CreateHsCodeVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateHsCodeData>>;
+export function createHsCode(
+  vars: CreateHsCodeVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateHsCodeData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateIncoterm' Mutation. Allow users to execute without passing in DataConnect. */
-export function createIncoterm(dc: DataConnect, vars: CreateIncotermVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateIncotermData>>;
+export function createIncoterm(
+  dc: DataConnect,
+  vars: CreateIncotermVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateIncotermData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateIncoterm' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createIncoterm(vars: CreateIncotermVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateIncotermData>>;
+export function createIncoterm(
+  vars: CreateIncotermVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateIncotermData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateVessel' Mutation. Allow users to execute without passing in DataConnect. */
-export function createVessel(dc: DataConnect, vars: CreateVesselVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateVesselData>>;
+export function createVessel(
+  dc: DataConnect,
+  vars: CreateVesselVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateVesselData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateVessel' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createVessel(vars: CreateVesselVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateVesselData>>;
+export function createVessel(
+  vars: CreateVesselVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateVesselData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateSchedule' Mutation. Allow users to execute without passing in DataConnect. */
-export function createSchedule(dc: DataConnect, vars: CreateScheduleVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateScheduleData>>;
+export function createSchedule(
+  dc: DataConnect,
+  vars: CreateScheduleVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateScheduleData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateSchedule' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createSchedule(vars: CreateScheduleVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateScheduleData>>;
+export function createSchedule(
+  vars: CreateScheduleVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateScheduleData>>;
 
 /** Generated Node Admin SDK operation action function for the 'InsertDictionaryTerm' Mutation. Allow users to execute without passing in DataConnect. */
-export function insertDictionaryTerm(dc: DataConnect, vars: InsertDictionaryTermVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<InsertDictionaryTermData>>;
+export function insertDictionaryTerm(
+  dc: DataConnect,
+  vars: InsertDictionaryTermVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<InsertDictionaryTermData>>;
 /** Generated Node Admin SDK operation action function for the 'InsertDictionaryTerm' Mutation. Allow users to pass in custom DataConnect instances. */
-export function insertDictionaryTerm(vars: InsertDictionaryTermVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<InsertDictionaryTermData>>;
+export function insertDictionaryTerm(
+  vars: InsertDictionaryTermVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<InsertDictionaryTermData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListShipments' Query. Allow users to execute without passing in DataConnect. */
-export function listShipments(dc: DataConnect, vars: ListShipmentsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListShipmentsData>>;
+export function listShipments(
+  dc: DataConnect,
+  vars: ListShipmentsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListShipmentsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListShipments' Query. Allow users to pass in custom DataConnect instances. */
-export function listShipments(vars: ListShipmentsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListShipmentsData>>;
+export function listShipments(
+  vars: ListShipmentsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ListShipmentsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetShipmentById' Query. Allow users to execute without passing in DataConnect. */
-export function getShipmentById(dc: DataConnect, vars: GetShipmentByIdVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetShipmentByIdData>>;
+export function getShipmentById(
+  dc: DataConnect,
+  vars: GetShipmentByIdVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetShipmentByIdData>>;
 /** Generated Node Admin SDK operation action function for the 'GetShipmentById' Query. Allow users to pass in custom DataConnect instances. */
-export function getShipmentById(vars: GetShipmentByIdVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetShipmentByIdData>>;
+export function getShipmentById(
+  vars: GetShipmentByIdVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetShipmentByIdData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateShipment' Mutation. Allow users to execute without passing in DataConnect. */
-export function createShipment(dc: DataConnect, vars: CreateShipmentVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateShipmentData>>;
+export function createShipment(
+  dc: DataConnect,
+  vars: CreateShipmentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateShipmentData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateShipment' Mutation. Allow users to pass in custom DataConnect instances. */
-export function createShipment(vars: CreateShipmentVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateShipmentData>>;
+export function createShipment(
+  vars: CreateShipmentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateShipmentData>>;
 
 /** Generated Node Admin SDK operation action function for the 'LogShipmentEvent' Mutation. Allow users to execute without passing in DataConnect. */
-export function logShipmentEvent(dc: DataConnect, vars: LogShipmentEventVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<LogShipmentEventData>>;
+export function logShipmentEvent(
+  dc: DataConnect,
+  vars: LogShipmentEventVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<LogShipmentEventData>>;
 /** Generated Node Admin SDK operation action function for the 'LogShipmentEvent' Mutation. Allow users to pass in custom DataConnect instances. */
-export function logShipmentEvent(vars: LogShipmentEventVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<LogShipmentEventData>>;
+export function logShipmentEvent(
+  vars: LogShipmentEventVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<LogShipmentEventData>>;
 
 /** Generated Node Admin SDK operation action function for the 'UpsertUser' Mutation. Allow users to execute without passing in DataConnect. */
-export function upsertUser(dc: DataConnect, vars: UpsertUserVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertUserData>>;
+export function upsertUser(
+  dc: DataConnect,
+  vars: UpsertUserVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpsertUserData>>;
 /** Generated Node Admin SDK operation action function for the 'UpsertUser' Mutation. Allow users to pass in custom DataConnect instances. */
-export function upsertUser(vars: UpsertUserVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertUserData>>;
+export function upsertUser(
+  vars: UpsertUserVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpsertUserData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetUserProfile' Query. Allow users to execute without passing in DataConnect. */
-export function getUserProfile(dc: DataConnect, vars: GetUserProfileVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetUserProfileData>>;
+export function getUserProfile(
+  dc: DataConnect,
+  vars: GetUserProfileVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetUserProfileData>>;
 /** Generated Node Admin SDK operation action function for the 'GetUserProfile' Query. Allow users to pass in custom DataConnect instances. */
-export function getUserProfile(vars: GetUserProfileVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetUserProfileData>>;
+export function getUserProfile(
+  vars: GetUserProfileVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetUserProfileData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetAllUsers' Query. Allow users to execute without passing in DataConnect. */
-export function getAllUsers(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<GetAllUsersData>>;
+export function getAllUsers(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetAllUsersData>>;
 /** Generated Node Admin SDK operation action function for the 'GetAllUsers' Query. Allow users to pass in custom DataConnect instances. */
-export function getAllUsers(options?: OperationOptions): Promise<ExecuteOperationResponse<GetAllUsersData>>;
+export function getAllUsers(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetAllUsersData>>;
 
 /** Generated Node Admin SDK operation action function for the 'UpdateUserRole' Mutation. Allow users to execute without passing in DataConnect. */
-export function updateUserRole(dc: DataConnect, vars: UpdateUserRoleVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateUserRoleData>>;
+export function updateUserRole(
+  dc: DataConnect,
+  vars: UpdateUserRoleVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateUserRoleData>>;
 /** Generated Node Admin SDK operation action function for the 'UpdateUserRole' Mutation. Allow users to pass in custom DataConnect instances. */
-export function updateUserRole(vars: UpdateUserRoleVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateUserRoleData>>;
-
+export function updateUserRole(
+  vars: UpdateUserRoleVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateUserRoleData>>;

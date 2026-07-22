@@ -1,0 +1,31 @@
+{
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": {
+    "name": "Camunda Web Modeler",
+    "version": "1.0"
+  },
+  "schemaVersion": 16,
+  "id": "esg-report-request",
+  "components": [
+    {
+      "type": "text",
+      "text": "# ESG Report Request\nReview CO2 emissions.",
+      "id": "header"
+    },
+    {
+      "type": "number",
+      "label": "Total CO2 (Kg)",
+      "key": "totalCo2",
+      "id": "co2",
+      "readonly": true
+    },
+    {
+      "type": "checkbox",
+      "label": "Generate ESG Certificate?",
+      "key": "generateCert",
+      "id": "cert"
+    }
+  ],
+  "type": "default"
+}

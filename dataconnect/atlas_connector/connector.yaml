@@ -1,4 +1,6 @@
 connectorId: atlas
+auth:
+  level: USER
 generate:
   javascriptSdk:
     - outputDir: ../../apps/atlas-scm/src/dataconnect-generated

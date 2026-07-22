@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" id="Definitions_FreeDays" name="DRD" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Modeler" exporterVersion="5.25.0">
+  <decision id="free-days-policy" name="Free Days Policy">
+    <decisionTable id="DecisionTable_1">
+      <input id="Input_1" label="Equipment Type"><inputExpression id="InputExpression_1" typeRef="string"><text>equipmentType</text></inputExpression></input>
+      <output id="Output_1" label="Free Days" name="freeDays" typeRef="number" />
+      <rule id="DecisionRule_1"><inputEntry id="UnaryTests_1"><text>"DRY"</text></inputEntry><outputEntry id="LiteralExpression_1"><text>7</text></outputEntry></rule>
+      <rule id="DecisionRule_2"><inputEntry id="UnaryTests_2"><text>"REEFER"</text></inputEntry><outputEntry id="LiteralExpression_2"><text>3</text></outputEntry></rule>
+    </decisionTable>
+  </decision>
+</definitions>

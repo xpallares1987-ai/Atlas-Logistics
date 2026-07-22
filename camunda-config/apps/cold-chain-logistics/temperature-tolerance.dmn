@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" id="Definitions_Tolerance" name="DRD" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Modeler" exporterVersion="5.25.0">
+  <decision id="temperature-tolerance" name="Temperature Tolerance">
+    <decisionTable id="DecisionTable_1">
+      <input id="Input_1" label="Commodity"><inputExpression id="InputExpression_1" typeRef="string"><text>commodity</text></inputExpression></input>
+      <output id="Output_1" label="Tolerance (C)" name="tolerance" typeRef="number" />
+      <rule id="DecisionRule_1"><inputEntry id="UnaryTests_1"><text>"PHARMA"</text></inputEntry><outputEntry id="LiteralExpression_1"><text>1.5</text></outputEntry></rule>
+      <rule id="DecisionRule_2"><inputEntry id="UnaryTests_2"><text>"PRODUCE"</text></inputEntry><outputEntry id="LiteralExpression_2"><text>3.0</text></outputEntry></rule>
+    </decisionTable>
+  </decision>
+</definitions>
