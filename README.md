@@ -1,94 +1,100 @@
 # Atlas Logistics 🌍🚢
 
-Atlas Logistics is a comprehensive **Super-App** for Supply Chain Management (SCM). It offers advanced tools for freight forwarders, shipping lines, and logistics operators, centralizing freight quotes, shipment management, and AI-powered predictive intelligence.
+Atlas Logistics es una **Super-App integral de Gestión de Cadena de Suministro (SCM)**. Proporciona herramientas avanzadas para transitarios, operadores logísticos y líneas navieras, centralizando cotizaciones de fletes, gestión de embarques marítimos/aéreos, automatización de procesos de negocio con Camunda 8 (Zeebe) e inteligencia predictiva.
 
-![Atlas Logistics Dashboard](https://img.shields.io/badge/Status-Active-success) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Atlas Logistics Status](https://img.shields.io/badge/Status-Active-success) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue) ![pnpm](https://img.shields.io/badge/pnpm-v10-orange) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-## 🌟 Features and Modules (ERP SCM Suite)
-Atlas Logistics features specialized modules to cover the complete lifecycle of an ocean shipment and the operation of a freight forwarder:
+---
 
-**📦 Core Operations**
-- **Sailing Schedules**: Search engine for maritime routes and cut-off control.
-- **Booking & B/L**: HBL issuance and Kanban board for bookings.
-- **Rate Comparer**: Real-time freight analytics and comparison.
+## 🌟 Módulos y Funcionalidades (Suite SCM ERP)
 
-**⚖️ Finance and Compliance**
-- **Customs Clearance**: DUA tracking, customs traffic light, and HS Code calculation.
-- **Invoicing & Settlement**: A/R, A/P reconciliation, and profitability.
+Atlas Logistics cubre todo el ciclo de vida operativo de un embarque y la facturación de un freight forwarder:
 
-**🤝 External View (Client)**
-- **Customer Portal**: "White-label" portal for end customers to track their cargo and download documents in real-time.
+### 📦 Operaciones Núcleo
+- **Sailing Schedules**: Buscador de rutas marítimas y control de fechas de corte.
+- **Booking & B/L**: Emisión de HBL/MBL y tablero Kanban de reservas.
+- **Rate Comparer (`@atlas/rate-comparer`)**: Comparación dinámica de tarifas marítimas y aéreas.
+- **BPMN Modeler (`@atlas/bpmn-modeler`)**: Diseñador visual integrado de procesos BPMN 2.0 (Camunda).
 
-## 🏗️ Architecture and Technologies
+### ⚖️ Finanzas y Cumplimiento
+- **Customs Clearance**: Seguimiento de DUA, semáforo aduanero y validaciones de código HS.
+- **Facturación y Liquidación**: Reconciliación A/R, A/P y análisis de rentabilidad.
 
-The project operates as a **Monorepo (Turborepo)**, unifying multiple submodules under a single React Super-App (Vite).
+### 🌐 Vista Externa y Cliente
+- **Customer Portal**: Portal marca blanca para que los clientes rastreen sus cargas y descarguen documentación en tiempo real.
 
-### Core Stack
-- **Frontend (Client App):** React, Vite, React Router, TailwindCSS (Dark Premium Glassmorphism).
-- **Backend (API Service):** Node.js, Express, Drizzle ORM.
-- **Database:** PostgreSQL (Google Cloud SQL for Production, local Postgres for Development).
-- **Predictive Intelligence:** Google Gen AI (Gemini 2.5 Flash) for predictive ETA calculations and risks.
-- **Package Management:** `pnpm` (v10+) and Turborepo for ultra-fast caches and efficient continuous integration.
+---
 
-## 📦 Monorepo Structure
+## 🏗️ Estructura del Monorepo
 
 ```text
 Atlas-Logistics/
-├── packages/
-│   ├── frontend/          # Host App Vite (Frontend Super-App)
-│   ├── ui/                # Design system and reusable UI components
-├── src/                   # Backend API (Express & Drizzle ORM)
-├── Dockerfile             # Container definition for Frontend (Nginx)
-├── Dockerfile.backend     # Container definition for Backend API (Node)
-└── docker-compose.yml     # Local orchestration
+├── camunda-config/         # Diagramas BPMN, DMN y Formularios agrupados por dominio
+│   ├── apps/               # Paquetes zip desplegables por aplicación
+│   └── (core, customs, claims, quoting, tracking, warehouse)
+├── packages/               # Paquetes del monorepo (Workspaces pnpm)
+│   ├── frontend/           # PWA Host principal (React 19 + Vite + Code Splitting)
+│   ├── dashboard/          # Módulo operacional y vistas analíticas
+│   ├── rate-comparer/      # Motor de comparación de tarifas marítimas y aéreas
+│   ├── bpmn-modeler/       # Diseñador visual BPMN integrado
+│   ├── ui/                 # Sistema de diseño, componentes UI y temas
+│   └── shared/             # Tipos TypeScript, esquemas Zod y utilidades compartidas
+├── scripts/                # Scripts de utilidad (deploy-bpmn, seed, etc.)
+├── src/                    # API Server Express, Zeebe Workers y conectores DB
+│   ├── bpm/workers/        # Job Workers Zeebe organizados por dominio
+│   └── pubsub-workers/     # Procesadores asíncronos en segundo plano (PubSub)
+└── e2e/                    # Pruebas End-to-End integradas con Playwright
 ```
 
-## 🚀 Quick Start (Local Development)
+---
 
-### Prerequisites
-- Node.js >= 20
-- `pnpm` version 10+
-- [Docker & Docker Compose](https://docs.docker.com/get-docker/)
+## 🚀 Inicio Rápido (Desarrollo Local)
 
-### Installation & Execution
+### Requisitos Previos
+- **Node.js**: >= 20.0
+- **pnpm**: v10+
 
-We provide a complete containerized local environment mirroring production. See [README.Docker.md](README.Docker.md) for detailed instructions.
+### Instalación y Ejecución
 
-1. Clone the repository and install dependencies:
+1. Clonar el repositorio e instalar dependencias:
 ```bash
 git clone https://github.com/xpallares1987-ai/Atlas-Logistics.git
 cd Atlas-Logistics
 pnpm install
 ```
 
-2. Start the application locally using Docker:
+2. Ejecutar la compilación del monorepo:
 ```bash
-docker compose up -d
+pnpm run build
 ```
 
-3. Seed the database with realistic test data:
+3. Iniciar el servidor de desarrollo local:
 ```bash
-pnpm run db:push
-npx tsx src/db/seed.ts
+pnpm run dev
 ```
 
-### E2E Testing
-The ecosystem includes End-to-End tests integrated with Playwright.
+4. Ejecutar la suite de pruebas unitarias y E2E:
 ```bash
-npx playwright install --with-deps
-pnpm run test:e2e
+# Pruebas unitarias en paquetes compartidos
+pnpm --filter @atlas/shared test
+
+# Pruebas End-to-End con Playwright
+npx playwright test
 ```
 
-## 🌐 Continuous Integration and Deployments (CI/CD)
+---
 
-Atlas Logistics features a fully automated pipeline in **GitHub Actions**:
-- **Multi-Container Architecture:** The repository maintains two distinct images: one for the Nginx Frontend and one for the Node.js Backend API.
-- **Google Cloud Run (Production):** The application is designed to be deployed as stateless microservices on Google Cloud Run, seamlessly scaling to zero or thousands of instances, backed by Google Cloud SQL.
+## ⚙️ Despliegue de Procesos Camunda 8
 
-## 📖 Additional Documentation
-- [SCM Vision (SCM_VISION.md)](SCM_VISION.md)
-- [Contribution Guide](CONTRIBUTING.md)
-- [Security Policies](SECURITY.md)
+Para desplegar recursivamente los diagramas BPMN, tablas DMN y formularios a Camunda SaaS:
 
-## 🤝 Support
-If you have questions or encounter issues with Firebase connectors, please open an Issue or review the official Firebase Data Connect documentation.
+```bash
+npx tsx scripts/deploy-bpmn.ts
+```
+
+---
+
+## 📖 Documentación Adicional
+- [Arquitectura del Sistema (docs/architecture/system-architecture.md)](docs/architecture/system-architecture.md)
+- [SCM Vision](SCM_VISION.md)
+- [Guía de Contribución](CONTRIBUTING.md)
