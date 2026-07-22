@@ -2,44 +2,72 @@ import path from "path";
 import fs from "fs";
 import { execSync } from "child_process";
 
+function getFilesRecursively(dirPath: string, extensions: string[]): string[] {
+  let results: string[] = [];
+  if (!fs.existsSync(dirPath)) return results;
+
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      results = results.concat(getFilesRecursively(fullPath, extensions));
+    } else if (
+      entry.isFile() &&
+      extensions.some((ext) => entry.name.endsWith(ext))
+    ) {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
 async function deploy() {
   try {
-    const deployFiles = [];
+    const baseDir = path.resolve("./camunda-config");
+    console.log(`[Deployer] Scanning recursively under: ${baseDir}`);
 
-    // Load BPMNs
-    const bpmnDir = path.resolve("./src/bpm/diagrams");
-    const bpmns = fs.readdirSync(bpmnDir).filter(f => f.endsWith('.bpmn')).map(f => path.join(bpmnDir, f));
-    deployFiles.push(...bpmns);
+    const deployFiles = getFilesRecursively(baseDir, [
+      ".bpmn",
+      ".dmn",
+      ".form",
+    ]);
 
-    // Load Forms
-    const formDir = path.resolve("./src/bpm/forms");
-    if (fs.existsSync(formDir)) {
-      const forms = fs.readdirSync(formDir).filter(f => f.endsWith('.form')).map(f => path.join(formDir, f));
-      deployFiles.push(...forms);
+    // Fallback to legacy path if none found in camunda-config
+    if (deployFiles.length === 0) {
+      const legacyDir = path.resolve("./src/bpm");
+      deployFiles.push(
+        ...getFilesRecursively(legacyDir, [".bpmn", ".dmn", ".form"]),
+      );
     }
 
-    // Load DMNs
-    const dmnDir = path.resolve("./src/bpm/dmn");
-    if (fs.existsSync(dmnDir)) {
-      const dmns = fs.readdirSync(dmnDir).filter(f => f.endsWith('.dmn')).map(f => path.join(dmnDir, f));
-      deployFiles.push(...dmns);
-    }
+    console.log(
+      `[Deployer] Found ${deployFiles.length} Camunda resources to deploy.`,
+    );
 
-    console.log(`[Deployer] Found ${deployFiles.length} files to deploy.`);
-    
-    // We fetch the vars from env since dotenvx is injecting them
-    const address = process.env.ZEEBE_ADDRESS || 'c9d0ee13-1491-4b8c-a944-ee6147d37cb5.bru-2.zeebe.camunda.io:443';
-    const clientId = process.env.ZEEBE_CLIENT_ID || process.env.CAMUNDA_CLIENT_ID || 'XqSmx64lKA8MRNWL0KU0os_1ZMksbfwG';
-    const clientSecret = process.env.ZEEBE_CLIENT_SECRET || process.env.CAMUNDA_CLIENT_SECRET || 'rm6-FLdEqMyTXR5TAQfxPKKxVHFERjvWQbSWz4w_MgEoceVFURxoWsHp9GRGez9U';
+    const address =
+      process.env.ZEEBE_ADDRESS ||
+      "c9d0ee13-1491-4b8c-a944-ee6147d37cb5.bru-2.zeebe.camunda.io:443";
+    const clientId =
+      process.env.ZEEBE_CLIENT_ID ||
+      process.env.CAMUNDA_CLIENT_ID ||
+      "XqSmx64lKA8MRNWL0KU0os_1ZMksbfwG";
+    const clientSecret =
+      process.env.ZEEBE_CLIENT_SECRET ||
+      process.env.CAMUNDA_CLIENT_SECRET ||
+      "rm6-FLdEqMyTXR5TAQfxPKKxVHFERjvWQbSWz4w_MgEoceVFURxoWsHp9GRGez9U";
 
     for (const file of deployFiles) {
-      console.log(`[Deployer] Deploying resource: ${path.basename(file)}...`);
+      const relPath = path.relative(process.cwd(), file);
+      console.log(`[Deployer] Deploying resource: ${relPath}...`);
       const cmd = `npx zbctl deploy "${file}" --address "${address}" --clientId "${clientId}" --clientSecret "${clientSecret}"`;
       try {
-        const output = execSync(cmd, { stdio: 'pipe' }).toString();
-        console.log(`[Deployer] ✓ Deploy successful for ${path.basename(file)}!`);
-      } catch (err) {
-        console.error(`[Deployer] ✗ Deploy failed for ${path.basename(file)}:\n`, err.message || err.stderr?.toString());
+        execSync(cmd, { stdio: "pipe" });
+        console.log(`[Deployer] ✓ Deploy successful for ${relPath}`);
+      } catch (err: any) {
+        console.error(
+          `[Deployer] ✗ Deploy failed for ${relPath}:\n`,
+          err.message || err.stderr?.toString(),
+        );
         throw err;
       }
     }

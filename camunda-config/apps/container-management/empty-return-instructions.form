@@ -1,0 +1,29 @@
+{
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "schemaVersion": 16,
+  "id": "empty-return-instructions",
+  "components": [
+    {
+      "type": "textfield",
+      "label": "Container Number",
+      "key": "containerNo",
+      "id": "c1",
+      "readonly": true
+    },
+    {
+      "type": "number",
+      "label": "Free Days Limit",
+      "key": "freeDays",
+      "id": "c2",
+      "readonly": true
+    },
+    {
+      "type": "textfield",
+      "label": "Return Depot Address",
+      "key": "returnDepot",
+      "id": "c3"
+    }
+  ],
+  "type": "default"
+}

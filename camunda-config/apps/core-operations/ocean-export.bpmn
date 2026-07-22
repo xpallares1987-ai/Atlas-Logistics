@@ -1,0 +1,865 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_OceanExport"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- ═══════════════════ Error Definitions ═══════════════════ -->
+  <bpmn:error id="Error_CarrierRejection" name="Carrier Rejection" errorCode="CARRIER_REJECTION" />
+  <bpmn:error id="Error_CustomsBlocked" name="Customs Blocked" errorCode="CUSTOMS_BLOCKED" />
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PROCESS: Ocean Export Full Process
+       
+       The core FCL/LCL ocean export lifecycle covering:
+       validation → quoting → booking → documents → dispatch → delivery
+       ═══════════════════════════════════════════════════════════════ -->
+  <bpmn:process id="ocean-export-process" name="Ocean Export Full Process" isExecutable="true">
+
+    <!-- ───────────────────── 1. Start Event ───────────────────── -->
+    <bpmn:startEvent id="StartEvent_NewShipment" name="New Shipment Request">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:booking-request" />
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_StartToValidate</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- ───────────────────── 2. Validate Shipment Data ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_StartToValidate" sourceRef="StartEvent_NewShipment" targetRef="Task_ValidateShipment" />
+
+    <bpmn:serviceTask id="Task_ValidateShipment" name="Validate Shipment Data">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.shipment.validate" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_StartToValidate</bpmn:incoming>
+      <bpmn:incoming>Flow_CorrectionsToValidate</bpmn:incoming>
+      <bpmn:outgoing>Flow_ValidateToGW</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ───────────────────── 3. Data Valid? Gateway ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_ValidateToGW" sourceRef="Task_ValidateShipment" targetRef="Gateway_DataValid" />
+
+    <bpmn:exclusiveGateway id="Gateway_DataValid" name="Data Valid?" default="Flow_DataValid_Yes">
+      <bpmn:incoming>Flow_ValidateToGW</bpmn:incoming>
+      <bpmn:outgoing>Flow_DataValid_No</bpmn:outgoing>
+      <bpmn:outgoing>Flow_DataValid_Yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- No → Request Corrections → loop back -->
+    <bpmn:sequenceFlow id="Flow_DataValid_No" name="No" sourceRef="Gateway_DataValid" targetRef="Task_RequestCorrections">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=dataValid = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:serviceTask id="Task_RequestCorrections" name="Request Data Corrections">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.shipment.request-corrections" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_DataValid_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_CorrectionsToValidate</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_CorrectionsToValidate" sourceRef="Task_RequestCorrections" targetRef="Task_ValidateShipment" />
+
+    <!-- Yes → continue -->
+    <bpmn:sequenceFlow id="Flow_DataValid_Yes" name="Yes" sourceRef="Gateway_DataValid" targetRef="Task_CompareRates" />
+
+    <!-- ───────────────────── 4. Compare Carrier Rates ───────────────────── -->
+    <bpmn:serviceTask id="Task_CompareRates" name="Compare Carrier Rates">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.rates.compare" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_DataValid_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_RatesToQuote</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ───────────────────── 5. Generate Quote ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_RatesToQuote" sourceRef="Task_CompareRates" targetRef="Task_GenerateQuote" />
+
+    <bpmn:serviceTask id="Task_GenerateQuote" name="Generate Quote">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.quote.generate" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_RatesToQuote</bpmn:incoming>
+      <bpmn:outgoing>Flow_QuoteToApprove</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ───────────────────── 6. Approve Quote (User Task) ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_QuoteToApprove" sourceRef="Task_GenerateQuote" targetRef="Task_ApproveQuote" />
+
+    <bpmn:userTask id="Task_ApproveQuote" name="Approve Quote">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:quote-approval" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_QuoteToApprove</bpmn:incoming>
+      <bpmn:outgoing>Flow_ApproveToGW</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ───────────────────── 7. Quote Approved? Gateway ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_ApproveToGW" sourceRef="Task_ApproveQuote" targetRef="Gateway_QuoteApproved" />
+
+    <bpmn:exclusiveGateway id="Gateway_QuoteApproved" name="Quote Approved?" default="Flow_QuoteApproved_Yes">
+      <bpmn:incoming>Flow_ApproveToGW</bpmn:incoming>
+      <bpmn:outgoing>Flow_QuoteApproved_No</bpmn:outgoing>
+      <bpmn:outgoing>Flow_QuoteApproved_Yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Rejected → Archive → End -->
+    <bpmn:sequenceFlow id="Flow_QuoteApproved_No" name="Rejected" sourceRef="Gateway_QuoteApproved" targetRef="Task_ArchiveQuote">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=quoteApproved = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:serviceTask id="Task_ArchiveQuote" name="Archive Quote">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.quote.archive" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_QuoteApproved_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_ArchiveToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_ArchiveToEnd" sourceRef="Task_ArchiveQuote" targetRef="EndEvent_QuoteRejected" />
+
+    <bpmn:endEvent id="EndEvent_QuoteRejected" name="Quote Rejected">
+      <bpmn:incoming>Flow_ArchiveToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Approved → continue -->
+    <bpmn:sequenceFlow id="Flow_QuoteApproved_Yes" name="Approved" sourceRef="Gateway_QuoteApproved" targetRef="Task_CreateBooking" />
+
+    <!-- ───────────────────── 8. Create Booking with Carrier ───────────────────── -->
+    <bpmn:serviceTask id="Task_CreateBooking" name="Create Booking with Carrier">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.booking.create" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_QuoteApproved_Yes</bpmn:incoming>
+      <bpmn:incoming>Flow_EscalateToBooking</bpmn:incoming>
+      <bpmn:outgoing>Flow_BookingToGW</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Error Boundary: CARRIER_REJECTION -->
+    <bpmn:boundaryEvent id="BoundaryError_Booking" name="Carrier Rejection" attachedToRef="Task_CreateBooking">
+      <bpmn:outgoing>Flow_BookingError</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorDef_CarrierRejection" errorRef="Error_CarrierRejection" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:sequenceFlow id="Flow_BookingError" sourceRef="BoundaryError_Booking" targetRef="EndEvent_CarrierRejected" />
+
+    <bpmn:endEvent id="EndEvent_CarrierRejected" name="Carrier Rejected">
+      <bpmn:incoming>Flow_BookingError</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ───────────────────── 9. Booking Confirmed? Gateway ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_BookingToGW" sourceRef="Task_CreateBooking" targetRef="Gateway_BookingConfirmed" />
+
+    <bpmn:exclusiveGateway id="Gateway_BookingConfirmed" name="Booking Confirmed?" default="Flow_BookingConfirmed_Yes">
+      <bpmn:incoming>Flow_BookingToGW</bpmn:incoming>
+      <bpmn:outgoing>Flow_BookingConfirmed_No</bpmn:outgoing>
+      <bpmn:outgoing>Flow_BookingConfirmed_Yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- No → Escalate → loop back -->
+    <bpmn:sequenceFlow id="Flow_BookingConfirmed_No" name="No" sourceRef="Gateway_BookingConfirmed" targetRef="Task_EscalateBooking">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=bookingConfirmed = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:serviceTask id="Task_EscalateBooking" name="Escalate Booking">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.booking.escalate" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_BookingConfirmed_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_EscalateToBooking</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_EscalateToBooking" sourceRef="Task_EscalateBooking" targetRef="Task_CreateBooking" />
+
+    <!-- Yes → continue to parallel processing -->
+    <bpmn:sequenceFlow id="Flow_BookingConfirmed_Yes" name="Yes" sourceRef="Gateway_BookingConfirmed" targetRef="Gateway_ParallelFork" />
+
+    <!-- ───────────────────── 10. Parallel Gateway (Fork) ───────────────────── -->
+    <bpmn:parallelGateway id="Gateway_ParallelFork" name="Parallel Document Processing">
+      <bpmn:incoming>Flow_BookingConfirmed_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_ForkToHBL</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ForkToMBL</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ForkToCustoms</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ForkToNotify</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <!-- ═══════════ Branch A: Generate HBL ═══════════ -->
+    <bpmn:sequenceFlow id="Flow_ForkToHBL" sourceRef="Gateway_ParallelFork" targetRef="Task_GenerateHBL" />
+
+    <bpmn:serviceTask id="Task_GenerateHBL" name="Generate HBL">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.generate-hbl" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ForkToHBL</bpmn:incoming>
+      <bpmn:outgoing>Flow_HBLToJoin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_HBLToJoin" sourceRef="Task_GenerateHBL" targetRef="Gateway_ParallelJoin" />
+
+    <!-- ═══════════ Branch B: Generate MBL ═══════════ -->
+    <bpmn:sequenceFlow id="Flow_ForkToMBL" sourceRef="Gateway_ParallelFork" targetRef="Task_GenerateMBL" />
+
+    <bpmn:serviceTask id="Task_GenerateMBL" name="Generate MBL">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.docs.generate-mbl" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ForkToMBL</bpmn:incoming>
+      <bpmn:outgoing>Flow_MBLToJoin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_MBLToJoin" sourceRef="Task_GenerateMBL" targetRef="Gateway_ParallelJoin" />
+
+    <!-- ═══════════ Branch C: File Customs Declaration ═══════════ -->
+    <bpmn:sequenceFlow id="Flow_ForkToCustoms" sourceRef="Gateway_ParallelFork" targetRef="Task_FileCustoms" />
+
+    <bpmn:serviceTask id="Task_FileCustoms" name="File Customs Declaration">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.customs.file" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ForkToCustoms</bpmn:incoming>
+      <bpmn:outgoing>Flow_CustomsToMerge</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Error Boundary: CUSTOMS_BLOCKED -->
+    <bpmn:boundaryEvent id="BoundaryError_Customs" name="Customs Blocked" attachedToRef="Task_FileCustoms">
+      <bpmn:outgoing>Flow_CustomsError</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorDef_CustomsBlocked" errorRef="Error_CustomsBlocked" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:sequenceFlow id="Flow_CustomsError" sourceRef="BoundaryError_Customs" targetRef="Task_ReviewCustomsBlock" />
+
+    <bpmn:userTask id="Task_ReviewCustomsBlock" name="Review Customs Block">
+      <bpmn:incoming>Flow_CustomsError</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReviewCustomsToMerge</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Merge gateway: normal customs path + error review path converge -->
+    <bpmn:sequenceFlow id="Flow_CustomsToMerge" sourceRef="Task_FileCustoms" targetRef="Gateway_CustomsMerge" />
+    <bpmn:sequenceFlow id="Flow_ReviewCustomsToMerge" sourceRef="Task_ReviewCustomsBlock" targetRef="Gateway_CustomsMerge" />
+
+    <bpmn:exclusiveGateway id="Gateway_CustomsMerge" name="Customs Complete">
+      <bpmn:incoming>Flow_CustomsToMerge</bpmn:incoming>
+      <bpmn:incoming>Flow_ReviewCustomsToMerge</bpmn:incoming>
+      <bpmn:outgoing>Flow_CustomsMergeToJoin</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sequenceFlow id="Flow_CustomsMergeToJoin" sourceRef="Gateway_CustomsMerge" targetRef="Gateway_ParallelJoin" />
+
+    <!-- ═══════════ Branch D: Notify All Parties ═══════════ -->
+    <bpmn:sequenceFlow id="Flow_ForkToNotify" sourceRef="Gateway_ParallelFork" targetRef="Task_NotifyParties" />
+
+    <bpmn:serviceTask id="Task_NotifyParties" name="Notify All Parties">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.notify.parties" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ForkToNotify</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotifyToJoin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_NotifyToJoin" sourceRef="Task_NotifyParties" targetRef="Gateway_ParallelJoin" />
+
+    <!-- ───────────────────── 11. Parallel Gateway (Join) ───────────────────── -->
+    <bpmn:parallelGateway id="Gateway_ParallelJoin" name="Documents Complete">
+      <bpmn:incoming>Flow_HBLToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_MBLToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_CustomsMergeToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_NotifyToJoin</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinToReview</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <!-- ───────────────────── 12. Review Documents (User Task) ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_JoinToReview" sourceRef="Gateway_ParallelJoin" targetRef="Task_ReviewDocuments" />
+
+    <bpmn:userTask id="Task_ReviewDocuments" name="Review Documents">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formKey="camunda-forms:document-review" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_JoinToReview</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReviewToDispatch</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ───────────────────── 13. Dispatch Cargo ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_ReviewToDispatch" sourceRef="Task_ReviewDocuments" targetRef="Task_DispatchCargo" />
+
+    <bpmn:serviceTask id="Task_DispatchCargo" name="Dispatch Cargo">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.cargo.dispatch" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ReviewToDispatch</bpmn:incoming>
+      <bpmn:outgoing>Flow_DispatchToTracking</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ───────────────────── 14. Update Tracking Status ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_DispatchToTracking" sourceRef="Task_DispatchCargo" targetRef="Task_UpdateTracking" />
+
+    <bpmn:serviceTask id="Task_UpdateTracking" name="Update Tracking Status">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.tracking.update" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_DispatchToTracking</bpmn:incoming>
+      <bpmn:incoming>Flow_NotDelivered</bpmn:incoming>
+      <bpmn:outgoing>Flow_TrackingToGW</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Timer Boundary Event (non-interrupting): Daily tracking check -->
+    <bpmn:boundaryEvent id="BoundaryTimer_Tracking" name="Daily Tracking Check" cancelActivity="false" attachedToRef="Task_UpdateTracking">
+      <bpmn:outgoing>Flow_TimerToNotify</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_DailyTracking">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT24H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:sequenceFlow id="Flow_TimerToNotify" sourceRef="BoundaryTimer_Tracking" targetRef="Task_SendTrackingNotification" />
+
+    <bpmn:serviceTask id="Task_SendTrackingNotification" name="Send Tracking Notification">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.tracking.notify" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_TimerToNotify</bpmn:incoming>
+      <bpmn:outgoing>Flow_TrackingNotifyEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_TrackingNotifyEnd" sourceRef="Task_SendTrackingNotification" targetRef="EndEvent_TrackingNotified" />
+
+    <bpmn:endEvent id="EndEvent_TrackingNotified" name="Tracking Notification Sent">
+      <bpmn:incoming>Flow_TrackingNotifyEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ───────────────────── 15. Cargo Delivered? Gateway ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_TrackingToGW" sourceRef="Task_UpdateTracking" targetRef="Gateway_CargoDelivered" />
+
+    <bpmn:exclusiveGateway id="Gateway_CargoDelivered" name="Cargo Delivered?" default="Flow_Delivered_Yes">
+      <bpmn:incoming>Flow_TrackingToGW</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotDelivered</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Delivered_Yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- No → loop back to tracking -->
+    <bpmn:sequenceFlow id="Flow_NotDelivered" name="No" sourceRef="Gateway_CargoDelivered" targetRef="Task_UpdateTracking">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=cargoDelivered = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Yes → continue -->
+    <bpmn:sequenceFlow id="Flow_Delivered_Yes" name="Yes" sourceRef="Gateway_CargoDelivered" targetRef="Task_GenerateInvoice" />
+
+    <!-- ───────────────────── 16. Generate Invoice ───────────────────── -->
+    <bpmn:serviceTask id="Task_GenerateInvoice" name="Generate Invoice">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.invoice.generate" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Delivered_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_InvoiceToClose</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ───────────────────── 17. Close Shipment Job ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_InvoiceToClose" sourceRef="Task_GenerateInvoice" targetRef="Task_CloseJob" />
+
+    <bpmn:serviceTask id="Task_CloseJob" name="Close Shipment Job">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="atlas.job.close" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_InvoiceToClose</bpmn:incoming>
+      <bpmn:outgoing>Flow_CloseToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ───────────────────── 18. End Event ───────────────────── -->
+    <bpmn:sequenceFlow id="Flow_CloseToEnd" sourceRef="Task_CloseJob" targetRef="EndEvent_ShipmentCompleted" />
+
+    <bpmn:endEvent id="EndEvent_ShipmentCompleted" name="Shipment Completed">
+      <bpmn:incoming>Flow_CloseToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+  </bpmn:process>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       BPMN DIAGRAM – Horizontal left-to-right layout
+       
+       Layout grid (Y-axis centers):
+         Main flow axis             y = 200
+         Error / secondary row      y = 400
+         Branch A (HBL)             y =  80
+         Branch B (MBL)             y = 200
+         Branch C (Customs)         y = 320
+         Branch D (Notify)          y = 500
+       ═══════════════════════════════════════════════════════════════ -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_OceanExport">
+    <bpmndi:BPMNPlane id="BPMNPlane_OceanExport" bpmnElement="ocean-export-process">
+
+      <!-- ══════════════════ SHAPES ══════════════════ -->
+
+      <!-- 1. Start Event -->
+      <bpmndi:BPMNShape id="Shape_StartEvent" bpmnElement="StartEvent_NewShipment">
+        <dc:Bounds x="162" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="138" y="225" width="84" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- 2. Validate Shipment Data -->
+      <bpmndi:BPMNShape id="Shape_ValidateShipment" bpmnElement="Task_ValidateShipment">
+        <dc:Bounds x="280" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- 3. Data Valid? Gateway -->
+      <bpmndi:BPMNShape id="Shape_DataValid" bpmnElement="Gateway_DataValid" isMarkerVisible="true">
+        <dc:Bounds x="455" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="450" y="151" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Request Data Corrections (loop target) -->
+      <bpmndi:BPMNShape id="Shape_RequestCorrections" bpmnElement="Task_RequestCorrections">
+        <dc:Bounds x="430" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- 4. Compare Carrier Rates -->
+      <bpmndi:BPMNShape id="Shape_CompareRates" bpmnElement="Task_CompareRates">
+        <dc:Bounds x="570" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- 5. Generate Quote -->
+      <bpmndi:BPMNShape id="Shape_GenerateQuote" bpmnElement="Task_GenerateQuote">
+        <dc:Bounds x="730" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- 6. Approve Quote (User Task) -->
+      <bpmndi:BPMNShape id="Shape_ApproveQuote" bpmnElement="Task_ApproveQuote">
+        <dc:Bounds x="890" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- 7. Quote Approved? Gateway -->
+      <bpmndi:BPMNShape id="Shape_QuoteApproved" bpmnElement="Gateway_QuoteApproved" isMarkerVisible="true">
+        <dc:Bounds x="1045" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1028" y="151" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Archive Quote -->
+      <bpmndi:BPMNShape id="Shape_ArchiveQuote" bpmnElement="Task_ArchiveQuote">
+        <dc:Bounds x="1020" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End: Quote Rejected -->
+      <bpmndi:BPMNShape id="Shape_EndQuoteRejected" bpmnElement="EndEvent_QuoteRejected">
+        <dc:Bounds x="1172" y="382" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1153" y="425" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- 8. Create Booking with Carrier -->
+      <bpmndi:BPMNShape id="Shape_CreateBooking" bpmnElement="Task_CreateBooking">
+        <dc:Bounds x="1200" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Error Boundary: Carrier Rejection -->
+      <bpmndi:BPMNShape id="Shape_BoundaryError_Booking" bpmnElement="BoundaryError_Booking">
+        <dc:Bounds x="1262" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1298" y="253" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- End: Carrier Rejected -->
+      <bpmndi:BPMNShape id="Shape_EndCarrierRejected" bpmnElement="EndEvent_CarrierRejected">
+        <dc:Bounds x="1262" y="382" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1241" y="425" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- 9. Booking Confirmed? Gateway -->
+      <bpmndi:BPMNShape id="Shape_BookingConfirmed" bpmnElement="Gateway_BookingConfirmed" isMarkerVisible="true">
+        <dc:Bounds x="1385" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1365" y="151" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Escalate Booking -->
+      <bpmndi:BPMNShape id="Shape_EscalateBooking" bpmnElement="Task_EscalateBooking">
+        <dc:Bounds x="1360" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- 10. Parallel Gateway (Fork) -->
+      <bpmndi:BPMNShape id="Shape_ParallelFork" bpmnElement="Gateway_ParallelFork">
+        <dc:Bounds x="1525" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1505" y="232" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Branch A: Generate HBL -->
+      <bpmndi:BPMNShape id="Shape_GenerateHBL" bpmnElement="Task_GenerateHBL">
+        <dc:Bounds x="1650" y="40" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Branch B: Generate MBL -->
+      <bpmndi:BPMNShape id="Shape_GenerateMBL" bpmnElement="Task_GenerateMBL">
+        <dc:Bounds x="1650" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Branch C: File Customs Declaration -->
+      <bpmndi:BPMNShape id="Shape_FileCustoms" bpmnElement="Task_FileCustoms">
+        <dc:Bounds x="1650" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Error Boundary: Customs Blocked -->
+      <bpmndi:BPMNShape id="Shape_BoundaryError_Customs" bpmnElement="BoundaryError_Customs">
+        <dc:Bounds x="1702" y="342" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1738" y="373" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Review Customs Block (User Task) -->
+      <bpmndi:BPMNShape id="Shape_ReviewCustomsBlock" bpmnElement="Task_ReviewCustomsBlock">
+        <dc:Bounds x="1780" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Customs Merge Gateway -->
+      <bpmndi:BPMNShape id="Shape_CustomsMerge" bpmnElement="Gateway_CustomsMerge" isMarkerVisible="true">
+        <dc:Bounds x="1805" y="295" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1860" y="313" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Branch D: Notify All Parties -->
+      <bpmndi:BPMNShape id="Shape_NotifyParties" bpmnElement="Task_NotifyParties">
+        <dc:Bounds x="1650" y="460" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- 11. Parallel Gateway (Join) -->
+      <bpmndi:BPMNShape id="Shape_ParallelJoin" bpmnElement="Gateway_ParallelJoin">
+        <dc:Bounds x="1945" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1925" y="151" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- 12. Review Documents (User Task) -->
+      <bpmndi:BPMNShape id="Shape_ReviewDocuments" bpmnElement="Task_ReviewDocuments">
+        <dc:Bounds x="2060" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- 13. Dispatch Cargo -->
+      <bpmndi:BPMNShape id="Shape_DispatchCargo" bpmnElement="Task_DispatchCargo">
+        <dc:Bounds x="2220" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- 14. Update Tracking Status -->
+      <bpmndi:BPMNShape id="Shape_UpdateTracking" bpmnElement="Task_UpdateTracking">
+        <dc:Bounds x="2380" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Timer Boundary: Daily Tracking Check (non-interrupting) -->
+      <bpmndi:BPMNShape id="Shape_BoundaryTimer_Tracking" bpmnElement="BoundaryTimer_Tracking">
+        <dc:Bounds x="2412" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2448" y="253" width="72" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Send Tracking Notification -->
+      <bpmndi:BPMNShape id="Shape_SendTrackingNotification" bpmnElement="Task_SendTrackingNotification">
+        <dc:Bounds x="2380" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End: Tracking Notification Sent -->
+      <bpmndi:BPMNShape id="Shape_EndTrackingNotified" bpmnElement="EndEvent_TrackingNotified">
+        <dc:Bounds x="2530" y="362" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2505" y="405" width="86" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- 15. Cargo Delivered? Gateway -->
+      <bpmndi:BPMNShape id="Shape_CargoDelivered" bpmnElement="Gateway_CargoDelivered" isMarkerVisible="true">
+        <dc:Bounds x="2545" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2529" y="151" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- 16. Generate Invoice -->
+      <bpmndi:BPMNShape id="Shape_GenerateInvoice" bpmnElement="Task_GenerateInvoice">
+        <dc:Bounds x="2660" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- 17. Close Shipment Job -->
+      <bpmndi:BPMNShape id="Shape_CloseJob" bpmnElement="Task_CloseJob">
+        <dc:Bounds x="2820" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- 18. End Event: Shipment Completed -->
+      <bpmndi:BPMNShape id="Shape_EndCompleted" bpmnElement="EndEvent_ShipmentCompleted">
+        <dc:Bounds x="2972" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2945" y="225" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ══════════════════ EDGES ══════════════════ -->
+
+      <!-- Main spine: Start → Validate → Gateway -->
+      <bpmndi:BPMNEdge id="Edge_StartToValidate" bpmnElement="Flow_StartToValidate">
+        <di:waypoint x="198" y="200" />
+        <di:waypoint x="280" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_ValidateToGW" bpmnElement="Flow_ValidateToGW">
+        <di:waypoint x="380" y="200" />
+        <di:waypoint x="455" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Data Valid? → No → Corrections → loop back -->
+      <bpmndi:BPMNEdge id="Edge_DataValid_No" bpmnElement="Flow_DataValid_No">
+        <di:waypoint x="480" y="225" />
+        <di:waypoint x="480" y="360" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="488" y="283" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_CorrectionsToValidate" bpmnElement="Flow_CorrectionsToValidate">
+        <di:waypoint x="430" y="400" />
+        <di:waypoint x="260" y="400" />
+        <di:waypoint x="260" y="200" />
+        <di:waypoint x="280" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Data Valid? → Yes → Compare Rates -->
+      <bpmndi:BPMNEdge id="Edge_DataValid_Yes" bpmnElement="Flow_DataValid_Yes">
+        <di:waypoint x="505" y="200" />
+        <di:waypoint x="570" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="529" y="182" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Compare Rates → Generate Quote → Approve Quote → Quote Approved? -->
+      <bpmndi:BPMNEdge id="Edge_RatesToQuote" bpmnElement="Flow_RatesToQuote">
+        <di:waypoint x="670" y="200" />
+        <di:waypoint x="730" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_QuoteToApprove" bpmnElement="Flow_QuoteToApprove">
+        <di:waypoint x="830" y="200" />
+        <di:waypoint x="890" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_ApproveToGW" bpmnElement="Flow_ApproveToGW">
+        <di:waypoint x="990" y="200" />
+        <di:waypoint x="1045" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Quote Approved? → Rejected → Archive → End -->
+      <bpmndi:BPMNEdge id="Edge_QuoteApproved_No" bpmnElement="Flow_QuoteApproved_No">
+        <di:waypoint x="1070" y="225" />
+        <di:waypoint x="1070" y="360" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1078" y="283" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_ArchiveToEnd" bpmnElement="Flow_ArchiveToEnd">
+        <di:waypoint x="1120" y="400" />
+        <di:waypoint x="1172" y="400" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Quote Approved? → Approved → Create Booking -->
+      <bpmndi:BPMNEdge id="Edge_QuoteApproved_Yes" bpmnElement="Flow_QuoteApproved_Yes">
+        <di:waypoint x="1095" y="200" />
+        <di:waypoint x="1200" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1120" y="182" width="48" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Create Booking → Booking Confirmed? -->
+      <bpmndi:BPMNEdge id="Edge_BookingToGW" bpmnElement="Flow_BookingToGW">
+        <di:waypoint x="1300" y="200" />
+        <di:waypoint x="1385" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Error Boundary Booking → End Carrier Rejected -->
+      <bpmndi:BPMNEdge id="Edge_BookingError" bpmnElement="Flow_BookingError">
+        <di:waypoint x="1280" y="258" />
+        <di:waypoint x="1280" y="382" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Booking Confirmed? → No → Escalate → loop back -->
+      <bpmndi:BPMNEdge id="Edge_BookingConfirmed_No" bpmnElement="Flow_BookingConfirmed_No">
+        <di:waypoint x="1410" y="225" />
+        <di:waypoint x="1410" y="360" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1418" y="283" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_EscalateToBooking" bpmnElement="Flow_EscalateToBooking">
+        <di:waypoint x="1360" y="400" />
+        <di:waypoint x="1180" y="400" />
+        <di:waypoint x="1180" y="200" />
+        <di:waypoint x="1200" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Booking Confirmed? → Yes → Parallel Fork -->
+      <bpmndi:BPMNEdge id="Edge_BookingConfirmed_Yes" bpmnElement="Flow_BookingConfirmed_Yes">
+        <di:waypoint x="1435" y="200" />
+        <di:waypoint x="1525" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1472" y="182" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Parallel Fork → Branch A (HBL) -->
+      <bpmndi:BPMNEdge id="Edge_ForkToHBL" bpmnElement="Flow_ForkToHBL">
+        <di:waypoint x="1550" y="175" />
+        <di:waypoint x="1550" y="80" />
+        <di:waypoint x="1650" y="80" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Parallel Fork → Branch B (MBL) -->
+      <bpmndi:BPMNEdge id="Edge_ForkToMBL" bpmnElement="Flow_ForkToMBL">
+        <di:waypoint x="1575" y="200" />
+        <di:waypoint x="1650" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Parallel Fork → Branch C (Customs) -->
+      <bpmndi:BPMNEdge id="Edge_ForkToCustoms" bpmnElement="Flow_ForkToCustoms">
+        <di:waypoint x="1550" y="225" />
+        <di:waypoint x="1550" y="320" />
+        <di:waypoint x="1650" y="320" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Parallel Fork → Branch D (Notify) -->
+      <bpmndi:BPMNEdge id="Edge_ForkToNotify" bpmnElement="Flow_ForkToNotify">
+        <di:waypoint x="1550" y="225" />
+        <di:waypoint x="1550" y="500" />
+        <di:waypoint x="1650" y="500" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Branch A (HBL) → Join -->
+      <bpmndi:BPMNEdge id="Edge_HBLToJoin" bpmnElement="Flow_HBLToJoin">
+        <di:waypoint x="1750" y="80" />
+        <di:waypoint x="1970" y="80" />
+        <di:waypoint x="1970" y="175" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Branch B (MBL) → Join -->
+      <bpmndi:BPMNEdge id="Edge_MBLToJoin" bpmnElement="Flow_MBLToJoin">
+        <di:waypoint x="1750" y="200" />
+        <di:waypoint x="1945" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Branch C (Customs) → Merge Gateway -->
+      <bpmndi:BPMNEdge id="Edge_CustomsToMerge" bpmnElement="Flow_CustomsToMerge">
+        <di:waypoint x="1750" y="320" />
+        <di:waypoint x="1805" y="320" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Error Boundary Customs → Review Customs Block -->
+      <bpmndi:BPMNEdge id="Edge_CustomsError" bpmnElement="Flow_CustomsError">
+        <di:waypoint x="1720" y="378" />
+        <di:waypoint x="1720" y="440" />
+        <di:waypoint x="1780" y="440" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Review Customs Block → Merge Gateway -->
+      <bpmndi:BPMNEdge id="Edge_ReviewCustomsToMerge" bpmnElement="Flow_ReviewCustomsToMerge">
+        <di:waypoint x="1830" y="400" />
+        <di:waypoint x="1830" y="345" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Customs Merge → Join -->
+      <bpmndi:BPMNEdge id="Edge_CustomsMergeToJoin" bpmnElement="Flow_CustomsMergeToJoin">
+        <di:waypoint x="1855" y="320" />
+        <di:waypoint x="1970" y="320" />
+        <di:waypoint x="1970" y="225" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Branch D (Notify) → Join -->
+      <bpmndi:BPMNEdge id="Edge_NotifyToJoin" bpmnElement="Flow_NotifyToJoin">
+        <di:waypoint x="1750" y="500" />
+        <di:waypoint x="1970" y="500" />
+        <di:waypoint x="1970" y="225" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Join → Review Documents → Dispatch → Tracking -->
+      <bpmndi:BPMNEdge id="Edge_JoinToReview" bpmnElement="Flow_JoinToReview">
+        <di:waypoint x="1995" y="200" />
+        <di:waypoint x="2060" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_ReviewToDispatch" bpmnElement="Flow_ReviewToDispatch">
+        <di:waypoint x="2160" y="200" />
+        <di:waypoint x="2220" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_DispatchToTracking" bpmnElement="Flow_DispatchToTracking">
+        <di:waypoint x="2320" y="200" />
+        <di:waypoint x="2380" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Tracking → Cargo Delivered? -->
+      <bpmndi:BPMNEdge id="Edge_TrackingToGW" bpmnElement="Flow_TrackingToGW">
+        <di:waypoint x="2480" y="200" />
+        <di:waypoint x="2545" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Timer Boundary → Send Tracking Notification → End -->
+      <bpmndi:BPMNEdge id="Edge_TimerToNotify" bpmnElement="Flow_TimerToNotify">
+        <di:waypoint x="2430" y="258" />
+        <di:waypoint x="2430" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_TrackingNotifyEnd" bpmnElement="Flow_TrackingNotifyEnd">
+        <di:waypoint x="2480" y="380" />
+        <di:waypoint x="2530" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Cargo Delivered? → No → loop back to Tracking (goes above) -->
+      <bpmndi:BPMNEdge id="Edge_NotDelivered" bpmnElement="Flow_NotDelivered">
+        <di:waypoint x="2570" y="175" />
+        <di:waypoint x="2570" y="120" />
+        <di:waypoint x="2430" y="120" />
+        <di:waypoint x="2430" y="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2492" y="102" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Cargo Delivered? → Yes → Generate Invoice -->
+      <bpmndi:BPMNEdge id="Edge_Delivered_Yes" bpmnElement="Flow_Delivered_Yes">
+        <di:waypoint x="2595" y="200" />
+        <di:waypoint x="2660" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2619" y="182" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Generate Invoice → Close Job → End -->
+      <bpmndi:BPMNEdge id="Edge_InvoiceToClose" bpmnElement="Flow_InvoiceToClose">
+        <di:waypoint x="2760" y="200" />
+        <di:waypoint x="2820" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_CloseToEnd" bpmnElement="Flow_CloseToEnd">
+        <di:waypoint x="2920" y="200" />
+        <di:waypoint x="2972" y="200" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

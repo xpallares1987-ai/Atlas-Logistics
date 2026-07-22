@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" id="Definitions_Emissions" name="DRD" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Modeler" exporterVersion="5.25.0">
+  <decision id="emissions-calculator" name="Emissions Calculator">
+    <decisionTable id="DecisionTable_1">
+      <input id="Input_1" label="Transport Mode">
+        <inputExpression id="InputExpression_1" typeRef="string">
+          <text>transportMode</text>
+        </inputExpression>
+      </input>
+      <output id="Output_1" label="CO2 Factor (kg/ton-km)" name="co2Factor" typeRef="number" />
+      <rule id="DecisionRule_1">
+        <inputEntry id="UnaryTests_1"><text>"AIR"</text></inputEntry>
+        <outputEntry id="LiteralExpression_1"><text>0.500</text></outputEntry>
+      </rule>
+      <rule id="DecisionRule_2">
+        <inputEntry id="UnaryTests_2"><text>"OCEAN"</text></inputEntry>
+        <outputEntry id="LiteralExpression_2"><text>0.015</text></outputEntry>
+      </rule>
+      <rule id="DecisionRule_3">
+        <inputEntry id="UnaryTests_3"><text>"ROAD"</text></inputEntry>
+        <outputEntry id="LiteralExpression_3"><text>0.060</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

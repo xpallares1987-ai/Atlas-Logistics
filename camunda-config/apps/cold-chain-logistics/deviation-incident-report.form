@@ -1,0 +1,29 @@
+{
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "schemaVersion": 16,
+  "id": "deviation-incident-report",
+  "components": [
+    {
+      "type": "textfield",
+      "label": "Sensor ID",
+      "key": "sensorId",
+      "id": "s1",
+      "readonly": true
+    },
+    {
+      "type": "number",
+      "label": "Recorded Temp (C)",
+      "key": "recordedTemp",
+      "id": "s2",
+      "readonly": true
+    },
+    {
+      "type": "textarea",
+      "label": "Damage Assessment",
+      "key": "damageAssessment",
+      "id": "s3"
+    }
+  ],
+  "type": "default"
+}

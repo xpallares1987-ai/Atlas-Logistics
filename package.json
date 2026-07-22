@@ -16,8 +16,8 @@
     "eslint": "eslint .",
     "format": "prettier --write .",
     "prepare": "husky",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
+    "db:generate": "npx -y firebase-tools@latest dataconnect:sdk:generate",
+    "db:push": "npx -y firebase-tools@latest dataconnect:sql:migrate",
     "db:reset": "sh .devcontainer/reset-db.sh",
     "db:seed": "tsx src/db/seed.ts",
     "db:reset-and-seed": "sh .devcontainer/reset-db.sh && tsx src/db/seed.ts",
@@ -31,6 +31,7 @@
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.0",
     "@fastify/rate-limit": "^11.1.0",
+    "@google-cloud/bigquery": "^8.3.1",
     "@google-cloud/pubsub": "^5.3.1",
     "@google-cloud/secret-manager": "^6.2.0",
     "@google-cloud/storage": "^7.21.0",
@@ -126,8 +127,8 @@
       "@opentelemetry/core": ">=2.8.0",
       "pdfjs-dist": ">=4.2.67",
       "default-connector": "link:..\\..\\AppData\\Local\\pnpm\\global\\5\\node_modules\\src\\dataconnect-generated\\js\\default-connector",
-      "dataconnect-generated": "link:..\\..\\..\\AppData\\Local\\pnpm\\global\\5\\node_modules\\src\\dataconnect-generated",
-      "dataconnect-admin-generated": "link:..\\..\\..\\AppData\\Local\\pnpm\\global\\5\\node_modules\\src\\dataconnect-admin-generated"
+      "dataconnect-generated": "link:..\\..\\AppData\\Local\\pnpm\\global\\5\\node_modules\\src\\dataconnect-generated",
+      "dataconnect-admin-generated": "link:..\\..\\AppData\\Local\\pnpm\\global\\5\\node_modules\\src\\dataconnect-admin-generated"
     }
   },
   "lint-staged": {

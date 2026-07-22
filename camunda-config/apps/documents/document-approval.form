@@ -1,0 +1,74 @@
+{
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": { "name": "Camunda Modeler", "version": "5.0.0" },
+  "schemaVersion": 16,
+  "id": "document-approval",
+  "components": [
+    {
+      "type": "text",
+      "text": "# 📄 Document Review & Approval",
+      "id": "header"
+    },
+    { "type": "separator", "id": "sep1" },
+    {
+      "type": "textfield",
+      "label": "Document Type",
+      "key": "documentType",
+      "id": "docType",
+      "readonly": true
+    },
+    {
+      "type": "textfield",
+      "label": "Document Reference",
+      "key": "documentReference",
+      "id": "docRef",
+      "readonly": true
+    },
+    {
+      "type": "textfield",
+      "label": "Shipment Reference",
+      "key": "referenceNumber",
+      "id": "shipRef",
+      "readonly": true
+    },
+    {
+      "type": "textfield",
+      "label": "Submitted By",
+      "key": "submittedBy",
+      "id": "submitter",
+      "readonly": true
+    },
+    {
+      "type": "textfield",
+      "label": "Document URL",
+      "key": "documentUrl",
+      "id": "docUrl",
+      "readonly": true,
+      "description": "Click to open the document for review"
+    },
+    { "type": "separator", "id": "sep2" },
+    {
+      "type": "select",
+      "label": "Decision",
+      "key": "approvalDecision",
+      "id": "decision",
+      "validate": { "required": true },
+      "values": [
+        { "label": "✅ Approve", "value": "APPROVED" },
+        { "label": "🔄 Return for Corrections", "value": "CORRECTIONS_NEEDED" },
+        { "label": "⬆️ Escalate to Manager", "value": "ESCALATE" },
+        { "label": "❌ Reject", "value": "REJECTED" }
+      ]
+    },
+    {
+      "type": "textarea",
+      "label": "Review Comments",
+      "key": "reviewComments",
+      "id": "comments",
+      "validate": { "minLength": 0, "maxLength": 2000 },
+      "description": "Explain corrections needed or reason for rejection"
+    }
+  ],
+  "type": "default"
+}

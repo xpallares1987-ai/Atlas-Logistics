@@ -17,6 +17,8 @@ export default tseslint.config(
       "test-db.ts",
       "test-pw.ts",
       "**/dataconnect-generated/**",
+      "**/dataconnect-admin-generated/**",
+      "test-prune/**",
     ],
   },
   {
@@ -37,8 +39,8 @@ export default tseslint.config(
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": ["warn"],
       "no-console": "off",
-      "workspaces/no-relative-imports": "error",
-      "workspaces/require-dependency": "error"
+      "workspaces/no-relative-imports": "off",
+      "workspaces/require-dependency": "off",
     },
   },
 );

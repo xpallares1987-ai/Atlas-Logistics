@@ -10,3 +10,13 @@ export const createEnvValidator = <T extends z.ZodRawShape>(schema: T) => {
     return result.data;
   };
 };
+
+/**
+ * Returns true if external shipping/carrier APIs (Maersk, INTTRA, Xeneta)
+ * should run in mock mode for offline or sandbox development.
+ */
+export const isMockExternalApis = (): boolean => {
+  return (
+    process.env.MOCK_EXTERNAL_APIS === "true" || process.env.NODE_ENV === "test"
+  );
+};

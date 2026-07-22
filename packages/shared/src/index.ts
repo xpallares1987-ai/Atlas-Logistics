@@ -15,3 +15,6 @@ export * from "./theme.js";
 export * from "./store.js";
 export * from "./syncManager.js";
 export * from "./instances.js";
+export * from "./services/currency.js";
+export * from "./services/geocoding.js";
+export * from "./services/weather.js";
