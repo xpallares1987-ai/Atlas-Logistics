@@ -3,7 +3,7 @@ import { BigQuery } from "@google-cloud/bigquery";
 // import { executeGetExpiredShipments } from "../src/dataconnect-admin-generated";
 
 const bigquery = new BigQuery();
-const DATASET_ID = "atlas_archive";
+const DATASET_ID = "atlas_archive_europe";
 const TABLE_ID = "historical_shipments";
 
 async function archiveOldRecords() {
