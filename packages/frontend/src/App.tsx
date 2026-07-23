@@ -174,7 +174,7 @@ export default function App() {
   }, [addNotification]);
 
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <Router>
       <div
         className={`flex h-screen font-sans ${theme === "dark" ? "dark bg-slate-950 text-white" : "bg-slate-50 text-slate-900"}`}
       >
