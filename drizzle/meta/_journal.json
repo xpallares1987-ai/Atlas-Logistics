@@ -15,6 +15,13 @@
       "when": 1784418147328,
       "tag": "0001_minor_yellow_claw",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784820106659,
+      "tag": "0002_nebulous_blue_shield",
+      "breakpoints": true
     }
   ]
 }

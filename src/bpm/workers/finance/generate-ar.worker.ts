@@ -23,14 +23,14 @@ interface GenerateInvoiceOutput {
 }
 
 /**
- * Generates AR (Accounts Receivable) or AP (Accounts Payable) invoices
+ * Generates AR (Accounts Receivable) invoices
  * and stores them in the database.
  */
-class GenerateInvoiceWorker extends AtlasWorker<
+class GenerateARWorker extends AtlasWorker<
   GenerateInvoiceInput,
   GenerateInvoiceOutput
 > {
-  readonly taskType = "atlas.invoice.generate";
+  readonly taskType = "atlas.invoice.generate-ar";
 
   async execute(job: any): Promise<GenerateInvoiceOutput> {
     const {
@@ -94,4 +94,4 @@ class GenerateInvoiceWorker extends AtlasWorker<
   }
 }
 
-export const generateInvoiceWorker = new GenerateInvoiceWorker();
+export const generateARWorker = new GenerateARWorker();

@@ -1,4 +1,5 @@
-import Redis from "ioredis";
+// @ts-ignore
+import { Redis } from "ioredis";
 import { logger } from "./logger.js";
 
 // Si no hay variables de entorno (ej. entorno local), usamos localhost
@@ -10,14 +11,14 @@ export const redis = new Redis({
   port: REDIS_PORT,
   lazyConnect: true,
   // Retry strategy básico para soportar caídas temporales de red en Cloud Run
-  retryStrategy(times) {
+  retryStrategy(times: number) {
     const delay = Math.min(times * 50, 2000);
     return delay;
   },
 });
 
-redis.on("error", (error) => {
-  logger.error("Redis Connection Error:", error);
+redis.on("error", (error: any) => {
+  logger.error(error, "Redis Connection Error:");
 });
 
 export const connectRedis = async () => {

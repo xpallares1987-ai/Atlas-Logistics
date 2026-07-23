@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import "./index.css";
 import "./i18n";
 import { registerSW } from "virtual:pwa-register";
 import { syncManager } from "@atlas/shared";
@@ -38,6 +39,9 @@ const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
       url: "http://localhost:3001/trpc",
+      fetch: (url, options) => {
+        return fetch(url, { ...options, credentials: "include" });
+      },
     }),
   ],
 });

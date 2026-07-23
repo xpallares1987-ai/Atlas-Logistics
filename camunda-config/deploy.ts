@@ -106,7 +106,7 @@ async function deploy() {
       CAMUNDA_CLIENT_ID: process.env.CAMUNDA_CLIENT_ID,
       CAMUNDA_CLIENT_SECRET: process.env.CAMUNDA_CLIENT_SECRET,
       CAMUNDA_CLUSTER_REGION: process.env.CAMUNDA_CLUSTER_REGION || 'bru-2',
-    });
+    } as any);
   }
 
   const zbc = c8.getZeebeGrpcApiClient();
