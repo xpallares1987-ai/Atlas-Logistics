@@ -86,3 +86,4 @@ sa-key.json
 
 # Local Guides
 *_local_guide.md
+packages/shared/node_modules_prod/
