@@ -138,7 +138,7 @@ export type StockItem = z.infer<typeof StockItemSchema>;
 export const CreateShipmentSchema = z.object({
   body: z
     .object({
-      referenceNumber: z.string().min(1, "Reference Number is required"),
+      referenceNumber: z.string().regex(/^[A-Z0-9-]+$/, "Invalid reference format").max(100),
       status: z
         .enum([
           "DRAFT",
@@ -157,13 +157,13 @@ export const CreateShipmentSchema = z.object({
       billingPartyId: z.string().uuid().optional(),
       originLocationId: z.string().uuid().optional(),
       destinationLocationId: z.string().uuid().optional(),
-      vessel: z.string().optional(),
-      voyage: z.string().optional(),
-      documentBase64: z.string().optional(),
-      documentName: z.string().optional(),
-      documentMimeType: z.string().optional(),
+      vessel: z.string().max(255).optional(),
+      voyage: z.string().max(100).optional(),
+      documentBase64: z.string().max(10485760).optional(), // Max 10MB approx
+      documentName: z.string().max(255).optional(),
+      documentMimeType: z.string().max(100).optional(),
     })
-    .passthrough(),
+    .strict(),
 });
 
 export const UpdateShipmentSchema = z.object({
@@ -186,20 +186,20 @@ export const UpdateShipmentSchema = z.object({
           "CANCELLED",
         ])
         .optional(),
-      vessel: z.string().optional(),
-      voyage: z.string().optional(),
+      vessel: z.string().max(255).optional(),
+      voyage: z.string().max(100).optional(),
     })
-    .passthrough(),
+    .strict(),
 });
 
 export const CreateQuoteSchema = z.object({
   body: z
     .object({
-      quoteNumber: z.string().min(1),
+      quoteNumber: z.string().regex(/^[A-Z0-9-]+$/).max(100),
       customerId: z.string().uuid(),
       originLocationId: z.string().uuid().optional(),
       destinationLocationId: z.string().uuid().optional(),
-      equipment: z.string().min(1),
+      equipment: z.string().max(100),
       buyRateTotal: z.number().nonnegative(),
       sellMargin: z.number(),
       sellRateTotal: z.number().nonnegative(),
@@ -208,17 +208,17 @@ export const CreateQuoteSchema = z.object({
         .optional(),
       validTo: z.string().or(z.date()),
     })
-    .passthrough(),
+    .strict(),
 });
 
 export const CreateInvoiceSchema = z.object({
   body: z
     .object({
-      invoiceNumber: z.string().min(1),
+      invoiceNumber: z.string().regex(/^[A-Z0-9-]+$/).max(100),
       type: z.enum(["AR", "AP", "CN", "DN"]),
       partyId: z.string().uuid(),
       shipmentId: z.string().uuid().optional(),
-      currency: z.string().length(3).default("USD"),
+      currency: z.string().length(3).regex(/^[A-Z]{3}$/).default("USD"),
       subtotal: z.number().nonnegative().optional(),
       taxAmount: z.number().nonnegative().optional(),
       totalAmount: z.number().nonnegative(),
@@ -226,7 +226,7 @@ export const CreateInvoiceSchema = z.object({
       lines: z
         .array(
           z.object({
-            description: z.string().min(1),
+            description: z.string().max(255),
             quantity: z.number().min(1).default(1),
             unitPrice: z.number().nonnegative(),
             amount: z.number().nonnegative(),
@@ -235,7 +235,7 @@ export const CreateInvoiceSchema = z.object({
         )
         .optional(),
     })
-    .passthrough(),
+    .strict(),
 });
 
 export const BatchSyncJobSchema = z.object({
@@ -257,5 +257,5 @@ export const BatchSyncJobSchema = z.object({
         )
         .min(1, "At least one job is required"),
     })
-    .passthrough(),
+    .strict(),
 });

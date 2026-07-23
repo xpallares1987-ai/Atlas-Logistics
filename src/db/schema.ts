@@ -10,6 +10,7 @@ import {
   date,
   boolean,
   jsonb,
+  index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -155,7 +156,11 @@ export const shipments = pgTable("shipments", {
   documentUrl: varchar("document_url", { length: 500 }), // Deprecated, use shipmentDocuments
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("shipments_parties_idx").on(table.supplierId, table.billingPartyId),
+  index("shipments_locations_idx").on(table.originLocationId, table.destinationLocationId),
+  index("shipments_status_idx").on(table.status),
+]);
 
 export const lettersOfCredit = pgTable("letters_of_credit", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -275,7 +280,9 @@ export const quotes = pgTable("quotes", {
   validTo: date("valid_to").notNull(),
   userId: uuid("user_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("quotes_customer_idx").on(table.customerId),
+]);
 
 export const invoices = pgTable("invoices", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -293,7 +300,9 @@ export const invoices = pgTable("invoices", {
   dueDate: date("due_date").notNull(),
   issuedAt: timestamp("issued_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("invoices_party_status_idx").on(table.partyId, table.status),
+]);
 
 export const invoiceLines = pgTable("invoice_lines", {
   id: uuid("id").defaultRandom().primaryKey(),

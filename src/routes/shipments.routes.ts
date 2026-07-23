@@ -78,7 +78,7 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
             },
           });
         } catch (bpmnError) {
-          fastify.log.error(`[Camunda] Falló al disparar la coreografía:`, bpmnError);
+          fastify.log.error(bpmnError, `[Camunda] Falló al disparar la coreografía:`);
         }
       }
 
