@@ -10,7 +10,11 @@ export class SyncManager {
     baseUrl: string = "http://localhost:3001/api",
   ) {
     this.db = db;
-    this.baseUrl = baseUrl;
+    const parsedUrl = new URL(baseUrl);
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      throw new Error("Invalid protocol for baseUrl");
+    }
+    this.baseUrl = parsedUrl.toString().replace(/\/$/, "");
   }
 
   /**
@@ -57,7 +61,7 @@ export class SyncManager {
 
       if (pendingJobs.length === 0) return;
 
-      const response = await fetch(`${this.baseUrl}/sync/batch`, {
+      const response = await fetch(new URL("/api/sync/batch", this.baseUrl).toString(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobs: pendingJobs }),

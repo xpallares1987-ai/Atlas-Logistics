@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 
 function getFilesRecursively(dirPath: string, extensions: string[]): string[] {
   let results: string[] = [];
@@ -59,9 +59,9 @@ async function deploy() {
     for (const file of deployFiles) {
       const relPath = path.relative(process.cwd(), file);
       console.log(`[Deployer] Deploying resource: ${relPath}...`);
-      const cmd = `npx zbctl deploy "${file}" --address "${address}" --clientId "${clientId}" --clientSecret "${clientSecret}"`;
+      const args = ["zbctl", "deploy", file, "--address", address, "--clientId", clientId, "--clientSecret", clientSecret];
       try {
-        execSync(cmd, { stdio: "pipe" });
+        execFileSync("npx", args, { stdio: "pipe" });
         console.log(`[Deployer] ✓ Deploy successful for ${relPath}`);
       } catch (err: any) {
         console.error(

@@ -8,7 +8,7 @@ import { zbc } from "../bpm/client.js";
 import { redis } from "../config/redis.js";
 
 const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
-  fastify.get("/", async (request, reply) => {
+  fastify.get("/", { config: { rateLimit: { max: 100, timeWindow: "1 minute" } } }, async (request, reply) => {
     try {
       if (request.url.includes("/api/rates")) {
         // Cache-Aside pattern para las tarifas (alta lectura, baja mutabilidad)
@@ -32,7 +32,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     }
   });
 
-  fastify.post("/compare", async (request, reply) => {
+  fastify.post("/compare", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (request, reply) => {
     try {
       const { origin, destination, containerType } = request.body as any;
 
@@ -53,7 +53,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     }
   });
 
-  fastify.post("/", { preHandler: [validate(CreateQuoteSchema)] }, async (request, reply) => {
+  fastify.post("/", { preHandler: [validate(CreateQuoteSchema)], config: { rateLimit: { max: 50, timeWindow: "1 minute" } } }, async (request, reply) => {
     try {
       const newQuote = await db.insert(quotes).values(request.body as any).returning();
       return newQuote[0];
@@ -62,7 +62,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     }
   });
 
-  fastify.put("/:id", async (request, reply) => {
+  fastify.put("/:id", { config: { rateLimit: { max: 50, timeWindow: "1 minute" } } }, async (request, reply) => {
     try {
       const { id } = request.params as any;
       const updatedQuote = await db
