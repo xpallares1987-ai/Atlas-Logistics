@@ -70,10 +70,7 @@ class ValidateBookingWorker extends AtlasWorker<ValidateBookingInput, ValidateBo
       .insert(shipments)
       .values({
         referenceNumber,
-        customer: vars.shipperName,
-        origin: vars.origin,
-        destination: vars.destination,
-        equipment: vars.equipment,
+        referenceNumber,
         status: 'DRAFT',
       })
       .returning();

@@ -4,7 +4,7 @@ import { z, AnyZodObject } from "zod";
 export const validate = (schema: AnyZodObject) => {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      await schema.parseAsync({
+      await schema.strict().parseAsync({
         body: request.body,
         query: request.query,
         params: request.params,

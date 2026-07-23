@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db } from "../config/database.js";
+import { db } from "../db/db.config.js";
 import { webhooks, webhookDeliveries } from "../db/schema.js";
 import { logger } from "../config/logger.js";
 import crypto from "crypto";
@@ -24,7 +24,7 @@ export class WebhookService {
         .where(eq(webhooks.isActive, true));
 
       // 2. Filtrar por evento suscrito (jsonb contiene array de strings o '*' )
-      const subscribedWebhooks = activeWebhooks.filter((wh) => {
+      const subscribedWebhooks = activeWebhooks.filter((wh: any) => {
         const events = wh.events as string[];
         return events.includes(eventType) || events.includes("*");
       });
@@ -41,7 +41,7 @@ export class WebhookService {
       });
 
       await Promise.allSettled(
-        subscribedWebhooks.map(async (webhook) => {
+        subscribedWebhooks.map(async (webhook: any) => {
           // Generar firma HMAC-SHA256 para validación de origen
           const signature = crypto
             .createHmac("sha256", webhook.secret)
@@ -90,7 +90,7 @@ export class WebhookService {
         })
       );
     } catch (error) {
-      logger.error("Error in WebhookService.dispatchEvent:", error);
+      logger.error(error, "Error in WebhookService.dispatchEvent:");
     }
   }
 }

@@ -29,7 +29,7 @@ const invoicesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         invoiceId: newInvoice[0].id,
         shipmentId: newInvoice[0].shipmentId,
         invoiceNumber,
-        customerId: newInvoice[0].customerId,
+        customerId: newInvoice[0].partyId,
         totalAmount: newInvoice[0].totalAmount,
       });
 
@@ -44,7 +44,7 @@ const invoicesRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const { id } = request.params as any;
       const updatedInvoice = await db
         .update(invoices)
-        .set({ status: "PAID" })
+        .set({ status: "Paid" })
         .where(eq(invoices.id, id))
         .returning();
       return updatedInvoice[0];

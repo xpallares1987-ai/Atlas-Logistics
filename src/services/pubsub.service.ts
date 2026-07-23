@@ -1,10 +1,12 @@
 import { PubSub } from '@google-cloud/pubsub';
 
-const pubsub = new PubSub();
+const usePubSub = !!(process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.PUBSUB_EMULATOR_HOST || process.env.NODE_ENV === 'production');
+const pubsub = usePubSub ? new PubSub() : null;
 const DOCUMENT_UPLOAD_TOPIC = 'document-uploaded-topic';
 
 // Initialize topic (in production this is normally managed via Terraform/deployment scripts)
 export const initPubSub = async () => {
+  if (!pubsub) return;
   try {
     const [exists] = await pubsub.topic(DOCUMENT_UPLOAD_TOPIC).exists();
     if (!exists) {
@@ -21,6 +23,10 @@ export const publishDocumentUploaded = async (payload: {
   gcsUrl: string;
   mimeType: string;
 }) => {
+  if (!pubsub) {
+    console.log(`[PubSub Mock] Skipping publish for ${payload.shipmentId} (No credentials)`);
+    return "mock-id";
+  }
   try {
     const dataBuffer = Buffer.from(JSON.stringify(payload));
     const messageId = await pubsub.topic(DOCUMENT_UPLOAD_TOPIC).publishMessage({ data: dataBuffer });

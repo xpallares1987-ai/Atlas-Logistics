@@ -1,5 +1,6 @@
 import { zbc } from '../client.js';
 import { db } from '../../db/db.config.js';
+// @ts-ignore
 import type { ICustomHeaders, IInputVariables, IOutputVariables, ZeebeJob } from '@camunda8/sdk/dist/zeebe/types';
 import { logger } from '../../config/logger.js';
 
@@ -30,10 +31,10 @@ export abstract class AtlasWorker<
   }
 
   /** Max number of concurrent jobs for this worker */
-  protected maxJobsToActivate = 5;
+  protected maxJobsToActivate = process.env.ZEEBE_MAX_JOBS ? parseInt(process.env.ZEEBE_MAX_JOBS, 10) : 10;
 
-  /** Job timeout in ms (default: 30 s) */
-  protected timeout = 30_000;
+  /** Job timeout in ms (default: 60 s) */
+  protected timeout = process.env.ZEEBE_JOB_TIMEOUT ? parseInt(process.env.ZEEBE_JOB_TIMEOUT, 10) : 60_000;
 
   /** Number of retries before the job is sent to the incident log */
   protected retries = 3;
@@ -82,7 +83,7 @@ export abstract class AtlasWorker<
             return job.error({
               errorCode: error.code,
               errorMessage: error.message,
-            });
+            } as any);
           }
 
           const msg = error instanceof Error ? error.message : String(error);

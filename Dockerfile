@@ -1,5 +1,5 @@
 ARG NODE_VERSION=22
-ARG PNPM_VERSION=11.13.0
+ARG PNPM_VERSION=10.0.0
 
 # 1. Builder Stage
 FROM node:${NODE_VERSION}-alpine AS builder

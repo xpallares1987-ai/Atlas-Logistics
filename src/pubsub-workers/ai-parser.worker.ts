@@ -10,9 +10,11 @@ import {
   pendingAiReviews,
 } from "../db/schema.js";
 import { eq, ilike } from "drizzle-orm";
+import { geminiInvoiceSchema } from "../services/invoiceParser.schema.js";
 
-const pubsub = new PubSub();
-const storage = new Storage();
+const useGCP = !!(process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.PUBSUB_EMULATOR_HOST || process.env.NODE_ENV === 'production');
+const pubsub = useGCP ? new PubSub() : null;
+const storage = useGCP ? new Storage() : null;
 const DOCUMENT_UPLOAD_TOPIC = "document-uploaded-topic";
 const SUBSCRIPTION_NAME = "ai-parser-sub";
 const DLQ_TOPIC = "ai-parser-dlq-topic";
@@ -22,6 +24,10 @@ const DLQ_TOPIC = "ai-parser-dlq-topic";
 // import { eventEmitter } from "../index.js";
 
 export const startAiParserWorker = async () => {
+  if (!pubsub) {
+    console.warn("[AI-Parser Worker] Disabled in local dev due to missing GOOGLE_APPLICATION_CREDENTIALS.");
+    return;
+  }
   try {
     const [topicExists] = await pubsub.topic(DOCUMENT_UPLOAD_TOPIC).exists();
     if (!topicExists) {
@@ -64,6 +70,7 @@ export const startAiParserWorker = async () => {
           payload.shipmentId,
           payload.gcsUrl,
           payload.mimeType,
+          payload.documentType || "SHIPPING_INSTRUCTION"
         );
 
         message.ack();
@@ -84,6 +91,7 @@ async function processDocument(
   shipmentId: string,
   gcsUrl: string,
   mimeType: string,
+  documentType: string
 ) {
   if (!process.env.GOOGLE_API_KEY) {
     throw new Error("GOOGLE_API_KEY not configured.");
@@ -93,23 +101,32 @@ async function processDocument(
   const bucketName = gcsUrl.split("/")[2];
   const filePath = gcsUrl.split("/").slice(3).join("/");
 
+  if (!storage) throw new Error("Storage not initialized");
+
   const [fileBuffer] = await storage
     .bucket(bucketName)
     .file(filePath)
     .download();
   const fileBase64 = fileBuffer.toString("base64");
 
-  const prompt = `Extract shipping instruction details from this document. Focus on Shipper, Consignee, Ports, Containers, Commodities, and Marks.`;
+  let prompt = "";
+  let responseSchema: Schema;
 
-  const responseSchema: Schema = {
-    type: Type.OBJECT,
-    properties: {
-      shipperText: { type: Type.STRING },
-      consigneeText: { type: Type.STRING },
-      portOfLoading: { type: Type.STRING },
-      portOfDischarge: { type: Type.STRING },
-    },
-  };
+  if (documentType === "INVOICE") {
+    prompt = `Extract vendor invoice details from this document. Ensure you capture the total amount, currency, and line items.`;
+    responseSchema = geminiInvoiceSchema;
+  } else {
+    prompt = `Extract shipping instruction details from this document. Focus on Shipper, Consignee, Ports, Containers, Commodities, and Marks.`;
+    responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        shipperText: { type: Type.STRING },
+        consigneeText: { type: Type.STRING },
+        portOfLoading: { type: Type.STRING },
+        portOfDischarge: { type: Type.STRING },
+      },
+    };
+  }
 
   const extractedData = await AIService.parseDocument(
     fileBase64,
@@ -121,23 +138,37 @@ async function processDocument(
   let supplierId = null;
   let billingPartyId = null;
 
-  if (extractedData.shipperText) {
-    const firstWord = extractedData.shipperText.split(/[\s,]+/)[0];
-    const match = await db
-      .select()
-      .from(companies)
-      .where(ilike(companies.name, `%${firstWord}%`))
-      .limit(1);
-    if (match.length > 0) supplierId = match[0].id;
-  }
-  if (extractedData.consigneeText) {
-    const firstWord = extractedData.consigneeText.split(/[\s,]+/)[0];
-    const match = await db
-      .select()
-      .from(companies)
-      .where(ilike(companies.name, `%${firstWord}%`))
-      .limit(1);
-    if (match.length > 0) billingPartyId = match[0].id;
+  // Try to match companies if it's a shipping instruction
+  if (documentType !== "INVOICE") {
+    if (extractedData.shipperText) {
+      const firstWord = extractedData.shipperText.split(/[\s,]+/)[0];
+      const match = await db
+        .select()
+        .from(companies)
+        .where(ilike(companies.name, `%${firstWord}%`))
+        .limit(1);
+      if (match.length > 0) supplierId = match[0].id;
+    }
+    if (extractedData.consigneeText) {
+      const firstWord = extractedData.consigneeText.split(/[\s,]+/)[0];
+      const match = await db
+        .select()
+        .from(companies)
+        .where(ilike(companies.name, `%${firstWord}%`))
+        .limit(1);
+      if (match.length > 0) billingPartyId = match[0].id;
+    }
+  } else {
+    // If it's an invoice, try to match the supplierName to a company
+    if (extractedData.supplierName) {
+      const firstWord = extractedData.supplierName.split(/[\s,]+/)[0];
+      const match = await db
+        .select()
+        .from(companies)
+        .where(ilike(companies.name, `%${firstWord}%`))
+        .limit(1);
+      if (match.length > 0) supplierId = match[0].id;
+    }
   }
 
   // Guardar en pendingAiReviews en lugar de actualizar shipments directamente (HITL)

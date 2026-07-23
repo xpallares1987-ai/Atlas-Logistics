@@ -55,8 +55,8 @@ class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
         .from(rates)
         .where(
           and(
-            eq(rates.origin, origin),
-            eq(rates.destination, destination),
+            eq(rates.originLocationId, origin),
+            eq(rates.destinationLocationId, destination),
             gte(rates.validTo, today),
           ),
         );
@@ -74,10 +74,10 @@ class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
 
       const carrierRates: CarrierRate[] = dbRates.map((r) => ({
         id: r.id,
-        carrier: r.carrier,
+        carrier: r.carrierId || 'UNKNOWN',
         serviceLine: r.serviceLine,
-        origin: r.origin,
-        destination: r.destination,
+        origin: r.originLocationId || '',
+        destination: r.destinationLocationId || '',
         transitTime: r.transitTime,
         baseOceanFreight: r.baseOceanFreight,
         baf: r.baf,

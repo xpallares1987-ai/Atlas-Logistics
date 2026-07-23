@@ -29,9 +29,16 @@ import { updateStatusWorker } from "./tracking/update-status.worker.js";
 import { checkAisWorker } from "./tracking/check-ais.worker.js";
 
 // ── Phase 2: Finance workers ─────────────────────────────────────────
-import { generateInvoiceWorker } from "./finance/generate-invoice.worker.js";
+import { generateARWorker } from "./finance/generate-ar.worker.js";
 import { reconcileCostsWorker } from "./finance/reconcile-costs.worker.js";
 import { emailInvoiceWorker } from "./finance/email-invoice.worker.js";
+import { collectCostsWorker } from "./finance/collect-costs.worker.js";
+import { calculatePnLWorker } from "./finance/calculate-pnl.worker.js";
+import { matchAPWorker } from "./finance/match-ap.worker.js";
+import { approveAPWorker } from "./finance/approve-ap.worker.js";
+import { updateRecordsWorker } from "./finance/update-records.worker.js";
+import { flagReviewWorker } from "./finance/flag-review.worker.js";
+import { paymentReminderWorker } from "./finance/payment-reminder.worker.js";
 
 // ── Phase 2: Warehouse workers ───────────────────────────────────────
 import { receiveCargoWorker } from "./warehouse/receive-cargo.worker.js";
@@ -64,9 +71,16 @@ const workers: AtlasWorker[] = [
   updateStatusWorker,
   checkAisWorker,
   // Phase 2 — Finance
-  generateInvoiceWorker,
+  generateARWorker,
   reconcileCostsWorker,
   emailInvoiceWorker,
+  collectCostsWorker,
+  calculatePnLWorker,
+  matchAPWorker,
+  approveAPWorker,
+  updateRecordsWorker,
+  flagReviewWorker,
+  paymentReminderWorker,
   // Phase 2 — Warehouse
   receiveCargoWorker,
   optimizeLoadingWorker,
