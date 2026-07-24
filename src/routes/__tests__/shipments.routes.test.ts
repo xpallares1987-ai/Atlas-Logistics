@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 import app from "../../app.js";
@@ -11,7 +10,9 @@ vi.mock("../../db/db.config.js", () => ({
     from: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue([{ id: "test-id", referenceNumber: "REF-123" }]),
+    returning: vi
+      .fn()
+      .mockResolvedValue([{ id: "test-id", referenceNumber: "REF-123" }]),
   },
 }));
 
@@ -24,7 +25,7 @@ describe("Shipments Routes", () => {
     (db.from as any).mockResolvedValue([{ id: "1", status: "PENDING" }]);
 
     const response = await request(app).get("/api/shipments");
-    
+
     expect(response.status).toBe(200);
     expect(response.body).toEqual([{ id: "1", status: "PENDING" }]);
   });
@@ -39,7 +40,7 @@ describe("Shipments Routes", () => {
     };
 
     const response = await request(app).post("/api/shipments").send(payload);
-    
+
     expect(response.status).toBe(200);
     expect(response.body.referenceNumber).toBe("REF-123");
   });

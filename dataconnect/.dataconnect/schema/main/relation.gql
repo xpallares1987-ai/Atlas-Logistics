@@ -892,6 +892,118 @@ extend type CrmInteraction {
   """
   _id: ID! @fdc_generated(from: "CrmInteraction.id", purpose: ENTITY_ID)
 }
+extend type CustomsEventLog {
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "CustomsEventLog", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `CustomsEventLog` table.
+  """
+  _count: Int! @fdc_generated(from: "CustomsEventLog.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CustomsEventLog` table where the `customsStatus` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  customsStatus_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CustomsEventLog.customsStatus", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CustomsEventLog` table where the `declarationNumber` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  declarationNumber_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CustomsEventLog.declarationNumber", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CustomsEventLog` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CustomsEventLog.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CustomsEventLog` table where the `inspectorName` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  inspectorName_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CustomsEventLog.inspectorName", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CustomsEventLog` table where the `isDeleted` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  isDeleted_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CustomsEventLog.isDeleted", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CustomsEventLog` table where the `performedByUid` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  performedByUid_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CustomsEventLog.performedByUid", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CustomsEventLog` table where the `remarks` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  remarks_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CustomsEventLog.remarks", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CustomsEventLog` table where the `shipmentId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  shipmentId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CustomsEventLog.shipmentId", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CustomsEventLog` table where the `tenantId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  tenantId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CustomsEventLog.tenantId", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `CustomsEventLog` table where the `timestamp` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  timestamp_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "CustomsEventLog.timestamp", purpose: QUERY_COUNT)
+  """
+  ✨ Minimum of the `timestamp` field in the `CustomsEventLog` table.
+  """
+  timestamp_min: Timestamp @fdc_generated(from: "CustomsEventLog.timestamp", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `timestamp` field in the `CustomsEventLog` table.
+  """
+  timestamp_max: Timestamp @fdc_generated(from: "CustomsEventLog.timestamp", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "CustomsEventLog.id", purpose: ENTITY_ID)
+}
 extend type DictionaryTerm {
   """
   Implicit metadata field that cannot be written. It provides extra information about query results.
@@ -1485,6 +1597,15 @@ extend type Invoice {
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Invoice.bankReference", purpose: QUERY_COUNT)
   """
+  ✨ Count the number of rows in the `Invoice` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Invoice.createdAt", purpose: QUERY_COUNT)
+  """
   ✨ Count the number of rows in the `Invoice` table where the `createdByUid` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
   """
   createdByUid_count(
@@ -1557,6 +1678,15 @@ extend type Invoice {
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Invoice.invoiceType", purpose: QUERY_COUNT)
   """
+  ✨ Count the number of rows in the `Invoice` table where the `isDeleted` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  isDeleted_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Invoice.isDeleted", purpose: QUERY_COUNT)
+  """
   ✨ Count the number of rows in the `Invoice` table where the `issueDate` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
   """
   issueDate_count(
@@ -1620,6 +1750,15 @@ extend type Invoice {
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Invoice.tenantId", purpose: QUERY_COUNT)
   """
+  ✨ Count the number of rows in the `Invoice` table where the `updatedAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  updatedAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Invoice.updatedAt", purpose: QUERY_COUNT)
+  """
   ✨ Sum the `amount` field in the `Invoice` table.
   """
   amount_sum(
@@ -1660,6 +1799,10 @@ extend type Invoice {
   """
   amount_min: Float @fdc_generated(from: "Invoice.amount", purpose: QUERY_MIN)
   """
+  ✨ Minimum of the `createdAt` field in the `Invoice` table.
+  """
+  createdAt_min: Timestamp @fdc_generated(from: "Invoice.createdAt", purpose: QUERY_MIN)
+  """
   ✨ Minimum of the `dueDate` field in the `Invoice` table.
   """
   dueDate_min: Date @fdc_generated(from: "Invoice.dueDate", purpose: QUERY_MIN)
@@ -1676,9 +1819,17 @@ extend type Invoice {
   """
   paymentDate_min: Date @fdc_generated(from: "Invoice.paymentDate", purpose: QUERY_MIN)
   """
+  ✨ Minimum of the `updatedAt` field in the `Invoice` table.
+  """
+  updatedAt_min: Timestamp @fdc_generated(from: "Invoice.updatedAt", purpose: QUERY_MIN)
+  """
   ✨ Maximum of the `amount` field in the `Invoice` table.
   """
   amount_max: Float @fdc_generated(from: "Invoice.amount", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `createdAt` field in the `Invoice` table.
+  """
+  createdAt_max: Timestamp @fdc_generated(from: "Invoice.createdAt", purpose: QUERY_MAX)
   """
   ✨ Maximum of the `dueDate` field in the `Invoice` table.
   """
@@ -1695,6 +1846,10 @@ extend type Invoice {
   ✨ Maximum of the `paymentDate` field in the `Invoice` table.
   """
   paymentDate_max: Date @fdc_generated(from: "Invoice.paymentDate", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `updatedAt` field in the `Invoice` table.
+  """
+  updatedAt_max: Timestamp @fdc_generated(from: "Invoice.updatedAt", purpose: QUERY_MAX)
   """
   A generated field that is used for caching results in SDKs.
   """
@@ -1925,6 +2080,15 @@ extend type Milestone {
   """
   _count: Int! @fdc_generated(from: "Milestone.", purpose: QUERY_COUNT)
   """
+  ✨ Count the number of rows in the `Milestone` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Milestone.createdAt", purpose: QUERY_COUNT)
+  """
   ✨ Count the number of rows in the `Milestone` table where the `description` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
   """
   description_count(
@@ -1969,6 +2133,15 @@ extend type Milestone {
     """
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Milestone.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Milestone` table where the `isDeleted` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  isDeleted_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Milestone.isDeleted", purpose: QUERY_COUNT)
   """
   ✨ Count the number of rows in the `Milestone` table where the `isEstimated` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
   """
@@ -2024,6 +2197,15 @@ extend type Milestone {
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Milestone.timestamp", purpose: QUERY_COUNT)
   """
+  ✨ Count the number of rows in the `Milestone` table where the `updatedAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  updatedAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Milestone.updatedAt", purpose: QUERY_COUNT)
+  """
   ✨ Count the number of rows in the `Milestone` table where the `vesselName` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
   """
   vesselName_count(
@@ -2060,6 +2242,10 @@ extend type Milestone {
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Milestone.voyage", purpose: QUERY_COUNT)
   """
+  ✨ Minimum of the `createdAt` field in the `Milestone` table.
+  """
+  createdAt_min: Timestamp @fdc_generated(from: "Milestone.createdAt", purpose: QUERY_MIN)
+  """
   ✨ Minimum of the `ets` field in the `Milestone` table.
   """
   ets_min: Timestamp @fdc_generated(from: "Milestone.ets", purpose: QUERY_MIN)
@@ -2068,6 +2254,14 @@ extend type Milestone {
   """
   timestamp_min: Timestamp @fdc_generated(from: "Milestone.timestamp", purpose: QUERY_MIN)
   """
+  ✨ Minimum of the `updatedAt` field in the `Milestone` table.
+  """
+  updatedAt_min: Timestamp @fdc_generated(from: "Milestone.updatedAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `createdAt` field in the `Milestone` table.
+  """
+  createdAt_max: Timestamp @fdc_generated(from: "Milestone.createdAt", purpose: QUERY_MAX)
+  """
   ✨ Maximum of the `ets` field in the `Milestone` table.
   """
   ets_max: Timestamp @fdc_generated(from: "Milestone.ets", purpose: QUERY_MAX)
@@ -2075,6 +2269,10 @@ extend type Milestone {
   ✨ Maximum of the `timestamp` field in the `Milestone` table.
   """
   timestamp_max: Timestamp @fdc_generated(from: "Milestone.timestamp", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `updatedAt` field in the `Milestone` table.
+  """
+  updatedAt_max: Timestamp @fdc_generated(from: "Milestone.updatedAt", purpose: QUERY_MAX)
   """
   A generated field that is used for caching results in SDKs.
   """
@@ -2134,6 +2332,15 @@ extend type Quote {
     """
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Quote.commodity", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Quote` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Quote.createdAt", purpose: QUERY_COUNT)
   """
   ✨ Count the number of rows in the `Quote` table where the `createdByUid` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
   """
@@ -2261,6 +2468,15 @@ extend type Quote {
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Quote.insurance", purpose: QUERY_COUNT)
   """
+  ✨ Count the number of rows in the `Quote` table where the `isDeleted` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  isDeleted_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Quote.isDeleted", purpose: QUERY_COUNT)
+  """
   ✨ Count the number of rows in the `Quote` table where the `margin` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
   """
   margin_count(
@@ -2359,6 +2575,15 @@ extend type Quote {
     """
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Quote.totalPrice", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Quote` table where the `updatedAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  updatedAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Quote.updatedAt", purpose: QUERY_COUNT)
   """
   ✨ Count the number of rows in the `Quote` table where the `validUntil` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
   """
@@ -2633,6 +2858,10 @@ extend type Quote {
   """
   caf_min: Float @fdc_generated(from: "Quote.caf", purpose: QUERY_MIN)
   """
+  ✨ Minimum of the `createdAt` field in the `Quote` table.
+  """
+  createdAt_min: Timestamp @fdc_generated(from: "Quote.createdAt", purpose: QUERY_MIN)
+  """
   ✨ Minimum of the `customsDest` field in the `Quote` table.
   """
   customsDest_min: Float @fdc_generated(from: "Quote.customsDest", purpose: QUERY_MIN)
@@ -2669,6 +2898,10 @@ extend type Quote {
   """
   totalPrice_min: Float @fdc_generated(from: "Quote.totalPrice", purpose: QUERY_MIN)
   """
+  ✨ Minimum of the `updatedAt` field in the `Quote` table.
+  """
+  updatedAt_min: Timestamp @fdc_generated(from: "Quote.updatedAt", purpose: QUERY_MIN)
+  """
   ✨ Minimum of the `validUntil` field in the `Quote` table.
   """
   validUntil_min: Date @fdc_generated(from: "Quote.validUntil", purpose: QUERY_MIN)
@@ -2692,6 +2925,10 @@ extend type Quote {
   ✨ Maximum of the `caf` field in the `Quote` table.
   """
   caf_max: Float @fdc_generated(from: "Quote.caf", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `createdAt` field in the `Quote` table.
+  """
+  createdAt_max: Timestamp @fdc_generated(from: "Quote.createdAt", purpose: QUERY_MAX)
   """
   ✨ Maximum of the `customsDest` field in the `Quote` table.
   """
@@ -2728,6 +2965,10 @@ extend type Quote {
   ✨ Maximum of the `totalPrice` field in the `Quote` table.
   """
   totalPrice_max: Float @fdc_generated(from: "Quote.totalPrice", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `updatedAt` field in the `Quote` table.
+  """
+  updatedAt_max: Timestamp @fdc_generated(from: "Quote.updatedAt", purpose: QUERY_MAX)
   """
   ✨ Maximum of the `validUntil` field in the `Quote` table.
   """
@@ -2909,6 +3150,40 @@ extend type Schedule {
   _id: ID! @fdc_generated(from: "Schedule.id", purpose: ENTITY_ID)
 }
 extend type Shipment {
+  """
+  ✨ List `CustomsEventLog` objects in a one-to-many relationship (where `CustomsEventLog`.`shipment` is this object).
+  """
+  customsEventLogs_on_shipment(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: CustomsEventLog_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [CustomsEventLog_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: CustomsEventLog_Having
+  ): [CustomsEventLog!]! @fdc_generated(from: "CustomsEventLog.shipment", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
   """
   ✨ List `Document` objects in a one-to-many relationship (where `Document`.`shipment` is this object).
   """
@@ -3150,6 +3425,15 @@ extend type Shipment {
     """
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Shipment.consigneeAddressShape", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Shipment` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Shipment.createdAt", purpose: QUERY_COUNT)
   """
   ✨ Count the number of rows in the `Shipment` table where the `customerId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
   """
@@ -3448,6 +3732,15 @@ extend type Shipment {
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Shipment.isDangerous", purpose: QUERY_COUNT)
   """
+  ✨ Count the number of rows in the `Shipment` table where the `isDeleted` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  isDeleted_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Shipment.isDeleted", purpose: QUERY_COUNT)
+  """
   ✨ Count the number of rows in the `Shipment` table where the `isEstimated` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
   """
   isEstimated_count(
@@ -3664,6 +3957,15 @@ extend type Shipment {
     distinct: Boolean = false
   ): Int! @fdc_generated(from: "Shipment.unNumber", purpose: QUERY_COUNT)
   """
+  ✨ Count the number of rows in the `Shipment` table where the `updatedAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  updatedAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Shipment.updatedAt", purpose: QUERY_COUNT)
+  """
   ✨ Count the number of rows in the `Shipment` table where the `vesselName` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
   """
   vesselName_count(
@@ -3838,6 +4140,10 @@ extend type Shipment {
   """
   bookingDate_min: Timestamp @fdc_generated(from: "Shipment.bookingDate", purpose: QUERY_MIN)
   """
+  ✨ Minimum of the `createdAt` field in the `Shipment` table.
+  """
+  createdAt_min: Timestamp @fdc_generated(from: "Shipment.createdAt", purpose: QUERY_MIN)
+  """
   ✨ Minimum of the `cyCutOff` field in the `Shipment` table.
   """
   cyCutOff_min: Timestamp @fdc_generated(from: "Shipment.cyCutOff", purpose: QUERY_MIN)
@@ -3906,6 +4212,10 @@ extend type Shipment {
   """
   timestamp_min: Timestamp @fdc_generated(from: "Shipment.timestamp", purpose: QUERY_MIN)
   """
+  ✨ Minimum of the `updatedAt` field in the `Shipment` table.
+  """
+  updatedAt_min: Timestamp @fdc_generated(from: "Shipment.updatedAt", purpose: QUERY_MIN)
+  """
   ✨ Minimum of the `vgmCutOff` field in the `Shipment` table.
   """
   vgmCutOff_min: Timestamp @fdc_generated(from: "Shipment.vgmCutOff", purpose: QUERY_MIN)
@@ -3925,6 +4235,10 @@ extend type Shipment {
   ✨ Maximum of the `bookingDate` field in the `Shipment` table.
   """
   bookingDate_max: Timestamp @fdc_generated(from: "Shipment.bookingDate", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `createdAt` field in the `Shipment` table.
+  """
+  createdAt_max: Timestamp @fdc_generated(from: "Shipment.createdAt", purpose: QUERY_MAX)
   """
   ✨ Maximum of the `cyCutOff` field in the `Shipment` table.
   """
@@ -3993,6 +4307,10 @@ extend type Shipment {
   ✨ Maximum of the `timestamp` field in the `Shipment` table.
   """
   timestamp_max: Timestamp @fdc_generated(from: "Shipment.timestamp", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `updatedAt` field in the `Shipment` table.
+  """
+  updatedAt_max: Timestamp @fdc_generated(from: "Shipment.updatedAt", purpose: QUERY_MAX)
   """
   ✨ Maximum of the `vgmCutOff` field in the `Shipment` table.
   """
@@ -4128,6 +4446,40 @@ extend type ShipmentEventLog {
   _id: ID! @fdc_generated(from: "ShipmentEventLog.id", purpose: ENTITY_ID)
 }
 extend type User {
+  """
+  ✨ List `CustomsEventLog` objects in a one-to-many relationship (where `CustomsEventLog`.`performedBy` is this object).
+  """
+  customsEventLogs_on_performedBy(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: CustomsEventLog_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [CustomsEventLog_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: CustomsEventLog_Having
+  ): [CustomsEventLog!]! @fdc_generated(from: "CustomsEventLog.performedBy", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
   """
   ✨ List `Invoice` objects in a one-to-many relationship (where `Invoice`.`createdBy` is this object).
   """

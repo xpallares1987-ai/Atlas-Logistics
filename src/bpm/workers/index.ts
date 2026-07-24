@@ -48,6 +48,10 @@ import { sealContainerWorker } from "./warehouse/seal-container.worker.js";
 // ── Claims workers ──────────────────────────────────────────────────
 import { fileInsuranceClaimWorker } from "./claims/file-insurance-claim.worker.js";
 
+// ── Internal Connectors ─────────────────────────────────────────────
+import { slackWorker } from "./slack.worker.js";
+import { emailWorker } from "./email.worker.js";
+
 import type { AtlasWorker } from "../utils/worker-base.js";
 
 /** All registered workers */
@@ -87,6 +91,9 @@ const workers: AtlasWorker[] = [
   sealContainerWorker,
   // Claims
   fileInsuranceClaimWorker,
+  // Internal Connectors
+  slackWorker,
+  emailWorker,
 ];
 
 /**

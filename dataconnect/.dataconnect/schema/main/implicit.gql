@@ -24,6 +24,20 @@ extend type CrmInteraction {
   """
   customerId: UUID! @fdc_generated(from: "CrmInteraction.customer", purpose: IMPLICIT_REF_FIELD)
 }
+extend type CustomsEventLog {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "CustomsEventLog", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `CustomsEventLog`.`performedBy`. It must match the value of `User`.`uid`. See `@ref` for how to customize it.
+  """
+  performedByUid: String! @fdc_generated(from: "CustomsEventLog.performedBy", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `CustomsEventLog`.`shipment`. It must match the value of `Shipment`.`id`. See `@ref` for how to customize it.
+  """
+  shipmentId: UUID! @fdc_generated(from: "CustomsEventLog.shipment", purpose: IMPLICIT_REF_FIELD)
+}
 extend type Document {
   """
   ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.

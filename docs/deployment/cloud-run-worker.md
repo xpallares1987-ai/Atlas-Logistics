@@ -23,17 +23,18 @@ gcloud run deploy atlas-worker \
   --image gcr.io/tu-proyecto-id/atlas-backend:latest \
   --command "node" \
   --args "--import,tsx/esm,src/worker-node.ts" \
-  --region us-central1 \
+  --region europe-west1 \
   --min-instances 1 \
   --max-instances 10 \
   --cpu 1 \
   --memory 512Mi \
   --no-allow-unauthenticated \
-  --set-env-vars="ZEEBE_MAX_JOBS=20,ZEEBE_JOB_TIMEOUT=60000" \
+  --add-cloudsql-instances="tu-proyecto-id:europe-west1:gen-lang-client-0393063451-2-instance" \
+  --set-env-vars="REDIS_URL=redis://your-redis-host:6379,DATABASE_URL=postgresql://user:password@localhost/gen-lang-client-0393063451-2-database?host=/cloudsql/tu-proyecto-id:europe-west1:gen-lang-client-0393063451-2-instance" \
   --service-account=worker-sa@tu-proyecto-id.iam.gserviceaccount.com
 ```
 
 ### 3. Consideraciones Adicionales
-- **Concurrencia vs Peticiones HTTP**: A diferencia del servicio web que escala por peticiones HTTP simultáneas, este worker realiza _Long Polling_ hacia Camunda (SaaS) y mantiene conexiones con PubSub. Configura el escalado de Cloud Run basado en uso de CPU (CPU Utilization) para los contenedores que hacen background processing.
+- **Concurrencia vs Peticiones HTTP**: A diferencia del servicio web que escala por peticiones HTTP simultáneas, este worker realiza el procesamiento en background procesando tareas de **BullMQ**. Configura el escalado de Cloud Run basado en uso de CPU (CPU Utilization) para los contenedores que hacen background processing.
 - **Graceful Shutdown**: El código captura `SIGTERM`. Cloud Run envía esta señal cuando va a apagar un contenedor (ej. por scale to zero o redespliegue). El nodo tiene 10 segundos para cerrar conexiones antes del SIGKILL.
-- **Sin puerto expuesto**: Aunque Cloud Run asignará una URL interna, los procesos asíncronos en este caso se comunican de forma saliente (outbound) hacia Camunda, por lo que no es necesario exponerlo a internet (`--no-allow-unauthenticated`).
+- **Sin puerto expuesto**: Este servicio no necesita exponer un puerto web porque solo se conecta a Redis y a la base de datos de manera saliente (`--no-allow-unauthenticated`).

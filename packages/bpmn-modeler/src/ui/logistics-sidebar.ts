@@ -1,20 +1,23 @@
-import { calculateProcessAnalytics, importDiagram } from '../services/modeler-service';
-import { safeGetMetadata, validateProperty } from '../schemas/metadata';
-import type { AppState } from '../state';
-import { Toast } from '@atlas/ui';
+import {
+  calculateProcessAnalytics,
+  importDiagram,
+} from "../services/modeler-service";
+import { safeGetMetadata, validateProperty } from "../schemas/metadata";
+import type { AppState } from "../state";
+import { Toast } from "@atlas/ui";
 
 export function initLogisticsSidebar(state: AppState) {
-  const sidebar = document.getElementById('propertiesSidebar');
-  const propertiesContainer = document.getElementById('properties');
+  const sidebar = document.getElementById("propertiesSidebar");
+  const propertiesContainer = document.getElementById("properties");
   if (!sidebar || !propertiesContainer) return;
 
-  const header = sidebar.querySelector('.sidebar__header');
+  const header = sidebar.querySelector(".sidebar__header");
   if (header) {
-    header.innerHTML = '';
-    const titleContainer = document.createElement('div');
-    titleContainer.className = 'sidebar-tabs';
+    header.innerHTML = "";
+    const titleContainer = document.createElement("div");
+    titleContainer.className = "sidebar-tabs";
     titleContainer.innerHTML = `
-      <button id="tabCamunda" class="sidebar-tab sidebar-tab--active" type="button">Camunda 8</button>
+      <button id="tabCamunda" class="sidebar-tab sidebar-tab--active" type="button">Propiedades</button>
       <button id="tabLogistics" class="sidebar-tab" type="button">Simulador</button>
       <button id="tabHistory" class="sidebar-tab" type="button">Historial</button>
       <button id="tabXml" class="sidebar-tab" type="button">XML Live</button>
@@ -22,59 +25,68 @@ export function initLogisticsSidebar(state: AppState) {
     header.appendChild(titleContainer);
   }
 
-  const logisticsPanel = document.createElement('div');
-  logisticsPanel.id = 'logisticsPanel';
-  logisticsPanel.className = 'sidebar-panel hidden';
+  const logisticsPanel = document.createElement("div");
+  logisticsPanel.id = "logisticsPanel";
+  logisticsPanel.className = "sidebar-panel hidden";
 
-  const historyPanel = document.createElement('div');
-  historyPanel.id = 'historyPanel';
-  historyPanel.className = 'sidebar-panel hidden';
+  const historyPanel = document.createElement("div");
+  historyPanel.id = "historyPanel";
+  historyPanel.className = "sidebar-panel hidden";
 
-  const xmlPanel = document.createElement('div');
-  xmlPanel.id = 'xmlPanel';
-  xmlPanel.className = 'sidebar-panel hidden';
+  const xmlPanel = document.createElement("div");
+  xmlPanel.id = "xmlPanel";
+  xmlPanel.className = "sidebar-panel hidden";
 
   propertiesContainer.parentNode?.appendChild(logisticsPanel);
   propertiesContainer.parentNode?.appendChild(historyPanel);
   propertiesContainer.parentNode?.appendChild(xmlPanel);
 
-  propertiesContainer.classList.add('sidebar-panel');
+  propertiesContainer.classList.add("sidebar-panel");
 
-  const tabCamunda = document.getElementById('tabCamunda');
-  const tabLogistics = document.getElementById('tabLogistics');
-  const tabHistory = document.getElementById('tabHistory');
-  const tabXml = document.getElementById('tabXml');
+  const tabCamunda = document.getElementById("tabCamunda");
+  const tabLogistics = document.getElementById("tabLogistics");
+  const tabHistory = document.getElementById("tabHistory");
+  const tabXml = document.getElementById("tabXml");
 
   function switchTab(activeTab: HTMLElement, panelToShow: HTMLElement) {
-    [tabCamunda, tabLogistics, tabHistory, tabXml].forEach((t) => t?.classList.remove('sidebar-tab--active'));
-    [propertiesContainer, logisticsPanel, historyPanel, xmlPanel].forEach((p) => p?.classList.add('hidden'));
+    [tabCamunda, tabLogistics, tabHistory, tabXml].forEach((t) =>
+      t?.classList.remove("sidebar-tab--active"),
+    );
+    [propertiesContainer, logisticsPanel, historyPanel, xmlPanel].forEach((p) =>
+      p?.classList.add("hidden"),
+    );
 
-    activeTab.classList.add('sidebar-tab--active');
-    panelToShow.classList.remove('hidden');
+    activeTab.classList.add("sidebar-tab--active");
+    panelToShow.classList.remove("hidden");
   }
 
-  tabCamunda?.addEventListener('click', () => switchTab(tabCamunda, propertiesContainer));
-  tabLogistics?.addEventListener('click', () => {
+  tabCamunda?.addEventListener("click", () =>
+    switchTab(tabCamunda, propertiesContainer),
+  );
+  tabLogistics?.addEventListener("click", () => {
     switchTab(tabLogistics, logisticsPanel);
     renderLogisticsPanel(state, logisticsPanel);
   });
-  tabHistory?.addEventListener('click', () => {
+  tabHistory?.addEventListener("click", () => {
     switchTab(tabHistory, historyPanel);
     renderHistoryPanel(state, historyPanel);
   });
-  tabXml?.addEventListener('click', () => {
+  tabXml?.addEventListener("click", () => {
     switchTab(tabXml, xmlPanel);
     renderXmlPanel(state, xmlPanel);
   });
 
   if (state.modeler) {
-    state.modeler.on('selection.changed', () => {
-      if (!logisticsPanel.classList.contains('hidden')) renderLogisticsPanel(state, logisticsPanel);
+    state.modeler.on("selection.changed", () => {
+      if (!logisticsPanel.classList.contains("hidden"))
+        renderLogisticsPanel(state, logisticsPanel);
     });
 
-    state.modeler.on('commandStack.changed', () => {
-      if (!logisticsPanel.classList.contains('hidden')) renderLogisticsPanel(state, logisticsPanel);
-      if (!xmlPanel.classList.contains('hidden')) renderXmlPanel(state, xmlPanel);
+    state.modeler.on("commandStack.changed", () => {
+      if (!logisticsPanel.classList.contains("hidden"))
+        renderLogisticsPanel(state, logisticsPanel);
+      if (!xmlPanel.classList.contains("hidden"))
+        renderXmlPanel(state, xmlPanel);
     });
   }
 }
@@ -97,14 +109,20 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
 
   let selectedElement: BpmnElement | null = null;
   if (modeler) {
-    const selection = modeler.get('selection') as { get: () => BpmnElement[] };
+    const selection = modeler.get("selection") as { get: () => BpmnElement[] };
     selectedElement = selection?.get()?.[0] || null;
   }
 
-  const isTask = selectedElement && (selectedElement.businessObject?.$instanceOf?.('bpmn:Task') || selectedElement.businessObject?.$type?.includes?.('Task'));
-  const isSequenceFlow = selectedElement && (selectedElement.businessObject?.$instanceOf?.('bpmn:SequenceFlow') || selectedElement.businessObject?.$type?.includes?.('SequenceFlow'));
+  const isTask =
+    selectedElement &&
+    (selectedElement.businessObject?.$instanceOf?.("bpmn:Task") ||
+      selectedElement.businessObject?.$type?.includes?.("Task"));
+  const isSequenceFlow =
+    selectedElement &&
+    (selectedElement.businessObject?.$instanceOf?.("bpmn:SequenceFlow") ||
+      selectedElement.businessObject?.$type?.includes?.("SequenceFlow"));
 
-  let elementMetadataHtml = '';
+  let elementMetadataHtml = "";
 
   if (isTask && selectedElement) {
     const bo = selectedElement.businessObject;
@@ -115,59 +133,44 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
         <h3 class="panel-section__title">Metadatos Logísticos</h3>
         <div class="form-group">
           <label>Elemento Seleccionado</label>
-          <div class="selected-badge">${bo.name || selectedElement.id} (${selectedElement.type.replace('bpmn:', '')})</div>
+          <div class="selected-badge">${bo.name || selectedElement.id} (${selectedElement.type.replace("bpmn:", "")})</div>
         </div>
         <div class="form-group">
           <label for="sysCost">Costo Operativo por Hora ($)</label>
-          <input type="number" id="sysCost" class="input" placeholder="Ej. 150" value="${metadata.costHR || ''}" />
+          <input type="number" id="sysCost" class="input" placeholder="Ej. 150" value="${metadata.costHR || ""}" />
         </div>
         <div class="form-group">
           <label for="sysStatus">Estado Operativo</label>
           <select id="sysStatus" class="input">
-            <option value="" ${!metadata.status ? 'selected' : ''}>Sin asignar</option>
-            <option value="Listo" ${metadata.status === 'Listo' ? 'selected' : ''}>Listo</option>
-            <option value="Retrasado" ${metadata.status === 'Retrasado' ? 'selected' : ''}>Retrasado</option>
-            <option value="Bloqueado" ${metadata.status === 'Bloqueado' ? 'selected' : ''}>Bloqueado</option>
+            <option value="" ${!metadata.status ? "selected" : ""}>Sin asignar</option>
+            <option value="Listo" ${metadata.status === "Listo" ? "selected" : ""}>Listo</option>
+            <option value="Retrasado" ${metadata.status === "Retrasado" ? "selected" : ""}>Retrasado</option>
+            <option value="Bloqueado" ${metadata.status === "Bloqueado" ? "selected" : ""}>Bloqueado</option>
           </select>
         </div>
         <div class="form-group">
           <label for="sysForm">Clave de Formulario (UI)</label>
-          <input type="text" id="sysForm" class="input" placeholder="form-id-123" value="${metadata.formKey || ''}" />
+          <input type="text" id="sysForm" class="input" placeholder="form-id-123" value="${metadata.formKey || ""}" />
         </div>
         <div class="form-group">
           <label for="sysDecision">ID de Decisión (DMN)</label>
-          <input type="text" id="sysDecision" class="input" placeholder="decision-table-id" value="${metadata.decisionRef || ''}" />
-        </div>
-      </div>
-      <div class="panel-section">
-        <h3 class="panel-section__title">Conectores Camunda 8</h3>
-        <p class="section-desc">Arrastra o aplica plantillas rápidas de conectores Zeebe:</p>
-        <div class="connectors-grid">
-          <div class="connector-card" data-type="slack" title="Notificar por Slack">
-            <div class="connector-card__icon">💬</div>
-            <div class="connector-card__name">Slack Alerta</div>
-          </div>
-          <div class="connector-card" data-type="rest" title="Consulta API REST">
-            <div class="connector-card__icon">🌐</div>
-            <div class="connector-card__name">REST Container</div>
-          </div>
-          <div class="connector-card" data-type="email" title="Enviar Email SendGrid">
-            <div class="connector-card__icon">✉️</div>
-            <div class="connector-card__name">SendGrid Email</div>
-          </div>
+          <input type="text" id="sysDecision" class="input" placeholder="decision-table-id" value="${metadata.decisionRef || ""}" />
         </div>
       </div>
     `;
   } else if (isSequenceFlow && selectedElement) {
     const bo = selectedElement.businessObject;
-    let existingCondition = '';
+    let existingCondition = "";
     if (bo.conditionExpression && (bo.conditionExpression as any).body) {
-      existingCondition = (bo.conditionExpression as any).body.replace(/"/g, '&quot;');
+      existingCondition = (bo.conditionExpression as any).body.replace(
+        /"/g,
+        "&quot;",
+      );
     }
 
     elementMetadataHtml = `
       <div class="panel-section">
-        <h3 class="panel-section__title">Enrutamiento Inteligente (Zeebe)</h3>
+        <h3 class="panel-section__title">Enrutamiento Inteligente (Atlas Engine)</h3>
         <p class="section-desc">Configura reglas de decisión basadas en los datos del Shipment.</p>
         <div class="form-group">
           <label>Elemento Seleccionado</label>
@@ -229,23 +232,27 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
           </div>
         </div>
         <div class="kpi-dashboard">
-          <div class="kpi-card ${analytics.delayedTasksCount > 0 ? 'kpi-card--warning' : ''}">
+          <div class="kpi-card ${analytics.delayedTasksCount > 0 ? "kpi-card--warning" : ""}">
             <div class="kpi-card__val">${analytics.delayedTasksCount}</div>
             <div class="kpi-card__label">Retrasadas</div>
           </div>
-          <div class="kpi-card ${analytics.blockedTasksCount > 0 ? 'kpi-card--danger' : ''}">
+          <div class="kpi-card ${analytics.blockedTasksCount > 0 ? "kpi-card--danger" : ""}">
             <div class="kpi-card__val">${analytics.blockedTasksCount}</div>
             <div class="kpi-card__label">Bloqueadas</div>
           </div>
         </div>
       </div>
       ${elementMetadataHtml}
-      ${analytics.bottlenecks.length > 0 ? `
+      ${
+        analytics.bottlenecks.length > 0
+          ? `
         <div class="panel-section">
           <h3 class="panel-section__title panel-section__title--danger">Cuellos de Botella Detectados</h3>
           <div class="bottlenecks-list">
-            ${analytics.bottlenecks.map((b) => `
-              <div class="bottleneck-item bottleneck-item--${b.status === 'Bloqueado' ? 'blocked' : 'delayed'}" data-element-id="${b.id}">
+            ${analytics.bottlenecks
+              .map(
+                (b) => `
+              <div class="bottleneck-item bottleneck-item--${b.status === "Bloqueado" ? "blocked" : "delayed"}" data-element-id="${b.id}">
                 <div class="bottleneck-item__header">
                   <span class="bottleneck-item__status-badge">${b.status}</span>
                   <span class="bottleneck-item__id">${b.id}</span>
@@ -253,124 +260,142 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
                 <div class="bottleneck-item__name">${b.name}</div>
                 <div class="bottleneck-item__cost">Costo: $${b.cost}/hr</div>
               </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </div>
         </div>
-      ` : ''}
+      `
+          : ""
+      }
     </div>
   `;
 
   if (isTask && modeler) {
-    const sysCost = document.getElementById('sysCost') as HTMLInputElement;
-    const sysStatus = document.getElementById('sysStatus') as HTMLSelectElement;
-    const sysForm = document.getElementById('sysForm') as HTMLInputElement;
-    const sysDecision = document.getElementById('sysDecision') as HTMLInputElement;
+    const sysCost = document.getElementById("sysCost") as HTMLInputElement;
+    const sysStatus = document.getElementById("sysStatus") as HTMLSelectElement;
+    const sysForm = document.getElementById("sysForm") as HTMLInputElement;
+    const sysDecision = document.getElementById(
+      "sysDecision",
+    ) as HTMLInputElement;
 
     const updateProp = (key: string, value: string) => {
       try {
-        const modeling = modeler.get('modeling') as { updateProperties: (el: BpmnElement, props: Record<string, unknown>) => void; };
+        const modeling = modeler.get("modeling") as {
+          updateProperties: (
+            el: BpmnElement,
+            props: Record<string, unknown>,
+          ) => void;
+        };
         if (selectedElement) {
           try {
             const validatedValue = validateProperty(key, value);
-            modeling.updateProperties(selectedElement, { [key]: validatedValue });
+            modeling.updateProperties(selectedElement, {
+              [key]: validatedValue,
+            });
           } catch (err: any) {
-            Toast.show(err.message || 'Valor no válido', 'error');
+            Toast.show(err.message || "Valor no válido", "error");
           }
         }
       } catch {}
     };
 
-    sysCost?.addEventListener('input', () => updateProp('sys:costHR', sysCost.value));
-    sysStatus?.addEventListener('change', () => updateProp('sys:status', sysStatus.value));
-    sysForm?.addEventListener('input', () => updateProp('sys:formKey', sysForm.value));
-    sysDecision?.addEventListener('input', () => updateProp('sys:decisionRef', sysDecision.value));
+    sysCost?.addEventListener("input", () =>
+      updateProp("sys:costHR", sysCost.value),
+    );
+    sysStatus?.addEventListener("change", () =>
+      updateProp("sys:status", sysStatus.value),
+    );
+    sysForm?.addEventListener("input", () =>
+      updateProp("sys:formKey", sysForm.value),
+    );
+    sysDecision?.addEventListener("input", () =>
+      updateProp("sys:decisionRef", sysDecision.value),
+    );
 
-    container.querySelectorAll('.connector-card').forEach((card) => {
-      card.addEventListener('click', () => {
-        const type = card.getAttribute('data-type')!;
-        let name = '';
-        let zeebeType = '';
-
-        if (type === 'slack') { name = 'Slack Alerta'; zeebeType = 'slack-connector'; }
-        else if (type === 'rest') { name = 'REST Container Status'; zeebeType = 'http-rest-query'; }
-        else if (type === 'email') { name = 'SendGrid Email Notificación'; zeebeType = 'sendgrid-email'; }
-
-        try {
-          const modeling = modeler.get('modeling') as { updateProperties: (el: BpmnElement, props: Record<string, unknown>) => void; };
-          if (selectedElement) {
-            modeling.updateProperties(selectedElement, {
-              name,
-              'zeebe:taskDefinition': { type: zeebeType, retries: '3' },
-            });
-            Toast.show(`Conector ${name} aplicado`, 'success');
-            renderLogisticsPanel(state, container);
-          }
-        } catch {
-          Toast.show('Error al aplicar conector de Camunda 8', 'error');
-        }
-      });
-    });
+    // Connectors removed
   } else if (isSequenceFlow && modeler) {
-    const condIncoterm = document.getElementById('condIncoterm') as HTMLSelectElement;
-    const condMovement = document.getElementById('condMovement') as HTMLSelectElement;
-    const zeebeCondition = document.getElementById('zeebeCondition') as HTMLInputElement;
-    const btnApplyCondition = document.getElementById('btnApplyCondition');
+    const condIncoterm = document.getElementById(
+      "condIncoterm",
+    ) as HTMLSelectElement;
+    const condMovement = document.getElementById(
+      "condMovement",
+    ) as HTMLSelectElement;
+    const zeebeCondition = document.getElementById(
+      "zeebeCondition",
+    ) as HTMLInputElement;
+    const btnApplyCondition = document.getElementById("btnApplyCondition");
 
     const updateConditionPreview = () => {
       const conditions = [];
-      if (condIncoterm.value) conditions.push(`incoterm = "${condIncoterm.value}"`);
-      if (condMovement.value) conditions.push(`movementType = "${condMovement.value}"`);
-      zeebeCondition.value = conditions.length > 0 ? '=' + conditions.join(' and ') : '';
+      if (condIncoterm.value)
+        conditions.push(`incoterm = "${condIncoterm.value}"`);
+      if (condMovement.value)
+        conditions.push(`movementType = "${condMovement.value}"`);
+      zeebeCondition.value =
+        conditions.length > 0 ? "=" + conditions.join(" and ") : "";
     };
 
-    condIncoterm?.addEventListener('change', updateConditionPreview);
-    condMovement?.addEventListener('change', updateConditionPreview);
+    condIncoterm?.addEventListener("change", updateConditionPreview);
+    condMovement?.addEventListener("change", updateConditionPreview);
 
-    btnApplyCondition?.addEventListener('click', () => {
+    btnApplyCondition?.addEventListener("click", () => {
       if (!selectedElement) return;
       try {
-        const modeling = modeler.get('modeling') as any;
-        const moddle = modeler.get('moddle') as any;
+        const modeling = modeler.get("modeling") as any;
+        const moddle = modeler.get("moddle") as any;
 
         let conditionObj = undefined;
         if (zeebeCondition.value) {
-          conditionObj = moddle.create('bpmn:FormalExpression', { body: zeebeCondition.value });
+          conditionObj = moddle.create("bpmn:FormalExpression", {
+            body: zeebeCondition.value,
+          });
         }
 
-        modeling.updateProperties(selectedElement, { conditionExpression: conditionObj });
-        Toast.show('Regla de enrutamiento FEEL aplicada', 'success');
+        modeling.updateProperties(selectedElement, {
+          conditionExpression: conditionObj,
+        });
+        Toast.show("Regla de enrutamiento FEEL aplicada", "success");
       } catch (err) {
-        Toast.show('Error al aplicar la regla', 'error');
+        Toast.show("Error al aplicar la regla", "error");
       }
     });
   }
 
-  const btnSOP = document.getElementById('btnGenerateSOP');
+  const btnSOP = document.getElementById("btnGenerateSOP");
   if (btnSOP && state.modeler) {
-    btnSOP.addEventListener('click', async () => {
-      const { generateSOP } = await import('../services/sop-service');
+    btnSOP.addEventListener("click", async () => {
+      const { generateSOP } = await import("../services/sop-service");
       const sop = await generateSOP(state.modeler!);
-      const blob = new Blob([sop], { type: 'text/markdown' });
+      const blob = new Blob([sop], { type: "text/markdown" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `SOP_${Date.now()}.md`;
       a.click();
-      Toast.show('SOP generado con éxito (Markdown)', 'success');
+      Toast.show("SOP generado con éxito (Markdown)", "success");
     });
   }
 
-  container.querySelectorAll('.bottleneck-item').forEach((item) => {
-    item.addEventListener('click', () => {
-      const elementId = item.getAttribute('data-element-id')!;
-      const elementRegistry = modeler?.get('elementRegistry') as { get: (id: string) => BpmnElement } | undefined;
+  container.querySelectorAll(".bottleneck-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      const elementId = item.getAttribute("data-element-id")!;
+      const elementRegistry = modeler?.get("elementRegistry") as
+        { get: (id: string) => BpmnElement } | undefined;
       const element = elementRegistry?.get(elementId);
       if (modeler && element) {
-        const selection = modeler.get('selection') as { select: (el: BpmnElement) => void };
-        const canvas = modeler.get('canvas') as { zoom: (level: number, el: BpmnElement) => void };
+        const selection = modeler.get("selection") as {
+          select: (el: BpmnElement) => void;
+        };
+        const canvas = modeler.get("canvas") as {
+          zoom: (level: number, el: BpmnElement) => void;
+        };
         selection.select(element);
         canvas.zoom(1.2, element);
-        Toast.show(`Visualizando tarea: ${element.businessObject.name || elementId}`, 'info');
+        Toast.show(
+          `Visualizando tarea: ${element.businessObject.name || elementId}`,
+          "info",
+        );
       }
     });
   });
@@ -383,7 +408,7 @@ async function renderHistoryPanel(state: AppState, container: HTMLElement) {
     return;
   }
 
-  const { historyService } = await import('../services/history-service');
+  const { historyService } = await import("../services/history-service");
   const versions = await historyService.getVersions(activeTab.id);
 
   container.innerHTML = `
@@ -400,13 +425,17 @@ async function renderHistoryPanel(state: AppState, container: HTMLElement) {
       </div>
       <div class="panel-section">
         <h3 class="panel-section__title">Línea de Tiempo</h3>
-        ${versions.length === 0 ? `
+        ${
+          versions.length === 0
+            ? `
           <div class="no-versions-msg">Sin versiones guardadas todavía. Crea un punto de control arriba.</div>
-        ` : `
+        `
+            : `
           <div class="history-timeline">
-            ${versions.map((v) => {
-              const dateStr = new Date(v.timestamp).toLocaleString();
-              return `
+            ${versions
+              .map((v) => {
+                const dateStr = new Date(v.timestamp).toLocaleString();
+                return `
                 <div class="history-timeline__item">
                   <div class="history-timeline__point"></div>
                   <div class="history-timeline__content">
@@ -421,40 +450,51 @@ async function renderHistoryPanel(state: AppState, container: HTMLElement) {
                   </div>
                 </div>
               `;
-            }).join('')}
+              })
+              .join("")}
           </div>
-        `}
+        `
+        }
       </div>
     </div>
   `;
 
-  const btnSave = document.getElementById('btnSaveHistoryVersion');
-  const inputCommit = document.getElementById('historyCommitMsg') as HTMLInputElement;
+  const btnSave = document.getElementById("btnSaveHistoryVersion");
+  const inputCommit = document.getElementById(
+    "historyCommitMsg",
+  ) as HTMLInputElement;
 
-  btnSave?.addEventListener('click', async () => {
-    const label = inputCommit?.value.trim() || `Punto de Control - ${new Date().toLocaleTimeString()}`;
+  btnSave?.addEventListener("click", async () => {
+    const label =
+      inputCommit?.value.trim() ||
+      `Punto de Control - ${new Date().toLocaleTimeString()}`;
     if (!state.modeler) return;
 
     try {
       const xml = await state.modeler.saveXML({ format: true });
       if (xml && xml.xml) {
-        const { historyService } = await import('../services/history-service');
+        const { historyService } = await import("../services/history-service");
         await historyService.saveVersion(activeTab.id, label, xml.xml);
-        Toast.show('Punto de control guardado con éxito', 'success');
-        if (inputCommit) inputCommit.value = '';
+        Toast.show("Punto de control guardado con éxito", "success");
+        if (inputCommit) inputCommit.value = "";
         renderHistoryPanel(state, container);
       }
     } catch {
-      Toast.show('Error al guardar punto de control', 'error');
+      Toast.show("Error al guardar punto de control", "error");
     }
   });
 
-  container.querySelectorAll('.btn-restore').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const versionId = btn.getAttribute('data-version-id')!;
-      if (!confirm('¿Estás seguro de restaurar este punto de restauración? Los cambios no guardados se perderán.')) return;
+  container.querySelectorAll(".btn-restore").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const versionId = btn.getAttribute("data-version-id")!;
+      if (
+        !confirm(
+          "¿Estás seguro de restaurar este punto de restauración? Los cambios no guardados se perderán.",
+        )
+      )
+        return;
 
-      const { historyService } = await import('../services/history-service');
+      const { historyService } = await import("../services/history-service");
       const tabVersions = await historyService.getVersions(activeTab.id);
       const version = tabVersions.find((v) => v.id === versionId);
       if (version && state.modeler) {
@@ -462,21 +502,21 @@ async function renderHistoryPanel(state: AppState, container: HTMLElement) {
           await importDiagram(state.modeler, version.xml);
           activeTab.xml = version.xml;
           activeTab.isDirty = true;
-          Toast.show('Punto de control restaurado correctamente', 'success');
+          Toast.show("Punto de control restaurado correctamente", "success");
           renderHistoryPanel(state, container);
         } catch {
-          Toast.show('Error al restaurar punto de control', 'error');
+          Toast.show("Error al restaurar punto de control", "error");
         }
       }
     });
   });
 
-  container.querySelectorAll('.btn-delete').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const versionId = btn.getAttribute('data-version-id')!;
-      const { historyService } = await import('../services/history-service');
+  container.querySelectorAll(".btn-delete").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const versionId = btn.getAttribute("data-version-id")!;
+      const { historyService } = await import("../services/history-service");
       if (await historyService.deleteVersion(activeTab.id, versionId)) {
-        Toast.show('Punto de control eliminado', 'success');
+        Toast.show("Punto de control eliminado", "success");
         renderHistoryPanel(state, container);
       }
     });
@@ -484,12 +524,12 @@ async function renderHistoryPanel(state: AppState, container: HTMLElement) {
 }
 
 export function refreshLogisticsPanel(state: AppState) {
-  const panel = document.getElementById('logisticsPanel');
+  const panel = document.getElementById("logisticsPanel");
   if (panel) renderLogisticsPanel(state, panel);
 }
 
 export function refreshHistoryPanel(state: AppState) {
-  const panel = document.getElementById('historyPanel');
+  const panel = document.getElementById("historyPanel");
   if (panel) renderHistoryPanel(state, panel);
 }
 
@@ -497,9 +537,12 @@ async function renderXmlPanel(state: AppState, container: HTMLElement) {
   if (!state.modeler) return;
   try {
     const { xml } = await state.modeler.saveXML({ format: true });
-    if (!xml) throw new Error('XML is empty');
+    if (!xml) throw new Error("XML is empty");
 
-    const escapedXml = xml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const escapedXml = xml
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
 
     container.innerHTML = `
       <div class="sidebar-scrollable">
@@ -514,18 +557,16 @@ async function renderXmlPanel(state: AppState, container: HTMLElement) {
       </div>
     `;
 
-    const btnCopy = document.getElementById('btnCopyLiveXml');
-    btnCopy?.addEventListener('click', async () => {
+    const btnCopy = document.getElementById("btnCopyLiveXml");
+    btnCopy?.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(xml);
-        Toast.show('XML copiado al portapapeles', 'success');
+        Toast.show("XML copiado al portapapeles", "success");
       } catch {
-        Toast.show('No se pudo copiar el XML', 'error');
+        Toast.show("No se pudo copiar el XML", "error");
       }
     });
   } catch {
     container.innerHTML = `<div class="no-selection-alert">No se pudo cargar el XML en este momento.</div>`;
   }
 }
-
-
