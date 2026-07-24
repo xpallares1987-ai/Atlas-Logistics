@@ -690,3 +690,163 @@ function updateUserRole(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeMutation("UpdateUserRole", inputVars, inputOpts);
 }
 exports.updateUserRole = updateUserRole;
+
+function startWorkflowInstance(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(
+    connectorConfig,
+    dcOrVarsOrOptions,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation(
+    "StartWorkflowInstance",
+    inputVars,
+    inputOpts,
+  );
+}
+exports.startWorkflowInstance = startWorkflowInstance;
+
+function getWorkflowDefinition(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(
+    connectorConfig,
+    dcOrVarsOrOptions,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetWorkflowDefinition", inputVars, inputOpts);
+}
+exports.getWorkflowDefinition = getWorkflowDefinition;
+
+function getWorkflowInstance(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(
+    connectorConfig,
+    dcOrVarsOrOptions,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetWorkflowInstance", inputVars, inputOpts);
+}
+exports.getWorkflowInstance = getWorkflowInstance;
+
+function updateWorkflowStatus(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(
+    connectorConfig,
+    dcOrVarsOrOptions,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation(
+    "UpdateWorkflowStatus",
+    inputVars,
+    inputOpts,
+  );
+}
+exports.updateWorkflowStatus = updateWorkflowStatus;
+
+function updateWorkflowContext(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(
+    connectorConfig,
+    dcOrVarsOrOptions,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation(
+    "UpdateWorkflowContext",
+    inputVars,
+    inputOpts,
+  );
+}
+exports.updateWorkflowContext = updateWorkflowContext;
+
+function createWorkflowTask(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(
+    connectorConfig,
+    dcOrVarsOrOptions,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("CreateWorkflowTask", inputVars, inputOpts);
+}
+exports.createWorkflowTask = createWorkflowTask;
+
+function getWorkflowTask(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(
+    connectorConfig,
+    dcOrVarsOrOptions,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetWorkflowTask", inputVars, inputOpts);
+}
+exports.getWorkflowTask = getWorkflowTask;
+
+function updateWorkflowTaskStatus(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(
+    connectorConfig,
+    dcOrVarsOrOptions,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation(
+    "UpdateWorkflowTaskStatus",
+    inputVars,
+    inputOpts,
+  );
+}
+exports.updateWorkflowTaskStatus = updateWorkflowTaskStatus;

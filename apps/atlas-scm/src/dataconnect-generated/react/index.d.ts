@@ -70,6 +70,22 @@ import {
   GetAllUsersData,
   UpdateUserRoleData,
   UpdateUserRoleVariables,
+  StartWorkflowInstanceData,
+  StartWorkflowInstanceVariables,
+  GetWorkflowDefinitionData,
+  GetWorkflowDefinitionVariables,
+  GetWorkflowInstanceData,
+  GetWorkflowInstanceVariables,
+  UpdateWorkflowStatusData,
+  UpdateWorkflowStatusVariables,
+  UpdateWorkflowContextData,
+  UpdateWorkflowContextVariables,
+  CreateWorkflowTaskData,
+  CreateWorkflowTaskVariables,
+  GetWorkflowTaskData,
+  GetWorkflowTaskVariables,
+  UpdateWorkflowTaskStatusData,
+  UpdateWorkflowTaskStatusVariables,
 } from "../";
 import {
   UseDataConnectQueryResult,
@@ -630,3 +646,155 @@ export function useUpdateUserRole(
     UpdateUserRoleVariables
   >,
 ): UseDataConnectMutationResult<UpdateUserRoleData, UpdateUserRoleVariables>;
+
+export function useStartWorkflowInstance(
+  options?: useDataConnectMutationOptions<
+    StartWorkflowInstanceData,
+    FirebaseError,
+    StartWorkflowInstanceVariables
+  >,
+): UseDataConnectMutationResult<
+  StartWorkflowInstanceData,
+  StartWorkflowInstanceVariables
+>;
+export function useStartWorkflowInstance(
+  dc: DataConnect,
+  options?: useDataConnectMutationOptions<
+    StartWorkflowInstanceData,
+    FirebaseError,
+    StartWorkflowInstanceVariables
+  >,
+): UseDataConnectMutationResult<
+  StartWorkflowInstanceData,
+  StartWorkflowInstanceVariables
+>;
+
+export function useGetWorkflowDefinition(
+  vars: GetWorkflowDefinitionVariables,
+  options?: useDataConnectQueryOptions<GetWorkflowDefinitionData>,
+): UseDataConnectQueryResult<
+  GetWorkflowDefinitionData,
+  GetWorkflowDefinitionVariables
+>;
+export function useGetWorkflowDefinition(
+  dc: DataConnect,
+  vars: GetWorkflowDefinitionVariables,
+  options?: useDataConnectQueryOptions<GetWorkflowDefinitionData>,
+): UseDataConnectQueryResult<
+  GetWorkflowDefinitionData,
+  GetWorkflowDefinitionVariables
+>;
+
+export function useGetWorkflowInstance(
+  vars: GetWorkflowInstanceVariables,
+  options?: useDataConnectQueryOptions<GetWorkflowInstanceData>,
+): UseDataConnectQueryResult<
+  GetWorkflowInstanceData,
+  GetWorkflowInstanceVariables
+>;
+export function useGetWorkflowInstance(
+  dc: DataConnect,
+  vars: GetWorkflowInstanceVariables,
+  options?: useDataConnectQueryOptions<GetWorkflowInstanceData>,
+): UseDataConnectQueryResult<
+  GetWorkflowInstanceData,
+  GetWorkflowInstanceVariables
+>;
+
+export function useUpdateWorkflowStatus(
+  options?: useDataConnectMutationOptions<
+    UpdateWorkflowStatusData,
+    FirebaseError,
+    UpdateWorkflowStatusVariables
+  >,
+): UseDataConnectMutationResult<
+  UpdateWorkflowStatusData,
+  UpdateWorkflowStatusVariables
+>;
+export function useUpdateWorkflowStatus(
+  dc: DataConnect,
+  options?: useDataConnectMutationOptions<
+    UpdateWorkflowStatusData,
+    FirebaseError,
+    UpdateWorkflowStatusVariables
+  >,
+): UseDataConnectMutationResult<
+  UpdateWorkflowStatusData,
+  UpdateWorkflowStatusVariables
+>;
+
+export function useUpdateWorkflowContext(
+  options?: useDataConnectMutationOptions<
+    UpdateWorkflowContextData,
+    FirebaseError,
+    UpdateWorkflowContextVariables
+  >,
+): UseDataConnectMutationResult<
+  UpdateWorkflowContextData,
+  UpdateWorkflowContextVariables
+>;
+export function useUpdateWorkflowContext(
+  dc: DataConnect,
+  options?: useDataConnectMutationOptions<
+    UpdateWorkflowContextData,
+    FirebaseError,
+    UpdateWorkflowContextVariables
+  >,
+): UseDataConnectMutationResult<
+  UpdateWorkflowContextData,
+  UpdateWorkflowContextVariables
+>;
+
+export function useCreateWorkflowTask(
+  options?: useDataConnectMutationOptions<
+    CreateWorkflowTaskData,
+    FirebaseError,
+    CreateWorkflowTaskVariables
+  >,
+): UseDataConnectMutationResult<
+  CreateWorkflowTaskData,
+  CreateWorkflowTaskVariables
+>;
+export function useCreateWorkflowTask(
+  dc: DataConnect,
+  options?: useDataConnectMutationOptions<
+    CreateWorkflowTaskData,
+    FirebaseError,
+    CreateWorkflowTaskVariables
+  >,
+): UseDataConnectMutationResult<
+  CreateWorkflowTaskData,
+  CreateWorkflowTaskVariables
+>;
+
+export function useGetWorkflowTask(
+  vars: GetWorkflowTaskVariables,
+  options?: useDataConnectQueryOptions<GetWorkflowTaskData>,
+): UseDataConnectQueryResult<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+export function useGetWorkflowTask(
+  dc: DataConnect,
+  vars: GetWorkflowTaskVariables,
+  options?: useDataConnectQueryOptions<GetWorkflowTaskData>,
+): UseDataConnectQueryResult<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+
+export function useUpdateWorkflowTaskStatus(
+  options?: useDataConnectMutationOptions<
+    UpdateWorkflowTaskStatusData,
+    FirebaseError,
+    UpdateWorkflowTaskStatusVariables
+  >,
+): UseDataConnectMutationResult<
+  UpdateWorkflowTaskStatusData,
+  UpdateWorkflowTaskStatusVariables
+>;
+export function useUpdateWorkflowTaskStatus(
+  dc: DataConnect,
+  options?: useDataConnectMutationOptions<
+    UpdateWorkflowTaskStatusData,
+    FirebaseError,
+    UpdateWorkflowTaskStatusVariables
+  >,
+): UseDataConnectMutationResult<
+  UpdateWorkflowTaskStatusData,
+  UpdateWorkflowTaskStatusVariables
+>;

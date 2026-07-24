@@ -36,6 +36,9 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*GetShipmentById*](#getshipmentbyid)
   - [*GetUserProfile*](#getuserprofile)
   - [*GetAllUsers*](#getallusers)
+  - [*GetWorkflowDefinition*](#getworkflowdefinition)
+  - [*GetWorkflowInstance*](#getworkflowinstance)
+  - [*GetWorkflowTask*](#getworkflowtask)
 - [**Mutations**](#mutations)
   - [*CreateCrmDeal*](#createcrmdeal)
   - [*UpdateCrmDealStatus*](#updatecrmdealstatus)
@@ -57,6 +60,11 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*LogShipmentEvent*](#logshipmentevent)
   - [*UpsertUser*](#upsertuser)
   - [*UpdateUserRole*](#updateuserrole)
+  - [*StartWorkflowInstance*](#startworkflowinstance)
+  - [*UpdateWorkflowStatus*](#updateworkflowstatus)
+  - [*UpdateWorkflowContext*](#updateworkflowcontext)
+  - [*CreateWorkflowTask*](#createworkflowtask)
+  - [*UpdateWorkflowTaskStatus*](#updateworkflowtaskstatus)
 
 # TanStack Query Firebase & TanStack React Query
 This SDK provides [React](https://react.dev/) hooks generated specific to your application, for the operations found in the connector `atlas`. These hooks are generated using [TanStack Query Firebase](https://react-query-firebase.invertase.dev/) by our partners at Invertase, a library built on top of [TanStack React Query v5](https://tanstack.com/query/v5/docs/framework/react/overview).
@@ -1823,6 +1831,272 @@ export default function GetAllUsersComponent() {
   // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
   if (query.isSuccess) {
     console.log(query.data.users);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## GetWorkflowDefinition
+You can execute the `GetWorkflowDefinition` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useGetWorkflowDefinition(dc: DataConnect, vars: GetWorkflowDefinitionVariables, options?: useDataConnectQueryOptions<GetWorkflowDefinitionData>): UseDataConnectQueryResult<GetWorkflowDefinitionData, GetWorkflowDefinitionVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useGetWorkflowDefinition(vars: GetWorkflowDefinitionVariables, options?: useDataConnectQueryOptions<GetWorkflowDefinitionData>): UseDataConnectQueryResult<GetWorkflowDefinitionData, GetWorkflowDefinitionVariables>;
+```
+
+### Variables
+The `GetWorkflowDefinition` Query requires an argument of type `GetWorkflowDefinitionVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface GetWorkflowDefinitionVariables {
+  name: string;
+}
+```
+### Return Type
+Recall that calling the `GetWorkflowDefinition` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetWorkflowDefinition` Query is of type `GetWorkflowDefinitionData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface GetWorkflowDefinitionData {
+  workflowDefinitions: ({
+    name: string;
+    xmlData: string;
+    version: number;
+  })[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `GetWorkflowDefinition`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, GetWorkflowDefinitionVariables } from '@dataconnect/generated';
+import { useGetWorkflowDefinition } from '@dataconnect/generated/react'
+
+export default function GetWorkflowDefinitionComponent() {
+  // The `useGetWorkflowDefinition` Query hook requires an argument of type `GetWorkflowDefinitionVariables`:
+  const getWorkflowDefinitionVars: GetWorkflowDefinitionVariables = {
+    name: ..., 
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useGetWorkflowDefinition(getWorkflowDefinitionVars);
+  // Variables can be defined inline as well.
+  const query = useGetWorkflowDefinition({ name: ..., });
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useGetWorkflowDefinition(dataConnect, getWorkflowDefinitionVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetWorkflowDefinition(getWorkflowDefinitionVars, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetWorkflowDefinition(dataConnect, getWorkflowDefinitionVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.workflowDefinitions);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## GetWorkflowInstance
+You can execute the `GetWorkflowInstance` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useGetWorkflowInstance(dc: DataConnect, vars: GetWorkflowInstanceVariables, options?: useDataConnectQueryOptions<GetWorkflowInstanceData>): UseDataConnectQueryResult<GetWorkflowInstanceData, GetWorkflowInstanceVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useGetWorkflowInstance(vars: GetWorkflowInstanceVariables, options?: useDataConnectQueryOptions<GetWorkflowInstanceData>): UseDataConnectQueryResult<GetWorkflowInstanceData, GetWorkflowInstanceVariables>;
+```
+
+### Variables
+The `GetWorkflowInstance` Query requires an argument of type `GetWorkflowInstanceVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface GetWorkflowInstanceVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that calling the `GetWorkflowInstance` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetWorkflowInstance` Query is of type `GetWorkflowInstanceData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface GetWorkflowInstanceData {
+  workflow?: {
+    id: UUIDString;
+    name: string;
+    status: string;
+    context?: unknown | null;
+  } & Workflow_Key;
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `GetWorkflowInstance`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, GetWorkflowInstanceVariables } from '@dataconnect/generated';
+import { useGetWorkflowInstance } from '@dataconnect/generated/react'
+
+export default function GetWorkflowInstanceComponent() {
+  // The `useGetWorkflowInstance` Query hook requires an argument of type `GetWorkflowInstanceVariables`:
+  const getWorkflowInstanceVars: GetWorkflowInstanceVariables = {
+    id: ..., 
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useGetWorkflowInstance(getWorkflowInstanceVars);
+  // Variables can be defined inline as well.
+  const query = useGetWorkflowInstance({ id: ..., });
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useGetWorkflowInstance(dataConnect, getWorkflowInstanceVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetWorkflowInstance(getWorkflowInstanceVars, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetWorkflowInstance(dataConnect, getWorkflowInstanceVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.workflow);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## GetWorkflowTask
+You can execute the `GetWorkflowTask` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useGetWorkflowTask(dc: DataConnect, vars: GetWorkflowTaskVariables, options?: useDataConnectQueryOptions<GetWorkflowTaskData>): UseDataConnectQueryResult<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useGetWorkflowTask(vars: GetWorkflowTaskVariables, options?: useDataConnectQueryOptions<GetWorkflowTaskData>): UseDataConnectQueryResult<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+```
+
+### Variables
+The `GetWorkflowTask` Query requires an argument of type `GetWorkflowTaskVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface GetWorkflowTaskVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that calling the `GetWorkflowTask` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetWorkflowTask` Query is of type `GetWorkflowTaskData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface GetWorkflowTaskData {
+  workflowTask?: {
+    id: UUIDString;
+    workflowId: UUIDString;
+    taskType: string;
+    elementId: string;
+    status: string;
+    workflow: {
+      id: UUIDString;
+      name: string;
+      context?: unknown | null;
+    } & Workflow_Key;
+  } & WorkflowTask_Key;
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `GetWorkflowTask`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, GetWorkflowTaskVariables } from '@dataconnect/generated';
+import { useGetWorkflowTask } from '@dataconnect/generated/react'
+
+export default function GetWorkflowTaskComponent() {
+  // The `useGetWorkflowTask` Query hook requires an argument of type `GetWorkflowTaskVariables`:
+  const getWorkflowTaskVars: GetWorkflowTaskVariables = {
+    id: ..., 
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useGetWorkflowTask(getWorkflowTaskVars);
+  // Variables can be defined inline as well.
+  const query = useGetWorkflowTask({ id: ..., });
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useGetWorkflowTask(dataConnect, getWorkflowTaskVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetWorkflowTask(getWorkflowTaskVars, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetWorkflowTask(dataConnect, getWorkflowTaskVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.workflowTask);
   }
   return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
 }
@@ -3928,6 +4202,490 @@ export default function UpdateUserRoleComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.user_update);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## StartWorkflowInstance
+You can execute the `StartWorkflowInstance` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useStartWorkflowInstance(options?: useDataConnectMutationOptions<StartWorkflowInstanceData, FirebaseError, StartWorkflowInstanceVariables>): UseDataConnectMutationResult<StartWorkflowInstanceData, StartWorkflowInstanceVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useStartWorkflowInstance(dc: DataConnect, options?: useDataConnectMutationOptions<StartWorkflowInstanceData, FirebaseError, StartWorkflowInstanceVariables>): UseDataConnectMutationResult<StartWorkflowInstanceData, StartWorkflowInstanceVariables>;
+```
+
+### Variables
+The `StartWorkflowInstance` Mutation requires an argument of type `StartWorkflowInstanceVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface StartWorkflowInstanceVariables {
+  name: string;
+  context?: unknown | null;
+  shipmentId?: UUIDString | null;
+}
+```
+### Return Type
+Recall that calling the `StartWorkflowInstance` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `StartWorkflowInstance` Mutation is of type `StartWorkflowInstanceData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface StartWorkflowInstanceData {
+  workflow_insert: Workflow_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `StartWorkflowInstance`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, StartWorkflowInstanceVariables } from '@dataconnect/generated';
+import { useStartWorkflowInstance } from '@dataconnect/generated/react'
+
+export default function StartWorkflowInstanceComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useStartWorkflowInstance();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useStartWorkflowInstance(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useStartWorkflowInstance(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useStartWorkflowInstance(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useStartWorkflowInstance` Mutation requires an argument of type `StartWorkflowInstanceVariables`:
+  const startWorkflowInstanceVars: StartWorkflowInstanceVariables = {
+    name: ..., 
+    context: ..., // optional
+    shipmentId: ..., // optional
+  };
+  mutation.mutate(startWorkflowInstanceVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ name: ..., context: ..., shipmentId: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(startWorkflowInstanceVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.workflow_insert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpdateWorkflowStatus
+You can execute the `UpdateWorkflowStatus` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpdateWorkflowStatus(options?: useDataConnectMutationOptions<UpdateWorkflowStatusData, FirebaseError, UpdateWorkflowStatusVariables>): UseDataConnectMutationResult<UpdateWorkflowStatusData, UpdateWorkflowStatusVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpdateWorkflowStatus(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateWorkflowStatusData, FirebaseError, UpdateWorkflowStatusVariables>): UseDataConnectMutationResult<UpdateWorkflowStatusData, UpdateWorkflowStatusVariables>;
+```
+
+### Variables
+The `UpdateWorkflowStatus` Mutation requires an argument of type `UpdateWorkflowStatusVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpdateWorkflowStatusVariables {
+  id: UUIDString;
+  status: string;
+}
+```
+### Return Type
+Recall that calling the `UpdateWorkflowStatus` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateWorkflowStatus` Mutation is of type `UpdateWorkflowStatusData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpdateWorkflowStatusData {
+  workflow_update?: Workflow_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpdateWorkflowStatus`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpdateWorkflowStatusVariables } from '@dataconnect/generated';
+import { useUpdateWorkflowStatus } from '@dataconnect/generated/react'
+
+export default function UpdateWorkflowStatusComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpdateWorkflowStatus();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpdateWorkflowStatus(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateWorkflowStatus(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateWorkflowStatus(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpdateWorkflowStatus` Mutation requires an argument of type `UpdateWorkflowStatusVariables`:
+  const updateWorkflowStatusVars: UpdateWorkflowStatusVariables = {
+    id: ..., 
+    status: ..., 
+  };
+  mutation.mutate(updateWorkflowStatusVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., status: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(updateWorkflowStatusVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.workflow_update);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpdateWorkflowContext
+You can execute the `UpdateWorkflowContext` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpdateWorkflowContext(options?: useDataConnectMutationOptions<UpdateWorkflowContextData, FirebaseError, UpdateWorkflowContextVariables>): UseDataConnectMutationResult<UpdateWorkflowContextData, UpdateWorkflowContextVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpdateWorkflowContext(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateWorkflowContextData, FirebaseError, UpdateWorkflowContextVariables>): UseDataConnectMutationResult<UpdateWorkflowContextData, UpdateWorkflowContextVariables>;
+```
+
+### Variables
+The `UpdateWorkflowContext` Mutation requires an argument of type `UpdateWorkflowContextVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpdateWorkflowContextVariables {
+  id: UUIDString;
+  context: unknown;
+}
+```
+### Return Type
+Recall that calling the `UpdateWorkflowContext` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateWorkflowContext` Mutation is of type `UpdateWorkflowContextData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpdateWorkflowContextData {
+  workflow_update?: Workflow_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpdateWorkflowContext`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpdateWorkflowContextVariables } from '@dataconnect/generated';
+import { useUpdateWorkflowContext } from '@dataconnect/generated/react'
+
+export default function UpdateWorkflowContextComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpdateWorkflowContext();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpdateWorkflowContext(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateWorkflowContext(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateWorkflowContext(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpdateWorkflowContext` Mutation requires an argument of type `UpdateWorkflowContextVariables`:
+  const updateWorkflowContextVars: UpdateWorkflowContextVariables = {
+    id: ..., 
+    context: ..., 
+  };
+  mutation.mutate(updateWorkflowContextVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., context: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(updateWorkflowContextVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.workflow_update);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## CreateWorkflowTask
+You can execute the `CreateWorkflowTask` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useCreateWorkflowTask(options?: useDataConnectMutationOptions<CreateWorkflowTaskData, FirebaseError, CreateWorkflowTaskVariables>): UseDataConnectMutationResult<CreateWorkflowTaskData, CreateWorkflowTaskVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useCreateWorkflowTask(dc: DataConnect, options?: useDataConnectMutationOptions<CreateWorkflowTaskData, FirebaseError, CreateWorkflowTaskVariables>): UseDataConnectMutationResult<CreateWorkflowTaskData, CreateWorkflowTaskVariables>;
+```
+
+### Variables
+The `CreateWorkflowTask` Mutation requires an argument of type `CreateWorkflowTaskVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface CreateWorkflowTaskVariables {
+  workflowId: UUIDString;
+  taskType: string;
+  elementId: string;
+}
+```
+### Return Type
+Recall that calling the `CreateWorkflowTask` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CreateWorkflowTask` Mutation is of type `CreateWorkflowTaskData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface CreateWorkflowTaskData {
+  workflowTask_insert: WorkflowTask_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `CreateWorkflowTask`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, CreateWorkflowTaskVariables } from '@dataconnect/generated';
+import { useCreateWorkflowTask } from '@dataconnect/generated/react'
+
+export default function CreateWorkflowTaskComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useCreateWorkflowTask();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useCreateWorkflowTask(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateWorkflowTask(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateWorkflowTask(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useCreateWorkflowTask` Mutation requires an argument of type `CreateWorkflowTaskVariables`:
+  const createWorkflowTaskVars: CreateWorkflowTaskVariables = {
+    workflowId: ..., 
+    taskType: ..., 
+    elementId: ..., 
+  };
+  mutation.mutate(createWorkflowTaskVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ workflowId: ..., taskType: ..., elementId: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(createWorkflowTaskVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.workflowTask_insert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpdateWorkflowTaskStatus
+You can execute the `UpdateWorkflowTaskStatus` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpdateWorkflowTaskStatus(options?: useDataConnectMutationOptions<UpdateWorkflowTaskStatusData, FirebaseError, UpdateWorkflowTaskStatusVariables>): UseDataConnectMutationResult<UpdateWorkflowTaskStatusData, UpdateWorkflowTaskStatusVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpdateWorkflowTaskStatus(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateWorkflowTaskStatusData, FirebaseError, UpdateWorkflowTaskStatusVariables>): UseDataConnectMutationResult<UpdateWorkflowTaskStatusData, UpdateWorkflowTaskStatusVariables>;
+```
+
+### Variables
+The `UpdateWorkflowTaskStatus` Mutation requires an argument of type `UpdateWorkflowTaskStatusVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpdateWorkflowTaskStatusVariables {
+  id: UUIDString;
+  status: string;
+}
+```
+### Return Type
+Recall that calling the `UpdateWorkflowTaskStatus` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateWorkflowTaskStatus` Mutation is of type `UpdateWorkflowTaskStatusData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpdateWorkflowTaskStatusData {
+  workflowTask_update?: WorkflowTask_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpdateWorkflowTaskStatus`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpdateWorkflowTaskStatusVariables } from '@dataconnect/generated';
+import { useUpdateWorkflowTaskStatus } from '@dataconnect/generated/react'
+
+export default function UpdateWorkflowTaskStatusComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpdateWorkflowTaskStatus();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpdateWorkflowTaskStatus(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateWorkflowTaskStatus(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateWorkflowTaskStatus(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpdateWorkflowTaskStatus` Mutation requires an argument of type `UpdateWorkflowTaskStatusVariables`:
+  const updateWorkflowTaskStatusVars: UpdateWorkflowTaskStatusVariables = {
+    id: ..., 
+    status: ..., 
+  };
+  mutation.mutate(updateWorkflowTaskStatusVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., status: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(updateWorkflowTaskStatusVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.workflowTask_update);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }

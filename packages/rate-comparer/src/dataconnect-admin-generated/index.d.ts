@@ -199,6 +199,16 @@ export interface CreateVesselVariables {
   capacityTeu?: number | null;
 }
 
+export interface CreateWorkflowTaskData {
+  workflowTask_insert: WorkflowTask_Key;
+}
+
+export interface CreateWorkflowTaskVariables {
+  workflowId: UUIDString;
+  taskType: string;
+  elementId: string;
+}
+
 export interface CrmDeal_Key {
   id: UUIDString;
   __typename?: "CrmDeal_Key";
@@ -279,6 +289,50 @@ export interface GetUserProfileData {
 
 export interface GetUserProfileVariables {
   uid: string;
+}
+
+export interface GetWorkflowDefinitionData {
+  workflowDefinitions: {
+    name: string;
+    xmlData: string;
+    version: number;
+  }[];
+}
+
+export interface GetWorkflowDefinitionVariables {
+  name: string;
+}
+
+export interface GetWorkflowInstanceData {
+  workflow?: {
+    id: UUIDString;
+    name: string;
+    status: string;
+    context?: unknown | null;
+  } & Workflow_Key;
+}
+
+export interface GetWorkflowInstanceVariables {
+  id: UUIDString;
+}
+
+export interface GetWorkflowTaskData {
+  workflowTask?: {
+    id: UUIDString;
+    workflowId: UUIDString;
+    taskType: string;
+    elementId: string;
+    status: string;
+    workflow: {
+      id: UUIDString;
+      name: string;
+      context?: unknown | null;
+    } & Workflow_Key;
+  } & WorkflowTask_Key;
+}
+
+export interface GetWorkflowTaskVariables {
+  id: UUIDString;
 }
 
 export interface HsCode_Key {
@@ -638,6 +692,16 @@ export interface Shipment_Key {
   __typename?: "Shipment_Key";
 }
 
+export interface StartWorkflowInstanceData {
+  workflow_insert: Workflow_Key;
+}
+
+export interface StartWorkflowInstanceVariables {
+  name: string;
+  context?: unknown | null;
+  shipmentId?: UUIDString | null;
+}
+
 export interface UpdateCrmDealStatusData {
   crmDeal_update?: CrmDeal_Key | null;
 }
@@ -655,6 +719,33 @@ export interface UpdateUserRoleVariables {
   uid: string;
   role: string;
   tenantId?: string | null;
+}
+
+export interface UpdateWorkflowContextData {
+  workflow_update?: Workflow_Key | null;
+}
+
+export interface UpdateWorkflowContextVariables {
+  id: UUIDString;
+  context: unknown;
+}
+
+export interface UpdateWorkflowStatusData {
+  workflow_update?: Workflow_Key | null;
+}
+
+export interface UpdateWorkflowStatusVariables {
+  id: UUIDString;
+  status: string;
+}
+
+export interface UpdateWorkflowTaskStatusData {
+  workflowTask_update?: WorkflowTask_Key | null;
+}
+
+export interface UpdateWorkflowTaskStatusVariables {
+  id: UUIDString;
+  status: string;
 }
 
 export interface UpsertDictionaryTermData {
@@ -690,6 +781,16 @@ export interface User_Key {
 export interface Vessel_Key {
   imoNumber: string;
   __typename?: "Vessel_Key";
+}
+
+export interface WorkflowDefinition_Key {
+  id: UUIDString;
+  __typename?: "WorkflowDefinition_Key";
+}
+
+export interface WorkflowTask_Key {
+  id: UUIDString;
+  __typename?: "WorkflowTask_Key";
 }
 
 export interface Workflow_Key {
@@ -1150,3 +1251,99 @@ export function updateUserRole(
   vars: UpdateUserRoleVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<UpdateUserRoleData>>;
+
+/** Generated Node Admin SDK operation action function for the 'StartWorkflowInstance' Mutation. Allow users to execute without passing in DataConnect. */
+export function startWorkflowInstance(
+  dc: DataConnect,
+  vars: StartWorkflowInstanceVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<StartWorkflowInstanceData>>;
+/** Generated Node Admin SDK operation action function for the 'StartWorkflowInstance' Mutation. Allow users to pass in custom DataConnect instances. */
+export function startWorkflowInstance(
+  vars: StartWorkflowInstanceVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<StartWorkflowInstanceData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetWorkflowDefinition' Query. Allow users to execute without passing in DataConnect. */
+export function getWorkflowDefinition(
+  dc: DataConnect,
+  vars: GetWorkflowDefinitionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetWorkflowDefinitionData>>;
+/** Generated Node Admin SDK operation action function for the 'GetWorkflowDefinition' Query. Allow users to pass in custom DataConnect instances. */
+export function getWorkflowDefinition(
+  vars: GetWorkflowDefinitionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetWorkflowDefinitionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetWorkflowInstance' Query. Allow users to execute without passing in DataConnect. */
+export function getWorkflowInstance(
+  dc: DataConnect,
+  vars: GetWorkflowInstanceVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetWorkflowInstanceData>>;
+/** Generated Node Admin SDK operation action function for the 'GetWorkflowInstance' Query. Allow users to pass in custom DataConnect instances. */
+export function getWorkflowInstance(
+  vars: GetWorkflowInstanceVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetWorkflowInstanceData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpdateWorkflowStatus' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateWorkflowStatus(
+  dc: DataConnect,
+  vars: UpdateWorkflowStatusVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateWorkflowStatusData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateWorkflowStatus' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateWorkflowStatus(
+  vars: UpdateWorkflowStatusVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateWorkflowStatusData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpdateWorkflowContext' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateWorkflowContext(
+  dc: DataConnect,
+  vars: UpdateWorkflowContextVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateWorkflowContextData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateWorkflowContext' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateWorkflowContext(
+  vars: UpdateWorkflowContextVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateWorkflowContextData>>;
+
+/** Generated Node Admin SDK operation action function for the 'CreateWorkflowTask' Mutation. Allow users to execute without passing in DataConnect. */
+export function createWorkflowTask(
+  dc: DataConnect,
+  vars: CreateWorkflowTaskVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateWorkflowTaskData>>;
+/** Generated Node Admin SDK operation action function for the 'CreateWorkflowTask' Mutation. Allow users to pass in custom DataConnect instances. */
+export function createWorkflowTask(
+  vars: CreateWorkflowTaskVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CreateWorkflowTaskData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetWorkflowTask' Query. Allow users to execute without passing in DataConnect. */
+export function getWorkflowTask(
+  dc: DataConnect,
+  vars: GetWorkflowTaskVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetWorkflowTaskData>>;
+/** Generated Node Admin SDK operation action function for the 'GetWorkflowTask' Query. Allow users to pass in custom DataConnect instances. */
+export function getWorkflowTask(
+  vars: GetWorkflowTaskVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetWorkflowTaskData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpdateWorkflowTaskStatus' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateWorkflowTaskStatus(
+  dc: DataConnect,
+  vars: UpdateWorkflowTaskStatusVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateWorkflowTaskStatusData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateWorkflowTaskStatus' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateWorkflowTaskStatus(
+  vars: UpdateWorkflowTaskStatusVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateWorkflowTaskStatusData>>;

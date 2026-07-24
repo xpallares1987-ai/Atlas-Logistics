@@ -38,6 +38,14 @@ import {
   getUserProfileRef,
   getAllUsersRef,
   updateUserRoleRef,
+  startWorkflowInstanceRef,
+  getWorkflowDefinitionRef,
+  getWorkflowInstanceRef,
+  updateWorkflowStatusRef,
+  updateWorkflowContextRef,
+  createWorkflowTaskRef,
+  getWorkflowTaskRef,
+  updateWorkflowTaskStatusRef,
   connectorConfig,
 } from "../../esm/index.esm.js";
 import { validateArgs, CallerSdkTypeEnum } from "firebase/data-connect";
@@ -628,6 +636,135 @@ export function useUpdateUserRole(dcOrOptions, options) {
   );
   function refFactory(vars) {
     return updateUserRoleRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(
+    refFactory,
+    inputOpts,
+    CallerSdkTypeEnum.GeneratedReact,
+  );
+}
+
+export function useStartWorkflowInstance(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(
+    connectorConfig,
+    dcOrOptions,
+    options,
+  );
+  function refFactory(vars) {
+    return startWorkflowInstanceRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(
+    refFactory,
+    inputOpts,
+    CallerSdkTypeEnum.GeneratedReact,
+  );
+}
+
+export function useGetWorkflowDefinition(dcOrVars, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateReactArgs(
+    connectorConfig,
+    dcOrVars,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  const ref = getWorkflowDefinitionRef(dcInstance, inputVars);
+  return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+export function useGetWorkflowInstance(dcOrVars, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateReactArgs(
+    connectorConfig,
+    dcOrVars,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  const ref = getWorkflowInstanceRef(dcInstance, inputVars);
+  return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+export function useUpdateWorkflowStatus(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(
+    connectorConfig,
+    dcOrOptions,
+    options,
+  );
+  function refFactory(vars) {
+    return updateWorkflowStatusRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(
+    refFactory,
+    inputOpts,
+    CallerSdkTypeEnum.GeneratedReact,
+  );
+}
+
+export function useUpdateWorkflowContext(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(
+    connectorConfig,
+    dcOrOptions,
+    options,
+  );
+  function refFactory(vars) {
+    return updateWorkflowContextRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(
+    refFactory,
+    inputOpts,
+    CallerSdkTypeEnum.GeneratedReact,
+  );
+}
+
+export function useCreateWorkflowTask(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(
+    connectorConfig,
+    dcOrOptions,
+    options,
+  );
+  function refFactory(vars) {
+    return createWorkflowTaskRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(
+    refFactory,
+    inputOpts,
+    CallerSdkTypeEnum.GeneratedReact,
+  );
+}
+
+export function useGetWorkflowTask(dcOrVars, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateReactArgs(
+    connectorConfig,
+    dcOrVars,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  const ref = getWorkflowTaskRef(dcInstance, inputVars);
+  return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+export function useUpdateWorkflowTaskStatus(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(
+    connectorConfig,
+    dcOrOptions,
+    options,
+  );
+  function refFactory(vars) {
+    return updateWorkflowTaskStatusRef(dcInstance, vars);
   }
   return useDataConnectMutation(
     refFactory,

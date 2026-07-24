@@ -4,7 +4,7 @@ This document details the current architectural structure and design of **Atlas 
 
 ## 1. Overview: Frontend-First and Super-App
 
-The project has moved away from traditional heavy backend API architectures (independent Node.js servers, Fastify, Drizzle, Zeebe backend) in favor of a unified **Frontend-First** model.
+The project has moved away from traditional heavy backend API architectures (independent Node.js servers, Fastify, Motores de workflow externos) in favor of a unified **Frontend-First** model.
 The entire application runs and renders directly in the browser as a Super-App powered by **Vite** and **React Router**.
 
 ## 2. Turborepo and Package Management
@@ -15,7 +15,6 @@ The ecosystem is built on a Monorepo managed by `Turborepo` and `pnpm` (version 
 
 - **`packages/frontend` (Host App)**: This is the heart of the application. It acts as the main orchestrator that consolidates routing (React Router) and the general layout. It is the only frontend that runs to start the entire ecosystem.
 - **Integrated Modules (in `packages/`)**:
-  - **`packages/bpmn-modeler`**: BPMN 2.0 modeler that runs natively in the browser.
   - **`packages/dashboard`**: Main panel for shipments, logistics telemetry, and container visibility.
   - **`packages/rate-comparer`**: Module dedicated to the ingestion (using `exceljs` safely to avoid vulnerabilities of older libraries), comparison, and analytics of freight rates.
 - **`packages/shared` and `packages/ui`**: Contain shared utilities and UI components consumed by the main application.

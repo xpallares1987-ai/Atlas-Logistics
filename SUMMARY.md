@@ -1,14 +1,14 @@
 ### Resumen ejecutivo
 
-**Atlas Logistics** es un monorepo tipo Super‑App para la gestión de la cadena de suministro que unifica frontend, backend, orquestación de procesos y una capa de datos tipada y segura. El proyecto prioriza un enfoque **frontend‑first** con Vite y React, orquestación con Camunda 8 y Zeebe Workers, persistencia mediante **Firebase Data Connect** sobre PostgreSQL y una capa de IA para capacidades predictivas y analíticas. El repositorio usa **pnpm** y **Turborepo** para builds rápidos y compartición de código.
+**Atlas Logistics** es un monorepo tipo Super‑App para la gestión de la cadena de suministro que unifica frontend, backend, orquestación de procesos y una capa de datos tipada y segura. El proyecto prioriza un enfoque **frontend‑first** con Vite y React, orquestación nativa con AtlasEngine (BullMQ + Drizzle), persistencia mediante **Firebase Data Connect** sobre PostgreSQL y una capa de IA para capacidades predictivas y analíticas. El repositorio usa **pnpm** y **Turborepo** para builds rápidos y compartición de código.
 
 ### Arquitectura y stack técnico
 
 **Estructura general**
 - **Monorepo** gestionado con Turborepo y pnpm workspaces.  
 - **Frontend**: Vite, React 18, TailwindCSS; paquetes principales `@atlas/frontend`, `@atlas/ui`, `@atlas/dashboard`.  
-- **Backend**: Node.js con Express; Zeebe Workers usando SDK de Camunda 8; funciones serverless en `functions/src`.  
-- **Orquestación**: Camunda 8 con modelos BPMN y DMN en `camunda-config`.  
+- **Backend**: Node.js con Express; AtlasEngine Workers basados en BullMQ; funciones serverless en `functions/src`.  
+- **Orquestación**: AtlasEngine con trabajos programados en BullMQ y UI embeddada.  
 - **Capa de datos**: Firebase Data Connect como fachada tipada sobre PostgreSQL en Cloud SQL; esquemas y reglas declarativas en `dataconnect`.  
 - **IA**: Integración para Text‑to‑SQL, `predictETA`, OCR y optimizadores.
 
@@ -16,7 +16,7 @@
 - **Gestión de paquetes**: pnpm v10+ con overrides y enlaces locales a `@dataconnect/generated`.  
 - **Calidad y CI**: ESLint, Prettier, Husky, lint‑staged, CodeQL, njsscan, GitHub Actions, Playwright E2E.  
 - **Contenedores**: Docker Compose para entorno local con Nginx, Node backend, Postgres y Redis.  
-- **Observabilidad**: métricas y trazas en workers; logs estructurados para procesos BPMN.
+- **Observabilidad**: métricas y trazas en workers; logs estructurados para tareas en background.
 
 ### Desarrollo local y despliegue
 
@@ -41,15 +41,14 @@ pnpm run test:e2e
 
 **Flujo rápido**
 - Clonar el repositorio y ejecutar `pnpm install`.  
-- Crear `.env.local` a partir de `.env.example` y añadir variables de Camunda y DB.  
+- Crear `.env.local` a partir de `.env.example` y añadir variables de Redis y DB.  
 - Sincronizar esquema con `pnpm run db:push` y poblar datos con `pnpm run db:seed`.  
 - Levantar entorno con `pnpm run dev` o `docker compose up --build -d`.  
 - Ejecutar linters y tests antes de abrir PRs.
 
 **Workers y orquestación**
-- Crear Zeebe Worker en `src/bpm/workers/`.  
-- Registrar worker en `src/bpm/workers/index.ts` para arranque automático.  
-- Versionar modelos BPMN y DMN en `camunda-config`.
+- Crear AtlasWorker en `src/bpm/workers/`.  
+- Registrar worker en `src/bpm/workers/index.ts` para arranque automático.
 
 ### Seguridad y gobernanza
 
@@ -84,17 +83,16 @@ pnpm run test:e2e
 **Archivos y rutas importantes**
 - **README.md**: visión general y comandos de inicio.  
 - **ARCHITECTURE.md**: diseño de alto nivel y patrones operativos.  
-- **atlas_logistics_local_guide.md**: guía práctica para desarrollo local y Zeebe Workers.  
+- **atlas_logistics_local_guide.md**: guía práctica para desarrollo local y Atlas Workers.  
 - **CHANGELOG.md**: historial de cambios y migraciones.  
 - **SECURITY.md** y **CODE_OF_CONDUCT.md**: políticas de seguridad y conducta.  
 - **CONTRIBUTING.md**: normas de contribución y flujo de trabajo.  
-- **dataconnect/**: esquemas GraphQL y reglas `@auth`.  
-- **camunda-config/**: modelos BPMN y DMN.
+- **dataconnect/**: esquemas GraphQL y reglas `@auth`.
 
 ### Checklist de arranque rápido
 
 1. Clonar el repositorio y ejecutar **`pnpm install`**.  
-2. Crear **`.env.local`** a partir de **`.env.example`** con variables de Camunda y DB.  
+2. Crear **`.env.local`** a partir de **`.env.example`** con variables de Redis y DB.  
 3. Ejecutar **`pnpm run db:push`** y **`pnpm run db:seed`**.  
 4. Levantar entorno con **`pnpm run dev`** o **`docker compose up --build -d`**.  
 5. Ejecutar linters y tests: **`pnpm run lint`**, **`pnpm run test:e2e`**.  

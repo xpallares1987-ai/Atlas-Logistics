@@ -218,17 +218,28 @@ type Invoice @table {
   isDeleted: Boolean! @default(value: false)
 }
 
+type WorkflowDefinition @table {
+  name: String! @unique
+  xmlData: String!
+  version: Int! @default(value: 1)
+  isActive: Boolean! @default(value: true)
+}
+
 type Workflow @table {
   tenantId: String! @default(value: "atlas-default-tenant")
   name: String!
-  version: Int
-  diagramXml: String!
-  currentNode: String!
-  status: String! # ACTIVE, PAUSED, COMPLETED, FAILED, SUSPENDED
-  processId: String
-  processInstanceKey: String
-  incidentReason: String
-  shipment: Shipment! @ref
+  status: String! @default(value: "RUNNING") # RUNNING, COMPLETED, FAILED, CANCELLED
+  context: Any
+  shipment: Shipment @ref
+}
+
+type WorkflowTask @table {
+  workflow: Workflow! @ref
+  taskType: String!
+  elementId: String!
+  status: String! @default(value: "PENDING") # PENDING, COMPLETED, FAILED
+  assignedRole: String
+  errorMessage: String
 }
 
 type ShipmentEventLog @table {
