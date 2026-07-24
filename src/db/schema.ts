@@ -18,6 +18,12 @@ import { relations } from "drizzle-orm";
 // ENUMS
 // ============================================================================
 
+export const userRoleEnum = pgEnum("user_role", [
+  "ADMIN",
+  "OPERATOR",
+  "CUSTOMER",
+]);
+
 export const shipmentStatusEnum = pgEnum("shipment_status", [
   "DRAFT",
   "CONFIRMED",
@@ -80,7 +86,8 @@ export const aiReviewStatusEnum = pgEnum("ai_review_status", [
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
-  role: varchar("role", { length: 50 }).notNull().default("USER"),
+  role: userRoleEnum("role").default("OPERATOR").notNull(),
+  companyId: uuid("company_id").references(() => companies.id), // For CUSTOMER role
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -121,46 +128,55 @@ export const companyBlAliases = pgTable("company_bl_aliases", {
 // FREIGHT FORWARDING OPERATIONS
 // ============================================================================
 
-export const shipments = pgTable("shipments", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  referenceNumber: varchar("reference_number", { length: 100 })
-    .notNull()
-    .unique(),
+export const shipments = pgTable(
+  "shipments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    referenceNumber: varchar("reference_number", { length: 100 })
+      .notNull()
+      .unique(),
 
-  // Commercial / Billing Anchors
-  supplierId: uuid("supplier_id").references(() => companies.id), // Dueño origen
-  billingPartyId: uuid("billing_party_id").references(() => companies.id), // Quien paga (Trader/Customer)
+    // Commercial / Billing Anchors
+    supplierId: uuid("supplier_id").references(() => companies.id), // Dueño origen
+    billingPartyId: uuid("billing_party_id").references(() => companies.id), // Quien paga (Trader/Customer)
 
-  // Documentary Anchors (B/L Texts)
-  shipperAliasId: uuid("shipper_alias_id").references(
-    () => companyBlAliases.id,
-  ),
-  consigneeAliasId: uuid("consignee_alias_id").references(
-    () => companyBlAliases.id,
-  ),
-  notifyAliasId: uuid("notify_alias_id").references(() => companyBlAliases.id),
+    // Documentary Anchors (B/L Texts)
+    shipperAliasId: uuid("shipper_alias_id").references(
+      () => companyBlAliases.id,
+    ),
+    consigneeAliasId: uuid("consignee_alias_id").references(
+      () => companyBlAliases.id,
+    ),
+    notifyAliasId: uuid("notify_alias_id").references(
+      () => companyBlAliases.id,
+    ),
 
-  // Routing
-  originLocationId: uuid("origin_location_id").references(() => locations.id),
-  destinationLocationId: uuid("destination_location_id").references(
-    () => locations.id,
-  ),
+    // Routing
+    originLocationId: uuid("origin_location_id").references(() => locations.id),
+    destinationLocationId: uuid("destination_location_id").references(
+      () => locations.id,
+    ),
 
-  // Execution
-  vessel: varchar("vessel", { length: 255 }),
-  voyage: varchar("voyage", { length: 100 }),
-  status: shipmentStatusEnum("status").default("DRAFT").notNull(),
+    // Execution
+    vessel: varchar("vessel", { length: 255 }),
+    voyage: varchar("voyage", { length: 100 }),
+    status: shipmentStatusEnum("status").default("DRAFT").notNull(),
 
-  // Metadata
-  userId: uuid("user_id").references(() => users.id),
-  documentUrl: varchar("document_url", { length: 500 }), // Deprecated, use shipmentDocuments
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("shipments_parties_idx").on(table.supplierId, table.billingPartyId),
-  index("shipments_locations_idx").on(table.originLocationId, table.destinationLocationId),
-  index("shipments_status_idx").on(table.status),
-]);
+    // Metadata
+    userId: uuid("user_id").references(() => users.id),
+    documentUrl: varchar("document_url", { length: 500 }), // Deprecated, use shipmentDocuments
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("shipments_parties_idx").on(table.supplierId, table.billingPartyId),
+    index("shipments_locations_idx").on(
+      table.originLocationId,
+      table.destinationLocationId,
+    ),
+    index("shipments_status_idx").on(table.status),
+  ],
+);
 
 export const lettersOfCredit = pgTable("letters_of_credit", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -262,47 +278,55 @@ export const rates = pgTable("rates", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const quotes = pgTable("quotes", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  quoteNumber: varchar("quote_number", { length: 100 }).notNull().unique(),
-  customerId: uuid("customer_id")
-    .references(() => companies.id)
-    .notNull(), // Changed from string
-  originLocationId: uuid("origin_location_id").references(() => locations.id), // Changed from string
-  destinationLocationId: uuid("destination_location_id").references(
-    () => locations.id,
-  ), // Changed from string
-  equipment: varchar("equipment", { length: 100 }).notNull(), // Could be linked to a catalog table later
-  buyRateTotal: real("buy_rate_total").notNull(),
-  sellMargin: real("sell_margin").notNull(),
-  sellRateTotal: real("sell_rate_total").notNull(),
-  status: quoteStatusEnum("status").default("DRAFT").notNull(),
-  validTo: date("valid_to").notNull(),
-  userId: uuid("user_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("quotes_customer_idx").on(table.customerId),
-]);
+export const quotes = pgTable(
+  "quotes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    quoteNumber: varchar("quote_number", { length: 100 }).notNull().unique(),
+    customerId: uuid("customer_id")
+      .references(() => companies.id)
+      .notNull(), // Changed from string
+    originLocationId: uuid("origin_location_id").references(() => locations.id), // Changed from string
+    destinationLocationId: uuid("destination_location_id").references(
+      () => locations.id,
+    ), // Changed from string
+    equipment: varchar("equipment", { length: 100 }).notNull(), // Could be linked to a catalog table later
+    buyRateTotal: real("buy_rate_total").notNull(),
+    sellMargin: real("sell_margin").notNull(),
+    sellRateTotal: real("sell_rate_total").notNull(),
+    status: quoteStatusEnum("status").default("DRAFT").notNull(),
+    validTo: date("valid_to").notNull(),
+    userId: uuid("user_id").references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("quotes_customer_idx").on(table.customerId)],
+);
 
-export const invoices = pgTable("invoices", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  invoiceNumber: varchar("invoice_number", { length: 100 }).notNull().unique(),
-  type: invoiceTypeEnum("type").notNull(),
-  partyId: uuid("party_id")
-    .references(() => companies.id)
-    .notNull(),
-  shipmentId: uuid("shipment_id").references(() => shipments.id),
-  currency: varchar("currency", { length: 10 }).notNull().default("USD"),
-  subtotal: real("subtotal").default(0).notNull(),
-  taxAmount: real("tax_amount").default(0).notNull(),
-  totalAmount: real("total_amount").notNull(),
-  status: invoiceStatusEnum("status").default("Pending").notNull(),
-  dueDate: date("due_date").notNull(),
-  issuedAt: timestamp("issued_at").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("invoices_party_status_idx").on(table.partyId, table.status),
-]);
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    invoiceNumber: varchar("invoice_number", { length: 100 })
+      .notNull()
+      .unique(),
+    type: invoiceTypeEnum("type").notNull(),
+    partyId: uuid("party_id")
+      .references(() => companies.id)
+      .notNull(),
+    shipmentId: uuid("shipment_id").references(() => shipments.id),
+    currency: varchar("currency", { length: 10 }).notNull().default("USD"),
+    subtotal: real("subtotal").default(0).notNull(),
+    taxAmount: real("tax_amount").default(0).notNull(),
+    totalAmount: real("total_amount").notNull(),
+    status: invoiceStatusEnum("status").default("Pending").notNull(),
+    dueDate: date("due_date").notNull(),
+    issuedAt: timestamp("issued_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("invoices_party_status_idx").on(table.partyId, table.status),
+  ],
+);
 
 export const invoiceLines = pgTable("invoice_lines", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -348,7 +372,11 @@ export const settlementInvoices = pgTable("settlement_invoices", {
 // RELATIONS
 // ============================================================================
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [users.companyId],
+    references: [companies.id],
+  }),
   shipments: many(shipments),
   quotes: many(quotes),
 }));
@@ -586,7 +614,9 @@ export const webhooks = pgTable("webhooks", {
 
 export const webhookDeliveries = pgTable("webhook_deliveries", {
   id: uuid("id").defaultRandom().primaryKey(),
-  webhookId: uuid("webhook_id").references(() => webhooks.id).notNull(),
+  webhookId: uuid("webhook_id")
+    .references(() => webhooks.id)
+    .notNull(),
   eventType: varchar("event_type", { length: 100 }).notNull(),
   payload: jsonb("payload").notNull(),
   status: varchar("status", { length: 50 }).notNull(), // 'SUCCESS' or 'FAILED'
@@ -599,9 +629,84 @@ export const webhooksRelations = relations(webhooks, ({ many }) => ({
   deliveries: many(webhookDeliveries),
 }));
 
-export const webhookDeliveriesRelations = relations(webhookDeliveries, ({ one }) => ({
-  webhook: one(webhooks, {
-    fields: [webhookDeliveries.webhookId],
-    references: [webhooks.id],
+export const webhookDeliveriesRelations = relations(
+  webhookDeliveries,
+  ({ one }) => ({
+    webhook: one(webhooks, {
+      fields: [webhookDeliveries.webhookId],
+      references: [webhooks.id],
+    }),
+  }),
+);
+
+// ============================================================================
+// INTERNAL WORKFLOW ENGINE
+// ============================================================================
+
+export const workflowStatusEnum = pgEnum("workflow_status", [
+  "RUNNING",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+]);
+
+export const workflowTaskStatusEnum = pgEnum("workflow_task_status", [
+  "PENDING",
+  "COMPLETED",
+  "FAILED",
+]);
+
+export const workflowDefinitions = pgTable("workflow_definitions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(), // e.g. "invoice-handling"
+  xmlData: text("xml_data").notNull(),
+  version: integer("version").default(1).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const workflows = pgTable("workflows", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(), // e.g. "invoice-handling-process"
+  status: workflowStatusEnum("status").default("RUNNING").notNull(),
+  context: jsonb("context").notNull(), // Business variables
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const workflowTasks = pgTable("workflow_tasks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workflowId: uuid("workflow_id")
+    .references(() => workflows.id)
+    .notNull(),
+  taskType: varchar("task_type", { length: 255 }).notNull(), // e.g. "atlas.invoice.collect-costs"
+  elementId: varchar("element_id", { length: 255 }).notNull(), // The BPMN element ID
+  status: workflowTaskStatusEnum("status").default("PENDING").notNull(),
+  assignedRole: varchar("assigned_role", { length: 50 }), // For User Tasks
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const workflowDefinitionsRelations = relations(
+  workflowDefinitions,
+  ({ many }) => ({
+    workflows: many(workflows),
+  }),
+);
+
+export const workflowsRelations = relations(workflows, ({ one, many }) => ({
+  definition: one(workflowDefinitions, {
+    fields: [workflows.name],
+    references: [workflowDefinitions.name],
+  }),
+  tasks: many(workflowTasks),
+}));
+
+export const workflowTasksRelations = relations(workflowTasks, ({ one }) => ({
+  workflow: one(workflows, {
+    fields: [workflowTasks.workflowId],
+    references: [workflows.id],
   }),
 }));

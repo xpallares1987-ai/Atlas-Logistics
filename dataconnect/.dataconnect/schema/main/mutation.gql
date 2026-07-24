@@ -27,6 +27,15 @@ extend type Mutation {
     data: CrmInteraction_Data!
   ): CrmInteraction_KeyOutput! @fdc_generated(from: "CrmInteraction", purpose: INSERT_SINGLE)
   """
+  ✨ Insert a single `CustomsEventLog` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  customsEventLog_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: CustomsEventLog_Data!
+  ): CustomsEventLog_KeyOutput! @fdc_generated(from: "CustomsEventLog", purpose: INSERT_SINGLE)
+  """
   ✨ Insert a single `DictionaryTerm` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
   """
   dictionaryTerm_insert(
@@ -179,6 +188,15 @@ extend type Mutation {
     """
     data: [CrmInteraction_Data!]!
   ): [CrmInteraction_KeyOutput!]! @fdc_generated(from: "CrmInteraction", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `CustomsEventLog` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  customsEventLog_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [CustomsEventLog_Data!]!
+  ): [CustomsEventLog_KeyOutput!]! @fdc_generated(from: "CustomsEventLog", purpose: INSERT_MULTIPLE)
   """
   ✨ Insert `DictionaryTerm` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
   """
@@ -333,6 +351,15 @@ extend type Mutation {
     data: CrmInteraction_Data!
   ): CrmInteraction_KeyOutput! @fdc_generated(from: "CrmInteraction", purpose: UPSERT_SINGLE)
   """
+  ✨ Insert or update a single `CustomsEventLog` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `CustomsEventLog`.
+  """
+  customsEventLog_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: CustomsEventLog_Data!
+  ): CustomsEventLog_KeyOutput! @fdc_generated(from: "CustomsEventLog", purpose: UPSERT_SINGLE)
+  """
   ✨ Insert or update a single `DictionaryTerm` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `DictionaryTerm`.
   """
   dictionaryTerm_upsert(
@@ -485,6 +512,15 @@ extend type Mutation {
     """
     data: [CrmInteraction_Data!]!
   ): [CrmInteraction_KeyOutput!]! @fdc_generated(from: "CrmInteraction", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `CustomsEventLog` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `CustomsEventLog`.
+  """
+  customsEventLog_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [CustomsEventLog_Data!]!
+  ): [CustomsEventLog_KeyOutput!]! @fdc_generated(from: "CustomsEventLog", purpose: UPSERT_MULTIPLE)
   """
   ✨ Insert or update `DictionaryTerm` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `DictionaryTerm`.
   """
@@ -683,6 +719,30 @@ extend type Mutation {
     """
     data: CrmInteraction_Data!
   ): CrmInteraction_KeyOutput @fdc_generated(from: "CrmInteraction", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `CustomsEventLog` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `CustomsEventLog` or `null` if not found.
+  """
+  customsEventLog_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: CustomsEventLog_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: CustomsEventLog_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: CustomsEventLog_Data!
+  ): CustomsEventLog_KeyOutput @fdc_generated(from: "CustomsEventLog", purpose: UPDATE_SINGLE)
   """
   ✨ Update a single `DictionaryTerm` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `DictionaryTerm` or `null` if not found.
   """
@@ -1047,6 +1107,25 @@ extend type Mutation {
     data: CrmInteraction_Data!
   ): Int! @fdc_generated(from: "CrmInteraction", purpose: UPDATE_MULTIPLE)
   """
+  ✨ Update `CustomsEventLog` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  customsEventLog_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: CustomsEventLog_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: CustomsEventLog_Data!
+  ): Int! @fdc_generated(from: "CustomsEventLog", purpose: UPDATE_MULTIPLE)
+  """
   ✨ Update `DictionaryTerm` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
   """
   dictionaryTerm_updateMany(
@@ -1370,6 +1449,25 @@ extend type Mutation {
     first: CrmInteraction_FirstRow
   ): CrmInteraction_KeyOutput @fdc_generated(from: "CrmInteraction", purpose: DELETE_SINGLE)
   """
+  ✨ Delete a single `CustomsEventLog` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  customsEventLog_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: CustomsEventLog_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: CustomsEventLog_FirstRow
+  ): CustomsEventLog_KeyOutput @fdc_generated(from: "CustomsEventLog", purpose: DELETE_SINGLE)
+  """
   ✨ Delete a single `DictionaryTerm` based on `id`, `key` or `first` and return its key (or `null` if not found).
   """
   dictionaryTerm_delete(
@@ -1647,6 +1745,20 @@ extend type Mutation {
     """
     all: Boolean = false
   ): Int! @fdc_generated(from: "CrmInteraction", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `CustomsEventLog` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  customsEventLog_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: CustomsEventLog_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "CustomsEventLog", purpose: DELETE_MULTIPLE)
   """
   ✨ Delete `DictionaryTerm` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
   """

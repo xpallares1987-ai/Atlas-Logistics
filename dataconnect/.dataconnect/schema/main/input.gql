@@ -17,6 +17,12 @@ It has the same format as `CrmInteraction_Key`, but is only used as mutation ret
 """
 scalar CrmInteraction_KeyOutput
 """
+✨ `CustomsEventLog_KeyOutput` returns the primary key fields of table type `CustomsEventLog`.
+
+It has the same format as `CustomsEventLog_Key`, but is only used as mutation return value.
+"""
+scalar CustomsEventLog_KeyOutput
+"""
 ✨ `DictionaryTerm_KeyOutput` returns the primary key fields of table type `DictionaryTerm`.
 
 It has the same format as `DictionaryTerm_Key`, but is only used as mutation return value.
@@ -1598,6 +1604,389 @@ input CrmInteraction_Order {
   date_max: OrderDirection
 }
 """
+✨ Generated data input type for table 'CustomsEventLog'. It includes all necessary fields for creating or upserting rows into table.
+"""
+input CustomsEventLog_Data {
+  """
+  ✨ Generated from Field `CustomsEventLog`.`id` of type `UUID!`
+  """
+  id: UUID
+  """
+  ✨ `_expr` server value variant of `id` (✨ Generated from Field `CustomsEventLog`.`id` of type `UUID!`)
+  """
+  id_expr: UUID_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `CustomsEventLog`.`performedByUid` of type `String!`
+  """
+  performedByUid: String
+  """
+  ✨ `_expr` server value variant of `performedByUid` (✨ Generated from Field `CustomsEventLog`.`performedByUid` of type `String!`)
+  """
+  performedByUid_expr: String_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `CustomsEventLog`.`shipmentId` of type `UUID!`
+  """
+  shipmentId: UUID
+  """
+  ✨ `_expr` server value variant of `shipmentId` (✨ Generated from Field `CustomsEventLog`.`shipmentId` of type `UUID!`)
+  """
+  shipmentId_expr: UUID_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `CustomsEventLog`.`performedBy` of type `User!`
+  """
+  performedBy: User_Key @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `CustomsEventLog`.`shipment` of type `Shipment!`
+  """
+  shipment: Shipment_Key @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `CustomsEventLog`.`customsStatus` of type `String!`
+  """
+  customsStatus: String
+  """
+  ✨ `_expr` server value variant of `customsStatus` (✨ Generated from Field `CustomsEventLog`.`customsStatus` of type `String!`)
+  """
+  customsStatus_expr: String_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `CustomsEventLog`.`declarationNumber` of type `String`
+  """
+  declarationNumber: String
+  """
+  ✨ `_expr` server value variant of `declarationNumber` (✨ Generated from Field `CustomsEventLog`.`declarationNumber` of type `String`)
+  """
+  declarationNumber_expr: String_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `CustomsEventLog`.`inspectorName` of type `String`
+  """
+  inspectorName: String
+  """
+  ✨ `_expr` server value variant of `inspectorName` (✨ Generated from Field `CustomsEventLog`.`inspectorName` of type `String`)
+  """
+  inspectorName_expr: String_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `CustomsEventLog`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: Boolean
+  """
+  ✨ `_expr` server value variant of `isDeleted` (✨ Generated from Field `CustomsEventLog`.`isDeleted` of type `Boolean!`)
+  """
+  isDeleted_expr: Boolean_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `CustomsEventLog`.`remarks` of type `String`
+  """
+  remarks: String
+  """
+  ✨ `_expr` server value variant of `remarks` (✨ Generated from Field `CustomsEventLog`.`remarks` of type `String`)
+  """
+  remarks_expr: String_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `CustomsEventLog`.`tenantId` of type `String!`
+  """
+  tenantId: String
+  """
+  ✨ `_expr` server value variant of `tenantId` (✨ Generated from Field `CustomsEventLog`.`tenantId` of type `String!`)
+  """
+  tenantId_expr: String_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `CustomsEventLog`.`timestamp` of type `Timestamp!`
+  """
+  timestamp: Timestamp
+  """
+  ✨ `_expr` server value variant of `timestamp` (✨ Generated from Field `CustomsEventLog`.`timestamp` of type `Timestamp!`)
+  """
+  timestamp_expr: Timestamp_Expr @fdc_forbiddenInVariables
+  """
+  ✨ `_time` server value variant of `timestamp` (✨ Generated from Field `CustomsEventLog`.`timestamp` of type `Timestamp!`)
+  """
+  timestamp_time: Timestamp_Relative @fdc_forbiddenInVariables
+  """
+  ✨ `_update` server value variant of `timestamp` (✨ Generated from Field `CustomsEventLog`.`timestamp` of type `Timestamp!`)
+  """
+  timestamp_update: [Timestamp_Update!] @fdc_forbiddenInVariables
+}
+"""
+✨ Generated filter input type for table 'CustomsEventLog'. This input allows filtering objects using various conditions. Use `_or`, `_and`, and `_not` to compose complex filters.
+"""
+input CustomsEventLog_Filter {
+  """
+  Apply multiple filter conditions using `AND` logic.
+  """
+  _and: [CustomsEventLog_Filter!]
+  """
+  Negate the result of the provided filter condition.
+  """
+  _not: CustomsEventLog_Filter
+  """
+  Apply multiple filter conditions using `OR` logic.
+  """
+  _or: [CustomsEventLog_Filter!]
+  """
+  ✨ Generated from Field `CustomsEventLog`.`id` of type `UUID!`
+  """
+  id: UUID_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`performedByUid` of type `String!`
+  """
+  performedByUid: String_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`shipmentId` of type `UUID!`
+  """
+  shipmentId: UUID_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`performedBy` of type `User!`
+  """
+  performedBy: User_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`shipment` of type `Shipment!`
+  """
+  shipment: Shipment_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`customsStatus` of type `String!`
+  """
+  customsStatus: String_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`declarationNumber` of type `String`
+  """
+  declarationNumber: String_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`inspectorName` of type `String`
+  """
+  inspectorName: String_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: Boolean_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`remarks` of type `String`
+  """
+  remarks: String_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`tenantId` of type `String!`
+  """
+  tenantId: String_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`timestamp` of type `Timestamp!`
+  """
+  timestamp: Timestamp_Filter
+}
+"""
+✨ Generated first-row input type for table 'CustomsEventLog'. This input selects the first row matching the filter criteria, ordered according to the specified conditions.
+"""
+input CustomsEventLog_FirstRow {
+  """
+  Order the result by the specified fields.
+  """
+  orderBy: [CustomsEventLog_Order!]
+  """
+  Filters rows based on the specified conditions.
+  """
+  where: CustomsEventLog_Filter
+}
+"""
+✨ Generated having input type for table 'CustomsEventLog'. This input allows you to filter groups during aggregate queries using various conditions. Use `_or`, `_and`, and `_not` to compose complex filters.
+"""
+input CustomsEventLog_Having {
+  """
+  Apply multiple Having conditions using `AND` logic.
+  """
+  _and: [CustomsEventLog_Having!]
+  """
+  Whether to apply DISTINCT to the aggregate function.
+  """
+  _distinct: Boolean
+  """
+  Negate the result of the provided Having condition.
+  """
+  _not: CustomsEventLog_Having
+  """
+  Apply multiple Having conditions using `OR` logic.
+  """
+  _or: [CustomsEventLog_Having!]
+  """
+  ✨ Generated from Field `CustomsEventLog`.`_count` of type `Int!`
+  """
+  _count: Int_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`customsStatus_count` of type `Int!`
+  """
+  customsStatus_count: Int_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`declarationNumber_count` of type `Int!`
+  """
+  declarationNumber_count: Int_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`id_count` of type `Int!`
+  """
+  id_count: Int_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`inspectorName_count` of type `Int!`
+  """
+  inspectorName_count: Int_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`isDeleted_count` of type `Int!`
+  """
+  isDeleted_count: Int_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`performedByUid_count` of type `Int!`
+  """
+  performedByUid_count: Int_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`remarks_count` of type `Int!`
+  """
+  remarks_count: Int_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`shipmentId_count` of type `Int!`
+  """
+  shipmentId_count: Int_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`tenantId_count` of type `Int!`
+  """
+  tenantId_count: Int_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`timestamp_count` of type `Int!`
+  """
+  timestamp_count: Int_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`timestamp_min` of type `Timestamp`
+  """
+  timestamp_min: Timestamp_Filter
+  """
+  ✨ Generated from Field `CustomsEventLog`.`timestamp_max` of type `Timestamp`
+  """
+  timestamp_max: Timestamp_Filter
+}
+"""
+✨ Generated key input type for table 'CustomsEventLog'. It represents the primary key fields used to uniquely identify a row in the table.
+"""
+input CustomsEventLog_Key {
+  """
+  ✨ Generated from Field `CustomsEventLog`.`id` of type `UUID!`
+  """
+  id: UUID
+  """
+  ✨ `_expr` server value variant of `id` (✨ Generated from Field `CustomsEventLog`.`id` of type `UUID!`)
+  """
+  id_expr: UUID_Expr @fdc_forbiddenInVariables
+}
+"""
+✨ Generated list filter input type for table 'CustomsEventLog'. This input applies filtering logic based on the count or existence of related objects that matches certain criteria.
+"""
+input CustomsEventLog_ListFilter {
+  """
+  The desired number of objects that match the condition (defaults to at least one).
+  """
+  count: Int_Filter = {gt:0}
+  """
+  Condition of the related objects to filter for.
+  """
+  exist: CustomsEventLog_Filter
+}
+"""
+✨ Generated order input type for table 'CustomsEventLog'. This input defines the sorting order of rows in query results based on one or more fields.
+"""
+input CustomsEventLog_Order {
+  """
+  ✨ Generated from Field `CustomsEventLog`.`id` of type `UUID!`
+  """
+  id: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`performedByUid` of type `String!`
+  """
+  performedByUid: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`shipmentId` of type `UUID!`
+  """
+  shipmentId: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`performedBy` of type `User!`
+  """
+  performedBy: User_Order
+  """
+  ✨ Generated from Field `CustomsEventLog`.`shipment` of type `Shipment!`
+  """
+  shipment: Shipment_Order
+  """
+  ✨ Generated from Field `CustomsEventLog`.`customsStatus` of type `String!`
+  """
+  customsStatus: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`declarationNumber` of type `String`
+  """
+  declarationNumber: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`inspectorName` of type `String`
+  """
+  inspectorName: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`remarks` of type `String`
+  """
+  remarks: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`tenantId` of type `String!`
+  """
+  tenantId: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`timestamp` of type `Timestamp!`
+  """
+  timestamp: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`_count` of type `Int!`
+  """
+  _count: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`customsStatus_count` of type `Int!`
+  """
+  customsStatus_count: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`declarationNumber_count` of type `Int!`
+  """
+  declarationNumber_count: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`id_count` of type `Int!`
+  """
+  id_count: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`inspectorName_count` of type `Int!`
+  """
+  inspectorName_count: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`isDeleted_count` of type `Int!`
+  """
+  isDeleted_count: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`performedByUid_count` of type `Int!`
+  """
+  performedByUid_count: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`remarks_count` of type `Int!`
+  """
+  remarks_count: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`shipmentId_count` of type `Int!`
+  """
+  shipmentId_count: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`tenantId_count` of type `Int!`
+  """
+  tenantId_count: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`timestamp_count` of type `Int!`
+  """
+  timestamp_count: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`timestamp_min` of type `Timestamp`
+  """
+  timestamp_min: OrderDirection
+  """
+  ✨ Generated from Field `CustomsEventLog`.`timestamp_max` of type `Timestamp`
+  """
+  timestamp_max: OrderDirection
+}
+"""
 ✨ Generated data input type for table 'DictionaryTerm'. It includes all necessary fields for creating or upserting rows into table.
 """
 input DictionaryTerm_Data {
@@ -3086,6 +3475,22 @@ input Invoice_Data {
   """
   bankReference_expr: String_Expr @fdc_forbiddenInVariables
   """
+  ✨ Generated from Field `Invoice`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: Timestamp
+  """
+  ✨ `_expr` server value variant of `createdAt` (✨ Generated from Field `Invoice`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_expr: Timestamp_Expr @fdc_forbiddenInVariables
+  """
+  ✨ `_time` server value variant of `createdAt` (✨ Generated from Field `Invoice`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_time: Timestamp_Relative @fdc_forbiddenInVariables
+  """
+  ✨ `_update` server value variant of `createdAt` (✨ Generated from Field `Invoice`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_update: [Timestamp_Update!] @fdc_forbiddenInVariables
+  """
   ✨ Generated from Field `Invoice`.`currency` of type `String!`
   """
   currency: String
@@ -3137,6 +3542,14 @@ input Invoice_Data {
   ✨ `_expr` server value variant of `invoiceType` (✨ Generated from Field `Invoice`.`invoiceType` of type `String!`)
   """
   invoiceType_expr: String_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `Invoice`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: Boolean
+  """
+  ✨ `_expr` server value variant of `isDeleted` (✨ Generated from Field `Invoice`.`isDeleted` of type `Boolean!`)
+  """
+  isDeleted_expr: Boolean_Expr @fdc_forbiddenInVariables
   """
   ✨ Generated from Field `Invoice`.`issueDate` of type `Date!`
   """
@@ -3201,6 +3614,22 @@ input Invoice_Data {
   ✨ `_expr` server value variant of `tenantId` (✨ Generated from Field `Invoice`.`tenantId` of type `String!`)
   """
   tenantId_expr: String_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `Invoice`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: Timestamp
+  """
+  ✨ `_expr` server value variant of `updatedAt` (✨ Generated from Field `Invoice`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_expr: Timestamp_Expr @fdc_forbiddenInVariables
+  """
+  ✨ `_time` server value variant of `updatedAt` (✨ Generated from Field `Invoice`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_time: Timestamp_Relative @fdc_forbiddenInVariables
+  """
+  ✨ `_update` server value variant of `updatedAt` (✨ Generated from Field `Invoice`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_update: [Timestamp_Update!] @fdc_forbiddenInVariables
 }
 """
 ✨ Generated filter input type for table 'Invoice'. This input allows filtering objects using various conditions. Use `_or`, `_and`, and `_not` to compose complex filters.
@@ -3255,6 +3684,10 @@ input Invoice_Filter {
   """
   bankReference: String_Filter
   """
+  ✨ Generated from Field `Invoice`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: Timestamp_Filter
+  """
   ✨ Generated from Field `Invoice`.`currency` of type `String!`
   """
   currency: String_Filter
@@ -3274,6 +3707,10 @@ input Invoice_Filter {
   ✨ Generated from Field `Invoice`.`invoiceType` of type `String!`
   """
   invoiceType: String_Filter
+  """
+  ✨ Generated from Field `Invoice`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: Boolean_Filter
   """
   ✨ Generated from Field `Invoice`.`issueDate` of type `Date!`
   """
@@ -3298,6 +3735,10 @@ input Invoice_Filter {
   ✨ Generated from Field `Invoice`.`tenantId` of type `String!`
   """
   tenantId: String_Filter
+  """
+  ✨ Generated from Field `Invoice`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: Timestamp_Filter
 }
 """
 ✨ Generated first-row input type for table 'Invoice'. This input selects the first row matching the filter criteria, ordered according to the specified conditions.
@@ -3345,6 +3786,10 @@ input Invoice_Having {
   """
   bankReference_count: Int_Filter
   """
+  ✨ Generated from Field `Invoice`.`createdAt_count` of type `Int!`
+  """
+  createdAt_count: Int_Filter
+  """
   ✨ Generated from Field `Invoice`.`createdByUid_count` of type `Int!`
   """
   createdByUid_count: Int_Filter
@@ -3377,6 +3822,10 @@ input Invoice_Having {
   """
   invoiceType_count: Int_Filter
   """
+  ✨ Generated from Field `Invoice`.`isDeleted_count` of type `Int!`
+  """
+  isDeleted_count: Int_Filter
+  """
   ✨ Generated from Field `Invoice`.`issueDate_count` of type `Int!`
   """
   issueDate_count: Int_Filter
@@ -3405,6 +3854,10 @@ input Invoice_Having {
   """
   tenantId_count: Int_Filter
   """
+  ✨ Generated from Field `Invoice`.`updatedAt_count` of type `Int!`
+  """
+  updatedAt_count: Int_Filter
+  """
   ✨ Generated from Field `Invoice`.`amount_sum` of type `Float`
   """
   amount_sum: Float_Filter
@@ -3425,6 +3878,10 @@ input Invoice_Having {
   """
   amount_min: Float_Filter
   """
+  ✨ Generated from Field `Invoice`.`createdAt_min` of type `Timestamp`
+  """
+  createdAt_min: Timestamp_Filter
+  """
   ✨ Generated from Field `Invoice`.`dueDate_min` of type `Date`
   """
   dueDate_min: Date_Filter
@@ -3441,9 +3898,17 @@ input Invoice_Having {
   """
   paymentDate_min: Date_Filter
   """
+  ✨ Generated from Field `Invoice`.`updatedAt_min` of type `Timestamp`
+  """
+  updatedAt_min: Timestamp_Filter
+  """
   ✨ Generated from Field `Invoice`.`amount_max` of type `Float`
   """
   amount_max: Float_Filter
+  """
+  ✨ Generated from Field `Invoice`.`createdAt_max` of type `Timestamp`
+  """
+  createdAt_max: Timestamp_Filter
   """
   ✨ Generated from Field `Invoice`.`dueDate_max` of type `Date`
   """
@@ -3460,6 +3925,10 @@ input Invoice_Having {
   ✨ Generated from Field `Invoice`.`paymentDate_max` of type `Date`
   """
   paymentDate_max: Date_Filter
+  """
+  ✨ Generated from Field `Invoice`.`updatedAt_max` of type `Timestamp`
+  """
+  updatedAt_max: Timestamp_Filter
 }
 """
 ✨ Generated key input type for table 'Invoice'. It represents the primary key fields used to uniquely identify a row in the table.
@@ -3528,6 +3997,10 @@ input Invoice_Order {
   """
   bankReference: OrderDirection
   """
+  ✨ Generated from Field `Invoice`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: OrderDirection
+  """
   ✨ Generated from Field `Invoice`.`currency` of type `String!`
   """
   currency: OrderDirection
@@ -3547,6 +4020,10 @@ input Invoice_Order {
   ✨ Generated from Field `Invoice`.`invoiceType` of type `String!`
   """
   invoiceType: OrderDirection
+  """
+  ✨ Generated from Field `Invoice`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: OrderDirection
   """
   ✨ Generated from Field `Invoice`.`issueDate` of type `Date!`
   """
@@ -3572,6 +4049,10 @@ input Invoice_Order {
   """
   tenantId: OrderDirection
   """
+  ✨ Generated from Field `Invoice`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: OrderDirection
+  """
   ✨ Generated from Field `Invoice`.`_count` of type `Int!`
   """
   _count: OrderDirection
@@ -3583,6 +4064,10 @@ input Invoice_Order {
   ✨ Generated from Field `Invoice`.`bankReference_count` of type `Int!`
   """
   bankReference_count: OrderDirection
+  """
+  ✨ Generated from Field `Invoice`.`createdAt_count` of type `Int!`
+  """
+  createdAt_count: OrderDirection
   """
   ✨ Generated from Field `Invoice`.`createdByUid_count` of type `Int!`
   """
@@ -3616,6 +4101,10 @@ input Invoice_Order {
   """
   invoiceType_count: OrderDirection
   """
+  ✨ Generated from Field `Invoice`.`isDeleted_count` of type `Int!`
+  """
+  isDeleted_count: OrderDirection
+  """
   ✨ Generated from Field `Invoice`.`issueDate_count` of type `Int!`
   """
   issueDate_count: OrderDirection
@@ -3644,6 +4133,10 @@ input Invoice_Order {
   """
   tenantId_count: OrderDirection
   """
+  ✨ Generated from Field `Invoice`.`updatedAt_count` of type `Int!`
+  """
+  updatedAt_count: OrderDirection
+  """
   ✨ Generated from Field `Invoice`.`amount_sum` of type `Float`
   """
   amount_sum: OrderDirection
@@ -3664,6 +4157,10 @@ input Invoice_Order {
   """
   amount_min: OrderDirection
   """
+  ✨ Generated from Field `Invoice`.`createdAt_min` of type `Timestamp`
+  """
+  createdAt_min: OrderDirection
+  """
   ✨ Generated from Field `Invoice`.`dueDate_min` of type `Date`
   """
   dueDate_min: OrderDirection
@@ -3680,9 +4177,17 @@ input Invoice_Order {
   """
   paymentDate_min: OrderDirection
   """
+  ✨ Generated from Field `Invoice`.`updatedAt_min` of type `Timestamp`
+  """
+  updatedAt_min: OrderDirection
+  """
   ✨ Generated from Field `Invoice`.`amount_max` of type `Float`
   """
   amount_max: OrderDirection
+  """
+  ✨ Generated from Field `Invoice`.`createdAt_max` of type `Timestamp`
+  """
+  createdAt_max: OrderDirection
   """
   ✨ Generated from Field `Invoice`.`dueDate_max` of type `Date`
   """
@@ -3699,6 +4204,10 @@ input Invoice_Order {
   ✨ Generated from Field `Invoice`.`paymentDate_max` of type `Date`
   """
   paymentDate_max: OrderDirection
+  """
+  ✨ Generated from Field `Invoice`.`updatedAt_max` of type `Timestamp`
+  """
+  updatedAt_max: OrderDirection
 }
 """
 ✨ Generated data input type for table 'Location'. It includes all necessary fields for creating or upserting rows into table.
@@ -4124,6 +4633,22 @@ input Milestone_Data {
   """
   shipment: Shipment_Key @fdc_forbiddenInVariables
   """
+  ✨ Generated from Field `Milestone`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: Timestamp
+  """
+  ✨ `_expr` server value variant of `createdAt` (✨ Generated from Field `Milestone`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_expr: Timestamp_Expr @fdc_forbiddenInVariables
+  """
+  ✨ `_time` server value variant of `createdAt` (✨ Generated from Field `Milestone`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_time: Timestamp_Relative @fdc_forbiddenInVariables
+  """
+  ✨ `_update` server value variant of `createdAt` (✨ Generated from Field `Milestone`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_update: [Timestamp_Update!] @fdc_forbiddenInVariables
+  """
   ✨ Generated from Field `Milestone`.`description` of type `String`
   """
   description: String
@@ -4163,6 +4688,14 @@ input Milestone_Data {
   ✨ `_expr` server value variant of `eventType` (✨ Generated from Field `Milestone`.`eventType` of type `String!`)
   """
   eventType_expr: String_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `Milestone`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: Boolean
+  """
+  ✨ `_expr` server value variant of `isDeleted` (✨ Generated from Field `Milestone`.`isDeleted` of type `Boolean!`)
+  """
+  isDeleted_expr: Boolean_Expr @fdc_forbiddenInVariables
   """
   ✨ Generated from Field `Milestone`.`isEstimated` of type `Boolean!`
   """
@@ -4211,6 +4744,22 @@ input Milestone_Data {
   ✨ `_update` server value variant of `timestamp` (✨ Generated from Field `Milestone`.`timestamp` of type `Timestamp!`)
   """
   timestamp_update: [Timestamp_Update!] @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `Milestone`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: Timestamp
+  """
+  ✨ `_expr` server value variant of `updatedAt` (✨ Generated from Field `Milestone`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_expr: Timestamp_Expr @fdc_forbiddenInVariables
+  """
+  ✨ `_time` server value variant of `updatedAt` (✨ Generated from Field `Milestone`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_time: Timestamp_Relative @fdc_forbiddenInVariables
+  """
+  ✨ `_update` server value variant of `updatedAt` (✨ Generated from Field `Milestone`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_update: [Timestamp_Update!] @fdc_forbiddenInVariables
   """
   ✨ Generated from Field `Milestone`.`vessel` of type `String`
   """
@@ -4273,6 +4822,10 @@ input Milestone_Filter {
   """
   shipment: Shipment_Filter
   """
+  ✨ Generated from Field `Milestone`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: Timestamp_Filter
+  """
   ✨ Generated from Field `Milestone`.`description` of type `String`
   """
   description: String_Filter
@@ -4288,6 +4841,10 @@ input Milestone_Filter {
   ✨ Generated from Field `Milestone`.`eventType` of type `String!`
   """
   eventType: String_Filter
+  """
+  ✨ Generated from Field `Milestone`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: Boolean_Filter
   """
   ✨ Generated from Field `Milestone`.`isEstimated` of type `Boolean!`
   """
@@ -4308,6 +4865,10 @@ input Milestone_Filter {
   ✨ Generated from Field `Milestone`.`timestamp` of type `Timestamp!`
   """
   timestamp: Timestamp_Filter
+  """
+  ✨ Generated from Field `Milestone`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: Timestamp_Filter
   """
   ✨ Generated from Field `Milestone`.`vessel` of type `String`
   """
@@ -4363,6 +4924,10 @@ input Milestone_Having {
   """
   _count: Int_Filter
   """
+  ✨ Generated from Field `Milestone`.`createdAt_count` of type `Int!`
+  """
+  createdAt_count: Int_Filter
+  """
   ✨ Generated from Field `Milestone`.`description_count` of type `Int!`
   """
   description_count: Int_Filter
@@ -4382,6 +4947,10 @@ input Milestone_Having {
   ✨ Generated from Field `Milestone`.`id_count` of type `Int!`
   """
   id_count: Int_Filter
+  """
+  ✨ Generated from Field `Milestone`.`isDeleted_count` of type `Int!`
+  """
+  isDeleted_count: Int_Filter
   """
   ✨ Generated from Field `Milestone`.`isEstimated_count` of type `Int!`
   """
@@ -4407,6 +4976,10 @@ input Milestone_Having {
   """
   timestamp_count: Int_Filter
   """
+  ✨ Generated from Field `Milestone`.`updatedAt_count` of type `Int!`
+  """
+  updatedAt_count: Int_Filter
+  """
   ✨ Generated from Field `Milestone`.`vesselName_count` of type `Int!`
   """
   vesselName_count: Int_Filter
@@ -4423,6 +4996,10 @@ input Milestone_Having {
   """
   voyage_count: Int_Filter
   """
+  ✨ Generated from Field `Milestone`.`createdAt_min` of type `Timestamp`
+  """
+  createdAt_min: Timestamp_Filter
+  """
   ✨ Generated from Field `Milestone`.`ets_min` of type `Timestamp`
   """
   ets_min: Timestamp_Filter
@@ -4431,6 +5008,14 @@ input Milestone_Having {
   """
   timestamp_min: Timestamp_Filter
   """
+  ✨ Generated from Field `Milestone`.`updatedAt_min` of type `Timestamp`
+  """
+  updatedAt_min: Timestamp_Filter
+  """
+  ✨ Generated from Field `Milestone`.`createdAt_max` of type `Timestamp`
+  """
+  createdAt_max: Timestamp_Filter
+  """
   ✨ Generated from Field `Milestone`.`ets_max` of type `Timestamp`
   """
   ets_max: Timestamp_Filter
@@ -4438,6 +5023,10 @@ input Milestone_Having {
   ✨ Generated from Field `Milestone`.`timestamp_max` of type `Timestamp`
   """
   timestamp_max: Timestamp_Filter
+  """
+  ✨ Generated from Field `Milestone`.`updatedAt_max` of type `Timestamp`
+  """
+  updatedAt_max: Timestamp_Filter
 }
 """
 ✨ Generated key input type for table 'Milestone'. It represents the primary key fields used to uniquely identify a row in the table.
@@ -4482,6 +5071,10 @@ input Milestone_Order {
   """
   shipment: Shipment_Order
   """
+  ✨ Generated from Field `Milestone`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: OrderDirection
+  """
   ✨ Generated from Field `Milestone`.`description` of type `String`
   """
   description: OrderDirection
@@ -4497,6 +5090,10 @@ input Milestone_Order {
   ✨ Generated from Field `Milestone`.`eventType` of type `String!`
   """
   eventType: OrderDirection
+  """
+  ✨ Generated from Field `Milestone`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: OrderDirection
   """
   ✨ Generated from Field `Milestone`.`isEstimated` of type `Boolean!`
   """
@@ -4518,6 +5115,10 @@ input Milestone_Order {
   """
   timestamp: OrderDirection
   """
+  ✨ Generated from Field `Milestone`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: OrderDirection
+  """
   ✨ Generated from Field `Milestone`.`vessel` of type `String`
   """
   vessel: OrderDirection
@@ -4538,6 +5139,10 @@ input Milestone_Order {
   """
   _count: OrderDirection
   """
+  ✨ Generated from Field `Milestone`.`createdAt_count` of type `Int!`
+  """
+  createdAt_count: OrderDirection
+  """
   ✨ Generated from Field `Milestone`.`description_count` of type `Int!`
   """
   description_count: OrderDirection
@@ -4557,6 +5162,10 @@ input Milestone_Order {
   ✨ Generated from Field `Milestone`.`id_count` of type `Int!`
   """
   id_count: OrderDirection
+  """
+  ✨ Generated from Field `Milestone`.`isDeleted_count` of type `Int!`
+  """
+  isDeleted_count: OrderDirection
   """
   ✨ Generated from Field `Milestone`.`isEstimated_count` of type `Int!`
   """
@@ -4582,6 +5191,10 @@ input Milestone_Order {
   """
   timestamp_count: OrderDirection
   """
+  ✨ Generated from Field `Milestone`.`updatedAt_count` of type `Int!`
+  """
+  updatedAt_count: OrderDirection
+  """
   ✨ Generated from Field `Milestone`.`vesselName_count` of type `Int!`
   """
   vesselName_count: OrderDirection
@@ -4598,6 +5211,10 @@ input Milestone_Order {
   """
   voyage_count: OrderDirection
   """
+  ✨ Generated from Field `Milestone`.`createdAt_min` of type `Timestamp`
+  """
+  createdAt_min: OrderDirection
+  """
   ✨ Generated from Field `Milestone`.`ets_min` of type `Timestamp`
   """
   ets_min: OrderDirection
@@ -4606,6 +5223,14 @@ input Milestone_Order {
   """
   timestamp_min: OrderDirection
   """
+  ✨ Generated from Field `Milestone`.`updatedAt_min` of type `Timestamp`
+  """
+  updatedAt_min: OrderDirection
+  """
+  ✨ Generated from Field `Milestone`.`createdAt_max` of type `Timestamp`
+  """
+  createdAt_max: OrderDirection
+  """
   ✨ Generated from Field `Milestone`.`ets_max` of type `Timestamp`
   """
   ets_max: OrderDirection
@@ -4613,6 +5238,10 @@ input Milestone_Order {
   ✨ Generated from Field `Milestone`.`timestamp_max` of type `Timestamp`
   """
   timestamp_max: OrderDirection
+  """
+  ✨ Generated from Field `Milestone`.`updatedAt_max` of type `Timestamp`
+  """
+  updatedAt_max: OrderDirection
 }
 """
 ✨ Generated data input type for table 'Quote'. It includes all necessary fields for creating or upserting rows into table.
@@ -4719,6 +5348,22 @@ input Quote_Data {
   """
   commodity_expr: String_Expr @fdc_forbiddenInVariables
   """
+  ✨ Generated from Field `Quote`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: Timestamp
+  """
+  ✨ `_expr` server value variant of `createdAt` (✨ Generated from Field `Quote`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_expr: Timestamp_Expr @fdc_forbiddenInVariables
+  """
+  ✨ `_time` server value variant of `createdAt` (✨ Generated from Field `Quote`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_time: Timestamp_Relative @fdc_forbiddenInVariables
+  """
+  ✨ `_update` server value variant of `createdAt` (✨ Generated from Field `Quote`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_update: [Timestamp_Update!] @fdc_forbiddenInVariables
+  """
   ✨ Generated from Field `Quote`.`createdByUid` of type `String!`
   """
   createdByUid: String
@@ -4814,6 +5459,14 @@ input Quote_Data {
   ✨ `_update` server value variant of `insurance` (✨ Generated from Field `Quote`.`insurance` of type `Float`)
   """
   insurance_update: [Float_Update!] @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `Quote`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: Boolean
+  """
+  ✨ `_expr` server value variant of `isDeleted` (✨ Generated from Field `Quote`.`isDeleted` of type `Boolean!`)
+  """
+  isDeleted_expr: Boolean_Expr @fdc_forbiddenInVariables
   """
   ✨ Generated from Field `Quote`.`margin` of type `Float`
   """
@@ -4922,6 +5575,22 @@ input Quote_Data {
   ✨ `_update` server value variant of `totalPrice` (✨ Generated from Field `Quote`.`totalPrice` of type `Float`)
   """
   totalPrice_update: [Float_Update!] @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `Quote`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: Timestamp
+  """
+  ✨ `_expr` server value variant of `updatedAt` (✨ Generated from Field `Quote`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_expr: Timestamp_Expr @fdc_forbiddenInVariables
+  """
+  ✨ `_time` server value variant of `updatedAt` (✨ Generated from Field `Quote`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_time: Timestamp_Relative @fdc_forbiddenInVariables
+  """
+  ✨ `_update` server value variant of `updatedAt` (✨ Generated from Field `Quote`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_update: [Timestamp_Update!] @fdc_forbiddenInVariables
   """
   ✨ Generated from Field `Quote`.`validUntil` of type `Date`
   """
@@ -5036,6 +5705,10 @@ input Quote_Filter {
   """
   commodity: String_Filter
   """
+  ✨ Generated from Field `Quote`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: Timestamp_Filter
+  """
   ✨ Generated from Field `Quote`.`createdByUid` of type `String!`
   """
   createdByUid: String_Filter
@@ -5075,6 +5748,10 @@ input Quote_Filter {
   ✨ Generated from Field `Quote`.`insurance` of type `Float`
   """
   insurance: Float_Filter
+  """
+  ✨ Generated from Field `Quote`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: Boolean_Filter
   """
   ✨ Generated from Field `Quote`.`margin` of type `Float`
   """
@@ -5119,6 +5796,10 @@ input Quote_Filter {
   ✨ Generated from Field `Quote`.`totalPrice` of type `Float`
   """
   totalPrice: Float_Filter
+  """
+  ✨ Generated from Field `Quote`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: Timestamp_Filter
   """
   ✨ Generated from Field `Quote`.`validUntil` of type `Date`
   """
@@ -5190,6 +5871,10 @@ input Quote_Having {
   """
   commodity_count: Int_Filter
   """
+  ✨ Generated from Field `Quote`.`createdAt_count` of type `Int!`
+  """
+  createdAt_count: Int_Filter
+  """
   ✨ Generated from Field `Quote`.`createdByUid_count` of type `Int!`
   """
   createdByUid_count: Int_Filter
@@ -5246,6 +5931,10 @@ input Quote_Having {
   """
   insurance_count: Int_Filter
   """
+  ✨ Generated from Field `Quote`.`isDeleted_count` of type `Int!`
+  """
+  isDeleted_count: Int_Filter
+  """
   ✨ Generated from Field `Quote`.`margin_count` of type `Int!`
   """
   margin_count: Int_Filter
@@ -5289,6 +5978,10 @@ input Quote_Having {
   ✨ Generated from Field `Quote`.`totalPrice_count` of type `Int!`
   """
   totalPrice_count: Int_Filter
+  """
+  ✨ Generated from Field `Quote`.`updatedAt_count` of type `Int!`
+  """
+  updatedAt_count: Int_Filter
   """
   ✨ Generated from Field `Quote`.`validUntil_count` of type `Int!`
   """
@@ -5418,6 +6111,10 @@ input Quote_Having {
   """
   caf_min: Float_Filter
   """
+  ✨ Generated from Field `Quote`.`createdAt_min` of type `Timestamp`
+  """
+  createdAt_min: Timestamp_Filter
+  """
   ✨ Generated from Field `Quote`.`customsDest_min` of type `Float`
   """
   customsDest_min: Float_Filter
@@ -5454,6 +6151,10 @@ input Quote_Having {
   """
   totalPrice_min: Float_Filter
   """
+  ✨ Generated from Field `Quote`.`updatedAt_min` of type `Timestamp`
+  """
+  updatedAt_min: Timestamp_Filter
+  """
   ✨ Generated from Field `Quote`.`validUntil_min` of type `Date`
   """
   validUntil_min: Date_Filter
@@ -5477,6 +6178,10 @@ input Quote_Having {
   ✨ Generated from Field `Quote`.`caf_max` of type `Float`
   """
   caf_max: Float_Filter
+  """
+  ✨ Generated from Field `Quote`.`createdAt_max` of type `Timestamp`
+  """
+  createdAt_max: Timestamp_Filter
   """
   ✨ Generated from Field `Quote`.`customsDest_max` of type `Float`
   """
@@ -5513,6 +6218,10 @@ input Quote_Having {
   ✨ Generated from Field `Quote`.`totalPrice_max` of type `Float`
   """
   totalPrice_max: Float_Filter
+  """
+  ✨ Generated from Field `Quote`.`updatedAt_max` of type `Timestamp`
+  """
+  updatedAt_max: Timestamp_Filter
   """
   ✨ Generated from Field `Quote`.`validUntil_max` of type `Date`
   """
@@ -5609,6 +6318,10 @@ input Quote_Order {
   """
   commodity: OrderDirection
   """
+  ✨ Generated from Field `Quote`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: OrderDirection
+  """
   ✨ Generated from Field `Quote`.`createdByUid` of type `String!`
   """
   createdByUid: OrderDirection
@@ -5648,6 +6361,10 @@ input Quote_Order {
   ✨ Generated from Field `Quote`.`insurance` of type `Float`
   """
   insurance: OrderDirection
+  """
+  ✨ Generated from Field `Quote`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: OrderDirection
   """
   ✨ Generated from Field `Quote`.`margin` of type `Float`
   """
@@ -5693,6 +6410,10 @@ input Quote_Order {
   """
   totalPrice: OrderDirection
   """
+  ✨ Generated from Field `Quote`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: OrderDirection
+  """
   ✨ Generated from Field `Quote`.`validUntil` of type `Date`
   """
   validUntil: OrderDirection
@@ -5728,6 +6449,10 @@ input Quote_Order {
   ✨ Generated from Field `Quote`.`commodity_count` of type `Int!`
   """
   commodity_count: OrderDirection
+  """
+  ✨ Generated from Field `Quote`.`createdAt_count` of type `Int!`
+  """
+  createdAt_count: OrderDirection
   """
   ✨ Generated from Field `Quote`.`createdByUid_count` of type `Int!`
   """
@@ -5785,6 +6510,10 @@ input Quote_Order {
   """
   insurance_count: OrderDirection
   """
+  ✨ Generated from Field `Quote`.`isDeleted_count` of type `Int!`
+  """
+  isDeleted_count: OrderDirection
+  """
   ✨ Generated from Field `Quote`.`margin_count` of type `Int!`
   """
   margin_count: OrderDirection
@@ -5828,6 +6557,10 @@ input Quote_Order {
   ✨ Generated from Field `Quote`.`totalPrice_count` of type `Int!`
   """
   totalPrice_count: OrderDirection
+  """
+  ✨ Generated from Field `Quote`.`updatedAt_count` of type `Int!`
+  """
+  updatedAt_count: OrderDirection
   """
   ✨ Generated from Field `Quote`.`validUntil_count` of type `Int!`
   """
@@ -5957,6 +6690,10 @@ input Quote_Order {
   """
   caf_min: OrderDirection
   """
+  ✨ Generated from Field `Quote`.`createdAt_min` of type `Timestamp`
+  """
+  createdAt_min: OrderDirection
+  """
   ✨ Generated from Field `Quote`.`customsDest_min` of type `Float`
   """
   customsDest_min: OrderDirection
@@ -5993,6 +6730,10 @@ input Quote_Order {
   """
   totalPrice_min: OrderDirection
   """
+  ✨ Generated from Field `Quote`.`updatedAt_min` of type `Timestamp`
+  """
+  updatedAt_min: OrderDirection
+  """
   ✨ Generated from Field `Quote`.`validUntil_min` of type `Date`
   """
   validUntil_min: OrderDirection
@@ -6016,6 +6757,10 @@ input Quote_Order {
   ✨ Generated from Field `Quote`.`caf_max` of type `Float`
   """
   caf_max: OrderDirection
+  """
+  ✨ Generated from Field `Quote`.`createdAt_max` of type `Timestamp`
+  """
+  createdAt_max: OrderDirection
   """
   ✨ Generated from Field `Quote`.`customsDest_max` of type `Float`
   """
@@ -6052,6 +6797,10 @@ input Quote_Order {
   ✨ Generated from Field `Quote`.`totalPrice_max` of type `Float`
   """
   totalPrice_max: OrderDirection
+  """
+  ✨ Generated from Field `Quote`.`updatedAt_max` of type `Timestamp`
+  """
+  updatedAt_max: OrderDirection
   """
   ✨ Generated from Field `Quote`.`validUntil_max` of type `Date`
   """
@@ -6737,6 +7486,22 @@ input Shipment_Data {
   """
   consigneeAddressShape_expr: String_Expr @fdc_forbiddenInVariables
   """
+  ✨ Generated from Field `Shipment`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: Timestamp
+  """
+  ✨ `_expr` server value variant of `createdAt` (✨ Generated from Field `Shipment`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_expr: Timestamp_Expr @fdc_forbiddenInVariables
+  """
+  ✨ `_time` server value variant of `createdAt` (✨ Generated from Field `Shipment`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_time: Timestamp_Relative @fdc_forbiddenInVariables
+  """
+  ✨ `_update` server value variant of `createdAt` (✨ Generated from Field `Shipment`.`createdAt` of type `Timestamp!`)
+  """
+  createdAt_update: [Timestamp_Update!] @fdc_forbiddenInVariables
+  """
   ✨ Generated from Field `Shipment`.`customsStatus` of type `String`
   """
   customsStatus: String
@@ -7037,6 +7802,14 @@ input Shipment_Data {
   """
   isDangerous_expr: Boolean_Expr @fdc_forbiddenInVariables
   """
+  ✨ Generated from Field `Shipment`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: Boolean
+  """
+  ✨ `_expr` server value variant of `isDeleted` (✨ Generated from Field `Shipment`.`isDeleted` of type `Boolean!`)
+  """
+  isDeleted_expr: Boolean_Expr @fdc_forbiddenInVariables
+  """
   ✨ Generated from Field `Shipment`.`isEstimated` of type `Boolean!`
   """
   isEstimated: Boolean
@@ -7253,6 +8026,22 @@ input Shipment_Data {
   """
   unNumber_expr: String_Expr @fdc_forbiddenInVariables
   """
+  ✨ Generated from Field `Shipment`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: Timestamp
+  """
+  ✨ `_expr` server value variant of `updatedAt` (✨ Generated from Field `Shipment`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_expr: Timestamp_Expr @fdc_forbiddenInVariables
+  """
+  ✨ `_time` server value variant of `updatedAt` (✨ Generated from Field `Shipment`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_time: Timestamp_Relative @fdc_forbiddenInVariables
+  """
+  ✨ `_update` server value variant of `updatedAt` (✨ Generated from Field `Shipment`.`updatedAt` of type `Timestamp`)
+  """
+  updatedAt_update: [Timestamp_Update!] @fdc_forbiddenInVariables
+  """
   ✨ Generated from Field `Shipment`.`vessel` of type `String`
   """
   vessel: String
@@ -7312,6 +8101,10 @@ input Shipment_Data {
   ✨ `_expr` server value variant of `voyageNumber` (✨ Generated from Field `Shipment`.`voyageNumber` of type `String`)
   """
   voyageNumber_expr: String_Expr @fdc_forbiddenInVariables
+  """
+  ✨ Generated from Field `Shipment`.`customsEventLogs_on_shipment` of type `[CustomsEventLog!]!`
+  """
+  customsEventLogs_on_shipment: [CustomsEventLog_Data!]
   """
   ✨ Generated from Field `Shipment`.`documents_on_shipment` of type `[Document!]!`
   """
@@ -7434,6 +8227,10 @@ input Shipment_Filter {
   """
   consigneeAddressShape: String_Filter
   """
+  ✨ Generated from Field `Shipment`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: Timestamp_Filter
+  """
   ✨ Generated from Field `Shipment`.`customsStatus` of type `String`
   """
   customsStatus: String_Filter
@@ -7542,6 +8339,10 @@ input Shipment_Filter {
   """
   isDangerous: Boolean_Filter
   """
+  ✨ Generated from Field `Shipment`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: Boolean_Filter
+  """
   ✨ Generated from Field `Shipment`.`isEstimated` of type `Boolean!`
   """
   isEstimated: Boolean_Filter
@@ -7634,6 +8435,10 @@ input Shipment_Filter {
   """
   unNumber: String_Filter
   """
+  ✨ Generated from Field `Shipment`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: Timestamp_Filter
+  """
   ✨ Generated from Field `Shipment`.`vessel` of type `String`
   """
   vessel: String_Filter
@@ -7657,6 +8462,10 @@ input Shipment_Filter {
   ✨ Generated from Field `Shipment`.`voyageNumber` of type `String`
   """
   voyageNumber: String_Filter
+  """
+  ✨ Generated from Field `Shipment`.`customsEventLogs_on_shipment` of type `[CustomsEventLog!]!`
+  """
+  customsEventLogs_on_shipment: CustomsEventLog_ListFilter
   """
   ✨ Generated from Field `Shipment`.`documents_on_shipment` of type `[Document!]!`
   """
@@ -7743,6 +8552,10 @@ input Shipment_Having {
   ✨ Generated from Field `Shipment`.`consigneeAddressShape_count` of type `Int!`
   """
   consigneeAddressShape_count: Int_Filter
+  """
+  ✨ Generated from Field `Shipment`.`createdAt_count` of type `Int!`
+  """
+  createdAt_count: Int_Filter
   """
   ✨ Generated from Field `Shipment`.`customerId_count` of type `Int!`
   """
@@ -7876,6 +8689,10 @@ input Shipment_Having {
   """
   isDangerous_count: Int_Filter
   """
+  ✨ Generated from Field `Shipment`.`isDeleted_count` of type `Int!`
+  """
+  isDeleted_count: Int_Filter
+  """
   ✨ Generated from Field `Shipment`.`isEstimated_count` of type `Int!`
   """
   isEstimated_count: Int_Filter
@@ -7972,6 +8789,10 @@ input Shipment_Having {
   """
   unNumber_count: Int_Filter
   """
+  ✨ Generated from Field `Shipment`.`updatedAt_count` of type `Int!`
+  """
+  updatedAt_count: Int_Filter
+  """
   ✨ Generated from Field `Shipment`.`vesselName_count` of type `Int!`
   """
   vesselName_count: Int_Filter
@@ -8056,6 +8877,10 @@ input Shipment_Having {
   """
   bookingDate_min: Timestamp_Filter
   """
+  ✨ Generated from Field `Shipment`.`createdAt_min` of type `Timestamp`
+  """
+  createdAt_min: Timestamp_Filter
+  """
   ✨ Generated from Field `Shipment`.`cyCutOff_min` of type `Timestamp`
   """
   cyCutOff_min: Timestamp_Filter
@@ -8124,6 +8949,10 @@ input Shipment_Having {
   """
   timestamp_min: Timestamp_Filter
   """
+  ✨ Generated from Field `Shipment`.`updatedAt_min` of type `Timestamp`
+  """
+  updatedAt_min: Timestamp_Filter
+  """
   ✨ Generated from Field `Shipment`.`vgmCutOff_min` of type `Timestamp`
   """
   vgmCutOff_min: Timestamp_Filter
@@ -8143,6 +8972,10 @@ input Shipment_Having {
   ✨ Generated from Field `Shipment`.`bookingDate_max` of type `Timestamp`
   """
   bookingDate_max: Timestamp_Filter
+  """
+  ✨ Generated from Field `Shipment`.`createdAt_max` of type `Timestamp`
+  """
+  createdAt_max: Timestamp_Filter
   """
   ✨ Generated from Field `Shipment`.`cyCutOff_max` of type `Timestamp`
   """
@@ -8211,6 +9044,10 @@ input Shipment_Having {
   ✨ Generated from Field `Shipment`.`timestamp_max` of type `Timestamp`
   """
   timestamp_max: Timestamp_Filter
+  """
+  ✨ Generated from Field `Shipment`.`updatedAt_max` of type `Timestamp`
+  """
+  updatedAt_max: Timestamp_Filter
   """
   ✨ Generated from Field `Shipment`.`vgmCutOff_max` of type `Timestamp`
   """
@@ -8335,6 +9172,10 @@ input Shipment_Order {
   """
   consigneeAddressShape: OrderDirection
   """
+  ✨ Generated from Field `Shipment`.`createdAt` of type `Timestamp!`
+  """
+  createdAt: OrderDirection
+  """
   ✨ Generated from Field `Shipment`.`customsStatus` of type `String`
   """
   customsStatus: OrderDirection
@@ -8443,6 +9284,10 @@ input Shipment_Order {
   """
   isDangerous: OrderDirection
   """
+  ✨ Generated from Field `Shipment`.`isDeleted` of type `Boolean!`
+  """
+  isDeleted: OrderDirection
+  """
   ✨ Generated from Field `Shipment`.`isEstimated` of type `Boolean!`
   """
   isEstimated: OrderDirection
@@ -8535,6 +9380,10 @@ input Shipment_Order {
   """
   unNumber: OrderDirection
   """
+  ✨ Generated from Field `Shipment`.`updatedAt` of type `Timestamp`
+  """
+  updatedAt: OrderDirection
+  """
   ✨ Generated from Field `Shipment`.`vessel` of type `String`
   """
   vessel: OrderDirection
@@ -8590,6 +9439,10 @@ input Shipment_Order {
   ✨ Generated from Field `Shipment`.`consigneeAddressShape_count` of type `Int!`
   """
   consigneeAddressShape_count: OrderDirection
+  """
+  ✨ Generated from Field `Shipment`.`createdAt_count` of type `Int!`
+  """
+  createdAt_count: OrderDirection
   """
   ✨ Generated from Field `Shipment`.`customerId_count` of type `Int!`
   """
@@ -8723,6 +9576,10 @@ input Shipment_Order {
   """
   isDangerous_count: OrderDirection
   """
+  ✨ Generated from Field `Shipment`.`isDeleted_count` of type `Int!`
+  """
+  isDeleted_count: OrderDirection
+  """
   ✨ Generated from Field `Shipment`.`isEstimated_count` of type `Int!`
   """
   isEstimated_count: OrderDirection
@@ -8819,6 +9676,10 @@ input Shipment_Order {
   """
   unNumber_count: OrderDirection
   """
+  ✨ Generated from Field `Shipment`.`updatedAt_count` of type `Int!`
+  """
+  updatedAt_count: OrderDirection
+  """
   ✨ Generated from Field `Shipment`.`vesselName_count` of type `Int!`
   """
   vesselName_count: OrderDirection
@@ -8903,6 +9764,10 @@ input Shipment_Order {
   """
   bookingDate_min: OrderDirection
   """
+  ✨ Generated from Field `Shipment`.`createdAt_min` of type `Timestamp`
+  """
+  createdAt_min: OrderDirection
+  """
   ✨ Generated from Field `Shipment`.`cyCutOff_min` of type `Timestamp`
   """
   cyCutOff_min: OrderDirection
@@ -8971,6 +9836,10 @@ input Shipment_Order {
   """
   timestamp_min: OrderDirection
   """
+  ✨ Generated from Field `Shipment`.`updatedAt_min` of type `Timestamp`
+  """
+  updatedAt_min: OrderDirection
+  """
   ✨ Generated from Field `Shipment`.`vgmCutOff_min` of type `Timestamp`
   """
   vgmCutOff_min: OrderDirection
@@ -8990,6 +9859,10 @@ input Shipment_Order {
   ✨ Generated from Field `Shipment`.`bookingDate_max` of type `Timestamp`
   """
   bookingDate_max: OrderDirection
+  """
+  ✨ Generated from Field `Shipment`.`createdAt_max` of type `Timestamp`
+  """
+  createdAt_max: OrderDirection
   """
   ✨ Generated from Field `Shipment`.`cyCutOff_max` of type `Timestamp`
   """
@@ -9058,6 +9931,10 @@ input Shipment_Order {
   ✨ Generated from Field `Shipment`.`timestamp_max` of type `Timestamp`
   """
   timestamp_max: OrderDirection
+  """
+  ✨ Generated from Field `Shipment`.`updatedAt_max` of type `Timestamp`
+  """
+  updatedAt_max: OrderDirection
   """
   ✨ Generated from Field `Shipment`.`vgmCutOff_max` of type `Timestamp`
   """
@@ -9527,6 +10404,10 @@ input User_Data {
   """
   tenantId_expr: String_Expr @fdc_forbiddenInVariables
   """
+  ✨ Generated from Field `User`.`customsEventLogs_on_performedBy` of type `[CustomsEventLog!]!`
+  """
+  customsEventLogs_on_performedBy: [CustomsEventLog_Data!]
+  """
   ✨ Generated from Field `User`.`invoices_on_createdBy` of type `[Invoice!]!`
   """
   invoices_on_createdBy: [Invoice_Data!]
@@ -9575,6 +10456,10 @@ input User_Filter {
   ✨ Generated from Field `User`.`tenantId` of type `String!`
   """
   tenantId: String_Filter
+  """
+  ✨ Generated from Field `User`.`customsEventLogs_on_performedBy` of type `[CustomsEventLog!]!`
+  """
+  customsEventLogs_on_performedBy: CustomsEventLog_ListFilter
   """
   ✨ Generated from Field `User`.`invoices_on_createdBy` of type `[Invoice!]!`
   """

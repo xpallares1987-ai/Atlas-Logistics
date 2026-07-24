@@ -91,6 +91,9 @@ const CustomerPortalModule = React.lazy(
 const AiBookingParserModule = React.lazy(
   () => import("./pages/AiBookingParserModule"),
 );
+const WorkflowManagerModule = React.lazy(
+  () => import("./pages/WorkflowManagerModule"),
+);
 const SettingsModule = React.lazy(() => import("./pages/SettingsModule"));
 const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = React.lazy(() => import("./pages/TermsOfService"));
@@ -258,6 +261,9 @@ export default function App() {
             </NavLink>
             <NavLink to="/documents" icon={FileText}>
               {t("sidebar.documents")}
+            </NavLink>
+            <NavLink to="/workflows" icon={Settings}>
+              Workflows Modeler
             </NavLink>
             <NavLink to="/smart-booking" icon={ScanLine}>
               Smart Booking OCR
@@ -662,6 +668,14 @@ export default function App() {
                       ]}
                     >
                       <AIChainAssistantModule />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/workflows"
+                  element={
+                    <ProtectedRoute allowedRoles={["ADMIN", "MANAGER"]}>
+                      <WorkflowManagerModule />
                     </ProtectedRoute>
                   }
                 />

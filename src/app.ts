@@ -17,6 +17,7 @@ import eventsRoutes from "./routes/events.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import documentsRoutes from "./routes/documents.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import { appRouter } from "./trpc/routers/_app.js";
@@ -26,19 +27,23 @@ const app = Fastify({ loggerInstance: logger });
 
 // Security Middlewares
 app.register(fastifyHelmet);
-app.register(fastifyCors, { origin: process.env.CORS_ORIGIN || "http://localhost:5173" });
+app.register(fastifyCors, {
+  origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+});
 app.register(fastifyRateLimit, {
   max: 100,
   timeWindow: "15 minutes",
 });
 
 app.register(fastifyCookie, {
-  secret: process.env.COOKIE_SECRET || "atlas-logistics-super-secret-cookie-key-2026", 
-  parseOptions: {}
+  secret:
+    process.env.COOKIE_SECRET || "atlas-logistics-super-secret-cookie-key-2026",
+  parseOptions: {},
 });
 
 app.register(fastifyJwt, {
-  secret: process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure"
+  secret:
+    process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure",
 });
 
 // Protect API routes with an onRequest hook
@@ -48,7 +53,8 @@ app.addHook("onRequest", async (request, reply) => {
     request.url === "/api/demo/trigger-alert" ||
     request.url === "/api/sync/batch" ||
     request.url.startsWith("/api/tracking/") ||
-    request.url.startsWith("/api/auth/")
+    request.url.startsWith("/api/auth/") ||
+    request.url.startsWith("/admin/")
   ) {
     return;
   }
@@ -68,6 +74,7 @@ app.register(eventsRoutes, { prefix: "/api" });
 app.register(aiRoutes, { prefix: "/api/ai" });
 app.register(documentsRoutes, { prefix: "/api/documents" });
 app.register(authRoutes, { prefix: "/api/auth" });
+app.register(adminRoutes);
 
 // Register tRPC
 app.register(fastifyTRPCPlugin, {

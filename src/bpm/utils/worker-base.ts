@@ -1,141 +1,46 @@
-import { zbc } from '../client.js';
-import { db } from '../../db/db.config.js';
-// @ts-ignore
-import type { ICustomHeaders, IInputVariables, IOutputVariables, ZeebeJob } from '@camunda8/sdk/dist/zeebe/types';
-import { logger } from '../../config/logger.js';
+import { db } from "../../db/db.config.js";
+import { logger } from "../../config/logger.js";
+import { registerWorker } from "../workflow-engine.service.js";
 
 /**
- * Atlas Logistics — Base class for Zeebe Job Workers.
+ * Atlas Logistics — Base class for Background Workers.
  *
- * Provides standardised error handling, structured logging,
- * retry policies, and database access for all BPM workers.
- *
- * Usage:
- *   class MyWorker extends AtlasWorker {
- *     readonly taskType = 'atlas.rates.fetch';
- *     async execute(job) { ... return { result: ... }; }
- *   }
- *   new MyWorker().register();
+ * This no longer uses Zeebe/Camunda. It runs inside our custom Node engine.
  */
-export abstract class AtlasWorker<
-  TInput extends IInputVariables = IInputVariables,
-  TOutput extends IOutputVariables = IOutputVariables,
-  THeaders extends ICustomHeaders = ICustomHeaders
-> {
-  /** Zeebe task type this worker subscribes to (e.g. `atlas.rates.fetch`) */
+export abstract class AtlasWorker<TInput = any, TOutput = any> {
+  /** Task type this worker handles (e.g. `atlas.invoice.match-ap`) */
   abstract readonly taskType: string;
 
-  /** Human-readable worker name (for logging) */
   get workerName(): string {
     return this.taskType;
   }
 
-  /** Max number of concurrent jobs for this worker */
-  protected maxJobsToActivate = process.env.ZEEBE_MAX_JOBS ? parseInt(process.env.ZEEBE_MAX_JOBS, 10) : 10;
-
-  /** Job timeout in ms (default: 60 s) */
-  protected timeout = process.env.ZEEBE_JOB_TIMEOUT ? parseInt(process.env.ZEEBE_JOB_TIMEOUT, 10) : 60_000;
-
-  /** Number of retries before the job is sent to the incident log */
-  protected retries = 3;
-
-  /** Database handle (Drizzle ORM) */
   protected db = db;
 
   /**
-   * Core business logic — implement in each worker.
-   *
-   * Return an object that will be merged into the process variables,
-   * or throw an `AtlasBpmnError` to raise a BPMN error event.
+   * Core business logic.
    */
-  abstract execute(
-    job: ZeebeJob<TInput, THeaders>,
-  ): Promise<TOutput>;
+  abstract execute(job: {
+    variables: TInput;
+    [key: string]: any;
+  }): Promise<TOutput>;
 
-  /** Register this worker with the Zeebe client. */
+  /** Register this worker with the internal workflow engine. */
   register(): void {
-    logger.info(`[Worker] Registering: ${this.workerName} (type: ${this.taskType})`);
-
-    zbc.createWorker<TInput, THeaders, TOutput>({
-      taskType: this.taskType,
-      maxJobsToActivate: this.maxJobsToActivate,
-      timeout: this.timeout,
-      taskHandler: async (job) => {
-        const start = Date.now();
-        logger.info(
-          `[${this.workerName}] ▶ Job ${job.key} started | processInstance=${job.processInstanceKey}`
-        );
-
-        try {
-          const result = await this.execute(job);
-          const elapsed = Date.now() - start;
-          logger.info(
-            `[${this.workerName}] ✓ Job ${job.key} completed in ${elapsed}ms`
-          );
-          return job.complete(result);
-        } catch (error: unknown) {
-          const elapsed = Date.now() - start;
-
-          if (error instanceof AtlasBpmnError) {
-            logger.error(
-              `[${this.workerName}] ⚠ Job ${job.key} BPMN error "${error.code}" after ${elapsed}ms: ${error.message}`
-            );
-            return job.error({
-              errorCode: error.code,
-              errorMessage: error.message,
-            } as any);
-          }
-
-          const msg = error instanceof Error ? error.message : String(error);
-          const remainingRetries = (job.retries ?? this.retries) - 1;
-          
-          if (remainingRetries <= 0) {
-            logger.fatal(
-              {
-                dlq: true,
-                jobKey: job.key,
-                processInstanceKey: job.processInstanceKey,
-                taskType: this.taskType,
-                variables: job.variables,
-                error: msg
-              },
-              `[${this.workerName}] ☠️ DEAD LETTER QUEUE: Job ${job.key} exhausted all retries. Payload dumped.`
-            );
-          } else {
-            logger.error(
-              `[${this.workerName}] ✗ Job ${job.key} failed after ${elapsed}ms (retries left: ${remainingRetries}): ${msg}`
-            );
-          }
-
-          return job.fail({
-            errorMessage: msg,
-            retries: Math.max(0, remainingRetries),
-            retryBackOff: this.getBackoff(remainingRetries),
-          });
-        }
-      },
-    });
-  }
-
-  /** Exponential backoff: 5 s → 15 s → 45 s */
-  private getBackoff(retriesLeft: number): number {
-    const base = 5000;
-    const factor = Math.max(0, this.retries - retriesLeft - 1);
-    return base * Math.pow(3, factor);
+    logger.info(`[Worker] Registering internal worker: ${this.workerName}`);
+    registerWorker(this);
   }
 }
 
 /**
- * Throw this inside `execute()` to raise a BPMN Error Event.
- * The error code must match an Error Boundary Event definition in the BPMN model.
+ * Thrown inside `execute()` to raise a workflow Error Event.
  */
 export class AtlasBpmnError extends Error {
   constructor(
-    /** Error code matched by BPMN Error Boundary Events */
     public readonly code: string,
     message: string,
   ) {
     super(message);
-    this.name = 'AtlasBpmnError';
+    this.name = "AtlasBpmnError";
   }
 }
