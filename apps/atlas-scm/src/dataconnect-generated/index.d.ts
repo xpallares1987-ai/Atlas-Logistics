@@ -202,6 +202,16 @@ export interface CreateVesselVariables {
   capacityTeu?: number | null;
 }
 
+export interface CreateWorkflowTaskData {
+  workflowTask_insert: WorkflowTask_Key;
+}
+
+export interface CreateWorkflowTaskVariables {
+  workflowId: UUIDString;
+  taskType: string;
+  elementId: string;
+}
+
 export interface CrmDeal_Key {
   id: UUIDString;
   __typename?: "CrmDeal_Key";
@@ -282,6 +292,50 @@ export interface GetUserProfileData {
 
 export interface GetUserProfileVariables {
   uid: string;
+}
+
+export interface GetWorkflowDefinitionData {
+  workflowDefinitions: {
+    name: string;
+    xmlData: string;
+    version: number;
+  }[];
+}
+
+export interface GetWorkflowDefinitionVariables {
+  name: string;
+}
+
+export interface GetWorkflowInstanceData {
+  workflow?: {
+    id: UUIDString;
+    name: string;
+    status: string;
+    context?: unknown | null;
+  } & Workflow_Key;
+}
+
+export interface GetWorkflowInstanceVariables {
+  id: UUIDString;
+}
+
+export interface GetWorkflowTaskData {
+  workflowTask?: {
+    id: UUIDString;
+    workflowId: UUIDString;
+    taskType: string;
+    elementId: string;
+    status: string;
+    workflow: {
+      id: UUIDString;
+      name: string;
+      context?: unknown | null;
+    } & Workflow_Key;
+  } & WorkflowTask_Key;
+}
+
+export interface GetWorkflowTaskVariables {
+  id: UUIDString;
 }
 
 export interface HsCode_Key {
@@ -641,6 +695,16 @@ export interface Shipment_Key {
   __typename?: "Shipment_Key";
 }
 
+export interface StartWorkflowInstanceData {
+  workflow_insert: Workflow_Key;
+}
+
+export interface StartWorkflowInstanceVariables {
+  name: string;
+  context?: unknown | null;
+  shipmentId?: UUIDString | null;
+}
+
 export interface UpdateCrmDealStatusData {
   crmDeal_update?: CrmDeal_Key | null;
 }
@@ -658,6 +722,33 @@ export interface UpdateUserRoleVariables {
   uid: string;
   role: string;
   tenantId?: string | null;
+}
+
+export interface UpdateWorkflowContextData {
+  workflow_update?: Workflow_Key | null;
+}
+
+export interface UpdateWorkflowContextVariables {
+  id: UUIDString;
+  context: unknown;
+}
+
+export interface UpdateWorkflowStatusData {
+  workflow_update?: Workflow_Key | null;
+}
+
+export interface UpdateWorkflowStatusVariables {
+  id: UUIDString;
+  status: string;
+}
+
+export interface UpdateWorkflowTaskStatusData {
+  workflowTask_update?: WorkflowTask_Key | null;
+}
+
+export interface UpdateWorkflowTaskStatusVariables {
+  id: UUIDString;
+  status: string;
 }
 
 export interface UpsertDictionaryTermData {
@@ -693,6 +784,16 @@ export interface User_Key {
 export interface Vessel_Key {
   imoNumber: string;
   __typename?: "Vessel_Key";
+}
+
+export interface WorkflowDefinition_Key {
+  id: UUIDString;
+  __typename?: "WorkflowDefinition_Key";
+}
+
+export interface WorkflowTask_Key {
+  id: UUIDString;
+  __typename?: "WorkflowTask_Key";
 }
 
 export interface Workflow_Key {
@@ -1540,3 +1641,197 @@ export function updateUserRole(
   dc: DataConnect,
   vars: UpdateUserRoleVariables,
 ): MutationPromise<UpdateUserRoleData, UpdateUserRoleVariables>;
+
+interface StartWorkflowInstanceRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (
+    vars: StartWorkflowInstanceVariables,
+  ): MutationRef<StartWorkflowInstanceData, StartWorkflowInstanceVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (
+    dc: DataConnect,
+    vars: StartWorkflowInstanceVariables,
+  ): MutationRef<StartWorkflowInstanceData, StartWorkflowInstanceVariables>;
+  operationName: string;
+}
+export const startWorkflowInstanceRef: StartWorkflowInstanceRef;
+
+export function startWorkflowInstance(
+  vars: StartWorkflowInstanceVariables,
+): MutationPromise<StartWorkflowInstanceData, StartWorkflowInstanceVariables>;
+export function startWorkflowInstance(
+  dc: DataConnect,
+  vars: StartWorkflowInstanceVariables,
+): MutationPromise<StartWorkflowInstanceData, StartWorkflowInstanceVariables>;
+
+interface GetWorkflowDefinitionRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (
+    vars: GetWorkflowDefinitionVariables,
+  ): QueryRef<GetWorkflowDefinitionData, GetWorkflowDefinitionVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (
+    dc: DataConnect,
+    vars: GetWorkflowDefinitionVariables,
+  ): QueryRef<GetWorkflowDefinitionData, GetWorkflowDefinitionVariables>;
+  operationName: string;
+}
+export const getWorkflowDefinitionRef: GetWorkflowDefinitionRef;
+
+export function getWorkflowDefinition(
+  vars: GetWorkflowDefinitionVariables,
+  options?: ExecuteQueryOptions,
+): QueryPromise<GetWorkflowDefinitionData, GetWorkflowDefinitionVariables>;
+export function getWorkflowDefinition(
+  dc: DataConnect,
+  vars: GetWorkflowDefinitionVariables,
+  options?: ExecuteQueryOptions,
+): QueryPromise<GetWorkflowDefinitionData, GetWorkflowDefinitionVariables>;
+
+interface GetWorkflowInstanceRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (
+    vars: GetWorkflowInstanceVariables,
+  ): QueryRef<GetWorkflowInstanceData, GetWorkflowInstanceVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (
+    dc: DataConnect,
+    vars: GetWorkflowInstanceVariables,
+  ): QueryRef<GetWorkflowInstanceData, GetWorkflowInstanceVariables>;
+  operationName: string;
+}
+export const getWorkflowInstanceRef: GetWorkflowInstanceRef;
+
+export function getWorkflowInstance(
+  vars: GetWorkflowInstanceVariables,
+  options?: ExecuteQueryOptions,
+): QueryPromise<GetWorkflowInstanceData, GetWorkflowInstanceVariables>;
+export function getWorkflowInstance(
+  dc: DataConnect,
+  vars: GetWorkflowInstanceVariables,
+  options?: ExecuteQueryOptions,
+): QueryPromise<GetWorkflowInstanceData, GetWorkflowInstanceVariables>;
+
+interface UpdateWorkflowStatusRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (
+    vars: UpdateWorkflowStatusVariables,
+  ): MutationRef<UpdateWorkflowStatusData, UpdateWorkflowStatusVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (
+    dc: DataConnect,
+    vars: UpdateWorkflowStatusVariables,
+  ): MutationRef<UpdateWorkflowStatusData, UpdateWorkflowStatusVariables>;
+  operationName: string;
+}
+export const updateWorkflowStatusRef: UpdateWorkflowStatusRef;
+
+export function updateWorkflowStatus(
+  vars: UpdateWorkflowStatusVariables,
+): MutationPromise<UpdateWorkflowStatusData, UpdateWorkflowStatusVariables>;
+export function updateWorkflowStatus(
+  dc: DataConnect,
+  vars: UpdateWorkflowStatusVariables,
+): MutationPromise<UpdateWorkflowStatusData, UpdateWorkflowStatusVariables>;
+
+interface UpdateWorkflowContextRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (
+    vars: UpdateWorkflowContextVariables,
+  ): MutationRef<UpdateWorkflowContextData, UpdateWorkflowContextVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (
+    dc: DataConnect,
+    vars: UpdateWorkflowContextVariables,
+  ): MutationRef<UpdateWorkflowContextData, UpdateWorkflowContextVariables>;
+  operationName: string;
+}
+export const updateWorkflowContextRef: UpdateWorkflowContextRef;
+
+export function updateWorkflowContext(
+  vars: UpdateWorkflowContextVariables,
+): MutationPromise<UpdateWorkflowContextData, UpdateWorkflowContextVariables>;
+export function updateWorkflowContext(
+  dc: DataConnect,
+  vars: UpdateWorkflowContextVariables,
+): MutationPromise<UpdateWorkflowContextData, UpdateWorkflowContextVariables>;
+
+interface CreateWorkflowTaskRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (
+    vars: CreateWorkflowTaskVariables,
+  ): MutationRef<CreateWorkflowTaskData, CreateWorkflowTaskVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (
+    dc: DataConnect,
+    vars: CreateWorkflowTaskVariables,
+  ): MutationRef<CreateWorkflowTaskData, CreateWorkflowTaskVariables>;
+  operationName: string;
+}
+export const createWorkflowTaskRef: CreateWorkflowTaskRef;
+
+export function createWorkflowTask(
+  vars: CreateWorkflowTaskVariables,
+): MutationPromise<CreateWorkflowTaskData, CreateWorkflowTaskVariables>;
+export function createWorkflowTask(
+  dc: DataConnect,
+  vars: CreateWorkflowTaskVariables,
+): MutationPromise<CreateWorkflowTaskData, CreateWorkflowTaskVariables>;
+
+interface GetWorkflowTaskRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (
+    vars: GetWorkflowTaskVariables,
+  ): QueryRef<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (
+    dc: DataConnect,
+    vars: GetWorkflowTaskVariables,
+  ): QueryRef<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+  operationName: string;
+}
+export const getWorkflowTaskRef: GetWorkflowTaskRef;
+
+export function getWorkflowTask(
+  vars: GetWorkflowTaskVariables,
+  options?: ExecuteQueryOptions,
+): QueryPromise<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+export function getWorkflowTask(
+  dc: DataConnect,
+  vars: GetWorkflowTaskVariables,
+  options?: ExecuteQueryOptions,
+): QueryPromise<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+
+interface UpdateWorkflowTaskStatusRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (
+    vars: UpdateWorkflowTaskStatusVariables,
+  ): MutationRef<
+    UpdateWorkflowTaskStatusData,
+    UpdateWorkflowTaskStatusVariables
+  >;
+  /* Allow users to pass in custom DataConnect instances */
+  (
+    dc: DataConnect,
+    vars: UpdateWorkflowTaskStatusVariables,
+  ): MutationRef<
+    UpdateWorkflowTaskStatusData,
+    UpdateWorkflowTaskStatusVariables
+  >;
+  operationName: string;
+}
+export const updateWorkflowTaskStatusRef: UpdateWorkflowTaskStatusRef;
+
+export function updateWorkflowTaskStatus(
+  vars: UpdateWorkflowTaskStatusVariables,
+): MutationPromise<
+  UpdateWorkflowTaskStatusData,
+  UpdateWorkflowTaskStatusVariables
+>;
+export function updateWorkflowTaskStatus(
+  dc: DataConnect,
+  vars: UpdateWorkflowTaskStatusVariables,
+): MutationPromise<
+  UpdateWorkflowTaskStatusData,
+  UpdateWorkflowTaskStatusVariables
+>;

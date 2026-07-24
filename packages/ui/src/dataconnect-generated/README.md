@@ -29,6 +29,9 @@ This README will guide you through the process of using the generated JavaScript
   - [*GetShipmentById*](#getshipmentbyid)
   - [*GetUserProfile*](#getuserprofile)
   - [*GetAllUsers*](#getallusers)
+  - [*GetWorkflowDefinition*](#getworkflowdefinition)
+  - [*GetWorkflowInstance*](#getworkflowinstance)
+  - [*GetWorkflowTask*](#getworkflowtask)
 - [**Mutations**](#mutations)
   - [*CreateCrmDeal*](#createcrmdeal)
   - [*UpdateCrmDealStatus*](#updatecrmdealstatus)
@@ -50,6 +53,11 @@ This README will guide you through the process of using the generated JavaScript
   - [*LogShipmentEvent*](#logshipmentevent)
   - [*UpsertUser*](#upsertuser)
   - [*UpdateUserRole*](#updateuserrole)
+  - [*StartWorkflowInstance*](#startworkflowinstance)
+  - [*UpdateWorkflowStatus*](#updateworkflowstatus)
+  - [*UpdateWorkflowContext*](#updateworkflowcontext)
+  - [*CreateWorkflowTask*](#createworkflowtask)
+  - [*UpdateWorkflowTaskStatus*](#updateworkflowtaskstatus)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `atlas`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -2254,6 +2262,353 @@ console.log(data.users);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.users);
+});
+```
+
+## GetWorkflowDefinition
+You can execute the `GetWorkflowDefinition` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+getWorkflowDefinition(vars: GetWorkflowDefinitionVariables, options?: ExecuteQueryOptions): QueryPromise<GetWorkflowDefinitionData, GetWorkflowDefinitionVariables>;
+
+interface GetWorkflowDefinitionRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetWorkflowDefinitionVariables): QueryRef<GetWorkflowDefinitionData, GetWorkflowDefinitionVariables>;
+}
+export const getWorkflowDefinitionRef: GetWorkflowDefinitionRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+getWorkflowDefinition(dc: DataConnect, vars: GetWorkflowDefinitionVariables, options?: ExecuteQueryOptions): QueryPromise<GetWorkflowDefinitionData, GetWorkflowDefinitionVariables>;
+
+interface GetWorkflowDefinitionRef {
+  ...
+  (dc: DataConnect, vars: GetWorkflowDefinitionVariables): QueryRef<GetWorkflowDefinitionData, GetWorkflowDefinitionVariables>;
+}
+export const getWorkflowDefinitionRef: GetWorkflowDefinitionRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the getWorkflowDefinitionRef:
+```typescript
+const name = getWorkflowDefinitionRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GetWorkflowDefinition` query requires an argument of type `GetWorkflowDefinitionVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GetWorkflowDefinitionVariables {
+  name: string;
+}
+```
+### Return Type
+Recall that executing the `GetWorkflowDefinition` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetWorkflowDefinitionData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GetWorkflowDefinitionData {
+  workflowDefinitions: ({
+    name: string;
+    xmlData: string;
+    version: number;
+  })[];
+}
+```
+### Using `GetWorkflowDefinition`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, getWorkflowDefinition, GetWorkflowDefinitionVariables } from '@dataconnect/generated';
+
+// The `GetWorkflowDefinition` query requires an argument of type `GetWorkflowDefinitionVariables`:
+const getWorkflowDefinitionVars: GetWorkflowDefinitionVariables = {
+  name: ..., 
+};
+
+// Call the `getWorkflowDefinition()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getWorkflowDefinition(getWorkflowDefinitionVars);
+// Variables can be defined inline as well.
+const { data } = await getWorkflowDefinition({ name: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getWorkflowDefinition(dataConnect, getWorkflowDefinitionVars);
+
+console.log(data.workflowDefinitions);
+
+// Or, you can use the `Promise` API.
+getWorkflowDefinition(getWorkflowDefinitionVars).then((response) => {
+  const data = response.data;
+  console.log(data.workflowDefinitions);
+});
+```
+
+### Using `GetWorkflowDefinition`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getWorkflowDefinitionRef, GetWorkflowDefinitionVariables } from '@dataconnect/generated';
+
+// The `GetWorkflowDefinition` query requires an argument of type `GetWorkflowDefinitionVariables`:
+const getWorkflowDefinitionVars: GetWorkflowDefinitionVariables = {
+  name: ..., 
+};
+
+// Call the `getWorkflowDefinitionRef()` function to get a reference to the query.
+const ref = getWorkflowDefinitionRef(getWorkflowDefinitionVars);
+// Variables can be defined inline as well.
+const ref = getWorkflowDefinitionRef({ name: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getWorkflowDefinitionRef(dataConnect, getWorkflowDefinitionVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.workflowDefinitions);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.workflowDefinitions);
+});
+```
+
+## GetWorkflowInstance
+You can execute the `GetWorkflowInstance` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+getWorkflowInstance(vars: GetWorkflowInstanceVariables, options?: ExecuteQueryOptions): QueryPromise<GetWorkflowInstanceData, GetWorkflowInstanceVariables>;
+
+interface GetWorkflowInstanceRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetWorkflowInstanceVariables): QueryRef<GetWorkflowInstanceData, GetWorkflowInstanceVariables>;
+}
+export const getWorkflowInstanceRef: GetWorkflowInstanceRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+getWorkflowInstance(dc: DataConnect, vars: GetWorkflowInstanceVariables, options?: ExecuteQueryOptions): QueryPromise<GetWorkflowInstanceData, GetWorkflowInstanceVariables>;
+
+interface GetWorkflowInstanceRef {
+  ...
+  (dc: DataConnect, vars: GetWorkflowInstanceVariables): QueryRef<GetWorkflowInstanceData, GetWorkflowInstanceVariables>;
+}
+export const getWorkflowInstanceRef: GetWorkflowInstanceRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the getWorkflowInstanceRef:
+```typescript
+const name = getWorkflowInstanceRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GetWorkflowInstance` query requires an argument of type `GetWorkflowInstanceVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GetWorkflowInstanceVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that executing the `GetWorkflowInstance` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetWorkflowInstanceData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GetWorkflowInstanceData {
+  workflow?: {
+    id: UUIDString;
+    name: string;
+    status: string;
+    context?: unknown | null;
+  } & Workflow_Key;
+}
+```
+### Using `GetWorkflowInstance`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, getWorkflowInstance, GetWorkflowInstanceVariables } from '@dataconnect/generated';
+
+// The `GetWorkflowInstance` query requires an argument of type `GetWorkflowInstanceVariables`:
+const getWorkflowInstanceVars: GetWorkflowInstanceVariables = {
+  id: ..., 
+};
+
+// Call the `getWorkflowInstance()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getWorkflowInstance(getWorkflowInstanceVars);
+// Variables can be defined inline as well.
+const { data } = await getWorkflowInstance({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getWorkflowInstance(dataConnect, getWorkflowInstanceVars);
+
+console.log(data.workflow);
+
+// Or, you can use the `Promise` API.
+getWorkflowInstance(getWorkflowInstanceVars).then((response) => {
+  const data = response.data;
+  console.log(data.workflow);
+});
+```
+
+### Using `GetWorkflowInstance`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getWorkflowInstanceRef, GetWorkflowInstanceVariables } from '@dataconnect/generated';
+
+// The `GetWorkflowInstance` query requires an argument of type `GetWorkflowInstanceVariables`:
+const getWorkflowInstanceVars: GetWorkflowInstanceVariables = {
+  id: ..., 
+};
+
+// Call the `getWorkflowInstanceRef()` function to get a reference to the query.
+const ref = getWorkflowInstanceRef(getWorkflowInstanceVars);
+// Variables can be defined inline as well.
+const ref = getWorkflowInstanceRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getWorkflowInstanceRef(dataConnect, getWorkflowInstanceVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.workflow);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.workflow);
+});
+```
+
+## GetWorkflowTask
+You can execute the `GetWorkflowTask` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+getWorkflowTask(vars: GetWorkflowTaskVariables, options?: ExecuteQueryOptions): QueryPromise<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+
+interface GetWorkflowTaskRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetWorkflowTaskVariables): QueryRef<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+}
+export const getWorkflowTaskRef: GetWorkflowTaskRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+getWorkflowTask(dc: DataConnect, vars: GetWorkflowTaskVariables, options?: ExecuteQueryOptions): QueryPromise<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+
+interface GetWorkflowTaskRef {
+  ...
+  (dc: DataConnect, vars: GetWorkflowTaskVariables): QueryRef<GetWorkflowTaskData, GetWorkflowTaskVariables>;
+}
+export const getWorkflowTaskRef: GetWorkflowTaskRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the getWorkflowTaskRef:
+```typescript
+const name = getWorkflowTaskRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GetWorkflowTask` query requires an argument of type `GetWorkflowTaskVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GetWorkflowTaskVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that executing the `GetWorkflowTask` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetWorkflowTaskData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GetWorkflowTaskData {
+  workflowTask?: {
+    id: UUIDString;
+    workflowId: UUIDString;
+    taskType: string;
+    elementId: string;
+    status: string;
+    workflow: {
+      id: UUIDString;
+      name: string;
+      context?: unknown | null;
+    } & Workflow_Key;
+  } & WorkflowTask_Key;
+}
+```
+### Using `GetWorkflowTask`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, getWorkflowTask, GetWorkflowTaskVariables } from '@dataconnect/generated';
+
+// The `GetWorkflowTask` query requires an argument of type `GetWorkflowTaskVariables`:
+const getWorkflowTaskVars: GetWorkflowTaskVariables = {
+  id: ..., 
+};
+
+// Call the `getWorkflowTask()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getWorkflowTask(getWorkflowTaskVars);
+// Variables can be defined inline as well.
+const { data } = await getWorkflowTask({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getWorkflowTask(dataConnect, getWorkflowTaskVars);
+
+console.log(data.workflowTask);
+
+// Or, you can use the `Promise` API.
+getWorkflowTask(getWorkflowTaskVars).then((response) => {
+  const data = response.data;
+  console.log(data.workflowTask);
+});
+```
+
+### Using `GetWorkflowTask`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getWorkflowTaskRef, GetWorkflowTaskVariables } from '@dataconnect/generated';
+
+// The `GetWorkflowTask` query requires an argument of type `GetWorkflowTaskVariables`:
+const getWorkflowTaskVars: GetWorkflowTaskVariables = {
+  id: ..., 
+};
+
+// Call the `getWorkflowTaskRef()` function to get a reference to the query.
+const ref = getWorkflowTaskRef(getWorkflowTaskVars);
+// Variables can be defined inline as well.
+const ref = getWorkflowTaskRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getWorkflowTaskRef(dataConnect, getWorkflowTaskVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.workflowTask);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.workflowTask);
 });
 ```
 
@@ -4749,6 +5104,572 @@ console.log(data.user_update);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.user_update);
+});
+```
+
+## StartWorkflowInstance
+You can execute the `StartWorkflowInstance` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+startWorkflowInstance(vars: StartWorkflowInstanceVariables): MutationPromise<StartWorkflowInstanceData, StartWorkflowInstanceVariables>;
+
+interface StartWorkflowInstanceRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: StartWorkflowInstanceVariables): MutationRef<StartWorkflowInstanceData, StartWorkflowInstanceVariables>;
+}
+export const startWorkflowInstanceRef: StartWorkflowInstanceRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+startWorkflowInstance(dc: DataConnect, vars: StartWorkflowInstanceVariables): MutationPromise<StartWorkflowInstanceData, StartWorkflowInstanceVariables>;
+
+interface StartWorkflowInstanceRef {
+  ...
+  (dc: DataConnect, vars: StartWorkflowInstanceVariables): MutationRef<StartWorkflowInstanceData, StartWorkflowInstanceVariables>;
+}
+export const startWorkflowInstanceRef: StartWorkflowInstanceRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the startWorkflowInstanceRef:
+```typescript
+const name = startWorkflowInstanceRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `StartWorkflowInstance` mutation requires an argument of type `StartWorkflowInstanceVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface StartWorkflowInstanceVariables {
+  name: string;
+  context?: unknown | null;
+  shipmentId?: UUIDString | null;
+}
+```
+### Return Type
+Recall that executing the `StartWorkflowInstance` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `StartWorkflowInstanceData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface StartWorkflowInstanceData {
+  workflow_insert: Workflow_Key;
+}
+```
+### Using `StartWorkflowInstance`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, startWorkflowInstance, StartWorkflowInstanceVariables } from '@dataconnect/generated';
+
+// The `StartWorkflowInstance` mutation requires an argument of type `StartWorkflowInstanceVariables`:
+const startWorkflowInstanceVars: StartWorkflowInstanceVariables = {
+  name: ..., 
+  context: ..., // optional
+  shipmentId: ..., // optional
+};
+
+// Call the `startWorkflowInstance()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await startWorkflowInstance(startWorkflowInstanceVars);
+// Variables can be defined inline as well.
+const { data } = await startWorkflowInstance({ name: ..., context: ..., shipmentId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await startWorkflowInstance(dataConnect, startWorkflowInstanceVars);
+
+console.log(data.workflow_insert);
+
+// Or, you can use the `Promise` API.
+startWorkflowInstance(startWorkflowInstanceVars).then((response) => {
+  const data = response.data;
+  console.log(data.workflow_insert);
+});
+```
+
+### Using `StartWorkflowInstance`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, startWorkflowInstanceRef, StartWorkflowInstanceVariables } from '@dataconnect/generated';
+
+// The `StartWorkflowInstance` mutation requires an argument of type `StartWorkflowInstanceVariables`:
+const startWorkflowInstanceVars: StartWorkflowInstanceVariables = {
+  name: ..., 
+  context: ..., // optional
+  shipmentId: ..., // optional
+};
+
+// Call the `startWorkflowInstanceRef()` function to get a reference to the mutation.
+const ref = startWorkflowInstanceRef(startWorkflowInstanceVars);
+// Variables can be defined inline as well.
+const ref = startWorkflowInstanceRef({ name: ..., context: ..., shipmentId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = startWorkflowInstanceRef(dataConnect, startWorkflowInstanceVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.workflow_insert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.workflow_insert);
+});
+```
+
+## UpdateWorkflowStatus
+You can execute the `UpdateWorkflowStatus` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+updateWorkflowStatus(vars: UpdateWorkflowStatusVariables): MutationPromise<UpdateWorkflowStatusData, UpdateWorkflowStatusVariables>;
+
+interface UpdateWorkflowStatusRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateWorkflowStatusVariables): MutationRef<UpdateWorkflowStatusData, UpdateWorkflowStatusVariables>;
+}
+export const updateWorkflowStatusRef: UpdateWorkflowStatusRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+updateWorkflowStatus(dc: DataConnect, vars: UpdateWorkflowStatusVariables): MutationPromise<UpdateWorkflowStatusData, UpdateWorkflowStatusVariables>;
+
+interface UpdateWorkflowStatusRef {
+  ...
+  (dc: DataConnect, vars: UpdateWorkflowStatusVariables): MutationRef<UpdateWorkflowStatusData, UpdateWorkflowStatusVariables>;
+}
+export const updateWorkflowStatusRef: UpdateWorkflowStatusRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updateWorkflowStatusRef:
+```typescript
+const name = updateWorkflowStatusRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpdateWorkflowStatus` mutation requires an argument of type `UpdateWorkflowStatusVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpdateWorkflowStatusVariables {
+  id: UUIDString;
+  status: string;
+}
+```
+### Return Type
+Recall that executing the `UpdateWorkflowStatus` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpdateWorkflowStatusData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpdateWorkflowStatusData {
+  workflow_update?: Workflow_Key | null;
+}
+```
+### Using `UpdateWorkflowStatus`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, updateWorkflowStatus, UpdateWorkflowStatusVariables } from '@dataconnect/generated';
+
+// The `UpdateWorkflowStatus` mutation requires an argument of type `UpdateWorkflowStatusVariables`:
+const updateWorkflowStatusVars: UpdateWorkflowStatusVariables = {
+  id: ..., 
+  status: ..., 
+};
+
+// Call the `updateWorkflowStatus()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await updateWorkflowStatus(updateWorkflowStatusVars);
+// Variables can be defined inline as well.
+const { data } = await updateWorkflowStatus({ id: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await updateWorkflowStatus(dataConnect, updateWorkflowStatusVars);
+
+console.log(data.workflow_update);
+
+// Or, you can use the `Promise` API.
+updateWorkflowStatus(updateWorkflowStatusVars).then((response) => {
+  const data = response.data;
+  console.log(data.workflow_update);
+});
+```
+
+### Using `UpdateWorkflowStatus`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, updateWorkflowStatusRef, UpdateWorkflowStatusVariables } from '@dataconnect/generated';
+
+// The `UpdateWorkflowStatus` mutation requires an argument of type `UpdateWorkflowStatusVariables`:
+const updateWorkflowStatusVars: UpdateWorkflowStatusVariables = {
+  id: ..., 
+  status: ..., 
+};
+
+// Call the `updateWorkflowStatusRef()` function to get a reference to the mutation.
+const ref = updateWorkflowStatusRef(updateWorkflowStatusVars);
+// Variables can be defined inline as well.
+const ref = updateWorkflowStatusRef({ id: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = updateWorkflowStatusRef(dataConnect, updateWorkflowStatusVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.workflow_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.workflow_update);
+});
+```
+
+## UpdateWorkflowContext
+You can execute the `UpdateWorkflowContext` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+updateWorkflowContext(vars: UpdateWorkflowContextVariables): MutationPromise<UpdateWorkflowContextData, UpdateWorkflowContextVariables>;
+
+interface UpdateWorkflowContextRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateWorkflowContextVariables): MutationRef<UpdateWorkflowContextData, UpdateWorkflowContextVariables>;
+}
+export const updateWorkflowContextRef: UpdateWorkflowContextRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+updateWorkflowContext(dc: DataConnect, vars: UpdateWorkflowContextVariables): MutationPromise<UpdateWorkflowContextData, UpdateWorkflowContextVariables>;
+
+interface UpdateWorkflowContextRef {
+  ...
+  (dc: DataConnect, vars: UpdateWorkflowContextVariables): MutationRef<UpdateWorkflowContextData, UpdateWorkflowContextVariables>;
+}
+export const updateWorkflowContextRef: UpdateWorkflowContextRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updateWorkflowContextRef:
+```typescript
+const name = updateWorkflowContextRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpdateWorkflowContext` mutation requires an argument of type `UpdateWorkflowContextVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpdateWorkflowContextVariables {
+  id: UUIDString;
+  context: unknown;
+}
+```
+### Return Type
+Recall that executing the `UpdateWorkflowContext` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpdateWorkflowContextData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpdateWorkflowContextData {
+  workflow_update?: Workflow_Key | null;
+}
+```
+### Using `UpdateWorkflowContext`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, updateWorkflowContext, UpdateWorkflowContextVariables } from '@dataconnect/generated';
+
+// The `UpdateWorkflowContext` mutation requires an argument of type `UpdateWorkflowContextVariables`:
+const updateWorkflowContextVars: UpdateWorkflowContextVariables = {
+  id: ..., 
+  context: ..., 
+};
+
+// Call the `updateWorkflowContext()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await updateWorkflowContext(updateWorkflowContextVars);
+// Variables can be defined inline as well.
+const { data } = await updateWorkflowContext({ id: ..., context: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await updateWorkflowContext(dataConnect, updateWorkflowContextVars);
+
+console.log(data.workflow_update);
+
+// Or, you can use the `Promise` API.
+updateWorkflowContext(updateWorkflowContextVars).then((response) => {
+  const data = response.data;
+  console.log(data.workflow_update);
+});
+```
+
+### Using `UpdateWorkflowContext`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, updateWorkflowContextRef, UpdateWorkflowContextVariables } from '@dataconnect/generated';
+
+// The `UpdateWorkflowContext` mutation requires an argument of type `UpdateWorkflowContextVariables`:
+const updateWorkflowContextVars: UpdateWorkflowContextVariables = {
+  id: ..., 
+  context: ..., 
+};
+
+// Call the `updateWorkflowContextRef()` function to get a reference to the mutation.
+const ref = updateWorkflowContextRef(updateWorkflowContextVars);
+// Variables can be defined inline as well.
+const ref = updateWorkflowContextRef({ id: ..., context: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = updateWorkflowContextRef(dataConnect, updateWorkflowContextVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.workflow_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.workflow_update);
+});
+```
+
+## CreateWorkflowTask
+You can execute the `CreateWorkflowTask` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+createWorkflowTask(vars: CreateWorkflowTaskVariables): MutationPromise<CreateWorkflowTaskData, CreateWorkflowTaskVariables>;
+
+interface CreateWorkflowTaskRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateWorkflowTaskVariables): MutationRef<CreateWorkflowTaskData, CreateWorkflowTaskVariables>;
+}
+export const createWorkflowTaskRef: CreateWorkflowTaskRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+createWorkflowTask(dc: DataConnect, vars: CreateWorkflowTaskVariables): MutationPromise<CreateWorkflowTaskData, CreateWorkflowTaskVariables>;
+
+interface CreateWorkflowTaskRef {
+  ...
+  (dc: DataConnect, vars: CreateWorkflowTaskVariables): MutationRef<CreateWorkflowTaskData, CreateWorkflowTaskVariables>;
+}
+export const createWorkflowTaskRef: CreateWorkflowTaskRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the createWorkflowTaskRef:
+```typescript
+const name = createWorkflowTaskRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `CreateWorkflowTask` mutation requires an argument of type `CreateWorkflowTaskVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface CreateWorkflowTaskVariables {
+  workflowId: UUIDString;
+  taskType: string;
+  elementId: string;
+}
+```
+### Return Type
+Recall that executing the `CreateWorkflowTask` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `CreateWorkflowTaskData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface CreateWorkflowTaskData {
+  workflowTask_insert: WorkflowTask_Key;
+}
+```
+### Using `CreateWorkflowTask`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, createWorkflowTask, CreateWorkflowTaskVariables } from '@dataconnect/generated';
+
+// The `CreateWorkflowTask` mutation requires an argument of type `CreateWorkflowTaskVariables`:
+const createWorkflowTaskVars: CreateWorkflowTaskVariables = {
+  workflowId: ..., 
+  taskType: ..., 
+  elementId: ..., 
+};
+
+// Call the `createWorkflowTask()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await createWorkflowTask(createWorkflowTaskVars);
+// Variables can be defined inline as well.
+const { data } = await createWorkflowTask({ workflowId: ..., taskType: ..., elementId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await createWorkflowTask(dataConnect, createWorkflowTaskVars);
+
+console.log(data.workflowTask_insert);
+
+// Or, you can use the `Promise` API.
+createWorkflowTask(createWorkflowTaskVars).then((response) => {
+  const data = response.data;
+  console.log(data.workflowTask_insert);
+});
+```
+
+### Using `CreateWorkflowTask`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, createWorkflowTaskRef, CreateWorkflowTaskVariables } from '@dataconnect/generated';
+
+// The `CreateWorkflowTask` mutation requires an argument of type `CreateWorkflowTaskVariables`:
+const createWorkflowTaskVars: CreateWorkflowTaskVariables = {
+  workflowId: ..., 
+  taskType: ..., 
+  elementId: ..., 
+};
+
+// Call the `createWorkflowTaskRef()` function to get a reference to the mutation.
+const ref = createWorkflowTaskRef(createWorkflowTaskVars);
+// Variables can be defined inline as well.
+const ref = createWorkflowTaskRef({ workflowId: ..., taskType: ..., elementId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = createWorkflowTaskRef(dataConnect, createWorkflowTaskVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.workflowTask_insert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.workflowTask_insert);
+});
+```
+
+## UpdateWorkflowTaskStatus
+You can execute the `UpdateWorkflowTaskStatus` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+updateWorkflowTaskStatus(vars: UpdateWorkflowTaskStatusVariables): MutationPromise<UpdateWorkflowTaskStatusData, UpdateWorkflowTaskStatusVariables>;
+
+interface UpdateWorkflowTaskStatusRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateWorkflowTaskStatusVariables): MutationRef<UpdateWorkflowTaskStatusData, UpdateWorkflowTaskStatusVariables>;
+}
+export const updateWorkflowTaskStatusRef: UpdateWorkflowTaskStatusRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+updateWorkflowTaskStatus(dc: DataConnect, vars: UpdateWorkflowTaskStatusVariables): MutationPromise<UpdateWorkflowTaskStatusData, UpdateWorkflowTaskStatusVariables>;
+
+interface UpdateWorkflowTaskStatusRef {
+  ...
+  (dc: DataConnect, vars: UpdateWorkflowTaskStatusVariables): MutationRef<UpdateWorkflowTaskStatusData, UpdateWorkflowTaskStatusVariables>;
+}
+export const updateWorkflowTaskStatusRef: UpdateWorkflowTaskStatusRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updateWorkflowTaskStatusRef:
+```typescript
+const name = updateWorkflowTaskStatusRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpdateWorkflowTaskStatus` mutation requires an argument of type `UpdateWorkflowTaskStatusVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpdateWorkflowTaskStatusVariables {
+  id: UUIDString;
+  status: string;
+}
+```
+### Return Type
+Recall that executing the `UpdateWorkflowTaskStatus` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpdateWorkflowTaskStatusData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpdateWorkflowTaskStatusData {
+  workflowTask_update?: WorkflowTask_Key | null;
+}
+```
+### Using `UpdateWorkflowTaskStatus`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, updateWorkflowTaskStatus, UpdateWorkflowTaskStatusVariables } from '@dataconnect/generated';
+
+// The `UpdateWorkflowTaskStatus` mutation requires an argument of type `UpdateWorkflowTaskStatusVariables`:
+const updateWorkflowTaskStatusVars: UpdateWorkflowTaskStatusVariables = {
+  id: ..., 
+  status: ..., 
+};
+
+// Call the `updateWorkflowTaskStatus()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await updateWorkflowTaskStatus(updateWorkflowTaskStatusVars);
+// Variables can be defined inline as well.
+const { data } = await updateWorkflowTaskStatus({ id: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await updateWorkflowTaskStatus(dataConnect, updateWorkflowTaskStatusVars);
+
+console.log(data.workflowTask_update);
+
+// Or, you can use the `Promise` API.
+updateWorkflowTaskStatus(updateWorkflowTaskStatusVars).then((response) => {
+  const data = response.data;
+  console.log(data.workflowTask_update);
+});
+```
+
+### Using `UpdateWorkflowTaskStatus`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, updateWorkflowTaskStatusRef, UpdateWorkflowTaskStatusVariables } from '@dataconnect/generated';
+
+// The `UpdateWorkflowTaskStatus` mutation requires an argument of type `UpdateWorkflowTaskStatusVariables`:
+const updateWorkflowTaskStatusVars: UpdateWorkflowTaskStatusVariables = {
+  id: ..., 
+  status: ..., 
+};
+
+// Call the `updateWorkflowTaskStatusRef()` function to get a reference to the mutation.
+const ref = updateWorkflowTaskStatusRef(updateWorkflowTaskStatusVars);
+// Variables can be defined inline as well.
+const ref = updateWorkflowTaskStatusRef({ id: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = updateWorkflowTaskStatusRef(dataConnect, updateWorkflowTaskStatusVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.workflowTask_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.workflowTask_update);
 });
 ```
 

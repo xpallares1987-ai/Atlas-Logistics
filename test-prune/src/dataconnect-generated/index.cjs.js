@@ -1087,3 +1087,229 @@ exports.updateUserRole = function updateUserRole(dcOrVars, vars) {
   );
   return executeMutation(updateUserRoleRef(dcInstance, inputVars));
 };
+
+const startWorkflowInstanceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, "StartWorkflowInstance", inputVars);
+};
+startWorkflowInstanceRef.operationName = "StartWorkflowInstance";
+exports.startWorkflowInstanceRef = startWorkflowInstanceRef;
+
+exports.startWorkflowInstance = function startWorkflowInstance(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  return executeMutation(startWorkflowInstanceRef(dcInstance, inputVars));
+};
+
+const getWorkflowDefinitionRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, "GetWorkflowDefinition", inputVars);
+};
+getWorkflowDefinitionRef.operationName = "GetWorkflowDefinition";
+exports.getWorkflowDefinitionRef = getWorkflowDefinitionRef;
+
+exports.getWorkflowDefinition = function getWorkflowDefinition(
+  dcOrVars,
+  varsOrOptions,
+  options,
+) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateArgsWithOptions(
+    connectorConfig,
+    dcOrVars,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  return executeQuery(
+    getWorkflowDefinitionRef(dcInstance, inputVars),
+    inputOpts && { fetchPolicy: inputOpts.fetchPolicy },
+  );
+};
+
+const getWorkflowInstanceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, "GetWorkflowInstance", inputVars);
+};
+getWorkflowInstanceRef.operationName = "GetWorkflowInstance";
+exports.getWorkflowInstanceRef = getWorkflowInstanceRef;
+
+exports.getWorkflowInstance = function getWorkflowInstance(
+  dcOrVars,
+  varsOrOptions,
+  options,
+) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateArgsWithOptions(
+    connectorConfig,
+    dcOrVars,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  return executeQuery(
+    getWorkflowInstanceRef(dcInstance, inputVars),
+    inputOpts && { fetchPolicy: inputOpts.fetchPolicy },
+  );
+};
+
+const updateWorkflowStatusRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, "UpdateWorkflowStatus", inputVars);
+};
+updateWorkflowStatusRef.operationName = "UpdateWorkflowStatus";
+exports.updateWorkflowStatusRef = updateWorkflowStatusRef;
+
+exports.updateWorkflowStatus = function updateWorkflowStatus(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  return executeMutation(updateWorkflowStatusRef(dcInstance, inputVars));
+};
+
+const updateWorkflowContextRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, "UpdateWorkflowContext", inputVars);
+};
+updateWorkflowContextRef.operationName = "UpdateWorkflowContext";
+exports.updateWorkflowContextRef = updateWorkflowContextRef;
+
+exports.updateWorkflowContext = function updateWorkflowContext(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  return executeMutation(updateWorkflowContextRef(dcInstance, inputVars));
+};
+
+const createWorkflowTaskRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, "CreateWorkflowTask", inputVars);
+};
+createWorkflowTaskRef.operationName = "CreateWorkflowTask";
+exports.createWorkflowTaskRef = createWorkflowTaskRef;
+
+exports.createWorkflowTask = function createWorkflowTask(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  return executeMutation(createWorkflowTaskRef(dcInstance, inputVars));
+};
+
+const getWorkflowTaskRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, "GetWorkflowTask", inputVars);
+};
+getWorkflowTaskRef.operationName = "GetWorkflowTask";
+exports.getWorkflowTaskRef = getWorkflowTaskRef;
+
+exports.getWorkflowTask = function getWorkflowTask(
+  dcOrVars,
+  varsOrOptions,
+  options,
+) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateArgsWithOptions(
+    connectorConfig,
+    dcOrVars,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  return executeQuery(
+    getWorkflowTaskRef(dcInstance, inputVars),
+    inputOpts && { fetchPolicy: inputOpts.fetchPolicy },
+  );
+};
+
+const updateWorkflowTaskStatusRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, "UpdateWorkflowTaskStatus", inputVars);
+};
+updateWorkflowTaskStatusRef.operationName = "UpdateWorkflowTaskStatus";
+exports.updateWorkflowTaskStatusRef = updateWorkflowTaskStatusRef;
+
+exports.updateWorkflowTaskStatus = function updateWorkflowTaskStatus(
+  dcOrVars,
+  vars,
+) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  return executeMutation(updateWorkflowTaskStatusRef(dcInstance, inputVars));
+};

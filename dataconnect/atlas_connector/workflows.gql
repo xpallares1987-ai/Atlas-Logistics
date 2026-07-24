@@ -1,0 +1,61 @@
+mutation StartWorkflowInstance($name: String!, $context: Any, $shipmentId: UUID) @auth(level: USER) {
+  workflow_insert(data: {
+    name: $name
+    context: $context
+    shipmentId: $shipmentId
+    status: "RUNNING"
+  })
+}
+
+query GetWorkflowDefinition($name: String!) @auth(level: USER) {
+  workflowDefinitions(where: { name: { eq: $name } }) {
+    name
+    xmlData
+    version
+  }
+}
+
+query GetWorkflowInstance($id: UUID!) @auth(level: USER) {
+  workflow(id: $id) {
+    id
+    name
+    status
+    context
+  }
+}
+
+mutation UpdateWorkflowStatus($id: UUID!, $status: String!) @auth(level: USER) {
+  workflow_update(id: $id, data: { status: $status })
+}
+
+mutation UpdateWorkflowContext($id: UUID!, $context: Any!) @auth(level: USER) {
+  workflow_update(id: $id, data: { context: $context })
+}
+
+mutation CreateWorkflowTask($workflowId: UUID!, $taskType: String!, $elementId: String!) @auth(level: USER) {
+  workflowTask_insert(data: {
+    workflowId: $workflowId
+    taskType: $taskType
+    elementId: $elementId
+    status: "PENDING"
+  })
+}
+
+query GetWorkflowTask($id: UUID!) @auth(level: USER) {
+  workflowTask(id: $id) {
+    id
+    workflowId
+    taskType
+    elementId
+    status
+    workflow {
+      id
+      name
+      context
+    }
+  }
+}
+
+mutation UpdateWorkflowTaskStatus($id: UUID!, $status: String!) @auth(level: USER) {
+  workflowTask_update(id: $id, data: { status: $status })
+}
