@@ -22,14 +22,13 @@ interface ClientShipment {
   progress: number;
 }
 
-import { trpc } from "../utils/trpc";
+// import { trpc } from "../utils/trpc";
 
 export default function CustomerPortalModule() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: rawShipments = [], isLoading: _loading } =
-    trpc.shipments.getShipments.useQuery();
+  const rawShipments: any[] = [];
 
   const shipments = rawShipments.map((s: any) => {
     let prog = 10;
