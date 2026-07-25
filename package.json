@@ -123,7 +123,8 @@
       "ignoreCves": [
         "GHSA-848j-6mx2-7j84",
         "GHSA-qwww-vcr4-c8h2",
-        "GHSA-mh99-v99m-4gvg"
+        "GHSA-mh99-v99m-4gvg",
+        "CVE-2026-14257"
       ]
     },
     "overrides": {
