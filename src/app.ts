@@ -19,9 +19,7 @@ import documentsRoutes from "./routes/documents.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 
-import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
-import { appRouter } from "./trpc/routers/_app.js";
-import { createContext } from "./trpc/trpc.js";
+// Removed tRPC imports
 
 const app = Fastify({ loggerInstance: logger });
 
@@ -75,17 +73,5 @@ app.register(aiRoutes, { prefix: "/api/ai" });
 app.register(documentsRoutes, { prefix: "/api/documents" });
 app.register(authRoutes, { prefix: "/api/auth" });
 app.register(adminRoutes);
-
-// Register tRPC
-app.register(fastifyTRPCPlugin, {
-  prefix: "/trpc",
-  trpcOptions: {
-    router: appRouter,
-    createContext,
-    onError({ path, error }: any) {
-      logger.error(`Error in tRPC on path '${path}':`, error);
-    },
-  },
-});
 
 export default app;

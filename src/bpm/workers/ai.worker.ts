@@ -18,8 +18,51 @@ class AIWorker extends AtlasWorker<any, any> {
     try {
       if (this.taskType === "atlas.ai.ocr") {
         const docUrl = job.variables.documentUrl;
-        const prompt = `Extrae los datos estructurados en formato JSON del siguiente documento logístico: ${docUrl || "documento adjunto"}`;
-        const result = await AIService.generateText(prompt);
+
+        let fileBase64 = "";
+        let mimeType = "application/pdf";
+
+        try {
+          if (docUrl) {
+            // Assume it's an HTTP URL (Signed URL or Public)
+            const response = await fetch(docUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            fileBase64 = Buffer.from(arrayBuffer).toString("base64");
+            mimeType =
+              response.headers.get("content-type") || "application/pdf";
+          }
+        } catch (e: any) {
+          logger.warn(`[AIWorker] Failed to download document: ${e.message}`);
+        }
+
+        const prompt = `Analiza este documento logístico (B/L, Factura, etc.) y extrae los datos clave.`;
+
+        // Using Google Gen AI SDK Schema type implicitly via object structure
+        const schema = {
+          type: "object",
+          properties: {
+            shipper: {
+              type: "string",
+              description: "Name of the shipping company or person",
+            },
+            consignee: { type: "string", description: "Name of the receiver" },
+            weight: { type: "number", description: "Total weight in KG" },
+            volume: { type: "number", description: "Total volume in CBM" },
+            hs_codes: {
+              type: "array",
+              items: { type: "string" },
+              description: "List of Harmonized System (HS) tariff codes",
+            },
+          },
+          required: ["shipper", "consignee"],
+        };
+
+        const result = await AIService.parseDocument(
+          fileBase64,
+          mimeType,
+          prompt,
+          schema as any,
+        );
         return { extractedData: result, automated: true };
       }
 
