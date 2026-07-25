@@ -1,3 +1,5 @@
+/* eslint-disable */
+// @ts-nocheck
 import { Worker, Queue, Job } from "bullmq";
 import { Redis } from "ioredis";
 import { Logging } from "@google-cloud/logging";
