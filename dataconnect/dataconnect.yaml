@@ -4,8 +4,8 @@ schema:
   datasource:
     postgresql:
       cloudSql:
-        instanceId: 'gen-lang-client-0393063451-2-instance'
-      database: 'gen-lang-client-0393063451-2-database'
+        instanceId: 'atlas-db-dev'
+      database: 'postgres'
   source: './schema'
 serviceId: 'gen-lang-client-0393063451-service'
 specVersion: 'v1'

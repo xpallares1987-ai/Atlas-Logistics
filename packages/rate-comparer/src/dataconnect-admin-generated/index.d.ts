@@ -280,6 +280,19 @@ export interface GetShipmentByIdVariables {
   id: UUIDString;
 }
 
+export interface GetShipmentByTrackingNumberData {
+  shipments: ({
+    id: UUIDString;
+    status: string;
+    eta?: TimestampString | null;
+    location?: string | null;
+  } & Shipment_Key)[];
+}
+
+export interface GetShipmentByTrackingNumberVariables {
+  trackingNumber: string;
+}
+
 export interface GetUserProfileData {
   user?: {
     role: string;
@@ -709,6 +722,17 @@ export interface UpdateCrmDealStatusData {
 export interface UpdateCrmDealStatusVariables {
   id: UUIDString;
   status: string;
+}
+
+export interface UpdateShipmentTrackingData {
+  shipment_update?: Shipment_Key | null;
+}
+
+export interface UpdateShipmentTrackingVariables {
+  id: UUIDString;
+  status: string;
+  location?: string | null;
+  eta?: TimestampString | null;
 }
 
 export interface UpdateUserRoleData {
@@ -1205,6 +1229,30 @@ export function logShipmentEvent(
   vars: LogShipmentEventVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<LogShipmentEventData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetShipmentByTrackingNumber' Query. Allow users to execute without passing in DataConnect. */
+export function getShipmentByTrackingNumber(
+  dc: DataConnect,
+  vars: GetShipmentByTrackingNumberVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetShipmentByTrackingNumberData>>;
+/** Generated Node Admin SDK operation action function for the 'GetShipmentByTrackingNumber' Query. Allow users to pass in custom DataConnect instances. */
+export function getShipmentByTrackingNumber(
+  vars: GetShipmentByTrackingNumberVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetShipmentByTrackingNumberData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpdateShipmentTracking' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateShipmentTracking(
+  dc: DataConnect,
+  vars: UpdateShipmentTrackingVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateShipmentTrackingData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateShipmentTracking' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateShipmentTracking(
+  vars: UpdateShipmentTrackingVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<UpdateShipmentTrackingData>>;
 
 /** Generated Node Admin SDK operation action function for the 'UpsertUser' Mutation. Allow users to execute without passing in DataConnect. */
 export function upsertUser(

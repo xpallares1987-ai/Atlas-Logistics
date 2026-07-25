@@ -979,6 +979,68 @@ exports.logShipmentEvent = function logShipmentEvent(dcOrVars, vars) {
   return executeMutation(logShipmentEventRef(dcInstance, inputVars));
 };
 
+const getShipmentByTrackingNumberRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, "GetShipmentByTrackingNumber", inputVars);
+};
+getShipmentByTrackingNumberRef.operationName = "GetShipmentByTrackingNumber";
+exports.getShipmentByTrackingNumberRef = getShipmentByTrackingNumberRef;
+
+exports.getShipmentByTrackingNumber = function getShipmentByTrackingNumber(
+  dcOrVars,
+  varsOrOptions,
+  options,
+) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateArgsWithOptions(
+    connectorConfig,
+    dcOrVars,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  return executeQuery(
+    getShipmentByTrackingNumberRef(dcInstance, inputVars),
+    inputOpts && { fetchPolicy: inputOpts.fetchPolicy },
+  );
+};
+
+const updateShipmentTrackingRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, "UpdateShipmentTracking", inputVars);
+};
+updateShipmentTrackingRef.operationName = "UpdateShipmentTracking";
+exports.updateShipmentTrackingRef = updateShipmentTrackingRef;
+
+exports.updateShipmentTracking = function updateShipmentTracking(
+  dcOrVars,
+  vars,
+) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(
+    connectorConfig,
+    dcOrVars,
+    vars,
+    true,
+  );
+  return executeMutation(updateShipmentTrackingRef(dcInstance, inputVars));
+};
+
 const upsertUserRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars } = validateArgs(
     connectorConfig,

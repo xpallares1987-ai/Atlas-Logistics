@@ -34,6 +34,8 @@ import {
   getShipmentByIdRef,
   createShipmentRef,
   logShipmentEventRef,
+  getShipmentByTrackingNumberRef,
+  updateShipmentTrackingRef,
   upsertUserRef,
   getUserProfileRef,
   getAllUsersRef,
@@ -578,6 +580,42 @@ export function useLogShipmentEvent(dcOrOptions, options) {
   );
   function refFactory(vars) {
     return logShipmentEventRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(
+    refFactory,
+    inputOpts,
+    CallerSdkTypeEnum.GeneratedReact,
+  );
+}
+
+export function useGetShipmentByTrackingNumber(
+  dcOrVars,
+  varsOrOptions,
+  options,
+) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateReactArgs(
+    connectorConfig,
+    dcOrVars,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  const ref = getShipmentByTrackingNumberRef(dcInstance, inputVars);
+  return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+export function useUpdateShipmentTracking(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(
+    connectorConfig,
+    dcOrOptions,
+    options,
+  );
+  function refFactory(vars) {
+    return updateShipmentTrackingRef(dcInstance, vars);
   }
   return useDataConnectMutation(
     refFactory,

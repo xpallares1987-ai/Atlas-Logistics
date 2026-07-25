@@ -283,6 +283,19 @@ export interface GetShipmentByIdVariables {
   id: UUIDString;
 }
 
+export interface GetShipmentByTrackingNumberData {
+  shipments: ({
+    id: UUIDString;
+    status: string;
+    eta?: TimestampString | null;
+    location?: string | null;
+  } & Shipment_Key)[];
+}
+
+export interface GetShipmentByTrackingNumberVariables {
+  trackingNumber: string;
+}
+
 export interface GetUserProfileData {
   user?: {
     role: string;
@@ -712,6 +725,17 @@ export interface UpdateCrmDealStatusData {
 export interface UpdateCrmDealStatusVariables {
   id: UUIDString;
   status: string;
+}
+
+export interface UpdateShipmentTrackingData {
+  shipment_update?: Shipment_Key | null;
+}
+
+export interface UpdateShipmentTrackingVariables {
+  id: UUIDString;
+  status: string;
+  location?: string | null;
+  eta?: TimestampString | null;
 }
 
 export interface UpdateUserRoleData {
@@ -1558,6 +1582,64 @@ export function logShipmentEvent(
   dc: DataConnect,
   vars: LogShipmentEventVariables,
 ): MutationPromise<LogShipmentEventData, LogShipmentEventVariables>;
+
+interface GetShipmentByTrackingNumberRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (
+    vars: GetShipmentByTrackingNumberVariables,
+  ): QueryRef<
+    GetShipmentByTrackingNumberData,
+    GetShipmentByTrackingNumberVariables
+  >;
+  /* Allow users to pass in custom DataConnect instances */
+  (
+    dc: DataConnect,
+    vars: GetShipmentByTrackingNumberVariables,
+  ): QueryRef<
+    GetShipmentByTrackingNumberData,
+    GetShipmentByTrackingNumberVariables
+  >;
+  operationName: string;
+}
+export const getShipmentByTrackingNumberRef: GetShipmentByTrackingNumberRef;
+
+export function getShipmentByTrackingNumber(
+  vars: GetShipmentByTrackingNumberVariables,
+  options?: ExecuteQueryOptions,
+): QueryPromise<
+  GetShipmentByTrackingNumberData,
+  GetShipmentByTrackingNumberVariables
+>;
+export function getShipmentByTrackingNumber(
+  dc: DataConnect,
+  vars: GetShipmentByTrackingNumberVariables,
+  options?: ExecuteQueryOptions,
+): QueryPromise<
+  GetShipmentByTrackingNumberData,
+  GetShipmentByTrackingNumberVariables
+>;
+
+interface UpdateShipmentTrackingRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (
+    vars: UpdateShipmentTrackingVariables,
+  ): MutationRef<UpdateShipmentTrackingData, UpdateShipmentTrackingVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (
+    dc: DataConnect,
+    vars: UpdateShipmentTrackingVariables,
+  ): MutationRef<UpdateShipmentTrackingData, UpdateShipmentTrackingVariables>;
+  operationName: string;
+}
+export const updateShipmentTrackingRef: UpdateShipmentTrackingRef;
+
+export function updateShipmentTracking(
+  vars: UpdateShipmentTrackingVariables,
+): MutationPromise<UpdateShipmentTrackingData, UpdateShipmentTrackingVariables>;
+export function updateShipmentTracking(
+  dc: DataConnect,
+  vars: UpdateShipmentTrackingVariables,
+): MutationPromise<UpdateShipmentTrackingData, UpdateShipmentTrackingVariables>;
 
 interface UpsertUserRef {
   /* Allow users to create refs without passing in DataConnect */

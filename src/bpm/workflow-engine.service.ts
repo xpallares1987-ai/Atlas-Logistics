@@ -11,7 +11,7 @@ import {
   updateWorkflowTaskStatus,
   getWorkflowDefinition,
   getWorkflowTask,
-} from "@dataconnect/generated";
+} from "../dataconnect-admin-generated/index.cjs.js";
 import { logger } from "../config/logger.js";
 import { AtlasWorker } from "./utils/worker-base.js";
 import { BPMNParser, BPMNNode } from "./utils/bpmn-parser.js";

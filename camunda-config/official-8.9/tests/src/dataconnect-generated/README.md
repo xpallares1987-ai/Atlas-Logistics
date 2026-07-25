@@ -25,6 +25,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListQuotes*](#listquotes)
   - [*ListShipments*](#listshipments)
   - [*GetShipmentById*](#getshipmentbyid)
+  - [*GetShipmentByTrackingNumber*](#getshipmentbytrackingnumber)
   - [*GetUserProfile*](#getuserprofile)
   - [*GetAllUsers*](#getallusers)
   - [*GetWorkflowDefinition*](#getworkflowdefinition)
@@ -49,6 +50,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*InsertDictionaryTerm*](#insertdictionaryterm)
   - [*CreateShipment*](#createshipment)
   - [*LogShipmentEvent*](#logshipmentevent)
+  - [*UpdateShipmentTracking*](#updateshipmenttracking)
   - [*UpsertUser*](#upsertuser)
   - [*UpdateUserRole*](#updateuserrole)
   - [*StartWorkflowInstance*](#startworkflowinstance)
@@ -2050,6 +2052,120 @@ console.log(data.shipment);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.shipment);
+});
+```
+
+## GetShipmentByTrackingNumber
+You can execute the `GetShipmentByTrackingNumber` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+getShipmentByTrackingNumber(vars: GetShipmentByTrackingNumberVariables, options?: ExecuteQueryOptions): QueryPromise<GetShipmentByTrackingNumberData, GetShipmentByTrackingNumberVariables>;
+
+interface GetShipmentByTrackingNumberRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetShipmentByTrackingNumberVariables): QueryRef<GetShipmentByTrackingNumberData, GetShipmentByTrackingNumberVariables>;
+}
+export const getShipmentByTrackingNumberRef: GetShipmentByTrackingNumberRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+getShipmentByTrackingNumber(dc: DataConnect, vars: GetShipmentByTrackingNumberVariables, options?: ExecuteQueryOptions): QueryPromise<GetShipmentByTrackingNumberData, GetShipmentByTrackingNumberVariables>;
+
+interface GetShipmentByTrackingNumberRef {
+  ...
+  (dc: DataConnect, vars: GetShipmentByTrackingNumberVariables): QueryRef<GetShipmentByTrackingNumberData, GetShipmentByTrackingNumberVariables>;
+}
+export const getShipmentByTrackingNumberRef: GetShipmentByTrackingNumberRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the getShipmentByTrackingNumberRef:
+```typescript
+const name = getShipmentByTrackingNumberRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GetShipmentByTrackingNumber` query requires an argument of type `GetShipmentByTrackingNumberVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GetShipmentByTrackingNumberVariables {
+  trackingNumber: string;
+}
+```
+### Return Type
+Recall that executing the `GetShipmentByTrackingNumber` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetShipmentByTrackingNumberData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GetShipmentByTrackingNumberData {
+  shipments: ({
+    id: UUIDString;
+    status: string;
+    eta?: TimestampString | null;
+    location?: string | null;
+  } & Shipment_Key)[];
+}
+```
+### Using `GetShipmentByTrackingNumber`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, getShipmentByTrackingNumber, GetShipmentByTrackingNumberVariables } from '@dataconnect/generated';
+
+// The `GetShipmentByTrackingNumber` query requires an argument of type `GetShipmentByTrackingNumberVariables`:
+const getShipmentByTrackingNumberVars: GetShipmentByTrackingNumberVariables = {
+  trackingNumber: ..., 
+};
+
+// Call the `getShipmentByTrackingNumber()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getShipmentByTrackingNumber(getShipmentByTrackingNumberVars);
+// Variables can be defined inline as well.
+const { data } = await getShipmentByTrackingNumber({ trackingNumber: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getShipmentByTrackingNumber(dataConnect, getShipmentByTrackingNumberVars);
+
+console.log(data.shipments);
+
+// Or, you can use the `Promise` API.
+getShipmentByTrackingNumber(getShipmentByTrackingNumberVars).then((response) => {
+  const data = response.data;
+  console.log(data.shipments);
+});
+```
+
+### Using `GetShipmentByTrackingNumber`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getShipmentByTrackingNumberRef, GetShipmentByTrackingNumberVariables } from '@dataconnect/generated';
+
+// The `GetShipmentByTrackingNumber` query requires an argument of type `GetShipmentByTrackingNumberVariables`:
+const getShipmentByTrackingNumberVars: GetShipmentByTrackingNumberVariables = {
+  trackingNumber: ..., 
+};
+
+// Call the `getShipmentByTrackingNumberRef()` function to get a reference to the query.
+const ref = getShipmentByTrackingNumberRef(getShipmentByTrackingNumberVars);
+// Variables can be defined inline as well.
+const ref = getShipmentByTrackingNumberRef({ trackingNumber: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getShipmentByTrackingNumberRef(dataConnect, getShipmentByTrackingNumberVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.shipments);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.shipments);
 });
 ```
 
@@ -4872,6 +4988,124 @@ console.log(data.shipmentEventLog_insert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.shipmentEventLog_insert);
+});
+```
+
+## UpdateShipmentTracking
+You can execute the `UpdateShipmentTracking` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+updateShipmentTracking(vars: UpdateShipmentTrackingVariables): MutationPromise<UpdateShipmentTrackingData, UpdateShipmentTrackingVariables>;
+
+interface UpdateShipmentTrackingRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateShipmentTrackingVariables): MutationRef<UpdateShipmentTrackingData, UpdateShipmentTrackingVariables>;
+}
+export const updateShipmentTrackingRef: UpdateShipmentTrackingRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+updateShipmentTracking(dc: DataConnect, vars: UpdateShipmentTrackingVariables): MutationPromise<UpdateShipmentTrackingData, UpdateShipmentTrackingVariables>;
+
+interface UpdateShipmentTrackingRef {
+  ...
+  (dc: DataConnect, vars: UpdateShipmentTrackingVariables): MutationRef<UpdateShipmentTrackingData, UpdateShipmentTrackingVariables>;
+}
+export const updateShipmentTrackingRef: UpdateShipmentTrackingRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updateShipmentTrackingRef:
+```typescript
+const name = updateShipmentTrackingRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpdateShipmentTracking` mutation requires an argument of type `UpdateShipmentTrackingVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpdateShipmentTrackingVariables {
+  id: UUIDString;
+  status: string;
+  location?: string | null;
+  eta?: TimestampString | null;
+}
+```
+### Return Type
+Recall that executing the `UpdateShipmentTracking` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpdateShipmentTrackingData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpdateShipmentTrackingData {
+  shipment_update?: Shipment_Key | null;
+}
+```
+### Using `UpdateShipmentTracking`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, updateShipmentTracking, UpdateShipmentTrackingVariables } from '@dataconnect/generated';
+
+// The `UpdateShipmentTracking` mutation requires an argument of type `UpdateShipmentTrackingVariables`:
+const updateShipmentTrackingVars: UpdateShipmentTrackingVariables = {
+  id: ..., 
+  status: ..., 
+  location: ..., // optional
+  eta: ..., // optional
+};
+
+// Call the `updateShipmentTracking()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await updateShipmentTracking(updateShipmentTrackingVars);
+// Variables can be defined inline as well.
+const { data } = await updateShipmentTracking({ id: ..., status: ..., location: ..., eta: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await updateShipmentTracking(dataConnect, updateShipmentTrackingVars);
+
+console.log(data.shipment_update);
+
+// Or, you can use the `Promise` API.
+updateShipmentTracking(updateShipmentTrackingVars).then((response) => {
+  const data = response.data;
+  console.log(data.shipment_update);
+});
+```
+
+### Using `UpdateShipmentTracking`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, updateShipmentTrackingRef, UpdateShipmentTrackingVariables } from '@dataconnect/generated';
+
+// The `UpdateShipmentTracking` mutation requires an argument of type `UpdateShipmentTrackingVariables`:
+const updateShipmentTrackingVars: UpdateShipmentTrackingVariables = {
+  id: ..., 
+  status: ..., 
+  location: ..., // optional
+  eta: ..., // optional
+};
+
+// Call the `updateShipmentTrackingRef()` function to get a reference to the mutation.
+const ref = updateShipmentTrackingRef(updateShipmentTrackingVars);
+// Variables can be defined inline as well.
+const ref = updateShipmentTrackingRef({ id: ..., status: ..., location: ..., eta: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = updateShipmentTrackingRef(dataConnect, updateShipmentTrackingVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.shipment_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.shipment_update);
 });
 ```
 

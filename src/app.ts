@@ -18,6 +18,7 @@ import aiRoutes from "./routes/ai.routes.js";
 import documentsRoutes from "./routes/documents.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import trackingRoutes from "./routes/tracking.routes.js";
 
 // Removed tRPC imports
 
@@ -73,5 +74,6 @@ app.register(aiRoutes, { prefix: "/api/ai" });
 app.register(documentsRoutes, { prefix: "/api/documents" });
 app.register(authRoutes, { prefix: "/api/auth" });
 app.register(adminRoutes);
+app.register(trackingRoutes, { prefix: "/api/tracking" });
 
 export default app;
