@@ -605,6 +605,56 @@ export function logShipmentEvent(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeMutation("LogShipmentEvent", inputVars, inputOpts);
 }
 
+export function getShipmentByTrackingNumber(
+  dcOrVarsOrOptions,
+  varsOrOptions,
+  options,
+) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(
+    connectorConfig,
+    dcOrVarsOrOptions,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery(
+    "GetShipmentByTrackingNumber",
+    inputVars,
+    inputOpts,
+  );
+}
+
+export function updateShipmentTracking(
+  dcOrVarsOrOptions,
+  varsOrOptions,
+  options,
+) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(
+    connectorConfig,
+    dcOrVarsOrOptions,
+    varsOrOptions,
+    options,
+    true,
+    true,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation(
+    "UpdateShipmentTracking",
+    inputVars,
+    inputOpts,
+  );
+}
+
 export function upsertUser(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

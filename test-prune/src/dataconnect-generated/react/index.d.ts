@@ -63,6 +63,10 @@ import {
   CreateShipmentVariables,
   LogShipmentEventData,
   LogShipmentEventVariables,
+  GetShipmentByTrackingNumberData,
+  GetShipmentByTrackingNumberVariables,
+  UpdateShipmentTrackingData,
+  UpdateShipmentTrackingVariables,
   UpsertUserData,
   UpsertUserVariables,
   GetUserProfileData,
@@ -595,6 +599,44 @@ export function useLogShipmentEvent(
 ): UseDataConnectMutationResult<
   LogShipmentEventData,
   LogShipmentEventVariables
+>;
+
+export function useGetShipmentByTrackingNumber(
+  vars: GetShipmentByTrackingNumberVariables,
+  options?: useDataConnectQueryOptions<GetShipmentByTrackingNumberData>,
+): UseDataConnectQueryResult<
+  GetShipmentByTrackingNumberData,
+  GetShipmentByTrackingNumberVariables
+>;
+export function useGetShipmentByTrackingNumber(
+  dc: DataConnect,
+  vars: GetShipmentByTrackingNumberVariables,
+  options?: useDataConnectQueryOptions<GetShipmentByTrackingNumberData>,
+): UseDataConnectQueryResult<
+  GetShipmentByTrackingNumberData,
+  GetShipmentByTrackingNumberVariables
+>;
+
+export function useUpdateShipmentTracking(
+  options?: useDataConnectMutationOptions<
+    UpdateShipmentTrackingData,
+    FirebaseError,
+    UpdateShipmentTrackingVariables
+  >,
+): UseDataConnectMutationResult<
+  UpdateShipmentTrackingData,
+  UpdateShipmentTrackingVariables
+>;
+export function useUpdateShipmentTracking(
+  dc: DataConnect,
+  options?: useDataConnectMutationOptions<
+    UpdateShipmentTrackingData,
+    FirebaseError,
+    UpdateShipmentTrackingVariables
+  >,
+): UseDataConnectMutationResult<
+  UpdateShipmentTrackingData,
+  UpdateShipmentTrackingVariables
 >;
 
 export function useUpsertUser(

@@ -99,3 +99,28 @@ mutation LogShipmentEvent(
     }
   )
 }
+
+query GetShipmentByTrackingNumber($trackingNumber: String!) @auth(level: USER) {
+  shipments(where: { trackingNumber: { eq: $trackingNumber } }) {
+    id
+    status
+    eta
+    location
+  }
+}
+
+mutation UpdateShipmentTracking(
+  $id: UUID!
+  $status: String!
+  $location: String
+  $eta: Timestamp
+) @auth(level: USER) {
+  shipment_update(
+    id: $id
+    data: {
+      status: $status
+      location: $location
+      eta: $eta
+    }
+  )
+}

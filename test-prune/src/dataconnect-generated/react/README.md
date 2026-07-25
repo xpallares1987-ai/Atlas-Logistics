@@ -34,6 +34,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*ListQuotes*](#listquotes)
   - [*ListShipments*](#listshipments)
   - [*GetShipmentById*](#getshipmentbyid)
+  - [*GetShipmentByTrackingNumber*](#getshipmentbytrackingnumber)
   - [*GetUserProfile*](#getuserprofile)
   - [*GetAllUsers*](#getallusers)
   - [*GetWorkflowDefinition*](#getworkflowdefinition)
@@ -58,6 +59,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*InsertDictionaryTerm*](#insertdictionaryterm)
   - [*CreateShipment*](#createshipment)
   - [*LogShipmentEvent*](#logshipmentevent)
+  - [*UpdateShipmentTracking*](#updateshipmenttracking)
   - [*UpsertUser*](#upsertuser)
   - [*UpdateUserRole*](#updateuserrole)
   - [*StartWorkflowInstance*](#startworkflowinstance)
@@ -1670,6 +1672,93 @@ export default function GetShipmentByIdComponent() {
   // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
   if (query.isSuccess) {
     console.log(query.data.shipment);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## GetShipmentByTrackingNumber
+You can execute the `GetShipmentByTrackingNumber` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useGetShipmentByTrackingNumber(dc: DataConnect, vars: GetShipmentByTrackingNumberVariables, options?: useDataConnectQueryOptions<GetShipmentByTrackingNumberData>): UseDataConnectQueryResult<GetShipmentByTrackingNumberData, GetShipmentByTrackingNumberVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useGetShipmentByTrackingNumber(vars: GetShipmentByTrackingNumberVariables, options?: useDataConnectQueryOptions<GetShipmentByTrackingNumberData>): UseDataConnectQueryResult<GetShipmentByTrackingNumberData, GetShipmentByTrackingNumberVariables>;
+```
+
+### Variables
+The `GetShipmentByTrackingNumber` Query requires an argument of type `GetShipmentByTrackingNumberVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface GetShipmentByTrackingNumberVariables {
+  trackingNumber: string;
+}
+```
+### Return Type
+Recall that calling the `GetShipmentByTrackingNumber` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetShipmentByTrackingNumber` Query is of type `GetShipmentByTrackingNumberData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface GetShipmentByTrackingNumberData {
+  shipments: ({
+    id: UUIDString;
+    status: string;
+    eta?: TimestampString | null;
+    location?: string | null;
+  } & Shipment_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `GetShipmentByTrackingNumber`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, GetShipmentByTrackingNumberVariables } from '@dataconnect/generated';
+import { useGetShipmentByTrackingNumber } from '@dataconnect/generated/react'
+
+export default function GetShipmentByTrackingNumberComponent() {
+  // The `useGetShipmentByTrackingNumber` Query hook requires an argument of type `GetShipmentByTrackingNumberVariables`:
+  const getShipmentByTrackingNumberVars: GetShipmentByTrackingNumberVariables = {
+    trackingNumber: ..., 
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useGetShipmentByTrackingNumber(getShipmentByTrackingNumberVars);
+  // Variables can be defined inline as well.
+  const query = useGetShipmentByTrackingNumber({ trackingNumber: ..., });
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useGetShipmentByTrackingNumber(dataConnect, getShipmentByTrackingNumberVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetShipmentByTrackingNumber(getShipmentByTrackingNumberVars, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetShipmentByTrackingNumber(dataConnect, getShipmentByTrackingNumberVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.shipments);
   }
   return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
 }
@@ -4006,6 +4095,106 @@ export default function LogShipmentEventComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.shipmentEventLog_insert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpdateShipmentTracking
+You can execute the `UpdateShipmentTracking` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpdateShipmentTracking(options?: useDataConnectMutationOptions<UpdateShipmentTrackingData, FirebaseError, UpdateShipmentTrackingVariables>): UseDataConnectMutationResult<UpdateShipmentTrackingData, UpdateShipmentTrackingVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpdateShipmentTracking(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateShipmentTrackingData, FirebaseError, UpdateShipmentTrackingVariables>): UseDataConnectMutationResult<UpdateShipmentTrackingData, UpdateShipmentTrackingVariables>;
+```
+
+### Variables
+The `UpdateShipmentTracking` Mutation requires an argument of type `UpdateShipmentTrackingVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpdateShipmentTrackingVariables {
+  id: UUIDString;
+  status: string;
+  location?: string | null;
+  eta?: TimestampString | null;
+}
+```
+### Return Type
+Recall that calling the `UpdateShipmentTracking` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateShipmentTracking` Mutation is of type `UpdateShipmentTrackingData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpdateShipmentTrackingData {
+  shipment_update?: Shipment_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpdateShipmentTracking`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpdateShipmentTrackingVariables } from '@dataconnect/generated';
+import { useUpdateShipmentTracking } from '@dataconnect/generated/react'
+
+export default function UpdateShipmentTrackingComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpdateShipmentTracking();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpdateShipmentTracking(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateShipmentTracking(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateShipmentTracking(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpdateShipmentTracking` Mutation requires an argument of type `UpdateShipmentTrackingVariables`:
+  const updateShipmentTrackingVars: UpdateShipmentTrackingVariables = {
+    id: ..., 
+    status: ..., 
+    location: ..., // optional
+    eta: ..., // optional
+  };
+  mutation.mutate(updateShipmentTrackingVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., status: ..., location: ..., eta: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(updateShipmentTrackingVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.shipment_update);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
