@@ -25,7 +25,35 @@ class AIWorker extends AtlasWorker<any, any> {
 
       if (this.taskType === "atlas.ai.predict-eta") {
         const { origin, destination, currentDate } = job.variables;
-        const prompt = `Calcula un ETA predictivo y los riesgos de retraso para un embarque de ${origin} a ${destination} con fecha de salida ${currentDate}. Devuelve JSON con 'predictedETA' y 'riskLevel'.`;
+
+        let contextData = "";
+        try {
+          // 1. Geocode origin using Nominatim
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${origin}&format=json`,
+          );
+          if (geoRes.ok) {
+            const geoJson = await geoRes.json();
+            const lat = geoJson[0]?.lat;
+            const lon = geoJson[0]?.lon;
+
+            if (lat && lon) {
+              contextData += `Coordenadas origen: ${lat}, ${lon}. `;
+              // 2. Fetch weather from Open-Meteo
+              const weatherRes = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`,
+              );
+              if (weatherRes.ok) {
+                const weatherJson = await weatherRes.json();
+                contextData += `Clima actual en origen: ${JSON.stringify(weatherJson.current_weather)}. `;
+              }
+            }
+          }
+        } catch (e: any) {
+          logger.warn(`[AIWorker] Could not fetch enriched data: ${e.message}`);
+        }
+
+        const prompt = `Calcula un ETA predictivo y los riesgos de retraso para un embarque de ${origin} a ${destination} con fecha de salida ${currentDate}. Datos adicionales: ${contextData}. Devuelve JSON con 'predictedETA' y 'riskLevel'.`;
         const result = await AIService.generateText(prompt);
         return { predictiveAnalysis: result, automated: true };
       }
