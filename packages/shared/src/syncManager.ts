@@ -7,7 +7,9 @@ export class SyncManager {
 
   constructor(
     db: SharedDatabase,
-    baseUrl: string = "http://localhost:3001/api",
+    baseUrl: string = typeof window !== "undefined"
+      ? `${window.location.origin}/api`
+      : "http://localhost:3001/api",
   ) {
     this.db = db;
     const parsedUrl = new URL(baseUrl);
@@ -61,11 +63,14 @@ export class SyncManager {
 
       if (pendingJobs.length === 0) return;
 
-      const response = await fetch(new URL("/api/sync/batch", this.baseUrl).toString(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobs: pendingJobs }),
-      });
+      const response = await fetch(
+        new URL("/api/sync/batch", this.baseUrl).toString(),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobs: pendingJobs }),
+        },
+      );
 
       if (!response.ok) {
         const errBody = await response.text();

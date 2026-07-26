@@ -46,7 +46,7 @@ export default function RatesContent() {
     setQuotes([]);
 
     try {
-      const response = await fetch("http://localhost:3000/api/rates/compare", {
+      const response = await fetch("/api/rates/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

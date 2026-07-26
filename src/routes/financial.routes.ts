@@ -35,6 +35,26 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
       reply.code(500).send({ error: error.message });
     }
   });
-};
 
+  // Dashboard KPI stats endpoint
+  fastify.get("/financial-stats", async (_request, reply) => {
+    try {
+      // TODO: Replace with real aggregated queries from Cloud SQL
+      return reply.send({
+        totalShipments: 1250,
+        onTimePercent: 92.5,
+        costPerShipment: 450,
+        revenueMtd: 1500000,
+        costMtd: 1100000,
+        marginPercent: 26.7,
+        pendingInvoices: 38,
+        overdueInvoices: 7,
+        totalRevenue: 4200000,
+        totalCost: 3100000,
+      });
+    } catch (error: any) {
+      reply.code(500).send({ error: error.message });
+    }
+  });
+};
 export default financialRoutes;

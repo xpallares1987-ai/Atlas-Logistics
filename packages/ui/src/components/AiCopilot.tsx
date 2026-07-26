@@ -94,23 +94,27 @@ export function AiCopilot() {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = async () => {
-        const base64Data = (reader.result as string).split(',')[1];
-        
-        // Usar VITE_API_URL o fallback a localhost
-        const apiUrl = (import.meta as any).env?.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001';
-        
+        const base64Data = (reader.result as string).split(",")[1];
+
+        // Use relative API path (handled by Vite proxy in dev, reverse proxy in prod)
+        const apiUrl =
+          (import.meta as any).env?.VITE_API_URL?.replace("/api", "") || "";
+
         const res = await fetch(`${apiUrl}/api/ai/parse-invoice`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ documentBase64: base64Data, mimeType: file.type })
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            documentBase64: base64Data,
+            mimeType: file.type,
+          }),
         });
-        
+
         if (!res.ok) {
           throw new Error("Error en la conexión con la API de IA");
         }
-        
+
         const responseData = await res.json();
-        
+
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
@@ -121,7 +125,7 @@ export function AiCopilot() {
         setMessages((prev) => [...prev, botMessage]);
         setIsTyping(false);
       };
-      
+
       reader.onerror = () => {
         throw new Error("Failed to read file");
       };
@@ -131,7 +135,7 @@ export function AiCopilot() {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: `Lo siento, ocurrió un error procesando el documento: ${err.message}`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMessage]);
       setIsTyping(false);

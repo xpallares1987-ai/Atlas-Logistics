@@ -32,6 +32,9 @@ interface ParsedData {
   }[];
   incoterm?: string;
   marksAndNumbers?: string;
+  hsCode?: string;
+  blNumber?: string;
+  containerWeight?: number;
 }
 
 export default function AiBookingParserModule() {
@@ -468,6 +471,45 @@ export default function AiBookingParserModule() {
                       <input
                         className="w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-medium text-slate-800 dark:text-slate-200"
                         defaultValue={parsedData.portOfDischarge}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Detalles Adicionales */}
+                <section>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> Detalles Adicionales
+                  </h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">
+                        HS Code
+                      </label>
+                      <input
+                        className="w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-medium text-slate-800 dark:text-slate-200"
+                        defaultValue={parsedData.hsCode || ""}
+                        placeholder="N/A"
+                      />
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">
+                        BL Number
+                      </label>
+                      <input
+                        className="w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-medium text-slate-800 dark:text-slate-200"
+                        defaultValue={parsedData.blNumber || ""}
+                        placeholder="N/A"
+                      />
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">
+                        Peso Cont.
+                      </label>
+                      <input
+                        className="w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-medium text-slate-800 dark:text-slate-200"
+                        defaultValue={parsedData.containerWeight || ""}
+                        placeholder="N/A"
                       />
                     </div>
                   </div>

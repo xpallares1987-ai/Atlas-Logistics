@@ -11,6 +11,8 @@ const apiUrl =
     : typeof import.meta !== "undefined" &&
         (import.meta as any).env?.VITE_API_URL
       ? (import.meta as any).env.VITE_API_URL
-      : "http://localhost:3001/api";
+      : typeof window !== "undefined"
+        ? `${window.location.origin}/api`
+        : "http://localhost:3001/api";
 
 export const syncManager = new SyncManager(db, apiUrl);
