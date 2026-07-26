@@ -42,10 +42,23 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     return { success: true };
   });
 
+  fastify.post("/demo/trigger-milestone", async (request, reply) => {
+    broadcastEvent({
+      id: crypto.randomUUID(),
+      type: "MILESTONE",
+      message: "Vessel CMA CGM TITAN has departed Port of Shanghai",
+      timestamp: new Date().toISOString(),
+      metadata: { milestone: "DEPARTURE", vessel: "CMA CGM TITAN" },
+    });
+    return { success: true };
+  });
+
   fastify.post("/sync/batch", async (request, reply) => {
     try {
       const { source, entities, batchId } = request.body as any;
-      logger.info(`Received sync batch ${batchId} from ${source} with ${entities.length} entities.`);
+      logger.info(
+        `Received sync batch ${batchId} from ${source} with ${entities.length} entities.`,
+      );
       return { success: true, processedCount: entities.length, batchId };
     } catch (error: any) {
       logger.error("Sync batch error:", error);
@@ -53,5 +66,40 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     }
   });
 };
+
+// Background simulator for live vessel tracking
+const vesselPositions = [
+  {
+    id: "v-1",
+    name: "Maersk Emden",
+    lat: 31.2304,
+    lng: 121.4737,
+    heading: 120,
+  }, // Leaving Shanghai
+  { id: "v-2", name: "MSC Zoe", lat: 39.4699, lng: -0.3763, heading: 85 }, // Leaving Valencia
+];
+
+setInterval(() => {
+  if (emitter.listenerCount("newEvent") > 0) {
+    vesselPositions.forEach((v) => {
+      // Small random movement
+      v.lat += (Math.random() - 0.5) * 0.05;
+      v.lng += (Math.random() - 0.5) * 0.05;
+      broadcastEvent({
+        id: crypto.randomUUID(),
+        type: "VESSEL_LOCATION_UPDATE",
+        message: "Vessel position updated",
+        timestamp: new Date().toISOString(),
+        metadata: {
+          vesselId: v.id,
+          name: v.name,
+          lat: v.lat,
+          lng: v.lng,
+          heading: v.heading,
+        },
+      });
+    });
+  }
+}, 5000); // Send updates every 5 seconds
 
 export default eventsRoutes;

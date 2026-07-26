@@ -19,6 +19,53 @@ export function ShippingMap({
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
 
+  const [liveVessels, setLiveVessels] = useState<any[]>([]);
+  const liveVesselMarkersRef = useRef<Record<string, L.Marker>>({});
+
+  useEffect(() => {
+    const es = new EventSource("/api/events");
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "VESSEL_LOCATION_UPDATE") {
+          setLiveVessels((prev) => {
+            const filtered = prev.filter(
+              (v) => v.vesselId !== data.metadata.vesselId,
+            );
+            return [...filtered, data.metadata];
+          });
+        }
+      } catch (e) {}
+    };
+    return () => es.close();
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const L = (window as any).L;
+    if (!L) return;
+
+    liveVessels.forEach((v) => {
+      if (liveVesselMarkersRef.current[v.vesselId]) {
+        liveVesselMarkersRef.current[v.vesselId].setLatLng([v.lat, v.lng]);
+        liveVesselMarkersRef.current[v.vesselId].setPopupContent(
+          `<b>Live Vessel: ${v.name}</b><br/>Heading: ${Math.round(v.heading)}°`,
+        );
+      } else {
+        const icon = L.divIcon({
+          html: `<div class="bg-indigo-600 text-white p-1 rounded-full text-xs shadow-lg whitespace-nowrap">⛴️ ${v.name}</div>`,
+          className: "custom-vessel-icon",
+        });
+        const marker = L.marker([v.lat, v.lng], { icon })
+          .bindPopup(
+            `<b>Live Vessel: ${v.name}</b><br/>Heading: ${Math.round(v.heading)}°`,
+          )
+          .addTo(mapRef.current!);
+        liveVesselMarkersRef.current[v.vesselId] = marker;
+      }
+    });
+  }, [liveVessels]);
+
   const { coordinates: searchedCoords } = useNominatimGeocoding(searchQuery);
 
   useEffect(() => {

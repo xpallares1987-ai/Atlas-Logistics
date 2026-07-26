@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useApiQuery, useQueryClient } from "../hooks/useApiQuery";
 import {
   Plus,
   Search,
@@ -36,31 +37,18 @@ const API_URL = import.meta.env.VITE_API_URL
   : "/api/shipments";
 
 export default function BookingManagementModule() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: shipments = [], isLoading: loading } = useApiQuery<Booking[]>(
+    ["shipments"],
+    "/api/shipments",
+  );
+
   const [activeTab, setActiveTab] = useState<"All" | "DRAFT" | "CONFIRMED">(
     "All",
   );
   const [selectedBkg, setSelectedBkg] = useState<Booking | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<Booking>>({});
-
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  const fetchBookings = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(API_URL);
-      const data = await res.json();
-      setBookings(data);
-    } catch (err) {
-      console.error("Failed to fetch bookings", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleNewBooking = () => {
     setSelectedBkg(null);
@@ -95,7 +83,7 @@ export default function BookingManagementModule() {
       });
 
       if (res.ok) {
-        await fetchBookings();
+        queryClient.invalidateQueries({ queryKey: ["shipments"] });
         const savedBkg = await res.json();
         handleSelectBooking(savedBkg);
       }
@@ -114,7 +102,7 @@ export default function BookingManagementModule() {
         body: JSON.stringify(updatedData),
       });
       if (res.ok) {
-        await fetchBookings();
+        queryClient.invalidateQueries({ queryKey: ["shipments"] });
         const savedBkg = await res.json();
         handleSelectBooking(savedBkg);
       }
@@ -133,7 +121,7 @@ export default function BookingManagementModule() {
         method: "DELETE",
       });
       if (res.ok) {
-        await fetchBookings();
+        queryClient.invalidateQueries({ queryKey: ["shipments"] });
         setSelectedBkg(null);
         setFormData({});
         setIsEditing(false);
@@ -198,7 +186,7 @@ export default function BookingManagementModule() {
                 Loading bookings...
               </p>
             ) : (
-              bookings
+              shipments
                 .filter((b) => activeTab === "All" || b.status === activeTab)
                 .map((bkg) => (
                   <div

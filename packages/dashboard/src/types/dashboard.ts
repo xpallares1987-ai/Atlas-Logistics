@@ -24,7 +24,7 @@ export interface FinancialRow {
   date: string;
   revenue: number;
   cost: number;
-  status: 'PAID' | 'PENDING';
+  status: "PAID" | "PENDING";
   profit: number;
   paid: boolean;
   invoice_date: string;
@@ -44,4 +44,8 @@ export interface ExceptionRow {
   exception_type: string;
   shipment_ref: string;
   detected_date: string;
+  acknowledged_by?: string;
+  acknowledged_at?: string;
+  assigned_to?: string;
+  resolution_note?: string;
 }

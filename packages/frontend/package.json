@@ -24,6 +24,7 @@
         "@react-three/fiber": "^9.6.1",
         "bpmn-js": "^18.21.0",
         "framer-motion": "^12.42.2",
+        "html2canvas": "^1.4.1",
         "i18next": "^26.3.6",
         "lucide-react": "^1.25.0",
         "pdfjs-dist": "^4.2.67",

@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = "/api";
 
 export interface DiagramVersion {
   id: number;
@@ -9,9 +9,13 @@ export interface DiagramVersion {
   created_at: string;
 }
 
-export async function getDiagramVersions(diagramId: string): Promise<DiagramVersion[]> {
-  const response = await fetch(`${API_BASE}/bpm/versions/${encodeURIComponent(diagramId)}`);
-  if (!response.ok) throw new Error('Failed to fetch diagram versions');
+export async function getDiagramVersions(
+  diagramId: string,
+): Promise<DiagramVersion[]> {
+  const response = await fetch(
+    `${API_BASE}/bpm/versions/${encodeURIComponent(diagramId)}`,
+  );
+  if (!response.ok) throw new Error("Failed to fetch diagram versions");
   return response.json();
 }
 
@@ -19,14 +23,19 @@ export async function saveDiagramVersion(
   diagramId: string,
   xml: string,
   label?: string,
-  authorId?: string
+  authorId?: string,
 ): Promise<{ id: number; message: string }> {
   const response = await fetch(`${API_BASE}/bpm/versions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ diagram_id: diagramId, xml, label, author_id: authorId }),
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      diagram_id: diagramId,
+      xml,
+      label,
+      author_id: authorId,
+    }),
   });
 
-  if (!response.ok) throw new Error('Failed to save diagram version');
+  if (!response.ok) throw new Error("Failed to save diagram version");
   return response.json();
 }

@@ -1,19 +1,55 @@
 "use client";
 
+import { useState } from "react";
 import {
   AlertTriangle,
   Clock,
   XCircle,
   CheckCircle2,
   ShieldAlert,
+  CheckCircle,
+  UserPlus,
+  CheckCheck,
 } from "lucide-react";
 import type { ExceptionRow } from "../types/dashboard";
 
 interface ExceptionPanelProps {
   data: ExceptionRow[];
+  onAcknowledge?: (id: string) => void;
+  onAssign?: (id: string, userId: string) => void;
+  onResolve?: (id: string, note?: string) => void;
 }
 
-export function ExceptionPanel({ data }: ExceptionPanelProps) {
+export function ExceptionPanel({
+  data,
+  onAcknowledge,
+  onAssign,
+  onResolve,
+}: ExceptionPanelProps) {
+  const [localState, setLocalState] = useState<Record<string, string>>({});
+  const [undoTimers, setUndoTimers] = useState<Record<string, NodeJS.Timeout>>(
+    {},
+  );
+
+  const handleAction = (
+    id: string,
+    action: "acknowledge" | "assign" | "resolve",
+  ) => {
+    setLocalState((prev) => ({ ...prev, [id]: action }));
+
+    if (action === "acknowledge" && onAcknowledge) onAcknowledge(id);
+    if (action === "assign" && onAssign) onAssign(id, "operator-1");
+    if (action === "resolve" && onResolve) onResolve(id);
+
+    const timer = setTimeout(() => {
+      setLocalState((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }, 3000);
+    setUndoTimers((prev) => ({ ...prev, [id]: timer }));
+  };
   if (data.length === 0) {
     return (
       <div className="panel-empty">
@@ -191,6 +227,59 @@ export function ExceptionPanel({ data }: ExceptionPanelProps) {
                       <Clock size={10} /> Detected:{" "}
                       {row.detected_date ?? "Unknown"}
                     </div>
+                  </div>
+
+                  {/* ACTIONS TOOLBAR */}
+                  <div className="flex items-center gap-1 self-center ml-4">
+                    {localState[row.id] ? (
+                      <span className="text-xs text-slate-400 font-medium px-2 flex items-center gap-2">
+                        {localState[row.id] === "resolve"
+                          ? "Resolved"
+                          : localState[row.id] === "assign"
+                            ? "Assigned"
+                            : "Acknowledged"}
+                        <button
+                          className="text-indigo-400 hover:text-indigo-300 underline text-[10px]"
+                          onClick={() => {
+                            const timer = undoTimers[row.id];
+                            if (timer) clearTimeout(timer);
+                            setLocalState((prev) => {
+                              const n = { ...prev };
+                              delete n[row.id];
+                              return n;
+                            });
+                          }}
+                        >
+                          Undo
+                        </button>
+                      </span>
+                    ) : (
+                      <>
+                        {!row.acknowledged_by && (
+                          <button
+                            title="Acknowledge"
+                            onClick={() => handleAction(row.id, "acknowledge")}
+                            className="p-1 rounded hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 transition-colors"
+                          >
+                            <CheckCircle size={16} />
+                          </button>
+                        )}
+                        <button
+                          title="Assign"
+                          onClick={() => handleAction(row.id, "assign")}
+                          className="p-1 rounded hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-colors"
+                        >
+                          <UserPlus size={16} />
+                        </button>
+                        <button
+                          title="Resolve"
+                          onClick={() => handleAction(row.id, "resolve")}
+                          className="p-1 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+                        >
+                          <CheckCheck size={16} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))

@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useApiQuery, useQueryClient } from "../hooks/useApiQuery";
 import {
   Receipt,
   Download,
@@ -14,6 +15,7 @@ import {
   FileText,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { exportToCSV } from "../utils/exportUtils";
 
 interface Invoice {
   id: string;
@@ -34,9 +36,20 @@ export default function InvoicingModule() {
   const [activeTab, setActiveTab] = useState<
     "All" | "AR" | "AP" | "Settlements"
   >("All");
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [settlements, setSettlements] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: invoicesData, isLoading: loadingInvoices } = useApiQuery<
+    Invoice[]
+  >(["invoices"], "/invoices");
+
+  const { data: settlementsData, isLoading: loadingSettlements } = useApiQuery<
+    any[]
+  >(["agent-settlements"], "/agent-settlements");
+
+  const invoices = Array.isArray(invoicesData) ? invoicesData : [];
+  const settlements = Array.isArray(settlementsData) ? settlementsData : [];
+  const loading = loadingInvoices || loadingSettlements;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form State
@@ -61,46 +74,6 @@ export default function InvoicingModule() {
       },
     ],
   });
-
-  useEffect(() => {
-    fetchInvoices();
-    fetchSettlements();
-  }, []);
-
-  const fetchSettlements = async () => {
-    try {
-      const res = await fetch(`${API_URL}/agent-settlements`);
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setSettlements(data);
-      } else {
-        console.error("Expected an array of settlements, got:", data);
-        setSettlements([]);
-      }
-    } catch (err) {
-      console.error(err);
-      setSettlements([]);
-    }
-  };
-
-  const fetchInvoices = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_URL}/invoices`);
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setInvoices(data);
-      } else {
-        console.error("Expected an array of invoices, got:", data);
-        setInvoices([]);
-      }
-    } catch (err) {
-      console.error(err);
-      setInvoices([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const downloadPdf = async (invoiceId: string, invoiceNumber: string) => {
     try {
@@ -175,7 +148,7 @@ export default function InvoicingModule() {
         body: JSON.stringify(payload),
       });
       setIsModalOpen(false);
-      fetchInvoices();
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
     } catch (err) {
       console.error(err);
     }
@@ -285,26 +258,38 @@ export default function InvoicingModule() {
 
           {/* Invoice List */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-slate-100 flex gap-2 bg-slate-50/50">
-              {(["All", "AR", "AP", "Settlements"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === tab
-                      ? "bg-white text-indigo-600 shadow-sm border border-slate-200"
-                      : "text-slate-500 hover:bg-slate-100"
-                  }`}
-                >
-                  {tab === "All"
-                    ? "All Invoices"
-                    : tab === "AR"
-                      ? "Accounts Receivable"
-                      : tab === "AP"
-                        ? "Accounts Payable"
-                        : "Agent Settlements"}
-                </button>
-              ))}
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="flex gap-2">
+                {(["All", "AR", "AP", "Settlements"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === tab
+                        ? "bg-white text-indigo-600 shadow-sm border border-slate-200"
+                        : "text-slate-500 hover:bg-slate-100"
+                    }`}
+                  >
+                    {tab === "All"
+                      ? "All Invoices"
+                      : tab === "AR"
+                        ? "Accounts Receivable"
+                        : tab === "AP"
+                          ? "Accounts Payable"
+                          : "Agent Settlements"}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() =>
+                  activeTab === "Settlements"
+                    ? exportToCSV(settlements, "settlements-export")
+                    : exportToCSV(filteredInvoices, "invoices-export")
+                }
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+              >
+                <Download size={14} /> Export CSV
+              </button>
             </div>
 
             <div className="overflow-x-auto">

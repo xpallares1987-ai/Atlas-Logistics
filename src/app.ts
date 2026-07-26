@@ -19,15 +19,38 @@ import documentsRoutes from "./routes/documents.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import trackingRoutes from "./routes/tracking.routes.js";
+import healthRoutes from "./routes/health.routes.js";
+import exceptionsRoutes from "./routes/exceptions.routes.js";
 
 // Removed tRPC imports
 
 const app = Fastify({ loggerInstance: logger });
 
 // Security Middlewares
-app.register(fastifyHelmet);
+app.register(fastifyHelmet, {
+  contentSecurityPolicy:
+    process.env.NODE_ENV === "production" ? undefined : false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+});
 app.register(fastifyCors, {
-  origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+  origin: (origin, cb) => {
+    // Allow requests with no origin (mobile apps, curl, SSE)
+    if (!origin) return cb(null, true);
+    const allowed = process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(",").map((s) => s.trim())
+      : ["http://localhost:3000", "http://localhost:5173"];
+    if (
+      allowed.includes(origin) ||
+      origin.endsWith(".google.com") ||
+      origin.endsWith(".web.app") ||
+      origin.endsWith(".firebaseapp.com")
+    ) {
+      return cb(null, true);
+    }
+    cb(null, false);
+  },
+  credentials: true,
 });
 app.register(fastifyRateLimit, {
   max: 100,
@@ -49,11 +72,13 @@ app.register(fastifyJwt, {
 app.addHook("onRequest", async (request, reply) => {
   if (
     request.url.startsWith("/api/events") ||
+    request.url.startsWith("/api/shipments/exceptions") ||
     request.url === "/api/demo/trigger-alert" ||
     request.url === "/api/sync/batch" ||
     request.url.startsWith("/api/tracking/") ||
     request.url.startsWith("/api/auth/") ||
-    request.url.startsWith("/admin/")
+    request.url.startsWith("/admin/") ||
+    request.url === "/api/health"
   ) {
     return;
   }
@@ -64,6 +89,7 @@ app.addHook("onRequest", async (request, reply) => {
 
 // Register routes as plugins
 app.register(shipmentsRoutes, { prefix: "/api/shipments" });
+app.register(exceptionsRoutes, { prefix: "/api/shipments/exceptions" });
 app.register(shipmentsRoutes, { prefix: "/api/tracking" });
 app.register(quotesRoutes, { prefix: "/api/quotes" });
 app.register(quotesRoutes, { prefix: "/api/rates" });
@@ -75,5 +101,6 @@ app.register(documentsRoutes, { prefix: "/api/documents" });
 app.register(authRoutes, { prefix: "/api/auth" });
 app.register(adminRoutes);
 app.register(trackingRoutes, { prefix: "/api/tracking" });
+app.register(healthRoutes, { prefix: "/api" });
 
 export default app;

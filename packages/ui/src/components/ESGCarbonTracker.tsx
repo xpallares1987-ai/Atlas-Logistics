@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import {
   Leaf,
-  DownloadCloud,
+  Download,
   AlertTriangle,
   Wind,
   Anchor,
@@ -112,6 +112,36 @@ const COLORS = {
 export function ESGCarbonTracker() {
   const [shipments] = useState<ShipmentCarbon[]>(MOCK_SHIPMENTS);
 
+  const exportToCSV = (data: Record<string, any>[], filename: string) => {
+    if (!data.length) return;
+    const headers = Object.keys(data[0]);
+    const csvRows = [
+      headers.join(","),
+      ...data.map((row) =>
+        headers
+          .map((h) => {
+            const val = row[h];
+            const str = val === null || val === undefined ? "" : String(val);
+            return str.includes(",") || str.includes('"') || str.includes("\n")
+              ? `"${str.replace(/"/g, '""')}"`
+              : str;
+          })
+          .join(","),
+      ),
+    ];
+    const blob = new Blob([csvRows.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${filename}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const metrics = useMemo(() => {
     let totalCO2 = 0;
     let totalWeight = 0;
@@ -163,8 +193,11 @@ export function ESGCarbonTracker() {
             supply chain.
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors">
-          <DownloadCloud size={16} />
+        <button
+          onClick={() => exportToCSV(shipments, "ghg-report")}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+        >
+          <Download size={14} />
           Export GHG Report
         </button>
       </div>
