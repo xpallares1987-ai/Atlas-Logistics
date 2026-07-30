@@ -30,18 +30,16 @@ The platform is a comprehensive ERP for Freight Forwarders, containing the follo
 <RULE[atlas_logistics_database_and_standards]>
 # Atlas-Logistics — Workspace Agent Rules
 
-## 🔴 REGLA CRÍTICA: Base de Datos Principal
+## 🔴 REGLA CRÍTICA: Base de Datos Principal (Coste $0)
 
-**Se ha abandonado el uso de Drizzle local y Firestore como fuentes primarias de datos estructurados.**
-La única fuente de la verdad para datos relacionales es **Google Cloud SQL (PostgreSQL)** administrado a través de **Firebase Data Connect**.
+**Se ha abandonado el uso de Firebase Data Connect, Firestore y Google Cloud SQL para evitar costes.**
+La única fuente de la verdad para datos relacionales es una base de datos local SQLite administrada a través de **Drizzle ORM**.
 
-### Firebase Data Connect
-- **Esquema:** Las definiciones GraphQL se encuentran en `dataconnect/schema/schema.gql`.
-- **SDK Autogenerado:** El código tipado se genera en `src/dataconnect-generated` y se vincula localmente.
-- **Pre-requisito de Despliegue:** Para desplegar cambios en la base de datos de manera segura, siempre usar `firebase dataconnect:sdk:generate`.
-- **Scripts de Sembrado (`scripts/seed_postgres.ts`):** 
-  - Solo debe ejecutarse en entornos de desarrollo local. 
-  - Tiene un bloqueador estricto (`process.env.NODE_ENV === 'production'`) para prevenir la eliminación accidental de datos productivos.
+### Drizzle & libSQL
+- **Driver Estricto:** Se prohíbe usar `better-sqlite3` debido a problemas de compilación C++ (node-gyp) en Windows bajo Node 24. El driver oficial obligatorio es `@libsql/client` (libSQL).
+- **Esquema:** Los esquemas de Drizzle se definen en TypeScript puro.
+- **Despliegue local:** Usar `pnpm run db:push` para sincronizar los esquemas sin migraciones complejas.
+- **Cero Dependencias de Cloud:** Ningún componente debe importar SDKs de Firebase Admin, Google Auth o Data Connect.
 
 ## APIs Abiertas (Ingeniería de Datos)
 

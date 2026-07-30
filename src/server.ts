@@ -7,19 +7,10 @@ import { initPubSub } from "./services/pubsub.service.js";
 import { loadSecrets } from "./config/secrets.js";
 import { logger } from "./config/logger.js";
 import { connectRedis } from "./config/redis.js";
-import { initializeApp, getApps } from "firebase-admin/app";
-
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 async function bootstrap() {
   logger.info("Starting Atlas Logistics Backend...");
-
-  // Inicializar Firebase Admin SDK (requerido para Data Connect Admin SDK)
-  if (getApps().length === 0) {
-    initializeApp({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || "demo-atlas",
-    });
-  }
 
   if (process.env.GOOGLE_CLOUD_PROJECT) {
     await loadSecrets(process.env.GOOGLE_CLOUD_PROJECT);

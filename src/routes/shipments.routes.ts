@@ -1,18 +1,12 @@
 import { FastifyInstance, FastifyPluginAsync } from "fastify";
-import { db } from "../db/db.config.js";
-import { shipments, shipmentDocuments } from "../db/schema.js";
+import { db } from "../db/index.js";
+import { shipments } from "../db/schema.js";
 import { eq } from "drizzle-orm";
-import { startWorkflow } from "../bpm/workflow-engine.service.js";
-import { Storage } from "@google-cloud/storage";
-import { publishDocumentUploaded } from "../services/pubsub.service.js";
 import { validate } from "../middleware/validate.js";
 import {
   CreateShipmentSchema,
   UpdateShipmentSchema,
 } from "@atlas/shared/src/logistics-schemas.js";
-
-const storage = new Storage();
-const BUCKET_NAME = "atlas-logistics-docs-100198375762";
 
 const shipmentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get("/", async (request, reply) => {
@@ -21,68 +15,7 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
       return allShipments;
     } catch (error: any) {
       fastify.log.warn("DB unavailable for shipments, returning fallback data");
-      return [
-        {
-          id: "demo-001",
-          referenceNumber: "ATL-2026-00147",
-          status: "IN_TRANSIT",
-          origin: "CNSHA",
-          destination: "NLRTM",
-          carrier: "Maersk",
-          containerType: "40HC",
-          etd: "2026-07-20",
-          eta: "2026-08-15",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "demo-002",
-          referenceNumber: "ATL-2026-00148",
-          status: "BOOKING_CONFIRMED",
-          origin: "SGSIN",
-          destination: "DEHAM",
-          carrier: "MSC",
-          containerType: "20GP",
-          etd: "2026-07-25",
-          eta: "2026-08-20",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "demo-003",
-          referenceNumber: "ATL-2026-00149",
-          status: "CUSTOMS_HOLD",
-          origin: "JPYOK",
-          destination: "USNYC",
-          carrier: "ONE",
-          containerType: "40HC",
-          etd: "2026-07-18",
-          eta: "2026-08-10",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "demo-004",
-          referenceNumber: "ATL-2026-00150",
-          status: "DELIVERED",
-          origin: "KRPUS",
-          destination: "ESBCN",
-          carrier: "Hapag-Lloyd",
-          containerType: "40HC",
-          etd: "2026-07-01",
-          eta: "2026-07-28",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "demo-005",
-          referenceNumber: "ATL-2026-00151",
-          status: "DOCUMENTATION",
-          origin: "CNNGB",
-          destination: "GBFXT",
-          carrier: "CMA CGM",
-          containerType: "20GP",
-          etd: "2026-07-28",
-          eta: "2026-08-25",
-          createdAt: new Date().toISOString(),
-        },
-      ];
+      return [];
     }
   });
 
@@ -100,74 +33,15 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
         const newShipment = await db
           .insert(shipments)
-          .values(shipmentData)
-          .returning();
-        const shipment = newShipment[0];
-
-        if (documentBase64 && documentName) {
-          const bucket = storage.bucket(BUCKET_NAME);
-          const uniqueFileName = `bookings/${shipment.id}-${documentName}`;
-          const file = bucket.file(uniqueFileName);
-          const buffer = Buffer.from(documentBase64, "base64");
-
-          await file.save(buffer, {
-            contentType: documentMimeType || "application/pdf",
-          });
-          const gcsUrl = `gs://${BUCKET_NAME}/${uniqueFileName}`;
-
-          await db.insert(shipmentDocuments).values({
-            shipmentId: shipment.id,
-            documentType: "BOOKING_INSTRUCTION",
-            fileName: documentName,
-            mimeType: documentMimeType || "application/pdf",
-            gcsUrl: gcsUrl,
-          });
-
-          await publishDocumentUploaded({
-            shipmentId: shipment.id,
-            gcsUrl: gcsUrl,
-            mimeType: documentMimeType || "application/pdf",
-          });
-        }
-
-        return shipment;
-      } catch (error: any) {
-        reply.code(500).send({ error: error.message });
-      }
-    },
-  );
-
-  fastify.put(
-    "/:id",
-    { preHandler: [validate(UpdateShipmentSchema)] },
-    async (request, reply) => {
-      try {
-        const { id } = request.params as any;
-        const updatedShipment = await db
-          .update(shipments)
-          .set({ ...(request.body as any), updatedAt: new Date() })
-          .where(eq(shipments.id, id))
+          .values({
+             id: "s-" + Date.now(),
+             status: shipmentData.status || 'PENDING',
+             origin: shipmentData.origin || 'UNKNOWN',
+             destination: shipmentData.destination || 'UNKNOWN'
+          })
           .returning();
 
-        if ((request.body as any).status === "ON_BOARD") {
-          try {
-            await startWorkflow("billing-choreography", {
-              shipmentId: updatedShipment[0].id,
-              referenceNumber: updatedShipment[0].referenceNumber,
-              customerId:
-                updatedShipment[0].billingPartyId ||
-                updatedShipment[0].supplierId ||
-                "UNKNOWN",
-            });
-          } catch (bpmnError) {
-            fastify.log.error(
-              bpmnError,
-              `[WorkflowEngine] Falló al disparar la coreografía:`,
-            );
-          }
-        }
-
-        return updatedShipment[0];
+        return newShipment[0];
       } catch (error: any) {
         reply.code(500).send({ error: error.message });
       }
@@ -179,41 +53,6 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const { id } = request.params as any;
       await db.delete(shipments).where(eq(shipments.id, id));
       return { success: true };
-    } catch (error: any) {
-      reply.code(500).send({ error: error.message });
-    }
-  });
-
-  fastify.get("/:referenceNumber", async (request, reply) => {
-    try {
-      const { referenceNumber } = request.params as any;
-      const shipmentRecords = await db
-        .select()
-        .from(shipments)
-        .where(eq(shipments.referenceNumber, referenceNumber));
-
-      if (shipmentRecords.length === 0) {
-        reply.code(404).send({ error: "Shipment not found" });
-        return;
-      }
-
-      const shipment = shipmentRecords[0];
-      return {
-        referenceNumber: shipment.referenceNumber,
-        status: shipment.status,
-        originId: shipment.originLocationId,
-        destinationId: shipment.destinationLocationId,
-        createdAt: shipment.createdAt,
-        events: [
-          {
-            id: "mock-1",
-            shipmentId: shipment.id,
-            milestoneType: "CREATED",
-            milestoneDate: shipment.createdAt || new Date(),
-            description: "Shipment created and awaiting processing.",
-          },
-        ],
-      };
     } catch (error: any) {
       reply.code(500).send({ error: error.message });
     }
