@@ -3,11 +3,18 @@ import { sql } from 'drizzle-orm';
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
-  email: text('email').notNull(),
+  email: text('email').notNull().unique(),
+  hashedPassword: text('hashed_password'),
   role: text('role').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }),
   isDeleted: integer('is_deleted', { mode: 'boolean' }).notNull().default(false),
+});
+
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  expiresAt: integer('expires_at').notNull()
 });
 
 export const shipments = sqliteTable('shipments', {

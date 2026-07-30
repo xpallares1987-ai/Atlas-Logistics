@@ -1,5 +1,5 @@
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { db, client } from './db.config.js';
+import { migrate } from 'drizzle-orm/libsql/migrator';
+import { db } from './index.js';
 
 export async function runMigrations() {
   console.log('Running database migrations...');
@@ -12,11 +12,12 @@ export async function runMigrations() {
   }
 }
 
-// Automatically run if executed directly
-runMigrations().then(() => {
-  client.end();
-  process.exit(0);
-}).catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+const isMain = import.meta.url.includes('migrate.ts') || process.argv[1].includes('migrate.ts');
+if (isMain) {
+  runMigrations().then(() => {
+    process.exit(0);
+  }).catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
