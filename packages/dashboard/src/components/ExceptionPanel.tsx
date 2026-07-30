@@ -27,7 +27,7 @@ export function ExceptionPanel({
   onResolve,
 }: ExceptionPanelProps) {
   const [localState, setLocalState] = useState<Record<string, string>>({});
-  const [undoTimers, setUndoTimers] = useState<Record<string, NodeJS.Timeout>>(
+  const [undoTimers, setUndoTimers] = useState<Record<string, ReturnType<typeof setTimeout>>>(
     {},
   );
 

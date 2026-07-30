@@ -91,9 +91,7 @@ const InvoicingModule = React.lazy(() => import("./pages/InvoicingModule"));
 const CustomerPortalModule = React.lazy(
   () => import("./pages/CustomerPortalModule"),
 );
-const AiBookingParserModule = React.lazy(
-  () => import("./pages/AiBookingParserModule"),
-);
+
 const WorkflowManagerModule = React.lazy(
   () => import("./pages/WorkflowManagerModule"),
 );
@@ -102,11 +100,7 @@ const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = React.lazy(() => import("./pages/TermsOfService"));
 const PublicTracking = React.lazy(() => import("./pages/PublicTracking"));
 
-const AiCopilot = React.lazy(() =>
-  import("@atlas/ui/src/components/AiCopilot").then((m) => ({
-    default: m.AiCopilot,
-  })),
-);
+
 
 function NavLink({
   to,
@@ -142,8 +136,7 @@ export default function App() {
     isSettingsMenuOpen,
     toggleSettingsMenu,
     setSettingsMenuOpen,
-    isCopilotOpen,
-    setCopilotOpen,
+
     notifications,
     addNotification,
     markAllNotificationsAsRead,
@@ -657,22 +650,7 @@ export default function App() {
                       </ProtectedRoute>
                     }
                   />
-                  <Route
-                    path="/smart-booking"
-                    element={
-                      <ProtectedRoute
-                        allowedRoles={[
-                          "ADMIN",
-                          "EXECUTIVE",
-                          "MANAGER",
-                          "SALES",
-                          "OPERATIONS",
-                        ]}
-                      >
-                        <AiBookingParserModule />
-                      </ProtectedRoute>
-                    }
-                  />
+
                   <Route
                     path="/ai-assistant"
                     element={
@@ -753,53 +731,6 @@ export default function App() {
                 </Link>
               </div>
             </footer>
-
-            {/* Floating AI Copilot */}
-            <div className="absolute bottom-6 right-6 z-[100]">
-              {isCopilotOpen ? (
-                <div className="w-[400px] h-[600px] rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-700 bg-slate-900 relative">
-                  <button
-                    onClick={() => setCopilotOpen(false)}
-                    className="absolute top-4 right-4 text-slate-400 hover:text-white z-10"
-                  >
-                    ✕
-                  </button>
-                  <Suspense
-                    fallback={
-                      <div className="p-4 text-white">Cargando Copilot...</div>
-                    }
-                  >
-                    <AiCopilot />
-                  </Suspense>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setCopilotOpen(true)}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-full shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all hover:scale-105 flex items-center justify-center group"
-                >
-                  <div className="absolute -inset-1 bg-indigo-500 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="relative"
-                  >
-                    <path d="M12 8V4H8" />
-                    <rect width="16" height="12" x="4" y="8" rx="2" />
-                    <path d="M2 14h2" />
-                    <path d="M20 14h2" />
-                    <path d="M15 13v2" />
-                    <path d="M9 13v2" />
-                  </svg>
-                </button>
-              )}
-            </div>
           </main>
         </div>
       </Router>

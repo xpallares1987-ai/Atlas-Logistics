@@ -14,7 +14,7 @@ import quotesRoutes from "./routes/quotes.routes.js";
 import invoicesRoutes from "./routes/invoices.routes.js";
 import financialRoutes from "./routes/financial.routes.js";
 import eventsRoutes from "./routes/events.routes.js";
-import aiRoutes from "./routes/ai.routes.js";
+
 import documentsRoutes from "./routes/documents.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -96,7 +96,7 @@ app.register(quotesRoutes, { prefix: "/api/rates" });
 app.register(invoicesRoutes, { prefix: "/api/invoices" });
 app.register(financialRoutes, { prefix: "/api" });
 app.register(eventsRoutes, { prefix: "/api" });
-app.register(aiRoutes, { prefix: "/api/ai" });
+
 app.register(documentsRoutes, { prefix: "/api/documents" });
 app.register(authRoutes, { prefix: "/api/auth" });
 app.register(adminRoutes);

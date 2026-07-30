@@ -20,7 +20,7 @@ export * from "./ProfitabilityDashboard";
 export * from "./utils/milestones";
 export * from "./DynamicRateEngine";
 
-export * from "./DataAnalystChat";
+
 export * from "./HumanTasklist";
 export * from "./Modal";
 export type { ModalInstance } from "./Modal";
@@ -28,9 +28,5 @@ export * from "./Toast";
 export * from "./Globe";
 export * from "./OmniSearch";
 export * from "@atlas/shared";
-export * from "./firebase/FirebaseProvider";
-export * from "./hooks/useAuth";
 import "./i18n";
-export * from "./AiCopilot";
-
 export * from "./GlobeTracker";
