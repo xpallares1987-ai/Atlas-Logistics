@@ -19,41 +19,24 @@ The ecosystem is built on a Monorepo managed by `Turborepo` and `pnpm` (version 
   - **`packages/rate-comparer`**: Module dedicated to the ingestion (using `exceljs` safely to avoid vulnerabilities of older libraries), comparison, and analytics of freight rates.
 - **`packages/shared` and `packages/ui`**: Contain shared utilities and UI components consumed by the main application.
 
-## 3. Data Layer (Firebase Data Connect)
+## 3. Data Layer (SQLite & Drizzle)
 
-All persistent state and database queries for the Super-App are performed using **Firebase Data Connect**.
+All persistent state and database queries for the Super-App are performed using **Local SQLite** and **Drizzle ORM**.
 
-1. **PostgreSQL on Cloud SQL**: The single source of truth.
-2. **Declarative Schema**: Defined in the `/dataconnect` directory via GraphQL.
-3. **End-to-End Typed SDKs**: By running `firebase dataconnect:sdk:generate`, Firebase generates TypeScript functions that strictly type-expose Postgres *Queries* and *Mutations* directly to our React components. There is no Node.js intermediary.
+1. **Local SQLite (`atlas.db`)**: The single source of truth for the local environment, achieving $0 operational costs.
+2. **libSQL Driver**: We use `@libsql/client` (WASM/JS) rather than `better-sqlite3` to ensure the project runs seamlessly on Windows and Node 24 without native C++ compilation (node-gyp) errors.
+3. **Drizzle ORM**: Used for strict TypeScript schemas and migrations, executed locally via `pnpm run db:push`.
 
 ## 4. CI/CD Pipeline and Continuous Integration
 
 The repository is configured for ultra-efficient continuous integration automated with **GitHub Actions**:
-- **Multi-environment Deployments**: The frontend is compiled and deployed concurrently to **Firebase Hosting** (production/preview) and **GitHub Pages**.
-- **Zero-Trust Authentication (WIF)**: **Google Cloud Workload Identity Federation** (pool `github-pool`, provider `github-provider`) is used to securely authenticate workflows against Firebase without exchanging static Service Account Keys.
-- **Build and Testing**: The official build command is `pnpm run build` at the root, which uses Turbo to package in parallel using remote/local caches. Additionally, an automated **End-to-End (E2E)** test suite is run with Playwright.
-- **Code Scanning and Security**: Constant code analysis in CI with CodeQL and `njsscan` to prevent vulnerability regressions (e.g., timing attacks, modulo biases).
+- **Build and Testing**: The official build command is `pnpm run build` at the root, which uses Turbo to package in parallel using remote/local caches.
+- **Code Scanning and Security**: Constant code analysis in CI with CodeQL and `njsscan` to prevent vulnerability regressions.
 
 ## 5. Security and Access Control (RBAC)
 
-Primary authentication is managed with **Firebase Authentication**. Roles and hierarchies (e.g., `ADMIN`, `MANAGER`, `USER`) are handled using **Custom Claims**:
-- A Cloud Function (`assignUserRole`) securely updates the user's claims in Firebase Auth.
-- The frontend consumes the updated JWT token to show or hide routes and interfaces (using components like `<RoleGate>`).
-- All critical database queries in **Data Connect** implement direct GraphQL directives like `@auth(level: USER)` to de facto reject unauthenticated public requests.
+Authentication and multi-tenant authorization have been simplified for the local environment to support local testing without incurring cloud authentication costs. A mock AuthProvider ensures the application can be explored fully offline.
 
-## 6. Asynchronous Integration with Cloud Tasks (ERP)
+## 6. Asynchronous Tasks (BullMQ)
 
-Heavy workflows or integrations with legacy third-party systems (like the corporate ERP) are decoupled from the frontend's main thread using **Google Cloud Tasks**:
-- The client invokes `onCall` functions (e.g., `startErpSimulation`) synchronously, providing immediate validation.
-- These functions enqueue asynchronous tasks with programmable delays (`scheduleDelaySeconds`).
-- `onTaskDispatched` functions (e.g., `simulateErpCallback`) react to queues, ensuring retries and fault tolerance.
-
-## 7. Artificial Intelligence (AI Layer)
-
-Atlas Logistics is strongly powered by Foundational Models (*Gemini 2.5 and 3.1 Pro*) executed natively in Google Cloud Functions.
-The AI ecosystem provides functionalities such as:
-- **Data Analyst Chat (`chatWithData`)**: Text-to-SQL interface that directly queries the standardized schema (Data Connect) and returns insights based on the `Shipments` table and global catalogs (`DictionaryTerm`).
-- **Logistics OCR (`documentOCR`)**: Automated JSON extraction from physical documents (Bill of Lading).
-- **Predictive ETA (`predictETA`)**: Risk assessment of delays using live web searches to obtain real-world conditions.
-- **Bin Packing (`optimizeLCL`)**: Use of `code_execution` to solve NP-Hard algorithms in 3D using Python on demand.
+Heavy workflows or background processing are decoupled from the main thread using **BullMQ** with Redis (AtlasEngine Workers) rather than relying on external Cloud Tasks, keeping the stack fully self-hosted.

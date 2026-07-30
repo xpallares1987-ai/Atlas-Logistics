@@ -2,7 +2,6 @@
 // @ts-nocheck
 import { Worker, Queue, Job } from "bullmq";
 import { Redis } from "ioredis";
-import { Logging } from "@google-cloud/logging";
 import {
   startWorkflowInstance,
   updateWorkflowStatus,
@@ -27,9 +26,7 @@ const connection = new Redis(
 
 export const workflowQueue = new Queue("atlas-workflows", { connection });
 
-// Initialize GCP Logging
-const gcpLogging = new Logging();
-const gcpLog = gcpLogging.log("atlas-workflows");
+// Removed GCP Logging
 
 // Registry for AtlasWorkers
 const workerRegistry = new Map<string, AtlasWorker>();
@@ -53,17 +50,7 @@ export const bullWorker = new Worker(
     logger.info(
       `[WorkflowEngine] Executing ${taskType} for workflow ${workflowId}`,
     );
-    // Send structured log to GCP
-    const metadata = {
-      resource: { type: "global" },
-      labels: { taskType, workflowId },
-    };
-    const entry = gcpLog.entry(metadata, {
-      message: `Started task ${taskType}`,
-      taskType,
-      workflowId,
-    });
-    gcpLog.write(entry).catch(console.error);
+    // Removed GCP log write
 
     // Create a mock Zeebe job object so we don't have to rewrite the worker's execute signatures
     const mockZeebeJob = {
@@ -74,19 +61,11 @@ export const bullWorker = new Worker(
 
     try {
       const result = await workerInstance.execute(mockZeebeJob);
-      const successEntry = gcpLog.entry(metadata, {
-        message: `Successfully finished task ${taskType}`,
-        result,
-      });
-      gcpLog.write(successEntry).catch(console.error);
+      logger.info(`[WorkflowEngine] Successfully finished task ${taskType}`);
       return result;
     } catch (err: any) {
       logger.error(`[WorkflowEngine] Error in ${taskType}: ${err.message}`);
-      const errorEntry = gcpLog.entry(
-        { ...metadata, severity: "ERROR" },
-        { message: `Error in task ${taskType}`, error: err.message },
-      );
-      gcpLog.write(errorEntry).catch(console.error);
+      // Removed GCP log write
       throw err;
     }
   },
