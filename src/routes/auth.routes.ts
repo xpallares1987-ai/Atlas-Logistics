@@ -1,5 +1,11 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { lucia } from "../lib/auth";
+import { db } from "../db";
+import { users } from "../db/schema";
+import { eq } from "drizzle-orm";
+import { Argon2id } from "oslo/password";
+import { generateId } from "lucia";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -7,31 +13,48 @@ const loginSchema = z.object({
 });
 
 export default async function authRoutes(fastify: FastifyInstance) {
+  fastify.post("/signup", async (request, reply) => {
+    try {
+      const { email, password } = loginSchema.parse(request.body);
+      const hashedPassword = await new Argon2id().hash(password);
+      const userId = generateId(15);
+      
+      await db.insert(users).values({
+        id: userId,
+        email,
+        hashedPassword,
+        role: "ADMIN" // Default for testing
+      });
+
+      const session = await lucia.createSession(userId, {});
+      const sessionCookie = lucia.createSessionCookie(session.id);
+      
+      reply.setCookie(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
+      return { success: true, message: "Usuario creado" };
+    } catch (error) {
+      console.error(error);
+      return reply.code(400).send({ error: "Error creando usuario o email duplicado" });
+    }
+  });
+
   fastify.post("/login", async (request, reply) => {
     try {
       const { email, password } = loginSchema.parse(request.body);
       
-      // MOCK: Validación muy básica. En un entorno real se compara hash con la BD.
-      if (password !== "password123") {
+      const [existingUser] = await db.select().from(users).where(eq(users.email, email));
+      if (!existingUser || !existingUser.hashedPassword) {
         return reply.code(401).send({ error: "Credenciales inválidas" });
       }
 
-      // Generar JWT
-      const token = fastify.jwt.sign({ 
-        email, 
-        sub: "usr_mock",
-        role: "ADMIN"
-      }, { expiresIn: '8h' });
+      const validPassword = await new Argon2id().verify(existingUser.hashedPassword, password);
+      if (!validPassword) {
+        return reply.code(401).send({ error: "Credenciales inválidas" });
+      }
 
-      // Enviar como HttpOnly Cookie
-      reply.setCookie("token", token, {
-        path: "/",
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 8 * 60 * 60, // 8 hours
-      });
-
+      const session = await lucia.createSession(existingUser.id, {});
+      const sessionCookie = lucia.createSessionCookie(session.id);
+      
+      reply.setCookie(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
       return { success: true, message: "Autenticado correctamente" };
     } catch (error) {
       return reply.code(400).send({ error: "Formato de petición inválido" });
@@ -39,7 +62,36 @@ export default async function authRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post("/logout", async (request, reply) => {
-    reply.clearCookie("token", { path: "/" });
+    const sessionId = request.cookies[lucia.sessionCookieName];
+    if (!sessionId) {
+      return reply.code(401).send({ error: "No autorizado" });
+    }
+    
+    await lucia.invalidateSession(sessionId);
+    const sessionCookie = lucia.createBlankSessionCookie();
+    reply.setCookie(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
+    
     return { success: true, message: "Sesión cerrada" };
+  });
+
+  fastify.get("/me", async (request, reply) => {
+    const sessionId = request.cookies[lucia.sessionCookieName];
+    if (!sessionId) {
+      return reply.code(401).send({ error: "No autorizado" });
+    }
+
+    const { session, user } = await lucia.validateSession(sessionId);
+    if (!session) {
+      const sessionCookie = lucia.createBlankSessionCookie();
+      reply.setCookie(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
+      return reply.code(401).send({ error: "No autorizado" });
+    }
+
+    if (session && session.fresh) {
+      const sessionCookie = lucia.createSessionCookie(session.id);
+      reply.setCookie(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
+    }
+
+    return { user };
   });
 }
