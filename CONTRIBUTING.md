@@ -19,20 +19,19 @@ pnpm add lucide-react --filter @atlas/frontend
 ```
 
 ### Database Modification Rules
-- The database is managed by **Firebase Data Connect** to Google Cloud SQL.
-- If you need to alter tables, edit the `.gql` files in the `dataconnect/` folder.
-- After making changes, you **MUST** regenerate the client SDK for TypeScript to catch errors and deploy:
+- The database is managed by **Local SQLite** and **Drizzle ORM**.
+- If you need to alter tables, edit the TypeScript schema files (e.g., in `src/db/schema.ts`).
+- After making changes, you **MUST** push the schema directly to your local database:
   ```bash
-  npx firebase dataconnect:sdk:generate
-  npx firebase deploy --only dataconnect
+  pnpm run db:push
   ```
-- **Forbidden**: Do not manually edit any files within the generated dataconnect folders.
-- **Data Seeding**: Bulk insertions must be performed using scripts invoking secure mutations. If the schema uses strict directives (`@auth(level: USER)`), make sure to test your scripts against the authenticated environment or change permissions to `PUBLIC` exclusively during automated maintenance operations and revert them immediately.
+- **Forbidden**: Do not use cloud database services or Firebase Data Connect. The architecture relies on `$0` cost infrastructure.
+- **Data Seeding**: Bulk insertions must be performed using local scripts connecting directly to `atlas.db` via the libSQL driver (`@libsql/client`).
 
 ### Backend and AI Functions Rules
-- Backend code is located in `functions/src`.
-- For **heavy or asynchronous processes**, use *Cloud Tasks* (`onTaskDispatched`) instead of keeping the HTTP request waiting. (See `erp.ts` as an example).
-- For **Artificial Intelligence modules**, we centralize the logic in `gemini.ts`. When creating new prompts, make sure to carefully document and sanitize inputs (especially if SQL queries are built).
+- Backend API logic is centralized locally in the Express Fastify application under `src/`.
+- For **heavy or asynchronous processes**, use **BullMQ (AtlasEngine Workers)** instead of keeping the HTTP request waiting.
+- For **Artificial Intelligence modules**, we centralize the logic in specialized services (like `geminiService.ts`). When creating new prompts, make sure to carefully document and sanitize inputs.
 - Native Python dependencies required by the AI should be provided using Gemini's `code_execution` tool, not by adding complex dependencies to the Node.js runtime.
 
 ## Visual Style and Design

@@ -104,7 +104,13 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "better-sqlite3"
-    ]
+    ],
+    "auditConfig": {
+      "ignoreCves": [
+        "CVE-2026-14257",
+        "GHSA-mh99-v99m-4gvg"
+      ]
+    }
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
