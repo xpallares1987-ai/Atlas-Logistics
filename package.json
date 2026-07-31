@@ -105,6 +105,13 @@
     "vitest": "^4.1.10"
   },
   "pnpm": {
+    "overrides": {
+      "brace-expansion": "^5.0.9",
+      "react-router": "^8.3.0",
+      "valibot": "^1.4.2",
+      "uuid": "^14.0.0",
+      "esbuild": "^0.25.0"
+    },
     "onlyBuiltDependencies": [
       "better-sqlite3"
     ],
