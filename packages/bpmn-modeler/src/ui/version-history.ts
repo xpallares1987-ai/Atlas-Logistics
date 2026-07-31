@@ -1,12 +1,12 @@
-import { getDiagramVersions, saveDiagramVersion } from '../services/firestoreService';
+// import { getDiagramVersions, saveDiagramVersion } from '../services/firestoreService';
 import { loadDiagramInNewTab } from '../state/tab-manager';
 import { state } from '../state';
-import { getDiagramXml } from '../services/xml-service';
+// import { getDiagramXml } from '../services/xml-service';
 import { on } from '@atlas/shared';
 import { Toast } from '@atlas/ui';
 
 let container: HTMLElement | null = null;
-let currentDiagramId: string | null = null;
+// let currentDiagramId: string | null = null;
 
 export function initVersionHistory() {
   container = document.createElement('div');
@@ -41,10 +41,10 @@ export function initVersionHistory() {
     const label = prompt('Introduce una etiqueta para esta versión:');
     if (label === null) return;
 
-    const xml = await getDiagramXml(state.modeler);
+    // const xml = await getDiagramXml(state.modeler);
     try {
-      await saveDiagramVersion(state.activeTabId, xml, label || 'Versión guardada automáticamente');
-      Toast.show('Versión guardada exitosamente', 'success');
+      // await saveDiagramVersion(state.activeTabId, xml, label || 'Versión guardada automáticamente');
+      Toast.show('Versión guardada exitosamente (Mock Local)', 'success');
       await refreshVersions();
     } catch (e) {
       Toast.show('Error al guardar versión', 'error');
@@ -64,14 +64,14 @@ export function toggleVersionHistory() {
 
 export async function refreshVersions() {
   if (!state.activeTabId) return;
-  currentDiagramId = state.activeTabId;
+  // currentDiagramId = state.activeTabId;
   const listEl = document.getElementById('version-list');
   if (!listEl) return;
 
   listEl.innerHTML = '<div class="loading">Cargando versiones...</div>';
 
   try {
-    const versions = await getDiagramVersions(currentDiagramId);
+    const versions: any[] = []; // await getDiagramVersions(currentDiagramId);
     if (versions.length === 0) {
       listEl.innerHTML = '<div class="empty-state">No hay versiones guardadas todavía.</div>';
       return;
@@ -113,7 +113,7 @@ export async function refreshVersions() {
       });
     });
   } catch (e) {
-    listEl.innerHTML = '<div class="error">Error al cargar las versiones desde Firebase Firestore.</div>';
+    listEl.innerHTML = '<div class="error">Error al cargar las versiones (Almacenamiento Local Mock).</div>';
   }
 }
 

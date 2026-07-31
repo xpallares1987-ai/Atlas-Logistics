@@ -21,26 +21,15 @@ export function PredictiveAIBadge({
   const getPrediction = async () => {
     setIsLoading(true);
     try {
-      const { getApp } = await import("firebase/app");
-      const { getFunctions, httpsCallable } = await import("firebase/functions");
-      const app = getApp();
-      const functions = getFunctions(app, "europe-west1");
-
-      const predictETA = httpsCallable(functions, "predictETA");
-      const result = await predictETA({ shipmentData: shipment });
+      // Call local backend endpoint (mocked for now as we transition to local AI)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const data = result.data as any;
-      if (data.success && data.data) {
-        setPrediction({
-          riskLevel: data.data.riskLevel,
-          predictedDelayDays: data.data.predictedDelayDays,
-        });
-      } else {
-        throw new Error("Invalid prediction format");
-      }
+      setPrediction({
+        riskLevel: Math.random() > 0.7 ? "HIGH" : Math.random() > 0.4 ? "MEDIUM" : "LOW",
+        predictedDelayDays: Math.floor(Math.random() * 5),
+      });
     } catch (e) {
       console.error("Predictive AI Error:", e);
-      // Fallback
       setPrediction({
         riskLevel: Math.random() > 0.7 ? "HIGH" : Math.random() > 0.4 ? "MEDIUM" : "LOW",
         predictedDelayDays: Math.floor(Math.random() * 5),

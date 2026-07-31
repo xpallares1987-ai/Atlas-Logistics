@@ -2,8 +2,33 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, MapPin, Plane, Anchor, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { useSearchLocations } from "../dataconnect-generated/react";
+// Mock hook for locations until backend API is ready
+const useSearchLocations = ({ query }: { query: string }) => {
+  const [data, setData] = useState<{locations: Location[]} | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    if (query.length < 3) {
+      setData({ locations: [] });
+      return;
+    }
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setData({
+        locations: [
+          { locode: "CNSHA", name: "Shanghai", countryCode: "CN", countryName: "China", type: "SEAPORT" },
+          { locode: "NLRTM", name: "Rotterdam", countryCode: "NL", countryName: "Netherlands", type: "SEAPORT" },
+          { locode: "SGSIN", name: "Singapore", countryCode: "SG", countryName: "Singapore", type: "SEAPORT" },
+          { locode: "AEDXB", name: "Dubai", countryCode: "AE", countryName: "United Arab Emirates", type: "SEAPORT" }
+        ].filter(loc => loc.name.toLowerCase().includes(query.toLowerCase()) || loc.countryName.toLowerCase().includes(query.toLowerCase()))
+      });
+      setIsLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [query]);
 
+  return { data, isLoading, error: null };
+};
 interface Location {
   locode: string;
   name: string;

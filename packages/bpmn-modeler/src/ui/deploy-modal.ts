@@ -117,33 +117,7 @@ export function initDeployModal(statusbar: Statusbar, state: AppState) {
           "success",
         );
       } else {
-        statusText.textContent = "Contactando con servidor seguro (GCP)...";
-        const { getApp } = await import("firebase/app");
-        const { getFunctions, httpsCallable } =
-          await import("firebase/functions");
-        const app = getApp();
-        const functions = getFunctions(app, "europe-west1");
-        const deployBPMN = httpsCallable(functions, "deployBPMN");
-
-        if (state.modeler) {
-          const xml = await getDiagramXml(state.modeler);
-          statusText.textContent = "Desplegando en Atlas Engine...";
-          const result = await deployBPMN({ xml });
-          const data = result.data as any;
-
-          if (data.success) {
-            statusbar.setStatus(
-              `Atlas Engine: Desplegado v${data.version}`,
-              "success",
-            );
-            Toast.show(
-              `Proceso ${data.processId} desplegado (v${data.version})`,
-              "success",
-            );
-          } else {
-            throw new Error("Despliegue fallido");
-          }
-        }
+        throw new Error("Producción no está disponible localmente. Use Sandbox.");
       }
 
       modal.close();

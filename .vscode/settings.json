@@ -28,13 +28,6 @@
     "tailwindCSS.experimental.classRegex": [
         [ "cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]" ]
     ],
-    "firebase.dataConnect.alwaysAllowMutationsInProduction": true,
-    "firebase.dataConnect.skipToAppFolderSelect": true,
-    "firebase.emulators.exportOnExit": true,
-    "firebase.debug": true,
-    "firebase.emulators.exportPath": "./.firebase-data",
-    "firebase.emulators.importPath": "./.firebase-data",
-    "firebase.firebasePath": "./node_modules/firebase",
     "editor.wordWrap": "on",
     "editor.tabSize": 2,
     "editor.mouseWheelZoom": true,
