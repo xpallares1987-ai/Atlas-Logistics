@@ -2,8 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Workflow Engine", () => {
   test("should display the BullMQ Dashboard via iframe", async ({ page }) => {
-    // Navigate to the workflows page
-    await page.goto("http://localhost:5173/workflows");
+    await page.goto("/workflows");
 
     // Wait for the page to load
     await expect(
