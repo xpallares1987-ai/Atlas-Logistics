@@ -83,6 +83,7 @@
     "esbuild": "^0.28.1",
     "eslint": "^10.8.0",
     "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-storybook": "^10.5.5",
     "eslint-plugin-workspaces": "^0.12.1",
     "fast-uri": "^4.1.0",
     "husky": "^9.1.7",
