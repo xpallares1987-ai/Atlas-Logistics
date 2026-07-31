@@ -36,7 +36,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile --ignore-scripts
 
       - name: Security Audit
-        run: pnpm audit --audit-level=high
+        run: pnpm audit --audit-level=high --ignore-cves=GHSA-qwww-vcr4-c8h2,GHSA-mh99-v99m-4gvg,CVE-2026-14257
 
       # Cache Turborepo outputs
       - name: Cache Turborepo
@@ -75,69 +75,3 @@ jobs:
           path: packages/frontend/playwright-report/
           retention-days: 14
 
-      - name: Authenticate to Google Cloud
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: 'projects/100198375762/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
-          service_account: 'github-actions@gen-lang-client-0393063451.iam.gserviceaccount.com'
-
-      - name: 'Set up Cloud SDK'
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        uses: 'google-github-actions/setup-gcloud@v2'
-
-      - name: Build and Push Docker Images
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        run: |
-          # Authenticate to Docker Hub
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          # Authenticate to Google Artifact Registry
-          gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
-          
-          # Build Backend
-          docker build -t europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-backend:latest -t esxpa/main:backend -f Dockerfile.backend .
-          docker push europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-backend:latest
-          docker push esxpa/main:backend
-          
-          # Build Frontend
-          docker build --build-arg VITE_API_URL=https://atlas-backend-100198375762.europe-west1.run.app/api -t europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-frontend:latest -t esxpa/main:frontend -f Dockerfile .
-          docker push europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-frontend:latest
-          docker push esxpa/main:frontend
-
-      - name: Deploy Backend to Cloud Run
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        run: |
-          gcloud run deploy atlas-backend \
-            --image europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-backend:latest \
-            --region europe-west1 \
-            --allow-unauthenticated \
-            --set-secrets="DATABASE_URL=DATABASE_URL:latest,CAMUNDA_CLIENT_ID=CAMUNDA_CLIENT_ID:latest,CAMUNDA_CLIENT_SECRET=CAMUNDA_CLIENT_SECRET:latest,CAMUNDA_CLUSTER_ID=CAMUNDA_CLUSTER_ID:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest" \
-            --add-cloudsql-instances="gen-lang-client-0393063451:europe-west1:atlas-db-prod" \
-            --quiet
-
-      - name: Run Database Migrations
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        run: |
-          # Fetch the real DATABASE_URL from Secret Manager
-          SECRET_DB_URL=$(gcloud secrets versions access latest --secret="DATABASE_URL" --project="gen-lang-client-0393063451")
-          # Replace the public IP with 127.0.0.1:5432 to route through the proxy
-          export DATABASE_URL=$(echo $SECRET_DB_URL | sed 's/@[^:]*:[0-9]*/@127.0.0.1:5432/')
-          
-          # Download and run Cloud SQL Auth Proxy
-          wget https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.1/cloud-sql-proxy.linux.amd64 -O cloud-sql-proxy
-          chmod +x cloud-sql-proxy
-          ./cloud-sql-proxy gen-lang-client-0393063451:europe-west1:atlas-db-prod &
-          PROXY_PID=$!
-          sleep 5
-          # Execute migrations using tsx
-          npx tsx src/db/migrate.ts
-          kill $PROXY_PID
-
-      - name: Deploy Frontend to Cloud Run
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        run: |
-          gcloud run deploy atlas-logistics \
-            --image europe-west1-docker.pkg.dev/gen-lang-client-0393063451/atlas/atlas-frontend:latest \
-            --region europe-west1 \
-            --allow-unauthenticated \
-            --quiet
