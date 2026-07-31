@@ -4,15 +4,6 @@ import { Provider } from "react-redux";
 import { store } from "./shared/store";
 import RatesContent from "./RatesContent";
 import "./locale";
-import { initializeApp, getApps } from "firebase/app";
-
-if (!getApps().length) {
-  initializeApp({
-    projectId: "demo-atlas",
-    apiKey: "demo-api-key",
-    appId: "1:12345:web:12345"
-  });
-}
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 

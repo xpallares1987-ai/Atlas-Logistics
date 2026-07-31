@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local", override: false });
 
 import app from "./app.js";
-import { db } from "./db/db.config.js";
+import { db } from "./db/index.js";
 import { initPubSub } from "./services/pubsub.service.js";
 import { loadSecrets } from "./config/secrets.js";
 import { logger } from "./config/logger.js";

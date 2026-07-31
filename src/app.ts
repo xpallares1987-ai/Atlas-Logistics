@@ -21,6 +21,7 @@ import adminRoutes from "./routes/admin.routes.js";
 import trackingRoutes from "./routes/tracking.routes.js";
 import healthRoutes from "./routes/health.routes.js";
 import exceptionsRoutes from "./routes/exceptions.routes.js";
+import aiRoutes from "./routes/ai.routes.js";
 
 // Removed tRPC imports
 
@@ -43,8 +44,7 @@ app.register(fastifyCors, {
     if (
       allowed.includes(origin) ||
       origin.endsWith(".google.com") ||
-      origin.endsWith(".web.app") ||
-      origin.endsWith(".firebaseapp.com")
+      origin.endsWith(".web.app")
     ) {
       return cb(null, true);
     }
@@ -101,6 +101,7 @@ app.register(documentsRoutes, { prefix: "/api/documents" });
 app.register(authRoutes, { prefix: "/api/auth" });
 app.register(adminRoutes);
 app.register(trackingRoutes, { prefix: "/api/tracking" });
+app.register(aiRoutes, { prefix: "/api/ai" });
 app.register(healthRoutes, { prefix: "/api" });
 
 export default app;

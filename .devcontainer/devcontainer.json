@@ -16,8 +16,6 @@
   // =====================================================================================
   // NOTA: Estas variables de entorno son EXCLUSIVAMENTE para la base de datos
   //       PostgreSQL que se ejecuta DENTRO de este Dev Container para desarrollo local.
-  //       La aplicación en producción utiliza Firebase Data Connect para conectarse
-  //       a una instancia de Google Cloud SQL.
   // =====================================================================================
   "containerEnv": {
     "DATABASE_HOST": "localhost",

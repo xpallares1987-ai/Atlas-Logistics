@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { db } from "./db.config.js";
+import { db } from "./index.js";
 import {
   users,
   shipments,

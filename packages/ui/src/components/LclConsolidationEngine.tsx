@@ -524,23 +524,13 @@ export function LclConsolidationEngine({
                   return;
                 setIsOptimizing(true);
                 try {
-                  const { getApp } = await import("firebase/app");
-                  const { getFunctions, httpsCallable } =
-                    await import("firebase/functions");
-                  const app = getApp();
-                  const functions = getFunctions(app, "europe-west1");
-                  const optimizeLCL = httpsCallable(functions, "optimizeLCL");
-                  const result = await optimizeLCL({
-                    containerSpec: activeSpec,
-                    cargoPool: unassignedPool.map((c) => ({
-                      ...CARGO_TYPES[c.typeId],
-                      id: c.id,
-                    })),
-                  });
-                  const data = result.data as any;
-                  if (data.success && data.data && data.data.selectedCargoIds) {
-                    autoOptimize(data.data.selectedCargoIds);
-                  }
+                  // Mock AI Optimization
+                  await new Promise(resolve => setTimeout(resolve, 1500));
+                  
+                  // Return a subset of items to mock optimization
+                  const subset = unassignedPool.slice(0, Math.min(3, unassignedPool.length)).map(c => c.id);
+                  autoOptimize(subset);
+
                 } catch (e) {
                   console.error(e);
                   // Fallback mock optimization

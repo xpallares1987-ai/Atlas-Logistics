@@ -37,6 +37,9 @@ import { ApiStatusProvider } from "./contexts/ApiStatusContext";
 import { ApiStatusIndicator } from "./components/ApiStatusIndicator";
 import { useRole } from "./contexts/RoleContext";
 import { RoleSwitcher } from "./components/RoleSwitcher";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
 
 const DashboardModule = React.lazy(() =>
   import("@atlas/dashboard").then((m) => ({ default: m.Dashboard })),
@@ -149,8 +152,9 @@ export default function App() {
   const isAdminOrFF = role === "Admin" || role === "Freight Forwarder";
 
   return (
-    <ApiStatusProvider onNotification={addNotification}>
-      <Router>
+    <QueryClientProvider client={queryClient}>
+      <ApiStatusProvider onNotification={addNotification}>
+        <Router>
         <div
           className={`flex h-screen font-sans ${theme === "dark" ? "dark bg-slate-950 text-white" : "bg-slate-50 text-slate-900"}`}
         >
@@ -734,6 +738,7 @@ export default function App() {
           </main>
         </div>
       </Router>
-    </ApiStatusProvider>
+      </ApiStatusProvider>
+    </QueryClientProvider>
   );
 }

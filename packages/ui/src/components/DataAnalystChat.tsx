@@ -19,25 +19,17 @@ export function DataAnalystChat() {
     setIsLoading(true);
 
     try {
-      const { getApp } = await import("firebase/app");
-      const { getFunctions, httpsCallable } = await import("firebase/functions");
-      const app = getApp();
-      const functions = getFunctions(app, "europe-west1");
+      // Mock API call to local backend
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      const chatWithData = httpsCallable(functions, "chatWithData");
-      const result = await chatWithData({ question: userMsg });
-      
-      const data = result.data as any;
-      if (data.success && data.data) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "bot",
-            text: data.data.friendlyResponse,
-            sql: data.data.sqlQuery,
-          },
-        ]);
-      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "bot",
+          text: "Simulación de respuesta: Hemos despachado 4,500 toneladas este trimestre.",
+          sql: "SELECT SUM(weight) FROM shipments WHERE date >= NOW() - INTERVAL '3 months'",
+        },
+      ]);
     } catch (err) {
       console.error("Chat error:", err);
       // Fallback
