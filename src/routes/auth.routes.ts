@@ -13,7 +13,14 @@ const loginSchema = z.object({
 });
 
 export default async function authRoutes(fastify: FastifyInstance) {
-  fastify.post("/signup", async (request, reply) => {
+  fastify.post("/signup", {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: "1 minute"
+      }
+    }
+  }, async (request, reply) => {
     try {
       const { email, password } = loginSchema.parse(request.body);
       const hashedPassword = await new Argon2id().hash(password);
@@ -37,7 +44,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post("/login", async (request, reply) => {
+  fastify.post("/login", {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: "1 minute"
+      }
+    }
+  }, async (request, reply) => {
     try {
       const { email, password } = loginSchema.parse(request.body);
       

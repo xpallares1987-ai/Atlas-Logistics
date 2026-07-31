@@ -23,10 +23,10 @@ export const aiWorker = new Worker(
         .set({ status: 'COMPLETED', extractedData: result })
         .where(eq(pendingAiReviews.id, reviewId));
         
-      console.log(AI Task  completed successfully.);
+      console.log(`AI Task ${reviewId} completed successfully.`);
       return { success: true, result };
     } catch (error) {
-      console.error(AI Task  failed:, error);
+      console.error(`AI Task ${reviewId} failed:`, error);
       
       await db.update(pendingAiReviews)
         .set({ status: 'FAILED' })
@@ -39,5 +39,5 @@ export const aiWorker = new Worker(
 );
 
 aiWorker.on('failed', (job, err) => {
-  console.error(Job  failed with error );
+  console.error(`Job ${job?.id} failed with error`, err);
 });
