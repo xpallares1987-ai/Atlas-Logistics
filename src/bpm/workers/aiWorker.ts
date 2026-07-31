@@ -13,7 +13,7 @@ export const aiWorker = new Worker(
   'ai-tasks',
   async (job: Job) => {
     const { reviewId, prompt } = job.data;
-    console.log(Processing AI Task for review ...);
+    console.log(`Processing AI Task for review ${reviewId}...`);
 
     try {
       const result = await processAiTask(prompt);
