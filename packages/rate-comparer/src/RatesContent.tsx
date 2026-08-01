@@ -46,25 +46,33 @@ export default function RatesContent() {
     setQuotes([]);
 
     try {
-      const response = await fetch("/api/rates/compare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // Import the service dynamically or rely on top-level import
+      const { drizzleRateService } =
+        await import("./services/drizzleRateService");
+
+      const rates = await drizzleRateService.fetchRates(
+        origin.locode || origin.name,
+        destination.locode || destination.name,
+        equipment,
+      );
+
+      if (rates && rates.length > 0) {
+        // Map Drizzle Rate schema to match the expected RateTable format
+        const mappedQuotes = rates.map((r) => ({
+          carrier: r.carrier || "Unknown",
+          rate: r.baseOceanFreight + r.baf + r.pss + r.thc,
+          transit: r.transitTime,
+          currency: "USD",
           origin: origin.locode || origin.name,
           destination: destination.locode || destination.name,
-          containerType: equipment,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success && result.variables && result.variables.rates) {
-        setQuotes(result.variables.rates);
+          containerType: r.containerType,
+        }));
+        setQuotes(mappedQuotes);
       } else {
-        setError(result.error || "No rates found");
+        setError("No rates found for the selected route.");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to fetch from API");
+      setError(err.message || "Failed to fetch from Drizzle API");
     } finally {
       setIsLoading(false);
     }

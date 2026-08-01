@@ -16,8 +16,11 @@ The ecosystem is built on a Monorepo managed by `Turborepo` and `pnpm` (version 
 - **`packages/frontend` (Host App)**: This is the heart of the application. It acts as the main orchestrator that consolidates routing (React Router) and the general layout. It is the only frontend that runs to start the entire ecosystem.
 - **Integrated Modules (in `packages/`)**:
   - **`packages/dashboard`**: Main panel for shipments, logistics telemetry, and container visibility.
-  - **`packages/rate-comparer`**: Module dedicated to the ingestion (using `exceljs` safely to avoid vulnerabilities of older libraries), comparison, and analytics of freight rates.
+  - **`packages/rate-comparer`**: Module dedicated to the ingestion, comparison, and analytics of freight rates.
+  - **`packages/bpmn-modeler`**: Module dedicated to BPMN workflow orchestration.
 - **`packages/shared` and `packages/ui`**: Contain shared utilities and UI components consumed by the main application.
+
+*(Note: Legacy external `apps`, `functions`, and `data` directories have been removed in favor of strict Monorepo packing.)*
 
 ## 3. Data Layer (SQLite & Drizzle)
 

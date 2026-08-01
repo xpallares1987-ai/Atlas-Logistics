@@ -1,27 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "ignore": [
-    "**/dataconnect-generated/**",
-    "packages/**/dist/**",
-    "functions/lib/**",
     "**/*.config.cjs"
-  ],
-  "ignoreDependencies": [
-    "@dataconnect/generated",
-    "dataconnect-generated",
-    "default-connector",
-    "d3",
-    "dexie"
-  ],
-  "ignoreBinaries": [
-    "prettier"
-  ],
-  "workspaces": {
-    "apps/atlas-scm": {
-      "entry": ["index.html", "src/main.tsx", "vite.config.ts"]
-    },
-    "functions": {
-      "entry": ["src/index.ts"]
-    }
-  }
+  ]
 }

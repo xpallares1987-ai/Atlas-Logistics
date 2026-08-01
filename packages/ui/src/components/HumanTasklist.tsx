@@ -33,8 +33,21 @@ export interface HumanTask {
 }
 
 // Sortable Item Component (Card)
-function SortableTaskCard({ task, onClick }: { task: HumanTask, onClick?: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+function SortableTaskCard({
+  task,
+  onClick,
+}: {
+  task: HumanTask;
+  onClick?: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -48,7 +61,7 @@ function SortableTaskCard({ task, onClick }: { task: HumanTask, onClick?: () => 
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className={`bg-slate-900/60 border ${isDragging ? 'border-indigo-500 shadow-xl' : 'border-slate-700/50 hover:border-blue-500/50'} rounded-xl p-4 cursor-grab active:cursor-grabbing transition-colors mb-3`}
+      className={`bg-slate-900/60 border ${isDragging ? "border-indigo-500 shadow-xl" : "border-slate-700/50 hover:border-blue-500/50"} rounded-xl p-4 cursor-grab active:cursor-grabbing transition-colors mb-3`}
     >
       <div className="flex justify-between items-start">
         <h3 className="font-semibold text-sm text-slate-100 flex items-center gap-2">
@@ -60,7 +73,9 @@ function SortableTaskCard({ task, onClick }: { task: HumanTask, onClick?: () => 
         <span className="flex items-center gap-1">
           <Clock size={12} /> {new Date(task.creationDate).toLocaleTimeString()}
         </span>
-        <span className="bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{task.processInstanceKey.substring(0, 8)}</span>
+        <span className="bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+          {task.processInstanceKey.substring(0, 8)}
+        </span>
       </div>
     </div>
   );
@@ -72,45 +87,51 @@ export function HumanTasklist() {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setTasks([
-        {
-          id: "tsk-80123",
-          processInstanceKey: "pi-98213",
-          name: "Aprobar Despacho Aduanero",
-          creationDate: new Date().toISOString(),
-          variables: { shipmentRef: "SHP-4402", customsValue: "$124,000" },
-          state: "TODO",
-        },
-        {
-          id: "tsk-80124",
-          processInstanceKey: "pi-98214",
-          name: "Revisión de BAF Anómalo",
-          creationDate: new Date(Date.now() - 3600000).toISOString(),
-          variables: { shipmentRef: "SHP-4491", marginImpact: "-12%" },
-          state: "IN_PROGRESS",
-        },
-        {
-          id: "tsk-80125",
-          processInstanceKey: "pi-98215",
-          name: "Liberar BL Marítimo",
-          creationDate: new Date(Date.now() - 7200000).toISOString(),
-          variables: { shipmentRef: "SHP-4490" },
-          state: "DONE",
-        },
-      ]);
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    const fetchTasks = async () => {
+      try {
+        const res = await fetch(`/api/tasks`);
+        const data = await res.json();
+        // map data to the format we need
+        const mapped = data.map((t: any) => ({
+          id: t.id,
+          processInstanceKey: t.shipmentId || t.id,
+          name: t.title,
+          assignee: t.assignedTo,
+          creationDate: t.createdAt || new Date().toISOString(),
+          variables: { description: t.description },
+          state: t.status,
+        }));
+        setTasks(mapped);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTasks();
   }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
+  };
+
+  const updateTaskState = async (taskId: string, newState: TaskState) => {
+    try {
+      await fetch(`/api/tasks/${taskId}/state`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: newState }),
+      });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -119,27 +140,37 @@ export function HumanTasklist() {
 
     if (!over) return;
 
-    const activeTask = tasks.find(t => t.id === active.id);
+    const activeTask = tasks.find((t) => t.id === active.id);
     const overId = over.id;
 
     // Is it dropping on a column?
     if (["TODO", "IN_PROGRESS", "DONE"].includes(overId as string)) {
       if (activeTask && activeTask.state !== overId) {
-        setTasks(prev => prev.map(t => t.id === active.id ? { ...t, state: overId as TaskState } : t));
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === active.id ? { ...t, state: overId as TaskState } : t,
+          ),
+        );
+        updateTaskState(active.id as string, overId as TaskState);
       }
       return;
     }
 
     // Dropping on another item
-    const overTask = tasks.find(t => t.id === over.id);
+    const overTask = tasks.find((t) => t.id === over.id);
     if (activeTask && overTask && activeTask.state !== overTask.state) {
-        setTasks(prev => prev.map(t => t.id === active.id ? { ...t, state: overTask.state } : t));
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === active.id ? { ...t, state: overTask.state } : t,
+        ),
+      );
+      updateTaskState(active.id as string, overTask.state);
     } else if (activeTask && overTask && activeTask.id !== overTask.id) {
-        setTasks((prev) => {
-            const oldIndex = prev.findIndex(t => t.id === active.id);
-            const newIndex = prev.findIndex(t => t.id === over.id);
-            return arrayMove(prev, oldIndex, newIndex);
-        });
+      setTasks((prev) => {
+        const oldIndex = prev.findIndex((t) => t.id === active.id);
+        const newIndex = prev.findIndex((t) => t.id === over.id);
+        return arrayMove(prev, oldIndex, newIndex);
+      });
     }
   };
 
@@ -156,13 +187,18 @@ export function HumanTasklist() {
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <CheckCircle2 className="text-blue-400" /> Human Tasklist Kanban
           </h2>
-          <p className="text-sm text-slate-400 mt-1">Arrastra y suelta las tareas de operaciones para gestionar su estado.</p>
+          <p className="text-sm text-slate-400 mt-1">
+            Arrastra y suelta las tareas de operaciones para gestionar su
+            estado.
+          </p>
         </div>
       </div>
 
       <div className="flex-1 overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center h-full"><AlertCircle className="animate-spin text-slate-600" size={32} /></div>
+          <div className="flex items-center justify-center h-full">
+            <AlertCircle className="animate-spin text-slate-600" size={32} />
+          </div>
         ) : (
           <DndContext
             sensors={sensors}
@@ -171,18 +207,27 @@ export function HumanTasklist() {
             onDragEnd={handleDragEnd}
           >
             <div className="grid grid-cols-3 gap-6 h-full">
-              {columns.map(col => {
-                const columnTasks = tasks.filter(t => t.state === col.id);
+              {columns.map((col) => {
+                const columnTasks = tasks.filter((t) => t.state === col.id);
                 return (
-                  <div key={col.id} className={`flex flex-col bg-slate-950/50 border-t-4 ${col.color} rounded-xl p-4 shadow-inner`}>
+                  <div
+                    key={col.id}
+                    className={`flex flex-col bg-slate-950/50 border-t-4 ${col.color} rounded-xl p-4 shadow-inner`}
+                  >
                     <h3 className="font-bold text-sm text-slate-300 uppercase tracking-wider mb-4 flex justify-between items-center">
                       {col.title}
-                      <span className="bg-slate-800 px-2 py-0.5 rounded text-xs">{columnTasks.length}</span>
+                      <span className="bg-slate-800 px-2 py-0.5 rounded text-xs">
+                        {columnTasks.length}
+                      </span>
                     </h3>
-                    
-                    <SortableContext id={col.id} items={columnTasks} strategy={verticalListSortingStrategy}>
+
+                    <SortableContext
+                      id={col.id}
+                      items={columnTasks}
+                      strategy={verticalListSortingStrategy}
+                    >
                       <div className="flex-1 overflow-y-auto">
-                        {columnTasks.map(task => (
+                        {columnTasks.map((task) => (
                           <SortableTaskCard key={task.id} task={task} />
                         ))}
                       </div>
@@ -191,10 +236,12 @@ export function HumanTasklist() {
                 );
               })}
             </div>
-            
+
             <DragOverlay>
               {activeId ? (
-                <SortableTaskCard task={tasks.find(t => t.id === activeId)!} />
+                <SortableTaskCard
+                  task={tasks.find((t) => t.id === activeId)!}
+                />
               ) : null}
             </DragOverlay>
           </DndContext>

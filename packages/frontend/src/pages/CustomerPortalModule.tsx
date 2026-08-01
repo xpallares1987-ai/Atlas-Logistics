@@ -1,48 +1,35 @@
-// @ts-nocheck
 import { useState } from "react";
-import {
-  PackageSearch,
-  FileText,
-  Anchor,
-  Truck,
-  ShieldCheck,
-  MapPin,
-  Search,
-} from "lucide-react";
+import { PackageSearch, FileText, Search } from "lucide-react";
 import { ShipmentTracker } from "../features/portal/ShipmentTracker";
 import { DocumentUpload } from "../features/portal/DocumentUpload";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 
-interface ClientShipment {
-  id: string;
-  referenceNumber: string;
-  poNumber?: string;
-  origin: string;
-  destination: string;
-  status: string;
-  progress: number;
-}
-
-// import { trpc } from "../utils/trpc";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export default function CustomerPortalModule() {
-  const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const rawShipments: any[] = [];
+  const { data: rawShipments = [], isLoading } = useQuery({
+    queryKey: ["clientShipments"],
+    queryFn: async () => {
+      const res = await fetch(`${API_URL}/tracking/my-shipments`);
+      return res.json();
+    },
+  });
 
   const shipments = rawShipments.map((s: any) => {
     let prog = 10;
     if (s.status === "IN_TRANSIT") prog = 60;
-    if (s.status === "CUSTOMS_CLEARED") prog = 80;
+    if (s.status === "CUSTOMS_CLEARED" || s.status === "CUSTOMS") prog = 80;
     if (s.status === "DELIVERED") prog = 100;
 
     return {
       id: s.id,
-      referenceNumber: s.referenceNumber,
-      poNumber: `PO-${s.referenceNumber}`,
-      origin: s.origin?.name || s.origin,
-      destination: s.destination?.name || s.destination,
+      referenceNumber: s.id.substring(0, 8).toUpperCase(),
+      poNumber: `PO-${s.id.substring(0, 8).toUpperCase()}`,
+      origin: s.origin || "Shanghai",
+      destination: s.destination || "Los Angeles",
       status: s.status,
       progress: prog,
     };
@@ -50,70 +37,16 @@ export default function CustomerPortalModule() {
 
   const downloadHBL = async (shipment: any) => {
     try {
-      const hblData = {
-        shipmentId: shipment.id,
-        shipper: "Global Exports Inc.",
-        consignee: "Atlas Client",
-        portOfLoading: shipment.origin,
-        portOfDischarge: shipment.destination,
-        vessel: "MSC Gulsun",
-        voyage: "V.240E",
-        containers: [{ containerNumber: "MSCU1234567", isoType: "40HC" }],
-        commodities: [
-          {
-            description: "General Cargo",
-            pieces: 100,
-            grossWeightKg: 5000,
-            volumeCbm: 15,
-          },
-        ],
-      };
-
-      const res = await fetch(`/api/documents/hbl`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(hblData),
-      });
-
-      if (!res.ok) throw new Error("Failed to generate PDF");
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `HBL-${shipment.referenceNumber}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      // Backend generated PDF
+      window.open(`${API_URL}/documents/hbl/${shipment.id}`, "_blank");
     } catch (err) {
       console.error(err);
       alert("Error downloading document");
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    if (status === "IN_TRANSIT")
-      return <Anchor className="w-5 h-5 text-blue-500" />;
-    if (status === "CUSTOMS_CLEARED")
-      return <ShieldCheck className="w-5 h-5 text-amber-500" />;
-    if (status === "DELIVERED")
-      return <Truck className="w-5 h-5 text-emerald-500" />;
-    return <PackageSearch className="w-5 h-5 text-slate-500" />;
-  };
-
-  const getStatusColor = (status: string) => {
-    if (status === "IN_TRANSIT")
-      return "bg-blue-50 text-blue-700 border-blue-200";
-    if (status === "CUSTOMS_CLEARED")
-      return "bg-amber-50 text-amber-700 border-amber-200";
-    if (status === "DELIVERED")
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    return "bg-slate-50 text-slate-700 border-slate-200";
-  };
-
   const filteredShipments = shipments.filter(
-    (s) =>
+    (s: any) =>
       s.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (s.poNumber &&
         s.poNumber.toLowerCase().includes(searchQuery.toLowerCase())),
@@ -155,21 +88,35 @@ export default function CustomerPortalModule() {
 
       <div className="flex-1 overflow-auto p-8">
         <div className="max-w-7xl mx-auto space-y-6">
-          {filteredShipments.map((shipment, idx) => (
-            <motion.div
-              key={shipment.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1, duration: 0.4 }}
-              whileHover={{ y: -5 }}
-              className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 transition-shadow hover:shadow-md"
-            >
-              <ShipmentTracker shipment={shipment} />
-              <DocumentUpload shipmentId={shipment.id} />
-            </motion.div>
-          ))}
+          {isLoading && (
+            <div className="flex justify-center p-10">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            </div>
+          )}
+          {!isLoading &&
+            filteredShipments.map((shipment: any, idx: number) => (
+              <motion.div
+                key={shipment.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1, duration: 0.4 }}
+                whileHover={{ y: -5 }}
+                className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 transition-shadow hover:shadow-md"
+              >
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={() => downloadHBL(shipment)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                  >
+                    <FileText className="w-4 h-4" /> Download HBL
+                  </button>
+                </div>
+                <ShipmentTracker shipment={shipment} />
+                <DocumentUpload shipmentId={shipment.id} />
+              </motion.div>
+            ))}
 
-          {filteredShipments.length === 0 && (
+          {!isLoading && filteredShipments.length === 0 && (
             <div className="text-center py-20 bg-white rounded-2xl border border-slate-200 border-dashed">
               <PackageSearch className="w-12 h-12 text-slate-300 mx-auto mb-4" />
               <h3 className="text-lg font-bold text-slate-700">

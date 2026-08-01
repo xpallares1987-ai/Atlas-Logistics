@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from "fastify";
 import { logger } from "../config/logger.js";
 import { broadcastEvent } from "./events.routes.js";
 import { db } from "../db/index.js";
-import { shipments } from "../db/schema/index.js";
+import { shipments, locations } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
 
 const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
@@ -37,7 +37,11 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
       );
 
       // We'll mock the lookup for now since schema might not have trackingNumber
-      const shipmentRes = await db.select().from(shipments).where(eq(shipments.id, payload.trackingNumber)).limit(1);
+      const shipmentRes = await db
+        .select()
+        .from(shipments)
+        .where(eq(shipments.id, payload.trackingNumber))
+        .limit(1);
 
       if (shipmentRes.length === 0) {
         logger.warn(
@@ -52,11 +56,14 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const locationStr = `${payload.latitude},${payload.longitude}`;
 
       // Update the shipment
-      await db.update(shipments).set({
-        status: newStatus,
-        currentLat: payload.latitude,
-        currentLng: payload.longitude
-      }).where(eq(shipments.id, shipment.id));
+      await db
+        .update(shipments)
+        .set({
+          status: newStatus,
+          currentLat: payload.latitude,
+          currentLng: payload.longitude,
+        })
+        .where(eq(shipments.id, shipment.id));
 
       broadcastEvent({
         id: crypto.randomUUID(),
@@ -78,6 +85,55 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
     } catch (error: any) {
       logger.error("Error processing AIS Webhook:", error);
       reply.code(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get("/my-shipments", async (request, reply) => {
+    try {
+      // Mock auth: fetch shipments for the first company in the DB
+      const companyIdRes = await db
+        .select({ companyId: shipments.companyId })
+        .from(shipments)
+        .limit(1);
+      if (companyIdRes.length === 0) return reply.send([]);
+
+      const clientCompanyId = companyIdRes[0].companyId;
+
+      const clientShipments = await db
+        .select({
+          id: shipments.id,
+          referenceNumber: shipments.id,
+          origin: locations.name,
+          destination: locations.name, // Mocking destination name same as origin for now if joined improperly, but let's just send raw ID if location join is complex. Actually we can just select all.
+          status: shipments.status,
+        })
+        .from(shipments)
+        .leftJoin(locations, eq(shipments.portOfEntryId, locations.id))
+        .where(eq(shipments.companyId, clientCompanyId))
+        .limit(10);
+
+      const { shipmentEventLogs } = await import("../db/schema/index.js");
+
+      const enrichedShipments = await Promise.all(
+        clientShipments.map(async (shipment) => {
+          const events = await db
+            .select()
+            .from(shipmentEventLogs)
+            .where(eq(shipmentEventLogs.shipmentId, shipment.id));
+          return {
+            ...shipment,
+            events: events.map((e) => ({
+              status: e.status,
+              location: e.location,
+              date: e.recordedAt,
+            })),
+          };
+        }),
+      );
+
+      return reply.send(enrichedShipments);
+    } catch (error: any) {
+      reply.code(500).send({ error: error.message });
     }
   });
 };

@@ -58,6 +58,32 @@ export function ShipmentTracker({ shipment }: { shipment: any }) {
             style={{ width: `${shipment.progress}%` }}
           ></div>
         </div>
+
+        {/* Detailed Events Timeline */}
+        {shipment.events && shipment.events.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-slate-200">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+              Milestones
+            </h4>
+            <div className="space-y-4">
+              {shipment.events.map((ev: any, idx: number) => (
+                <div key={idx} className="flex gap-4 items-start">
+                  <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">
+                      {ev.status}
+                    </p>
+                    <p className="text-xs text-slate-500 flex gap-2">
+                      <span>{ev.location}</span>
+                      <span>•</span>
+                      <span>{new Date(ev.date).toLocaleDateString()}</span>
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

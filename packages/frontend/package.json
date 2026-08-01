@@ -10,7 +10,6 @@
         "type-check": "tsc --noEmit"
     },
     "dependencies": {
-        "@atlas/dashboard": "workspace:*",
         "@atlas/rate-comparer": "workspace:*",
         "@atlas/shared": "workspace:*",
         "@atlas/ui": "workspace:*",
@@ -27,6 +26,7 @@
         "framer-motion": "^12.42.2",
         "html2canvas": "^1.4.1",
         "i18next": "^26.3.6",
+        "jspdf": "^4.2.1",
         "lucide-react": "^1.27.0",
         "pdfjs-dist": "^4.2.67",
         "react": "^19.2.8",

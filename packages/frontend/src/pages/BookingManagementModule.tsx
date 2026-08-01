@@ -17,24 +17,45 @@ import {
   Save,
   Trash2,
   Book,
+  Download,
 } from "lucide-react";
+
+interface Container {
+  containerNumber: string;
+  isoType: string;
+  sealNumber: string;
+}
+
+interface Commodity {
+  description: string;
+  pieces: number;
+  grossWeightKg: number;
+  volumeCbm: number;
+}
 
 interface Booking {
   id: string;
   referenceNumber: string;
   customer: string;
+  consignee?: string;
   origin: string;
   destination: string;
   equipment: string;
   status: string;
   vessel: string;
   voyage: string;
+  containers?: Container[];
+  commodities?: Commodity[];
 }
 
 // @ts-ignore
 const API_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/shipments`
   : "/api/shipments";
+
+const DOCS_API_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/documents`
+  : "/api/documents";
 
 export default function BookingManagementModule() {
   const queryClient = useQueryClient();
@@ -56,18 +77,25 @@ export default function BookingManagementModule() {
       referenceNumber: `BKG-${Math.floor(10000 + Math.random() * 90000)}`,
       status: "DRAFT",
       customer: "",
+      consignee: "",
       origin: "",
       destination: "",
       equipment: "1x 20DC",
       vessel: "",
       voyage: "",
+      containers: [],
+      commodities: [],
     });
     setIsEditing(true);
   };
 
   const handleSelectBooking = (bkg: Booking) => {
     setSelectedBkg(bkg);
-    setFormData(bkg);
+    setFormData({
+      ...bkg,
+      containers: bkg.containers || [],
+      commodities: bkg.commodities || [],
+    });
     setIsEditing(false);
   };
 
@@ -131,6 +159,62 @@ export default function BookingManagementModule() {
     }
   };
 
+  const handleGenerateHBL = async () => {
+    if (!selectedBkg) return;
+    try {
+      // Setup payload with defaults if empty
+      const payload = {
+        shipmentId: selectedBkg.referenceNumber,
+        shipper: selectedBkg.customer || "DEFAULT SHIPPER LTD.",
+        consignee: selectedBkg.consignee || "DEFAULT CONSIGNEE INC.",
+        portOfLoading: selectedBkg.origin || "POL UNKNOWN",
+        portOfDischarge: selectedBkg.destination || "POD UNKNOWN",
+        vessel: selectedBkg.vessel || "TBN",
+        voyage: selectedBkg.voyage || "TBN",
+        containers: selectedBkg.containers?.length
+          ? selectedBkg.containers
+          : [
+              {
+                containerNumber: "MSKU1234567",
+                isoType: selectedBkg.equipment || "40HC",
+                sealNumber: "SEAL-001",
+              },
+            ],
+        commodities: selectedBkg.commodities?.length
+          ? selectedBkg.commodities
+          : [
+              {
+                description: "Freight All Kinds (FAK)",
+                pieces: 100,
+                grossWeightKg: 15000,
+                volumeCbm: 30,
+              },
+            ],
+      };
+
+      const res = await fetch(`${DOCS_API_URL}/hbl`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `HBL-${payload.shipmentId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to generate HBL", err);
+      alert("Failed to generate HBL PDF.");
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "DRAFT":
@@ -144,6 +228,42 @@ export default function BookingManagementModule() {
       default:
         return "bg-slate-100 text-slate-600 border-slate-200";
     }
+  };
+
+  const addContainer = () => {
+    setFormData((prev) => ({
+      ...prev,
+      containers: [
+        ...(prev.containers || []),
+        { containerNumber: "", isoType: "20DC", sealNumber: "" },
+      ],
+    }));
+  };
+
+  const updateContainer = (index: number, field: string, value: string) => {
+    const newContainers = [...(formData.containers || [])];
+    newContainers[index] = { ...newContainers[index], [field]: value };
+    setFormData((prev) => ({ ...prev, containers: newContainers }));
+  };
+
+  const addCommodity = () => {
+    setFormData((prev) => ({
+      ...prev,
+      commodities: [
+        ...(prev.commodities || []),
+        { description: "", pieces: 0, grossWeightKg: 0, volumeCbm: 0 },
+      ],
+    }));
+  };
+
+  const updateCommodity = (
+    index: number,
+    field: keyof Commodity,
+    value: any,
+  ) => {
+    const newCommodities = [...(formData.commodities || [])];
+    newCommodities[index] = { ...newCommodities[index], [field]: value };
+    setFormData((prev) => ({ ...prev, commodities: newCommodities }));
   };
 
   return (
@@ -239,6 +359,12 @@ export default function BookingManagementModule() {
                   {selectedBkg && !isEditing && (
                     <>
                       <button
+                        onClick={handleGenerateHBL}
+                        className="px-4 py-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+                      >
+                        <Download className="w-4 h-4" /> Download HBL
+                      </button>
+                      <button
                         onClick={() => setIsEditing(true)}
                         className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition-colors flex items-center gap-2 shadow-sm"
                       >
@@ -293,11 +419,11 @@ export default function BookingManagementModule() {
                   </span>
                 </div>
 
-                <div className="p-6 grid grid-cols-2 gap-6">
+                <div className="p-6 grid grid-cols-2 gap-6 border-b border-slate-100">
                   <div className="col-span-2 md:col-span-1 space-y-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                        Customer / Shipper
+                        Shipper
                       </label>
                       <input
                         type="text"
@@ -307,7 +433,25 @@ export default function BookingManagementModule() {
                           setFormData({ ...formData, customer: e.target.value })
                         }
                         className="w-full border border-slate-200 rounded p-2 text-sm bg-slate-50 focus:bg-white transition-colors disabled:opacity-50"
-                        placeholder="Customer Name"
+                        placeholder="Shipper Name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                        Consignee
+                      </label>
+                      <input
+                        type="text"
+                        disabled={!isEditing}
+                        value={formData.consignee || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            consignee: e.target.value,
+                          })
+                        }
+                        className="w-full border border-slate-200 rounded p-2 text-sm bg-slate-50 focus:bg-white transition-colors disabled:opacity-50"
+                        placeholder="Consignee Name"
                       />
                     </div>
                     <div>
@@ -411,6 +555,161 @@ export default function BookingManagementModule() {
                         className="w-full border border-slate-200 rounded p-2 text-sm bg-slate-50 focus:bg-white transition-colors disabled:opacity-50"
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* Additional details for Containers & Commodities */}
+                <div className="p-6 bg-slate-50">
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-bold text-slate-500 uppercase">
+                        Containers
+                      </label>
+                      {isEditing && (
+                        <button
+                          onClick={addContainer}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Add Container
+                        </button>
+                      )}
+                    </div>
+                    {formData.containers && formData.containers.length > 0 ? (
+                      <div className="space-y-2">
+                        {formData.containers.map((ctr, idx) => (
+                          <div key={idx} className="flex gap-2 items-center">
+                            <input
+                              disabled={!isEditing}
+                              type="text"
+                              placeholder="Container #"
+                              value={ctr.containerNumber}
+                              onChange={(e) =>
+                                updateContainer(
+                                  idx,
+                                  "containerNumber",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-1/3 border border-slate-200 rounded p-2 text-sm bg-white disabled:opacity-75"
+                            />
+                            <input
+                              disabled={!isEditing}
+                              type="text"
+                              placeholder="Type"
+                              value={ctr.isoType}
+                              onChange={(e) =>
+                                updateContainer(idx, "isoType", e.target.value)
+                              }
+                              className="w-1/4 border border-slate-200 rounded p-2 text-sm bg-white disabled:opacity-75"
+                            />
+                            <input
+                              disabled={!isEditing}
+                              type="text"
+                              placeholder="Seal #"
+                              value={ctr.sealNumber}
+                              onChange={(e) =>
+                                updateContainer(
+                                  idx,
+                                  "sealNumber",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-1/3 border border-slate-200 rounded p-2 text-sm bg-white disabled:opacity-75"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-400 italic">
+                        No containers defined. Default will be used on HBL
+                        generation.
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-bold text-slate-500 uppercase">
+                        Commodities (Cargo)
+                      </label>
+                      {isEditing && (
+                        <button
+                          onClick={addCommodity}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Add Cargo
+                        </button>
+                      )}
+                    </div>
+                    {formData.commodities && formData.commodities.length > 0 ? (
+                      <div className="space-y-2">
+                        {formData.commodities.map((cmd, idx) => (
+                          <div key={idx} className="flex gap-2 items-center">
+                            <input
+                              disabled={!isEditing}
+                              type="text"
+                              placeholder="Description"
+                              value={cmd.description}
+                              onChange={(e) =>
+                                updateCommodity(
+                                  idx,
+                                  "description",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-1/2 border border-slate-200 rounded p-2 text-sm bg-white disabled:opacity-75"
+                            />
+                            <input
+                              disabled={!isEditing}
+                              type="number"
+                              placeholder="Pieces"
+                              value={cmd.pieces}
+                              onChange={(e) =>
+                                updateCommodity(
+                                  idx,
+                                  "pieces",
+                                  parseInt(e.target.value),
+                                )
+                              }
+                              className="w-16 border border-slate-200 rounded p-2 text-sm bg-white disabled:opacity-75"
+                            />
+                            <input
+                              disabled={!isEditing}
+                              type="number"
+                              placeholder="Weight (KG)"
+                              value={cmd.grossWeightKg}
+                              onChange={(e) =>
+                                updateCommodity(
+                                  idx,
+                                  "grossWeightKg",
+                                  parseFloat(e.target.value),
+                                )
+                              }
+                              className="w-24 border border-slate-200 rounded p-2 text-sm bg-white disabled:opacity-75"
+                            />
+                            <input
+                              disabled={!isEditing}
+                              type="number"
+                              placeholder="Volume (CBM)"
+                              value={cmd.volumeCbm}
+                              onChange={(e) =>
+                                updateCommodity(
+                                  idx,
+                                  "volumeCbm",
+                                  parseFloat(e.target.value),
+                                )
+                              }
+                              className="w-28 border border-slate-200 rounded p-2 text-sm bg-white disabled:opacity-75"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-400 italic">
+                        No cargo defined. FAK default will be used on HBL
+                        generation.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

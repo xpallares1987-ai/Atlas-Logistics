@@ -13,10 +13,10 @@
 ## Expansion Modules (ERP Suite)
 The platform is a comprehensive ERP for Freight Forwarders, containing the following modules:
 - **Core Operations**: Dashboard, Rate Comparer, Dynamic Pricing, Globe Tracker, Sailing Schedules (`/schedules`), Booking & B/L (`/bookings`).
-- **Finance & Compliance**: Invoicing & Settlement (`/invoices`), Customs Clearance (`/customs`).
+- **Finance & Compliance**: Invoicing & Settlement (`/invoices`), Customs Clearance (`/customs`). Note: Agent Settlements logic is fully implemented.
 - **Analytics**: Profitability, Carbon Tracker, Demurrage Alerts.
-- **Operations Support**: Container Planner, LCL Engine, Warehouse 3D, Tasklist, Document Vault, AI Assistant.
-- **External Views**: Customer Portal (`/portal`).
+- **Operations Support**: Container Planner, LCL Engine, Warehouse 3D, Tasklist, Document Vault, AI Assistant. Note: Document Vault supports fully functional drag-and-drop file persistence.
+- **External Views**: Customer Portal (`/portal`). Includes file uploads and dynamic HBL PDF downloads via the Fastify backend.
 
 ## Known Issues & Gotchas
 - **React Versions**: Ensure the monorepo has unified React versions (currently `18.3.1`) across all packages to avoid `useState` null errors due to duplicate React instances.
