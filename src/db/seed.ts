@@ -6,7 +6,7 @@ import * as schema from './schema/index.js';
 import 'dotenv/config';
 
 // Provide fallback since .env might not have TURSO_URL or LOCAL_DB_URL yet.
-const client = createClient({ url: 'file:atlas-erp.db' });
+const client = createClient({ url: 'file:atlas-erp-v2.db' });
 const db = drizzle(client, { schema });
 
 async function main() {
