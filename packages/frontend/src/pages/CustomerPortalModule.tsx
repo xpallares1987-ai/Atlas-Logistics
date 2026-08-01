@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { ShipmentTracker } from "../features/portal/ShipmentTracker";
 import { DocumentUpload } from "../features/portal/DocumentUpload";
+import { motion } from "framer-motion";
 
 interface ClientShipment {
   id: string;
@@ -154,11 +155,18 @@ export default function CustomerPortalModule() {
 
       <div className="flex-1 overflow-auto p-8">
         <div className="max-w-7xl mx-auto space-y-6">
-          {filteredShipments.map((shipment) => (
-            <div key={shipment.id}>
+          {filteredShipments.map((shipment, idx) => (
+            <motion.div
+              key={shipment.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1, duration: 0.4 }}
+              whileHover={{ y: -5 }}
+              className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 transition-shadow hover:shadow-md"
+            >
               <ShipmentTracker shipment={shipment} />
               <DocumentUpload shipmentId={shipment.id} />
-            </div>
+            </motion.div>
           ))}
 
           {filteredShipments.length === 0 && (

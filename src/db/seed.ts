@@ -1,225 +1,308 @@
-import "dotenv/config";
-import { db } from "./index.js";
-import {
-  users,
-  shipments,
-  rates,
-  quotes,
-  invoices,
-  locations,
-  companies,
-  companyTypeEnum,
-} from "./schema.js";
-import { faker } from "@faker-js/faker";
+import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/libsql';
+import { faker } from '@faker-js/faker';
+import { sql } from 'drizzle-orm';
+import * as schema from './schema/index.js';
+import 'dotenv/config';
+
+// Provide fallback since .env might not have TURSO_URL or LOCAL_DB_URL yet.
+const client = createClient({ url: 'file:atlas-erp.db' });
+const db = drizzle(client, { schema });
 
 async function main() {
-  console.log("🌱 Starting Realistic Database Seed with new schema...");
+  console.log('🌱 Comenzando la inyección masiva de datos realistas (Seed)...');
 
-  try {
-    // 1. Delete existing data (reverse order of dependencies)
-    console.log("Clearing existing data...");
-    await db.delete(invoices);
-    await db.delete(quotes);
-    await db.delete(rates);
-    await db.delete(shipments);
-    await db.delete(companies);
-    await db.delete(locations);
-    await db.delete(users);
+  console.log('⚙️ Creando Triggers e inyectando lógica avanzada (Sequences)...');
+  
+  // Create Sequence generator Trigger
+  await db.run(sql`DROP TRIGGER IF EXISTS trg_auto_invoice_sequence`);
+  await db.run(sql`
+    CREATE TRIGGER trg_auto_invoice_sequence
+    AFTER INSERT ON invoices
+    WHEN NEW.invoiceNumber IS NULL OR NEW.invoiceNumber = ''
+    BEGIN
+      INSERT INTO system_sequences (name, current_value, prefix)
+      VALUES ('invoice_seq', 1, 'INV-')
+      ON CONFLICT(name) DO UPDATE SET current_value = current_value + 1;
+      
+      UPDATE invoices
+      SET invoiceNumber = (SELECT prefix || printf('%06d', current_value) FROM system_sequences WHERE name = 'invoice_seq')
+      WHERE id = NEW.id;
+    END;
+  `);
 
-    // 2. Generate 15 Users
-    console.log("Generating Users...");
-    const roles = [
-      "ADMIN",
-      "EXECUTIVE",
-      "MANAGER",
-      "SALES",
-      "OPERATIONS",
-      "CUSTOMER",
-    ];
-    const insertedUsers = [];
+  // Create Audit Trigger for Shipments
+  await db.run(sql`DROP TRIGGER IF EXISTS trg_audit_shipment_status`);
+  await db.run(sql`
+    CREATE TRIGGER trg_audit_shipment_status
+    AFTER UPDATE OF status ON shipments
+    WHEN OLD.status != NEW.status
+    BEGIN
+      INSERT INTO audit_logs (table_name, record_id, action, old_data, new_data)
+      VALUES (
+        'shipments',
+        NEW.id,
+        'STATUS_CHANGE',
+        OLD.status,
+        NEW.status
+      );
+    END;
+  `);
 
-    for (let i = 0; i < 15; i++) {
-      const [user] = await db
-        .insert(users)
-        .values({
-          email: faker.internet.email(),
-          role: faker.helpers.arrayElement(roles),
-          createdAt: faker.date.past(),
-        })
-        .returning();
-      insertedUsers.push(user);
-    }
-    console.log(`✅ ${insertedUsers.length} Users created.`);
-
-    // 2.1 Generate Locations
-    console.log("Generating Locations...");
-    const insertedLocations = [];
-    for (let i = 0; i < 15; i++) {
-      const [loc] = await db
-        .insert(locations)
-        .values({
-          unlocode: faker.string.alpha({ length: 5, casing: "upper" }),
-          name: faker.location.city(),
-          country: faker.location.countryCode(),
-          isSeaport: true,
-          isAirport: false,
-        })
-        .returning();
-      insertedLocations.push(loc);
-    }
-
-    // 2.2 Generate Companies
-    console.log("Generating Companies...");
-    const insertedCompanies = [];
-    const insertedCarriers = [];
-    for (let i = 0; i < 20; i++) {
-      const type = faker.helpers.arrayElement([
-        "Customer",
-        "Supplier",
-        "Carrier",
-      ]);
-      const [comp] = await db
-        .insert(companies)
-        .values({
-          companyCode: `COMP-${faker.string.alphanumeric(6).toUpperCase()}`,
-          name: faker.company.name(),
-          type: type as any,
-        })
-        .returning();
-      insertedCompanies.push(comp);
-      if (type === "Carrier") insertedCarriers.push(comp);
-    }
-    if (insertedCarriers.length === 0) {
-      const [comp] = await db
-        .insert(companies)
-        .values({
-          companyCode: `COMP-CARRIER1`,
-          name: "Maersk",
-          type: "Carrier",
-        })
-        .returning();
-      insertedCarriers.push(comp);
-      insertedCompanies.push(comp);
-    }
-
-    // 3. Generate 150 Shipments
-    console.log("Generating Shipments...");
-    const statuses = [
-      "DRAFT",
-      "CONFIRMED",
-      "DOCUMENTATION",
-      "ON_BOARD",
-      "BOOKED",
-      "IN_TRANSIT",
-      "ARRIVED",
-      "CUSTOMS_CLEARED",
-      "DELIVERED",
-      "CANCELLED",
-    ];
-    const equipments = ["1x 20DC", "2x 40HC", "10x 40RF", "1x 40OT", "5x 20DC"];
-
-    const insertedShipments = [];
-    for (let i = 0; i < 150; i++) {
-      const origin = faker.helpers.arrayElement(insertedLocations);
-      let destination = faker.helpers.arrayElement(insertedLocations);
-      while (origin.id === destination.id) {
-        destination = faker.helpers.arrayElement(insertedLocations);
-      }
-
-      const randomUser = faker.helpers.arrayElement(insertedUsers);
-      const supplier = faker.helpers.arrayElement(insertedCompanies);
-      const billingParty = faker.helpers.arrayElement(insertedCompanies);
-
-      const [shipment] = await db
-        .insert(shipments)
-        .values({
-          referenceNumber: `BKG-${faker.string.alphanumeric(8).toUpperCase()}`,
-          originLocationId: origin.id,
-          destinationLocationId: destination.id,
-          supplierId: supplier.id,
-          billingPartyId: billingParty.id,
-          vessel: `MSC ${faker.person.firstName()}`,
-          voyage: faker.string.alphanumeric(5).toUpperCase(),
-          status: faker.helpers.arrayElement(statuses) as any,
-          userId: randomUser.id,
-          createdAt: faker.date.past(),
-          updatedAt: faker.date.recent(),
-        })
-        .returning();
-      insertedShipments.push(shipment);
-    }
-    console.log(`✅ ${insertedShipments.length} Shipments created.`);
-
-    // 4. Generate 20 Rates
-    console.log("Generating Rates...");
-    const serviceLines = ["AE1", "Silk", "FE2", "FAL1", "CEM", "MD1"];
-
-    for (let i = 0; i < 20; i++) {
-      await db.insert(rates).values({
-        carrierId: faker.helpers.arrayElement(insertedCarriers).id,
-        serviceLine: faker.helpers.arrayElement(serviceLines),
-        originLocationId: faker.helpers.arrayElement(insertedLocations).id,
-        destinationLocationId: faker.helpers.arrayElement(insertedLocations).id,
-        transitTime: faker.number.int({ min: 14, max: 45 }),
-        validTo: faker.date.future().toISOString().split("T")[0],
-        baseOceanFreight: faker.number.int({ min: 800, max: 2500 }),
-        baf: faker.number.int({ min: 100, max: 300 }),
-        pss: faker.number.int({ min: 0, max: 200 }),
-        thc: faker.number.int({ min: 150, max: 400 }),
-      });
-    }
-    console.log(`✅ 20 Rates created.`);
-
-    // 5. Generate 50 Quotes
-    console.log("Generating Quotes...");
-    const quoteStatuses = ["DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED"];
-
-    for (let i = 0; i < 50; i++) {
-      const buyRate = faker.number.int({ min: 1200, max: 3500 });
-      const margin = faker.number.int({ min: 150, max: 500 });
-      await db.insert(quotes).values({
-        quoteNumber: `QT-${faker.string.alphanumeric(8).toUpperCase()}`,
-        customerId: faker.helpers.arrayElement(insertedCompanies).id,
-        originLocationId: faker.helpers.arrayElement(insertedLocations).id,
-        destinationLocationId: faker.helpers.arrayElement(insertedLocations).id,
-        equipment: faker.helpers.arrayElement(equipments),
-        buyRateTotal: buyRate,
-        sellMargin: margin,
-        sellRateTotal: buyRate + margin,
-        status: faker.helpers.arrayElement(quoteStatuses) as any,
-        validTo: faker.date.future().toISOString().split("T")[0],
-        userId: faker.helpers.arrayElement(insertedUsers).id,
-      });
-    }
-    console.log(`✅ 50 Quotes created.`);
-
-    // 6. Generate 100 Invoices
-    console.log("Generating Invoices...");
-    const invoiceStatuses = ["Paid", "Pending", "Overdue"];
-    const invoiceTypes = ["AR", "AP"];
-
-    for (let i = 0; i < 100; i++) {
-      const type = faker.helpers.arrayElement(invoiceTypes);
-      const isAR = type === "AR";
-      await db.insert(invoices).values({
-        invoiceNumber: `INV-${type}-${faker.string.alphanumeric(8).toUpperCase()}`,
-        type: type as any,
-        partyId: faker.helpers.arrayElement(insertedCompanies).id,
-        totalAmount: faker.number.int({ min: 500, max: 15000 }),
-        currency: faker.helpers.arrayElement(["USD", "EUR"]),
-        status: faker.helpers.arrayElement(invoiceStatuses) as any,
-        dueDate: faker.date.soon({ days: 30 }).toISOString().split("T")[0],
-        shipmentId: faker.helpers.arrayElement(insertedShipments).id,
-      });
-    }
-    console.log(`✅ 100 Invoices created.`);
-
-    console.log("🎉 Realistic Seed completed successfully!");
-  } catch (error) {
-    console.error("❌ Error during seeding:", error);
-  } finally {
-    process.exit(0);
+  // 1. COMPANIES
+  const companyIds = [];
+  for (let i = 0; i < 5; i++) {
+    const id = faker.string.uuid();
+    companyIds.push(id);
+    await db.insert(schema.companies).values({
+      id,
+      name: faker.company.name(),
+      taxId: faker.finance.accountNumber(9),
+      creditLimit: faker.number.int({ min: 10000, max: 1000000 }),
+    });
   }
+  console.log(`✅ Creadas ${companyIds.length} compañías.`);
+
+  // 2. USERS & CONTACTS
+  const userIds = [];
+  for (const companyId of companyIds) {
+    // Users
+    for (let i = 0; i < 3; i++) {
+      const id = faker.string.uuid();
+      userIds.push(id);
+      await db.insert(schema.users).values({
+        id,
+        companyId,
+        email: faker.internet.email(),
+        role: i === 0 ? 'ADMIN' : 'OPERATOR',
+      });
+    }
+
+    // Contacts
+    for (let i = 0; i < 2; i++) {
+      await db.insert(schema.contacts).values({
+        id: faker.string.uuid(),
+        companyId,
+        firstName: faker.person.firstName(),
+        lastName: faker.person.lastName(),
+        email: faker.internet.email(),
+        phone: faker.phone.number(),
+      });
+    }
+  }
+  console.log(`✅ Creados ${userIds.length} usuarios y contactos.`);
+
+  // 3. LOCATIONS (Ports, Warehouses)
+  const locationIds = [];
+  const ports = ['Port of Shanghai', 'Port of Singapore', 'Port of Ningbo-Zhoushan', 'Port of Shenzhen', 'Port of Guangzhou', 'Port of Busan', 'Port of Qingdao', 'Port of Hong Kong', 'Port of Tianjin', 'Port of Rotterdam', 'Port of Jebel Ali', 'Port of Antwerp', 'Port of Klang', 'Port of Xiamen', 'Port of Kaohsiung', 'Port of Los Angeles', 'Port of Hamburg', 'Port of Long Beach', 'Port of New York/New Jersey', 'Port of Valencia'];
+  for (const port of ports) {
+    const id = faker.string.uuid();
+    locationIds.push(id);
+    await db.insert(schema.locations).values({
+      id,
+      name: port,
+      type: 'PORT',
+      address: faker.location.streetAddress(),
+      lat: faker.location.latitude(),
+      lng: faker.location.longitude(),
+    });
+  }
+  console.log(`✅ Creadas ${locationIds.length} ubicaciones (puertos principales).`);
+
+  // 4. LANES (Rutas)
+  const laneIds = [];
+  for (let i = 0; i < 20; i++) {
+    const origin = faker.helpers.arrayElement(locationIds);
+    let dest = faker.helpers.arrayElement(locationIds);
+    while (dest === origin) dest = faker.helpers.arrayElement(locationIds);
+
+    const id = faker.string.uuid();
+    laneIds.push(id);
+    await db.insert(schema.lanes).values({
+      id,
+      originLocationId: origin,
+      destinationLocationId: dest,
+      distance: faker.number.int({ min: 1000, max: 15000 }),
+    });
+  }
+  console.log(`✅ Creadas ${laneIds.length} rutas (lanes).`);
+
+  // 5. CARRIERS & OTHER AGENTS
+  const carrierIds = [];
+  const oceanCarriers = ['Maersk', 'MSC', 'CMA CGM', 'COSCO', 'Hapag-Lloyd', 'ONE', 'Evergreen', 'HMM', 'Yang Ming', 'ZIM'];
+  for (const name of oceanCarriers) {
+    const id = faker.string.uuid();
+    carrierIds.push(id);
+    await db.insert(schema.carriers).values({
+      id,
+      name,
+      scac: name.substring(0, 4).toUpperCase(),
+      type: 'OCEAN'
+    });
+  }
+  
+  const brokerIds = [];
+  for (let i = 0; i < 5; i++) {
+    const id = faker.string.uuid();
+    brokerIds.push(id);
+    await db.insert(schema.customsBrokers).values({
+      id,
+      name: faker.company.name() + ' Customs',
+      licenseNumber: faker.string.alphanumeric(8).toUpperCase(),
+    });
+  }
+
+  // 6. RATES & SCHEDULES
+  const rateIds = [];
+  const scheduleIds = [];
+  for (const laneId of laneIds) {
+    const carrierId = faker.helpers.arrayElement(carrierIds);
+    
+    // Rate
+    const rateId = faker.string.uuid();
+    rateIds.push(rateId);
+    await db.insert(schema.rates).values({
+      id: rateId,
+      carrierId,
+      laneId,
+      containerType: faker.helpers.arrayElement(['20DC', '40HC', '40NOR']),
+      baseRate: faker.number.int({ min: 800, max: 4500 }),
+      transitDays: faker.number.int({ min: 10, max: 45 }),
+    });
+
+    // Schedule
+    for (let i = 0; i < 3; i++) {
+      const schedId = faker.string.uuid();
+      scheduleIds.push(schedId);
+      const departure = faker.date.future();
+      const arrival = new Date(departure);
+      arrival.setDate(arrival.getDate() + faker.number.int({ min: 10, max: 45 }));
+
+      await db.insert(schema.schedules).values({
+        id: schedId,
+        laneId,
+        carrierId,
+        vesselName: 'MV ' + faker.person.lastName().toUpperCase(),
+        voyageNumber: faker.string.alphanumeric(6).toUpperCase(),
+        departureDate: departure,
+        arrivalDate: arrival,
+      });
+    }
+  }
+  console.log(`✅ Creadas tarifas y ${scheduleIds.length} itinerarios de barcos.`);
+
+  // 7. SHIPMENTS & CUSTOMS & CONTAINERS
+  const shipmentIds = [];
+  const incoterms = ['FOB', 'CIF', 'EXW', 'DDP', 'FAS'];
+  for (let i = 0; i < 50; i++) {
+    const id = faker.string.uuid();
+    shipmentIds.push(id);
+    const companyId = faker.helpers.arrayElement(companyIds);
+    
+    await db.insert(schema.shipments).values({
+      id,
+      status: faker.helpers.arrayElement(['PENDING', 'IN_TRANSIT', 'CUSTOMS', 'DELIVERED']),
+      incoterm: faker.helpers.arrayElement(incoterms),
+      serviceType: faker.helpers.arrayElement(['FCL', 'LCL']),
+      laneId: faker.helpers.arrayElement(laneIds),
+      scheduleId: faker.helpers.arrayElement(scheduleIds),
+      vesselName: 'MV ' + faker.person.lastName().toUpperCase(),
+      voyageNumber: faker.string.alphanumeric(6).toUpperCase(),
+      companyId,
+      createdBy: faker.helpers.arrayElement(userIds),
+    });
+
+    // Containers
+    for (let j = 0; j < faker.number.int({ min: 1, max: 5 }); j++) {
+      await db.insert(schema.shipmentContainers).values({
+        id: faker.string.uuid(),
+        shipmentId: id,
+        containerNumber: faker.string.alphanumeric(11).toUpperCase(),
+        containerType: faker.helpers.arrayElement(['20DC', '40HC']),
+        sealNumber: faker.string.numeric(6),
+        weight: faker.number.int({ min: 5000, max: 28000 }),
+      });
+    }
+
+    // Customs
+    if (Math.random() > 0.5) {
+      await db.insert(schema.customsDeclarations).values({
+        id: faker.string.uuid(),
+        shipmentId: id,
+        brokerId: faker.helpers.arrayElement(brokerIds),
+        dutiesAmount: faker.number.int({ min: 100, max: 5000 }),
+        taxesAmount: faker.number.int({ min: 50, max: 2000 }),
+        status: faker.helpers.arrayElement(['PENDING', 'CLEARED', 'HELD']),
+      });
+    }
+  }
+  console.log(`✅ Creados ${shipmentIds.length} envíos con sus contenedores y aduanas.`);
+
+  // 8. INVOICES
+  for (const shipmentId of shipmentIds) {
+    if (Math.random() > 0.2) {
+      const invoiceId = faker.string.uuid();
+      const amount = faker.number.int({ min: 1000, max: 15000 });
+      await db.insert(schema.invoices).values({
+        id: invoiceId,
+        invoiceNumber: 'INV-' + faker.string.numeric(6),
+        shipmentId,
+        companyId: faker.helpers.arrayElement(companyIds),
+        amount,
+        currency: 'USD',
+        status: faker.helpers.arrayElement(['ISSUED', 'PARTIAL', 'PAID', 'OVERDUE']),
+        dueDate: faker.date.future(),
+      });
+
+      // Invoice Items
+      await db.insert(schema.invoiceItems).values({
+        id: faker.string.uuid(),
+        invoiceId,
+        description: 'Ocean Freight',
+        quantity: 1,
+        unitPrice: amount * 0.8,
+        total: amount * 0.8,
+      });
+      await db.insert(schema.invoiceItems).values({
+        id: faker.string.uuid(),
+        invoiceId,
+        description: 'Bunker Adjustment Factor (BAF)',
+        quantity: 1,
+        unitPrice: amount * 0.2,
+        total: amount * 0.2,
+      });
+    }
+  }
+  console.log(`✅ Creadas facturas financieras y conceptos.`);
+
+  // 9. BPMN DIAGRAMS
+  const diagramIds = [];
+  for (let i = 0; i < 3; i++) {
+    const id = faker.string.uuid();
+    diagramIds.push(id);
+    await db.insert(schema.bpmnDiagrams).values({
+      id,
+      name: `Proceso ${faker.commerce.department()} - ${faker.string.alphanumeric(4).toUpperCase()}`,
+      description: faker.lorem.sentence(),
+    });
+
+    for (let j = 1; j <= 3; j++) {
+      await db.insert(schema.bpmnVersions).values({
+        id: faker.string.uuid(),
+        diagramId: id,
+        versionNumber: j,
+        xmlContent: `<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions id="Definitions_${faker.string.alphanumeric(4)}"></bpmn:definitions>`,
+        authorId: faker.helpers.arrayElement(userIds),
+      });
+    }
+  }
+  console.log(`✅ Creados ${diagramIds.length} diagramas BPMN con historial de versiones.`);
+
+  console.log('🎉 Seed masivo completado exitosamente.');
+  process.exit(0);
 }
 
-main();
+main().catch((e) => {
+  console.error('Error durante el seed:', e);
+  process.exit(1);
+});

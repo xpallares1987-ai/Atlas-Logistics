@@ -10,6 +10,7 @@ export const broadcastEvent = (event: any) => {
 };
 
 const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
+  // Existing SSE route
   fastify.get("/events", (request, reply) => {
     if (emitter.listenerCount("newEvent") >= MAX_CLIENTS) {
       reply.code(429).send({ error: "Too many active connections" });
@@ -27,6 +28,31 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     emitter.on("newEvent", onEvent);
 
     request.raw.on("close", () => {
+      emitter.off("newEvent", onEvent);
+    });
+  });
+
+  // New WebSocket route for notifications (Demurrage, etc)
+  fastify.get("/ws/notifications", { websocket: true }, (socket, req) => {
+    logger.info("New WebSocket connection established");
+    
+    // Broadcast function wrapper
+    const onEvent = (data: any) => {
+      socket.send(JSON.stringify(data));
+    };
+
+    // Listen to our global emitter
+    emitter.on("newEvent", onEvent);
+    
+    // Optional: send a welcome ping
+    socket.send(JSON.stringify({ type: 'CONNECTED', message: 'WebSocket ready for alerts' }));
+
+    socket.on("message", message => {
+      // client could send messages back if needed
+    });
+
+    socket.on("close", () => {
+      logger.info("WebSocket connection closed");
       emitter.off("newEvent", onEvent);
     });
   });

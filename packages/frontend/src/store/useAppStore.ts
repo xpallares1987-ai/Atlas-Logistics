@@ -25,6 +25,11 @@ interface AppState {
   user: User | null;
   setUser: (user: User | null) => void;
 
+  isAuthLoading: boolean;
+  setAuthLoading: (isLoading: boolean) => void;
+  checkAuth: () => Promise<void>;
+  logout: () => Promise<void>;
+
   // UI State
   theme: Theme;
   setTheme: (theme: Theme) => void;
@@ -53,15 +58,34 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  // Default mock user for now
-  user: {
-    id: 'usr_1',
-    name: 'John Doe',
-    email: 'john.doe@atlas.com',
-    role: 'ADMIN',
-    avatarInitials: 'JD'
-  },
+  user: null,
   setUser: (user) => set({ user }),
+  isAuthLoading: true,
+  setAuthLoading: (isLoading) => set({ isAuthLoading: isLoading }),
+  
+  checkAuth: async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        set({ user: { ...data.user, avatarInitials: data.user.email.substring(0, 2).toUpperCase() }, isAuthLoading: false });
+      } else {
+        set({ user: null, isAuthLoading: false });
+      }
+    } catch (error) {
+      console.error('Failed to check auth:', error);
+      set({ user: null, isAuthLoading: false });
+    }
+  },
+
+  logout: async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      set({ user: null });
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
+  },
 
   theme: 'light',
   setTheme: (theme) => set({ theme }),

@@ -4,6 +4,7 @@ import { db } from "./db/db.config.js";
 import { connectRedis, redis } from "./config/redis.js";
 import { startAiParserWorker } from "./pubsub-workers/ai-parser.worker.js";
 import { registerAllWorkers } from "./bpm/workers/index.js";
+import { startOcrWorker } from "./queues/ocr.queue.js";
 
 async function startWorkerNode() {
   logger.info("Initializing Worker Node...");
@@ -20,6 +21,7 @@ async function startWorkerNode() {
   // Iniciamos los procesos en segundo plano (Zeebe Workers y utilidades AI)
   startAiParserWorker();
   registerAllWorkers();
+  startOcrWorker();
 
   logger.info("Worker Node is running and waiting for jobs.");
 
