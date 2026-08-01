@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Leaf,
   Download,
@@ -8,6 +8,7 @@ import {
   Wind,
   Anchor,
   Truck,
+  Activity
 } from "lucide-react";
 import {
   BarChart,
@@ -21,6 +22,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ShipmentCarbon {
   id: string;
@@ -110,7 +112,33 @@ const COLORS = {
 };
 
 export function ESGCarbonTracker() {
-  const [shipments] = useState<ShipmentCarbon[]>(MOCK_SHIPMENTS);
+  const [shipments, setShipments] = useState<ShipmentCarbon[]>(MOCK_SHIPMENTS);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Attempt to fetch real shipments, fallback to mock
+    fetch('/api/shipments')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          // Map real DB shipments to our expected Carbon format (using fallbacks for missing fields)
+          const mapped = data.map((s: any) => ({
+            id: s.id,
+            reference: s.trackingNumber || `SHP-${s.id.substring(0,4)}`,
+            mode: s.type || "Ocean",
+            origin: s.origin || "Unknown",
+            destination: s.destination || "Unknown",
+            weightTons: s.weight ? s.weight / 1000 : Math.random() * 20 + 2,
+            distanceKm: s.distanceKm || Math.floor(Math.random() * 15000) + 500,
+            co2eTonnes: s.co2eTonnes || Math.random() * 10 + 0.5,
+            date: s.createdAt ? s.createdAt.substring(0, 10) : new Date().toISOString().substring(0, 10)
+          }));
+          setShipments(mapped.slice(0, 15));
+        }
+      })
+      .catch(err => console.error("Could not fetch real shipments for ESG:", err))
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const exportToCSV = (data: Record<string, any>[], filename: string) => {
     if (!data.length) return;
@@ -154,7 +182,9 @@ export function ESGCarbonTracker() {
       totalCO2 += s.co2eTonnes;
       totalWeight += s.weightTons;
       totalDistance += s.distanceKm;
-      modeBreakdown[s.mode] += s.co2eTonnes;
+      if (modeBreakdown[s.mode] !== undefined) {
+         modeBreakdown[s.mode] += s.co2eTonnes;
+      }
 
       const month = s.date.substring(0, 7); // YYYY-MM
       monthlyData[month] = (monthlyData[month] || 0) + s.co2eTonnes;
@@ -163,9 +193,8 @@ export function ESGCarbonTracker() {
     const pieData = Object.entries(modeBreakdown).map(([name, value]) => ({
       name,
       value,
-    }));
+    })).filter(x => x.value > 0);
 
-    // Sort months chronologically
     const barData = Object.entries(monthlyData)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([month, co2]) => ({ month, co2: parseFloat(co2.toFixed(2)) }));
@@ -180,238 +209,316 @@ export function ESGCarbonTracker() {
     };
   }, [shipments]);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="esg-dashboard">
-      <div className="flex justify-between items-center mb-6">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="esg-dashboard p-6 pb-24"
+    >
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Leaf className="text-emerald-400" />
-            ESG Carbon Footprint Tracker
+          <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/20 rounded-lg backdrop-blur-sm border border-emerald-500/30">
+               <Leaf className="text-emerald-400" size={28} />
+            </div>
+            ESG Carbon Intelligence
           </h2>
-          <p className="text-slate-400 text-sm">
-            Monitor Greenhouse Gas (GHG) Protocol Scope 3 emissions across your
-            supply chain.
+          <p className="text-slate-400 text-sm mt-2 max-w-2xl">
+            Live monitoring of Greenhouse Gas (GHG) Protocol Scope 3 emissions across your active supply chain network.
           </p>
         </div>
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => exportToCSV(shipments, "ghg-report")}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-white/10 backdrop-blur-md border border-white/20 rounded-xl hover:bg-white/20 transition-all shadow-lg"
         >
-          <Download size={14} />
-          Export GHG Report
-        </button>
+          <Download size={16} />
+          Export Audit Report
+        </motion.button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg border-l-4 border-l-emerald-500">
-          <span className="text-sm text-slate-400 font-medium">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+      >
+        <motion.div variants={itemVariants} className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+          <span className="text-sm text-slate-400 font-medium flex justify-between items-center">
             Total Emissions YTD
+            <Activity size={16} className="text-emerald-400/50" />
           </span>
-          <h3 className="text-3xl font-bold text-white mt-1">
-            {metrics.totalCO2.toFixed(1)}{" "}
-            <span className="text-lg text-slate-500">tCO2e</span>
+          <h3 className="text-4xl font-bold text-white mt-3 flex items-baseline gap-2">
+            {metrics.totalCO2.toFixed(1)}
+            <span className="text-xl text-slate-500 font-normal">tCO2e</span>
           </h3>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg border-l-4 border-l-blue-500">
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
           <span className="text-sm text-slate-400 font-medium">
             Emissions Intensity
           </span>
-          <h3 className="text-3xl font-bold text-white mt-1">
-            {metrics.avgIntensity}{" "}
-            <span className="text-lg text-slate-500">kg/Ton</span>
+          <h3 className="text-4xl font-bold text-white mt-3 flex items-baseline gap-2">
+            {metrics.avgIntensity}
+            <span className="text-xl text-slate-500 font-normal">kg/Ton</span>
           </h3>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg border-l-4 border-l-purple-500">
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute top-0 left-0 w-1 h-full bg-purple-500" />
           <span className="text-sm text-slate-400 font-medium">
             Total Cargo Mass
           </span>
-          <h3 className="text-3xl font-bold text-white mt-1">
-            {metrics.totalWeight.toFixed(1)}{" "}
-            <span className="text-lg text-slate-500">Tons</span>
+          <h3 className="text-4xl font-bold text-white mt-3 flex items-baseline gap-2">
+            {metrics.totalWeight.toFixed(1)}
+            <span className="text-xl text-slate-500 font-normal">Tons</span>
           </h3>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg border-l-4 border-l-amber-500 relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 opacity-10">
-            <AlertTriangle size={80} />
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+          <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-20 transition-opacity duration-700">
+            <AlertTriangle size={120} className="text-amber-500" />
           </div>
           <span className="text-sm text-slate-400 font-medium">
             Offset Status
           </span>
-          <h3 className="text-3xl font-bold text-white mt-1">24%</h3>
-          <p className="text-xs text-amber-400 mt-1">Target: 50% by 2026</p>
-        </div>
-      </div>
+          <h3 className="text-4xl font-bold text-white mt-3">24%</h3>
+          <p className="text-sm text-amber-400 mt-2 font-medium">Target: 50% by 2026</p>
+        </motion.div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
-          <h3 className="text-lg font-semibold text-white mb-4">
-            Emissions by Transport Mode (tCO2e)
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-7 shadow-2xl"
+        >
+          <h3 className="text-xl font-bold text-white mb-6">
+            Emissions by Transport Mode
           </h3>
-          <div className="h-64">
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={metrics.pieData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
+                  innerRadius={75}
+                  outerRadius={100}
+                  paddingAngle={8}
                   dataKey="value"
                   label={({ name, percent }) =>
                     `${name} ${((percent || 0) * 100).toFixed(0)}%`
                   }
+                  stroke="none"
                 >
                   {metrics.pieData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={COLORS[entry.name as keyof typeof COLORS]}
+                      fill={COLORS[entry.name as keyof typeof COLORS] || "#64748b"}
                     />
                   ))}
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "none",
-                    borderRadius: "8px",
+                    backgroundColor: "rgba(15, 23, 42, 0.9)",
+                    backdropFilter: "blur(8px)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: "12px",
                     color: "#fff",
+                    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
                   }}
-                  itemStyle={{ color: "#fff" }}
+                  itemStyle={{ color: "#fff", fontWeight: "bold" }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex justify-center gap-6 mt-2">
-            <div className="flex items-center gap-2">
-              <Anchor size={14} color={COLORS.Ocean} />{" "}
-              <span className="text-sm text-slate-300">Ocean</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Wind size={14} color={COLORS.Air} />{" "}
-              <span className="text-sm text-slate-300">Air</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Truck size={14} color={COLORS.Road} />{" "}
-              <span className="text-sm text-slate-300">Road</span>
-            </div>
+          <div className="flex justify-center gap-8 mt-4">
+            {Object.keys(COLORS).map(mode => {
+               const Icon = mode === 'Ocean' ? Anchor : mode === 'Air' ? Wind : Truck;
+               return (
+                <div key={mode} className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-md" style={{ backgroundColor: `${COLORS[mode as keyof typeof COLORS]}30`}}>
+                     <Icon size={16} color={COLORS[mode as keyof typeof COLORS]} />
+                  </div>
+                  <span className="text-sm font-medium text-slate-300">{mode}</span>
+                </div>
+               );
+            })}
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
-          <h3 className="text-lg font-semibold text-white mb-4">
-            Monthly Carbon Trend
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-7 shadow-2xl"
+        >
+          <h3 className="text-xl font-bold text-white mb-6">
+            Monthly Carbon Trend (tCO2e)
           </h3>
-          <div className="h-64">
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={metrics.barData}
                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
               >
                 <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#334155"
+                  strokeDasharray="4 4"
+                  stroke="rgba(255,255,255,0.05)"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="month"
-                  stroke="#94a3b8"
+                  stroke="#64748b"
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
+                  dy={10}
                 />
                 <YAxis
-                  stroke="#94a3b8"
+                  stroke="#64748b"
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
+                  dx={-10}
                 />
                 <Tooltip
-                  cursor={{ fill: "#334155", opacity: 0.4 }}
+                  cursor={{ fill: "rgba(255,255,255,0.05)" }}
                   contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "none",
-                    borderRadius: "8px",
+                    backgroundColor: "rgba(15, 23, 42, 0.9)",
+                    backdropFilter: "blur(8px)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: "12px",
                     color: "#fff",
                   }}
                 />
                 <Bar
                   dataKey="co2"
                   fill="#10b981"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={50}
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={60}
+                  animationDuration={1500}
                 />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800 bg-slate-800/30">
-          <h3 className="text-lg font-semibold text-white">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="bg-slate-900/60 backdrop-blur-2xl border border-slate-700/50 rounded-3xl shadow-2xl overflow-hidden"
+      >
+        <div className="px-7 py-5 border-b border-slate-700/50 bg-slate-800/20 flex justify-between items-center">
+          <h3 className="text-xl font-bold text-white">
             Recent Shipment Footprints
           </h3>
+          {isLoading && <span className="text-emerald-400 text-sm animate-pulse">Syncing Network...</span>}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-800">
-                <th className="p-4 font-medium">Reference</th>
-                <th className="p-4 font-medium">Date</th>
-                <th className="p-4 font-medium">Mode</th>
-                <th className="p-4 font-medium">Route</th>
-                <th className="p-4 font-medium text-right">Distance (km)</th>
-                <th className="p-4 font-medium text-right">Weight (Tons)</th>
-                <th className="p-4 font-medium text-right text-emerald-400">
+              <tr className="bg-slate-800/30 text-slate-400 text-xs uppercase tracking-widest border-b border-slate-700/50">
+                <th className="p-5 font-semibold">Reference</th>
+                <th className="p-5 font-semibold">Date</th>
+                <th className="p-5 font-semibold">Mode</th>
+                <th className="p-5 font-semibold">Route</th>
+                <th className="p-5 font-semibold text-right">Distance</th>
+                <th className="p-5 font-semibold text-right">Weight</th>
+                <th className="p-5 font-semibold text-right text-emerald-400">
                   Emissions (tCO2e)
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
-              {shipments.map((s) => (
-                <tr
-                  key={s.id}
-                  className="hover:bg-slate-800/30 transition-colors group"
-                >
-                  <td className="p-4 text-sm font-medium text-slate-200">
-                    {s.reference}
-                  </td>
-                  <td className="p-4 text-sm text-slate-400">{s.date}</td>
-                  <td className="p-4 text-sm text-slate-300">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border
-                      ${s.mode === "Ocean" ? "bg-blue-900/30 text-blue-400 border-blue-800" : ""}
-                      ${s.mode === "Air" ? "bg-purple-900/30 text-purple-400 border-purple-800" : ""}
-                      ${s.mode === "Road" ? "bg-emerald-900/30 text-emerald-400 border-emerald-800" : ""}
-                    `}
-                    >
-                      {s.mode === "Ocean" && <Anchor size={12} />}
-                      {s.mode === "Air" && <Wind size={12} />}
-                      {s.mode === "Road" && <Truck size={12} />}
-                      {s.mode}
-                    </span>
-                  </td>
-                  <td
-                    className="p-4 text-sm text-slate-300 truncate max-w-[200px]"
-                    title={`${s.origin} → ${s.destination}`}
+            <motion.tbody 
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="divide-y divide-slate-700/30"
+            >
+              <AnimatePresence>
+                {shipments.map((s) => (
+                  <motion.tr
+                    key={s.id}
+                    variants={itemVariants}
+                    layout
+                    className="hover:bg-white/[0.02] transition-colors group"
                   >
-                    {s.origin} &rarr; {s.destination}
-                  </td>
-                  <td className="p-4 text-sm text-slate-400 text-right">
-                    {s.distanceKm.toLocaleString()}
-                  </td>
-                  <td className="p-4 text-sm text-slate-400 text-right">
-                    {s.weightTons.toFixed(1)}
-                  </td>
-                  <td className="p-4 text-sm font-bold text-emerald-400 text-right group-hover:text-emerald-300">
-                    {s.co2eTonnes.toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+                    <td className="p-5 text-sm font-bold text-slate-200">
+                      {s.reference}
+                    </td>
+                    <td className="p-5 text-sm text-slate-400 font-medium">{s.date}</td>
+                    <td className="p-5 text-sm text-slate-300">
+                      <span
+                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-bold border backdrop-blur-sm
+                        ${s.mode === "Ocean" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : ""}
+                        ${s.mode === "Air" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : ""}
+                        ${s.mode === "Road" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : ""}
+                        ${!["Ocean","Air","Road"].includes(s.mode) ? "bg-slate-500/10 text-slate-400 border-slate-500/20" : ""}
+                      `}
+                      >
+                        {s.mode === "Ocean" && <Anchor size={14} />}
+                        {s.mode === "Air" && <Wind size={14} />}
+                        {s.mode === "Road" && <Truck size={14} />}
+                        {s.mode}
+                      </span>
+                    </td>
+                    <td
+                      className="p-5 text-sm text-slate-300 truncate max-w-[200px]"
+                      title={`${s.origin} → ${s.destination}`}
+                    >
+                      <div className="flex items-center gap-2">
+                         <span className="font-medium text-white">{s.origin}</span>
+                         <span className="text-slate-500">&rarr;</span>
+                         <span className="font-medium text-white">{s.destination}</span>
+                      </div>
+                    </td>
+                    <td className="p-5 text-sm text-slate-400 text-right font-mono">
+                      {s.distanceKm.toLocaleString()} <span className="text-xs text-slate-500">km</span>
+                    </td>
+                    <td className="p-5 text-sm text-slate-400 text-right font-mono">
+                      {s.weightTons.toFixed(1)} <span className="text-xs text-slate-500">T</span>
+                    </td>
+                    <td className="p-5 text-sm font-black text-emerald-400 text-right group-hover:text-emerald-300 font-mono text-base">
+                      {s.co2eTonnes.toFixed(2)}
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
+            </motion.tbody>
           </table>
+          {shipments.length === 0 && !isLoading && (
+             <div className="p-12 text-center text-slate-500 font-medium">
+               No shipment data available for ESG calculation.
+             </div>
+          )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

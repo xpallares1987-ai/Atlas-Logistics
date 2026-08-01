@@ -3,13 +3,11 @@ import { processAiTask } from '../../services/geminiService.js';
 import { db } from '../../db/index.js';
 import { pendingAiReviews } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
+import { redis } from '../../config/redis.js';
 
-const connection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-};
+const isMock = process.env.NODE_ENV !== "production" && process.env.USE_REDIS_MOCK !== "false";
 
-export const aiWorker = new Worker(
+export const aiWorker = isMock ? null : new Worker(
   'ai-tasks',
   async (job: Job) => {
     const { reviewId, prompt } = job.data;
@@ -35,9 +33,11 @@ export const aiWorker = new Worker(
       throw error;
     }
   },
-  { connection }
+  { connection: redis }
 );
 
-aiWorker.on('failed', (job, err) => {
-  console.error(`Job ${job?.id} failed with error`, err);
-});
+if (aiWorker) {
+  aiWorker.on('failed', (job, err) => {
+    console.error(`Job ${job?.id} failed with error`, err);
+  });
+}

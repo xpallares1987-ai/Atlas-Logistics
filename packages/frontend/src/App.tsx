@@ -35,11 +35,11 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { SkeletonLoader } from "./components/SkeletonLoader";
 import { ApiStatusProvider } from "./contexts/ApiStatusContext";
 import { ApiStatusIndicator } from "./components/ApiStatusIndicator";
-import { useRole } from "./contexts/RoleContext";
-import { RoleSwitcher } from "./components/RoleSwitcher";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
+
+const Login = React.lazy(() => import("./pages/Login"));
 
 const DashboardModule = React.lazy(() =>
   import("@atlas/dashboard").then((m) => ({ default: m.Dashboard })),
@@ -143,13 +143,29 @@ export default function App() {
     notifications,
     addNotification,
     markAllNotificationsAsRead,
+    isAuthLoading,
+    checkAuth,
+    logout
   } = useAppStore();
   const { t } = useTranslation();
-  const { role } = useRole();
 
-  const isShipper = role === "Shipper";
-  const isCustomsBroker = role === "Customs Broker";
-  const isAdminOrFF = role === "Admin" || role === "Freight Forwarder";
+  React.useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const role = user?.role || "USER";
+
+  const isShipper = role === "CUSTOMER";
+  const isCustomsBroker = role === "OPERATIONS";
+  const isAdminOrFF = role === "ADMIN" || role === "MANAGER" || role === "EXECUTIVE" || role === "SALES";
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+        <SkeletonLoader height="8rem" borderRadius="1rem" />
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -300,7 +316,6 @@ export default function App() {
                 <OmniSearch />
               </div>
               <div className="flex items-center gap-4 ml-4">
-                <RoleSwitcher />
                 <ApiStatusIndicator />
                 <div className="relative">
                   <button
@@ -400,9 +415,9 @@ export default function App() {
                       </Link>
                       <div className="h-px bg-slate-100 my-1"></div>
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           setSettingsMenuOpen(false);
-                          alert("Signed out successfully");
+                          await logout();
                         }}
                         className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
                       >
@@ -435,6 +450,9 @@ export default function App() {
                 }
               >
                 <Routes>
+                  {/* Public Route */}
+                  <Route path="/login" element={<Login />} />
+
                   {/* Core Modules - Accessible by internal roles */}
                   <Route
                     path="/"
