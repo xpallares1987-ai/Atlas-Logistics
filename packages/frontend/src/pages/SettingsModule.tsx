@@ -125,7 +125,7 @@ export default function SettingsModule() {
                     </label>
                     <input
                       type="text"
-                      defaultValue={user?.name.split(" ")[0] || "John"}
+                      defaultValue={(user?.name || "").split(" ")[0] || "John"}
                       className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
                   </div>
@@ -135,7 +135,7 @@ export default function SettingsModule() {
                     </label>
                     <input
                       type="text"
-                      defaultValue={user?.name.split(" ")[1] || "Doe"}
+                      defaultValue={(user?.name || "").split(" ")[1] || "Doe"}
                       className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
                   </div>
@@ -399,16 +399,116 @@ export default function SettingsModule() {
               </div>
             )}
 
-            {activeTab !== "Profile" &&
-              activeTab !== "Appearance" &&
-              activeTab !== "API" && (
-                <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                  <Settings className="w-12 h-12 mb-4 opacity-20" />
-                  <p>
-                    This settings panel ({activeTab}) is under construction.
-                  </p>
+            {activeTab === "Company" && (
+              <div className="max-w-2xl space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
+                    Company Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Company Name</label>
+                      <input type="text" defaultValue="Atlas Logistics Inc." className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tax ID / VAT</label>
+                      <input type="text" defaultValue="US123456789" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    </div>
+                  </div>
                 </div>
-              )}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Billing Address</label>
+                  <input type="text" defaultValue="123 Supply Chain Blvd, Suite 400" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                </div>
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <button className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm">Save Changes</button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "Security" && (
+              <div className="max-w-2xl space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
+                    Password
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Current Password</label>
+                      <input type="password" placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">New Password</label>
+                        <input type="password" placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Confirm New Password</label>
+                        <input type="password" placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                      </div>
+                    </div>
+                  </div>
+                  <button className="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium rounded-lg transition-colors text-sm">Change Password</button>
+                </div>
+                <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
+                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Two-Factor Authentication (2FA)</h3>
+                  <p className="text-sm text-slate-500 mb-4">Add an extra layer of security to your account.</p>
+                  <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors text-sm">Enable 2FA</button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "Notifications" && (
+              <div className="max-w-2xl space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">Email Notifications</h3>
+                  <div className="space-y-4">
+                    {["Shipment Updates", "Invoice Approvals", "System Alerts", "Weekly Reports"].map((label, idx) => (
+                      <div key={idx} className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</p>
+                          <p className="text-xs text-slate-500">Receive an email when {label.toLowerCase()} occur.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" defaultChecked={idx !== 3} className="sr-only peer" />
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "Devices" && (
+              <div className="max-w-2xl space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">Active Sessions</h3>
+                  <div className="space-y-4">
+                    <div className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+                      <div className="flex items-center gap-4">
+                        <Monitor className="w-8 h-8 text-indigo-500" />
+                        <div>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Windows 11 • Chrome</p>
+                          <p className="text-xs text-slate-500">Madrid, ES • Active now</p>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs font-bold rounded-full">Current</span>
+                    </div>
+                    <div className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Smartphone className="w-8 h-8 text-slate-400" />
+                        <div>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">iPhone 14 Pro • Safari</p>
+                          <p className="text-xs text-slate-500">London, UK • Last active: 2 hours ago</p>
+                        </div>
+                      </div>
+                      <button className="text-sm text-rose-500 hover:text-rose-600 font-medium">Revoke</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

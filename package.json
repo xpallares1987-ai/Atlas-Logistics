@@ -19,7 +19,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:reset": "sh .devcontainer/reset-db.sh",
-    "db:seed": "tsx src/db/seed.ts",
+    "db:seed": "tsx src/db/seed.ts && tsx create-admin.ts",
     "db:reset-and-seed": "sh .devcontainer/reset-db.sh && tsx src/db/seed.ts",
     "start:backend": "tsx --env-file=.env.local src/server.ts | pino-pretty",
     "start:worker": "tsx --env-file=.env.local src/worker-node.ts | pino-pretty",
