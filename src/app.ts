@@ -28,6 +28,7 @@ import tasksRoutes from "./routes/tasks.routes.js";
 import exceptionsRoutes from "./routes/exceptions.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import adminDbRoutes from "./routes/admin-db.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
 
 // Removed tRPC imports
