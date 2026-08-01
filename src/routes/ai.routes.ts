@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { Queue } from 'bullmq';
 import { db } from '../db/index.js';
-import { pendingAiReviews } from '../db/schema.js';
+import { pendingAiReviews } from '../db/schema/index.js';
 import { generateId } from 'lucia';
 
 import { redis } from '../config/redis.js';

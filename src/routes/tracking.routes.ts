@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from "fastify";
 import { logger } from "../config/logger.js";
 import { broadcastEvent } from "./events.routes.js";
 import { db } from "../db/index.js";
-import { shipments } from "../db/schema.js";
+import { shipments } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
 
 const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {

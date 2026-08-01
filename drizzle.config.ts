@@ -5,6 +5,6 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'sqlite',
   dbCredentials: {
-    url: 'file:atlas-erp.db',
+    url: 'file:atlas-erp-v2.db',
   },
 });

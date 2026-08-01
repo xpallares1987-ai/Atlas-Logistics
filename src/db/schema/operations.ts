@@ -20,11 +20,17 @@ export const shipments = sqliteTable('shipments', {
   status: text('status').notNull(),
   incoterm: text('incoterm'), // FOB, CIF, EXW
   serviceType: text('service_type'), // FCL, LCL, AIR, ROAD
-  laneId: text('lane_id').notNull().references(() => lanes.id),
+  laneId: text('lane_id').references(() => lanes.id),
   scheduleId: text('schedule_id').references(() => schedules.id),
   vesselName: text('vessel_name'),
   voyageNumber: text('voyage_number'),
   carbonFootprint: real('carbon_footprint'),
+  trackingNumber: text('tracking_number'),
+  origin: text('origin'),
+  destination: text('destination'),
+  distanceKm: real('distance_km'),
+  weight: real('weight'),
+  co2eTonnes: real('co2e_tonnes'),
   portOfEntryId: text('port_of_entry_id').references(() => locations.id),
   clearanceStatus: text('clearance_status'),
   currentLat: real('currentLat'),

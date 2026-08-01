@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from "fastify";
 import { db } from "../db/index.js";
-import { invoices } from "../db/schema.js";
+import { invoices } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
 import { validate } from "../middleware/validate.js";
 import { CreateInvoiceSchema } from "@atlas/shared/src/logistics-schemas.js";

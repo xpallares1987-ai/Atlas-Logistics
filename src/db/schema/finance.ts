@@ -1,4 +1,5 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, check } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
 import { commonAuditFields } from './_common.js';
 import { shipments } from './operations.js';
 import { companies, users } from './core.js';
@@ -19,7 +20,10 @@ export const invoices = sqliteTable('invoices', {
   createdBy: text('created_by').references(() => users.id),
   updatedBy: text('updated_by').references(() => users.id),
   ...commonAuditFields
-});
+}, (table) => ({
+  amountCheck: check('invoices_amount_check', sql`${table.amount} >= 0`),
+  taxCheck: check('invoices_tax_check', sql`${table.taxAmount} >= 0`),
+}));
 
 export const invoiceItems = sqliteTable('invoice_items', {
   id: text('id').primaryKey(),
@@ -29,7 +33,10 @@ export const invoiceItems = sqliteTable('invoice_items', {
   unitPrice: real('unit_price').notNull(),
   total: real('total').notNull(),
   ...commonAuditFields
-});
+}, (table) => ({
+  qtyCheck: check('invoice_items_qty_check', sql`${table.quantity} > 0`),
+  priceCheck: check('invoice_items_price_check', sql`${table.unitPrice} >= 0`),
+}));
 
 export const payments = sqliteTable('payments', {
   id: text('id').primaryKey(),
@@ -38,7 +45,9 @@ export const payments = sqliteTable('payments', {
   paymentDate: integer('payment_date', { mode: 'timestamp' }).notNull(),
   reference: text('reference'),
   ...commonAuditFields
-});
+}, (table) => ({
+  amountCheck: check('payments_amount_check', sql`${table.amount} >= 0`),
+}));
 
 export const exchangeRates = sqliteTable('exchange_rates', {
   id: text('id').primaryKey(),
@@ -56,7 +65,9 @@ export const costs = sqliteTable('costs', {
   currency: text('currency').notNull(),
   description: text('description'),
   ...commonAuditFields
-});
+}, (table) => ({
+  amountCheck: check('costs_amount_check', sql`${table.amount} >= 0`),
+}));
 
 export const revenues = sqliteTable('revenues', {
   id: text('id').primaryKey(),
@@ -65,4 +76,6 @@ export const revenues = sqliteTable('revenues', {
   currency: text('currency').notNull(),
   description: text('description'),
   ...commonAuditFields
-});
+}, (table) => ({
+  amountCheck: check('revenues_amount_check', sql`${table.amount} >= 0`),
+}));
