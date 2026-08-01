@@ -668,32 +668,7 @@ function ProfileSettings() {
           </select>
         </div>
 
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-            <Shield size={18} /> Role Simulator (RBAC Test)
-          </h3>
-          <p className="text-xs text-slate-500 mb-3">
-            Change your current role to test the access control
-            restrictions across different modules.
-          </p>
-          <select
-            value={user?.role || "ADMIN"}
-            onChange={(e) =>
-              user &&
-              useAppStore
-                .getState()
-                .setUser({ ...user, role: e.target.value as any })
-            }
-            className="w-full px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-          >
-            <option value="ADMIN">ADMIN (Full Access)</option>
-            <option value="EXECUTIVE">EXECUTIVE (High Level & Finance)</option>
-            <option value="MANAGER">MANAGER (Operations & Finance)</option>
-            <option value="SALES">SALES (Pricing & Quotes)</option>
-            <option value="OPERATIONS">OPERATIONS (Logistics & Customs)</option>
-            <option value="CUSTOMER">CUSTOMER (Portal Only)</option>
-          </select>
-        </div>
+
 
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
           <button 
@@ -805,9 +780,11 @@ function SecuritySettings() {
           timestamp: new Date().toISOString(),
           read: false
         });
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
+        
+        // Use App Store logout since session was invalidated on the backend
+        setTimeout(() => {
+          useAppStore.getState().logout();
+        }, 2000);
       } else {
         alert(data.error);
       }
