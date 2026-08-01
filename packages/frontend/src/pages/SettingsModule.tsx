@@ -14,7 +14,7 @@ import {
   Globe,
   Database,
   Plus,
-  TableProperties
+  TableProperties,
 } from "lucide-react";
 import { useAppStore } from "../store/useAppStore";
 import { useTranslation } from "react-i18next";
@@ -28,6 +28,7 @@ export default function SettingsModule() {
     if (hash === "company") return "Company";
     if (hash === "security") return "Security";
     if (hash === "apikeys") return "API";
+    if (hash === "database") return "Database";
     return "Appearance";
   };
 
@@ -314,16 +315,34 @@ export default function SettingsModule() {
             {activeTab === "Notifications" && (
               <div className="max-w-2xl space-y-6">
                 <div>
-                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">Email Notifications</h3>
+                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
+                    Email Notifications
+                  </h3>
                   <div className="space-y-4">
-                    {["Shipment Updates", "Invoice Approvals", "System Alerts", "Weekly Reports"].map((label, idx) => (
-                      <div key={idx} className="flex items-center justify-between">
+                    {[
+                      "Shipment Updates",
+                      "Invoice Approvals",
+                      "System Alerts",
+                      "Weekly Reports",
+                    ].map((label, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between"
+                      >
                         <div>
-                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</p>
-                          <p className="text-xs text-slate-500">Receive an email when {label.toLowerCase()} occur.</p>
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            {label}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Receive an email when {label.toLowerCase()} occur.
+                          </p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" defaultChecked={idx !== 3} className="sr-only peer" />
+                          <input
+                            type="checkbox"
+                            defaultChecked={idx !== 3}
+                            className="sr-only peer"
+                          />
                           <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
                         </label>
                       </div>
@@ -336,27 +355,41 @@ export default function SettingsModule() {
             {activeTab === "Devices" && (
               <div className="max-w-2xl space-y-6">
                 <div>
-                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">Active Sessions</h3>
+                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
+                    Active Sessions
+                  </h3>
                   <div className="space-y-4">
                     <div className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
                       <div className="flex items-center gap-4">
                         <Monitor className="w-8 h-8 text-indigo-500" />
                         <div>
-                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Windows 11 • Chrome</p>
-                          <p className="text-xs text-slate-500">Madrid, ES • Active now</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                            Windows 11 • Chrome
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Madrid, ES • Active now
+                          </p>
                         </div>
                       </div>
-                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs font-bold rounded-full">Current</span>
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs font-bold rounded-full">
+                        Current
+                      </span>
                     </div>
                     <div className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <Smartphone className="w-8 h-8 text-slate-400" />
                         <div>
-                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">iPhone 14 Pro • Safari</p>
-                          <p className="text-xs text-slate-500">London, UK • Last active: 2 hours ago</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                            iPhone 14 Pro • Safari
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            London, UK • Last active: 2 hours ago
+                          </p>
                         </div>
                       </div>
-                      <button className="text-sm text-rose-500 hover:text-rose-600 font-medium">Revoke</button>
+                      <button className="text-sm text-rose-500 hover:text-rose-600 font-medium">
+                        Revoke
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -378,8 +411,16 @@ function DatabaseManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [newTable, setNewTable] = useState({ name: "", column1Name: "", column1Type: "TEXT" });
-  const [newColumn, setNewColumn] = useState({ table: "", name: "", type: "TEXT" });
+  const [newTable, setNewTable] = useState({
+    name: "",
+    column1Name: "",
+    column1Type: "TEXT",
+  });
+  const [newColumn, setNewColumn] = useState({
+    table: "",
+    name: "",
+    type: "TEXT",
+  });
 
   const fetchSchema = async () => {
     try {
@@ -412,9 +453,9 @@ function DatabaseManager() {
           tableName: newTable.name,
           columns: [
             { name: "id", type: "TEXT", pk: true, notnull: true },
-            { name: newTable.column1Name, type: newTable.column1Type }
-          ]
-        })
+            { name: newTable.column1Name, type: newTable.column1Type },
+          ],
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -432,15 +473,18 @@ function DatabaseManager() {
     e.preventDefault();
     if (!newColumn.table) return alert("Select a table");
     try {
-      const res = await fetch(`/api/admin/db/tables/${newColumn.table}/columns`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          columnName: newColumn.name,
-          dataType: newColumn.type,
-          isNullable: true
-        })
-      });
+      const res = await fetch(
+        `/api/admin/db/tables/${newColumn.table}/columns`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            columnName: newColumn.name,
+            dataType: newColumn.type,
+            isNullable: true,
+          }),
+        },
+      );
       const data = await res.json();
       if (data.success) {
         setNewColumn({ table: "", name: "", type: "TEXT" });
@@ -460,36 +504,48 @@ function DatabaseManager() {
     <div className="space-y-8">
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         <div className="space-y-6">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Current Schema</h3>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+            Current Schema
+          </h3>
           <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-            {Object.entries(schema || {}).map(([tableName, columns]: [string, any]) => (
-              <div key={tableName} className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
-                <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                  <TableProperties className="w-4 h-4 text-indigo-500" />
-                  <span className="font-bold text-sm text-slate-700 dark:text-slate-300">{tableName}</span>
-                </div>
-                <div className="p-4">
-                  <table className="w-full text-left text-sm text-slate-500 dark:text-slate-400">
-                    <thead className="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-800 dark:text-slate-400">
-                      <tr>
-                        <th className="px-2 py-1">Column</th>
-                        <th className="px-2 py-1">Type</th>
-                        <th className="px-2 py-1">PK</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {columns.map((c: any) => (
-                        <tr key={c.name} className="border-b dark:border-slate-800 last:border-0">
-                          <td className="px-2 py-1 font-medium">{c.name}</td>
-                          <td className="px-2 py-1">{c.type}</td>
-                          <td className="px-2 py-1">{c.pk ? "Yes" : ""}</td>
+            {Object.entries(schema || {}).map(
+              ([tableName, columns]: [string, any]) => (
+                <div
+                  key={tableName}
+                  className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden"
+                >
+                  <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                    <TableProperties className="w-4 h-4 text-indigo-500" />
+                    <span className="font-bold text-sm text-slate-700 dark:text-slate-300">
+                      {tableName}
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    <table className="w-full text-left text-sm text-slate-500 dark:text-slate-400">
+                      <thead className="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-800 dark:text-slate-400">
+                        <tr>
+                          <th className="px-2 py-1">Column</th>
+                          <th className="px-2 py-1">Type</th>
+                          <th className="px-2 py-1">PK</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {columns.map((c: any) => (
+                          <tr
+                            key={c.name}
+                            className="border-b dark:border-slate-800 last:border-0"
+                          >
+                            <td className="px-2 py-1 font-medium">{c.name}</td>
+                            <td className="px-2 py-1">{c.type}</td>
+                            <td className="px-2 py-1">{c.pk ? "Yes" : ""}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ),
+            )}
           </div>
         </div>
 
@@ -500,17 +556,45 @@ function DatabaseManager() {
             </h3>
             <form onSubmit={handleCreateTable} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Table Name</label>
-                <input required type="text" value={newTable.name} onChange={e => setNewTable({...newTable, name: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                  Table Name
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={newTable.name}
+                  onChange={(e) =>
+                    setNewTable({ ...newTable, name: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Col 1 Name</label>
-                  <input required type="text" value={newTable.column1Name} onChange={e => setNewTable({...newTable, column1Name: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                    Col 1 Name
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={newTable.column1Name}
+                    onChange={(e) =>
+                      setNewTable({ ...newTable, column1Name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Col 1 Type</label>
-                  <select value={newTable.column1Type} onChange={e => setNewTable({...newTable, column1Type: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                    Col 1 Type
+                  </label>
+                  <select
+                    value={newTable.column1Type}
+                    onChange={(e) =>
+                      setNewTable({ ...newTable, column1Type: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
                     <option value="TEXT">TEXT</option>
                     <option value="INTEGER">INTEGER</option>
                     <option value="REAL">REAL</option>
@@ -518,7 +602,12 @@ function DatabaseManager() {
                   </select>
                 </div>
               </div>
-              <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg">Create Table</button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg"
+              >
+                Create Table
+              </button>
             </form>
           </div>
 
@@ -528,20 +617,51 @@ function DatabaseManager() {
             </h3>
             <form onSubmit={handleAddColumn} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Target Table</label>
-                <select required value={newColumn.table} onChange={e => setNewColumn({...newColumn, table: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                  Target Table
+                </label>
+                <select
+                  required
+                  value={newColumn.table}
+                  onChange={(e) =>
+                    setNewColumn({ ...newColumn, table: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
                   <option value="">Select a table...</option>
-                  {Object.keys(schema || {}).map(t => <option key={t} value={t}>{t}</option>)}
+                  {Object.keys(schema || {}).map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Column Name</label>
-                  <input required type="text" value={newColumn.name} onChange={e => setNewColumn({...newColumn, name: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                    Column Name
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={newColumn.name}
+                    onChange={(e) =>
+                      setNewColumn({ ...newColumn, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type</label>
-                  <select value={newColumn.type} onChange={e => setNewColumn({...newColumn, type: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                    Type
+                  </label>
+                  <select
+                    value={newColumn.type}
+                    onChange={(e) =>
+                      setNewColumn({ ...newColumn, type: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
                     <option value="TEXT">TEXT</option>
                     <option value="INTEGER">INTEGER</option>
                     <option value="REAL">REAL</option>
@@ -549,7 +669,12 @@ function DatabaseManager() {
                   </select>
                 </div>
               </div>
-              <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg">Add Column</button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg"
+              >
+                Add Column
+              </button>
             </form>
           </div>
         </div>
@@ -585,7 +710,7 @@ function ProfileSettings() {
           message: data.message,
           type: "success",
           timestamp: new Date().toISOString(),
-          read: false
+          read: false,
         });
         await checkAuth(); // refresh user data
       } else {
@@ -649,14 +774,16 @@ function ProfileSettings() {
             value={user?.email || ""}
             className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
           />
-          <p className="text-xs text-slate-500 mt-1">Email cannot be changed directly.</p>
+          <p className="text-xs text-slate-500 mt-1">
+            Email cannot be changed directly.
+          </p>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Timezone
           </label>
-          <select 
+          <select
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
             className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -668,11 +795,9 @@ function ProfileSettings() {
           </select>
         </div>
 
-
-
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
             className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50"
           >
@@ -708,7 +833,7 @@ function CompanySettings() {
           message: data.message,
           type: "success",
           timestamp: new Date().toISOString(),
-          read: false
+          read: false,
         });
       } else {
         alert(data.error);
@@ -728,21 +853,48 @@ function CompanySettings() {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Company Name</label>
-            <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+              Company Name
+            </label>
+            <input
+              required
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tax ID / VAT</label>
-            <input required type="text" value={taxId} onChange={e => setTaxId(e.target.value)} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+              Tax ID / VAT
+            </label>
+            <input
+              required
+              type="text"
+              value={taxId}
+              onChange={(e) => setTaxId(e.target.value)}
+              className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
           </div>
         </div>
       </div>
       <div>
-        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Billing Address</label>
-        <input type="text" value={billingAddress} onChange={e => setBillingAddress(e.target.value)} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+          Billing Address
+        </label>
+        <input
+          type="text"
+          value={billingAddress}
+          onChange={(e) => setBillingAddress(e.target.value)}
+          className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+        />
       </div>
       <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-        <button type="submit" disabled={loading} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50">
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50"
+        >
           {loading ? "Saving..." : "Save Changes"}
         </button>
       </div>
@@ -778,9 +930,9 @@ function SecuritySettings() {
           message: data.message,
           type: "success",
           timestamp: new Date().toISOString(),
-          read: false
+          read: false,
         });
-        
+
         // Use App Store logout since session was invalidated on the backend
         setTimeout(() => {
           useAppStore.getState().logout();
@@ -803,28 +955,65 @@ function SecuritySettings() {
         </h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Current Password</label>
-            <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+              Current Password
+            </label>
+            <input
+              required
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">New Password</label>
-              <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                New Password
+              </label>
+              <input
+                required
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Confirm New Password</label>
-              <input required type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                Confirm New Password
+              </label>
+              <input
+                required
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
             </div>
           </div>
         </div>
-        <button type="submit" disabled={loading} className="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium rounded-lg transition-colors text-sm disabled:opacity-50">
+        <button
+          type="submit"
+          disabled={loading}
+          className="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium rounded-lg transition-colors text-sm disabled:opacity-50"
+        >
           {loading ? "Updating..." : "Change Password"}
         </button>
       </form>
       <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
-        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Two-Factor Authentication (2FA)</h3>
-        <p className="text-sm text-slate-500 mb-4">Add an extra layer of security to your account.</p>
-        <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors text-sm">Enable 2FA</button>
+        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          Two-Factor Authentication (2FA)
+        </h3>
+        <p className="text-sm text-slate-500 mb-4">
+          Add an extra layer of security to your account.
+        </p>
+        <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors text-sm">
+          Enable 2FA
+        </button>
       </div>
     </div>
   );

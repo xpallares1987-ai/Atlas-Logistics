@@ -6,13 +6,15 @@ import {
   BarChart,
   ArrowRightLeft,
   Anchor,
+  BoxSelect,
 } from "lucide-react";
 import { WarehouseTrafficControl } from "@atlas/ui/src/components/WarehouseTrafficControl";
 import { WarehouseInboundOutbound } from "@atlas/ui/src/components/WarehouseInboundOutbound";
+import { Warehouse3D } from "@atlas/ui/src/components/Warehouse3D";
 
 export default function WarehouseOpsModule() {
   const [activeTab, setActiveTab] = useState<
-    "traffic" | "inbound" | "outbound"
+    "traffic" | "inbound" | "outbound" | "3d"
   >("traffic");
 
   return (
@@ -110,6 +112,14 @@ export default function WarehouseOpsModule() {
             <Layers size={16} /> Outbound (AI Allocation)
           </div>
         </button>
+        <button
+          onClick={() => setActiveTab("3d")}
+          className={`px-6 py-3 font-bold text-sm rounded-t-xl transition-colors ${activeTab === "3d" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}
+        >
+          <div className="flex items-center gap-2">
+            <BoxSelect size={16} /> 3D View
+          </div>
+        </button>
       </div>
 
       {/* Main Content Area */}
@@ -119,6 +129,7 @@ export default function WarehouseOpsModule() {
         {activeTab === "outbound" && (
           <WarehouseInboundOutbound mode="outbound" />
         )}
+        {activeTab === "3d" && <Warehouse3D />}
       </div>
     </div>
   );

@@ -6,24 +6,25 @@ import fastifyCookie from "@fastify/cookie";
 import fastifyJwt from "@fastify/jwt";
 import fastifyRedis from "@fastify/redis";
 import fastifyWebsocket from "@fastify/websocket";
+import fastifyMultipart from "@fastify/multipart";
 import { redis } from "./config/redis.js";
 
 import bpmnRoutes from "./routes/bpmn.routes.js";
 import { logger } from "./config/logger.js";
 import { authMiddleware } from "./middleware/auth.js";
 
-// Import routers
 import shipmentsRoutes from "./routes/shipments.routes.js";
 import quotesRoutes from "./routes/quotes.routes.js";
-import invoicesRoutes from "./routes/invoices.routes.js";
 import financialRoutes from "./routes/financial.routes.js";
 import eventsRoutes from "./routes/events.routes.js";
 
 import documentsRoutes from "./routes/documents.routes.js";
 import authRoutes from "./routes/auth.routes.js";
-import adminRoutes from "./routes/admin.routes.js";
 import trackingRoutes from "./routes/tracking.routes.js";
 import healthRoutes from "./routes/health.routes.js";
+import operationsRoutes from "./routes/operations.routes.js";
+import schedulesRoutes from "./routes/schedules.routes.js";
+import tasksRoutes from "./routes/tasks.routes.js";
 import exceptionsRoutes from "./routes/exceptions.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import adminDbRoutes from "./routes/admin-db.routes.js";
@@ -42,17 +43,25 @@ app.register(fastifyHelmet, {
 });
 
 // Configure Redis (Using shared client that can be mock)
-const USE_MOCK = process.env.NODE_ENV !== "production" && process.env.USE_REDIS_MOCK !== "false";
+const USE_MOCK =
+  process.env.NODE_ENV !== "production" &&
+  process.env.USE_REDIS_MOCK !== "false";
 if (!USE_MOCK) {
   app.register(fastifyRedis, {
     client: redis,
-    closeClient: false // don't let fastify close the shared client
+    closeClient: false, // don't let fastify close the shared client
   });
 }
 
 // Configure WebSockets
 app.register(fastifyWebsocket, {
-  options: { maxPayload: 1048576 }
+  options: { maxPayload: 1048576 },
+});
+
+// Configure Multipart
+app.register(fastifyMultipart, {
+  attachFieldsToBody: true,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
 app.register(fastifyCors, {
@@ -76,7 +85,7 @@ app.register(fastifyCors, {
 app.register(fastifyRateLimit, {
   max: 100,
   timeWindow: "15 minutes",
-  redis: redis // Use shared Redis (or mock) for rate limiting
+  redis: redis, // Use shared Redis (or mock) for rate limiting
 });
 
 app.register(fastifyCookie, {
@@ -115,7 +124,6 @@ app.register(exceptionsRoutes, { prefix: "/api/shipments/exceptions" });
 app.register(shipmentsRoutes, { prefix: "/api/tracking" });
 app.register(quotesRoutes, { prefix: "/api/quotes" });
 app.register(quotesRoutes, { prefix: "/api/rates" });
-app.register(invoicesRoutes, { prefix: "/api/invoices" });
 app.register(financialRoutes, { prefix: "/api" });
 app.register(eventsRoutes, { prefix: "/api" });
 app.register(documentsRoutes, { prefix: "/api/documents" });
@@ -123,7 +131,10 @@ app.register(authRoutes, { prefix: "/api/auth" });
 app.register(adminRoutes);
 app.register(settingsRoutes, { prefix: "/api/settings" });
 app.register(adminDbRoutes, { prefix: "/api/admin/db" });
+app.register(operationsRoutes, { prefix: "/api/operations" });
 app.register(trackingRoutes, { prefix: "/api/tracking" });
+app.register(schedulesRoutes, { prefix: "/api/schedules" });
+app.register(tasksRoutes, { prefix: "/api/tasks" });
 app.register(aiRoutes, { prefix: "/api" });
 app.register(bpmnRoutes, { prefix: "/api" });
 app.register(healthRoutes, { prefix: "/api" });
