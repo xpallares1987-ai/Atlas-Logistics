@@ -69,6 +69,16 @@ jobs:
           touch .env.local
           pnpm run db:migrate
           pnpm run db:seed
+          
+          echo "Starting backend manually to check for errors..."
+          pnpm run start:backend > backend-ci.log 2>&1 &
+          BACKEND_PID=$!
+          sleep 10
+          echo "=== BACKEND LOGS ==="
+          cat backend-ci.log
+          echo "===================="
+          kill $BACKEND_PID || true
+          
           npx playwright test
 
       - name: Upload Playwright Report
