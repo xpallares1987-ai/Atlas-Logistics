@@ -21,6 +21,7 @@ export default tseslint.config({
     "**/dataconnect-generated/**",
     "**/dataconnect-admin-generated/**",
     "test-prune/**",
+    "create-admin.ts"
   ],
 }, {
   files: ["**/*.ts", "**/*.tsx"],

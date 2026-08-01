@@ -27,6 +27,7 @@ import healthRoutes from "./routes/health.routes.js";
 import exceptionsRoutes from "./routes/exceptions.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import adminDbRoutes from "./routes/admin-db.routes.js";
+import settingsRoutes from "./routes/settings.routes.js";
 
 // Removed tRPC imports
 
@@ -120,6 +121,7 @@ app.register(eventsRoutes, { prefix: "/api" });
 app.register(documentsRoutes, { prefix: "/api/documents" });
 app.register(authRoutes, { prefix: "/api/auth" });
 app.register(adminRoutes);
+app.register(settingsRoutes, { prefix: "/api/settings" });
 app.register(adminDbRoutes, { prefix: "/api/admin/db" });
 app.register(trackingRoutes, { prefix: "/api/tracking" });
 app.register(aiRoutes, { prefix: "/api" });
