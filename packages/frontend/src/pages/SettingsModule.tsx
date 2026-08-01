@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   User,
   Building2,
@@ -111,105 +111,7 @@ export default function SettingsModule() {
               {activeTab}
             </h2>
 
-            {activeTab === "Profile" && (
-              <div className="max-w-xl space-y-6">
-                <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-full bg-indigo-100 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center text-indigo-700 dark:text-indigo-400 text-2xl font-black">
-                    {user?.avatarInitials || "JD"}
-                  </div>
-                  <div>
-                    <button className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition-colors">
-                      Change Avatar
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      defaultValue={(user?.name || "").split(" ")[0] || "John"}
-                      className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      defaultValue={(user?.name || "").split(" ")[1] || "Doe"}
-                      className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    defaultValue={user?.email || "john.doe@atlas.com"}
-                    className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Timezone
-                  </label>
-                  <select className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-200">
-                    <option>Pacific Time (PT) - US & Canada</option>
-                    <option>Eastern Time (ET) - US & Canada</option>
-                    <option>Central European Time (CET)</option>
-                    <option>China Standard Time (CST)</option>
-                  </select>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                    <Shield size={18} /> Role Simulator (RBAC Test)
-                  </h3>
-                  <p className="text-xs text-slate-500 mb-3">
-                    Change your current role to test the access control
-                    restrictions across different modules.
-                  </p>
-                  <select
-                    value={user?.role || "ADMIN"}
-                    onChange={(e) =>
-                      user &&
-                      useAppStore
-                        .getState()
-                        .setUser({ ...user, role: e.target.value as any })
-                    }
-                    className="w-full px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-                  >
-                    <option value="ADMIN">ADMIN (Full Access)</option>
-                    <option value="EXECUTIVE">
-                      EXECUTIVE (High Level & Finance)
-                    </option>
-                    <option value="MANAGER">
-                      MANAGER (Operations & Finance)
-                    </option>
-                    <option value="SALES">SALES (Pricing & Quotes)</option>
-                    <option value="OPERATIONS">
-                      OPERATIONS (Logistics & Customs)
-                    </option>
-                    <option value="CUSTOMER">CUSTOMER (Portal Only)</option>
-                  </select>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <button className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm">
-                    Save Changes
-                  </button>
-                </div>
-              </div>
-            )}
+            {activeTab === "Profile" && <ProfileSettings />}
 
             {activeTab === "Appearance" && (
               <div className="max-w-xl space-y-6">
@@ -405,64 +307,9 @@ export default function SettingsModule() {
               </div>
             )}
 
-            {activeTab === "Company" && (
-              <div className="max-w-2xl space-y-6">
-                <div>
-                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
-                    Company Details
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Company Name</label>
-                      <input type="text" defaultValue="Atlas Logistics Inc." className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tax ID / VAT</label>
-                      <input type="text" defaultValue="US123456789" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Billing Address</label>
-                  <input type="text" defaultValue="123 Supply Chain Blvd, Suite 400" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                </div>
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <button className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm">Save Changes</button>
-                </div>
-              </div>
-            )}
+            {activeTab === "Company" && <CompanySettings />}
 
-            {activeTab === "Security" && (
-              <div className="max-w-2xl space-y-6">
-                <div>
-                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
-                    Password
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Current Password</label>
-                      <input type="password" placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">New Password</label>
-                        <input type="password" placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Confirm New Password</label>
-                        <input type="password" placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                      </div>
-                    </div>
-                  </div>
-                  <button className="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium rounded-lg transition-colors text-sm">Change Password</button>
-                </div>
-                <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
-                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Two-Factor Authentication (2FA)</h3>
-                  <p className="text-sm text-slate-500 mb-4">Add an extra layer of security to your account.</p>
-                  <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors text-sm">Enable 2FA</button>
-                </div>
-              </div>
-            )}
+            {activeTab === "Security" && <SecuritySettings />}
 
             {activeTab === "Notifications" && (
               <div className="max-w-2xl space-y-6">
@@ -706,6 +553,301 @@ function DatabaseManager() {
             </form>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileSettings() {
+  const { user, checkAuth, addNotification } = useAppStore();
+  const defaultFirstName = (user?.name || "").split(" ")[0] || "";
+  const defaultLastName = (user?.name || "").split(" ")[1] || "";
+
+  const [firstName, setFirstName] = useState(defaultFirstName);
+  const [lastName, setLastName] = useState(defaultLastName);
+  const [timezone, setTimezone] = useState("Pacific Time (PT) - US & Canada");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch("/api/settings/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ firstName, lastName, timezone }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification({
+          id: Date.now().toString(),
+          title: "Profile Updated",
+          message: data.message,
+          type: "success",
+          timestamp: new Date().toISOString(),
+          read: false
+        });
+        await checkAuth(); // refresh user data
+      } else {
+        alert(data.error);
+      }
+    } catch (err: any) {
+      alert("Failed to update profile: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-xl space-y-6">
+      <div className="flex items-center gap-6">
+        <div className="w-20 h-20 rounded-full bg-indigo-100 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center text-indigo-700 dark:text-indigo-400 text-2xl font-black">
+          {user?.avatarInitials || "JD"}
+        </div>
+        <div>
+          <button className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition-colors">
+            Change Avatar
+          </button>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              First Name
+            </label>
+            <input
+              type="text"
+              required
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Last Name
+            </label>
+            <input
+              type="text"
+              required
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            Email Address
+          </label>
+          <input
+            type="email"
+            disabled
+            value={user?.email || ""}
+            className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-500"
+          />
+          <p className="text-xs text-slate-500 mt-1">Email cannot be changed directly.</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            Timezone
+          </label>
+          <select 
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-200"
+          >
+            <option>Pacific Time (PT) - US & Canada</option>
+            <option>Eastern Time (ET) - US & Canada</option>
+            <option>Central European Time (CET)</option>
+            <option>China Standard Time (CST)</option>
+          </select>
+        </div>
+
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+            <Shield size={18} /> Role Simulator (RBAC Test)
+          </h3>
+          <p className="text-xs text-slate-500 mb-3">
+            Change your current role to test the access control
+            restrictions across different modules.
+          </p>
+          <select
+            value={user?.role || "ADMIN"}
+            onChange={(e) =>
+              user &&
+              useAppStore
+                .getState()
+                .setUser({ ...user, role: e.target.value as any })
+            }
+            className="w-full px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
+          >
+            <option value="ADMIN">ADMIN (Full Access)</option>
+            <option value="EXECUTIVE">EXECUTIVE (High Level & Finance)</option>
+            <option value="MANAGER">MANAGER (Operations & Finance)</option>
+            <option value="SALES">SALES (Pricing & Quotes)</option>
+            <option value="OPERATIONS">OPERATIONS (Logistics & Customs)</option>
+            <option value="CUSTOMER">CUSTOMER (Portal Only)</option>
+          </select>
+        </div>
+
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50"
+          >
+            {loading ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function CompanySettings() {
+  const { addNotification } = useAppStore();
+  const [name, setName] = useState("");
+  const [taxId, setTaxId] = useState("");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch("/api/settings/company", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, taxId, billingAddress }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification({
+          id: Date.now().toString(),
+          title: "Company Updated",
+          message: data.message,
+          type: "success",
+          timestamp: new Date().toISOString(),
+          read: false
+        });
+      } else {
+        alert(data.error);
+      }
+    } catch (err: any) {
+      alert("Failed to update company: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+      <div>
+        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
+          Company Details
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Company Name</label>
+            <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tax ID / VAT</label>
+            <input required type="text" value={taxId} onChange={e => setTaxId(e.target.value)} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Billing Address</label>
+        <input type="text" value={billingAddress} onChange={e => setBillingAddress(e.target.value)} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+      </div>
+      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+        <button type="submit" disabled={loading} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50">
+          {loading ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function SecuritySettings() {
+  const { addNotification } = useAppStore();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      alert("New passwords do not match!");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/settings/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification({
+          id: Date.now().toString(),
+          title: "Security Updated",
+          message: data.message,
+          type: "success",
+          timestamp: new Date().toISOString(),
+          read: false
+        });
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        alert(data.error);
+      }
+    } catch (err: any) {
+      alert("Failed to update password: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl space-y-6">
+      <form onSubmit={handleSubmit}>
+        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
+          Password
+        </h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Current Password</label>
+            <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">New Password</label>
+              <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Confirm New Password</label>
+              <input required type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+          </div>
+        </div>
+        <button type="submit" disabled={loading} className="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium rounded-lg transition-colors text-sm disabled:opacity-50">
+          {loading ? "Updating..." : "Change Password"}
+        </button>
+      </form>
+      <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
+        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Two-Factor Authentication (2FA)</h3>
+        <p className="text-sm text-slate-500 mb-4">Add an extra layer of security to your account.</p>
+        <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors text-sm">Enable 2FA</button>
       </div>
     </div>
   );
