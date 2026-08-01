@@ -4,7 +4,7 @@ import { db } from "../db/index.js";
 import { users, companies } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
 import { Argon2id } from "oslo/password";
-import { lucia } from "./auth.js";
+import { lucia } from "../lib/auth.js";
 
 const profileSchema = z.object({
   firstName: z.string().min(1),
