@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Premium UI & Framer Motion:** Added micro-interactions, `AnimatePresence` and loading skeletons to core modules (`Dashboard`, `CustomerPortalModule`) for a premium user experience.
+- **SQLite Advanced Objects:** Added `src/db/schema/views.ts` for native SQL views (`shipment_financial_summary`, `warehouse_occupancy`).
+- **Triggers & Sequences:** Integrated raw SQL triggers into `seed.ts` to support automated sequenced IDs (`INV-00000X`) and immutable audit logging for shipments.
+- **AI & API Integration:** Replaced static Mocks in UI with real fetch calls to backend SQLite endpoints (`/api/shipments`, `/api/ai/chat`).
+- **BullMQ + Redis Fallback:** Async background jobs now seamlessly fallback to in-memory execution if Redis is unavailable, avoiding crashes.
 - **Cost-0 Local Architecture**: Migración completa de la capa de datos en la nube hacia una arquitectura de base de datos local utilizando **SQLite (libSQL)** y **Drizzle ORM** para garantizar un coste operativo de $0.
 - **Seguridad Mockeada**: Implementado un proveedor de autenticación simulado (Mock AuthProvider) para permitir el desarrollo y las pruebas sin incurrir en costes de Firebase Auth.
 - **Integración Asíncrona (BullMQ)**: Nueva infraestructura para simular procesos en segundo plano utilizando BullMQ (AtlasEngine) en lugar de Google Cloud Tasks.

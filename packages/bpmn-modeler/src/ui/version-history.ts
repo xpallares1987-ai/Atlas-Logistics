@@ -1,12 +1,12 @@
 // import { getDiagramVersions, saveDiagramVersion } from '../services/firestoreService';
 import { loadDiagramInNewTab } from '../state/tab-manager';
 import { state } from '../state';
-// import { getDiagramXml } from '../services/xml-service';
+import { getDiagramXml } from '../services/xml-service';
 import { on } from '@atlas/shared';
 import { Toast } from '@atlas/ui';
 
 let container: HTMLElement | null = null;
-// let currentDiagramId: string | null = null;
+let currentDiagramId: string | null = null;
 
 export function initVersionHistory() {
   container = document.createElement('div');
@@ -41,10 +41,26 @@ export function initVersionHistory() {
     const label = prompt('Introduce una etiqueta para esta versión:');
     if (label === null) return;
 
-    // const xml = await getDiagramXml(state.modeler);
+    const xml = await getDiagramXml(state.modeler);
     try {
-      // await saveDiagramVersion(state.activeTabId, xml, label || 'Versión guardada automáticamente');
-      Toast.show('Versión guardada exitosamente (Mock Local)', 'success');
+      if (!currentDiagramId) {
+        // Create new diagram
+        const res = await fetch('/api/bpmn/diagrams', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: label || 'Untitled', xmlContent: xml })
+        });
+        const data = await res.json();
+        currentDiagramId = data.data.id;
+      } else {
+        // Save new version
+        await fetch(`/api/bpmn/diagrams/${currentDiagramId}/versions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ xmlContent: xml })
+        });
+      }
+      Toast.show('Versión guardada exitosamente (SQLite)', 'success');
       await refreshVersions();
     } catch (e) {
       Toast.show('Error al guardar versión', 'error');
@@ -64,14 +80,21 @@ export function toggleVersionHistory() {
 
 export async function refreshVersions() {
   if (!state.activeTabId) return;
-  // currentDiagramId = state.activeTabId;
+  // If no known diagram ID, we could map activeTabId, but for simplicity let's use global state or create a new one
+  if (!currentDiagramId) {
+    const listEl = document.getElementById('version-list');
+    if (listEl) listEl.innerHTML = '<div class="empty-state">Guarda el diagrama primero para ver el historial.</div>';
+    return;
+  }
   const listEl = document.getElementById('version-list');
   if (!listEl) return;
 
   listEl.innerHTML = '<div class="loading">Cargando versiones...</div>';
 
   try {
-    const versions: any[] = []; // await getDiagramVersions(currentDiagramId);
+    const res = await fetch(`/api/bpmn/diagrams/${currentDiagramId}/versions`);
+    const data = await res.json();
+    const versions = data.data || [];
     if (versions.length === 0) {
       listEl.innerHTML = '<div class="empty-state">No hay versiones guardadas todavía.</div>';
       return;
@@ -79,8 +102,8 @@ export async function refreshVersions() {
 
     listEl.innerHTML = versions
       .map((v: any) => {
-        const dateStr = v.created_at?.toDate
-          ? v.created_at.toDate().toLocaleString()
+        const dateStr = v.createdAt
+          ? new Date(v.createdAt).toLocaleString()
           : new Date().toLocaleString();
         return `
       <div class="version-item" style="padding: 10px; border-bottom: 1px solid var(--border); margin-bottom: 5px;">
@@ -104,8 +127,8 @@ export async function refreshVersions() {
           ) {
             await loadDiagramInNewTab(
               state,
-              version.xml,
-              `Restaurado ${version.label || version.id}.bpmn`
+              version.xmlContent,
+              `Versión ${version.versionNumber}.bpmn`
             );
             toggleVersionHistory();
           }
@@ -113,7 +136,7 @@ export async function refreshVersions() {
       });
     });
   } catch (e) {
-    listEl.innerHTML = '<div class="error">Error al cargar las versiones (Almacenamiento Local Mock).</div>';
+    listEl.innerHTML = '<div class="error">Error al cargar las versiones (API SQLite).</div>';
   }
 }
 

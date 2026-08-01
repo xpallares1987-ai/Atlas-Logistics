@@ -14,8 +14,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
   const location = useLocation();
 
   if (!user) {
-    // Si no hay usuario, mandamos a login o a portal (para este MVP, no hay login, pero mandamos al portal o bloqueamos)
-    return <Navigate to="/portal" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (allowedRoles && allowedRoles.length > 0) {

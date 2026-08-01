@@ -53,7 +53,10 @@ export function ShippingMap({
         );
       } else {
         const icon = L.divIcon({
-          html: `<div class="bg-indigo-600 text-white p-1 rounded-full text-xs shadow-lg whitespace-nowrap">⛴️ ${v.name}</div>`,
+          html: `<div class="relative flex items-center justify-center">
+                   <div class="absolute inset-0 bg-indigo-500 rounded-full animate-ping opacity-75 h-6 w-6 -left-1 -top-1"></div>
+                   <div class="bg-indigo-600 text-white px-2 py-0.5 rounded-full text-xs shadow-[0_0_15px_rgba(79,70,229,0.8)] whitespace-nowrap relative z-10 border border-indigo-400/50 backdrop-blur-sm">⛴️ ${v.name}</div>
+                 </div>`,
           className: "custom-vessel-icon",
         });
         const marker = L.marker([v.lat, v.lng], { icon })
@@ -247,7 +250,10 @@ export function ShippingMap({
           // Ship simulation marker along the lane path (only if no real shipments available)
           if (shipments.length === 0) {
             const shipIcon = L.divIcon({
-              html: `<div style="font-size: 1.5rem; text-shadow: 0 0 10px #3b82f6; cursor: pointer;">🚢</div>`,
+              html: `<div class="relative">
+                       <div class="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-50"></div>
+                       <div style="font-size: 1.5rem; text-shadow: 0 0 15px #3b82f6; cursor: pointer; position: relative; z-index: 10;">🚢</div>
+                     </div>`,
               className: "custom-ship-icon",
               iconSize: [24, 24],
               iconAnchor: [12, 12],
@@ -279,7 +285,10 @@ export function ShippingMap({
               shipment.vesselLongitude != null
             ) {
               const shipIcon = L.divIcon({
-                html: `<div style="font-size: 1.5rem; text-shadow: 0 0 12px #10b981; cursor: pointer;">🚢</div>`,
+                html: `<div class="relative">
+                         <div class="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-50"></div>
+                         <div style="font-size: 1.5rem; text-shadow: 0 0 15px #10b981; cursor: pointer; position: relative; z-index: 10;">🚢</div>
+                       </div>`,
                 className: "custom-ship-icon",
                 iconSize: [24, 24],
                 iconAnchor: [12, 12],

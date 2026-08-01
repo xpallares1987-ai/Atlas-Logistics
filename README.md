@@ -6,6 +6,13 @@ Atlas Logistics es una **Super-App integral de Gestión de Cadena de Suministro 
 
 ---
 
+## 🚀 El Nuevo Paradigma (Arquitectura $0)
+Tras nuestra Fase 6 de refactorización, el proyecto se ejecuta **100% en local sin coste operativo** (Zero-Cost Architecture), eliminando dependencias externas cloud en desarrollo:
+- **Base de Datos:** Drizzle ORM + libSQL (SQLite local de alto rendimiento). Funcionalidades avanzadas inyectadas vía Triggers, Vistas y Secuencias personalizadas.
+- **Background Jobs:** BullMQ + ioredis (con fallback asíncrono si Redis se desconecta).
+- **Tiempo Real:** Fastify WebSockets (sin necesidad de Firebase).
+- **Monorepo:** Turborepo + pnpm con estructura separada `@atlas/frontend`, `@atlas/ui`, etc.
+
 ## 🌟 Módulos y Funcionalidades (Suite SCM ERP)
 
 Atlas Logistics cubre todo el ciclo de vida operativo de un embarque y la facturación de un freight forwarder:

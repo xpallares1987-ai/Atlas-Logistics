@@ -6,6 +6,12 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "build/**", "!-node_modules"]
     },
+    "@atlas/ui#build": {
+      "outputs": []
+    },
+    "@atlas/bpmn-modeler#build": {
+      "outputs": []
+    },
     "lint": {
       "dependsOn": ["^lint"],
       "outputs": []
