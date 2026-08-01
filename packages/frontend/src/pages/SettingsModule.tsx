@@ -13,6 +13,9 @@ import {
   Moon,
   Sun,
   Globe,
+  Database,
+  Plus,
+  TableProperties
 } from "lucide-react";
 import { useAppStore } from "../store/useAppStore";
 import { useTranslation } from "react-i18next";
@@ -60,6 +63,10 @@ export default function SettingsModule() {
     { id: "Appearance", icon: PaintBucket, label: t("settings.appearance") },
     { id: "Devices", icon: Smartphone, label: t("settings.devices") },
   ];
+
+  if (user?.role === "ADMIN") {
+    tabs.push({ id: "Database", icon: Database, label: "Database" });
+  }
 
   return (
     <div className="flex flex-col h-full bg-transparent text-slate-900 dark:text-slate-100">
@@ -509,6 +516,195 @@ export default function SettingsModule() {
                 </div>
               </div>
             )}
+
+            {activeTab === "Database" && user?.role === "ADMIN" && (
+              <DatabaseManager />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DatabaseManager() {
+  const [schema, setSchema] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [newTable, setNewTable] = useState({ name: "", column1Name: "", column1Type: "TEXT" });
+  const [newColumn, setNewColumn] = useState({ table: "", name: "", type: "TEXT" });
+
+  const fetchSchema = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/admin/db/schema");
+      const data = await res.json();
+      if (data.success) {
+        setSchema(data.schema);
+      } else {
+        setError(data.error);
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSchema();
+  }, []);
+
+  const handleCreateTable = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/admin/db/tables", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tableName: newTable.name,
+          columns: [
+            { name: "id", type: "TEXT", pk: true, notnull: true },
+            { name: newTable.column1Name, type: newTable.column1Type }
+          ]
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewTable({ name: "", column1Name: "", column1Type: "TEXT" });
+        fetchSchema();
+      } else {
+        alert(data.error);
+      }
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleAddColumn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newColumn.table) return alert("Select a table");
+    try {
+      const res = await fetch(`/api/admin/db/tables/${newColumn.table}/columns`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          columnName: newColumn.name,
+          dataType: newColumn.type,
+          isNullable: true
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewColumn({ table: "", name: "", type: "TEXT" });
+        fetchSchema();
+      } else {
+        alert(data.error);
+      }
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  if (loading) return <div>Loading schema...</div>;
+  if (error) return <div className="text-rose-500">Error: {error}</div>;
+
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <div className="space-y-6">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Current Schema</h3>
+          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+            {Object.entries(schema || {}).map(([tableName, columns]: [string, any]) => (
+              <div key={tableName} className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                  <TableProperties className="w-4 h-4 text-indigo-500" />
+                  <span className="font-bold text-sm text-slate-700 dark:text-slate-300">{tableName}</span>
+                </div>
+                <div className="p-4">
+                  <table className="w-full text-left text-sm text-slate-500 dark:text-slate-400">
+                    <thead className="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-800 dark:text-slate-400">
+                      <tr>
+                        <th className="px-2 py-1">Column</th>
+                        <th className="px-2 py-1">Type</th>
+                        <th className="px-2 py-1">PK</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {columns.map((c: any) => (
+                        <tr key={c.name} className="border-b dark:border-slate-800 last:border-0">
+                          <td className="px-2 py-1 font-medium">{c.name}</td>
+                          <td className="px-2 py-1">{c.type}</td>
+                          <td className="px-2 py-1">{c.pk ? "Yes" : ""}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          <div className="p-6 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-800">
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Add New Table
+            </h3>
+            <form onSubmit={handleCreateTable} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Table Name</label>
+                <input required type="text" value={newTable.name} onChange={e => setNewTable({...newTable, name: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Col 1 Name</label>
+                  <input required type="text" value={newTable.column1Name} onChange={e => setNewTable({...newTable, column1Name: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Col 1 Type</label>
+                  <select value={newTable.column1Type} onChange={e => setNewTable({...newTable, column1Type: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <option value="TEXT">TEXT</option>
+                    <option value="INTEGER">INTEGER</option>
+                    <option value="REAL">REAL</option>
+                    <option value="BOOLEAN">BOOLEAN</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg">Create Table</button>
+            </form>
+          </div>
+
+          <div className="p-6 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-800">
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Add Column to Existing Table
+            </h3>
+            <form onSubmit={handleAddColumn} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Target Table</label>
+                <select required value={newColumn.table} onChange={e => setNewColumn({...newColumn, table: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <option value="">Select a table...</option>
+                  {Object.keys(schema || {}).map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Column Name</label>
+                  <input required type="text" value={newColumn.name} onChange={e => setNewColumn({...newColumn, name: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type</label>
+                  <select value={newColumn.type} onChange={e => setNewColumn({...newColumn, type: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <option value="TEXT">TEXT</option>
+                    <option value="INTEGER">INTEGER</option>
+                    <option value="REAL">REAL</option>
+                    <option value="BOOLEAN">BOOLEAN</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg">Add Column</button>
+            </form>
           </div>
         </div>
       </div>
