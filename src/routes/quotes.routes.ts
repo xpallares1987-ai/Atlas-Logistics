@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyPluginAsync } from "fastify";
-import { db } from "../db/db.config.js";
-import { rates, quotes } from "../db/schema.js";
+import { db } from "../db/index.js";
+import { rates, quotes, carriers } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
 import { validate } from "../middleware/validate.js";
 import { CreateQuoteSchema } from "@atlas/shared/src/logistics-schemas.js";
@@ -22,7 +22,26 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
             return JSON.parse(cachedRates);
           }
 
-          const allRates = await db.select().from(rates);
+          const allRatesRaw = await db
+            .select({
+              id: rates.id,
+              carrier: carriers.name,
+              containerType: rates.containerType,
+              baseOceanFreight: rates.baseRate,
+              baf: rates.baf,
+              pss: rates.pss,
+              thc: rates.thc,
+              serviceLine: rates.serviceLine,
+              transitTime: rates.transitDays,
+              validTo: rates.validTo
+            })
+            .from(rates)
+            .leftJoin(carriers, eq(rates.carrierId, carriers.id));
+            
+          const allRates = allRatesRaw.map(r => ({
+            ...r,
+            validTo: r.validTo ? r.validTo.toISOString().split('T')[0] : '2026-12-31'
+          }));
           // Cachear por 1 hora (3600 segundos)
           await redis
             .setex(CACHE_KEY, 3600, JSON.stringify(allRates))

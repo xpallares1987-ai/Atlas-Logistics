@@ -14,8 +14,13 @@ export default async function adminRoutes(app: FastifyInstance) {
   // But we still need to set it on the adapter.
   serverAdapter.setBasePath("/admin/queues");
 
+  const queues = [];
+  if (workflowQueue) {
+    queues.push(new BullMQAdapter(workflowQueue));
+  }
+
   createBullBoard({
-    queues: [new BullMQAdapter(workflowQueue)],
+    queues,
     serverAdapter,
   });
 

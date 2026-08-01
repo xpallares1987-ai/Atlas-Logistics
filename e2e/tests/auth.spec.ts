@@ -13,7 +13,7 @@ test.describe('Authentication Flows', () => {
     await page.click('button[type="submit"]');
 
     // Should show error message
-    const errorMsg = page.locator('text=Invalid credentials').or(page.locator('text=Authentication failed'));
+    const errorMsg = page.locator('text=Invalid credentials').or(page.locator('text=Authentication failed')).or(page.locator('text=Credenciales inválidas'));
     await expect(errorMsg).toBeVisible();
   });
 

@@ -257,7 +257,7 @@ export function ESGCarbonTracker() {
         animate="show"
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
       >
-        <motion.div variants={itemVariants} className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+        <motion.div variants={itemVariants} className="glass-card p-6 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
           <span className="text-sm text-slate-400 font-medium flex justify-between items-center">
@@ -270,7 +270,7 @@ export function ESGCarbonTracker() {
           </h3>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+        <motion.div variants={itemVariants} className="glass-card p-6 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
           <span className="text-sm text-slate-400 font-medium">
@@ -282,7 +282,7 @@ export function ESGCarbonTracker() {
           </h3>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+        <motion.div variants={itemVariants} className="glass-card p-6 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute top-0 left-0 w-1 h-full bg-purple-500" />
           <span className="text-sm text-slate-400 font-medium">
@@ -294,7 +294,7 @@ export function ESGCarbonTracker() {
           </h3>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+        <motion.div variants={itemVariants} className="glass-card p-6 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
           <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-20 transition-opacity duration-700">
@@ -313,7 +313,7 @@ export function ESGCarbonTracker() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-7 shadow-2xl"
+          className="glass-card p-7"
         >
           <h3 className="text-xl font-bold text-white mb-6">
             Emissions by Transport Mode
@@ -374,7 +374,7 @@ export function ESGCarbonTracker() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-7 shadow-2xl"
+          className="glass-card p-7"
         >
           <h3 className="text-xl font-bold text-white mb-6">
             Monthly Carbon Trend (tCO2e)
@@ -432,7 +432,7 @@ export function ESGCarbonTracker() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="bg-slate-900/60 backdrop-blur-2xl border border-slate-700/50 rounded-3xl shadow-2xl overflow-hidden"
+        className="glass-panel overflow-hidden"
       >
         <div className="px-7 py-5 border-b border-slate-700/50 bg-slate-800/20 flex justify-between items-center">
           <h3 className="text-xl font-bold text-white">

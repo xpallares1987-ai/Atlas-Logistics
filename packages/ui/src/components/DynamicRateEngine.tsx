@@ -148,13 +148,13 @@ export function DynamicRateEngine() {
       className="flex flex-col h-full min-h-[calc(100vh-4rem)] flex-1 bg-slate-950 text-slate-200"
     >
       {/* Top Panel: Search & Pricing Strategy */}
-      <div className="p-6 border-b border-slate-800/60 bg-slate-900/50 backdrop-blur-xl">
+      <div className="p-6 border-b border-slate-800/60 glass-panel border-b-0 rounded-none rounded-b-2xl mx-6 shadow-2xl">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
           {/* Search Criteria */}
           <motion.div 
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="flex-1 bg-slate-900/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden"
+            className="flex-1 glass-card p-6 relative overflow-hidden"
           >
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
             <h2 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-5 flex items-center gap-2">
@@ -216,7 +216,7 @@ export function DynamicRateEngine() {
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="w-full lg:w-[400px] bg-gradient-to-br from-indigo-900/40 to-slate-900/40 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden group"
+            className="w-full lg:w-[400px] glass-card p-6 relative overflow-hidden group"
           >
             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-700">
               <TrendingUp className="w-32 h-32 text-indigo-400" />
@@ -327,7 +327,7 @@ export function DynamicRateEngine() {
             </div>
           </motion.div>
 
-          <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="glass-card overflow-hidden mt-6">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-800/40 border-b border-slate-700/50 text-[11px] uppercase tracking-widest text-slate-400 font-bold">

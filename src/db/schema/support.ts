@@ -58,3 +58,12 @@ export const bpmnVersions = sqliteTable('bpmn_versions', {
   authorId: text('author_id').references(() => users.id),
   ...commonAuditFields
 });
+
+export const pendingAiReviews = sqliteTable('pending_ai_reviews', {
+  id: text('id').primaryKey(),
+  shipmentId: text('shipment_id').references(() => shipments.id),
+  documentUrl: text('document_url'),
+  status: text('status').notNull(),
+  result: text('result'),
+  ...commonAuditFields
+});

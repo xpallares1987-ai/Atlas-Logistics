@@ -1,4 +1,5 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, check } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
 import { commonAuditFields } from './_common.js';
 import { locations, companies, users } from './core.js';
 import { carriers } from './vendors.js';
@@ -17,6 +18,10 @@ export const rates = sqliteTable('rates', {
   laneId: text('lane_id').notNull().references(() => lanes.id),
   containerType: text('containerType').notNull(),
   baseRate: real('baseRate').notNull(),
+  baf: real('baf').notNull().default(0),
+  pss: real('pss').notNull().default(0),
+  thc: real('thc').notNull().default(0),
+  serviceLine: text('service_line').notNull().default('Standard'),
   transitDays: integer('transitDays').notNull(),
   validFrom: integer('valid_from', { mode: 'timestamp' }),
   validTo: integer('valid_to', { mode: 'timestamp' }),
@@ -24,7 +29,10 @@ export const rates = sqliteTable('rates', {
   createdBy: text('created_by').references(() => users.id),
   updatedBy: text('updated_by').references(() => users.id),
   ...commonAuditFields
-});
+}, (table) => ({
+  dateCheck: check('rates_dates_check', sql`${table.validTo} > ${table.validFrom}`),
+  rateCheck: check('rates_base_check', sql`${table.baseRate} >= 0`),
+}));
 
 export const surcharges = sqliteTable('surcharges', {
   id: text('id').primaryKey(),
@@ -51,4 +59,6 @@ export const quotes = sqliteTable('quotes', {
   status: text('status').notNull(), // PENDING, ACCEPTED, REJECTED
   createdBy: text('created_by').references(() => users.id),
   ...commonAuditFields
-});
+}, (table) => ({
+  amountCheck: check('quotes_amount_check', sql`${table.totalAmount} >= 0`),
+}));
