@@ -501,16 +501,16 @@ function DatabaseManager() {
             <form onSubmit={handleCreateTable} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Table Name</label>
-                <input required type="text" value={newTable.name} onChange={e => setNewTable({...newTable, name: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <input required type="text" value={newTable.name} onChange={e => setNewTable({...newTable, name: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Col 1 Name</label>
-                  <input required type="text" value={newTable.column1Name} onChange={e => setNewTable({...newTable, column1Name: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  <input required type="text" value={newTable.column1Name} onChange={e => setNewTable({...newTable, column1Name: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Col 1 Type</label>
-                  <select value={newTable.column1Type} onChange={e => setNewTable({...newTable, column1Type: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <select value={newTable.column1Type} onChange={e => setNewTable({...newTable, column1Type: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                     <option value="TEXT">TEXT</option>
                     <option value="INTEGER">INTEGER</option>
                     <option value="REAL">REAL</option>
@@ -529,7 +529,7 @@ function DatabaseManager() {
             <form onSubmit={handleAddColumn} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Target Table</label>
-                <select required value={newColumn.table} onChange={e => setNewColumn({...newColumn, table: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                <select required value={newColumn.table} onChange={e => setNewColumn({...newColumn, table: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                   <option value="">Select a table...</option>
                   {Object.keys(schema || {}).map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -537,11 +537,11 @@ function DatabaseManager() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Column Name</label>
-                  <input required type="text" value={newColumn.name} onChange={e => setNewColumn({...newColumn, name: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  <input required type="text" value={newColumn.name} onChange={e => setNewColumn({...newColumn, name: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type</label>
-                  <select value={newColumn.type} onChange={e => setNewColumn({...newColumn, type: e.target.value})} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <select value={newColumn.type} onChange={e => setNewColumn({...newColumn, type: e.target.value})} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                     <option value="TEXT">TEXT</option>
                     <option value="INTEGER">INTEGER</option>
                     <option value="REAL">REAL</option>
@@ -622,7 +622,7 @@ function ProfileSettings() {
               required
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
           <div>
@@ -634,7 +634,7 @@ function ProfileSettings() {
               required
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
         </div>
@@ -647,7 +647,7 @@ function ProfileSettings() {
             type="email"
             disabled
             value={user?.email || ""}
-            className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-500"
+            className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
           />
           <p className="text-xs text-slate-500 mt-1">Email cannot be changed directly.</p>
         </div>
@@ -659,7 +659,7 @@ function ProfileSettings() {
           <select 
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
-            className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-200"
+            className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
           >
             <option>Pacific Time (PT) - US & Canada</option>
             <option>Eastern Time (ET) - US & Canada</option>
@@ -754,17 +754,17 @@ function CompanySettings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Company Name</label>
-            <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tax ID / VAT</label>
-            <input required type="text" value={taxId} onChange={e => setTaxId(e.target.value)} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <input required type="text" value={taxId} onChange={e => setTaxId(e.target.value)} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
         </div>
       </div>
       <div>
         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Billing Address</label>
-        <input type="text" value={billingAddress} onChange={e => setBillingAddress(e.target.value)} className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+        <input type="text" value={billingAddress} onChange={e => setBillingAddress(e.target.value)} className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
       </div>
       <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
         <button type="submit" disabled={loading} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50">
@@ -827,16 +827,16 @@ function SecuritySettings() {
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Current Password</label>
-            <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">New Password</label>
-              <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Confirm New Password</label>
-              <input required type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <input required type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
             </div>
           </div>
         </div>
