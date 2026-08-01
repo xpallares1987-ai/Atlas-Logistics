@@ -8,7 +8,6 @@ import {
   PaintBucket,
   Smartphone,
   LogOut,
-  Settings,
   Monitor,
   Moon,
   Sun,
