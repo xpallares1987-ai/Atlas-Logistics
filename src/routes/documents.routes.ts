@@ -91,43 +91,51 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     }
   });
 
-  fastify.post("/upload", async (request, reply) => {
-    try {
-      const data = await request.file();
-      if (!data) {
-        return reply.code(400).send({ error: "No file uploaded" });
+  fastify.post("/upload", {
+    config: {
+      rateLimit: {
+        max: 20,
+        timeWindow: "1 minute",
+      },
+    },
+    handler: async (request, reply) => {
+      try {
+        const data = await request.file();
+        if (!data) {
+          return reply.code(400).send({ error: "No file uploaded" });
+        }
+
+        const fileBuffer = await data.toBuffer();
+        
+        // Persist to local filesystem (Document Vault)
+        const uploadDir = path.join(process.cwd(), "uploads");
+        await fs.promises.mkdir(uploadDir, { recursive: true });
+        const safeFilename = `${crypto.randomUUID()}-${data.filename}`;
+        const filePath = path.join(uploadDir, safeFilename);
+        await fs.promises.writeFile(filePath, fileBuffer);
+        
+        const fileUrl = `/api/documents/download/${safeFilename}`;
+
+        // We assume shipmentId is passed in the multipart fields
+        const body = request.body as any;
+        const shipmentId = body.shipmentId?.value;
+        const docType = body.type?.value || "Commercial Invoice";
+
+        if (shipmentId) {
+          await db.insert(documents).values({
+            id: crypto.randomUUID(),
+            shipmentId: shipmentId,
+            name: data.filename,
+            type: docType,
+            url: fileUrl,
+          });
+        }
+
+        reply.send({ success: true, url: fileUrl, name: data.filename });
+      } catch (error: any) {
+        reply.code(500).send({ error: error.message });
       }
-
-      const fileBuffer = await data.toBuffer();
-      
-      // Persist to local filesystem (Document Vault)
-      const uploadDir = path.join(process.cwd(), "uploads");
-      await fs.promises.mkdir(uploadDir, { recursive: true });
-      const safeFilename = `${crypto.randomUUID()}-${data.filename}`;
-      const filePath = path.join(uploadDir, safeFilename);
-      await fs.promises.writeFile(filePath, fileBuffer);
-      
-      const fileUrl = `/api/documents/download/${safeFilename}`;
-
-      // We assume shipmentId is passed in the multipart fields
-      const body = request.body as any;
-      const shipmentId = body.shipmentId?.value;
-      const docType = body.type?.value || "Commercial Invoice";
-
-      if (shipmentId) {
-        await db.insert(documents).values({
-          id: crypto.randomUUID(),
-          shipmentId: shipmentId,
-          name: data.filename,
-          type: docType,
-          url: fileUrl,
-        });
-      }
-
-      reply.send({ success: true, url: fileUrl, name: data.filename });
-    } catch (error: any) {
-      reply.code(500).send({ error: error.message });
-    }
+    },
   });
 
   fastify.get("/download/:filename", async (request, reply) => {
