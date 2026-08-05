@@ -116,27 +116,14 @@ export function ESGCarbonTracker() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Attempt to fetch real shipments, fallback to mock
-    fetch('/api/shipments')
+    fetch('/api/esg/carbon')
       .then(res => res.json())
       .then(data => {
         if (data && data.length > 0) {
-          // Map real DB shipments to our expected Carbon format (using fallbacks for missing fields)
-          const mapped = data.map((s: any) => ({
-            id: s.id,
-            reference: s.trackingNumber || `SHP-${s.id.substring(0,4)}`,
-            mode: s.type || "Ocean",
-            origin: s.origin || "Unknown",
-            destination: s.destination || "Unknown",
-            weightTons: s.weight ? s.weight / 1000 : Math.random() * 20 + 2,
-            distanceKm: s.distanceKm || Math.floor(Math.random() * 15000) + 500,
-            co2eTonnes: s.co2eTonnes || Math.random() * 10 + 0.5,
-            date: s.createdAt ? s.createdAt.substring(0, 10) : new Date().toISOString().substring(0, 10)
-          }));
-          setShipments(mapped.slice(0, 15));
+          setShipments(data.slice(0, 15));
         }
       })
-      .catch(err => console.error("Could not fetch real shipments for ESG:", err))
+      .catch(err => console.error("Could not fetch ESG data:", err))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -434,14 +421,80 @@ export function ESGCarbonTracker() {
         transition={{ delay: 0.5 }}
         className="glass-panel overflow-hidden"
       >
-        <div className="px-7 py-5 border-b border-slate-700/50 bg-slate-800/20 flex justify-between items-center">
+        <div className="px-7 py-5 border-b border-slate-700/50 bg-slate-800/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h3 className="text-xl font-bold text-white">
             Recent Shipment Footprints
           </h3>
           {isLoading && <span className="text-emerald-400 text-sm animate-pulse">Syncing Network...</span>}
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        
+        {/* Mobile View: Stacked Cards */}
+        <div className="flex flex-col gap-4 p-4 md:hidden">
+          <AnimatePresence>
+            {shipments.map((s) => (
+              <motion.div
+                key={s.id}
+                variants={itemVariants}
+                layout
+                className="bg-slate-800/20 border border-slate-700/50 rounded-2xl p-4 flex flex-col gap-4"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-bold text-slate-200">{s.reference}</p>
+                    <p className="text-xs text-slate-500">{s.date}</p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border backdrop-blur-sm
+                    ${s.mode === "Ocean" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : ""}
+                    ${s.mode === "Air" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : ""}
+                    ${s.mode === "Road" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : ""}
+                    ${!["Ocean","Air","Road"].includes(s.mode) ? "bg-slate-500/10 text-slate-400 border-slate-500/20" : ""}
+                  `}
+                  >
+                    {s.mode === "Ocean" && <Anchor size={12} />}
+                    {s.mode === "Air" && <Wind size={12} />}
+                    {s.mode === "Road" && <Truck size={12} />}
+                    {s.mode}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between text-sm text-slate-300">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-slate-500 uppercase">Origin</span>
+                    <span className="font-medium truncate max-w-[120px]">{s.origin}</span>
+                  </div>
+                  <span className="text-slate-600">&rarr;</span>
+                  <div className="flex flex-col text-right">
+                    <span className="text-xs text-slate-500 uppercase">Dest</span>
+                    <span className="font-medium truncate max-w-[120px]">{s.destination}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center border-t border-slate-700/50 pt-3 mt-1">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-slate-500">Dist: <span className="text-slate-300 font-mono">{s.distanceKm.toLocaleString()}km</span></span>
+                    <span className="text-xs text-slate-500">Wgt: <span className="text-slate-300 font-mono">{s.weightTons.toFixed(1)}T</span></span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-xs text-slate-500 uppercase tracking-wider mb-1">Emissions</span>
+                    <span className="text-lg font-black text-emerald-400 font-mono leading-none">
+                      {s.co2eTonnes.toFixed(2)}<span className="text-xs text-emerald-500/70 ml-1">tCO2e</span>
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          {shipments.length === 0 && !isLoading && (
+             <div className="p-8 text-center text-slate-500 font-medium">
+               No shipment data available.
+             </div>
+          )}
+        </div>
+
+        {/* Desktop View: Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-slate-800/30 text-slate-400 text-xs uppercase tracking-widest border-b border-slate-700/50">
                 <th className="p-5 font-semibold">Reference</th>

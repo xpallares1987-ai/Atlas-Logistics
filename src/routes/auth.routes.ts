@@ -1,8 +1,8 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { lucia } from "../lib/auth";
-import { db } from "../db";
-import { users } from "../db/schema";
+import { lucia } from "../lib/auth.js";
+import { db } from "../db/index.js";
+import { users } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
 import { Argon2id } from "oslo/password";
 import { generateId } from "lucia";
@@ -91,14 +91,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.get("/me", async (request, reply) => {
     const sessionId = request.cookies[lucia.sessionCookieName];
     if (!sessionId) {
-      return reply.code(401).send({ error: "No autorizado" });
+      return { user: null };
     }
 
     const { session, user } = await lucia.validateSession(sessionId);
     if (!session) {
       const sessionCookie = lucia.createBlankSessionCookie();
       reply.setCookie(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
-      return reply.code(401).send({ error: "No autorizado" });
+      return { user: null };
     }
 
     if (session && session.fresh) {

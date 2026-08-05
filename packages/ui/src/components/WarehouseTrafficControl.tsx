@@ -124,7 +124,7 @@ export function WarehouseTrafficControl() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
       {/* Incoming Traffic List */}
       <div className="lg:col-span-2 bg-slate-900/60 backdrop-blur-md border border-slate-700/50 rounded-3xl p-6 shadow-2xl flex flex-col">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
             <h3 className="text-xl font-black text-white">
               Live Traffic Board

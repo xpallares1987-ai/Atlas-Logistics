@@ -26,7 +26,7 @@ export default function WarehouseOpsModule() {
             <Layers className="text-indigo-500" /> Warehouse Operations (WMS)
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            AI-driven Dock Management, Cross-Docking, and Load Optimization.
+            Rule-based Dock Management, Cross-Docking, and Load Optimization.
           </p>
         </div>
 
@@ -80,14 +80,14 @@ export default function WarehouseOpsModule() {
             </div>
             <span className="text-4xl font-black text-white">96%</span>
             <span className="text-emerald-400 text-xs font-semibold">
-              Optimized by AI
+              Optimized via heuristics
             </span>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 border-b border-slate-700/50 pb-2">
+      <div className="flex gap-4 border-b border-slate-700/50 pb-2 overflow-x-auto whitespace-nowrap hide-scrollbar">
         <button
           onClick={() => setActiveTab("traffic")}
           className={`px-6 py-3 font-bold text-sm rounded-t-xl transition-colors ${activeTab === "traffic" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}
@@ -109,7 +109,7 @@ export default function WarehouseOpsModule() {
           className={`px-6 py-3 font-bold text-sm rounded-t-xl transition-colors ${activeTab === "outbound" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}
         >
           <div className="flex items-center gap-2">
-            <Layers size={16} /> Outbound (AI Allocation)
+            <Layers size={16} /> Outbound (Heuristic Allocation)
           </div>
         </button>
         <button

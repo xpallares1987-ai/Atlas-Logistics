@@ -377,14 +377,7 @@ export function LclConsolidationEngine({
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "320px 1fr",
-          gap: "1.5rem",
-          alignItems: "start",
-        }}
-      >
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 items-start">
         {/* LEFT PANEL: Unassigned Pool */}
         <div
           className="card"
@@ -721,14 +714,7 @@ export function LclConsolidationEngine({
               </div>
 
               {/* KPIs */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: "1rem",
-                  marginTop: "1.5rem",
-                }}
-              >
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <div
                   style={{
                     padding: "1rem",

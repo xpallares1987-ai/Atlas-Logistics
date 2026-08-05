@@ -30,6 +30,7 @@ import aiRoutes from "./routes/ai.routes.js";
 import adminDbRoutes from "./routes/admin-db.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
+import customsRoutes from "./routes/customs.routes.js";
 
 // Removed tRPC imports
 
@@ -139,5 +140,6 @@ app.register(tasksRoutes, { prefix: "/api/tasks" });
 app.register(aiRoutes, { prefix: "/api" });
 app.register(bpmnRoutes, { prefix: "/api" });
 app.register(healthRoutes, { prefix: "/api" });
+app.register(customsRoutes, { prefix: "/api" });
 
 export default app;

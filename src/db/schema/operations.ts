@@ -100,3 +100,21 @@ export const customsDeclarations = sqliteTable("customs_declarations", {
   aiRiskFlag: text("ai_risk_flag"),
   ...commonAuditFields,
 });
+
+export const bookings = sqliteTable("bookings", {
+  id: text("id").primaryKey(),
+  referenceNumber: text("reference_number"),
+  customerId: text("customer_id")
+    .notNull()
+    .references(() => companies.id),
+  status: text("status").notNull().default("Pending"), // Pending, Confirmed, Rejected, Cancelled
+  origin: text("origin"),
+  destination: text("destination"),
+  serviceType: text("service_type"), // FCL, LCL, AIR, ROAD
+  equipment: text("equipment"),
+  vessel: text("vessel"),
+  voyage: text("voyage"),
+  cargoDetails: text("cargo_details"), // JSON string
+  estimatedDeparture: integer("estimated_departure", { mode: "timestamp" }),
+  ...commonAuditFields,
+});

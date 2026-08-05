@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import RfqGeneratorModal from "./RfqGeneratorModal";
+import BookingDrawer from "./BookingDrawer";
 import { useAppStore } from "../shared/store";
 
 interface RateTableProps {
@@ -45,23 +46,23 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState<string | null>(null);
   const [rfqRate, setRfqRate] = useState<any | null>(null);
+  const [drawerRate, setDrawerRate] = useState<any | null>(null);
 
-  const handleBooking = async (rate: any) => {
-    if (bookedRates.find((r) => r.id === rate.id)) return;
-    setIsBooking(rate.id);
+  const handleBookingConfirm = async (bookingData: any) => {
+    const rateId = bookingData.id;
+    if (bookedRates.find((r) => r.id === rateId)) return;
+    setIsBooking(rateId);
     try {
-      // Lazy load service to avoid cyclic or top-level loading issues if any
       const { drizzleRateService } =
         await import("../services/drizzleRateService");
-
-      // We can use a dummy UUID for the demo, or fetch it from a user context
       const customerId = "11111111-1111-1111-1111-111111111111"; // Mock UUID
 
-      await drizzleRateService.saveQuote(rate, customerId);
+      await drizzleRateService.saveBooking(bookingData, customerId);
 
-      addToCart(rate as any);
+      addToCart(bookingData as any);
     } catch (error) {
       console.error("Failed to book shipment:", error);
+      throw error;
     } finally {
       setIsBooking(null);
     }
@@ -431,7 +432,7 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
                 {/* Actions */}
                 <div className="flex flex-row lg:flex-col justify-center gap-3 items-center w-full lg:w-auto shrink-0 pl-0 lg:pl-4">
                   <button
-                    onClick={() => handleBooking(rate)}
+                    onClick={() => setDrawerRate(rate)}
                     disabled={isBooked || isBooking === rate.id}
                     className={`w-full lg:w-36 px-4 py-3 text-sm font-black uppercase tracking-widest rounded-xl shadow-lg transition-all duration-300 ${
                       isBooked
@@ -544,6 +545,13 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
 
       {rfqRate && (
         <RfqGeneratorModal rate={rfqRate} onClose={() => setRfqRate(null)} />
+      )}
+      {drawerRate && (
+        <BookingDrawer 
+          rate={drawerRate} 
+          onClose={() => setDrawerRate(null)} 
+          onBook={handleBookingConfirm} 
+        />
       )}
     </div>
   );

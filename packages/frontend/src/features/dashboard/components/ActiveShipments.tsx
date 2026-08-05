@@ -1,0 +1,182 @@
+import { motion } from 'framer-motion';
+import { Box, ArrowRight } from 'lucide-react';
+
+import { useShipments } from '../../../hooks/useShipments';
+
+export function ActiveShipments() {
+  const { data: shipments = [] } = useShipments();
+
+  // Map backend shipments to UI format
+  // If no shipments exist, we could provide some visual defaults, but let's just map real data.
+  const activeShipments = shipments.slice(0, 5).map((s) => {
+    // Generate some display logic based on status
+    const isTransit = s.status === 'IN_TRANSIT' || s.status === 'Departed';
+    const progress = s.status === 'COMPLETED' ? 100 : isTransit ? 65 : 20;
+
+    return {
+      id: s.trackingNumber || s.id.substring(0, 8).toUpperCase(),
+      origin: s.origin || 'Unknown',
+      destination: s.destination || 'Unknown',
+      status: s.status || 'PENDING',
+      progress,
+      eta: s.status === 'COMPLETED' ? 'Delivered' : 'Pending',
+      vessel: s.vesselName || 'TBA',
+      type: s.serviceType || 'Ocean',
+    };
+  });
+  return (
+    <div className="rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-6 shadow-xl h-full flex flex-col">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold text-white tracking-tight">Active Shipments</h2>
+        <button className="text-indigo-400 text-sm font-medium hover:text-indigo-300 transition-colors flex items-center gap-1">
+          View All <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 w-full">
+        {/* Mobile View: Stacked Cards */}
+        <div className="flex flex-col gap-4 md:hidden">
+          {activeShipments.map((shipment, idx) => (
+            <motion.div
+              key={shipment.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 + 0.4 }}
+              className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-4"
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
+                    <Box className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-200 text-base">{shipment.id}</p>
+                    <p className="text-xs text-slate-500">{shipment.vessel}</p>
+                  </div>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase border ${
+                  shipment.status === 'In Transit' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                  shipment.status === 'Customs Hold' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                  'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                }`}>
+                  {shipment.status}
+                </span>
+              </div>
+              
+              <div className="flex items-center justify-between text-sm text-slate-300">
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-500 uppercase">Origin</span>
+                  <span className="font-medium truncate max-w-[120px]">{shipment.origin}</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-600" />
+                <div className="flex flex-col text-right">
+                  <span className="text-xs text-slate-500 uppercase">Dest</span>
+                  <span className="font-medium truncate max-w-[120px]">{shipment.destination}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Progress</span>
+                  <span className="text-slate-200 font-bold">{shipment.progress}%</span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full ${
+                      shipment.status === 'In Transit' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' :
+                      shipment.status === 'Customs Hold' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' :
+                      'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
+                    }`}
+                    style={{ width: `${shipment.progress}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center mt-2 border-t border-white/5 pt-3">
+                <span className="text-xs text-slate-500">Transport: <span className="text-slate-300">{shipment.type}</span></span>
+                <span className="text-xs text-slate-500">ETA: <span className="text-slate-200 font-bold">{shipment.eta}</span></span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Desktop View: Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-white/5">
+                <th className="pb-4 pl-2">Reference</th>
+                <th className="pb-4">Route</th>
+                <th className="pb-4">Transport</th>
+                <th className="pb-4">Status</th>
+                <th className="pb-4 text-right pr-2">ETA</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {activeShipments.map((shipment, idx) => (
+                <motion.tr 
+                  key={shipment.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 + 0.4 }}
+                  className="hover:bg-white/5 transition-colors group cursor-pointer"
+                >
+                  <td className="py-4 pl-2">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                        <Box className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-200">{shipment.id}</p>
+                        <p className="text-xs text-slate-500">{shipment.vessel}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4">
+                    <div className="flex items-center gap-2 text-sm text-slate-300">
+                      <span className="truncate max-w-[100px]">{shipment.origin}</span>
+                      <ArrowRight className="w-4 h-4 text-slate-600" />
+                      <span className="truncate max-w-[100px]">{shipment.destination}</span>
+                    </div>
+                  </td>
+                  <td className="py-4">
+                    <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-medium text-slate-300">
+                      {shipment.type}
+                    </span>
+                  </td>
+                  <td className="py-4">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className={`${
+                          shipment.status === 'In Transit' ? 'text-blue-400' :
+                          shipment.status === 'Customs Hold' ? 'text-amber-400' :
+                          'text-emerald-400'
+                        } font-medium`}>
+                          {shipment.status}
+                        </span>
+                        <span className="text-slate-500">{shipment.progress}%</span>
+                      </div>
+                      <div className="w-32 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${
+                            shipment.status === 'In Transit' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' :
+                            shipment.status === 'Customs Hold' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' :
+                            'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
+                          }`}
+                          style={{ width: `${shipment.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4 text-right pr-2">
+                    <p className="text-sm font-semibold text-slate-200">{shipment.eta}</p>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

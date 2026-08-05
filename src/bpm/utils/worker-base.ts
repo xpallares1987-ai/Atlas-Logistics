@@ -1,4 +1,4 @@
-import { db } from "../../db/db.config.js";
+import { db } from "../../db/index.js";
 import { logger } from "../../config/logger.js";
 import { registerWorker } from "../workflow-engine.service.js";
 

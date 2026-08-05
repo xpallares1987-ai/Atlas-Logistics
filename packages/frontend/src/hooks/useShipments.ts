@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 
 export interface Shipment {
   id: string;
-  referenceNumber: string;
+  trackingNumber: string;
   status: string;
-  originLocationId: string;
-  destinationLocationId: string;
-  vessel: string;
-  voyage: string;
+  origin: string;
+  destination: string;
+  vesselName: string;
+  voyageNumber: string;
+  serviceType: string;
   createdAt: string;
 }
 

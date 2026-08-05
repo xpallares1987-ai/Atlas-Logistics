@@ -19,14 +19,15 @@ import {
   FileText,
   Settings,
   Bell,
-  Bot,
   Boxes,
   Calendar,
   Book,
+  Briefcase,
   ShieldAlert,
   Landmark,
   Users,
-  ScanLine,
+  Menu,
+  X
 } from "lucide-react";
 import { OmniSearch } from "@atlas/ui/src/components/OmniSearch";
 import { useAppStore } from "./store/useAppStore";
@@ -41,12 +42,7 @@ const queryClient = new QueryClient();
 
 const Login = React.lazy(() => import("./pages/Login"));
 
-const DashboardModule = React.lazy(() =>
-  // @ts-ignore
-  import("dashboard/Dashboard").then((m) => ({
-    default: m.default || m.Dashboard,
-  })),
-);
+const DashboardModule = React.lazy(() => import("./pages/DashboardModule"));
 // @ts-ignore
 const RateComparerModule = React.lazy(() =>
   import("@atlas/rate-comparer").then((m) => ({ default: m.RateComparer })),
@@ -78,9 +74,7 @@ const DynamicPricingModule = React.lazy(
 const DocumentVaultModule = React.lazy(
   () => import("./pages/DocumentVaultModule"),
 );
-const AIChainAssistantModule = React.lazy(
-  () => import("./pages/AIChainAssistantModule"),
-);
+
 const WarehouseOpsModule = React.lazy(
   () => import("./pages/WarehouseOpsModule"),
 );
@@ -94,6 +88,7 @@ const CustomsClearanceModule = React.lazy(
   () => import("./pages/CustomsClearanceModule"),
 );
 const InvoicingModule = React.lazy(() => import("./pages/InvoicingModule"));
+const AgentSettlementsModule = React.lazy(() => import("./pages/AgentSettlementsModule"));
 const CustomerPortalModule = React.lazy(
   () => import("./pages/CustomerPortalModule"),
 );
@@ -110,16 +105,20 @@ function NavLink({
   to,
   icon: Icon,
   children,
+  onClick,
 }: {
   to: string;
   icon: any;
   children: React.ReactNode;
+  onClick?: () => void;
 }) {
   const location = useLocation();
-  const isActive = location.pathname === to;
+  // Consider a link active if the current path starts with the target path (handles nested routes)
+  const isActive = location.pathname.startsWith(to);
   return (
     <Link
       to={to}
+      onClick={onClick}
       className={`p-3 flex items-center gap-3 rounded-xl transition-all font-medium border ${isActive ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "text-slate-400 hover:bg-slate-800/50 hover:text-indigo-300 border-transparent"}`}
     >
       <Icon
@@ -149,6 +148,7 @@ export default function App() {
     logout,
   } = useAppStore();
   const { t } = useTranslation();
+  const [isMobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     checkAuth();
@@ -177,17 +177,33 @@ export default function App() {
       <ApiStatusProvider onNotification={addNotification}>
         <Router>
           <div
-            className={`flex h-screen font-sans ${theme === "dark" ? "dark bg-slate-950 text-white" : "bg-slate-50 text-slate-900"}`}
+            className={`flex h-screen font-sans overflow-hidden ${theme === "dark" ? "dark bg-slate-950 text-white" : "bg-slate-50 text-slate-900"}`}
           >
+            {/* Mobile Sidebar Overlay */}
+            {isMobileMenuOpen && (
+              <div 
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden" 
+                onClick={() => setMobileMenuOpen(false)}
+              />
+            )}
+
             {/* Sidebar Shell */}
-            <aside className="w-72 bg-slate-950 text-slate-300 p-6 flex flex-col gap-8 z-50 shadow-2xl border-r border-slate-800/60 overflow-y-auto">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                  <Globe2 size={24} className="text-white" />
+            <aside className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0 transition duration-200 ease-in-out w-72 bg-slate-950 text-slate-300 p-6 flex flex-col gap-8 z-50 shadow-2xl border-r border-slate-800/60 overflow-y-auto`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <Globe2 size={24} className="text-white" />
+                  </div>
+                  <h1 className="text-2xl font-black tracking-widest text-white">
+                    ATLAS<span className="text-indigo-500">.</span>
+                  </h1>
                 </div>
-                <h1 className="text-2xl font-black tracking-widest text-white">
-                  ATLAS<span className="text-indigo-500">.</span>
-                </h1>
+                <button 
+                  className="md:hidden text-slate-400 hover:text-white"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <X size={24} />
+                </button>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -195,32 +211,32 @@ export default function App() {
                   Core
                 </span>
                 {(isAdminOrFF || isCustomsBroker || isShipper) && (
-                  <NavLink to="/" icon={LayoutDashboard}>
+                  <NavLink onClick={() => setMobileMenuOpen(false)} to="/" icon={LayoutDashboard}>
                     {t("sidebar.dashboard")}
                   </NavLink>
                 )}
                 {(isAdminOrFF || isShipper) && (
-                  <NavLink to="/quotes" icon={BadgeDollarSign}>
+                  <NavLink onClick={() => setMobileMenuOpen(false)} to="/quotes" icon={BadgeDollarSign}>
                     {t("sidebar.rateComparer")}
                   </NavLink>
                 )}
                 {isAdminOrFF && (
-                  <NavLink to="/pricing" icon={Activity}>
+                  <NavLink onClick={() => setMobileMenuOpen(false)} to="/pricing" icon={Activity}>
                     {t("sidebar.pricing")}
                   </NavLink>
                 )}
                 {(isAdminOrFF || isShipper) && (
-                  <NavLink to="/globe" icon={Globe2}>
+                  <NavLink onClick={() => setMobileMenuOpen(false)} to="/globe" icon={Globe2}>
                     {t("sidebar.globeTracker")}
                   </NavLink>
                 )}
                 {isAdminOrFF && (
-                  <NavLink to="/schedules" icon={Calendar}>
+                  <NavLink onClick={() => setMobileMenuOpen(false)} to="/schedules" icon={Calendar}>
                     {t("sidebar.schedules")}
                   </NavLink>
                 )}
                 {isAdminOrFF && (
-                  <NavLink to="/bookings" icon={Book}>
+                  <NavLink onClick={() => setMobileMenuOpen(false)} to="/bookings" icon={Book}>
                     {t("sidebar.bookings")}
                   </NavLink>
                 )}
@@ -232,12 +248,17 @@ export default function App() {
                     Finance & Compliance
                   </span>
                   {isAdminOrFF && (
-                    <NavLink to="/invoices" icon={Landmark}>
+                    <NavLink onClick={() => setMobileMenuOpen(false)} to="/invoices" icon={Landmark}>
                       {t("sidebar.invoicing")}
                     </NavLink>
                   )}
+                  {isAdminOrFF && (
+                    <NavLink onClick={() => setMobileMenuOpen(false)} to="/settlements" icon={Briefcase}>
+                      Agent Settlements
+                    </NavLink>
+                  )}
                   {(isAdminOrFF || isCustomsBroker) && (
-                    <NavLink to="/customs" icon={ShieldAlert}>
+                    <NavLink onClick={() => setMobileMenuOpen(false)} to="/customs" icon={ShieldAlert}>
                       {t("sidebar.customs")}
                     </NavLink>
                   )}
@@ -249,17 +270,17 @@ export default function App() {
                   Analytics
                 </span>
                 {isAdminOrFF && (
-                  <NavLink to="/profitability" icon={Activity}>
+                  <NavLink onClick={() => setMobileMenuOpen(false)} to="/profitability" icon={Activity}>
                     {t("sidebar.profitability")}
                   </NavLink>
                 )}
                 {(isAdminOrFF || isShipper) && (
-                  <NavLink to="/esg-tracker" icon={Leaf}>
+                  <NavLink onClick={() => setMobileMenuOpen(false)} to="/esg-tracker" icon={Leaf}>
                     {t("sidebar.carbonTracker")}
                   </NavLink>
                 )}
                 {(isAdminOrFF || isCustomsBroker) && (
-                  <NavLink to="/demurrage" icon={Clock}>
+                  <NavLink onClick={() => setMobileMenuOpen(false)} to="/demurrage" icon={Clock}>
                     {t("sidebar.demurrage")}
                   </NavLink>
                 )}
@@ -271,54 +292,58 @@ export default function App() {
                 </span>
                 {isAdminOrFF && (
                   <>
-                    <NavLink to="/planner" icon={Package}>
+                    <NavLink onClick={() => setMobileMenuOpen(false)} to="/planner" icon={Package}>
                       {t("sidebar.planner")}
                     </NavLink>
-                    <NavLink to="/lcl" icon={Cuboid}>
+                    <NavLink onClick={() => setMobileMenuOpen(false)} to="/lcl" icon={Cuboid}>
                       {t("sidebar.lclEngine")}
                     </NavLink>
-                    <NavLink to="/warehouse" icon={Boxes}>
+                    <NavLink onClick={() => setMobileMenuOpen(false)} to="/warehouse" icon={Boxes}>
                       {t("sidebar.warehouse")}
                     </NavLink>
-                    <NavLink to="/tasks" icon={ListTodo}>
+                    <NavLink onClick={() => setMobileMenuOpen(false)} to="/tasks" icon={ListTodo}>
                       {t("sidebar.tasklist")}
                     </NavLink>
-                    <NavLink to="/documents" icon={FileText}>
+                    <NavLink onClick={() => setMobileMenuOpen(false)} to="/documents" icon={FileText}>
                       {t("sidebar.documents")}
                     </NavLink>
-                    <NavLink to="/workflows" icon={Settings}>
+                    <NavLink onClick={() => setMobileMenuOpen(false)} to="/workflows" icon={Settings}>
                       Workflows Modeler
                     </NavLink>
                   </>
                 )}
                 {(isAdminOrFF || isCustomsBroker) && (
-                  <NavLink to="/smart-booking" icon={ScanLine}>
-                    Smart Booking OCR
+                  <NavLink onClick={() => setMobileMenuOpen(false)} to="/bookings" icon={FileText}>
+                    EDI/XML Parser
                   </NavLink>
                 )}
-                {isAdminOrFF && (
-                  <NavLink to="/ai-assistant" icon={Bot}>
-                    {t("sidebar.aiAssistant")}
-                  </NavLink>
-                )}
+
               </div>
 
               <div className="flex flex-col gap-2">
                 <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">
                   External Views
                 </span>
-                <NavLink to="/portal" icon={Users}>
+                <NavLink onClick={() => setMobileMenuOpen(false)} to="/portal" icon={Users}>
                   {t("sidebar.customerPortal")}
                 </NavLink>
               </div>
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-1 flex flex-col overflow-hidden relative bg-slate-50">
+            <main className="flex-1 flex flex-col overflow-hidden relative bg-slate-50 w-full">
               {/* Top Navbar */}
-              <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-40 shrink-0">
-                <div className="flex-1 max-w-xl flex items-center gap-6">
-                  <OmniSearch />
+              <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 z-30 shrink-0">
+                <div className="flex-1 flex items-center gap-4">
+                  <button 
+                    className="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg"
+                    onClick={() => setMobileMenuOpen(true)}
+                  >
+                    <Menu size={24} />
+                  </button>
+                  <div className="max-w-xl hidden md:flex items-center gap-6 w-full">
+                    <OmniSearch />
+                  </div>
                 </div>
                 <div className="flex items-center gap-4 ml-4">
                   <ApiStatusIndicator />
@@ -569,6 +594,16 @@ export default function App() {
                       }
                     />
                     <Route
+                      path="/settlements"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER"]}
+                        >
+                          <AgentSettlementsModule />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="/customs"
                       element={
                         <ProtectedRoute
@@ -680,22 +715,7 @@ export default function App() {
                       }
                     />
 
-                    <Route
-                      path="/ai-assistant"
-                      element={
-                        <ProtectedRoute
-                          allowedRoles={[
-                            "ADMIN",
-                            "EXECUTIVE",
-                            "MANAGER",
-                            "SALES",
-                            "OPERATIONS",
-                          ]}
-                        >
-                          <AIChainAssistantModule />
-                        </ProtectedRoute>
-                      }
-                    />
+
                     <Route
                       path="/workflows"
                       element={

@@ -4,6 +4,8 @@ import { db } from "../db/index.js";
 import { shipments, locations, documents } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 
 const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get("/hbl/:shipmentId", async (request, reply) => {
@@ -31,9 +33,10 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         consignee: "Atlas Client",
         portOfLoading: s.origin || "Unknown",
         portOfDischarge: s.destination || "Unknown",
-        description: "General Cargo (Consolidated)",
-        weight: 5000,
-        volume: 15,
+        vessel: "MSC Demo",
+        voyage: "001A",
+        containers: [],
+        commodities: [{ description: "General Cargo", pieces: 10, grossWeightKg: 5000, volumeCbm: 15 }],
       };
 
       const pdfBuffer = await PDFService.generateHBL(data);
@@ -52,13 +55,39 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
   fastify.get("/", async (request, reply) => {
     try {
-      const allDocs = await db
-        .select()
-        .from(documents)
-        .orderBy(documents.createdAt);
+      const query = request.query as { shipmentId?: string };
+      let q = db.select().from(documents);
+      
+      if (query.shipmentId) {
+        q = q.where(eq(documents.shipmentId, query.shipmentId));
+      }
+      
+      const allDocs = await q.orderBy(documents.createdAt);
       return reply.send(allDocs);
     } catch (error: any) {
       reply.code(500).send({ error: error.message });
+    }
+  });
+
+  fastify.post("/hbl", async (request, reply) => {
+    try {
+      const data = request.body as HBLData;
+      
+      if (!data || !data.shipmentId) {
+        return reply.code(400).send({ error: "Missing required HBL data" });
+      }
+
+      const pdfBuffer = await PDFService.generateHBL(data);
+
+      reply.header("Content-Type", "application/pdf");
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename=HBL-${data.shipmentId}.pdf`,
+      );
+      return reply.send(pdfBuffer);
+    } catch (error: any) {
+      fastify.log.error("PDF Generation Error:", error);
+      reply.code(500).send({ error: "Failed to generate PDF" });
     }
   });
 
@@ -70,11 +99,17 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
       }
 
       const fileBuffer = await data.toBuffer();
-      // In a real app, upload fileBuffer to S3/GCS. For now, we mock the URL
-      const mockUrl = `/storage/mock-${crypto.randomUUID()}-${data.filename}`;
+      
+      // Persist to local filesystem (Document Vault)
+      const uploadDir = path.join(process.cwd(), "uploads");
+      await fs.promises.mkdir(uploadDir, { recursive: true });
+      const safeFilename = `${crypto.randomUUID()}-${data.filename}`;
+      const filePath = path.join(uploadDir, safeFilename);
+      await fs.promises.writeFile(filePath, fileBuffer);
+      
+      const fileUrl = `/api/documents/download/${safeFilename}`;
 
       // We assume shipmentId is passed in the multipart fields
-      // If we use attachFieldsToBody: true, request.body is an object with fields
       const body = request.body as any;
       const shipmentId = body.shipmentId?.value;
       const docType = body.type?.value || "Commercial Invoice";
@@ -85,11 +120,37 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
           shipmentId: shipmentId,
           name: data.filename,
           type: docType,
-          url: mockUrl,
+          url: fileUrl,
         });
       }
 
-      reply.send({ success: true, url: mockUrl, name: data.filename });
+      reply.send({ success: true, url: fileUrl, name: data.filename });
+    } catch (error: any) {
+      reply.code(500).send({ error: error.message });
+    }
+  });
+
+  fastify.get("/download/:filename", async (request, reply) => {
+    try {
+      const { filename } = request.params as { filename: string };
+      const filePath = path.join(process.cwd(), "uploads", filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return reply.code(404).send({ error: "File not found" });
+      }
+
+      const fileBuffer = await fs.promises.readFile(filePath);
+      reply.header("Content-Disposition", `inline; filename="${filename}"`);
+      // Infer content type roughly based on extension, defaulting to octet-stream
+      const ext = path.extname(filename).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        ".pdf": "application/pdf",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+      };
+      reply.header("Content-Type", mimeTypes[ext] || "application/octet-stream");
+      return reply.send(fileBuffer);
     } catch (error: any) {
       reply.code(500).send({ error: error.message });
     }

@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { PackageSearch, FileText, Search } from "lucide-react";
+import { PackageSearch, FileText, Search, PlusCircle } from "lucide-react";
 import { ShipmentTracker } from "../features/portal/ShipmentTracker";
 import { DocumentUpload } from "../features/portal/DocumentUpload";
+import { QuoteWizardModal } from "../features/portal/QuoteWizardModal";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export default function CustomerPortalModule() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: rawShipments = [], isLoading } = useQuery({
     queryKey: ["clientShipments"],
@@ -45,6 +48,23 @@ export default function CustomerPortalModule() {
     }
   };
 
+  const handleBookQuote = async (quote: any) => {
+    try {
+      const res = await fetch(`${API_URL}/tracking/my-shipments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(quote)
+      });
+      if (res.ok) {
+        setIsQuoteModalOpen(false);
+        queryClient.invalidateQueries({ queryKey: ["clientShipments"] });
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error booking shipment");
+    }
+  };
+
   const filteredShipments = shipments.filter(
     (s: any) =>
       s.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -73,15 +93,25 @@ export default function CustomerPortalModule() {
             </p>
           </div>
 
-          <div className="w-full md:w-96 relative">
-            <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by B/L or PO Number..."
-              className="w-full bg-white/10 border border-indigo-400/30 text-white placeholder:text-indigo-300 px-12 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white/20 backdrop-blur-sm transition-all"
-            />
+          <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4 relative">
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by B/L or PO Number..."
+                className="w-full bg-white/10 border border-indigo-400/30 text-white placeholder:text-indigo-300 px-12 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white/20 backdrop-blur-sm transition-all"
+              />
+            </div>
+            
+            <button 
+              onClick={() => setIsQuoteModalOpen(true)}
+              className="w-full md:w-auto px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              <PlusCircle className="w-5 h-5" />
+              Get Instant Quote
+            </button>
           </div>
         </div>
       </div>
@@ -129,6 +159,12 @@ export default function CustomerPortalModule() {
           )}
         </div>
       </div>
+
+      <QuoteWizardModal 
+        isOpen={isQuoteModalOpen} 
+        onClose={() => setIsQuoteModalOpen(false)} 
+        onBook={handleBookQuote} 
+      />
     </div>
   );
 }
