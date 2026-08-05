@@ -20,7 +20,6 @@ export * from "./ProfitabilityDashboard";
 export * from "./utils/milestones";
 export * from "./DynamicRateEngine";
 
-
 export * from "./HumanTasklist";
 export * from "./Modal";
 export type { ModalInstance } from "./Modal";
@@ -30,3 +29,4 @@ export * from "./OmniSearch";
 export * from "@atlas/shared";
 import "./i18n";
 export * from "./GlobeTracker";
+export * from "./Warehouse3D";

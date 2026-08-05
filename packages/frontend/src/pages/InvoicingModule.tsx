@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { exportToCSV } from "../utils/exportUtils";
+import jsPDF from "jspdf";
 
 interface Invoice {
   id: string;
@@ -75,23 +76,45 @@ export default function InvoicingModule() {
     ],
   });
 
-  const downloadPdf = async (invoiceId: string, invoiceNumber: string) => {
+  const downloadPdf = async (invoice: Invoice) => {
     try {
-      const res = await fetch(`${API_URL}/invoices/${invoiceId}/pdf`);
-      if (!res.ok) throw new Error("Failed to generate PDF");
+      const doc = new jsPDF();
+      doc.setFontSize(22);
+      doc.text("INVOICE", 14, 20);
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `invoice-${invoiceNumber}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      doc.setFontSize(12);
+      doc.text(`Invoice Number: ${invoice.invoiceNumber}`, 14, 30);
+      doc.text(`Date Issued: ${new Date().toLocaleDateString()}`, 14, 38);
+      doc.text(
+        `Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`,
+        14,
+        46,
+      );
+
+      doc.text(`Billed To:`, 14, 60);
+      doc.text(`${invoice.party || "Unknown Client"}`, 14, 68);
+
+      doc.text(`Type: ${invoice.type}`, 120, 30);
+      doc.text(`Status: ${invoice.status}`, 120, 38);
+
+      doc.setLineWidth(0.5);
+      doc.line(14, 80, 196, 80);
+
+      doc.text("Description", 14, 88);
+      doc.text("Amount", 170, 88);
+      doc.line(14, 92, 196, 92);
+
+      doc.text(`Total Amount (${invoice.currency})`, 14, 102);
+      doc.text(
+        `${new Intl.NumberFormat("en-US", { style: "currency", currency: invoice.currency }).format(invoice.amount)}`,
+        170,
+        102,
+      );
+
+      doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
     } catch (err) {
-      console.error("Error downloading PDF:", err);
-      alert("Error downloading PDF. Please try again.");
+      console.error("Error generating PDF:", err);
+      alert("Error generating PDF. Please try again.");
     }
   };
 
@@ -130,6 +153,27 @@ export default function InvoicingModule() {
         ...newInvoice.lines,
         { description: "", quantity: 1, unitPrice: 0, amount: 0, taxRate: 0 },
       ],
+    });
+  };
+
+  const removeLine = (index: number) => {
+    if (newInvoice.lines.length === 1) return; // Keep at least one line
+    const updatedLines = newInvoice.lines.filter((_, i) => i !== index);
+
+    // Auto calculate totals
+    const subtotal = updatedLines.reduce((acc, l) => acc + (l.amount || 0), 0);
+    const taxAmount = updatedLines.reduce(
+      (acc, l) => acc + ((l.amount || 0) * (l.taxRate || 0)) / 100,
+      0,
+    );
+    const totalAmount = subtotal + taxAmount;
+
+    setNewInvoice({
+      ...newInvoice,
+      lines: updatedLines,
+      subtotal,
+      taxAmount,
+      totalAmount,
     });
   };
 
@@ -442,15 +486,44 @@ export default function InvoicingModule() {
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <button
-                              onClick={() =>
-                                downloadPdf(inv.id, inv.invoiceNumber)
-                              }
-                              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                              title="Download PDF"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => downloadPdf(inv)}
+                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                title="Download PDF"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                              {inv.status !== "Paid" && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await fetch(
+                                        `${API_URL}/invoices/${inv.id}/status`,
+                                        {
+                                          method: "PUT",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            status: "Paid",
+                                          }),
+                                        },
+                                      );
+                                      queryClient.invalidateQueries({
+                                        queryKey: ["invoices"],
+                                      });
+                                    } catch (err) {
+                                      console.error("Failed to update status");
+                                    }
+                                  }}
+                                  className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                  title="Mark as Paid"
+                                >
+                                  <DollarSign className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -606,8 +679,16 @@ export default function InvoicingModule() {
                             className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none"
                           />
                         </div>
-                        <div className="col-span-3 text-right font-medium text-slate-700">
+                        <div className="col-span-3 text-right font-medium text-slate-700 flex justify-end items-center gap-2">
                           ${line.amount.toFixed(2)}
+                          <button
+                            type="button"
+                            onClick={() => removeLine(idx)}
+                            disabled={newInvoice.lines.length === 1}
+                            className={`p-1 rounded ${newInvoice.lines.length === 1 ? "text-slate-300" : "text-slate-400 hover:bg-rose-50 hover:text-rose-600"}`}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     ))}

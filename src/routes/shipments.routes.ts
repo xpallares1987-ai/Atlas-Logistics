@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyPluginAsync } from "fastify";
 import { db } from "../db/index.js";
-import { shipments } from "../db/schema.js";
+import { shipments } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
 import { validate } from "../middleware/validate.js";
 import {
@@ -35,9 +35,15 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
           .insert(shipments)
           .values({
              id: "s-" + Date.now(),
+             companyId: "c-1", // default mock company
              status: shipmentData.status || 'PENDING',
+             trackingNumber: `SHP-${Date.now()}`,
              origin: shipmentData.origin || 'UNKNOWN',
-             destination: shipmentData.destination || 'UNKNOWN'
+             destination: shipmentData.destination || 'UNKNOWN',
+             weight: shipmentData.weight || null,
+             distanceKm: shipmentData.distanceKm || null,
+             co2eTonnes: shipmentData.co2eTonnes || null,
+             serviceType: shipmentData.mode || 'Ocean'
           })
           .returning();
 

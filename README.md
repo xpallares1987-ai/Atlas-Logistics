@@ -27,7 +27,8 @@ Atlas Logistics cubre todo el ciclo de vida operativo de un embarque y la factur
 - **Facturación y Liquidación**: Reconciliación A/R, A/P y análisis de rentabilidad.
 
 ### 🌐 Vista Externa y Cliente
-- **Customer Portal**: Portal marca blanca para que los clientes rastreen sus cargas y descarguen documentación en tiempo real.
+- **Customer Portal**: Portal marca blanca para que los clientes rastreen sus cargas (tracking de hitos) y descarguen documentación (HBL dinámico) en tiempo real.
+- **Document Vault**: Sistema premium de gestión documental con persistencia real (uploads), filtrado inteligente (grid view), previsualización integrada de documentos y descarga dinámica.
 
 ---
 

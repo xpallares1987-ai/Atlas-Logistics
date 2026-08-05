@@ -2,15 +2,31 @@
 // @ts-nocheck
 import { Worker, Queue, Job } from "bullmq";
 import { Redis } from "ioredis";
-import {
-  startWorkflowInstance,
-  updateWorkflowStatus,
-  updateWorkflowContext,
-  createWorkflowTask,
-  updateWorkflowTaskStatus,
-  getWorkflowDefinition,
-  getWorkflowTask,
-} from "../dataconnect-admin-generated/index.cjs.js";
+// Mocks for legacy Data Connect
+const startWorkflowInstance = async (data: any) => ({
+  data: { workflow_insert: { key: { id: "mock-id" } } },
+});
+const updateWorkflowStatus = async (data: any) => ({});
+const updateWorkflowContext = async (data: any) => ({});
+const createWorkflowTask = async (data: any) => ({});
+const updateWorkflowTaskStatus = async (data: any) => ({});
+const getWorkflowDefinition = async (data: any) => ({
+  data: {
+    workflowDefinitions: [
+      { xmlData: "<bpmn2:definitions></bpmn2:definitions>" },
+    ],
+  },
+});
+const getWorkflowTask = async (data: any) => ({
+  data: {
+    workflowTask: {
+      status: "PENDING",
+      workflowId: "mock-id",
+      elementId: "mock-el",
+      workflow: { id: "mock-id", context: {}, name: "mock" },
+    },
+  },
+});
 import { logger } from "../config/logger.js";
 import { AtlasWorker } from "./utils/worker-base.js";
 import { BPMNParser, BPMNNode } from "./utils/bpmn-parser.js";
@@ -20,9 +36,13 @@ import { aiWorker, ocrWorker, predictEtaWorker } from "./workers/ai.worker.js";
 
 import { redis } from "../config/redis.js";
 
-const isMock = process.env.NODE_ENV !== "production" && process.env.USE_REDIS_MOCK !== "false";
+const isMock =
+  process.env.NODE_ENV !== "production" &&
+  process.env.USE_REDIS_MOCK !== "false";
 
-export const workflowQueue = isMock ? null : new Queue("atlas-workflows", { connection: redis });
+export const workflowQueue = isMock
+  ? null
+  : new Queue("atlas-workflows", { connection: redis });
 
 // Removed GCP Logging
 
@@ -35,41 +55,47 @@ export function registerWorker(worker: AtlasWorker) {
 }
 
 // Global BullMQ Worker to process tasks from the queue
-export const bullWorker = isMock ? null : new Worker(
-  "atlas-workflows",
-  async (job: Job) => {
-    const { taskType, workflowId, variables } = job.data;
+export const bullWorker = isMock
+  ? null
+  : new Worker(
+      "atlas-workflows",
+      async (job: Job) => {
+        const { taskType, workflowId, variables } = job.data;
 
-    const workerInstance = workerRegistry.get(taskType);
-    if (!workerInstance) {
-      throw new Error(`No worker registered for taskType: ${taskType}`);
-    }
+        const workerInstance = workerRegistry.get(taskType);
+        if (!workerInstance) {
+          throw new Error(`No worker registered for taskType: ${taskType}`);
+        }
 
-    logger.info(
-      `[WorkflowEngine] Executing ${taskType} for workflow ${workflowId}`,
+        logger.info(
+          `[WorkflowEngine] Executing ${taskType} for workflow ${workflowId}`,
+        );
+
+        const mockZeebeJob = {
+          key: job.id,
+          processInstanceKey: workflowId,
+          variables: variables || {},
+        };
+
+        try {
+          const result = await workerInstance.execute(mockZeebeJob);
+          logger.info(
+            `[WorkflowEngine] Successfully finished task ${taskType}`,
+          );
+          return result;
+        } catch (err: any) {
+          logger.error(`[WorkflowEngine] Error in ${taskType}: ${err.message}`);
+          throw err;
+        }
+      },
+      { connection: redis },
     );
-
-    const mockZeebeJob = {
-      key: job.id,
-      processInstanceKey: workflowId,
-      variables: variables || {},
-    };
-
-    try {
-      const result = await workerInstance.execute(mockZeebeJob);
-      logger.info(`[WorkflowEngine] Successfully finished task ${taskType}`);
-      return result;
-    } catch (err: any) {
-      logger.error(`[WorkflowEngine] Error in ${taskType}: ${err.message}`);
-      throw err;
-    }
-  },
-  { connection: redis },
-);
 
 if (bullWorker) {
   bullWorker.on("completed", async (job, result) => {
-    logger.info(`Job ${job.id} completed with result: ${JSON.stringify(result)}`);
+    logger.info(
+      `Job ${job.id} completed with result: ${JSON.stringify(result)}`,
+    );
     // Enqueue next elements
     try {
       const { workflowId, xmlData, currentElementId, variables } = job.data;
@@ -152,27 +178,29 @@ export async function enqueueElement(
         `Enqueued serviceTask: ${el.taskType || el.id} for workflow: ${workflowId}`,
       );
     } else {
-      logger.info(`[MOCK] In-memory execution for serviceTask: ${el.taskType || el.id} for workflow: ${workflowId}`);
+      logger.info(
+        `[MOCK] In-memory execution for serviceTask: ${el.taskType || el.id} for workflow: ${workflowId}`,
+      );
       setTimeout(async () => {
-         const workerInstance = workerRegistry.get(el.taskType || el.id);
-         if(workerInstance) {
-            try {
-               await workerInstance.execute({
-                 key: `mock-job-${Date.now()}`,
-                 processInstanceKey: workflowId,
-                 variables: variables || {},
-               } as any);
-               
-               // Next elements...
-               const parser = new BPMNParser(xmlData);
-               const nextElements = parser.getNextNodes(el.id);
-               for (const nextEl of nextElements) {
-                 await enqueueElement(nextEl, workflowId, xmlData, variables);
-               }
-            } catch(e) {
-               logger.error(`[MOCK] In-memory execution failed`, e);
+        const workerInstance = workerRegistry.get(el.taskType || el.id);
+        if (workerInstance) {
+          try {
+            await workerInstance.execute({
+              key: `mock-job-${Date.now()}`,
+              processInstanceKey: workflowId,
+              variables: variables || {},
+            } as any);
+
+            // Next elements...
+            const parser = new BPMNParser(xmlData);
+            const nextElements = parser.getNextNodes(el.id);
+            for (const nextEl of nextElements) {
+              await enqueueElement(nextEl, workflowId, xmlData, variables);
             }
-         }
+          } catch (e) {
+            logger.error(`[MOCK] In-memory execution failed`, e);
+          }
+        }
       }, 500);
     }
   } else if (el.type === "userTask") {

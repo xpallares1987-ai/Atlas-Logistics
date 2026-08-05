@@ -65,7 +65,11 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run E2E Tests (Playwright)
-        run: npx playwright test
+        run: |
+          touch .env.local
+          pnpm run db:push
+          pnpm run db:seed
+          npx playwright test
 
       - name: Upload Playwright Report
         if: always()

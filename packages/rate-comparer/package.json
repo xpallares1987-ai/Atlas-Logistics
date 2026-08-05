@@ -19,8 +19,6 @@
     "chart.js": "^4.5.1",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
-    "firebase": "^12.16.0",
-    "firebase-admin": "^14.1.0",
     "framer-motion": "^12.42.2",
     "i18next": "^26.3.6",
     "jspdf": "^4.2.1",

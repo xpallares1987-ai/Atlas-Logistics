@@ -21,6 +21,7 @@ export default tseslint.config({
     "**/dataconnect-generated/**",
     "**/dataconnect-admin-generated/**",
     "test-prune/**",
+    "create-admin.ts"
   ],
 }, {
   files: ["**/*.ts", "**/*.tsx"],
@@ -31,7 +32,7 @@ export default tseslint.config({
   },
   languageOptions: {
     parserOptions: {
-      project: ["./tsconfig.json", "./functions/tsconfig.json"],
+      project: ["./tsconfig.json"],
       tsconfigRootDir: import.meta.dirname,
     },
   },

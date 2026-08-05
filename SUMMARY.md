@@ -72,10 +72,11 @@ pnpm run test:e2e
 ### Cambios recientes y archivos clave
 
 **Migraciones y cambios destacados**
-- Consolidación del frontend bajo packages/frontend.
+- Consolidación del frontend bajo packages/frontend y limpieza de repositorios antiguos (eliminación de carpetas legacy).
 - Migración de la capa de datos en la nube (GCP) hacia arquitectura $0 con **SQLite local**.
 - Implementación de modelo de roles mockeado para validación en frontend.
 - Automatización de simulación de ERP con BullMQ (AtlasEngine).
+- Integración fullstack del **Customer Portal** (con tracking de eventos y backend HBL generation) y **Document Vault** (carga real de archivos `FormData` y vistas de UI interactivas).
 
 **Archivos y rutas importantes**
 - **README.md**: visión general y comandos de inicio.  

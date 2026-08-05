@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import { db } from "../db/db.config.js";
+import { db } from "../db/index.js";
 import { bpmnDiagrams, bpmnVersions } from "../db/schema/support.js";
 import { eq, desc } from "drizzle-orm";
 import crypto from "crypto";

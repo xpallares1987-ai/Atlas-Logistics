@@ -2,13 +2,28 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
+import federation from "@originjs/vite-plugin-federation";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [
     react(),
-    tailwindcss(),
+    federation({
+      name: "host",
+      remotes: {
+        dashboard: "http://localhost:3001/assets/remoteEntry.js",
+      },
+      shared: [
+        "react",
+        "react-dom",
+        "react-router",
+        "react-router-dom",
+        "@tanstack/react-query",
+        "lucide-react",
+        "tailwindcss",
+      ],
+    }),
     VitePWA({
       registerType: "autoUpdate",
       devOptions: {
