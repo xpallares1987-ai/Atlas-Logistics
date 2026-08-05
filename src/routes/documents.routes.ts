@@ -141,7 +141,12 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get("/download/:filename", async (request, reply) => {
     try {
       const { filename } = request.params as { filename: string };
-      const filePath = path.join(process.cwd(), "uploads", filename);
+      const uploadsRoot = path.resolve(process.cwd(), "uploads");
+      const filePath = path.resolve(uploadsRoot, filename);
+
+      if (filePath !== uploadsRoot && !filePath.startsWith(uploadsRoot + path.sep)) {
+        return reply.code(400).send({ error: "Invalid filename" });
+      }
       
       if (!fs.existsSync(filePath)) {
         return reply.code(404).send({ error: "File not found" });
