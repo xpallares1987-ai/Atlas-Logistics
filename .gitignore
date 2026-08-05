@@ -72,6 +72,11 @@ Thumbs.db
 # Build
 *.tsbuildinfo
 
+# SQLite / LibSQL local database files
+*.db
+*.sqlite
+*.sqlite3
+
 # Testing
 coverage/
 test-results/
