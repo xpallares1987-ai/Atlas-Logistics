@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { processAiTask } from '../../services/geminiService.js';
 import { db } from '../../db/index.js';
-import { pendingAiReviews } from '../../db/schema.js';
+import { pendingAiReviews } from '../../db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { redis } from '../../config/redis.js';
 
@@ -18,7 +18,7 @@ export const aiWorker = isMock ? null : new Worker(
       
       // Actualizar en DB
       await db.update(pendingAiReviews)
-        .set({ status: 'COMPLETED', extractedData: result })
+        .set({ status: 'COMPLETED', result })
         .where(eq(pendingAiReviews.id, reviewId));
         
       console.log(`AI Task ${reviewId} completed successfully.`);

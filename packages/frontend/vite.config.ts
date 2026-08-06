@@ -4,15 +4,17 @@ import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 import federation from "@originjs/vite-plugin-federation";
 import { VitePWA } from "vite-plugin-pwa";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [
     react(),
+    nodePolyfills(),
     federation({
       name: "host",
       remotes: {
-        dashboard: "http://localhost:3001/assets/remoteEntry.js",
+        dashboard: "http://localhost:5174/assets/remoteEntry.js",
       },
       shared: [
         "react",
@@ -63,7 +65,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       "/api": {
-        target: "http://localhost:3001",
+        target: "http://localhost:3005",
         changeOrigin: true,
       },
     },

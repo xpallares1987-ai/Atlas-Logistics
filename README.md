@@ -71,12 +71,23 @@ pnpm install
 pnpm run build
 ```
 
-3. Iniciar el servidor de desarrollo local:
+3. Inicializar la Base de Datos Local (SQLite/libSQL):
+```bash
+# Generar y aplicar migraciones de Drizzle a la DB
+pnpm run db:generate
+pnpm run db:migrate
+
+# O poblar con datos semilla para desarrollo rápido
+pnpm run db:seed
+# (Alternativamente: pnpm run db:reset-and-seed para resetear por completo)
+```
+
+4. Iniciar el servidor de desarrollo local:
 ```bash
 pnpm run dev
 ```
 
-4. Ejecutar la suite de pruebas unitarias y E2E:
+5. Ejecutar la suite de pruebas unitarias y E2E:
 ```bash
 # Pruebas unitarias en paquetes compartidos
 pnpm --filter @atlas/shared test
@@ -89,5 +100,4 @@ npx playwright test
 
 ## 📖 Documentación Adicional
 - [Arquitectura del Sistema (docs/architecture/system-architecture.md)](docs/architecture/system-architecture.md)
-- [SCM Vision](SCM_VISION.md)
 - [Guía de Contribución](CONTRIBUTING.md)

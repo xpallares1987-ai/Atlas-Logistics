@@ -276,7 +276,79 @@ Control Tower Global Logistics`;
                 </div>
               </div>
 
-              <div className="overflow-x-auto flex-1">
+              {/* Mobile View: Stacked Cards */}
+              <div className="flex flex-col gap-4 p-4 lg:hidden">
+                {filteredContainers.map((c) => {
+                  const remaining = c.freeTimeDays - c.dwellDays;
+                  const exposure = remaining < 0 ? Math.abs(remaining) * c.ratePerDay : 0;
+                  return (
+                    <div key={c.id} className="bg-slate-800/40 border border-white/5 rounded-2xl p-4 flex flex-col gap-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-slate-200 text-lg">{c.container}</p>
+                          <p className="text-sm text-slate-400">{c.carrier}</p>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          {remaining < 0 ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 text-red-400 font-bold border border-red-500/20 text-xs">
+                              Agotado ({Math.abs(remaining)}d)
+                            </span>
+                          ) : remaining === 0 ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20 text-xs">
+                              Vence Hoy
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20 text-xs">
+                              {remaining} d libres
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm mt-2">
+                        <div>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">Ruta (POD)</span>
+                          <span className="font-medium text-slate-300">{c.pod}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">Estancia</span>
+                          <span className="font-medium text-slate-300">{c.dwellDays} d</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">Tarifa/Día</span>
+                          <span className="font-medium text-slate-400 font-mono">${c.ratePerDay}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">Penalización</span>
+                          {exposure > 0 ? (
+                            <strong className="text-red-400 font-mono text-base">
+                              ${exposure.toLocaleString("es-ES")}
+                            </strong>
+                          ) : (
+                            <span className="flex items-center gap-1 text-emerald-500/80 text-xs font-bold uppercase tracking-wider">
+                              <CheckCircle size={14} /> Safe
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {exposure > 0 && (
+                        <div className="mt-2 pt-4 border-t border-white/5 flex justify-end">
+                          <button
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all"
+                            onClick={() => openEmailDraft(c)}
+                          >
+                            <Mail size={14} /> Exención
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop View: Table */}
+              <div className="hidden lg:block overflow-x-auto flex-1">
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-slate-950/80 text-xs uppercase text-slate-400 font-bold sticky top-0">
                     <tr>

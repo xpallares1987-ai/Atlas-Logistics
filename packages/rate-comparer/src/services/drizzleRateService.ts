@@ -68,4 +68,40 @@ export const drizzleRateService = {
       throw error;
     }
   },
+
+  async saveBooking(
+    bookingData: any,
+    customerId: string = "00000000-0000-0000-0000-000000000000",
+  ): Promise<any> {
+    try {
+      const payload = {
+        bookingReference: `BKG-${Date.now()}`,
+        customerId,
+        carrier: bookingData.carrierName || "Unknown",
+        origin: bookingData.pol,
+        destination: bookingData.pod,
+        equipment: bookingData.containerType || "40HC",
+        commodity: bookingData.commodity || "General Cargo",
+        weight: bookingData.weight || 0,
+        poNumber: bookingData.poNumber || "",
+        status: "DRAFT",
+        totalCost: bookingData.totalCost || 0,
+      };
+
+      // Depending on the backend this could be /api/bookings
+      const response = await fetch("/api/operations/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save booking to database");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error saving booking via Drizzle service:", error);
+      throw error;
+    }
+  },
 };

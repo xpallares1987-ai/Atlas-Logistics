@@ -9,6 +9,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { ScheduleBookingModal } from "../components/ScheduleBookingModal";
+import { Input } from "@atlas/ui";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -26,13 +28,21 @@ interface Schedule {
   status: "On Time" | "Delayed" | "Advanced";
 }
 
-function DynamicPriceButton({ scheduleId }: { scheduleId: string }) {
+function DynamicPriceButton({
+  schedule,
+  onOpenBooking,
+  isBooked,
+}: {
+  schedule: Schedule;
+  onOpenBooking: (schedule: Schedule, price: number) => void;
+  isBooked: boolean;
+}) {
   const [showPrice, setShowPrice] = useState(false);
 
   const { data: priceData, isLoading } = useQuery({
-    queryKey: ["schedulePrice", scheduleId],
+    queryKey: ["schedulePrice", schedule.id],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/schedules/${scheduleId}/pricing`);
+      const res = await fetch(`${API_URL}/schedules/${schedule.id}/pricing`);
       return res.json();
     },
     enabled: showPrice,
@@ -67,8 +77,16 @@ function DynamicPriceButton({ scheduleId }: { scheduleId: string }) {
           ${priceData?.price?.toLocaleString()}
         </p>
       </div>
-      <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
-        Book Now
+      <button
+        onClick={() => onOpenBooking(schedule, priceData?.price || 0)}
+        disabled={isBooked}
+        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm ${
+          isBooked
+            ? "bg-emerald-100 text-emerald-700 border border-emerald-200 cursor-default"
+            : "bg-indigo-600 hover:bg-indigo-700 text-white"
+        }`}
+      >
+        {isBooked ? "Booked ✓" : "Book Now"}
       </button>
     </div>
   );
@@ -79,6 +97,22 @@ export default function SailingSchedulesModule() {
   const [destination, setDestination] = useState("Rotterdam (NLRTM)");
   const [date, setDate] = useState("2026-08-15");
   const [hasSearched, setHasSearched] = useState(false);
+  const [bookingState, setBookingState] = useState<{
+    schedule: Schedule;
+    price: number;
+  } | null>(null);
+  const [bookedSchedules, setBookedSchedules] = useState<Set<string>>(
+    new Set(),
+  );
+
+  const handleOpenBooking = (schedule: Schedule, price: number) => {
+    setBookingState({ schedule, price });
+  };
+
+  const handleBookingSuccess = (scheduleId: string) => {
+    setBookedSchedules((prev) => new Set([...prev, scheduleId]));
+    setBookingState(null);
+  };
 
   const { data: schedules = [], isLoading } = useQuery<Schedule[]>({
     queryKey: ["schedules", origin, destination, date],
@@ -110,45 +144,36 @@ export default function SailingSchedulesModule() {
             <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
               Origin Port (POL)
             </label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
-              <input
-                type="text"
-                value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                placeholder="e.g. CNSHA"
-              />
-            </div>
+            <Input
+              type="text"
+              value={origin}
+              onChange={(e) => setOrigin(e.target.value)}
+              placeholder="e.g. CNSHA"
+              leftIcon={<MapPin size={16} />}
+            />
           </div>
           <div className="flex-1 min-w-[200px]">
             <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
               Destination Port (POD)
             </label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
-              <input
-                type="text"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                placeholder="e.g. NLRTM"
-              />
-            </div>
+            <Input
+              type="text"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              placeholder="e.g. NLRTM"
+              leftIcon={<MapPin size={16} />}
+            />
           </div>
           <div className="flex-1 min-w-[150px]">
             <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
               Date from
             </label>
-            <div className="relative">
-              <CalendarCheck className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
-            </div>
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              leftIcon={<CalendarCheck size={16} />}
+            />
           </div>
           <button
             onClick={handleSearch}
@@ -290,13 +315,28 @@ export default function SailingSchedulesModule() {
                     </div>
                   </div>
 
-                  <DynamicPriceButton scheduleId={sch.id} />
+                  <DynamicPriceButton
+                    schedule={sch}
+                    onOpenBooking={handleOpenBooking}
+                    isBooked={bookedSchedules.has(sch.id)}
+                  />
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {bookingState && (
+        <ScheduleBookingModal
+          schedule={bookingState.schedule}
+          price={bookingState.price}
+          origin={origin}
+          destination={destination}
+          onClose={() => setBookingState(null)}
+          onSuccess={handleBookingSuccess}
+        />
+      )}
     </div>
   );
 }

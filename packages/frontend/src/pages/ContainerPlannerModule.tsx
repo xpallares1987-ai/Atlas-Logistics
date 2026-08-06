@@ -85,7 +85,7 @@ const SeaContainer = ({ cargo }: { cargo: CargoItem[] }) => {
 export default function ContainerPlannerModule() {
   const queryClient = useQueryClient();
   const [suggestion, setSuggestion] = useState<string>(
-    "Weight distribution is sub-optimal. Run AI optimization to balance the axle load.",
+    "Container is empty or unsorted. Run heuristic optimization to pack items.",
   );
 
   // Fetch the first available container to plan
@@ -139,15 +139,15 @@ export default function ContainerPlannerModule() {
   );
 
   return (
-    <div className="h-full flex flex-col gap-6 animate-fade-in">
-      <div className="flex justify-between items-center bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm">
+    <div className="h-full flex flex-col gap-6 animate-fade-in overflow-y-auto overflow-x-hidden p-4 md:p-8 md:overflow-hidden">
+      <div className="flex flex-col md:flex-row md:items-center justify-between bg-white/70 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-slate-200/60 shadow-sm gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
             <Package className="text-indigo-600" size={32} />
             LCL Container Planner 3D
           </h1>
           <p className="text-slate-500 mt-1 font-medium">
-            AI-driven 3D load optimization for less-than-container load (LCL)
+            Rule-based 3D load optimization for less-than-container load (LCL)
             shipments.
           </p>
         </div>
@@ -160,15 +160,15 @@ export default function ContainerPlannerModule() {
             {optimizeMutation.isPending ? (
               <RefreshCw className="w-5 h-5 animate-spin" />
             ) : (
-              "Auto Optimize (AI)"
+              "Auto Optimize (Heuristic)"
             )}
           </button>
         </div>
       </div>
 
-      <div className="flex-1 flex gap-6 min-h-[500px]">
+      <div className="flex-1 flex flex-col md:flex-row gap-6 min-h-[500px] pb-6 md:pb-0">
         {/* Left Side: 3D Canvas */}
-        <div className="flex-1 bg-slate-900 rounded-3xl overflow-hidden relative shadow-inner">
+        <div className="flex-1 bg-slate-900 rounded-3xl overflow-hidden relative shadow-inner min-h-[300px] md:min-h-0">
           <Suspense
             fallback={
               <div className="absolute inset-0 flex items-center justify-center text-white font-bold">
@@ -199,8 +199,8 @@ export default function ContainerPlannerModule() {
         </div>
 
         {/* Right Side: Payload Stats */}
-        <div className="w-80 flex flex-col gap-4">
-          <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm flex-1 overflow-y-auto">
+        <div className="w-full md:w-80 flex flex-col gap-4">
+          <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm flex-1 overflow-y-auto max-h-[300px] md:max-h-none">
             <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
               <BoxIcon size={18} /> Cargo List
             </h3>
@@ -233,7 +233,7 @@ export default function ContainerPlannerModule() {
           <div className="bg-indigo-600 p-6 rounded-3xl text-white shadow-lg shadow-indigo-600/30 flex items-start gap-4">
             <AlertTriangle className="shrink-0" />
             <div>
-              <h4 className="font-bold text-indigo-50">AI Suggestion</h4>
+              <h4 className="font-bold text-indigo-50">Heuristic Suggestion</h4>
               <p className="text-indigo-200 text-sm mt-1 leading-relaxed">
                 {suggestion}
               </p>

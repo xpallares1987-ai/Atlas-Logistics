@@ -4,7 +4,6 @@ import { lucia } from "../lib/auth.js";
 
 declare module "fastify" {
   interface FastifyRequest {
-    user: any;
     session: any;
   }
 }
@@ -49,7 +48,7 @@ export const authMiddleware = async (
 
 export const requireRole = (allowedRoles: string[]) => {
   return async (request: FastifyRequest, reply: FastifyReply) => {
-    const userRole = request.user?.role || "USER";
+    const userRole = (request.user as any)?.role || "USER";
     if (!allowedRoles.includes(userRole)) {
       reply.code(403).send({ error: "Forbidden: Insufficient permissions" });
       throw new Error("Forbidden");

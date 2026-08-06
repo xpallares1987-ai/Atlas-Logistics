@@ -11,6 +11,7 @@ import {
 import { WarehouseTrafficControl } from "@atlas/ui/src/components/WarehouseTrafficControl";
 import { WarehouseInboundOutbound } from "@atlas/ui/src/components/WarehouseInboundOutbound";
 import { Warehouse3D } from "@atlas/ui/src/components/Warehouse3D";
+import { Button } from "@atlas/ui";
 
 export default function WarehouseOpsModule() {
   const [activeTab, setActiveTab] = useState<
@@ -26,7 +27,7 @@ export default function WarehouseOpsModule() {
             <Layers className="text-indigo-500" /> Warehouse Operations (WMS)
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            AI-driven Dock Management, Cross-Docking, and Load Optimization.
+            Rule-based Dock Management, Cross-Docking, and Load Optimization.
           </p>
         </div>
 
@@ -80,46 +81,50 @@ export default function WarehouseOpsModule() {
             </div>
             <span className="text-4xl font-black text-white">96%</span>
             <span className="text-emerald-400 text-xs font-semibold">
-              Optimized by AI
+              Optimized via heuristics
             </span>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 border-b border-slate-700/50 pb-2">
-        <button
+      <div className="flex gap-4 border-b border-slate-700/50 pb-2 overflow-x-auto whitespace-nowrap hide-scrollbar">
+        <Button
           onClick={() => setActiveTab("traffic")}
-          className={`px-6 py-3 font-bold text-sm rounded-t-xl transition-colors ${activeTab === "traffic" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}
+          variant={activeTab === "traffic" ? "default" : "ghost"}
+          className={`px-6 py-3 font-bold text-sm rounded-t-xl rounded-b-none transition-colors h-auto ${activeTab === "traffic" ? "bg-indigo-600 text-white hover:bg-indigo-700" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}
         >
           <div className="flex items-center gap-2">
             <Truck size={16} /> Traffic Control
           </div>
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => setActiveTab("inbound")}
-          className={`px-6 py-3 font-bold text-sm rounded-t-xl transition-colors ${activeTab === "inbound" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}
+          variant={activeTab === "inbound" ? "default" : "ghost"}
+          className={`px-6 py-3 font-bold text-sm rounded-t-xl rounded-b-none transition-colors h-auto ${activeTab === "inbound" ? "bg-indigo-600 text-white hover:bg-indigo-700" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}
         >
           <div className="flex items-center gap-2">
             <ArrowRightLeft size={16} /> Inbound (Receiving)
           </div>
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => setActiveTab("outbound")}
-          className={`px-6 py-3 font-bold text-sm rounded-t-xl transition-colors ${activeTab === "outbound" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}
+          variant={activeTab === "outbound" ? "default" : "ghost"}
+          className={`px-6 py-3 font-bold text-sm rounded-t-xl rounded-b-none transition-colors h-auto ${activeTab === "outbound" ? "bg-indigo-600 text-white hover:bg-indigo-700" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}
         >
           <div className="flex items-center gap-2">
-            <Layers size={16} /> Outbound (AI Allocation)
+            <Layers size={16} /> Outbound (Heuristic Allocation)
           </div>
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => setActiveTab("3d")}
-          className={`px-6 py-3 font-bold text-sm rounded-t-xl transition-colors ${activeTab === "3d" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}
+          variant={activeTab === "3d" ? "default" : "ghost"}
+          className={`px-6 py-3 font-bold text-sm rounded-t-xl rounded-b-none transition-colors h-auto ${activeTab === "3d" ? "bg-indigo-600 text-white hover:bg-indigo-700" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}
         >
           <div className="flex items-center gap-2">
             <BoxSelect size={16} /> 3D View
           </div>
-        </button>
+        </Button>
       </div>
 
       {/* Main Content Area */}

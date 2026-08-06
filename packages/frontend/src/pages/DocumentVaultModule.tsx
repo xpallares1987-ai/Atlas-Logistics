@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { DocumentPreviewer } from "@atlas/ui/src/components/DocumentPreviewer";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { Input, Modal } from "@atlas/ui";
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export default function DocumentVaultModule() {
@@ -66,14 +66,13 @@ export default function DocumentVaultModule() {
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
+          <div className="w-full md:w-64">
+            <Input
               type="text"
               placeholder="Search documents, shipment IDs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full md:w-64"
+              leftIcon={<Search size={16} />}
             />
           </div>
           <div className="flex bg-slate-100 p-1 rounded-lg">
@@ -165,16 +164,16 @@ export default function DocumentVaultModule() {
       </div>
 
       {/* Preview Modal */}
-      {selectedDoc && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
-          onClick={() => setSelectedDoc(null)}
-        >
-          <div
-            className="bg-white rounded-2xl w-full max-w-4xl h-[80vh] overflow-hidden flex flex-col shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+      <Modal
+        isOpen={!!selectedDoc}
+        onClose={() => setSelectedDoc(null)}
+        hideCloseButton
+        size="lg"
+        bodyClassName="p-0 bg-slate-100 flex flex-col h-[80vh]"
+      >
+        {selectedDoc && (
+          <>
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <h2 className="font-black text-slate-800 flex items-center gap-2">
                 {getFileIcon(selectedDoc.type)}
                 {selectedDoc.name}
@@ -186,7 +185,7 @@ export default function DocumentVaultModule() {
                 ✕ Close
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto bg-slate-100 p-8">
+            <div className="flex-1 overflow-y-auto p-8">
               {/* Reuse the existing DocumentPreviewer for HBLs, otherwise just show a generic placeholder since we only have HBL built */}
               {selectedDoc.type === "HBL" ? (
                 <DocumentPreviewer
@@ -218,9 +217,9 @@ export default function DocumentVaultModule() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

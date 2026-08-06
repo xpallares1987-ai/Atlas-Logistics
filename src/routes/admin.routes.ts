@@ -27,6 +27,5 @@ export default async function adminRoutes(app: FastifyInstance) {
   // Since we are registering it in app.ts, we use the serverAdapter's plugin directly
   app.register(serverAdapter.registerPlugin(), {
     prefix: "/admin/queues",
-    basePath: "/",
   });
 }

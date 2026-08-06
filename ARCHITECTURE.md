@@ -5,7 +5,7 @@ This document details the current architectural structure and design of **Atlas 
 ## 1. Overview: Frontend-First and Super-App
 
 The project has moved away from traditional heavy backend API architectures (independent Node.js servers, Fastify, Motores de workflow externos) in favor of a unified **Frontend-First** model.
-The entire application runs and renders directly in the browser as a Super-App powered by **Vite** and **React Router**.
+The entire application runs and renders directly in the browser as a Super-App powered by **Vite** and **React Router**. This approach eliminates unnecessary API hops for most UI interactions, deeply integrating state management directly within the frontend monorepo host while delegating heavy asynchronous jobs to worker nodes.
 
 ## 2. Turborepo and Package Management
 
@@ -42,4 +42,4 @@ Authentication and multi-tenant authorization have been simplified for the local
 
 ## 6. Asynchronous Tasks (BullMQ)
 
-Heavy workflows or background processing are decoupled from the main thread using **BullMQ** with Redis (AtlasEngine Workers) rather than relying on external Cloud Tasks, keeping the stack fully self-hosted.
+Heavy workflows or background processing are decoupled from the main thread using **BullMQ** with Redis (AtlasEngine Workers) rather than relying on external Cloud Tasks, keeping the stack fully self-hosted. This setup handles robust retry mechanisms, rate limiting, and delayed background jobs. In cases where Redis connectivity is temporarily lost, the system gracefully handles reconnections to ensure jobs are safely queued and executed without data loss.

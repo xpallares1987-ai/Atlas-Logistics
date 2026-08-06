@@ -1,6 +1,6 @@
 import { AtlasWorker, AtlasBpmnError } from '../../utils/worker-base.js';
 import { CARRIER_REJECTION, NO_SPACE_AVAILABLE } from '../../utils/error-codes.js';
-import { shipments } from '../../../db/schema.js';
+import { shipments } from '../../../db/schema/index.js';
 import { eq } from 'drizzle-orm';
 
 interface ConfirmBookingInput {
@@ -49,8 +49,8 @@ class ConfirmBookingWorker extends AtlasWorker<ConfirmBookingInput, ConfirmBooki
       .update(shipments)
       .set({
         status: 'BOOKED',
-        vessel: confirmation.vessel,
-        voyage: confirmation.voyage,
+        vesselName: confirmation.vessel,
+        voyageNumber: confirmation.voyage,
         updatedAt: new Date(),
       })
       .where(eq(shipments.id, shipmentId));

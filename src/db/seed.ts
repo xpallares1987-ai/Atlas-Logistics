@@ -436,8 +436,30 @@ async function main() {
     `✅ Creados ${companyIds.length} settlements de agentes (Agent Settlements).`,
   );
 
+  // 12. BOOKINGS
+  const bookingIds = [];
+  for (let i = 0; i < 25; i++) {
+    const id = faker.string.uuid();
+    bookingIds.push(id);
+    await db.insert(schema.bookings).values({
+      id,
+      customerId: faker.helpers.arrayElement(companyIds),
+      status: faker.helpers.arrayElement(["Pending", "Confirmed", "Rejected", "Cancelled"]),
+      origin: faker.helpers.arrayElement(["Shanghai", "Ningbo", "Shenzhen", "Rotterdam", "Los Angeles"]),
+      destination: faker.helpers.arrayElement(["Rotterdam", "Los Angeles", "New York", "Hamburg", "Valencia"]),
+      serviceType: faker.helpers.arrayElement(["FCL", "LCL", "AIR"]),
+      cargoDetails: JSON.stringify({ description: faker.commerce.productDescription(), weight: faker.number.int({ min: 100, max: 20000 }) }),
+      estimatedDeparture: faker.date.future(),
+    });
+  }
+  console.log(`✅ Creadas ${bookingIds.length} bookings de clientes.`);
+
+  // Ensure admin user exists
+  await import("./admin/adminService").then(m => m.createAdmin());
+  console.log("✅ Admin user ensured after seeding.");
   console.log("🎉 Seed masivo completado exitosamente.");
   process.exit(0);
+
 }
 
 main().catch((e) => {
