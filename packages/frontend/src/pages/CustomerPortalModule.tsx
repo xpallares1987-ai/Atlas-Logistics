@@ -3,6 +3,7 @@ import { PackageSearch, FileText, Search, PlusCircle } from "lucide-react";
 import { ShipmentTracker } from "../features/portal/ShipmentTracker";
 import { DocumentUpload } from "../features/portal/DocumentUpload";
 import { QuoteWizardModal } from "../features/portal/QuoteWizardModal";
+import { Button, Input } from "@atlas/ui";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -53,7 +54,7 @@ export default function CustomerPortalModule() {
       const res = await fetch(`${API_URL}/tracking/my-shipments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(quote)
+        body: JSON.stringify(quote),
       });
       if (res.ok) {
         setIsQuoteModalOpen(false);
@@ -94,24 +95,23 @@ export default function CustomerPortalModule() {
           </div>
 
           <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4 relative">
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
-              <input
+            <div className="w-full md:w-80">
+              <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by B/L or PO Number..."
-                className="w-full bg-white/10 border border-indigo-400/30 text-white placeholder:text-indigo-300 px-12 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white/20 backdrop-blur-sm transition-all"
+                leftIcon={<Search size={16} />}
               />
             </div>
-            
-            <button 
+
+            <Button
               onClick={() => setIsQuoteModalOpen(true)}
-              className="w-full md:w-auto px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+              className="w-full md:w-auto px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 whitespace-nowrap"
             >
-              <PlusCircle className="w-5 h-5" />
+              <PlusCircle className="w-5 h-5 mr-2" />
               Get Instant Quote
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -134,12 +134,13 @@ export default function CustomerPortalModule() {
                 className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 transition-shadow hover:shadow-md"
               >
                 <div className="flex justify-end mb-4">
-                  <button
+                  <Button
                     onClick={() => downloadHBL(shipment)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                    variant="outline"
+                    className="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 border-transparent hover:bg-indigo-100"
                   >
-                    <FileText className="w-4 h-4" /> Download HBL
-                  </button>
+                    <FileText className="w-4 h-4 mr-2" /> Download HBL
+                  </Button>
                 </div>
                 <ShipmentTracker shipment={shipment} />
                 <DocumentUpload shipmentId={shipment.id} />
@@ -160,10 +161,10 @@ export default function CustomerPortalModule() {
         </div>
       </div>
 
-      <QuoteWizardModal 
-        isOpen={isQuoteModalOpen} 
-        onClose={() => setIsQuoteModalOpen(false)} 
-        onBook={handleBookQuote} 
+      <QuoteWizardModal
+        isOpen={isQuoteModalOpen}
+        onClose={() => setIsQuoteModalOpen(false)}
+        onBook={handleBookQuote}
       />
     </div>
   );

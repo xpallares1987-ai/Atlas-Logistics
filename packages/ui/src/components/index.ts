@@ -22,7 +22,6 @@ export * from "./DynamicRateEngine";
 
 export * from "./HumanTasklist";
 export * from "./Modal";
-export type { ModalInstance } from "./Modal";
 export * from "./Toast";
 export * from "./Globe";
 export * from "./OmniSearch";
@@ -30,3 +29,9 @@ export * from "@atlas/shared";
 import "./i18n";
 export * from "./GlobeTracker";
 export * from "./Warehouse3D";
+export * from "./Button";
+export * from "./Input";
+export * from "./Switch";
+export * from "./Checkbox";
+export * from "./Select";
+export * from "./Table";

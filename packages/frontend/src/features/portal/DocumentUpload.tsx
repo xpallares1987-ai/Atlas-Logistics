@@ -1,6 +1,13 @@
-import { UploadCloud, FileText, CheckCircle, DownloadCloud, File } from "lucide-react";
+import {
+  UploadCloud,
+  FileText,
+  CheckCircle,
+  DownloadCloud,
+  File,
+} from "lucide-react";
 import { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, Input } from "@atlas/ui";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -35,7 +42,9 @@ export function DocumentUpload({ shipmentId }: { shipmentId: string }) {
         });
         if (res.ok) {
           setUploaded(true);
-          queryClient.invalidateQueries({ queryKey: ["shipmentDocuments", shipmentId] });
+          queryClient.invalidateQueries({
+            queryKey: ["shipmentDocuments", shipmentId],
+          });
           setTimeout(() => setUploaded(false), 3000);
         }
       } catch (err) {
@@ -55,31 +64,41 @@ export function DocumentUpload({ shipmentId }: { shipmentId: string }) {
       <div className="p-6 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <FileText className="text-indigo-500 w-5 h-5" />
-          <h3 className="text-lg font-black text-slate-800">Shipment Documents</h3>
+          <h3 className="text-lg font-black text-slate-800">
+            Shipment Documents
+          </h3>
         </div>
       </div>
       <div className="p-4 bg-white">
         {!isLoading && documents.length > 0 && (
           <div className="mb-6 space-y-3">
-            <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Available Documents</h4>
+            <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">
+              Available Documents
+            </h4>
             {documents.map((doc: any) => (
-              <div key={doc.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div
+                key={doc.id}
+                className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100"
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
                     <File className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-slate-800">{doc.name}</p>
+                    <p className="font-bold text-sm text-slate-800">
+                      {doc.name}
+                    </p>
                     <p className="text-xs text-slate-500">{doc.type}</p>
                   </div>
                 </div>
-                <button
+                <Button
                   onClick={() => downloadDoc(doc)}
-                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                  variant="ghost"
+                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors h-auto"
                   title="Download Document"
                 >
                   <DownloadCloud className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
             ))}
           </div>
@@ -98,7 +117,7 @@ export function DocumentUpload({ shipmentId }: { shipmentId: string }) {
               onClick={() => fileInputRef.current?.click()}
               className={`rounded-xl transition-colors cursor-pointer flex flex-col items-center justify-center ${isUploading ? "opacity-50" : "hover:bg-slate-100"}`}
             >
-              <input
+              <Input
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
@@ -111,7 +130,9 @@ export function DocumentUpload({ shipmentId }: { shipmentId: string }) {
                 <UploadCloud className="w-8 h-8 text-slate-400 mb-3" />
               )}
               <p className="text-sm font-bold text-slate-700">
-                {isUploading ? "Uploading..." : "Click or Drag & Drop to upload more files"}
+                {isUploading
+                  ? "Uploading..."
+                  : "Click or Drag & Drop to upload more files"}
               </p>
               <p className="text-xs text-slate-500 mt-1">
                 Commercial Invoice, Packing List, PO
