@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import { PDFService, HBLData } from "../services/pdf.service.js";
+import { PDFService, HBLData, BookingConfirmationData } from "../services/pdf.service.js";
 import { db } from "../db/index.js";
 import { shipments, locations, documents } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
@@ -53,6 +53,50 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     }
   });
 
+  fastify.post("/hbl", async (request, reply) => {
+    try {
+      const data = request.body as HBLData;
+      
+      if (!data || !data.shipmentId) {
+        return reply.code(400).send({ error: "Missing required HBL data" });
+      }
+
+      const pdfBuffer = await PDFService.generateHBL(data);
+
+      reply.header("Content-Type", "application/pdf");
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename=HBL-${data.shipmentId}.pdf`,
+      );
+      return reply.send(pdfBuffer);
+    } catch (error: any) {
+      fastify.log.error("PDF Generation Error:", error);
+      reply.code(500).send({ error: "Failed to generate PDF" });
+    }
+  });
+
+  fastify.post("/booking-confirmation", async (request, reply) => {
+    try {
+      const data = request.body as BookingConfirmationData;
+      
+      if (!data || !data.referenceNumber) {
+        return reply.code(400).send({ error: "Missing required booking data" });
+      }
+
+      const pdfBuffer = await PDFService.generateBookingConfirmation(data);
+
+      reply.header("Content-Type", "application/pdf");
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename=Booking-${data.referenceNumber}.pdf`,
+      );
+      return reply.send(pdfBuffer);
+    } catch (error: any) {
+      fastify.log.error("PDF Generation Error:", error);
+      reply.code(500).send({ error: "Failed to generate PDF" });
+    }
+  });
+
   fastify.get("/", async (request, reply) => {
     try {
       const query = request.query as { shipmentId?: string };
@@ -100,38 +144,41 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
     handler: async (request, reply) => {
       try {
-        const data = await request.file();
-        if (!data) {
+        const body = request.body as any;
+        // With attachFieldsToBody: true, files are available on request.body
+        const fileData = body.file;
+        
+        if (!fileData) {
           return reply.code(400).send({ error: "No file uploaded" });
         }
-
-        const fileBuffer = await data.toBuffer();
+        
+        // Handle case where body.file could be an array of files (fastify-multipart behavior sometimes)
+        const fileObj = Array.isArray(fileData) ? fileData[0] : fileData;
+        const fileBuffer = await fileObj.toBuffer();
         
         // Persist to local filesystem (Document Vault)
         const uploadDir = path.join(process.cwd(), "uploads");
         await fs.promises.mkdir(uploadDir, { recursive: true });
-        const safeFilename = `${crypto.randomUUID()}-${data.filename}`;
+        const safeFilename = `${crypto.randomUUID()}-${fileObj.filename}`;
         const filePath = path.join(uploadDir, safeFilename);
         await fs.promises.writeFile(filePath, fileBuffer);
         
         const fileUrl = `/api/documents/download/${safeFilename}`;
 
-        // We assume shipmentId is passed in the multipart fields
-        const body = request.body as any;
-        const shipmentId = body.shipmentId?.value;
-        const docType = body.type?.value || "Commercial Invoice";
+        const shipmentId = body.shipmentId?.value || body.shipmentId || "sh_general";
+        const docType = body.type?.value || body.type || "Commercial Invoice";
 
         if (shipmentId) {
           await db.insert(documents).values({
             id: crypto.randomUUID(),
             shipmentId: shipmentId,
-            name: data.filename,
+            name: fileObj.filename,
             type: docType,
             url: fileUrl,
           });
         }
 
-        reply.send({ success: true, url: fileUrl, name: data.filename });
+        reply.send({ success: true, url: fileUrl, name: fileObj.filename });
       } catch (error: any) {
         reply.code(500).send({ error: error.message });
       }

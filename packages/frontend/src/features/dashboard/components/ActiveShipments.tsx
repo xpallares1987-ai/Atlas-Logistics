@@ -9,27 +9,31 @@ import {
   TableRow,
 } from "@atlas/ui";
 
-import { useShipments } from "../../../hooks/useShipments";
+import { useApiQuery } from '../../../hooks/useApiQuery';
+import { useDashboardStore } from '../store';
 
 export function ActiveShipments() {
-  const { data: shipments = [] } = useShipments();
+  const { dateRange } = useDashboardStore();
+  const queryStr = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
+  const { data } = useApiQuery<any>(['dashboard', dateRange], `/dashboard${queryStr}`);
+  const shipments: any[] = data?.activeList || [];
 
   // Map backend shipments to UI format
   // If no shipments exist, we could provide some visual defaults, but let's just map real data.
-  const activeShipments = shipments.slice(0, 5).map((s) => {
+  const activeShipments = shipments.slice(0, 5).map((s: any) => {
     // Generate some display logic based on status
-    const isTransit = s.status === "IN_TRANSIT" || s.status === "Departed";
-    const progress = s.status === "COMPLETED" ? 100 : isTransit ? 65 : 20;
+    const isTransit = s.status === "In Transit" || s.status === "Completed";
+    const progress = s.status === "Completed" ? 100 : isTransit ? 65 : 20;
 
     return {
-      id: s.trackingNumber || s.id.substring(0, 8).toUpperCase(),
+      id: s.referenceNumber || s.id?.substring(0, 8).toUpperCase(),
       origin: s.origin || "Unknown",
       destination: s.destination || "Unknown",
-      status: s.status || "PENDING",
+      status: s.status || "Pending",
       progress,
-      eta: s.status === "COMPLETED" ? "Delivered" : "Pending",
-      vessel: s.vesselName || "TBA",
-      type: s.serviceType || "Ocean",
+      eta: s.status === "Completed" ? "Delivered" : "Pending",
+      vessel: s.vessel || "TBA",
+      type: s.equipment || "Ocean",
     };
   });
   return (
@@ -46,7 +50,7 @@ export function ActiveShipments() {
       <div className="flex-1 w-full">
         {/* Mobile View: Stacked Cards */}
         <div className="flex flex-col gap-4 md:hidden">
-          {activeShipments.map((shipment, idx) => (
+          {activeShipments.map((shipment: any, idx: number) => (
             <motion.div
               key={shipment.id}
               initial={{ opacity: 0, y: 10 }}
@@ -70,7 +74,9 @@ export function ActiveShipments() {
                   className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase border ${
                     shipment.status === "In Transit"
                       ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                      : shipment.status === "Customs Hold"
+                      : shipment.status === "Pending"
+                        ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                        : shipment.status === "Confirmed"
                         ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                         : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                   }`}
@@ -109,7 +115,9 @@ export function ActiveShipments() {
                     className={`h-full rounded-full ${
                       shipment.status === "In Transit"
                         ? "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
-                        : shipment.status === "Customs Hold"
+                        : shipment.status === "Pending"
+                          ? "bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                          : shipment.status === "Confirmed"
                           ? "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
                           : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                     }`}
@@ -147,7 +155,7 @@ export function ActiveShipments() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {activeShipments.map((shipment) => (
+              {activeShipments.map((shipment: any) => (
                 <TableRow
                   key={shipment.id}
                   className="hover:bg-white/5 transition-colors group cursor-pointer border-white/5"
@@ -190,7 +198,9 @@ export function ActiveShipments() {
                           className={`${
                             shipment.status === "In Transit"
                               ? "text-blue-400"
-                              : shipment.status === "Customs Hold"
+                              : shipment.status === "Pending"
+                                ? "text-purple-400"
+                                : shipment.status === "Confirmed"
                                 ? "text-amber-400"
                                 : "text-emerald-400"
                           } font-medium`}
@@ -229,3 +239,4 @@ export function ActiveShipments() {
     </div>
   );
 }
+

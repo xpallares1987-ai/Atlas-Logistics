@@ -15,6 +15,7 @@ export default defineConfig({
       name: "host",
       remotes: {
         dashboard: "http://localhost:5174/assets/remoteEntry.js",
+        warehouse: "http://localhost:5175/assets/remoteEntry.js",
       },
       shared: [
         "react",

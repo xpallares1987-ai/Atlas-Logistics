@@ -1,22 +1,23 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Package } from 'lucide-react';
 import { useApiQuery } from '../../../hooks/useApiQuery';
+import { useDashboardStore } from '../store';
 
 const COLORS: Record<string, string> = {
-  'In Transit': '#3b82f6',     // blue
-  'Customs Hold': '#f59e0b',   // amber
+  'In Transit': '#f59e0b',     // amber
+  'Confirmed': '#3b82f6',      // blue
   'Pending': '#8b5cf6',        // purple
   'Completed': '#10b981',      // emerald
 };
 
 export function ShipmentVolumeChart() {
-  const { data: rawData } = useApiQuery<any>(['dashboard-charts'], '/dashboard-charts');
+  const { dateRange } = useDashboardStore();
+  const queryStr = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
+  const { data: dashboardData } = useApiQuery<any>(['dashboard', dateRange], `/dashboard${queryStr}`);
   
-  const data = rawData?.volumeByStatus || [
-    { status: 'In Transit', count: 420 },
-    { status: 'Customs Hold', count: 35 },
-    { status: 'Pending', count: 150 },
-    { status: 'Completed', count: 850 },
+  const data = dashboardData?.volumeByStatus || [
+    { status: 'In Transit', count: 0 },
+    { status: 'Completed', count: 0 },
   ];
 
   return (
@@ -76,3 +77,4 @@ export function ShipmentVolumeChart() {
     </div>
   );
 }
+

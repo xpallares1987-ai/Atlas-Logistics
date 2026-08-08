@@ -4,6 +4,35 @@ import { lanes } from "./pricing.js";
 import { carriers, customsBrokers } from "./vendors.js";
 import { locations, companies, users } from "./core.js";
 
+export const routeSegments = sqliteTable("route_segments", {
+  id: text("id").primaryKey(),
+  shipmentId: text("shipment_id").notNull().references(() => shipments.id),
+  sequenceOrder: integer("sequence_order").notNull(),
+  transportMode: text("transport_mode").notNull(),
+  originLocationId: text("origin_location_id").references(() => locations.id),
+  destinationLocationId: text("destination_location_id").references(() => locations.id),
+  departureTime: integer("departure_time", { mode: "timestamp" }),
+  arrivalTime: integer("arrival_time", { mode: "timestamp" }),
+  status: text("status").notNull(),
+  ...commonAuditFields,
+});
+
+export const warehouseTraffic = sqliteTable("warehouse_traffic", {
+  id: text("id").primaryKey(),
+  shipmentId: text("shipment_id").references(() => shipments.id),
+  driverName: text("driver_name"),
+  deviceNumber: text("device_number").notNull(), // Matricula / Vagon
+  deviceType: text("device_type").notNull(), // TRUCK, WAGON, CONTAINER_20, CONTAINER_40
+  status: text("status").notNull(), // WAITING, DOCK_ASSIGNED, LOADING, UNLOADING, DISPATCHED
+  eta: text("eta"), // string or timestamp
+  assignedDock: text("assigned_dock"),
+  cargoDescription: text("cargo_description"),
+  totalWeightExpected: real("total_weight_expected"),
+  expectedQuantity: integer("expected_quantity"),
+  type: text("type").notNull(), // INBOUND, OUTBOUND
+  ...commonAuditFields,
+});
+
 export const schedules = sqliteTable("schedules", {
   id: text("id").primaryKey(),
   laneId: text("lane_id")
@@ -118,3 +147,15 @@ export const bookings = sqliteTable("bookings", {
   estimatedDeparture: integer("estimated_departure", { mode: "timestamp" }),
   ...commonAuditFields,
 });
+
+export const demurrageAlerts = sqliteTable("demurrage_alerts", {
+  id: text("id").primaryKey(),
+  shipmentId: text("shipment_id")
+    .notNull()
+    .references(() => shipments.id),
+  containerNumber: text("container_number").notNull(),
+  alertStatus: text("alert_status").notNull().default("active"), // active, mitigated, dismissed
+  lastNotified: integer("last_notified", { mode: "timestamp" }),
+  ...commonAuditFields,
+});
+

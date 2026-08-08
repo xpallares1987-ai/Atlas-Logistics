@@ -63,6 +63,28 @@ export default function LclConsolidationModule() {
     }));
   };
 
+  const autoOptimize = (cargoIds: string[]) => {
+    if (cargoIds.length === 0) return;
+    
+    setMasterContainers(prev => prev.map(c => {
+      if (c.id === activeContainerId) {
+        const newAssigned = new Set([...c.assignedCargoIds, ...cargoIds]);
+        return { ...c, assignedCargoIds: Array.from(newAssigned) };
+      }
+      return c;
+    }));
+    
+    // Fire off async save to backend
+    fetch('/api/operations/lcl/consolidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        masterContainerId: activeContainerId,
+        assignedCargoIds: cargoIds
+      })
+    }).catch(console.error);
+  };
+
   const createNewContainer = () => {
     const newId = `c-${masterContainers.length + 1}`;
     setMasterContainers(prev => [
@@ -89,6 +111,7 @@ export default function LclConsolidationModule() {
         removeAssigned={removeAssigned}
         createNewContainer={createNewContainer}
         setActiveContainerId={setActiveContainerId}
+        autoOptimize={autoOptimize}
       />
     </motion.div>
   );

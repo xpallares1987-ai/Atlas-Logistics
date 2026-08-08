@@ -10,6 +10,7 @@ import fastifyMultipart from "@fastify/multipart";
 import { redis } from "./config/redis.js";
 
 import bpmnRoutes from "./routes/bpmn.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 import { logger } from "./config/logger.js";
 import { authMiddleware } from "./middleware/auth.js";
 
@@ -139,6 +140,7 @@ app.register(schedulesRoutes, { prefix: "/api/schedules" });
 app.register(tasksRoutes, { prefix: "/api/tasks" });
 app.register(aiRoutes, { prefix: "/api" });
 app.register(bpmnRoutes, { prefix: "/api" });
+app.register(dashboardRoutes, { prefix: "/api/dashboard" });
 app.register(healthRoutes, { prefix: "/api" });
 app.register(customsRoutes, { prefix: "/api" });
 

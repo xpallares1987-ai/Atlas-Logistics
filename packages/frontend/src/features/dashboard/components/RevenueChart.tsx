@@ -2,18 +2,16 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DollarSign } from 'lucide-react';
 import { useApiQuery } from '../../../hooks/useApiQuery';
+import { useDashboardStore } from '../store';
 
 export function RevenueChart() {
-  const { data: rawData } = useApiQuery<any>(['dashboard-charts'], '/dashboard-charts');
+  const { dateRange } = useDashboardStore();
+  const queryStr = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
+  const { data: dashboardData } = useApiQuery<any>(['dashboard', dateRange], `/dashboard${queryStr}`);
   
   // Use backend data or fallback if not loaded
-  const data = rawData?.revenueTrend || [
-    { name: 'Jan', revenue: 4000, costs: 2400 },
-    { name: 'Feb', revenue: 3000, costs: 1398 },
-    { name: 'Mar', revenue: 2000, costs: 9800 },
-    { name: 'Apr', revenue: 2780, costs: 3908 },
-    { name: 'May', revenue: 1890, costs: 4800 },
-    { name: 'Jun', revenue: 2390, costs: 3800 },
+  const data = dashboardData?.revenueChart || [
+    { name: 'Jan', value: 0 },
   ];
 
   return (
@@ -58,26 +56,18 @@ export function RevenueChart() {
               stroke="rgba(255,255,255,0.3)" 
               fontSize={12} 
               tickLine={false} 
-              axisLine={false} 
-              tickFormatter={(value) => `$${value/1000}k`}
+              axisLine={false}
+              tickFormatter={(value) => `$${value / 1000}k`}
             />
             <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'rgba(15, 23, 42, 0.9)', 
-                borderColor: 'rgba(255,255,255,0.1)',
-                backdropFilter: 'blur(10px)',
-                borderRadius: '12px',
-                color: '#fff',
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
-              }} 
+              contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
               itemStyle={{ color: '#e2e8f0' }}
             />
             <Area 
               type="monotone" 
-              dataKey="revenue" 
+              dataKey="value" 
               stroke="#34d399" 
               strokeWidth={3}
-              fillOpacity={1} 
               fill="url(#colorRevenue)" 
               activeDot={{ r: 6, fill: '#34d399', stroke: '#fff', strokeWidth: 2 }}
             />
@@ -95,3 +85,4 @@ export function RevenueChart() {
     </div>
   );
 }
+

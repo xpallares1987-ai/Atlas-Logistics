@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Link } from "react-router-dom";
+import { BrowserRouter as Router, Link, useNavigate } from "react-router-dom";
 import { useAppStore } from "./store/useAppStore";
 import { SkeletonLoader } from "./components/SkeletonLoader";
 import { ApiStatusProvider } from "./contexts/ApiStatusContext";
@@ -8,12 +8,31 @@ import { TopNavbar } from "./components/layout/TopNavbar";
 import { Sidebar } from "./components/layout/Sidebar";
 import { AppRoutes } from "./components/layout/AppRoutes";
 
+import { AuthProvider } from "./contexts/AuthContext";
+import { useNotificationsWebSocket } from "./hooks/useNotificationsWebSocket";
+
 const queryClient = new QueryClient();
 
+function GlobalNavigationListener() {
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    const handleNavigate = (e: any) => {
+      if (e.detail?.path) {
+        navigate(e.detail.path);
+      }
+    };
+    window.addEventListener("app-navigate", handleNavigate);
+    return () => window.removeEventListener("app-navigate", handleNavigate);
+  }, [navigate]);
+  return null;
+}
+
 export default function App() {
+  useNotificationsWebSocket();
   const { theme, isAuthLoading, checkAuth, addNotification } = useAppStore();
   const [isMobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
+  // checkAuth from appStore is legacy, but we'll leave it
   React.useEffect(() => {
     checkAuth();
   }, []);
@@ -28,8 +47,10 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AuthProvider>
       <ApiStatusProvider onNotification={addNotification}>
         <Router>
+          <GlobalNavigationListener />
           <div
             className={`flex h-screen font-sans overflow-hidden ${theme === "dark" ? "dark bg-slate-950 text-white" : "bg-slate-50 text-slate-900"}`}
           >
@@ -74,6 +95,7 @@ export default function App() {
           </div>
         </Router>
       </ApiStatusProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

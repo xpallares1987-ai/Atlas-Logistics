@@ -1,6 +1,6 @@
 import { Suspense, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Box, Environment, Text } from "@react-three/drei";
+import { OrbitControls, Box, Environment, Text, TransformControls } from "@react-three/drei";
 import {
   Package,
   Box as BoxIcon,
@@ -25,23 +25,47 @@ interface CargoItem {
 }
 
 // Single Box Component
-const CargoBox = ({ position, color, size, label }: any) => {
+const CargoBox = ({ item, isSelected, onSelect, mode }: any) => {
+  if (isSelected) {
+    return (
+      <TransformControls 
+        mode={mode} 
+        position={[item.x, item.y, item.z]} 
+        onObjectChange={() => {
+          // You could save back to state here if needed
+        }}
+      >
+        <group onClick={(e) => { e.stopPropagation(); onSelect(item.id); }}>
+          <Box args={[item.width, item.height, item.depth]}>
+            <meshStandardMaterial color={item.color} roughness={0.7} />
+          </Box>
+          <Text position={[0, item.height / 2 + 0.1, 0]} fontSize={0.2} color="black">
+            {item.label}
+          </Text>
+        </group>
+      </TransformControls>
+    );
+  }
+
   return (
-    <group position={position}>
-      <Box args={size}>
-        <meshStandardMaterial color={color} roughness={0.7} />
+    <group 
+      position={[item.x, item.y, item.z]} 
+      onClick={(e) => { e.stopPropagation(); onSelect(item.id); }}
+    >
+      <Box args={[item.width, item.height, item.depth]}>
+        <meshStandardMaterial color={item.color} roughness={0.7} />
       </Box>
-      <Text position={[0, size[1] / 2 + 0.1, 0]} fontSize={0.2} color="black">
-        {label}
+      <Text position={[0, item.height / 2 + 0.1, 0]} fontSize={0.2} color="black">
+        {item.label}
       </Text>
     </group>
   );
 };
 
 // Container Component (40ft HQ representation)
-const SeaContainer = ({ cargo }: { cargo: CargoItem[] }) => {
+const SeaContainer = ({ cargo, selectedId, onSelect, mode }: { cargo: CargoItem[], selectedId: string | null, onSelect: (id: string | null) => void, mode: "translate" | "rotate" }) => {
   return (
-    <group>
+    <group onPointerMissed={() => onSelect(null)}>
       {/* Floor */}
       <Box args={[2.4, 0.1, 12]} position={[0, -0.05, 0]}>
         <meshStandardMaterial color="#333" />
@@ -72,10 +96,10 @@ const SeaContainer = ({ cargo }: { cargo: CargoItem[] }) => {
       {cargo.map((item) => (
         <CargoBox
           key={item.id}
-          position={[item.x, item.y, item.z]}
-          color={item.color}
-          size={[item.width, item.height, item.depth]}
-          label={item.label}
+          item={item}
+          isSelected={selectedId === item.id}
+          onSelect={onSelect}
+          mode={mode}
         />
       ))}
     </group>
@@ -87,6 +111,8 @@ export default function ContainerPlannerModule() {
   const [suggestion, setSuggestion] = useState<string>(
     "Container is empty or unsorted. Run heuristic optimization to pack items.",
   );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [transformMode, setTransformMode] = useState<"translate" | "rotate">("translate");
 
   // Fetch the first available container to plan
   const { data: containers } = useQuery({
@@ -180,10 +206,35 @@ export default function ContainerPlannerModule() {
               <ambientLight intensity={0.5} />
               <pointLight position={[10, 10, 10]} intensity={1} />
               <Environment preset="city" />
-              {!isLoading && <SeaContainer cargo={cargo} />}
-              <OrbitControls makeDefault autoRotate autoRotateSpeed={0.5} />
+              {!isLoading && (
+                <SeaContainer 
+                  cargo={cargo} 
+                  selectedId={selectedId} 
+                  onSelect={setSelectedId} 
+                  mode={transformMode} 
+                />
+              )}
+              <OrbitControls makeDefault autoRotate={!selectedId} autoRotateSpeed={0.5} />
             </Canvas>
           </Suspense>
+
+          {/* Mode Switcher Overlay */}
+          {selectedId && (
+            <div className="absolute top-6 left-6 flex gap-2">
+              <button
+                onClick={() => setTransformMode("translate")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-bold shadow-md transition-colors ${transformMode === "translate" ? "bg-indigo-600 text-white" : "bg-white/80 text-slate-700 hover:bg-white"}`}
+              >
+                Translate
+              </button>
+              <button
+                onClick={() => setTransformMode("rotate")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-bold shadow-md transition-colors ${transformMode === "rotate" ? "bg-indigo-600 text-white" : "bg-white/80 text-slate-700 hover:bg-white"}`}
+              >
+                Rotate
+              </button>
+            </div>
+          )}
 
           <div className="absolute bottom-6 left-6 bg-black/50 backdrop-blur-md text-white p-4 rounded-2xl">
             <p className="font-bold text-sm">
@@ -208,7 +259,8 @@ export default function ContainerPlannerModule() {
               {cargo.map((item: CargoItem) => (
                 <div
                   key={item.id}
-                  className="flex justify-between items-center text-sm p-3 rounded-xl border"
+                  className={`flex justify-between items-center text-sm p-3 rounded-xl border cursor-pointer transition-transform ${selectedId === item.id ? 'scale-105 shadow-md ring-2 ring-indigo-500' : 'hover:scale-[1.02]'}`}
+                  onClick={() => setSelectedId(item.id)}
                   style={{
                     backgroundColor: `${item.color}15`,
                     borderColor: `${item.color}30`,

@@ -19,7 +19,15 @@ import {
   Trash2,
   Book,
   Download,
+  GripVertical
 } from "lucide-react";
+import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  DragEndEvent,
+  closestCenter,
+} from "@dnd-kit/core";
 
 interface Container {
   containerNumber: string;
@@ -64,8 +72,13 @@ export default function BookingManagementModule() {
     ["bookings"],
     "/operations/bookings",
   );
+  
+  const { data: companies = [] } = useApiQuery<any[]>(
+    ["companies"],
+    "/operations/companies",
+  );
 
-  const [activeTab, setActiveTab] = useState<"All" | "DRAFT" | "CONFIRMED">(
+  const [activeTab, setActiveTab] = useState<"All" | "Pending" | "Confirmed">(
     "All",
   );
   const [viewMode, setViewMode] = useState<"list" | "board">("board");
@@ -77,7 +90,7 @@ export default function BookingManagementModule() {
     setSelectedBkg(null);
     setFormData({
       referenceNumber: `BKG-${Math.floor(10000 + Math.random() * 90000)}`,
-      status: "DRAFT",
+      status: "Pending",
       customer: "",
       consignee: "",
       origin: "",
@@ -102,6 +115,24 @@ export default function BookingManagementModule() {
   };
 
   const handleSave = async () => {
+    // Advanced Validation
+    if (!formData.customer) {
+      alert("Customer is required.");
+      return;
+    }
+    if (!formData.origin || !formData.destination) {
+      alert("Origin and Destination are required.");
+      return;
+    }
+    if (formData.origin === formData.destination) {
+      alert("Origin and Destination cannot be the same.");
+      return;
+    }
+    if (!formData.equipment) {
+      alert("Equipment type is required.");
+      return;
+    }
+
     try {
       const method = formData.id ? "PUT" : "POST";
       const url = formData.id ? `${API_URL}/${formData.id}` : API_URL;
@@ -113,7 +144,7 @@ export default function BookingManagementModule() {
       });
 
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["shipments"] });
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
         const savedBkg = await res.json();
         handleSelectBooking(savedBkg);
       }
@@ -125,14 +156,14 @@ export default function BookingManagementModule() {
   const handleApprove = async () => {
     if (!selectedBkg?.id) return;
     try {
-      const updatedData = { ...formData, status: "CONFIRMED" };
+      const updatedData = { ...formData, status: "Confirmed" };
       const res = await fetch(`${API_URL}/${selectedBkg.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedData),
       });
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["shipments"] });
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
         const savedBkg = await res.json();
         handleSelectBooking(savedBkg);
       }
@@ -151,7 +182,7 @@ export default function BookingManagementModule() {
         method: "DELETE",
       });
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["shipments"] });
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
         setSelectedBkg(null);
         setFormData({});
         setIsEditing(false);
@@ -217,15 +248,52 @@ export default function BookingManagementModule() {
     }
   };
 
+  const handleGenerateBookingConfirmation = async () => {
+    if (!selectedBkg) return;
+    try {
+      const payload = {
+        referenceNumber: selectedBkg.referenceNumber,
+        customer: selectedBkg.customer || "DEFAULT CUSTOMER LTD.",
+        origin: selectedBkg.origin || "POL UNKNOWN",
+        destination: selectedBkg.destination || "POD UNKNOWN",
+        serviceType: "FCL/LCL", // Simplified
+        equipment: selectedBkg.equipment || "TBN",
+        vessel: selectedBkg.vessel || "TBN",
+        voyage: selectedBkg.voyage || "TBN",
+      };
+
+      const res = await fetch(`${DOCS_API_URL}/booking-confirmation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Booking-${selectedBkg.referenceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to generate Booking Confirmation", err);
+      alert("Failed to generate Booking Confirmation PDF.");
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "DRAFT":
+      case "Pending":
         return "bg-slate-100 text-slate-600 border-slate-200";
-      case "CONFIRMED":
+      case "Confirmed":
         return "bg-blue-50 text-blue-700 border-blue-200";
-      case "DOCUMENTATION":
+      case "In Transit":
         return "bg-amber-50 text-amber-700 border-amber-200";
-      case "ON_BOARD":
+      case "Completed":
         return "bg-emerald-50 text-emerald-700 border-emerald-200";
       default:
         return "bg-slate-100 text-slate-600 border-slate-200";
@@ -268,26 +336,24 @@ export default function BookingManagementModule() {
     setFormData((prev) => ({ ...prev, commodities: newCommodities }));
   };
 
-  const handleDragStart = (e: React.DragEvent, bkgId: string) => {
-    e.dataTransfer.setData("bkgId", bkgId);
-  };
-
-  const handleDrop = async (e: React.DragEvent, newStatus: string) => {
-    e.preventDefault();
-    const bkgId = e.dataTransfer.getData("bkgId");
-    if (!bkgId) return;
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const bkgId = active.id as string;
+    const newStatus = over.id as string;
 
     const bkg = shipments.find((s) => s.id === bkgId);
     if (!bkg || bkg.status === newStatus) return;
 
     try {
+      // Optimistic update logic if needed, but react-query invalidation is fine
       const res = await fetch(`${API_URL}/${bkgId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["shipments"] });
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
         if (selectedBkg?.id === bkgId) {
           setFormData((prev) => ({ ...prev, status: newStatus }));
           setSelectedBkg((prev) =>
@@ -300,8 +366,81 @@ export default function BookingManagementModule() {
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  // Helper component for columns
+  const DroppableColumn = ({ col, children, count }: any) => {
+    const { isOver, setNodeRef } = useDroppable({ id: col });
+    return (
+      <div
+        ref={setNodeRef}
+        className={`w-[340px] shrink-0 rounded-2xl p-4 flex flex-col shadow-inner border transition-colors duration-200 ${
+          isOver ? "bg-indigo-50 border-indigo-200" : "bg-slate-200/50 border-slate-200/60"
+        }`}
+      >
+        <div className="flex justify-between items-center mb-5 px-2">
+          <h3 className="font-black text-slate-700 text-sm tracking-wide uppercase">
+            {col}
+          </h3>
+          <span className="bg-slate-700 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+            {count}
+          </span>
+        </div>
+        <div className="flex-1 space-y-4 overflow-y-auto min-h-[150px] pb-4 px-1 custom-scrollbar">
+          {children}
+        </div>
+      </div>
+    );
+  };
+
+  // Helper component for cards
+  const DraggableCard = ({ bkg }: any) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+      id: bkg.id,
+      data: bkg,
+    });
+    const style = transform
+      ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 50, opacity: isDragging ? 0.8 : 1 }
+      : undefined;
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        onClick={() => handleSelectBooking(bkg)}
+        className={`bg-white p-5 rounded-xl border-2 transition-all cursor-grab active:cursor-grabbing hover:-translate-y-1 hover:shadow-lg ${
+          selectedBkg?.id === bkg.id ? "border-indigo-400 shadow-md ring-2 ring-indigo-500/10" : "border-slate-100 shadow-sm hover:border-indigo-200"
+        } ${isDragging ? "shadow-2xl scale-105" : ""}`}
+      >
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex items-center gap-2">
+            <span {...listeners} {...attributes} className="cursor-grab p-1 -ml-1 text-slate-300 hover:text-slate-500">
+              <GripVertical size={16} />
+            </span>
+            <div className="font-mono font-bold text-slate-800 text-sm bg-slate-100 px-2 py-0.5 rounded">
+              {bkg.referenceNumber}
+            </div>
+          </div>
+          <Ship className="w-4 h-4 text-slate-400" />
+        </div>
+        <div className="font-semibold text-slate-700 mb-4 truncate text-sm">
+          {bkg.customer || "Unknown Customer"}
+        </div>
+        <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 p-2 rounded border border-slate-100">
+          <div className="flex items-center gap-1.5 w-2/5 overflow-hidden">
+            <MapPin className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span className="truncate font-medium">
+              {bkg.origin?.split(",")[0] || "?"}
+            </span>
+          </div>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+          <div className="flex items-center gap-1.5 w-2/5 justify-end overflow-hidden">
+            <span className="truncate font-medium">
+              {bkg.destination?.split(",")[0] || "?"}
+            </span>
+            <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -366,7 +505,7 @@ export default function BookingManagementModule() {
           {viewMode === "list" ? (
             <div className="flex flex-col h-full bg-slate-50/50">
               <div className="p-4 border-b border-slate-200 flex gap-2 bg-white sticky top-0 z-10 shadow-sm">
-                {["All", "DRAFT", "CONFIRMED"].map((tab) => (
+                {["All", "Pending", "Confirmed"].map((tab) => (
                   <Button
                     key={tab}
                     variant={activeTab === tab ? "secondary" : "ghost"}
@@ -431,65 +570,22 @@ export default function BookingManagementModule() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex overflow-x-auto p-6 gap-6 bg-slate-100/30">
-              {["DRAFT", "CONFIRMED", "DOCUMENTATION", "ON_BOARD"].map(
-                (col) => (
-                  <div
-                    key={col}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, col)}
-                    className="w-[340px] shrink-0 bg-slate-200/50 rounded-2xl p-4 flex flex-col shadow-inner border border-slate-200/60"
-                  >
-                    <div className="flex justify-between items-center mb-5 px-2">
-                      <h3 className="font-black text-slate-700 text-sm tracking-wide uppercase">
-                        {col.replace("_", " ")}
-                      </h3>
-                      <span className="bg-slate-700 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
-                        {shipments.filter((s) => s.status === col).length}
-                      </span>
-                    </div>
-                    <div className="flex-1 space-y-4 overflow-y-auto min-h-[150px] pb-4 px-1 custom-scrollbar">
-                      {shipments
-                        .filter((s) => s.status === col)
-                        .map((bkg) => (
-                          <div
-                            key={bkg.id}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, bkg.id)}
-                            onClick={() => handleSelectBooking(bkg)}
-                            className={`bg-white p-5 rounded-xl border-2 transition-all cursor-grab active:cursor-grabbing hover:-translate-y-1 hover:shadow-lg ${selectedBkg?.id === bkg.id ? "border-indigo-400 shadow-md ring-2 ring-indigo-500/10" : "border-slate-100 shadow-sm hover:border-indigo-200"}`}
-                          >
-                            <div className="flex justify-between items-start mb-3">
-                              <div className="font-mono font-bold text-slate-800 text-sm bg-slate-100 px-2 py-0.5 rounded">
-                                {bkg.referenceNumber}
-                              </div>
-                              <Ship className="w-4 h-4 text-slate-400" />
-                            </div>
-                            <div className="font-semibold text-slate-700 mb-4 truncate text-sm">
-                              {bkg.customer || "Unknown Customer"}
-                            </div>
-                            <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 p-2 rounded border border-slate-100">
-                              <div className="flex items-center gap-1.5 w-2/5 overflow-hidden">
-                                <MapPin className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                                <span className="truncate font-medium">
-                                  {bkg.origin?.split(",")[0] || "?"}
-                                </span>
-                              </div>
-                              <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-                              <div className="flex items-center gap-1.5 w-2/5 justify-end overflow-hidden">
-                                <span className="truncate font-medium">
-                                  {bkg.destination?.split(",")[0] || "?"}
-                                </span>
-                                <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                              </div>
-                            </div>
-                          </div>
+            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <div className="flex-1 flex overflow-x-auto p-6 gap-6 bg-slate-100/30">
+                {["Pending", "Confirmed", "In Transit", "Completed"].map(
+                  (col) => {
+                    const colBookings = shipments.filter((s) => s.status === col);
+                    return (
+                      <DroppableColumn key={col} col={col} count={colBookings.length}>
+                        {colBookings.map((bkg) => (
+                          <DraggableCard key={bkg.id} bkg={bkg} />
                         ))}
-                    </div>
-                  </div>
-                ),
-              )}
-            </div>
+                      </DroppableColumn>
+                    );
+                  }
+                )}
+              </div>
+            </DndContext>
           )}
         </div>
 
@@ -542,11 +638,18 @@ export default function BookingManagementModule() {
                       {selectedBkg && !isEditing && (
                         <>
                           <Button
+                            onClick={handleGenerateBookingConfirmation}
+                            variant="outline"
+                            className="bg-sky-50 border-sky-200 hover:bg-sky-100 text-sky-700"
+                          >
+                            <FileText className="w-4 h-4 mr-2" /> Booking Conf.
+                          </Button>
+                          <Button
                             onClick={handleGenerateHBL}
                             variant="outline"
                             className="bg-indigo-50 border-indigo-200 hover:bg-indigo-100 text-indigo-700"
                           >
-                            <Download className="w-4 h-4 mr-2" /> Download HBL
+                            <Download className="w-4 h-4 mr-2" /> HBL
                           </Button>
                           <Button
                             onClick={() => setIsEditing(true)}
@@ -561,7 +664,7 @@ export default function BookingManagementModule() {
                           >
                             <Trash2 className="w-4 h-4 mr-2" /> Delete
                           </Button>
-                          {formData.status !== "CONFIRMED" && (
+                          {formData.status !== "Confirmed" && (
                             <Button
                               onClick={handleApprove}
                               className="bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -570,6 +673,15 @@ export default function BookingManagementModule() {
                             </Button>
                           )}
                         </>
+                      )}
+                      {selectedBkg?.status === "Confirmed" && (
+                        <Button
+                          variant="outline"
+                          onClick={() => alert("Navigating to Shipment details...")}
+                          className="bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 mr-2"
+                        >
+                          <Ship className="w-4 h-4 mr-2" /> View Active Shipment
+                        </Button>
                       )}
                       {isEditing && (
                         <>
@@ -607,10 +719,9 @@ export default function BookingManagementModule() {
                       <div className="col-span-2 md:col-span-1 space-y-4">
                         <div>
                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                            Shipper
+                            Shipper (Customer)
                           </label>
-                          <Input
-                            type="text"
+                          <Select
                             disabled={!isEditing}
                             value={formData.customer || ""}
                             onChange={(e) =>
@@ -619,8 +730,13 @@ export default function BookingManagementModule() {
                                 customer: e.target.value,
                               })
                             }
-                            placeholder="Shipper Name"
-                          />
+                          >
+                            <option value="">Select a Customer...</option>
+                            {companies.map((c) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                            <option value="Demo Customer Ltd">Demo Customer Ltd</option>
+                          </Select>
                         </div>
                         <div>
                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
@@ -645,7 +761,7 @@ export default function BookingManagementModule() {
                           </label>
                           <Select
                             disabled={!isEditing}
-                            value={formData.status || "DRAFT"}
+                            value={formData.status || "Pending"}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
@@ -653,10 +769,10 @@ export default function BookingManagementModule() {
                               })
                             }
                           >
-                            <option value="DRAFT">DRAFT</option>
-                            <option value="CONFIRMED">CONFIRMED</option>
-                            <option value="DOCUMENTATION">DOCUMENTATION</option>
-                            <option value="ON_BOARD">ON_BOARD</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="In Transit">In Transit</option>
+                            <option value="Completed">Completed</option>
                           </Select>
                         </div>
                       </div>
