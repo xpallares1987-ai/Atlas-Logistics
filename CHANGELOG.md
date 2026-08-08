@@ -3,6 +3,21 @@
 
 ### Bug Fixes
 
+* replace failing postgresql devcontainer feature with docker-compose service ([#66](https://github.com/xpallares1987-ai/Atlas-Logistics/issues/66)) ([5ec66f1](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/5ec66f17c592ad4ea268861c4ea1d007a58825f4))
+* resolve adminRoutes import error and finally add dev script ([89b6e93](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/89b6e936f0b93941197ace55c836b2528ad737e8))
+* resolve date-fns missing module and add dev script for e2e tests ([ffc2e27](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/ffc2e27d794480488d4534d6a2a0be4b6861ae14))
+* resolve E2E timeouts and CI db migration failures ([78e117f](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/78e117f1e0fd38d8e288a6e6ad19ddb4d84cb02e))
+
+
+### Features
+
+* enterprise evolution ([#65](https://github.com/xpallares1987-ai/Atlas-Logistics/issues/65)) ([577199b](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/577199bfcaebfb5b7d37185fa92936ea21f78d5d))
+
+# [1.1.0](https://github.com/xpallares1987-ai/Atlas-Logistics/compare/v1.0.0...v1.1.0) (2026-08-08)
+
+
+### Bug Fixes
+
 * resolve adminRoutes import error and finally add dev script ([89b6e93](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/89b6e936f0b93941197ace55c836b2528ad737e8))
 * resolve date-fns missing module and add dev script for e2e tests ([ffc2e27](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/ffc2e27d794480488d4534d6a2a0be4b6861ae14))
 * resolve E2E timeouts and CI db migration failures ([78e117f](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/78e117f1e0fd38d8e288a6e6ad19ddb4d84cb02e))
