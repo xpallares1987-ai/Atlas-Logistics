@@ -91,7 +91,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.get("/me", async (request, reply) => {
     const sessionId = request.cookies[lucia.sessionCookieName];
     if (!sessionId) {
-      return { user: null };
+      return reply.code(401).send({ error: "Unauthorized" });
     }
 
     const { session, user } = await lucia.validateSession(sessionId);
