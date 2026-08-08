@@ -11,23 +11,23 @@
   "dependencies": {
     "@atlas/shared": "workspace:*",
     "@atlas/ui": "workspace:*",
-    "@bpmn-io/properties-panel": "^3.47.0",
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.6.1",
+    "@bpmn-io/properties-panel": "^3.48.0",
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
     "@types/three": "^0.185.1",
     "@xmldom/xmldom": "^0.9.10",
-    "bpmn-js": "^18.22.0",
+    "bpmn-js": "^18.22.1",
     "bpmn-js-bpmnlint": "^0.24.0",
     "bpmn-js-token-simulation": "^0.40.0",
-    "diagram-js": "^15.23.0",
+    "diagram-js": "^15.23.2",
     "diagram-js-minimap": "^5.4.0",
-    "lucide-react": "^1.27.0",
+    "lucide-react": "^1.28.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "three": "^0.168.0"
+    "three": "^0.185.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^6.0.4",
-    "vite": "^8.1.5"
+    "@vitejs/plugin-react": "^6.0.5",
+    "vite": "^8.2.0"
   }
 }
