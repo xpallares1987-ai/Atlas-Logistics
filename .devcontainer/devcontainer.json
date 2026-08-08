@@ -1,15 +1,11 @@
 {
   "name": "Node.js & TypeScript w/ PostgreSQL",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:22-bookworm",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
-    },
-    "ghcr.io/devcontainers/features/postgresql:1": {
-      "version": "latest",
-      "userName": "postgres",
-      "userPassword": "postgres",
-      "databaseName": "appdb"
     }
   },
 
@@ -18,12 +14,12 @@
   //       PostgreSQL que se ejecuta DENTRO de este Dev Container para desarrollo local.
   // =====================================================================================
   "containerEnv": {
-    "DATABASE_HOST": "localhost",
+    "DATABASE_HOST": "db",
     "DATABASE_PORT": "5432",
     "DATABASE_USER": "postgres",
     "DATABASE_PASSWORD": "postgres",
     "DATABASE_NAME": "appdb",
-    "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/appdb",
+    "DATABASE_URL": "******db:5432/appdb",
     "NODE_ENV": "development",
     "PORT": "3000"
   },
@@ -31,10 +27,6 @@
   // Forward the default PostgreSQL port so you can connect from your local machine.
   "forwardPorts": [ 5432 ],
 
-  // Mounts a folder of SQL scripts into the container to initialize the database.
-  "mounts": [
-    "source=${localWorkspaceFolder}/.devcontainer/init-scripts,target=/docker-entrypoint-initdb.d,type=bind,consistency=cached"
-  ],
 
   // Run 'npm install' automatically after the container is created.
   "postCreateCommand": "npm install",
