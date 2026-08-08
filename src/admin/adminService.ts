@@ -19,7 +19,7 @@ export async function createAdmin() {
     })
     .onConflictDoUpdate({
       target: schema.users.email,
-      set: { hashedPassword },
+      set: { hashedPassword, role: 'ADMIN' },
     });
   console.log('Admin user created/updated successfully!');
 }
