@@ -124,28 +124,6 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     }
   });
 
-  fastify.post("/hbl", async (request, reply) => {
-    try {
-      const data = request.body as HBLData;
-
-      if (!data || !data.shipmentId) {
-        return reply.code(400).send({ error: "Missing required HBL data" });
-      }
-
-      const pdfBuffer = await PDFService.generateHBL(data);
-
-      reply.header("Content-Type", "application/pdf");
-      reply.header(
-        "Content-Disposition",
-        `attachment; filename=HBL-${data.shipmentId}.pdf`,
-      );
-      return reply.send(pdfBuffer);
-    } catch (error: any) {
-      fastify.log.error("PDF Generation Error:", error);
-      reply.code(500).send({ error: "Failed to generate PDF" });
-    }
-  });
-
   fastify.post("/upload", {
     config: {
       rateLimit: {

@@ -1,15 +1,13 @@
-
 import { FastifyPluginAsync } from "fastify";
-import { db } from "../db/client.js";
-import { shipments, locations } from "../db/schema/core.js";
-import { invoices } from "../db/schema/finance.js";
+import { db } from "../db/index.js";
+import { shipments, locations, invoices } from "../db/schema/index.js";
 import { sql, eq, desc, and, gte, lte } from "drizzle-orm";
 
 const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/", async (request, reply) => {
     try {
-      const { start, end } = request.query as { start?: string, end?: string };
-      
+      const { start, end } = request.query as { start?: string; end?: string };
+
       const invoiceConditions = [eq(invoices.type, "AR")];
       const shipmentConditions = [];
       const activeShipmentConditions = [eq(shipments.status, "IN_TRANSIT")];
@@ -36,7 +34,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         .select({ total: sql<number>`SUM(${invoices.amount})` })
         .from(invoices)
         .where(and(...invoiceConditions));
-      
+
       const totalRevenue = revenueResult[0]?.total || 0;
 
       // Active Shipments Count
@@ -60,8 +58,21 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         .where(and(...invoiceConditions));
 
       const monthlyBuckets = new Map<string, number>();
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+
       for (const inv of allInvoices) {
         if (!inv.createdAt) continue;
         const d = new Date(inv.createdAt);
@@ -69,28 +80,37 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         monthlyBuckets.set(key, (monthlyBuckets.get(key) || 0) + inv.amount);
       }
 
-      const revenueChart = Array.from(monthlyBuckets.entries()).map(([name, value]) => ({
-        name,
-        value,
-      }));
+      const revenueChart = Array.from(monthlyBuckets.entries()).map(
+        ([name, value]) => ({
+          name,
+          value,
+        }),
+      );
       // If empty, supply some default zeros
       if (revenueChart.length === 0) {
-        revenueChart.push({ name: monthNames[new Date().getMonth()], value: 0 });
+        revenueChart.push({
+          name: monthNames[new Date().getMonth()],
+          value: 0,
+        });
       }
 
       // 3. VOLUME BY STATUS
       const volumeQuery = await db
         .select({
           status: shipments.status,
-          count: sql<number>`COUNT(*)`
+          count: sql<number>`COUNT(*)`,
         })
         .from(shipments)
-        .where(shipmentConditions.length > 0 ? and(...shipmentConditions) : undefined)
+        .where(
+          shipmentConditions.length > 0
+            ? and(...shipmentConditions)
+            : undefined,
+        )
         .groupBy(shipments.status);
-      
-      const volumeByStatus = volumeQuery.map(row => ({
-        status: row.status.replace(/_/g, ' '),
-        count: row.count
+
+      const volumeByStatus = volumeQuery.map((row) => ({
+        status: row.status.replace(/_/g, " "),
+        count: row.count,
       }));
 
       // 4. ACTIVE SHIPMENTS LIST
@@ -110,14 +130,20 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Join with locations to get names
       const locs = await db.select().from(locations);
-      const locMap = new Map(locs.map(l => [l.id, l]));
+      const locMap = new Map(locs.map((l) => [l.id, l]));
 
-      const enrichedActiveList = activeList.map(s => ({
+      const enrichedActiveList = activeList.map((s) => ({
         ...s,
         origin: locMap.get(s.originId)?.name || "Unknown",
         destination: locMap.get(s.destinationId)?.name || "Unknown",
-        originCoords: [locMap.get(s.originId)?.longitude || 0, locMap.get(s.originId)?.latitude || 0],
-        destinationCoords: [locMap.get(s.destinationId)?.longitude || 0, locMap.get(s.destinationId)?.latitude || 0],
+        originCoords: [
+          locMap.get(s.originId)?.longitude || 0,
+          locMap.get(s.originId)?.latitude || 0,
+        ],
+        destinationCoords: [
+          locMap.get(s.destinationId)?.longitude || 0,
+          locMap.get(s.destinationId)?.latitude || 0,
+        ],
       }));
 
       return {
@@ -127,12 +153,12 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             revenue: totalRevenue,
             activeShipments,
             completedShipments,
-            satisfaction: 98 // Mocked for now
+            satisfaction: 98, // Mocked for now
           },
           revenueChart,
           volumeByStatus,
-          activeList: enrichedActiveList
-        }
+          activeList: enrichedActiveList,
+        },
       };
     } catch (error: any) {
       request.log.error(error);
@@ -143,9 +169,9 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   // WebSocket Live Updates
   fastify.get("/live", { websocket: true }, (connection, req) => {
     req.log.info("Client connected to dashboard live stream");
-    
+
     let active = true;
-    
+
     // Simulate push events every 5 seconds
     const interval = setInterval(async () => {
       if (!active) return;
@@ -157,13 +183,15 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
           .where(eq(shipments.status, "IN_TRANSIT"));
         const activeShipments = activeShipmentsResult[0]?.count || 0;
 
-        connection.socket.send(JSON.stringify({
-          type: "STATS_UPDATE",
-          data: {
-            activeShipments,
-            timestamp: new Date().toISOString(),
-          }
-        }));
+        connection.socket.send(
+          JSON.stringify({
+            type: "STATS_UPDATE",
+            data: {
+              activeShipments,
+              timestamp: new Date().toISOString(),
+            },
+          }),
+        );
       } catch (err) {
         req.log.error("WebSocket broadcast error", err);
       }
@@ -178,5 +206,3 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 };
 
 export default dashboardRoutes;
-
-
