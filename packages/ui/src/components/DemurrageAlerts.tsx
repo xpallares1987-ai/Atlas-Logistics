@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   AlertTriangle,
   CheckCircle,
@@ -8,7 +8,8 @@ import {
   X,
   Send,
 } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Toast } from "./Toast";
 
 interface ContainerAlert {
   id: string;
@@ -26,6 +27,7 @@ interface ContainerAlert {
 }
 
 export function DemurrageAlerts() {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContainer, setSelectedContainer] =
     useState<ContainerAlert | null>(null);
@@ -43,7 +45,28 @@ export function DemurrageAlerts() {
       const res = await fetch(`/api/operations/demurrage`);
       return res.json();
     },
+    refetchInterval: 30000,
   });
+
+  const prevContainersRef = useRef<ContainerAlert[]>([]);
+
+  useEffect(() => {
+    if (containers.length > 0) {
+      const prevIds = new Set(prevContainersRef.current.map((c) => c.id));
+      const newCriticalAlerts = containers.filter(
+        (c) => !prevIds.has(c.id) && (c.freeTimeDays - c.dwellDays) <= 0
+      );
+
+      if (newCriticalAlerts.length > 0 && prevContainersRef.current.length > 0) {
+        Toast.show(
+          `${newCriticalAlerts.length} new critical D&D alert(s) detected.`,
+          "error"
+        );
+      }
+
+      prevContainersRef.current = containers;
+    }
+  }, [containers]);
 
   const mitigateMutation = useMutation({
     mutationFn: async (payload: {
@@ -60,11 +83,26 @@ export function DemurrageAlerts() {
       return res.json();
     },
     onSuccess: () => {
-      alert(
-        `Email enviado exitosamente a: ${emailTo}\nAsunto: ${emailSubject}`,
-      );
       setEmailModalOpen(false);
       setEmailSending(false);
+      Toast.show(`Email enviado exitosamente a: ${emailTo}`, "success");
+      // Refetch alerts
+      queryClient.invalidateQueries({ queryKey: ["demurrage"] });
+    },
+  });
+
+  const dismissMutation = useMutation({
+    mutationFn: async (containerId: string) => {
+      const res = await fetch(`/api/operations/demurrage/dismiss`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ containerId }),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      Toast.show(`Alerta descartada`, "success");
+      queryClient.invalidateQueries({ queryKey: ["demurrage"] });
     },
   });
 
@@ -276,7 +314,85 @@ Control Tower Global Logistics`;
                 </div>
               </div>
 
-              <div className="overflow-x-auto flex-1">
+              {/* Mobile View: Stacked Cards */}
+              <div className="flex flex-col gap-4 p-4 lg:hidden">
+                {filteredContainers.map((c) => {
+                  const remaining = c.freeTimeDays - c.dwellDays;
+                  const exposure = remaining < 0 ? Math.abs(remaining) * c.ratePerDay : 0;
+                  return (
+                    <div key={c.id} className="bg-slate-800/40 border border-white/5 rounded-2xl p-4 flex flex-col gap-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-slate-200 text-lg">{c.container}</p>
+                          <p className="text-sm text-slate-400">{c.carrier}</p>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          {remaining < 0 ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 text-red-400 font-bold border border-red-500/20 text-xs">
+                              Agotado ({Math.abs(remaining)}d)
+                            </span>
+                          ) : remaining === 0 ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20 text-xs">
+                              Vence Hoy
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20 text-xs">
+                              {remaining} d libres
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm mt-2">
+                        <div>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">Ruta (POD)</span>
+                          <span className="font-medium text-slate-300">{c.pod}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">Estancia</span>
+                          <span className="font-medium text-slate-300">{c.dwellDays} d</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">Tarifa/Día</span>
+                          <span className="font-medium text-slate-400 font-mono">${c.ratePerDay}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">Penalización</span>
+                          {exposure > 0 ? (
+                            <strong className="text-red-400 font-mono text-base">
+                              ${exposure.toLocaleString("es-ES")}
+                            </strong>
+                          ) : (
+                            <span className="flex items-center gap-1 text-emerald-500/80 text-xs font-bold uppercase tracking-wider">
+                              <CheckCircle size={14} /> Safe
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {exposure > 0 && (
+                        <div className="mt-2 pt-4 border-t border-white/5 flex justify-end gap-2">
+                          <button
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition-all"
+                            onClick={() => dismissMutation.mutate(c.id)}
+                          >
+                            <CheckCircle size={14} /> Dismiss
+                          </button>
+                          <button
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all"
+                            onClick={() => openEmailDraft(c)}
+                          >
+                            <Mail size={14} /> Exención
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop View: Table */}
+              <div className="hidden lg:block overflow-x-auto flex-1">
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-slate-950/80 text-xs uppercase text-slate-400 font-bold sticky top-0">
                     <tr>
@@ -344,12 +460,20 @@ Control Tower Global Logistics`;
                           </td>
                           <td className="px-6 py-4">
                             {exposure > 0 ? (
-                              <button
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all"
-                                onClick={() => openEmailDraft(c)}
-                              >
-                                <Mail size={14} /> Exención
-                              </button>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition-all"
+                                    onClick={() => dismissMutation.mutate(c.id)}
+                                  >
+                                    <CheckCircle size={14} /> Dismiss
+                                  </button>
+                                  <button
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all"
+                                    onClick={() => openEmailDraft(c)}
+                                  >
+                                    <Mail size={14} /> Exención
+                                  </button>
+                                </div>
                             ) : (
                               <button
                                 className="px-3 py-1.5 bg-slate-800 text-slate-500 text-xs font-bold rounded-lg cursor-not-allowed"

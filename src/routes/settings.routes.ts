@@ -37,7 +37,7 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const user = request.user;
+        const user = request.user as any;
         if (!user) {
           return reply.code(401).send({ error: "Unauthorized" });
         }
@@ -46,7 +46,7 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
         const fullName = `${data.firstName} ${data.lastName}`.trim();
 
         // Let's assume there is no `name` or `firstName` on the `users` table directly right now,
-        // because earlier I saw: `import { users } from "../db/schema";` where they only have email, role, companyId.
+        // because earlier I saw: `import { users } from "../db/schema/index.js";` where they only have email, role, companyId.
         // We could add `name` to the users table later if we want. For now, we return success.
         return { success: true, message: "Profile updated successfully" };
       } catch (error) {
@@ -69,7 +69,7 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const user = request.user;
+        const user = request.user as any;
         if (!user) {
           return reply.code(401).send({ error: "Unauthorized" });
         }
@@ -128,7 +128,7 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const user = request.user;
+        const user = request.user as any;
         if (!user) {
           return reply.code(401).send({ error: "Unauthorized" });
         }

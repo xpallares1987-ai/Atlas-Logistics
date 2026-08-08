@@ -13,25 +13,40 @@ export interface Rate {
 
 export const drizzleRateService = {
   async fetchRates(
-    _origin: string,
-    _destination: string,
+    origin: string,
+    destination: string,
     containerType: string,
   ): Promise<Rate[]> {
     try {
-      // The backend /api/rates endpoint queries the SQLite db via Drizzle
-      const response = await fetch("/api/rates");
+      const params = new URLSearchParams();
+      if (origin) params.append("origin", origin);
+      if (destination) params.append("destination", destination);
+      if (containerType) params.append("containerType", containerType);
+
+      const response = await fetch(`/api/rates?${params.toString()}`);
       if (!response.ok) {
         throw new Error("Failed to fetch rates from backend");
       }
-      const allRates: Rate[] = await response.json();
-
-      // We can filter the rates here based on the search criteria
-      // Currently the DB might not have origin/destination filtering on the GET /api/rates route,
-      // so we filter by container type on the client as a simple demonstration.
-      // In a real scenario, the endpoint should accept query parameters for lane filtering.
-      return allRates.filter((rate) => rate.containerType === containerType);
+      return await response.json();
     } catch (error) {
       console.error("Error fetching rates via Drizzle service:", error);
+      throw error;
+    }
+  },
+
+  async fetchAnalytics(origin: string, destination: string): Promise<any> {
+    try {
+      const params = new URLSearchParams();
+      if (origin) params.append("origin", origin);
+      if (destination) params.append("destination", destination);
+
+      const response = await fetch(`/api/rates/analytics?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch analytics from backend");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching analytics via Drizzle service:", error);
       throw error;
     }
   },
@@ -65,6 +80,42 @@ export const drizzleRateService = {
       return await response.json();
     } catch (error) {
       console.error("Error saving quote via Drizzle service:", error);
+      throw error;
+    }
+  },
+
+  async saveBooking(
+    bookingData: any,
+    customerId: string = "00000000-0000-0000-0000-000000000000",
+  ): Promise<any> {
+    try {
+      const payload = {
+        bookingReference: `BKG-${Date.now()}`,
+        customerId,
+        carrier: bookingData.carrierName || "Unknown",
+        origin: bookingData.pol,
+        destination: bookingData.pod,
+        equipment: bookingData.containerType || "40HC",
+        commodity: bookingData.commodity || "General Cargo",
+        weight: bookingData.weight || 0,
+        poNumber: bookingData.poNumber || "",
+        status: "DRAFT",
+        totalCost: bookingData.totalCost || 0,
+      };
+
+      // Depending on the backend this could be /api/bookings
+      const response = await fetch("/api/operations/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save booking to database");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error saving booking via Drizzle service:", error);
       throw error;
     }
   },

@@ -29,7 +29,9 @@ pnpm add lucide-react --filter @atlas/frontend
 - **Data Seeding**: Bulk insertions must be performed using local scripts connecting directly to `atlas.db` via the libSQL driver (`@libsql/client`).
 
 ### Backend and AI Functions Rules
-- Backend API logic is centralized locally in the Express Fastify application under `src/`.
+- Backend API logic is centralized locally in the Fastify application under `src/`.
+- Ensure new API routes are secured via JWT and RBAC (`@fastify/jwt` in `auth.routes.ts`) before merging.
+- Real-time updates should emit events to the WebSocket server (`ws://`) instead of long-polling.
 - For **heavy or asynchronous processes**, use **BullMQ (AtlasEngine Workers)** instead of keeping the HTTP request waiting.
 - For **Artificial Intelligence modules**, we centralize the logic in specialized services (like `geminiService.ts`). When creating new prompts, make sure to carefully document and sanitize inputs.
 - Native Python dependencies required by the AI should be provided using Gemini's `code_execution` tool, not by adding complex dependencies to the Node.js runtime.

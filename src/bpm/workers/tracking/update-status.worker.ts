@@ -1,6 +1,6 @@
 import { AtlasWorker, AtlasBpmnError } from '../../utils/worker-base.js';
 import { AIS_UNAVAILABLE } from '../../utils/error-codes.js';
-import { shipments } from '../../../db/schema.js';
+import { shipments } from '../../../db/schema/index.js';
 import { eq } from 'drizzle-orm';
 
 interface UpdateStatusInput {

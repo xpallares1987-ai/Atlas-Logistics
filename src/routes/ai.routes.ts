@@ -4,6 +4,7 @@ import { Queue } from 'bullmq';
 import { db } from '../db/index.js';
 import { pendingAiReviews } from '../db/schema/index.js';
 import { generateId } from 'lucia';
+import { eq } from 'drizzle-orm';
 
 import { redis } from '../config/redis.js';
 
@@ -42,7 +43,7 @@ export default async function aiRoutes(fastify: FastifyInstance) {
         setTimeout(async () => {
           await db.update(pendingAiReviews)
             .set({ status: 'COMPLETED', result: 'Simulated AI Response' })
-            .where((t) => t.id === reviewId);
+            .where(eq(pendingAiReviews.id, reviewId));
         }, 2000);
       }
 
@@ -55,7 +56,7 @@ export default async function aiRoutes(fastify: FastifyInstance) {
 
   fastify.get('/status/:reviewId', async (request, reply) => {
     const { reviewId } = request.params as { reviewId: string };
-    const [review] = await db.select().from(pendingAiReviews).where((table) => table.id === reviewId);
+    const [review] = await db.select().from(pendingAiReviews).where(eq(pendingAiReviews.id, reviewId));
     
     if (!review) {
       return reply.code(404).send({ error: 'Not found' });

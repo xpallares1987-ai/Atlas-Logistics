@@ -20,7 +20,12 @@ export default async function exceptionsRoutes(app: FastifyInstance) {
     const { id } = request.params;
     const { action, userId, note } = request.body;
 
-    const update: Record<string, string> = { status: action };
+    const update: {
+      status: string;
+      acknowledged_by?: string;
+      assigned_to?: string;
+      resolution_note?: string;
+    } = { status: action };
     if (action === "acknowledge") {
       update.acknowledged_by = userId || "system";
     } else if (action === "assign") {

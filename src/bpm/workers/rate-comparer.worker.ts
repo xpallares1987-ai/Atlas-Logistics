@@ -1,7 +1,7 @@
 import { registerWorker } from "../workflow-engine.service.js";
 import { AtlasWorker } from "../utils/worker-base.js";
 
-class RateComparerWorker implements AtlasWorker {
+class RateComparerWorker extends AtlasWorker<any, any> {
   taskType = "fetch-rates-task";
 
   async execute(job: any): Promise<any> {

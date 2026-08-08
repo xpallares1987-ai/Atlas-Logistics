@@ -1,6 +1,6 @@
 import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
 import { MISSING_DATA } from "../../utils/error-codes.js";
-import { shipments } from "../../../db/schema.js";
+import { shipments } from "../../../db/schema/index.js";
 
 interface ValidateBookingInput {
   shipperName: string;
@@ -78,7 +78,9 @@ class ValidateBookingWorker extends AtlasWorker<
     const [newShipment] = await this.db
       .insert(shipments)
       .values({
-        referenceNumber,
+        id: referenceNumber,
+        companyId: vars.companyId || "default-company",
+        trackingNumber: referenceNumber,
         status: "DRAFT",
       })
       .returning();

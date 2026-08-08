@@ -18,6 +18,18 @@ import {
 } from "lucide-react";
 import { useAppStore } from "../store/useAppStore";
 import { useTranslation } from "react-i18next";
+import {
+  Button,
+  Input,
+  Switch,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@atlas/ui";
 
 export default function SettingsModule() {
   const location = window.location;
@@ -84,10 +96,11 @@ export default function SettingsModule() {
           {/* Settings Sidebar */}
           <div className="w-full md:w-64 shrink-0 space-y-1">
             {tabs.map((tab) => (
-              <button
+              <Button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                variant="ghost"
+                className={`w-full justify-start gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors h-auto ${
                   activeTab === tab.id
                     ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
@@ -97,13 +110,16 @@ export default function SettingsModule() {
                   className={`w-5 h-5 ${activeTab === tab.id ? "text-indigo-600" : "text-slate-400"}`}
                 />
                 {tab.label}
-              </button>
+              </Button>
             ))}
             <div className="h-px bg-slate-200 dark:bg-slate-800 my-4"></div>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors h-auto"
+            >
               <LogOut className="w-5 h-5" />
               {t("settings.signOut")}
-            </button>
+            </Button>
           </div>
 
           {/* Settings Content Area */}
@@ -121,9 +137,10 @@ export default function SettingsModule() {
                     {t("settings.theme")}
                   </h3>
                   <div className="grid grid-cols-3 gap-4">
-                    <button
+                    <Button
                       onClick={() => setTheme("light")}
-                      className={`flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      variant="outline"
+                      className={`h-auto flex-col justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
                         theme === "light"
                           ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20"
                           : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
@@ -142,10 +159,11 @@ export default function SettingsModule() {
                       >
                         Light
                       </span>
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => setTheme("dark")}
-                      className={`flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      variant="outline"
+                      className={`h-auto flex-col justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
                         theme === "dark"
                           ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20"
                           : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
@@ -164,10 +182,11 @@ export default function SettingsModule() {
                       >
                         Dark
                       </span>
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => setTheme("system")}
-                      className={`flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      variant="outline"
+                      className={`h-auto flex-col justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
                         theme === "system"
                           ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20"
                           : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
@@ -186,7 +205,7 @@ export default function SettingsModule() {
                       >
                         System
                       </span>
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -195,12 +214,18 @@ export default function SettingsModule() {
                     {t("settings.density")}
                   </h3>
                   <div className="flex gap-4">
-                    <button className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <Button
+                      variant="outline"
+                      className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 h-auto"
+                    >
                       Comfortable
-                    </button>
-                    <button className="px-4 py-2 rounded-lg border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-sm font-medium text-indigo-700 dark:text-indigo-400">
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="px-4 py-2 rounded-lg border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-sm font-medium text-indigo-700 dark:text-indigo-400 h-auto"
+                    >
                       Compact
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -215,17 +240,18 @@ export default function SettingsModule() {
                       { code: "de", label: "Deutsch" },
                       { code: "fr", label: "Français" },
                     ].map((lang) => (
-                      <button
+                      <Button
                         key={lang.code}
                         onClick={() => handleLanguageChange(lang.code)}
-                        className={`px-4 py-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                        variant="outline"
+                        className={`px-4 py-3 h-auto rounded-lg border-2 text-sm font-medium transition-colors ${
                           language === lang.code
                             ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
                             : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
                         }`}
                       >
                         {lang.label}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -243,7 +269,7 @@ export default function SettingsModule() {
                       Manage your B2B integration tokens. Keep these secret.
                     </p>
                   </div>
-                  <button
+                  <Button
                     onClick={async () => {
                       try {
                         const backendUrl = import.meta.env.VITE_API_URL || "";
@@ -267,43 +293,38 @@ export default function SettingsModule() {
                         alert("Error generating API key");
                       }
                     }}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm text-sm"
+                    className="px-4 py-2 rounded-lg shadow-sm text-sm"
                   >
                     Generate New Token
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 dark:bg-slate-800/50">
-                      <tr>
-                        <th className="px-4 py-3 text-xs font-medium text-slate-500 dark:text-slate-400">
-                          NAME
-                        </th>
-                        <th className="px-4 py-3 text-xs font-medium text-slate-500 dark:text-slate-400">
-                          CREATED
-                        </th>
-                        <th className="px-4 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 text-right">
-                          ACTION
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      <tr>
-                        <td className="px-4 py-4 text-sm font-medium text-slate-800 dark:text-slate-200">
+                  <Table>
+                    <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
+                      <TableRow>
+                        <TableHead>NAME</TableHead>
+                        <TableHead>CREATED</TableHead>
+                        <TableHead className="text-right">ACTION</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-medium text-slate-800 dark:text-slate-200">
                           Production ERP Sync
-                        </td>
-                        <td className="px-4 py-4 text-sm text-slate-500">
-                          Oct 12, 2025
-                        </td>
-                        <td className="px-4 py-4 text-sm text-right">
-                          <button className="text-rose-500 hover:text-rose-600 font-medium">
+                        </TableCell>
+                        <TableCell>Oct 12, 2025</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            className="text-rose-500 hover:text-rose-600 font-medium h-auto p-0"
+                          >
                             Revoke
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
             )}
@@ -337,14 +358,7 @@ export default function SettingsModule() {
                             Receive an email when {label.toLowerCase()} occur.
                           </p>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            defaultChecked={idx !== 3}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
-                        </label>
+                        <Switch defaultChecked={idx !== 3} />
                       </div>
                     ))}
                   </div>
@@ -387,9 +401,12 @@ export default function SettingsModule() {
                           </p>
                         </div>
                       </div>
-                      <button className="text-sm text-rose-500 hover:text-rose-600 font-medium">
+                      <Button
+                        variant="ghost"
+                        className="text-sm text-rose-500 hover:text-rose-600 font-medium h-auto p-0"
+                      >
                         Revoke
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -521,27 +538,28 @@ function DatabaseManager() {
                     </span>
                   </div>
                   <div className="p-4">
-                    <table className="w-full text-left text-sm text-slate-500 dark:text-slate-400">
-                      <thead className="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-800 dark:text-slate-400">
-                        <tr>
-                          <th className="px-2 py-1">Column</th>
-                          <th className="px-2 py-1">Type</th>
-                          <th className="px-2 py-1">PK</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                    <Table>
+                      <TableHeader className="bg-slate-50 dark:bg-slate-800">
+                        <TableRow>
+                          <TableHead className="h-8 py-1">Column</TableHead>
+                          <TableHead className="h-8 py-1">Type</TableHead>
+                          <TableHead className="h-8 py-1">PK</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {columns.map((c: any) => (
-                          <tr
-                            key={c.name}
-                            className="border-b dark:border-slate-800 last:border-0"
-                          >
-                            <td className="px-2 py-1 font-medium">{c.name}</td>
-                            <td className="px-2 py-1">{c.type}</td>
-                            <td className="px-2 py-1">{c.pk ? "Yes" : ""}</td>
-                          </tr>
+                          <TableRow key={c.name}>
+                            <TableCell className="py-1 font-medium">
+                              {c.name}
+                            </TableCell>
+                            <TableCell className="py-1">{c.type}</TableCell>
+                            <TableCell className="py-1">
+                              {c.pk ? "Yes" : ""}
+                            </TableCell>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                 </div>
               ),
@@ -559,14 +577,13 @@ function DatabaseManager() {
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                   Table Name
                 </label>
-                <input
+                <Input
                   required
                   type="text"
                   value={newTable.name}
                   onChange={(e) =>
                     setNewTable({ ...newTable, name: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -574,40 +591,35 @@ function DatabaseManager() {
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                     Col 1 Name
                   </label>
-                  <input
+                  <Input
                     required
                     type="text"
                     value={newTable.column1Name}
                     onChange={(e) =>
                       setNewTable({ ...newTable, column1Name: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                     Col 1 Type
                   </label>
-                  <select
+                  <Select
                     value={newTable.column1Type}
                     onChange={(e) =>
                       setNewTable({ ...newTable, column1Type: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                   >
                     <option value="TEXT">TEXT</option>
                     <option value="INTEGER">INTEGER</option>
                     <option value="REAL">REAL</option>
                     <option value="BOOLEAN">BOOLEAN</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg"
-              >
+              <Button type="submit" className="px-4 py-2 rounded-lg">
                 Create Table
-              </button>
+              </Button>
             </form>
           </div>
 
@@ -620,13 +632,12 @@ function DatabaseManager() {
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                   Target Table
                 </label>
-                <select
+                <Select
                   required
                   value={newColumn.table}
                   onChange={(e) =>
                     setNewColumn({ ...newColumn, table: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 >
                   <option value="">Select a table...</option>
                   {Object.keys(schema || {}).map((t) => (
@@ -634,47 +645,42 @@ function DatabaseManager() {
                       {t}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                     Column Name
                   </label>
-                  <input
+                  <Input
                     required
                     type="text"
                     value={newColumn.name}
                     onChange={(e) =>
                       setNewColumn({ ...newColumn, name: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                     Type
                   </label>
-                  <select
+                  <Select
                     value={newColumn.type}
                     onChange={(e) =>
                       setNewColumn({ ...newColumn, type: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                   >
                     <option value="TEXT">TEXT</option>
                     <option value="INTEGER">INTEGER</option>
                     <option value="REAL">REAL</option>
                     <option value="BOOLEAN">BOOLEAN</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg"
-              >
+              <Button type="submit" className="px-4 py-2 rounded-lg">
                 Add Column
-              </button>
+              </Button>
             </form>
           </div>
         </div>
@@ -730,9 +736,12 @@ function ProfileSettings() {
           {user?.avatarInitials || "JD"}
         </div>
         <div>
-          <button className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition-colors">
+          <Button
+            variant="outline"
+            className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition-colors"
+          >
             Change Avatar
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -742,24 +751,22 @@ function ProfileSettings() {
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               First Name
             </label>
-            <input
+            <Input
               type="text"
               required
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Last Name
             </label>
-            <input
+            <Input
               type="text"
               required
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
         </div>
@@ -768,12 +775,7 @@ function ProfileSettings() {
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Email Address
           </label>
-          <input
-            type="email"
-            disabled
-            value={user?.email || ""}
-            className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-          />
+          <Input type="email" disabled value={user?.email || ""} />
           <p className="text-xs text-slate-500 mt-1">
             Email cannot be changed directly.
           </p>
@@ -783,26 +785,25 @@ function ProfileSettings() {
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Timezone
           </label>
-          <select
+          <Select
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
-            className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
           >
             <option>Pacific Time (PT) - US & Canada</option>
             <option>Eastern Time (ET) - US & Canada</option>
             <option>Central European Time (CET)</option>
             <option>China Standard Time (CST)</option>
-          </select>
+          </Select>
         </div>
 
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50"
+            className="px-5 py-2.5 rounded-lg shadow-sm"
           >
             {loading ? "Saving..." : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -856,24 +857,22 @@ function CompanySettings() {
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
               Company Name
             </label>
-            <input
+            <Input
               required
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
               Tax ID / VAT
             </label>
-            <input
+            <Input
               required
               type="text"
               value={taxId}
               onChange={(e) => setTaxId(e.target.value)}
-              className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
         </div>
@@ -882,21 +881,20 @@ function CompanySettings() {
         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
           Billing Address
         </label>
-        <input
+        <Input
           type="text"
           value={billingAddress}
           onChange={(e) => setBillingAddress(e.target.value)}
-          className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
         />
       </div>
       <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50"
+          className="px-5 py-2.5 rounded-lg shadow-sm"
         >
           {loading ? "Saving..." : "Save Changes"}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -958,13 +956,12 @@ function SecuritySettings() {
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
               Current Password
             </label>
-            <input
+            <Input
               required
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -972,37 +969,36 @@ function SecuritySettings() {
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                 New Password
               </label>
-              <input
+              <Input
                 required
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
               />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                 Confirm New Password
               </label>
-              <input
+              <Input
                 required
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
               />
             </div>
           </div>
         </div>
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium rounded-lg transition-colors text-sm disabled:opacity-50"
+          variant="secondary"
+          className="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium rounded-lg transition-colors text-sm"
         >
           {loading ? "Updating..." : "Change Password"}
-        </button>
+        </Button>
       </form>
       <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
         <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -1011,9 +1007,7 @@ function SecuritySettings() {
         <p className="text-sm text-slate-500 mb-4">
           Add an extra layer of security to your account.
         </p>
-        <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors text-sm">
-          Enable 2FA
-        </button>
+        <Button className="px-4 py-2 rounded-lg text-sm">Enable 2FA</Button>
       </div>
     </div>
   );

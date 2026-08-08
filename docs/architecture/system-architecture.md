@@ -9,7 +9,8 @@ Este documento establece las **convenciones de arquitectura oficial** para el de
 El proyecto utiliza un diseño de monorepo con `pnpm` workspaces y Turborepo para la orquestación:
 
 - `packages/frontend`: Aplicación principal (Host PWA) desarrollada en React + Vite + Tailwind.
-- `packages/dashboard`: Módulo de cuadro de mando logístico e interfaces operativas.
+- `packages/dashboard` & `packages/mfe-dashboard`: Módulo de cuadro de mando logístico e interfaces operativas (MFE).
+- `packages/mfe-warehouse`: Micro-Frontend federado de operaciones de almacén en 2.5D.
 - `packages/rate-comparer`: Motor visual y comparador dinámico de tarifas marítimas/aéreas.
 - `packages/ui`: Biblioteca compartida de componentes UI, hooks y temas.
 - `packages/shared`: Tipos TypeScript, esquemas de validación Zod y DTOs de dominio.

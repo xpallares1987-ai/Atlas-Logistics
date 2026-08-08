@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Ship, MapPin } from "lucide-react";
+import { Input, Button } from "@atlas/ui";
 
 export default function PublicTracking() {
   const { referenceNumber } = useParams();
@@ -63,21 +64,15 @@ export default function PublicTracking() {
             fetchTracking(searchRef);
           }}
         >
-          <div className="rounded-md shadow-sm flex">
-            <input
+          <div className="flex gap-2">
+            <Input
               type="text"
               required
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-l-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
               placeholder="Enter Reference Number (e.g. BKG-123456)"
               value={searchRef}
               onChange={(e) => setSearchRef(e.target.value)}
             />
-            <button
-              type="submit"
-              className="group relative w-32 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-r-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              {loading ? "Searching..." : "Track"}
-            </button>
+            <Button type="submit">{loading ? "Searching..." : "Track"}</Button>
           </div>
         </form>
 

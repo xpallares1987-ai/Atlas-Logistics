@@ -11,6 +11,7 @@ import {
   Percent,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { Switch, Checkbox } from "@atlas/ui";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { FreightRateMock } from "../data/mockRates";
@@ -36,6 +37,16 @@ export default function RfqGeneratorModal({
   );
   const [markupValue, setMarkupValue] = useState(15);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hideCarrier, setHideCarrier] = useState(false);
+  const [includedSurcharges, setIncludedSurcharges] = useState<Record<string, boolean>>(() => {
+    const initialState: Record<string, boolean> = {};
+    if (rate?.surcharges) {
+      rate.surcharges.forEach(s => {
+        initialState[s.name] = true;
+      });
+    }
+    return initialState;
+  });
 
   if (!rate) return null;
 
@@ -46,8 +57,25 @@ export default function RfqGeneratorModal({
     return Math.round(amount * exRate);
   };
 
+  const getBaseTotal = () => {
+    return convertAmount(rate.totalCost || rate.total, rate.currency);
+  };
+
+  const getBaseFreight = () => {
+    return convertAmount(rate.baseFreightCost || rate.baseRate || 0, rate.currency);
+  };
+
+  const getExcludedSurchargesTotal = () => {
+    return (rate.surcharges || [])
+      .filter(s => !includedSurcharges[s.name])
+      .reduce((sum, s) => sum + convertAmount(s.amount, rate.currency), 0);
+  };
+
+  const displayedBaseFreight = getBaseFreight() + getExcludedSurchargesTotal();
+  const displayedSurcharges = (rate.surcharges || []).filter(s => includedSurcharges[s.name]);
+
   const calculateTotalWithMarkup = () => {
-    const baseTotal = convertAmount(rate.total, rate.currency);
+    const baseTotal = getBaseTotal();
     if (markupType === "percentage") {
       return baseTotal * (1 + markupValue / 100);
     }
@@ -55,7 +83,7 @@ export default function RfqGeneratorModal({
   };
 
   const calculateMarkupAmount = () => {
-    const baseTotal = convertAmount(rate.total, rate.currency);
+    const baseTotal = getBaseTotal();
     if (markupType === "percentage") {
       return baseTotal * (markupValue / 100);
     }
@@ -68,7 +96,6 @@ export default function RfqGeneratorModal({
       const doc = new jsPDF();
       const finalTotal = calculateTotalWithMarkup();
       const markupAmount = calculateMarkupAmount();
-      const baseTotal = convertAmount(rate.total, rate.currency);
       const validUntilDate = new Date();
       validUntilDate.setDate(validUntilDate.getDate() + validityDays);
 
@@ -125,7 +152,7 @@ export default function RfqGeneratorModal({
           [
             rate.pol,
             rate.pod,
-            rate.carrier,
+            hideCarrier ? "Premium Carrier" : (rate.carrierName || rate.carrier),
             `${rate.transitTimeDays} days`,
             rate.isDirect ? "Direct" : "Transshipment",
           ],
@@ -144,9 +171,9 @@ export default function RfqGeneratorModal({
       const pricingBody = [
         [
           "Base Ocean Freight",
-          `${activeCurrency} ${convertAmount(rate.baseRate, rate.currency).toLocaleString()}`,
+          `${activeCurrency} ${displayedBaseFreight.toLocaleString()}`,
         ],
-        ...rate.surcharges.map((s) => [
+        ...displayedSurcharges.map((s) => [
           s.name,
           `+ ${activeCurrency} ${convertAmount(s.amount, rate.currency).toLocaleString()}`,
         ]),
@@ -199,6 +226,33 @@ export default function RfqGeneratorModal({
       doc.save(
         `RFQ_${companyName.replace(/\s+/g, "_") || "Quote"}_${rate.id.substring(0, 6)}.pdf`,
       );
+
+      // Save to backend
+      const quotePayload = {
+        quoteNumber: `RFQ-${rate.id.substring(0, 6)}`,
+        customerId: "00000000-0000-0000-0000-000000000001", // Placeholder or from context
+        equipment: rate.containerType || "40HC",
+        buyRateTotal: getBaseTotal(),
+        sellMargin: markupType === "percentage" ? markupValue : (markupValue / getBaseTotal()) * 100,
+        sellRateTotal: finalTotal,
+        status: "SENT",
+        validTo: validUntilDate.toISOString(),
+      };
+
+      try {
+        const response = await fetch("/api/quotes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(quotePayload),
+        });
+        if (!response.ok) {
+          console.error("Failed to save quote to backend");
+        }
+      } catch (err) {
+        console.error("Error saving quote", err);
+      }
+      
+      alert("Quote generated and saved successfully!");
     } finally {
       setIsGenerating(false);
       onClose();
@@ -286,6 +340,39 @@ export default function RfqGeneratorModal({
               </div>
 
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest border-b pb-2 pt-2">
+                Quote Customization
+              </h3>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-700">White-label Quote</h4>
+                    <p className="text-[10px] text-slate-500">Hide carrier name on PDF</p>
+                  </div>
+                  <Switch checked={hideCarrier} onChange={(e) => setHideCarrier(e.target.checked)} />
+                </div>
+
+                {rate.surcharges && rate.surcharges.length > 0 && (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
+                    <h4 className="text-xs font-bold text-slate-700">Include Surcharges as Line Items</h4>
+                    <p className="text-[10px] text-slate-500 mb-2">Excluded surcharges will be rolled into Base Ocean Freight.</p>
+                    {rate.surcharges.map((s) => (
+                      <div key={s.name} className="flex items-center gap-2">
+                        <Checkbox 
+                          id={`surcharge-${s.name}`}
+                          checked={includedSurcharges[s.name]} 
+                          onChange={(e) => setIncludedSurcharges(prev => ({...prev, [s.name]: e.target.checked}))}
+                        />
+                        <label htmlFor={`surcharge-${s.name}`} className="text-xs font-medium text-slate-700 cursor-pointer">
+                          {s.name} (+ {activeCurrency} {convertAmount(s.amount, rate.currency).toLocaleString()})
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest border-b pb-2 pt-2">
                 Pricing Strategy
               </h3>
 
@@ -339,7 +426,7 @@ export default function RfqGeneratorModal({
                     {rate.pol} → {rate.pod}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
-                    {rate.carrier} • {rate.transitTimeDays} days
+                    {hideCarrier ? "Premium Carrier" : (rate.carrierName || rate.carrier)} • {rate.transitTimeDays} days
                   </p>
                 </div>
 
@@ -349,15 +436,20 @@ export default function RfqGeneratorModal({
                   </p>
 
                   <div className="flex justify-between text-xs text-slate-600">
-                    <span>Base Freight & Surcharges</span>
+                    <span>Base Ocean Freight</span>
                     <span>
-                      {activeCurrency}{" "}
-                      {convertAmount(
-                        rate.total,
-                        rate.currency,
-                      ).toLocaleString()}
+                      {activeCurrency} {displayedBaseFreight.toLocaleString()}
                     </span>
                   </div>
+                  
+                  {displayedSurcharges.map(s => (
+                    <div key={s.name} className="flex justify-between text-xs text-slate-500">
+                      <span>{s.name}</span>
+                      <span>
+                        + {activeCurrency} {convertAmount(s.amount, rate.currency).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
 
                   <div className="flex justify-between text-xs font-semibold text-indigo-600">
                     <span>Forwarder Margin</span>

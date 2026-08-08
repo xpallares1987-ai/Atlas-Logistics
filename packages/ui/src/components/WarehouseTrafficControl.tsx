@@ -69,13 +69,21 @@ export function WarehouseTrafficControl() {
 
   useEffect(() => {
     const loadData = async () => {
-      let data = await db.warehouseTraffic.toArray();
-      if (data.length === 0) {
-        // Seed Dexie if empty for demo
-        await db.warehouseTraffic.bulkAdd(initialTraffic);
-        data = initialTraffic;
+      try {
+        const res = await fetch("/api/operations/warehouse/traffic");
+        if (!res.ok) throw new Error("Failed to load traffic");
+        const json = await res.json();
+        
+        let data = json.data;
+        if (!data || data.length === 0) {
+          // Fallback to mock data for presentation if DB is empty
+          data = initialTraffic;
+        }
+        setTraffic(data);
+      } catch (err) {
+        console.error("Failed to load traffic from backend, using mock data", err);
+        setTraffic(initialTraffic);
       }
-      setTraffic(data);
     };
     loadData();
   }, []);
@@ -103,20 +111,34 @@ export function WarehouseTrafficControl() {
     setTraffic(newTraffic);
 
     try {
-      // 1. Update local database
-      await db.warehouseTraffic.update(updatedVehicle.id, {
-        status: updatedVehicle.status,
-        assignedDock: updatedVehicle.assignedDock,
-        eta: updatedVehicle.eta,
+      const res = await fetch(`/api/operations/warehouse/traffic/${updatedVehicle.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: updatedVehicle.status,
+          assignedDock: updatedVehicle.assignedDock,
+          eta: updatedVehicle.eta
+        })
       });
-      // 2. Queue for backend sync
-      await syncManager.addToQueue(
-        "warehouseTraffic",
-        "UPDATE",
-        updatedVehicle,
-      );
+      
+      if (!res.ok) {
+        console.warn("Backend update failed, attempting offline sync...");
+        // Fallback to local queue if offline
+        await db.warehouseTraffic.update(updatedVehicle.id, {
+          status: updatedVehicle.status,
+          assignedDock: updatedVehicle.assignedDock,
+          eta: updatedVehicle.eta,
+        });
+        await syncManager.addToQueue(
+          "warehouseTraffic",
+          "UPDATE",
+          updatedVehicle,
+        );
+      }
     } catch (err) {
-      console.error("Failed to persist offline", err);
+      console.error("Failed to persist backend update", err);
+      // Fallback
+      await syncManager.addToQueue("warehouseTraffic", "UPDATE", updatedVehicle);
     }
   };
 
@@ -124,7 +146,7 @@ export function WarehouseTrafficControl() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
       {/* Incoming Traffic List */}
       <div className="lg:col-span-2 bg-slate-900/60 backdrop-blur-md border border-slate-700/50 rounded-3xl p-6 shadow-2xl flex flex-col">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
             <h3 className="text-xl font-black text-white">
               Live Traffic Board

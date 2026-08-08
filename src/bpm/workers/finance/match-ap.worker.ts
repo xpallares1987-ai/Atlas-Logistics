@@ -1,6 +1,6 @@
 import { AtlasWorker } from "../../utils/worker-base.js";
-import { db } from "../../../db/db.config.js";
-import { pendingAiReviews } from "../../../db/schema.js";
+import { db } from "../../../db/index.js";
+import { pendingAiReviews } from "../../../db/schema/index.js";
 import { eq, and } from "drizzle-orm";
 
 interface MatchAPInput {
@@ -43,7 +43,7 @@ class MatchAPWorker extends AtlasWorker<MatchAPInput, MatchAPOutput> {
 
     if (pendingReviews.length > 0) {
       const review = pendingReviews[0];
-      const parsedData = review.extractedData as any;
+      const parsedData = review.result ? JSON.parse(review.result) : null;
       if (parsedData && parsedData.totalAmount) {
         actualAmount = parsedData.totalAmount;
       }

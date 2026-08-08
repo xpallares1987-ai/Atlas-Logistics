@@ -1,9 +1,9 @@
 import { sql } from 'drizzle-orm';
-import { db } from './db.config.js';
+import { db } from './index.js';
 
 async function main() {
   try {
-    await db.execute(sql`
+    await db.run(sql`
       CREATE TABLE IF NOT EXISTS shipment_documents (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         shipment_id uuid NOT NULL REFERENCES shipments(id),

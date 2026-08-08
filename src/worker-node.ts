@@ -1,6 +1,6 @@
 import { loadSecrets } from "./config/secrets.js";
 import { logger } from "./config/logger.js";
-import { db } from "./db/db.config.js";
+import { db } from "./db/index.js";
 import { connectRedis, redis } from "./config/redis.js";
 import { startAiParserWorker } from "./pubsub-workers/ai-parser.worker.js";
 import { registerAllWorkers } from "./bpm/workers/index.js";

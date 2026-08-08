@@ -53,12 +53,19 @@ export const rateTiers = sqliteTable('rate_tiers', {
 
 export const quotes = sqliteTable('quotes', {
   id: text('id').primaryKey(),
-  companyId: text('company_id').notNull().references(() => companies.id),
-  laneId: text('lane_id').notNull().references(() => lanes.id),
-  totalAmount: real('total_amount').notNull(),
-  status: text('status').notNull(), // PENDING, ACCEPTED, REJECTED
+  quoteNumber: text('quote_number').notNull(),
+  customerId: text('customer_id').notNull().references(() => companies.id),
+  originLocationId: text('origin_location_id').references(() => locations.id),
+  destinationLocationId: text('destination_location_id').references(() => locations.id),
+  equipment: text('equipment').notNull(),
+  buyRateTotal: real('buy_rate_total').notNull(),
+  sellMargin: real('sell_margin').notNull(),
+  sellRateTotal: real('sell_rate_total').notNull(),
+  status: text('status').notNull().default('DRAFT'), // DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED
+  validTo: integer('valid_to', { mode: 'timestamp' }).notNull(),
   createdBy: text('created_by').references(() => users.id),
   ...commonAuditFields
 }, (table) => ({
-  amountCheck: check('quotes_amount_check', sql`${table.totalAmount} >= 0`),
+  sellAmountCheck: check('quotes_sell_amount_check', sql`${table.sellRateTotal} >= 0`),
+  buyAmountCheck: check('quotes_buy_amount_check', sql`${table.buyRateTotal} >= 0`),
 }));

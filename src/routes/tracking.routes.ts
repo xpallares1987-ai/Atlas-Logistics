@@ -136,6 +136,35 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
       reply.code(500).send({ error: error.message });
     }
   });
+
+  fastify.post("/my-shipments", async (request, reply) => {
+    try {
+      const data: any = request.body;
+      const shipmentId = crypto.randomUUID();
+
+      // Find first company to mock client auth
+      const companyIdRes = await db
+        .select({ companyId: shipments.companyId })
+        .from(shipments)
+        .limit(1);
+      
+      const clientCompanyId = companyIdRes.length > 0 ? companyIdRes[0].companyId : "00000000-0000-0000-0000-000000000000";
+
+      await db.insert(shipments).values({
+        id: shipmentId,
+        trackingNumber: `TRK-${shipmentId.substring(0, 8).toUpperCase()}`,
+        status: "PENDING",
+        companyId: clientCompanyId,
+        origin: data.origin,
+        destination: data.destination,
+        serviceType: data.type,
+      });
+
+      return reply.send({ success: true, shipmentId });
+    } catch (error: any) {
+      reply.code(500).send({ error: error.message });
+    }
+  });
 };
 
 export default trackingRoutes;

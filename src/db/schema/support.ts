@@ -27,14 +27,18 @@ export const notifications = sqliteTable("notifications", {
 
 export const warehouseInventory = sqliteTable("warehouse_inventory", {
   id: text("id").primaryKey(),
-  locationId: text("location_id")
-    .notNull()
-    .references(() => locations.id),
-  shipmentId: text("shipment_id").references(() => shipments.id),
+  locationId: text("location_id").notNull().references(() => locations.id),
+  ownership: text("ownership").notNull().default("INTERNAL"), // INTERNAL, EXTERNAL
+  customer: text("customer"),
+  buyer: text("buyer"),
+  productCode: text("product_code"),
   itemDescription: text("item_description").notNull(),
   quantity: integer("quantity").notNull(),
   weight: real("weight"),
   volume: real("volume"),
+  zone: text("zone").notNull().default("DRY"), // DRY, COLD, HAZMAT, CROSS_DOCK
+  metadata: text("metadata", { mode: "json" }),
+  status: text("status").notNull().default("IN_STOCK"), // IN_STOCK, RESERVED, DISPATCHED
   ...commonAuditFields,
 });
 
