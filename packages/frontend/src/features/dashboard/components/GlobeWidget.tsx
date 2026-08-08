@@ -61,9 +61,8 @@ function WireframeGlobe() {
 export function GlobeWidget() {
   const { data: shipments = [] } = useShipments();
   const activeCount = shipments.filter(s => s.status === 'IN_TRANSIT' || s.status === 'Departed').length;
-  // Make the UI look alive even if DB has few items by adding a baseline, or just use real length
-  const displayCount = activeCount > 0 ? activeCount : 342;
-  const portCalls = activeCount > 0 ? Math.floor(activeCount / 10) || 1 : 12;
+  const displayCount = activeCount;
+  const portCalls = Math.floor(activeCount / 10);
 
   return (
     <div className="rounded-3xl bg-slate-900/40 backdrop-blur-xl border border-white/10 overflow-hidden shadow-xl h-full flex flex-col relative group">
