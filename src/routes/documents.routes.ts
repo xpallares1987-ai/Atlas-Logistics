@@ -141,6 +141,13 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get("/download/:filename", async (request, reply) => {
     try {
       const { filename } = request.params as { filename: string };
+
+      // Allow only simple filenames (no path separators / traversal)
+      const filenamePattern = /^[A-Za-z0-9._-]+$/;
+      if (!filenamePattern.test(filename) || path.basename(filename) !== filename) {
+        return reply.code(400).send({ error: "Invalid filename" });
+      }
+
       const uploadsRoot = path.resolve(process.cwd(), "uploads");
       const filePath = path.resolve(uploadsRoot, filename);
 
