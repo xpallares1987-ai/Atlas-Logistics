@@ -1,5 +1,9 @@
 import { FastifyPluginAsync } from "fastify";
-import { PDFService, HBLData, BookingConfirmationData } from "../services/pdf.service.js";
+import {
+  PDFService,
+  HBLData,
+  BookingConfirmationData,
+} from "../services/pdf.service.js";
 import { db } from "../db/index.js";
 import { shipments, locations, documents } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
@@ -36,7 +40,14 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         vessel: "MSC Demo",
         voyage: "001A",
         containers: [],
-        commodities: [{ description: "General Cargo", pieces: 10, grossWeightKg: 5000, volumeCbm: 15 }],
+        commodities: [
+          {
+            description: "General Cargo",
+            pieces: 10,
+            grossWeightKg: 5000,
+            volumeCbm: 15,
+          },
+        ],
       };
 
       const pdfBuffer = await PDFService.generateHBL(data);
@@ -56,7 +67,7 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.post("/hbl", async (request, reply) => {
     try {
       const data = request.body as HBLData;
-      
+
       if (!data || !data.shipmentId) {
         return reply.code(400).send({ error: "Missing required HBL data" });
       }
@@ -78,7 +89,7 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.post("/booking-confirmation", async (request, reply) => {
     try {
       const data = request.body as BookingConfirmationData;
-      
+
       if (!data || !data.referenceNumber) {
         return reply.code(400).send({ error: "Missing required booking data" });
       }
@@ -101,11 +112,11 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     try {
       const query = request.query as { shipmentId?: string };
       let q = db.select().from(documents);
-      
+
       if (query.shipmentId) {
         q = q.where(eq(documents.shipmentId, query.shipmentId));
       }
-      
+
       const allDocs = await q.orderBy(documents.createdAt);
       return reply.send(allDocs);
     } catch (error: any) {
@@ -116,7 +127,7 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.post("/hbl", async (request, reply) => {
     try {
       const data = request.body as HBLData;
-      
+
       if (!data || !data.shipmentId) {
         return reply.code(400).send({ error: "Missing required HBL data" });
       }
@@ -147,25 +158,26 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         const body = request.body as any;
         // With attachFieldsToBody: true, files are available on request.body
         const fileData = body.file;
-        
+
         if (!fileData) {
           return reply.code(400).send({ error: "No file uploaded" });
         }
-        
+
         // Handle case where body.file could be an array of files (fastify-multipart behavior sometimes)
         const fileObj = Array.isArray(fileData) ? fileData[0] : fileData;
         const fileBuffer = await fileObj.toBuffer();
-        
+
         // Persist to local filesystem (Document Vault)
         const uploadDir = path.join(process.cwd(), "uploads");
         await fs.promises.mkdir(uploadDir, { recursive: true });
         const safeFilename = `${crypto.randomUUID()}-${fileObj.filename}`;
         const filePath = path.join(uploadDir, safeFilename);
         await fs.promises.writeFile(filePath, fileBuffer);
-        
+
         const fileUrl = `/api/documents/download/${safeFilename}`;
 
-        const shipmentId = body.shipmentId?.value || body.shipmentId || "sh_general";
+        const shipmentId =
+          body.shipmentId?.value || body.shipmentId || "sh_general";
         const docType = body.type?.value || body.type || "Commercial Invoice";
 
         if (shipmentId) {
@@ -185,36 +197,54 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
   });
 
-  fastify.get("/download/:filename", async (request, reply) => {
-    try {
-      const { filename } = request.params as { filename: string };
-      const uploadsRoot = path.resolve(process.cwd(), "uploads");
-      const filePath = path.resolve(uploadsRoot, filename);
+  fastify.get(
+    "/download/:filename",
+    {
+      config: {
+        rateLimit: {
+          max: 50,
+          timeWindow: "1 minute",
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { filename } = request.params as { filename: string };
+        if (
+          filename.includes("/") ||
+          filename.includes("\\") ||
+          filename.includes("..")
+        ) {
+          return reply.code(400).send({ error: "Invalid filename" });
+        }
 
-      if (filePath !== uploadsRoot && !filePath.startsWith(uploadsRoot + path.sep)) {
-        return reply.code(400).send({ error: "Invalid filename" });
-      }
-      
-      if (!fs.existsSync(filePath)) {
-        return reply.code(404).send({ error: "File not found" });
-      }
+        const uploadsRoot = path.resolve(process.cwd(), "uploads");
+        const filePath = path.join(uploadsRoot, filename);
 
-      const fileBuffer = await fs.promises.readFile(filePath);
-      reply.header("Content-Disposition", `inline; filename="${filename}"`);
-      // Infer content type roughly based on extension, defaulting to octet-stream
-      const ext = path.extname(filename).toLowerCase();
-      const mimeTypes: Record<string, string> = {
-        ".pdf": "application/pdf",
-        ".png": "image/png",
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-      };
-      reply.header("Content-Type", mimeTypes[ext] || "application/octet-stream");
-      return reply.send(fileBuffer);
-    } catch (error: any) {
-      reply.code(500).send({ error: error.message });
-    }
-  });
+        if (!fs.existsSync(filePath)) {
+          return reply.code(404).send({ error: "File not found" });
+        }
+
+        const fileBuffer = await fs.promises.readFile(filePath);
+        reply.header("Content-Disposition", `inline; filename="${filename}"`);
+        // Infer content type roughly based on extension, defaulting to octet-stream
+        const ext = path.extname(filename).toLowerCase();
+        const mimeTypes: Record<string, string> = {
+          ".pdf": "application/pdf",
+          ".png": "image/png",
+          ".jpg": "image/jpeg",
+          ".jpeg": "image/jpeg",
+        };
+        reply.header(
+          "Content-Type",
+          mimeTypes[ext] || "application/octet-stream",
+        );
+        return reply.send(fileBuffer);
+      } catch (error: any) {
+        reply.code(500).send({ error: error.message });
+      }
+    },
+  );
 };
 
 export default documentsRoutes;
