@@ -56,7 +56,7 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get("/", async (request, reply) => {
     try {
       const query = request.query as { shipmentId?: string };
-      let q = db.select().from(documents);
+      let q = db.select().from(documents).$dynamic();
       
       if (query.shipmentId) {
         q = q.where(eq(documents.shipmentId, query.shipmentId));
