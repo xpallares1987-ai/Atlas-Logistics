@@ -1,7 +1,7 @@
 import { AtlasWorker, AtlasBpmnError } from '../../utils/worker-base.js';
 import { NO_RATES_FOUND, CARRIER_TIMEOUT } from '../../utils/error-codes.js';
-import { db } from '../../../db/db.config.js';
-import { rates } from '../../../db/schema.js';
+import { db } from '../../../db/index.js';
+import { rates, lanes } from '../../../db/schema/index.js';
 import { and, eq, gte } from 'drizzle-orm';
 
 interface FetchRatesInput {
@@ -49,14 +49,15 @@ class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
 
     try {
       // Query local rates database
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date();
       const dbRates = await db
         .select()
         .from(rates)
+        .leftJoin(lanes, eq(rates.laneId, lanes.id))
         .where(
           and(
-            eq(rates.originLocationId, origin),
-            eq(rates.destinationLocationId, destination),
+            eq(lanes.originLocationId, origin),
+            eq(lanes.destinationLocationId, destination),
             gte(rates.validTo, today),
           ),
         );
@@ -72,21 +73,25 @@ class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
         };
       }
 
-      const carrierRates: CarrierRate[] = dbRates.map((r) => ({
-        id: r.id,
-        carrier: r.carrierId || 'UNKNOWN',
-        serviceLine: r.serviceLine,
-        origin: r.originLocationId || '',
-        destination: r.destinationLocationId || '',
-        transitTime: r.transitTime,
-        baseOceanFreight: r.baseOceanFreight,
-        baf: r.baf,
-        pss: r.pss,
-        thc: r.thc,
-        totalCost: r.baseOceanFreight + r.baf + r.pss + r.thc,
-        validTo: String(r.validTo),
-        currency: 'USD',
-      }));
+      const carrierRates: CarrierRate[] = dbRates.map((row: any) => {
+        const r = row.rates;
+        const l = row.lanes;
+        return {
+          id: r.id,
+          carrier: r.carrierId || 'UNKNOWN',
+          serviceLine: r.serviceLine,
+          origin: l?.originLocationId || origin,
+          destination: l?.destinationLocationId || destination,
+          transitTime: r.transitDays,
+          baseOceanFreight: r.baseRate,
+          baf: r.baf,
+          pss: r.pss,
+          thc: r.thc,
+          totalCost: r.baseRate + r.baf + r.pss + r.thc,
+          validTo: String(r.validTo),
+          currency: 'USD',
+        };
+      });
 
       return {
         rates: carrierRates,

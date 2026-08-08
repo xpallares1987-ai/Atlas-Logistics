@@ -69,3 +69,13 @@ export const auditLogs = sqliteTable('audit_logs', {
   newData: text('new_data'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().defaultNow()
 });
+
+export const workflows = sqliteTable('workflows', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  xmlData: text('xml_data').notNull(),
+  status: text('status').notNull().default('draft'),
+  ...commonAuditFields
+});
+

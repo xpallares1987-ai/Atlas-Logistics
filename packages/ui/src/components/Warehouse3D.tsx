@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 
@@ -117,56 +117,37 @@ const Rack = ({ position }: { position: [number, number, number] }) => {
 };
 
 export const Warehouse3D = () => {
-  // Generate some dummy pallets
-  const pallets = [
-    {
-      pos: [-1, -1.3, 0],
-      color: "#3b82f6",
-      sku: "SKU-A101",
-      weight: 450,
-      destination: "New York (JFK)",
-    },
-    {
-      pos: [1, -1.3, 0],
-      color: "#ef4444",
-      sku: "SKU-B202",
-      weight: 800,
-      destination: "Los Angeles (LAX)",
-    },
-    {
-      pos: [-1, 0.7, 0],
-      color: "#10b981",
-      sku: "SKU-C303",
-      weight: 120,
-      destination: "Miami (MIA)",
-    },
-    {
-      pos: [1, 2.7, 0],
-      color: "#8b5cf6",
-      sku: "SKU-D404",
-      weight: 950,
-      destination: "Chicago (ORD)",
-    },
+  const [pallets, setPallets] = useState<any[]>([]);
 
-    // Another rack pallets
-    {
-      pos: [-1, -1.3, 4],
-      color: "#f59e0b",
-      sku: "SKU-E505",
-      weight: 300,
-      destination: "Houston (IAH)",
-    },
-    {
-      pos: [1, 0.7, 4],
-      color: "#06b6d4",
-      sku: "SKU-F606",
-      weight: 600,
-      destination: "Seattle (SEA)",
-    },
-  ];
+  useEffect(() => {
+    fetch("/api/operations/warehouse/inventory")
+      .then((res) => res.json())
+      .then((json) => {
+        if (!json.success || !json.data) return;
+        
+        // Map backend data to 3D pallets, generating random positions for racks
+        const mappedPallets = json.data.map((item: any, i: number) => {
+          // simple logic to place pallets across 3 racks (z: -4, 0, 4), and random heights
+          const rackZ = [-4, 0, 4][i % 3];
+          const rackX = -2 + (i % 3) * 2; // -2, 0, 2
+          const rackY = 0.5 + Math.floor(i / 3) * 2; // stacking up
+          
+          return {
+            pos: [rackX, rackY, rackZ],
+            color: item.zone === "DRY" ? "#ef4444" : "#3b82f6",
+            sku: item.productCode || item.id,
+            weight: item.metadata?.grossWeight || item.quantity || 100,
+            destination: item.customer || "Unknown",
+          };
+        });
+        
+        setPallets(mappedPallets);
+      })
+      .catch(console.error);
+  }, []);
 
   return (
-    <div className="w-full h-full min-h-[600px] bg-slate-900 rounded-2xl overflow-hidden relative border border-slate-700/50 shadow-2xl">
+    <div className="w-full h-full min-h-[400px] md:min-h-[600px] bg-slate-900 rounded-2xl overflow-hidden relative border border-slate-700/50 shadow-2xl">
       <div className="absolute top-4 left-4 z-10 bg-slate-900/80 backdrop-blur text-white px-4 py-2 rounded-lg border border-slate-700 text-sm">
         <span className="font-bold text-indigo-400">Interactive 3D View</span>
         <p className="text-xs text-slate-300 mt-1">

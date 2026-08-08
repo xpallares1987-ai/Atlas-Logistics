@@ -1,36 +1,98 @@
 import { useState, useEffect } from 'react';
-import { LclConsolidationEngine, INITIAL_POOL } from '@atlas/ui/src/components/LclConsolidationEngine';
+import { LclConsolidationEngine, LclCargoItem, MasterContainer, INITIAL_POOL } from '@atlas/ui/src/components/LclConsolidationEngine';
 import { motion } from 'framer-motion';
 
 export default function LclConsolidationModule() {
-  const [cargoPool, setCargoPool] = useState(INITIAL_POOL);
-  const [masterContainers, _setMasterContainers] = useState([{ id: 'c-1', specId: '40ft', route: 'CNSHA -> ESBCN', assignedCargoIds: [] }]);
+  const [cargoPool, setCargoPool] = useState<LclCargoItem[]>(INITIAL_POOL);
+  const [masterContainers, setMasterContainers] = useState<MasterContainer[]>([
+    { id: 'c-1', specId: '40ft', route: 'CNSHA -> ESBCN', assignedCargoIds: [] }
+  ]);
   const [activeContainerId, setActiveContainerId] = useState('c-1');
-  const [selectedPoolIds, _setSelectedPoolIds] = useState<Set<string>>(new Set());
+  const [selectedPoolIds, setSelectedPoolIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    // Reemplazando Mocks estáticos por datos del backend SQLite real
-    fetch('/api/shipments')
+    fetch('/api/operations/lcl/cargo')
       .then(res => res.json())
       .then(data => {
         if (data && data.length > 0) {
-          // Adaptamos la data del API al formato que espera el UI
-          const adaptedCargo = data.map((s: any) => ({
-            id: s.id,
-            destination: s.destination,
-            volume: 5, // Asumimos volumetría base para demostración
-            weight: 2000,
-            description: 'General Cargo',
-            priority: 'Normal'
-          })).slice(0, 10);
-          
-          if(adaptedCargo.length > 0) {
-             setCargoPool(adaptedCargo);
-          }
+           setCargoPool(data);
         }
       })
       .catch(console.error);
   }, []);
+
+  const toggleSelection = (id: string) => {
+    setSelectedPoolIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const assignSelected = () => {
+    if (selectedPoolIds.size === 0) return;
+    
+    setMasterContainers(prev => prev.map(c => {
+      if (c.id === activeContainerId) {
+        const newAssigned = new Set([...c.assignedCargoIds, ...Array.from(selectedPoolIds)]);
+        return { ...c, assignedCargoIds: Array.from(newAssigned) };
+      }
+      return c;
+    }));
+    
+    setSelectedPoolIds(new Set());
+    
+    // Fire off async save to backend
+    fetch('/api/operations/lcl/consolidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        masterContainerId: activeContainerId,
+        assignedCargoIds: Array.from(selectedPoolIds)
+      })
+    }).catch(console.error);
+  };
+
+  const removeAssigned = (cargoId: string) => {
+    setMasterContainers(prev => prev.map(c => {
+      if (c.id === activeContainerId) {
+        return { ...c, assignedCargoIds: c.assignedCargoIds.filter(id => id !== cargoId) };
+      }
+      return c;
+    }));
+  };
+
+  const autoOptimize = (cargoIds: string[]) => {
+    if (cargoIds.length === 0) return;
+    
+    setMasterContainers(prev => prev.map(c => {
+      if (c.id === activeContainerId) {
+        const newAssigned = new Set([...c.assignedCargoIds, ...cargoIds]);
+        return { ...c, assignedCargoIds: Array.from(newAssigned) };
+      }
+      return c;
+    }));
+    
+    // Fire off async save to backend
+    fetch('/api/operations/lcl/consolidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        masterContainerId: activeContainerId,
+        assignedCargoIds: cargoIds
+      })
+    }).catch(console.error);
+  };
+
+  const createNewContainer = () => {
+    const newId = `c-${masterContainers.length + 1}`;
+    setMasterContainers(prev => [
+      ...prev,
+      { id: newId, specId: '20ft', route: 'New Route', assignedCargoIds: [] }
+    ]);
+    setActiveContainerId(newId);
+  };
 
   return (
     <motion.div 
@@ -44,11 +106,12 @@ export default function LclConsolidationModule() {
         masterContainers={masterContainers}
         activeContainerId={activeContainerId}
         selectedPoolIds={selectedPoolIds}
-        toggleSelection={() => {}}
-        assignSelected={() => {}}
-        removeAssigned={() => {}}
-        createNewContainer={() => {}}
+        toggleSelection={toggleSelection}
+        assignSelected={assignSelected}
+        removeAssigned={removeAssigned}
+        createNewContainer={createNewContainer}
         setActiveContainerId={setActiveContainerId}
+        autoOptimize={autoOptimize}
       />
     </motion.div>
   );

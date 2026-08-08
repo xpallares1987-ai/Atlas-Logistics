@@ -90,3 +90,8 @@ packages/shared/node_modules_prod/
 
 *storybook.log
 storybook-static
+
+# Databases
+*.db
+*.sqlite
+*.sqlite-journal

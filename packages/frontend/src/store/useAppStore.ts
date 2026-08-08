@@ -20,6 +20,15 @@ export interface Notification {
   read: boolean;
 }
 
+export interface QuoteItem {
+  id: string;
+  carrier: string;
+  origin: string;
+  destination: string;
+  rate: number;
+  currency: string;
+}
+
 interface AppState {
   // Session / User State
   user: User | null;
@@ -55,6 +64,15 @@ interface AppState {
   isCopilotOpen: boolean;
   toggleCopilot: () => void;
   setCopilotOpen: (isOpen: boolean) => void;
+
+  // Cart State
+  quoteCart: QuoteItem[];
+  addToCart: (item: QuoteItem) => void;
+  removeFromCart: (id: string) => void;
+  clearCart: () => void;
+  isCartOpen: boolean;
+  toggleCart: () => void;
+  setCartOpen: (isOpen: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -121,4 +139,21 @@ export const useAppStore = create<AppState>((set) => ({
   isCopilotOpen: false,
   toggleCopilot: () => set((state) => ({ isCopilotOpen: !state.isCopilotOpen })),
   setCopilotOpen: (isOpen) => set({ isCopilotOpen: isOpen }),
+
+  quoteCart: [],
+  addToCart: (item) => set((state) => {
+    if (!state.quoteCart.find(q => q.id === item.id)) {
+      return { quoteCart: [...state.quoteCart, item] };
+    }
+    return state;
+  }),
+  removeFromCart: (id) => set((state) => ({ quoteCart: state.quoteCart.filter(q => q.id !== id) })),
+  clearCart: () => set({ quoteCart: [] }),
+  isCartOpen: false,
+  toggleCart: () => set((state) => ({ 
+    isCartOpen: !state.isCartOpen,
+    isNotificationsOpen: false,
+    isSettingsMenuOpen: false
+  })),
+  setCartOpen: (isOpen) => set({ isCartOpen: isOpen }),
 }));

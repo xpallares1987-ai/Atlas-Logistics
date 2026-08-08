@@ -1,3 +1,14 @@
+# 1.1.0 (2026-08-08)
+
+### Features & Enterprise Upgrades
+* **Security**: Implemented JWT Authentication and Role-Based Access Control (RBAC).
+* **Real-Time**: Added WebSocket integration for instant system notifications.
+* **Architecture**: Extracted Warehouse Operations into a federated Micro-Frontend (MFE).
+* **Testing**: Bootstrapped Playwright for automated End-to-End (E2E) UI testing.
+* **UI/UX**: Upgraded all remaining modules (Document Vault, Customs Clearance, Warehouse Ops, Agent Settlements) to the premium Glassmorphism design system.
+* **Visuals**: Replaced 3D warehouse engine with a lightweight, high-performance 2.5D Isometric CSS grid.
+
+---
 # 1.0.0 (2026-08-01)
 
 

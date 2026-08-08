@@ -1,5 +1,5 @@
 import { AtlasWorker } from "../../utils/worker-base.js";
-import { invoices } from "../../../db/schema.js";
+import { invoices } from "../../../db/schema/index.js";
 
 interface GenerateInvoiceInput {
   shipmentId: string;
@@ -66,15 +66,15 @@ class GenerateARWorker extends AtlasWorker<
     const [newInvoice] = await this.db
       .insert(invoices)
       .values({
+        id: invoiceNumber,
         invoiceNumber,
         type: invoiceType,
-        partyId: customerId, // Using partyId from new schema
-        subtotal,
+        companyId: customerId || "default-company",
+        amount: totalAmount,
         taxAmount,
-        totalAmount, // amount changed to totalAmount
         currency,
-        status: "Pending",
-        dueDate: dueDateStr,
+        status: "ISSUED",
+        dueDate: dueDate,
         shipmentId,
       })
       .returning();

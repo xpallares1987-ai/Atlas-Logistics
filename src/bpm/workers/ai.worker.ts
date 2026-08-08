@@ -1,6 +1,13 @@
 import { logger } from "../../config/logger.js";
 import { AtlasWorker } from "../utils/worker-base.js";
-import { AIService } from "../../services/ai.service.js";
+import { processAiTask } from "../../services/geminiService.js";
+
+const AIService = {
+  parseDocument: async (fileBase64: string, mimeType: string, prompt: string, schema: any) => {
+    return processAiTask(`${prompt}\n\nSchema: ${JSON.stringify(schema)}`);
+  },
+  generateText: async (prompt: string) => processAiTask(prompt)
+};
 
 class AIWorker extends AtlasWorker<any, any> {
   readonly taskType: string;

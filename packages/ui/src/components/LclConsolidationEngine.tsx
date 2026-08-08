@@ -10,7 +10,9 @@ import {
   Trash2,
   Plus,
   Sparkles,
+  FileText,
 } from "lucide-react";
+import { Lcl3DVisualizer } from "./Lcl3DVisualizer";
 
 export interface PackedItem {
   id: string;
@@ -377,14 +379,7 @@ export function LclConsolidationEngine({
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "320px 1fr",
-          gap: "1.5rem",
-          alignItems: "start",
-        }}
-      >
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 items-start">
         {/* LEFT PANEL: Unassigned Pool */}
         <div
           className="card"
@@ -524,13 +519,19 @@ export function LclConsolidationEngine({
                   return;
                 setIsOptimizing(true);
                 try {
-                  // Mock AI Optimization
-                  await new Promise(resolve => setTimeout(resolve, 1500));
-                  
-                  // Return a subset of items to mock optimization
-                  const subset = unassignedPool.slice(0, Math.min(3, unassignedPool.length)).map(c => c.id);
-                  autoOptimize(subset);
-
+                  const res = await fetch("/api/operations/lcl/optimize", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      unassignedPool,
+                      containerSpec: activeSpec
+                    })
+                  });
+                  if (!res.ok) throw new Error("Optimization failed");
+                  const data = await res.json();
+                  if (data.recommendedCargoIds && data.recommendedCargoIds.length > 0) {
+                    autoOptimize(data.recommendedCargoIds);
+                  }
                 } catch (e) {
                   console.error(e);
                   // Fallback mock optimization
@@ -681,6 +682,56 @@ export function LclConsolidationEngine({
                 </div>
               </div>
 
+              {/* Action Buttons */}
+              <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+                <button
+                  className="btn btn-secondary"
+                  disabled={activeAssignedItems.length === 0}
+                  onClick={async () => {
+                    const payload = {
+                      specId: activeSpec.name,
+                      route: activeContainer.route,
+                      totalWeight: packingResult.totalWeight,
+                      cargoItems: activeAssignedItems.map(item => ({
+                        clientId: item.clientId,
+                        clientName: item.clientName,
+                        typeId: CARGO_TYPES[item.typeId].name,
+                        weight: CARGO_TYPES[item.typeId].weight
+                      }))
+                    };
+                    const res = await fetch(`/api/operations/lcl/manifest/${activeContainer.id}`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(payload)
+                    });
+                    if (res.ok) {
+                      const blob = await res.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `LCL_Manifest_${activeContainer.id}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                    }
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "8px",
+                    background: "var(--bg-secondary)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-primary)",
+                    cursor: activeAssignedItems.length === 0 ? "not-allowed" : "pointer",
+                    opacity: activeAssignedItems.length === 0 ? 0.5 : 1
+                  }}
+                >
+                  <FileText size={16} /> Generate Manifest
+                </button>
+              </div>
+
               {/* 3D Visualizer */}
               <div
                 style={{
@@ -693,9 +744,13 @@ export function LclConsolidationEngine({
                   position: "relative",
                 }}
               >
-                <div className="flex items-center justify-center h-full text-slate-500 font-bold uppercase tracking-widest">
-                  Visualización 3D Deshabilitada
-                </div>
+                {viewMode === "3d" ? (
+                  <Lcl3DVisualizer containerSpec={activeSpec} packedItems={packingResult.items} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-500 font-bold uppercase tracking-widest">
+                    Top-Down View Not Implemented
+                  </div>
+                )}
 
                 {packingResult.leftOut > 0 && (
                   <div
@@ -721,14 +776,7 @@ export function LclConsolidationEngine({
               </div>
 
               {/* KPIs */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: "1rem",
-                  marginTop: "1.5rem",
-                }}
-              >
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <div
                   style={{
                     padding: "1rem",

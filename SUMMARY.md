@@ -6,8 +6,8 @@
 
 **Estructura general**
 - **Monorepo** gestionado con Turborepo y pnpm workspaces.  
-- **Frontend**: Vite, React 18, TailwindCSS; paquetes principales @atlas/frontend, @atlas/ui, @atlas/dashboard.  
-- **Backend**: Node.js con Express; AtlasEngine Workers basados en BullMQ.
+- **Frontend**: Vite, React 19, TailwindCSS (Glassmorphism); paquetes principales @atlas/frontend, @atlas/ui, @atlas/dashboard, @atlas/warehouse-ops (MFE).  
+- **Backend**: Node.js con Fastify (Auth JWT + WebSockets); AtlasEngine Workers basados en BullMQ.
 - **Orquestación**: AtlasEngine con trabajos programados en BullMQ y UI embeddada.  
 - **Capa de datos**: SQLite local como fachada tipada sobre Drizzle ORM para un coste $0 garantizado.
 - **IA**: Integración para Text-to-SQL, predictETA, OCR y optimizadores.

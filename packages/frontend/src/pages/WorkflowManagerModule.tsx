@@ -1,160 +1,181 @@
-import {
-  Activity,
-  Settings,
-  CheckCircle2,
-  Circle,
-  Clock,
-  PlayCircle,
-} from "lucide-react";
-// Assuming the SDK provides these hooks
-// import { useGetWorkflowInstanceQuery, useStartWorkflowInstanceMutation } from "@dataconnect/generated/react";
+
+import { useEffect, useRef, useState } from "react";
+import BpmnModeler from "bpmn-js/lib/Modeler";
+import "bpmn-js/dist/assets/diagram-js.css";
+import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
+import { Settings, Save, FileText, CheckCircle } from "lucide-react";
+
+const INITIAL_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_1" name="Automation Task">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_1" />
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="EndEvent_1" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_1_di" bpmnElement="Task_1">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="392" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="392" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`;
 
 export default function WorkflowManagerModule() {
-  // Mocking data for now since we're setting up the UI structure.
-  // In a real implementation, you'd swap this with the Data Connect hooks.
-  const mockWorkflows = [
-    {
-      id: "1",
-      name: "Order-to-Cash",
-      status: "RUNNING",
-      context: { orderId: "ORD-001" },
-    },
-    {
-      id: "2",
-      name: "Customs-Clearance",
-      status: "COMPLETED",
-      context: { shipmentId: "SHP-099" },
-    },
-    {
-      id: "3",
-      name: "Predictive-ETA",
-      status: "PENDING",
-      context: { origin: "CNYIT", destination: "MXZLO" },
-    },
-  ];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const modelerRef = useRef<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [workflowName, setWorkflowName] = useState("New Automation Workflow");
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      modelerRef.current = new BpmnModeler({
+        container: containerRef.current,
+        keyboard: {
+          bindTo: window
+        }
+      });
+
+      modelerRef.current.importXML(INITIAL_XML).catch((err: any) => {
+        console.error("Failed to render BPMN diagram", err);
+      });
+
+      // Fit viewport to diagram
+      modelerRef.current.on("import.done", () => {
+        const canvas = modelerRef.current.get("canvas");
+        canvas.zoom("fit-viewport", "auto");
+      });
+    }
+
+    return () => {
+      if (modelerRef.current) {
+        modelerRef.current.destroy();
+      }
+    };
+  }, []);
+
+  const handleSave = async () => {
+    if (!modelerRef.current) return;
+    setIsSaving(true);
+    try {
+      const { xml } = await modelerRef.current.saveXML({ format: true });
+      
+      const res = await fetch("/api/bpmn/diagrams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: workflowName,
+          description: "Visual automation workflow",
+          xmlContent: xml
+        })
+      });
+
+      if (res.ok) {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        alert("Failed to save workflow");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error saving workflow.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
-    <div className="h-full flex flex-col gap-6 animate-fade-in">
+    <div className="flex flex-col h-full bg-slate-950 p-6 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm">
+      <div className="flex items-center justify-between mb-6 shrink-0">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-            <Settings className="text-indigo-600" size={32} />
-            Workflows Modeler
+          <h1 className="text-2xl font-black text-white flex items-center gap-3 tracking-widest">
+            <Settings className="text-indigo-500" />
+            WORKFLOWS MODELER
           </h1>
-          <p className="text-slate-500 mt-1 font-medium">
-            Manage and visualize automated processes via Firebase Data Connect.
-          </p>
+          <p className="text-slate-400 mt-1">Design and automate your logistics processes</p>
         </div>
-        <div className="flex gap-4">
-          <button className="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
-            Refresh
-          </button>
-          <button className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 hover:scale-105 transition-all">
-            + New Workflow
+        
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+            <FileText className="text-slate-400" size={16} />
+            <input 
+              type="text" 
+              value={workflowName}
+              onChange={(e) => setWorkflowName(e.target.value)}
+              className="bg-transparent text-white outline-none w-48 text-sm"
+              placeholder="Workflow Name"
+            />
+          </div>
+          <button 
+            onClick={handleSave}
+            disabled={isSaving}
+            className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all duration-300 shadow-xl ${
+              saveSuccess 
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-emerald-500/20" 
+                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20"
+            }`}
+          >
+            {saveSuccess ? (
+              <>
+                <CheckCircle size={18} />
+                Saved!
+              </>
+            ) : isSaving ? (
+              "Saving..."
+            ) : (
+              <>
+                <Save size={18} />
+                Deploy Workflow
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600">
-            <Activity size={24} />
-          </div>
-          <div>
-            <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">
-              Active
-            </p>
-            <p className="text-3xl font-black text-slate-800">12</p>
-          </div>
-        </div>
-        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600">
-            <CheckCircle2 size={24} />
-          </div>
-          <div>
-            <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">
-              Completed
-            </p>
-            <p className="text-3xl font-black text-slate-800">849</p>
-          </div>
-        </div>
-        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
-            <Clock size={24} />
-          </div>
-          <div>
-            <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">
-              Pending
-            </p>
-            <p className="text-3xl font-black text-slate-800">5</p>
-          </div>
-        </div>
+      {/* BPMN Canvas Container */}
+      <div className="flex-1 bg-white rounded-xl overflow-hidden shadow-2xl relative border-2 border-slate-800">
+        {/* We need to apply a tiny CSS fix since bpmn-js defaults to a white background, but the parent has dark theme */}
+        <div ref={containerRef} className="w-full h-full" style={{ background: "#ffffff" }} />
       </div>
 
-      {/* Main Table Area */}
-      <div className="flex-1 bg-white/70 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-slate-100 bg-white/50">
-          <h2 className="text-xl font-bold text-slate-800">
-            Recent Workflow Instances
-          </h2>
-        </div>
-        <div className="flex-1 overflow-auto p-6">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="text-slate-400 text-xs uppercase tracking-widest font-bold border-b border-slate-100">
-                <th className="pb-4 font-bold">Instance ID</th>
-                <th className="pb-4 font-bold">Definition Name</th>
-                <th className="pb-4 font-bold">Status</th>
-                <th className="pb-4 font-bold">Context / Variables</th>
-                <th className="pb-4 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockWorkflows.map((wf) => (
-                <tr
-                  key={wf.id}
-                  className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group"
-                >
-                  <td className="py-4 text-slate-800 font-mono text-sm">
-                    {wf.id.padStart(4, "0")}
-                  </td>
-                  <td className="py-4 font-semibold text-slate-800">
-                    {wf.name}
-                  </td>
-                  <td className="py-4">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                        wf.status === "RUNNING"
-                          ? "bg-indigo-100 text-indigo-700"
-                          : wf.status === "COMPLETED"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {wf.status === "RUNNING" && <PlayCircle size={14} />}
-                      {wf.status === "COMPLETED" && <CheckCircle2 size={14} />}
-                      {wf.status === "PENDING" && <Circle size={14} />}
-                      {wf.status}
-                    </span>
-                  </td>
-                  <td className="py-4">
-                    <div className="bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-mono text-slate-600 inline-block max-w-[200px] truncate">
-                      {JSON.stringify(wf.context)}
-                    </div>
-                  </td>
-                  <td className="py-4 text-right">
-                    <button className="text-indigo-600 font-bold text-sm hover:underline opacity-0 group-hover:opacity-100 transition-opacity">
-                      View Details
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <style>{`
+        /* Minimal overrides to make bpmn-js look a bit more integrated */
+        .bjs-powered-by {
+          display: none !important;
+        }
+        .djs-palette {
+          background: #f8fafc !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 8px !important;
+          box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+        }
+      `}</style>
     </div>
   );
 }
+
