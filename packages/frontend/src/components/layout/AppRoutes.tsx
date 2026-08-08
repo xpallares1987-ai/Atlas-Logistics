@@ -36,8 +36,9 @@ const DynamicPricingModule = React.lazy(
 const DocumentVaultModule = React.lazy(
   () => import("../../pages/DocumentVaultModule"),
 );
-// @ts-ignore
-const WarehouseOpsModule = React.lazy(() => import("warehouse/WarehouseOps").then(m => ({ default: m.default })));
+const WarehouseOpsModule = React.lazy(
+  () => import("../../pages/WarehouseOpsModule"),
+);
 const SailingSchedulesModule = React.lazy(
   () => import("../../pages/SailingSchedulesModule"),
 );

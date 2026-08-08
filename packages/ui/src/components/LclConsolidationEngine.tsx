@@ -524,12 +524,15 @@ export function LclConsolidationEngine({
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       unassignedPool,
-                      containerSpec: activeSpec
-                    })
+                      containerSpec: activeSpec,
+                    }),
                   });
                   if (!res.ok) throw new Error("Optimization failed");
                   const data = await res.json();
-                  if (data.recommendedCargoIds && data.recommendedCargoIds.length > 0) {
+                  if (
+                    data.recommendedCargoIds &&
+                    data.recommendedCargoIds.length > 0
+                  ) {
                     autoOptimize(data.recommendedCargoIds);
                   }
                 } catch (e) {
@@ -683,7 +686,9 @@ export function LclConsolidationEngine({
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+              <div
+                style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}
+              >
                 <button
                   className="btn btn-secondary"
                   disabled={activeAssignedItems.length === 0}
@@ -692,18 +697,21 @@ export function LclConsolidationEngine({
                       specId: activeSpec.name,
                       route: activeContainer.route,
                       totalWeight: packingResult.totalWeight,
-                      cargoItems: activeAssignedItems.map(item => ({
+                      cargoItems: activeAssignedItems.map((item) => ({
                         clientId: item.clientId,
                         clientName: item.clientName,
                         typeId: CARGO_TYPES[item.typeId].name,
-                        weight: CARGO_TYPES[item.typeId].weight
-                      }))
+                        weight: CARGO_TYPES[item.typeId].weight,
+                      })),
                     };
-                    const res = await fetch(`/api/operations/lcl/manifest/${activeContainer.id}`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(payload)
-                    });
+                    const res = await fetch(
+                      `/api/operations/lcl/manifest/${activeContainer.id}`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                      },
+                    );
                     if (res.ok) {
                       const blob = await res.blob();
                       const url = window.URL.createObjectURL(blob);
@@ -724,8 +732,11 @@ export function LclConsolidationEngine({
                     background: "var(--bg-secondary)",
                     border: "1px solid var(--border)",
                     color: "var(--text-primary)",
-                    cursor: activeAssignedItems.length === 0 ? "not-allowed" : "pointer",
-                    opacity: activeAssignedItems.length === 0 ? 0.5 : 1
+                    cursor:
+                      activeAssignedItems.length === 0
+                        ? "not-allowed"
+                        : "pointer",
+                    opacity: activeAssignedItems.length === 0 ? 0.5 : 1,
                   }}
                 >
                   <FileText size={16} /> Generate Manifest
@@ -745,7 +756,10 @@ export function LclConsolidationEngine({
                 }}
               >
                 {viewMode === "3d" ? (
-                  <Lcl3DVisualizer containerSpec={activeSpec} packedItems={packingResult.items} />
+                  <Lcl3DVisualizer
+                    containerSpec={activeSpec}
+                    packedItems={packingResult.items}
+                  />
                 ) : (
                   <div className="flex items-center justify-center h-full text-slate-500 font-bold uppercase tracking-widest">
                     Top-Down View Not Implemented

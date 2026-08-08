@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { motion, Variants } from "framer-motion";
 import { ReportsDashboard } from "../features/invoicing/ReportsDashboard";
-import { CreateInvoiceModal } from "../features/invoicing/components/CreateInvoiceModal";
 import {
   Button,
   Input,
@@ -39,6 +38,8 @@ interface Invoice {
   shipmentId?: string;
   partyId: string;
 }
+
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -66,7 +67,6 @@ export default function InvoicingModule() {
   >("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -76,16 +76,10 @@ export default function InvoicingModule() {
   );
   const invoices = Array.isArray(invoicesData) ? invoicesData : [];
 
-  const { data: selectedInvoiceDetails } = useApiQuery<any>(
-    ["invoice", selectedInvoice?.id || "none"],
-    `/invoices/${selectedInvoice?.id}`,
-    { enabled: !!selectedInvoice }
-  );
-
   const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {
       const matchesSearch =
-        (inv.invoiceNumber || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        inv.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (inv.party &&
           inv.party.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesFilter =
@@ -157,7 +151,7 @@ export default function InvoicingModule() {
 
   const downloadPdf = async (invoice: Invoice) => {
     try {
-      window.open(`/api/invoices/${invoice.id}/pdf`, "_blank");
+      window.open(`${API_URL}/invoices/${invoice.id}/pdf`, "_blank");
     } catch (err) {
       console.error("Error generating PDF:", err);
       alert("Error generating PDF. Please try again.");
@@ -166,13 +160,12 @@ export default function InvoicingModule() {
 
   const markAsPaid = async (inv: Invoice) => {
     try {
-      await fetch(`/api/invoices/${inv.id}/status`, {
+      await fetch(`${API_URL}/invoices/${inv.id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "Paid" }),
       });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["agent-settlements"] });
       // Optimitically update local selection
       setSelectedInvoice({ ...inv, status: "Paid" });
     } catch (err) {
@@ -216,7 +209,7 @@ export default function InvoicingModule() {
                 Reports
               </Button>
             </div>
-            <Button onClick={() => setIsCreateModalOpen(true)} className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 border border-white/10 transition-all hover:scale-105 active:scale-95">
+            <Button className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 border border-white/10 transition-all hover:scale-105 active:scale-95">
               <Plus className="w-5 h-5 mr-2" /> New Invoice
             </Button>
           </div>
@@ -563,36 +556,56 @@ export default function InvoicingModule() {
                         </TableRow>
                       </TableHeader>
                       <TableBody className="divide-y divide-slate-200">
-                        {selectedInvoiceDetails?.lines && selectedInvoiceDetails.lines.length > 0 ? (
-                          selectedInvoiceDetails.lines.map((item: any, index: number) => (
-                            <TableRow key={index} className="border-0">
-                              <TableCell className="py-4">
-                                <p className="font-bold text-slate-900">{item.description}</p>
-                              </TableCell>
-                              <TableCell className="text-center py-4 text-slate-700">
-                                {item.quantity}
-                              </TableCell>
-                              <TableCell className="text-right py-4 text-slate-700">
-                                {new Intl.NumberFormat("en-US", {
-                                  style: "currency",
-                                  currency: selectedInvoice.currency,
-                                }).format(item.unitPrice)}
-                              </TableCell>
-                              <TableCell className="text-right py-4 font-bold text-slate-900">
-                                {new Intl.NumberFormat("en-US", {
-                                  style: "currency",
-                                  currency: selectedInvoice.currency,
-                                }).format(item.total)}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow className="border-0">
-                            <TableCell colSpan={4} className="py-8 text-center text-slate-500">
-                              No line items found.
-                            </TableCell>
-                          </TableRow>
-                        )}
+                        <TableRow className="border-0">
+                          <TableCell className="py-4">
+                            <p className="font-bold text-slate-900">
+                              Freight Charges
+                            </p>
+                            <p className="text-sm text-slate-500">
+                              Ocean freight logistics
+                            </p>
+                          </TableCell>
+                          <TableCell className="text-center py-4 text-slate-700">
+                            1
+                          </TableCell>
+                          <TableCell className="text-right py-4 text-slate-700">
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: selectedInvoice.currency,
+                            }).format(selectedInvoice.amount * 0.9)}
+                          </TableCell>
+                          <TableCell className="text-right py-4 font-bold text-slate-900">
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: selectedInvoice.currency,
+                            }).format(selectedInvoice.amount * 0.9)}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow className="border-0">
+                          <TableCell className="py-4">
+                            <p className="font-bold text-slate-900">
+                              Port Handling
+                            </p>
+                            <p className="text-sm text-slate-500">
+                              Terminal handling charges (THC)
+                            </p>
+                          </TableCell>
+                          <TableCell className="text-center py-4 text-slate-700">
+                            1
+                          </TableCell>
+                          <TableCell className="text-right py-4 text-slate-700">
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: selectedInvoice.currency,
+                            }).format(selectedInvoice.amount * 0.1)}
+                          </TableCell>
+                          <TableCell className="text-right py-4 font-bold text-slate-900">
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: selectedInvoice.currency,
+                            }).format(selectedInvoice.amount * 0.1)}
+                          </TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
 
@@ -646,11 +659,6 @@ export default function InvoicingModule() {
           </div>
         </div>
       )}
-      
-      <CreateInvoiceModal 
-        isOpen={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)} 
-      />
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;

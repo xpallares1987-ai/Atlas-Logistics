@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { motion, Variants } from "framer-motion";
 import { Button, Input } from "@atlas/ui";
-import { SettlementDetailsDrawer } from "../features/invoicing/components/SettlementDetailsDrawer";
 
 interface AgentSettlement {
   id: string;
@@ -26,6 +25,8 @@ interface AgentSettlement {
   currency: string;
   status: "Pending" | "Paid" | "Draft" | "Approved";
 }
+
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -47,7 +48,6 @@ const itemVariants: Variants = {
 export default function AgentSettlementsModule() {
   const [activeTab, setActiveTab] = useState<"All" | "Pending" | "Paid">("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSettlement, setSelectedSettlement] = useState<AgentSettlement | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -101,7 +101,7 @@ export default function AgentSettlementsModule() {
 
   const generateSettlement = async () => {
     try {
-      await fetch(`/api/agent-settlements`, {
+      await fetch(`${API_URL}/agent-settlements`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -212,12 +212,6 @@ export default function AgentSettlementsModule() {
         </motion.div>
       </div>
 
-      <SettlementDetailsDrawer 
-        isOpen={!!selectedSettlement} 
-        onClose={() => setSelectedSettlement(null)} 
-        settlement={selectedSettlement} 
-      />
-
       {/* Main List */}
       <div className="flex-1 flex flex-col min-h-0 z-10 px-4 md:px-8 pb-8">
         <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-xl flex flex-col h-full">
@@ -274,8 +268,7 @@ export default function AgentSettlementsModule() {
                   <motion.div
                     key={settlement.id}
                     variants={itemVariants}
-                    onClick={() => setSelectedSettlement(settlement)}
-                    className="bg-white/5 hover:bg-white/10 border border-white/10 p-5 rounded-2xl transition-all group flex flex-col justify-between h-48 cursor-pointer"
+                    className="bg-white/5 hover:bg-white/10 border border-white/10 p-5 rounded-2xl transition-all group flex flex-col justify-between h-48"
                   >
                     <div>
                       <div className="flex justify-between items-start mb-3">
@@ -324,10 +317,6 @@ export default function AgentSettlementsModule() {
                       <Button
                         variant="ghost"
                         className="w-8 h-8 rounded-full bg-white/5 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 border border-transparent hover:border-indigo-500/30 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(`/api/agent-settlements/${settlement.id}/pdf`, '_blank');
-                        }}
                       >
                         <Download className="w-4 h-4" />
                       </Button>

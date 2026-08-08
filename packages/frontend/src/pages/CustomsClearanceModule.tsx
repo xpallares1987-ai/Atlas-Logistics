@@ -146,7 +146,7 @@ export default function CustomsClearanceModule() {
 
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL || ""}/api/documents/upload`,
+          `${import.meta.env.VITE_API_URL || ""}/documents/upload`,
           {
             method: "POST",
             body: formData,
@@ -158,22 +158,8 @@ export default function CustomsClearanceModule() {
       }
     }
 
-    // Trigger AI Risk Analysis after upload
-    try {
-      const analyzeRes = await fetch(
-        `${import.meta.env.VITE_API_URL || ""}/api/customs-declarations/${selectedDecl.id}/analyze`,
-        { method: "POST" }
-      );
-      if (!analyzeRes.ok) throw new Error("Analysis failed");
-    } catch (err) {
-      console.error("Failed to run AI risk analysis:", err);
-    }
-
     await queryClient.invalidateQueries({
       queryKey: ["documents", selectedDecl.shipmentId],
-    });
-    await queryClient.invalidateQueries({
-      queryKey: ["customs"],
     });
     setIsUploading(false);
   };
@@ -388,63 +374,50 @@ export default function CustomsClearanceModule() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => {
-                        window.open(
-                          `${import.meta.env.VITE_API_URL || ""}/api/customs-declarations/${selectedDecl.id}/pdf`,
-                          "_blank"
-                        );
-                      }}
-                      className="flex items-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all active:scale-95"
-                    >
-                      <FileText className="w-4 h-4" /> Generate Customs Form
-                    </button>
-                    {/* AI Circular Progress (Likelihood of Clearance) */}
-                    <div className="flex items-center gap-4 bg-slate-950/50 p-3 rounded-2xl border border-white/5 shadow-inner">
-                      <div className="relative w-16 h-16 flex items-center justify-center">
-                        {/* SVG Circle for Progress */}
-                        <svg
-                          className="w-full h-full transform -rotate-90"
-                          viewBox="0 0 100 100"
-                        >
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="40"
-                            stroke="currentColor"
-                            strokeWidth="8"
-                            fill="transparent"
-                            className="text-slate-800"
-                          />
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="40"
-                            stroke="currentColor"
-                            strokeWidth="8"
-                            fill="transparent"
-                            strokeDasharray="251.2"
-                            strokeDashoffset={
-                              251.2 -
-                              (251.2 * (100 - (selectedDecl.aiRiskScore || 10))) /
-                                100
-                            }
-                            className={`${(selectedDecl.aiRiskScore || 10) > 60 ? "text-rose-500" : (selectedDecl.aiRiskScore || 10) > 30 ? "text-amber-500" : "text-emerald-500"} transition-all duration-1000 ease-out`}
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center flex-col">
-                          <span className="text-sm font-black text-white">
-                            {100 - (selectedDecl.aiRiskScore || 10)}%
-                          </span>
-                        </div>
+                  {/* AI Circular Progress (Likelihood of Clearance) */}
+                  <div className="flex items-center gap-4 bg-slate-950/50 p-3 rounded-2xl border border-white/5 shadow-inner">
+                    <div className="relative w-16 h-16 flex items-center justify-center">
+                      {/* SVG Circle for Progress */}
+                      <svg
+                        className="w-full h-full transform -rotate-90"
+                        viewBox="0 0 100 100"
+                      >
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          fill="transparent"
+                          className="text-slate-800"
+                        />
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          fill="transparent"
+                          strokeDasharray="251.2"
+                          strokeDashoffset={
+                            251.2 -
+                            (251.2 * (100 - (selectedDecl.aiRiskScore || 10))) /
+                              100
+                          }
+                          className={`${(selectedDecl.aiRiskScore || 10) > 60 ? "text-rose-500" : (selectedDecl.aiRiskScore || 10) > 30 ? "text-amber-500" : "text-emerald-500"} transition-all duration-1000 ease-out`}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center flex-col">
+                        <span className="text-sm font-black text-white">
+                          {100 - (selectedDecl.aiRiskScore || 10)}%
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                          Clearance
-                        </p>
-                        <p className="text-sm text-slate-300">Likelihood</p>
-                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                        Clearance
+                      </p>
+                      <p className="text-sm text-slate-300">Likelihood</p>
                     </div>
                   </div>
                 </div>

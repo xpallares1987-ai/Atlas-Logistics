@@ -8,8 +8,6 @@ import React, { useState } from "react";
 import { useAppStore } from "./shared/store";
 import RateTable from "./components/RateTable";
 import LocationAutocomplete from "./components/LocationAutocomplete";
-import AdvancedFiltersDrawer from "./components/AdvancedFiltersDrawer";
-import RouteAnalyticsChart from "./components/RouteAnalyticsChart";
 import {
   Search,
   Ship,
@@ -25,7 +23,75 @@ import {
 } from "lucide-react";
 import { useAuth } from "./components";
 
+const CarrierSelect = ({
+  available,
+  selected,
+  onChange,
+}: {
+  available: string[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
 
+  return (
+    <div className="relative w-full md:w-auto">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="bg-slate-900/80 hover:bg-slate-800 text-sm text-slate-200 w-full min-w-[220px] px-4 py-2.5 rounded-xl border border-slate-700/60 flex justify-between items-center transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] focus:ring-2 focus:ring-indigo-500/50"
+      >
+        <span className="truncate font-medium">
+          {selected.length === 0
+            ? "All Carriers"
+            : selected.length === 1
+              ? selected[0]
+              : `${selected.length} Carriers Selected`}
+        </span>
+        <ChevronDown className="w-4 h-4 text-slate-400" />
+      </button>
+
+      {isOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute top-full left-0 mt-2 w-full min-w-[220px] bg-slate-800 border border-slate-600 rounded-xl shadow-2xl z-50 py-2 max-h-60 overflow-y-auto">
+            {available.map((c) => (
+              <label
+                key={c}
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-700/50 cursor-pointer transition-colors group"
+              >
+                <div
+                  className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${
+                    selected.includes(c)
+                      ? "bg-indigo-500 border-indigo-500"
+                      : "border-slate-500 bg-slate-900/50 group-hover:border-slate-400"
+                  }`}
+                >
+                  {selected.includes(c) && (
+                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                  )}
+                </div>
+                <span className="text-sm font-medium text-slate-200">{c}</span>
+                {/* visually hidden input for accessibility / standard HTML interaction */}
+                <input 
+                   type="checkbox"
+                   className="sr-only"
+                   checked={selected.includes(c)}
+                   onChange={(e) => {
+                     if (e.target.checked) onChange([...selected, c]);
+                     else onChange(selected.filter(x => x !== c));
+                   }}
+                />
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 export default function RatesContent() {
   const { currency, setCurrency } = useAppStore();
@@ -46,29 +112,20 @@ export default function RatesContent() {
   const [error, setError] = useState<any>(null);
 
   // Filter State
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedCarriers, setSelectedCarriers] = useState<string[]>([]);
   const [maxTransitTime, setMaxTransitTime] = useState<number | null>(null);
-  const [maxCO2, setMaxCO2] = useState<number | null>(null);
-  const [requireDirect, setRequireDirect] = useState<boolean>(false);
-  const [maxPrice, setMaxPrice] = useState<number | null>(null);
 
   // Derived filter logic
   const availableCarriers = Array.from(new Set(quotes.map((q) => q.carrier)));
-  const maxAvailableTransit = quotes.length > 0 ? Math.max(...quotes.map((q) => q.transit)) : 60;
-  const maxAvailableCO2 = quotes.length > 0 ? Math.max(...quotes.map((q) => q.co2Emissions)) : 5000;
-  const maxAvailablePrice = quotes.length > 0 ? Math.max(...quotes.map((q) => q.rate)) : 10000;
-
-  const currentMaxTransit = maxTransitTime !== null ? maxTransitTime : maxAvailableTransit;
-  const currentMaxCO2 = maxCO2 !== null ? maxCO2 : maxAvailableCO2;
-  const currentMaxPrice = maxPrice !== null ? maxPrice : maxAvailablePrice;
+  const maxAvailableTransit =
+    quotes.length > 0 ? Math.max(...quotes.map((q) => q.transit)) : 60;
+  const currentMaxTransit =
+    maxTransitTime !== null ? maxTransitTime : maxAvailableTransit;
 
   const filteredQuotes = quotes.filter((q) => {
-    if (selectedCarriers.length > 0 && !selectedCarriers.includes(q.carrier)) return false;
+    if (selectedCarriers.length > 0 && !selectedCarriers.includes(q.carrier))
+      return false;
     if (q.transit > currentMaxTransit) return false;
-    if (q.co2Emissions > currentMaxCO2) return false;
-    if (requireDirect && !q.isDirect) return false;
-    if (q.rate > currentMaxPrice) return false;
     return true;
   });
 
@@ -94,23 +151,15 @@ export default function RatesContent() {
 
       if (rates && rates.length > 0) {
         // Map Drizzle Rate schema to match the expected RateTable format
-        const mappedQuotes = rates.map((r) => {
-          const numId = parseInt(r.id?.substring(0, 8) || "0", 16) || 0;
-          return {
-            id: r.id,
-            carrier: r.carrier || "Unknown",
-            rate: r.baseOceanFreight + r.baf + r.pss + r.thc,
-            transit: r.transitTime,
-            currency: "USD",
-            origin: origin.locode || origin.name,
-            destination: destination.locode || destination.name,
-            containerType: r.containerType,
-            baseFreightCost: r.baseOceanFreight,
-            totalCost: r.baseOceanFreight + r.baf + r.pss + r.thc,
-            isDirect: numId % 3 === 0,
-            co2Emissions: 1000 + (numId % 2000), // Mock CO2 emissions
-          };
-        });
+        const mappedQuotes = rates.map((r) => ({
+          carrier: r.carrier || "Unknown",
+          rate: r.baseOceanFreight + r.baf + r.pss + r.thc,
+          transit: r.transitTime,
+          currency: "USD",
+          origin: origin.locode || origin.name,
+          destination: destination.locode || destination.name,
+          containerType: r.containerType,
+        }));
         setQuotes(mappedQuotes);
       } else {
         setError("No rates found for the selected route.");
@@ -304,14 +353,6 @@ export default function RatesContent() {
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-8 relative z-10 space-y-6 w-full">
-        {quotes.length > 0 && (
-          <RouteAnalyticsChart 
-            origin={origin?.name || origin?.locode || ""} 
-            destination={destination?.name || destination?.locode || ""} 
-            currentLowestRate={filteredQuotes.length > 0 ? Math.min(...filteredQuotes.map(q => q.rate)) : 0} 
-          />
-        )}
-
         {/* Filters Bar */}
         {quotes.length > 0 && (
           <div className="bg-slate-900/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-4 flex flex-col xl:flex-row items-center justify-between gap-6 shadow-lg relative z-20">
@@ -320,17 +361,38 @@ export default function RatesContent() {
               <span className="font-bold tracking-wide">Filters</span>
             </div>
 
-            <div className="flex flex-col md:flex-row items-center gap-6 w-full xl:w-auto flex-1 justify-end">
-              <button
-                onClick={() => setIsDrawerOpen(true)}
-                className="px-6 py-2.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 border border-indigo-500/30 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                Advanced Filters
-                {(selectedCarriers.length > 0 || maxTransitTime !== null || maxCO2 !== null || requireDirect || maxPrice !== null) && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                )}
-              </button>
+            <div className="flex flex-col md:flex-row items-center gap-6 w-full xl:w-auto flex-1">
+              {/* Carrier Filter */}
+              <div className="flex items-center gap-4 w-full md:w-auto">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap hidden md:block">
+                  Carriers
+                </span>
+                <CarrierSelect
+                  available={availableCarriers}
+                  selected={selectedCarriers}
+                  onChange={setSelectedCarriers}
+                />
+              </div>
+
+              {/* Transit Time Filter */}
+              <div className="flex items-center gap-4 w-full md:max-w-md xl:ml-auto">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap hidden md:block">
+                  Max Transit
+                </span>
+                <div className="flex-1 flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="1"
+                    max={maxAvailableTransit}
+                    value={currentMaxTransit}
+                    onChange={(e) => setMaxTransitTime(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all"
+                  />
+                  <span className="text-sm font-black text-indigo-400 w-16 text-right shrink-0">
+                    {currentMaxTransit} d
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Results Count Pill */}
@@ -345,19 +407,6 @@ export default function RatesContent() {
 
         <RateTable rates={filteredQuotes} isLoading={isLoading} error={error} />
       </div>
-      {/* Content Area */}
-      <AdvancedFiltersDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        availableCarriers={availableCarriers}
-        onApplyFilters={(filters) => {
-          setSelectedCarriers(filters.selectedCarriers);
-          setMaxTransitTime(filters.maxTransitTime);
-          setMaxCO2(filters.maxCO2);
-          setRequireDirect(filters.requireDirect);
-          setMaxPrice(filters.maxPrice);
-        }}
-      />
     </div>
   );
 }

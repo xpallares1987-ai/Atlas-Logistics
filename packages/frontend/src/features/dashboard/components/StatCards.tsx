@@ -1,19 +1,20 @@
 import { motion } from "framer-motion";
 import { Anchor, Ship, TrendingUp, AlertTriangle } from "lucide-react";
-import { useApiQuery } from '../../../hooks/useApiQuery';
-import { useDashboardStore } from '../store';
+import { useApiQuery } from "../../../hooks/useApiQuery";
 
 export function StatCards() {
-  const { dateRange } = useDashboardStore();
-  const queryStr = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
-  const { data } = useApiQuery<any>(['dashboard', dateRange], `/dashboard${queryStr}`);
-  const statsData = data?.stats;
+  const { data: statsData } = useApiQuery<{
+    totalShipments: number;
+    totalRevenue: number;
+    pendingInvoices: number;
+    overdueInvoices: number;
+  }>(["financialStats"], "/financial-stats");
 
   const stats = [
     {
       id: 1,
       name: "Active Shipments",
-      value: statsData ? statsData.activeShipments.toLocaleString() : "...",
+      value: statsData ? statsData.totalShipments.toLocaleString() : "...",
       change: "+12.5%",
       trend: "up",
       icon: Ship,
@@ -23,9 +24,9 @@ export function StatCards() {
     },
     {
       id: 2,
-      name: "Completed Shipments",
-      value: statsData ? statsData.completedShipments.toLocaleString() : "...",
-      change: "On time delivery",
+      name: "Port Congestion",
+      value: "High",
+      change: "3 Ports affected",
       trend: "neutral",
       icon: Anchor,
       color: "from-amber-500 to-orange-500",
@@ -36,7 +37,7 @@ export function StatCards() {
       id: 3,
       name: "Total Revenue",
       value: statsData
-        ? `$${(statsData.revenue / 1000).toFixed(1)}k`
+        ? `$${(statsData.totalRevenue / 1000000).toFixed(1)}M`
         : "...",
       change: "+8.2%",
       trend: "up",
@@ -47,10 +48,10 @@ export function StatCards() {
     },
     {
       id: 4,
-      name: "Customer Satisfaction",
-      value: statsData ? `${statsData.satisfaction}%` : "...",
-      change: "Based on feedback",
-      trend: "up",
+      name: "Pending Invoices",
+      value: statsData ? statsData.pendingInvoices.toString() : "...",
+      change: statsData ? `${statsData.overdueInvoices} overdue` : "...",
+      trend: statsData && statsData.overdueInvoices > 0 ? "down" : "neutral",
       icon: AlertTriangle,
       color: "from-rose-500 to-pink-500",
       bgColor: "bg-rose-500/10",
@@ -100,4 +101,3 @@ export function StatCards() {
     </div>
   );
 }
-

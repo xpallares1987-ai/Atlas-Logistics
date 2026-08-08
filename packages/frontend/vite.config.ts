@@ -15,7 +15,6 @@ export default defineConfig({
       name: "host",
       remotes: {
         dashboard: "http://localhost:5174/assets/remoteEntry.js",
-        warehouse: "http://localhost:5175/assets/remoteEntry.js",
       },
       shared: [
         "react",
@@ -66,7 +65,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       "/api": {
-        target: "http://localhost:3001",
+        target: "http://localhost:3005",
         changeOrigin: true,
       },
     },

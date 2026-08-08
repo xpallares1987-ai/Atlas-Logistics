@@ -463,28 +463,6 @@ CREATE TABLE `shipments` (
 	FOREIGN KEY (`updated_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `warehouse_traffic` (
-	`id` text PRIMARY KEY NOT NULL,
-	`shipment_id` text,
-	`driver_name` text,
-	`device_number` text NOT NULL,
-	`device_type` text NOT NULL,
-	`status` text NOT NULL,
-	`eta` text,
-	`assigned_dock` text,
-	`cargo_description` text,
-	`total_weight_expected` real,
-	`expected_quantity` integer,
-	`type` text NOT NULL,
-	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
-	`updated_at` integer,
-	`is_deleted` integer DEFAULT false NOT NULL,
-	`is_active` integer DEFAULT true NOT NULL,
-	`metadata` text,
-	`tags` text,
-	FOREIGN KEY (`shipment_id`) REFERENCES `shipments`(`id`) ON UPDATE no action ON DELETE no action
-);
---> statement-breakpoint
 CREATE TABLE `agent_settlements` (
 	`id` text PRIMARY KEY NOT NULL,
 	`statement_number` text NOT NULL,

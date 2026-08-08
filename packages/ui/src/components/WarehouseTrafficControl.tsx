@@ -73,7 +73,7 @@ export function WarehouseTrafficControl() {
         const res = await fetch("/api/operations/warehouse/traffic");
         if (!res.ok) throw new Error("Failed to load traffic");
         const json = await res.json();
-        
+
         let data = json.data;
         if (!data || data.length === 0) {
           // Fallback to mock data for presentation if DB is empty
@@ -81,7 +81,10 @@ export function WarehouseTrafficControl() {
         }
         setTraffic(data);
       } catch (err) {
-        console.error("Failed to load traffic from backend, using mock data", err);
+        console.error(
+          "Failed to load traffic from backend, using mock data",
+          err,
+        );
         setTraffic(initialTraffic);
       }
     };
@@ -111,16 +114,19 @@ export function WarehouseTrafficControl() {
     setTraffic(newTraffic);
 
     try {
-      const res = await fetch(`/api/operations/warehouse/traffic/${updatedVehicle.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: updatedVehicle.status,
-          assignedDock: updatedVehicle.assignedDock,
-          eta: updatedVehicle.eta
-        })
-      });
-      
+      const res = await fetch(
+        `/api/operations/warehouse/traffic/${updatedVehicle.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: updatedVehicle.status,
+            assignedDock: updatedVehicle.assignedDock,
+            eta: updatedVehicle.eta,
+          }),
+        },
+      );
+
       if (!res.ok) {
         console.warn("Backend update failed, attempting offline sync...");
         // Fallback to local queue if offline
@@ -138,7 +144,11 @@ export function WarehouseTrafficControl() {
     } catch (err) {
       console.error("Failed to persist backend update", err);
       // Fallback
-      await syncManager.addToQueue("warehouseTraffic", "UPDATE", updatedVehicle);
+      await syncManager.addToQueue(
+        "warehouseTraffic",
+        "UPDATE",
+        updatedVehicle,
+      );
     }
   };
 

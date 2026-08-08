@@ -24,28 +24,6 @@ export interface InvoiceData {
   items: { description: string; quantity: number; unitPrice: number; total: number }[];
 }
 
-export interface AgentSettlementData {
-  statementNumber: string;
-  agentName: string;
-  periodStart: string;
-  periodEnd: string;
-  netBalance: number;
-  currency: string;
-  status: string;
-}
-
-export interface BookingConfirmationData {
-  referenceNumber: string;
-  customer: string;
-  origin: string;
-  destination: string;
-  serviceType: string;
-  equipment: string;
-  vessel: string;
-  voyage: string;
-  issueDate?: string;
-}
-
 export class PDFService {
   /**
    * Generates a generic House Bill of Lading (HBL) PDF in memory.
@@ -176,95 +154,6 @@ export class PDFService {
         doc.font('Helvetica-Bold');
         doc.text(`Total Amount (${data.currency})`, 300, currentY);
         doc.text(`${new Intl.NumberFormat("en-US", { style: "currency", currency: data.currency }).format(data.amount)}`, 480, currentY);
-
-        doc.end();
-      } catch (err) {
-        reject(err);
-      }
-    });
-  }
-
-  /**
-   * Generates an Agent Settlement PDF in memory.
-   */
-  static async generateAgentSettlement(data: AgentSettlementData): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      try {
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
-        const buffers: Buffer[] = [];
-
-        doc.on('data', buffers.push.bind(buffers));
-        doc.on('end', () => resolve(Buffer.concat(buffers)));
-
-        // Header
-        doc.fontSize(20).text('AGENT SETTLEMENT STATEMENT', { align: 'center' });
-        doc.moveDown(2);
-
-        // Details Box
-        doc.fontSize(10);
-        doc.rect(50, doc.y, 500, 140).stroke();
-        doc.text(`Statement Number: ${data.statementNumber}`, 60, doc.y + 10);
-        doc.text(`Agent Name: ${data.agentName}`, 60, doc.y + 15);
-        doc.text(`Period: ${new Date(data.periodStart).toLocaleDateString()} to ${new Date(data.periodEnd).toLocaleDateString()}`, 60, doc.y + 15);
-        doc.text(`Status: ${data.status}`, 60, doc.y + 15);
-        
-        doc.moveDown(4);
-
-        // Financials
-        doc.font('Helvetica-Bold').fontSize(14).text('Financial Summary', 60, doc.y);
-        doc.moveDown(1);
-        doc.font('Helvetica').fontSize(12);
-        
-        doc.text(`Net Balance: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: data.currency }).format(data.netBalance)}`, {
-          align: 'left'
-        });
-
-        doc.moveDown(4);
-        doc.fontSize(8).fillColor('black').text('This statement is generated automatically by Atlas Logistics. If you have any questions, please contact accounting@atlaslogistics.com.', { align: 'center' });
-
-        doc.end();
-      } catch (err) {
-        reject(err);
-      }
-    });
-  }
-
-  /**
-   * Generates a Booking Confirmation PDF in memory.
-   */
-  static async generateBookingConfirmation(data: BookingConfirmationData): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      try {
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
-        const buffers: Buffer[] = [];
-
-        doc.on('data', buffers.push.bind(buffers));
-        doc.on('end', () => resolve(Buffer.concat(buffers)));
-
-        // Header
-        doc.fontSize(20).text('BOOKING CONFIRMATION', { align: 'center' });
-        doc.moveDown(2);
-
-        // Details Box
-        doc.fontSize(10);
-        doc.rect(50, doc.y, 500, 160).stroke();
-        doc.text(`Reference Number: ${data.referenceNumber}`, 60, doc.y + 10);
-        doc.text(`Issue Date: ${data.issueDate || new Date().toLocaleDateString()}`, 60, doc.y + 15);
-        doc.text(`Customer: ${data.customer}`, 60, doc.y + 15);
-        doc.moveDown(2);
-        
-        doc.font('Helvetica-Bold').text('Routing Details:');
-        doc.font('Helvetica').text(`Port of Loading (Origin): ${data.origin}`, 60, doc.y + 5);
-        doc.text(`Port of Discharge (Destination): ${data.destination}`, 60, doc.y + 15);
-        doc.text(`Vessel / Voyage: ${data.vessel} / ${data.voyage}`, 60, doc.y + 15);
-        doc.moveDown(2);
-
-        doc.font('Helvetica-Bold').text('Equipment / Service:');
-        doc.font('Helvetica').text(`Service Type: ${data.serviceType || 'Unknown'}`, 60, doc.y + 5);
-        doc.text(`Equipment Requirements: ${data.equipment}`, 60, doc.y + 15);
-
-        doc.moveDown(5);
-        doc.fontSize(8).fillColor('black').text('This booking confirmation is subject to space and equipment availability. Please ensure cargo is delivered to the terminal before the designated cut-off time.', { align: 'center' });
 
         doc.end();
       } catch (err) {

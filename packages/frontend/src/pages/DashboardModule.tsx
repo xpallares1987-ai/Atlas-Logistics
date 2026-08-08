@@ -5,9 +5,6 @@ import { ShipmentVolumeChart } from '../features/dashboard/components/ShipmentVo
 import { ActiveShipments } from '../features/dashboard/components/ActiveShipments';
 import { GlobeWidget } from '../features/dashboard/components/GlobeWidget';
 import { QuickActions } from '../features/dashboard/components/QuickActions';
-import { useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useDashboardStore } from '../features/dashboard/store';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -26,45 +23,6 @@ const itemVariants: Variants = {
 };
 
 export function DashboardModule() {
-  const queryClient = useQueryClient();
-  const { dateRange } = useDashboardStore();
-
-  useEffect(() => {
-    // Determine WS protocol
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Using import.meta.env.VITE_API_URL or fallback to relative
-    const wsBaseUrl = import.meta.env.VITE_API_URL 
-      ? import.meta.env.VITE_API_URL.replace(/^http/, 'ws')
-      : `${protocol}//${window.location.host}/api`;
-
-    const wsUrl = `${wsBaseUrl}/dashboard/live`;
-    const ws = new WebSocket(wsUrl);
-
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === "STATS_UPDATE") {
-          queryClient.setQueryData(["dashboard", dateRange], (oldData: any) => {
-            if (!oldData) return oldData;
-            return {
-              ...oldData,
-              stats: {
-                ...oldData.stats,
-                activeShipments: msg.data.activeShipments
-              }
-            };
-          });
-        }
-      } catch (err) {
-        console.error("Live update error", err);
-      }
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, [queryClient, dateRange]);
-
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto min-h-[calc(100vh-4rem)] bg-slate-950 text-slate-100 overflow-x-hidden">
       <motion.div

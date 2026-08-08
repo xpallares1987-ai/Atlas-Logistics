@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Package, Hash, Scale, AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import { X, Package, Hash, Scale, AlertCircle, Loader2 } from "lucide-react";
 
 interface BookingDrawerProps {
   rate: any;
@@ -13,8 +13,6 @@ export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerPr
   const [poNumber, setPoNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [bookingRef, setBookingRef] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,10 +25,8 @@ export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerPr
         weight: Number(weight),
         poNumber,
       });
-      
-      const newRef = `BKG-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      setBookingRef(newRef);
-      setIsSuccess(true);
+      // The parent will handle the success toast and closing the drawer (or we can just close it here)
+      onClose();
     } catch (err: any) {
       setError(err.message || "An error occurred while saving the booking.");
       setIsSubmitting(false);
@@ -66,25 +62,10 @@ export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerPr
         </div>
 
         {/* Content */}
-        {isSuccess ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-6 animate-in fade-in zoom-in duration-500">
-            <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mb-2 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-              <CheckCircle className="w-12 h-12 text-emerald-400" />
-            </div>
-            <h3 className="text-2xl font-black text-white text-center">Booking Confirmed!</h3>
-            <p className="text-slate-400 text-center text-sm">
-              Your shipment has been successfully booked. You will receive a confirmation email shortly.
-            </p>
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 w-full text-center mt-4 shadow-inner">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Booking Reference</p>
-              <p className="text-lg font-mono font-bold text-indigo-400">{bookingRef}</p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            
-            {/* Rate Summary */}
-            <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 shadow-inner">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          
+          {/* Rate Summary */}
+          <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 shadow-inner">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">Selected Route</h3>
             <div className="flex items-center gap-3 mb-2">
               <div className="font-bold text-white text-sm">{rate.carrierName}</div>
@@ -151,33 +132,13 @@ export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerPr
               />
             </div>
           </form>
-          </div>
-        )}
+        </div>
 
         {/* Footer / Actions */}
         <div className="p-6 border-t border-slate-800 bg-slate-900 shrink-0">
-          {isSuccess ? (
-            <div className="flex gap-3">
-              <button 
-                onClick={onClose}
-                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-colors"
-              >
-                Done
-              </button>
-              <button 
-                onClick={() => {
-                  onClose();
-                  window.dispatchEvent(new CustomEvent("app-navigate", { detail: { path: "/bookings" } }));
-                }}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-colors"
-              >
-                View Bookings
-              </button>
-            </div>
-          ) : (
-            <button 
-              type="submit"
-              form="booking-form"
+          <button 
+            type="submit"
+            form="booking-form"
             disabled={isSubmitting}
             className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] transition-all duration-300 flex items-center justify-center gap-2"
           >
@@ -189,8 +150,7 @@ export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerPr
             ) : (
               'Confirm Booking'
             )}
-            </button>
-          )}
+          </button>
         </div>
       </div>
     </>

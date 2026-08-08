@@ -444,31 +444,11 @@ async function main() {
     await db.insert(schema.bookings).values({
       id,
       customerId: faker.helpers.arrayElement(companyIds),
-      status: faker.helpers.arrayElement([
-        "Pending",
-        "Confirmed",
-        "Rejected",
-        "Cancelled",
-      ]),
-      origin: faker.helpers.arrayElement([
-        "Shanghai",
-        "Ningbo",
-        "Shenzhen",
-        "Rotterdam",
-        "Los Angeles",
-      ]),
-      destination: faker.helpers.arrayElement([
-        "Rotterdam",
-        "Los Angeles",
-        "New York",
-        "Hamburg",
-        "Valencia",
-      ]),
+      status: faker.helpers.arrayElement(["Pending", "Confirmed", "Rejected", "Cancelled"]),
+      origin: faker.helpers.arrayElement(["Shanghai", "Ningbo", "Shenzhen", "Rotterdam", "Los Angeles"]),
+      destination: faker.helpers.arrayElement(["Rotterdam", "Los Angeles", "New York", "Hamburg", "Valencia"]),
       serviceType: faker.helpers.arrayElement(["FCL", "LCL", "AIR"]),
-      cargoDetails: JSON.stringify({
-        description: faker.commerce.productDescription(),
-        weight: faker.number.int({ min: 100, max: 20000 }),
-      }),
+      cargoDetails: JSON.stringify({ description: faker.commerce.productDescription(), weight: faker.number.int({ min: 100, max: 20000 }) }),
       estimatedDeparture: faker.date.future(),
     });
   }
@@ -479,6 +459,7 @@ async function main() {
   console.log("✅ Admin user ensured after seeding.");
   console.log("🎉 Seed masivo completado exitosamente.");
   process.exit(0);
+
 }
 
 main().catch((e) => {

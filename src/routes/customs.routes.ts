@@ -8,18 +8,18 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get("/customs-declarations", async (request, reply) => {
     try {
       const allDeclarations = await db.select().from(customsDeclarations);
-      
+
       // Map DB enum statuses to UI-friendly statuses
-      const mapped = allDeclarations.map(d => {
+      const mapped = allDeclarations.map((d) => {
         let uiStatus = d.status;
         if (d.status === "PENDING") uiStatus = "Pending";
         if (d.status === "CLEARED") uiStatus = "Cleared";
         if (d.status === "HELD") uiStatus = "Hold";
-        
+
         return {
           ...d,
           status: uiStatus,
-          blNumber: d.blNumber || `BL-${d.id.substring(0, 8).toUpperCase()}`
+          blNumber: d.blNumber || `BL-${d.id.substring(0, 8).toUpperCase()}`,
         };
       });
 

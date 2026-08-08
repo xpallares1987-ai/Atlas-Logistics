@@ -21,7 +21,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAppStore } from "../../store/useAppStore";
 import { NavLink } from "../NavLink";
 import { Button } from "@atlas/ui";
 
@@ -34,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileMenuOpen,
   setMobileMenuOpen,
 }) => {
-  const { user } = useAuth();
+  const { user } = useAppStore();
   const { t } = useTranslation();
 
   const role = user?.role || "USER";
