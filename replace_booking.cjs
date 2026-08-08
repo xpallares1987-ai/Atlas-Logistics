@@ -2,7 +2,6 @@ const fs = require('fs');
 
 const FILE_PATH = 'packages/frontend/src/pages/BookingManagementModule.tsx';
 let content = fs.readFileSync(FILE_PATH, 'utf8');
-const lines = content.split('\n');
 
 // Use modular injection functions
 const { injectState } = require('./src/scripts/replace_booking/state.cjs');
@@ -11,7 +10,6 @@ const { injectHeader } = require('./src/scripts/replace_booking/header.cjs');
 content = injectState(content);
 content = injectHandlers(content);
 content = injectHeader(content);
-content = lines.join('\n');
 
 // 3. Update the header for the toggle
 const headerOld = `<button
