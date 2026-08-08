@@ -56,7 +56,7 @@ export function DocumentUpload({ shipmentId }: { shipmentId: string }) {
   };
 
   const downloadDoc = (doc: any) => {
-    window.open(`http://localhost:3005${doc.url}`, "_blank");
+    window.open(doc.url, "_blank", "noopener,noreferrer");
   };
 
   return (
