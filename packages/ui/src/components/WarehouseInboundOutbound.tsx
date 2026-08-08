@@ -68,12 +68,20 @@ export function WarehouseInboundOutbound({ mode }: Props) {
 
   useEffect(() => {
     const loadData = async () => {
-      let data = await db.warehouseInventory.toArray();
-      if (data.length === 0) {
-        await db.warehouseInventory.bulkAdd(mockData);
-        data = mockData;
+      try {
+        const res = await fetch("/api/operations/warehouse/inventory");
+        if (!res.ok) throw new Error("Failed to load inventory");
+        const json = await res.json();
+
+        let data = json.data;
+        if (!data || data.length === 0) {
+          data = mockData; // fallback
+        }
+        setItems(data);
+      } catch (err) {
+        console.error("Failed to load inventory from backend", err);
+        setItems(mockData);
       }
-      setItems(data);
     };
     loadData();
   }, []);
@@ -105,13 +113,24 @@ export function WarehouseInboundOutbound({ mode }: Props) {
     setItems([newItem, ...items]);
 
     try {
-      // Persist to Dexie
-      await db.warehouseInventory.add(newItem);
+      // Persist to Backend
+      const res = await fetch("/api/operations/warehouse/inventory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [newItem] }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Backend save failed");
+      }
+
+      alert(`✅ Recibo guardado exitosamente.`);
+    } catch (err) {
+      console.error("Error saving online, queuing offline:", err);
       // Queue for Backend Sync
+      await db.warehouseInventory.add(newItem);
       await syncManager.addToQueue("warehouseInventory", "CREATE", newItem);
       alert(`✅ Guardado localmente. Se sincronizará en cuanto haya conexión.`);
-    } catch (err) {
-      console.error("Error saving offline:", err);
     }
   };
 

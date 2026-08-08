@@ -1,3 +1,4 @@
+// @ts-ignore
 import "./index.css";
 export * from "./ShippingMap";
 export * from "./RateTable";

@@ -98,6 +98,20 @@ CREATE TABLE `users` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
+CREATE TABLE `workflows` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`description` text,
+	`xml_data` text NOT NULL,
+	`status` text DEFAULT 'draft' NOT NULL,
+	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
+	`updated_at` integer,
+	`is_deleted` integer DEFAULT false NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`metadata` text,
+	`tags` text
+);
+--> statement-breakpoint
 CREATE TABLE `carriers` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -176,10 +190,16 @@ CREATE TABLE `lanes` (
 --> statement-breakpoint
 CREATE TABLE `quotes` (
 	`id` text PRIMARY KEY NOT NULL,
-	`company_id` text NOT NULL,
-	`lane_id` text NOT NULL,
-	`total_amount` real NOT NULL,
-	`status` text NOT NULL,
+	`quote_number` text NOT NULL,
+	`customer_id` text NOT NULL,
+	`origin_location_id` text,
+	`destination_location_id` text,
+	`equipment` text NOT NULL,
+	`buy_rate_total` real NOT NULL,
+	`sell_margin` real NOT NULL,
+	`sell_rate_total` real NOT NULL,
+	`status` text DEFAULT 'DRAFT' NOT NULL,
+	`valid_to` integer NOT NULL,
 	`created_by` text,
 	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
 	`updated_at` integer,
@@ -187,10 +207,12 @@ CREATE TABLE `quotes` (
 	`is_active` integer DEFAULT true NOT NULL,
 	`metadata` text,
 	`tags` text,
-	FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON UPDATE no action ON DELETE no action,
-	FOREIGN KEY (`lane_id`) REFERENCES `lanes`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`customer_id`) REFERENCES `companies`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`origin_location_id`) REFERENCES `locations`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`destination_location_id`) REFERENCES `locations`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
-	CONSTRAINT "quotes_amount_check" CHECK("quotes"."total_amount" >= 0)
+	CONSTRAINT "quotes_sell_amount_check" CHECK("quotes"."sell_rate_total" >= 0),
+	CONSTRAINT "quotes_buy_amount_check" CHECK("quotes"."buy_rate_total" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE `rate_tiers` (
@@ -321,6 +343,21 @@ CREATE TABLE `customs_declarations` (
 	FOREIGN KEY (`hs_code_id`) REFERENCES `hs_codes`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE TABLE `demurrage_alerts` (
+	`id` text PRIMARY KEY NOT NULL,
+	`shipment_id` text NOT NULL,
+	`container_number` text NOT NULL,
+	`alert_status` text DEFAULT 'active' NOT NULL,
+	`last_notified` integer,
+	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
+	`updated_at` integer,
+	`is_deleted` integer DEFAULT false NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`metadata` text,
+	`tags` text,
+	FOREIGN KEY (`shipment_id`) REFERENCES `shipments`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
 CREATE TABLE `hs_codes` (
 	`id` text PRIMARY KEY NOT NULL,
 	`code` text NOT NULL,
@@ -334,6 +371,27 @@ CREATE TABLE `hs_codes` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `hs_codes_code_unique` ON `hs_codes` (`code`);--> statement-breakpoint
+CREATE TABLE `route_segments` (
+	`id` text PRIMARY KEY NOT NULL,
+	`shipment_id` text NOT NULL,
+	`sequence_order` integer NOT NULL,
+	`transport_mode` text NOT NULL,
+	`origin_location_id` text,
+	`destination_location_id` text,
+	`departure_time` integer,
+	`arrival_time` integer,
+	`status` text NOT NULL,
+	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
+	`updated_at` integer,
+	`is_deleted` integer DEFAULT false NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`metadata` text,
+	`tags` text,
+	FOREIGN KEY (`shipment_id`) REFERENCES `shipments`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`origin_location_id`) REFERENCES `locations`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`destination_location_id`) REFERENCES `locations`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
 CREATE TABLE `schedules` (
 	`id` text PRIMARY KEY NOT NULL,
 	`lane_id` text NOT NULL,
@@ -641,19 +699,23 @@ CREATE TABLE `tasks` (
 CREATE TABLE `warehouse_inventory` (
 	`id` text PRIMARY KEY NOT NULL,
 	`location_id` text NOT NULL,
-	`shipment_id` text,
+	`ownership` text DEFAULT 'INTERNAL' NOT NULL,
+	`customer` text,
+	`buyer` text,
+	`product_code` text,
 	`item_description` text NOT NULL,
 	`quantity` integer NOT NULL,
 	`weight` real,
 	`volume` real,
+	`zone` text DEFAULT 'DRY' NOT NULL,
+	`metadata` text,
+	`status` text DEFAULT 'IN_STOCK' NOT NULL,
 	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
 	`updated_at` integer,
 	`is_deleted` integer DEFAULT false NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
-	`metadata` text,
 	`tags` text,
-	FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON UPDATE no action ON DELETE no action,
-	FOREIGN KEY (`shipment_id`) REFERENCES `shipments`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE TABLE `customs_event_logs` (

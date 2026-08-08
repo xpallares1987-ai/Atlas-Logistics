@@ -15,19 +15,26 @@ Tras nuestra Fase 6 de refactorización, el proyecto se ejecuta **100% en local 
 
 ## 🌟 Módulos y Funcionalidades (Suite SCM ERP)
 
-Atlas Logistics cubre todo el ciclo de vida operativo de un embarque y la facturación de un freight forwarder:
+Atlas Logistics cubre todo el ciclo de vida operativo de un embarque y la facturación de un freight forwarder, ahora con un diseño premium **Glassmorphism**:
+
+### 🔐 Seguridad y Arquitectura Empresarial
+- **Autenticación y RBAC**: Sistema de login basado en JWT con control de acceso por roles (Fastify-JWT).
+- **Notificaciones en Tiempo Real**: Alertas instantáneas (Demoras, Aduanas) vía WebSockets (`ws://`).
+- **Micro-Frontends (MFE)**: Escalabilidad empresarial usando Vite Module Federation (`mfe-warehouse`).
 
 ### 📦 Operaciones Núcleo
 - **Sailing Schedules**: Buscador de rutas marítimas y control de fechas de corte.
 - **Booking & B/L**: Emisión de HBL/MBL y tablero Kanban de reservas.
 - **Rate Comparer (`@atlas/rate-comparer`)**: Comparación dinámica de tarifas marítimas y aéreas.
+- **Warehouse Operations (`mfe-warehouse`)**: Módulo federado con vista isométrica 2.5D de andenes y control de inventario en tiempo real.
 
 ### ⚖️ Finanzas y Cumplimiento
-- **Customs Clearance**: Seguimiento de DUA, semáforo aduanero y validaciones de código HS.
-- **Facturación y Liquidación**: Reconciliación A/R, A/P y análisis de rentabilidad.
+- **Customs Clearance**: Seguimiento de DUA, semáforo aduanero impulsado por IA y validaciones de código HS.
+- **Agent Settlements**: Liquidación a agentes con exportación integrada a PDF.
+- **Facturación y Reconciliación**: Análisis de rentabilidad (A/R y A/P).
 
 ### 🌐 Vista Externa y Cliente
-- **Customer Portal**: Portal marca blanca para que los clientes rastreen sus cargas (tracking de hitos) y descarguen documentación (HBL dinámico) en tiempo real.
+- **Customer Portal**: Portal marca blanca para que los clientes rastreen sus cargas (tracking de hitos).
 - **Document Vault**: Sistema premium de gestión documental con persistencia real (uploads), filtrado inteligente (grid view), previsualización integrada de documentos y descarga dinámica.
 
 ---
@@ -37,16 +44,18 @@ Atlas Logistics cubre todo el ciclo de vida operativo de un embarque y la factur
 ```text
 Atlas-Logistics/
 ├── packages/               # Paquetes del monorepo (Workspaces pnpm)
-│   ├── frontend/           # PWA Host principal (React 19 + Vite + Code Splitting)
+│   ├── frontend/           # PWA Host principal (React 19 + Vite) con Auth Context
 │   ├── dashboard/          # Módulo operacional y vistas analíticas
-│   ├── rate-comparer/      # Motor de comparación de tarifas marítimas y aéreas
-│   ├── ui/                 # Sistema de diseño, componentes UI y temas
-│   └── shared/             # Tipos TypeScript, esquemas Zod y utilidades compartidas
-├── scripts/                # Scripts de utilidad (seed, etc.)
-├── src/                    # API Server Express, AtlasEngine Workers y conectores DB
-│   ├── bpm/workers/        # Job Workers (BullMQ) organizados por dominio
-│   └── pubsub-workers/     # Procesadores asíncronos en segundo plano (PubSub)
-└── e2e/                    # Pruebas End-to-End integradas con Playwright
+│   ├── mfe-warehouse/      # Micro-Frontend federado de operaciones de almacén
+│   ├── mfe-dashboard/      # Micro-Frontend federado de dashboards
+│   ├── rate-comparer/      # Motor de comparación de tarifas
+│   ├── ui/                 # Sistema de diseño, componentes UI y temas Glassmorphism
+│   └── shared/             # Tipos TypeScript, esquemas Zod y utilidades
+├── src/                    # API Server Fastify, WebSockets, DB SQLite
+│   ├── routes/             # Endpoints (auth, customs, documents, events)
+│   └── bpm/workers/        # Job Workers (BullMQ) organizados por dominio
+└── tests/
+    └── e2e/                # Pruebas End-to-End automatizadas con Playwright
 ```
 
 ---

@@ -18,6 +18,7 @@ The ecosystem is built on a Monorepo managed by `Turborepo` and `pnpm` (version 
   - **`packages/dashboard`**: Main panel for shipments, logistics telemetry, and container visibility.
   - **`packages/rate-comparer`**: Module dedicated to the ingestion, comparison, and analytics of freight rates.
   - **`packages/bpmn-modeler`**: Module dedicated to BPMN workflow orchestration.
+  - **`packages/mfe-warehouse`**: **Micro-Frontend (MFE)** dedicated to Warehouse Operations using Module Federation.
 - **`packages/shared` and `packages/ui`**: Contain shared utilities and UI components consumed by the main application.
 
 *(Note: Legacy external `apps`, `functions`, and `data` directories have been removed in favor of strict Monorepo packing.)*
@@ -35,10 +36,11 @@ All persistent state and database queries for the Super-App are performed using 
 The repository is configured for ultra-efficient continuous integration automated with **GitHub Actions**:
 - **Build and Testing**: The official build command is `pnpm run build` at the root, which uses Turbo to package in parallel using remote/local caches.
 - **Code Scanning and Security**: Constant code analysis in CI with CodeQL and `njsscan` to prevent vulnerability regressions.
+- **E2E Testing**: Automated End-to-End testing orchestrated locally using **Playwright**.
 
 ## 5. Security and Access Control (RBAC)
 
-Authentication and multi-tenant authorization have been simplified for the local environment to support local testing without incurring cloud authentication costs. A mock AuthProvider ensures the application can be explored fully offline.
+Authentication and multi-tenant authorization have been upgraded from mock providers to a robust **JWT-based Authentication** system using `@fastify/jwt`. A global `AuthContext` governs Role-Based Access Control (RBAC), securely gating sensitive modules (e.g. Agent Settlements, Finance) based on the user's validated identity stored in the SQLite database.
 
 ## 6. Asynchronous Tasks (BullMQ)
 
