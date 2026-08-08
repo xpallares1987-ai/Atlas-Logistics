@@ -110,7 +110,8 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         // Persist to local filesystem (Document Vault)
         const uploadDir = path.join(process.cwd(), "uploads");
         await fs.promises.mkdir(uploadDir, { recursive: true });
-        const safeFilename = `${crypto.randomUUID()}-${data.filename}`;
+        const originalFilename = path.basename(data.filename).replace(/[^A-Za-z0-9._-]/g, "_");
+        const safeFilename = `${crypto.randomUUID()}-${originalFilename}`;
         const filePath = path.join(uploadDir, safeFilename);
         await fs.promises.writeFile(filePath, fileBuffer);
         
