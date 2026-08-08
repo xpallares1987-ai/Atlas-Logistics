@@ -36,6 +36,8 @@ jobs:
     - name: Run Playwright tests
       run: |
         touch .env.local
+        pnpm run db:migrate
+        pnpm run db:seed
         pnpm run test:e2e
       
     - uses: actions/upload-artifact@v4
