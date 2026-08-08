@@ -136,7 +136,7 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const [pendingCount] = await db
         .select({ count: sql<number>`count(*)` })
         .from(invoices)
-        .where(sql`${invoices.status} IN ('DRAFT', 'ISSUED')`);
+        .where(sql`upper(${invoices.status}) IN ('DRAFT', 'ISSUED')`);
 
       const [overdueCount] = await db
         .select({ count: sql<number>`count(*)` })
