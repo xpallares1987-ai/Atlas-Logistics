@@ -455,7 +455,7 @@ async function main() {
   console.log(`✅ Creadas ${bookingIds.length} bookings de clientes.`);
 
   // Ensure admin user exists
-  await import("./admin/adminService").then(m => m.createAdmin());
+  await import("../admin/adminService.js").then((m) => m.createAdmin());
   console.log("✅ Admin user ensured after seeding.");
   console.log("🎉 Seed masivo completado exitosamente.");
   process.exit(0);
