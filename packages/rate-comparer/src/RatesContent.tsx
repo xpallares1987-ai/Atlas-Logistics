@@ -77,7 +77,7 @@ const CarrierSelect = ({
                 {/* visually hidden input for accessibility / standard HTML interaction */}
                 <input 
                    type="checkbox"
-                   className="hidden"
+                   className="sr-only"
                    checked={selected.includes(c)}
                    onChange={(e) => {
                      if (e.target.checked) onChange([...selected, c]);
