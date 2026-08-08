@@ -1,6 +1,12 @@
 import { FastifyPluginAsync } from "fastify";
 import { db } from "../db/index.js";
-import { schedules, carriers, lanes, locations, rates } from "../db/schema/index.js";
+import {
+  schedules,
+  carriers,
+  lanes,
+  locations,
+  rates,
+} from "../db/schema/index.js";
 import { eq, like, and } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 
@@ -13,7 +19,7 @@ const schedulesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     try {
       const { origin, destination, date } = request.query as any;
 
-      let query = db
+      const query = db
         .select({
           id: schedules.id,
           vessel: schedules.vesselName,
@@ -77,14 +83,26 @@ const schedulesRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get("/:id/pricing", async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      
-      const sch = await db.select({ laneId: schedules.laneId }).from(schedules).where(eq(schedules.id, id)).limit(1);
-      
+
+      const sch = await db
+        .select({ laneId: schedules.laneId })
+        .from(schedules)
+        .where(eq(schedules.id, id))
+        .limit(1);
+
       let basePrice = 1200;
       if (sch.length > 0 && sch[0].laneId) {
-        const rateRec = await db.select().from(rates).where(eq(rates.laneId, sch[0].laneId)).limit(1);
+        const rateRec = await db
+          .select()
+          .from(rates)
+          .where(eq(rates.laneId, sch[0].laneId))
+          .limit(1);
         if (rateRec.length > 0) {
-           basePrice = rateRec[0].baseRate + rateRec[0].baf + rateRec[0].pss + rateRec[0].thc;
+          basePrice =
+            rateRec[0].baseRate +
+            rateRec[0].baf +
+            rateRec[0].pss +
+            rateRec[0].thc;
         }
       }
 

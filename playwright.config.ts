@@ -12,7 +12,7 @@ export default defineConfig({
     timeout: 30000,
   },
   use: {
-    baseURL: "http://localhost:3002",
+    baseURL: "http://localhost:3000",
     trace: "on-first-retry",
     actionTimeout: 60000,
     navigationTimeout: 60000,
@@ -29,7 +29,7 @@ export default defineConfig({
 
   webServer: {
     command: 'pnpm concurrently "pnpm run start:backend" "pnpm run dev"',
-    url: "http://localhost:3002",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
