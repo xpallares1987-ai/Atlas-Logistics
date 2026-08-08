@@ -25,11 +25,9 @@ export default function WorkflowManagerModule() {
       .then((_data) => {
         alert(`Task '${taskId}' completed successfully!`);
       })
-      .catch((_err) => {
-        // Fallback to success simulation since some endpoints might not have POST triggers yet
-        setTimeout(() => {
-          alert(`Task '${taskId}' ran heuristics successfully!`);
-        }, 1500);
+      .catch((err) => {
+        console.error(`Task '${taskId}' failed`, err);
+        alert(`Task '${taskId}' failed. Please retry.`);
       })
       .finally(() => {
         setTimeout(() => {
