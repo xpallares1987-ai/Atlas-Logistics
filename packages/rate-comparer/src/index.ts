@@ -1,2 +1,4 @@
 // @ts-nocheck
-export { default as RateComparer } from './index.tsx';
+import RateComparer from "./index.tsx";
+export { RateComparer };
+export default RateComparer;

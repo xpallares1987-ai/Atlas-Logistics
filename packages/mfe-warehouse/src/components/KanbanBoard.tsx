@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import useWebSocket from "react-use-websocket";
 import {
   DndContext,
   closestCenter,
@@ -116,38 +115,60 @@ function KanbanColumn({ title, tasks }: { title: string; tasks: any[] }) {
 export default function KanbanBoard() {
   const queryClient = useQueryClient();
 
-  const WS_URL = API_URL
-    ? API_URL.replace(/^http/, "ws") + "/api/warehouse/ws"
-    : `ws://${window.location.host}/api/warehouse/ws`;
+  React.useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const WS_URL = API_URL
+      ? API_URL.replace(/^http/, "ws") + "/api/warehouse/ws"
+      : `${protocol}//${window.location.host}/api/warehouse/ws`;
 
-  useWebSocket(WS_URL, {
-    onMessage: (event) => {
+    let ws: WebSocket;
+    let reconnectTimer: any;
+
+    const connect = () => {
       try {
-        const data = JSON.parse(event.data);
-        const taskObj = data.task || data.payload?.task || data.payload;
-        if (data.type === "TASK_UPDATED" && taskObj) {
-          queryClient.setQueryData(["warehouse-tasks"], (old: any[]) => {
-            if (!old) return old;
-            return old.map((task) =>
-              task.id === taskObj.id
-                ? { ...task, status: taskObj.status }
-                : task,
-            );
-          });
-        }
-      } catch (err) {
-        console.error("Failed to parse websocket message", err);
-      }
-    },
-    shouldReconnect: () => true,
-    reconnectAttempts: 10,
-    reconnectInterval: 3000,
-  });
+        ws = new WebSocket(WS_URL);
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            const taskObj = data.task || data.payload?.task || data.payload;
+            if (data.type === "TASK_UPDATED" && taskObj) {
+              queryClient.setQueryData(["warehouse-tasks"], (old: any[]) => {
+                if (!old) return old;
+                return old.map((task) =>
+                  task.id === taskObj.id
+                    ? { ...task, status: taskObj.status }
+                    : task,
+                );
+              });
+            }
+          } catch (err) {
+            console.error("Failed to parse websocket message", err);
+          }
+        };
+        ws.onclose = () => {
+          reconnectTimer = setTimeout(connect, 3000);
+        };
+        ws.onerror = () => {
+          ws?.close();
+        };
+      } catch {}
+    };
+
+    connect();
+
+    return () => {
+      clearTimeout(reconnectTimer);
+      if (ws) ws.close();
+    };
+  }, [queryClient]);
 
   const { data: tasksData = [], isLoading } = useQuery({
     queryKey: ["warehouse-tasks"],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/warehouse/tasks`);
+      const token = localStorage.getItem("atlas_token");
+      const res = await fetch(`${API_URL}/api/warehouse/tasks`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) throw new Error("Failed to fetch tasks");
       return res.json();
     },
@@ -155,9 +176,13 @@ export default function KanbanBoard() {
 
   const updateTaskMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const token = localStorage.getItem("atlas_token");
       const res = await fetch(`${API_URL}/api/warehouse/tasks/${id}/status`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error("Failed to update task");

@@ -59,6 +59,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@atlas/mfe-warehouse": path.resolve(__dirname, "../mfe-warehouse"),
+      "@atlas/rate-comparer": path.resolve(__dirname, "../rate-comparer"),
     },
   },
   server: {

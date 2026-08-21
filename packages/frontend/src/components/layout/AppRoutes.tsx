@@ -6,9 +6,7 @@ import { SkeletonLoader } from "../SkeletonLoader";
 const Login = React.lazy(() => import("../../pages/Login"));
 const DashboardModule = React.lazy(() => import("../../pages/DashboardModule"));
 // @ts-ignore
-const RateComparerModule = React.lazy(() =>
-  import("@atlas/rate-comparer").then((m) => ({ default: m.RateComparer })),
-);
+const RateComparerModule = React.lazy(() => import("@atlas/rate-comparer"));
 const ESGCarbonTrackerModule = React.lazy(
   () => import("../../pages/ESGCarbonTrackerModule"),
 );
@@ -37,7 +35,12 @@ const DocumentVaultModule = React.lazy(
   () => import("../../pages/DocumentVaultModule"),
 );
 // @ts-ignore
-const WarehouseOpsModule = React.lazy(() => import("warehouse/WarehouseOps").then(m => ({ default: m.default })));
+const WarehouseOpsModule = React.lazy(() =>
+  // @ts-ignore
+  import("@atlas/mfe-warehouse/src/WarehouseOps").then((m) => ({
+    default: m.default,
+  })),
+);
 const SailingSchedulesModule = React.lazy(
   () => import("../../pages/SailingSchedulesModule"),
 );

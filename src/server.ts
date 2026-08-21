@@ -7,7 +7,10 @@ import { initPubSub } from "./services/pubsub.service.js";
 import { loadSecrets } from "./config/secrets.js";
 import { logger } from "./config/logger.js";
 import { connectRedis } from "./config/redis.js";
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+const PORT = parseInt(
+  process.env.BACKEND_PORT || process.env.API_PORT || "3001",
+  10,
+);
 
 async function bootstrap() {
   logger.info("Starting Atlas Logistics Backend...");

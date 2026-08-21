@@ -52,11 +52,27 @@ export default function AdvancedFiltersDrawer({
       setDraftDirect(requireDirect);
       setDraftPrice(maxPrice);
     }
-  }, [isOpen, selectedCarriers, maxTransitTime, maxCO2, requireDirect, maxPrice]);
+  }, [
+    isOpen,
+    selectedCarriers,
+    maxTransitTime,
+    maxCO2,
+    requireDirect,
+    maxPrice,
+  ]);
 
-  const currentTransit = draftTransit !== null ? draftTransit : maxAvailableTransit;
-  const currentCO2 = draftCO2 !== null ? draftCO2 : maxAvailableCO2;
-  const currentPrice = draftPrice !== null ? draftPrice : maxAvailablePrice;
+  const currentTransit =
+    (draftTransit !== null && draftTransit !== undefined
+      ? draftTransit
+      : maxAvailableTransit) ?? 60;
+  const currentCO2 =
+    (draftCO2 !== null && draftCO2 !== undefined
+      ? draftCO2
+      : maxAvailableCO2) ?? 5000;
+  const currentPrice =
+    (draftPrice !== null && draftPrice !== undefined
+      ? draftPrice
+      : maxAvailablePrice) ?? 10000;
 
   const handleApply = () => {
     onApplyFilters({
@@ -86,8 +102,13 @@ export default function AdvancedFiltersDrawer({
         }`}
       >
         <div className="flex items-center justify-between p-6 border-b border-slate-800">
-          <h2 className="text-xl font-bold text-white tracking-tight">Advanced Filters</h2>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white transition-colors">
+          <h2 className="text-xl font-bold text-white tracking-tight">
+            Advanced Filters
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-white transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -96,10 +117,17 @@ export default function AdvancedFiltersDrawer({
           {/* Direct Route */}
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-slate-200">Direct Routes Only</h3>
-              <p className="text-xs text-slate-500">Show only direct sailings (no transshipment)</p>
+              <h3 className="font-semibold text-slate-200">
+                Direct Routes Only
+              </h3>
+              <p className="text-xs text-slate-500">
+                Show only direct sailings (no transshipment)
+              </p>
             </div>
-            <Switch checked={draftDirect} onChange={(e) => setDraftDirect(e.target.checked)} />
+            <Switch
+              checked={draftDirect}
+              onChange={(e) => setDraftDirect(e.target.checked)}
+            />
           </div>
 
           <div className="h-px bg-slate-800" />
@@ -109,13 +137,13 @@ export default function AdvancedFiltersDrawer({
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-slate-200">Max Price (USD)</h3>
               <span className="text-sm font-black text-emerald-400">
-                ${currentPrice.toLocaleString()}
+                ${(currentPrice ?? 0).toLocaleString()}
               </span>
             </div>
             <input
               type="range"
               min="0"
-              max={maxAvailablePrice}
+              max={maxAvailablePrice ?? 10000}
               step="50"
               value={currentPrice}
               onChange={(e) => setDraftPrice(Number(e.target.value))}
@@ -129,12 +157,14 @@ export default function AdvancedFiltersDrawer({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-slate-200">Max Transit Time</h3>
-              <span className="text-sm font-black text-indigo-400">{currentTransit} Days</span>
+              <span className="text-sm font-black text-indigo-400">
+                {currentTransit} Days
+              </span>
             </div>
             <input
               type="range"
               min="1"
-              max={maxAvailableTransit}
+              max={maxAvailableTransit ?? 60}
               value={currentTransit}
               onChange={(e) => setDraftTransit(Number(e.target.value))}
               className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-400 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(129,140,248,0.5)] [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-125"
@@ -146,15 +176,17 @@ export default function AdvancedFiltersDrawer({
           {/* CO2 Emissions */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-200">Max CO₂ Emissions</h3>
+              <h3 className="font-semibold text-slate-200">
+                Max CO₂ Emissions
+              </h3>
               <span className="text-sm font-black text-rose-400">
-                {currentCO2.toLocaleString()} kg
+                {(currentCO2 ?? 0).toLocaleString()} kg
               </span>
             </div>
             <input
               type="range"
               min="0"
-              max={maxAvailableCO2}
+              max={maxAvailableCO2 ?? 5000}
               step="10"
               value={currentCO2}
               onChange={(e) => setDraftCO2(Number(e.target.value))}
@@ -177,7 +209,10 @@ export default function AdvancedFiltersDrawer({
             </div>
             <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
               {availableCarriers.map((c) => (
-                <label key={c} className="flex items-center gap-3 py-1 cursor-pointer group">
+                <label
+                  key={c}
+                  className="flex items-center gap-3 py-1 cursor-pointer group"
+                >
                   <div
                     className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
                       draftCarriers.includes(c)
@@ -189,14 +224,18 @@ export default function AdvancedFiltersDrawer({
                       <Check className="w-3 h-3 text-white" strokeWidth={3} />
                     )}
                   </div>
-                  <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">{c}</span>
+                  <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
+                    {c}
+                  </span>
                   <input
                     type="checkbox"
                     className="hidden"
                     checked={draftCarriers.includes(c)}
                     onChange={(e) => {
-                      if (e.target.checked) setDraftCarriers([...draftCarriers, c]);
-                      else setDraftCarriers(draftCarriers.filter((x) => x !== c));
+                      if (e.target.checked)
+                        setDraftCarriers([...draftCarriers, c]);
+                      else
+                        setDraftCarriers(draftCarriers.filter((x) => x !== c));
                     }}
                   />
                 </label>
@@ -206,7 +245,11 @@ export default function AdvancedFiltersDrawer({
         </div>
 
         <div className="p-6 border-t border-slate-800 bg-slate-900/50">
-          <Button variant="default" className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 border-0" onClick={handleApply}>
+          <Button
+            variant="default"
+            className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 border-0"
+            onClick={handleApply}
+          >
             Apply Filters
           </Button>
         </div>
