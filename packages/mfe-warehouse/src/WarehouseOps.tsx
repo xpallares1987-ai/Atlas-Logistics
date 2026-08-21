@@ -101,7 +101,10 @@ export default function WarehouseOpsModule() {
   const { data: trafficRes, isLoading: loadingTraffic } = useQuery({
     queryKey: ["warehouse-traffic"],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/warehouse/traffic`);
+      const token = localStorage.getItem("atlas_token");
+      const res = await fetch(`${API_URL}/api/warehouse/traffic`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) throw new Error("Failed to load traffic");
       return res.json();
     },
@@ -110,7 +113,10 @@ export default function WarehouseOpsModule() {
   const { data: inventoryRes, isLoading: loadingInventory } = useQuery({
     queryKey: ["warehouse-inventory"],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/warehouse/inventory`);
+      const token = localStorage.getItem("atlas_token");
+      const res = await fetch(`${API_URL}/api/warehouse/inventory`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) throw new Error("Failed to load inventory");
       return res.json();
     },

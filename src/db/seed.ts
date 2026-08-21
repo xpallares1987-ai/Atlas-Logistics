@@ -66,7 +66,17 @@ async function main() {
   console.log(`✅ Creadas ${companyIds.length} compañías.`);
 
   // 2. USERS & CONTACTS
-  const userIds = [];
+  const userIds = ["admin_user_id"];
+  await db
+    .insert(schema.users)
+    .values({
+      id: "admin_user_id",
+      companyId: companyIds[0],
+      email: "admin@atlas.com",
+      role: "ADMIN",
+    })
+    .onConflictDoNothing();
+
   for (const companyId of companyIds) {
     // Users
     for (let i = 0; i < 3; i++) {
