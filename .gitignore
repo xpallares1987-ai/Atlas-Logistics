@@ -95,3 +95,6 @@ storybook-static
 *.db
 *.sqlite
 *.sqlite-journal
+
+# pnpm store
+.pnpm-store/
