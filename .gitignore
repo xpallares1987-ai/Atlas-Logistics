@@ -98,3 +98,6 @@ storybook-static
 
 # pnpm store
 .pnpm-store/
+
+# Release stray artifacts
+1.1.0
