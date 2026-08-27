@@ -139,42 +139,50 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
   });
 
-  fastify.get("/download/:filename", async (request, reply) => {
-    try {
-      const { filename } = request.params as { filename: string };
+  fastify.get("/download/:filename", {
+    config: {
+      rateLimit: {
+        max: 60,
+        timeWindow: "1 minute",
+      },
+    },
+    handler: async (request, reply) => {
+      try {
+        const { filename } = request.params as { filename: string };
 
-      // Allow only simple filenames (no path separators / traversal)
-      const filenamePattern = /^[A-Za-z0-9._-]+$/;
-      if (!filenamePattern.test(filename) || path.basename(filename) !== filename) {
-        return reply.code(400).send({ error: "Invalid filename" });
+        // Allow only simple filenames (no path separators / traversal)
+        const filenamePattern = /^[A-Za-z0-9._-]+$/;
+        if (!filenamePattern.test(filename) || path.basename(filename) !== filename) {
+          return reply.code(400).send({ error: "Invalid filename" });
+        }
+
+        const uploadsRoot = path.resolve(process.cwd(), "uploads");
+        const filePath = path.resolve(uploadsRoot, filename);
+
+        if (filePath !== uploadsRoot && !filePath.startsWith(uploadsRoot + path.sep)) {
+          return reply.code(400).send({ error: "Invalid filename" });
+        }
+        
+        if (!fs.existsSync(filePath)) {
+          return reply.code(404).send({ error: "File not found" });
+        }
+
+        const fileBuffer = await fs.promises.readFile(filePath);
+        reply.header("Content-Disposition", `inline; filename="${filename}"`);
+        // Infer content type roughly based on extension, defaulting to octet-stream
+        const ext = path.extname(filename).toLowerCase();
+        const mimeTypes: Record<string, string> = {
+          ".pdf": "application/pdf",
+          ".png": "image/png",
+          ".jpg": "image/jpeg",
+          ".jpeg": "image/jpeg",
+        };
+        reply.header("Content-Type", mimeTypes[ext] || "application/octet-stream");
+        return reply.send(fileBuffer);
+      } catch (error: any) {
+        reply.code(500).send({ error: error.message });
       }
-
-      const uploadsRoot = path.resolve(process.cwd(), "uploads");
-      const filePath = path.resolve(uploadsRoot, filename);
-
-      if (filePath !== uploadsRoot && !filePath.startsWith(uploadsRoot + path.sep)) {
-        return reply.code(400).send({ error: "Invalid filename" });
-      }
-      
-      if (!fs.existsSync(filePath)) {
-        return reply.code(404).send({ error: "File not found" });
-      }
-
-      const fileBuffer = await fs.promises.readFile(filePath);
-      reply.header("Content-Disposition", `inline; filename="${filename}"`);
-      // Infer content type roughly based on extension, defaulting to octet-stream
-      const ext = path.extname(filename).toLowerCase();
-      const mimeTypes: Record<string, string> = {
-        ".pdf": "application/pdf",
-        ".png": "image/png",
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-      };
-      reply.header("Content-Type", mimeTypes[ext] || "application/octet-stream");
-      return reply.send(fileBuffer);
-    } catch (error: any) {
-      reply.code(500).send({ error: error.message });
-    }
+    },
   });
 };
 
