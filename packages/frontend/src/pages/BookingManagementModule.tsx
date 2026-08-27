@@ -113,7 +113,7 @@ export default function BookingManagementModule() {
       });
 
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["shipments"] });
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
         const savedBkg = await res.json();
         handleSelectBooking(savedBkg);
       }
@@ -132,7 +132,7 @@ export default function BookingManagementModule() {
         body: JSON.stringify(updatedData),
       });
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["shipments"] });
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
         const savedBkg = await res.json();
         handleSelectBooking(savedBkg);
       }
@@ -151,7 +151,7 @@ export default function BookingManagementModule() {
         method: "DELETE",
       });
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["shipments"] });
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
         setSelectedBkg(null);
         setFormData({});
         setIsEditing(false);
@@ -287,7 +287,7 @@ export default function BookingManagementModule() {
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["shipments"] });
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
         if (selectedBkg?.id === bkgId) {
           setFormData((prev) => ({ ...prev, status: newStatus }));
           setSelectedBkg((prev) =>

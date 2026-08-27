@@ -89,6 +89,15 @@ export default function LclConsolidationModule() {
         removeAssigned={removeAssigned}
         createNewContainer={createNewContainer}
         setActiveContainerId={setActiveContainerId}
+        autoOptimize={(cargoIds: string[]) => {
+          setMasterContainers(prev => prev.map(c => {
+            if (c.id === activeContainerId) {
+              const merged = new Set([...c.assignedCargoIds, ...cargoIds]);
+              return { ...c, assignedCargoIds: Array.from(merged) };
+            }
+            return c;
+          }));
+        }}
       />
     </motion.div>
   );

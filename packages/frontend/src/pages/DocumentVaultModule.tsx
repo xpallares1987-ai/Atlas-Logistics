@@ -10,7 +10,6 @@ import {
   FileIcon,
   Calendar,
 } from "lucide-react";
-import { DocumentPreviewer } from "@atlas/ui/src/components/DocumentPreviewer";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input, Modal } from "@atlas/ui";
 const API_URL = import.meta.env.VITE_API_URL || "/api";
@@ -186,17 +185,25 @@ export default function DocumentVaultModule() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-8">
-              {/* Reuse the existing DocumentPreviewer for HBLs, otherwise just show a generic placeholder since we only have HBL built */}
+              {/* Show download placeholder since stored documents should be viewed via download */}
               {selectedDoc.type === "HBL" ? (
-                <DocumentPreviewer
-                  type="HBL"
-                  reference={`HBL-${selectedDoc.shipmentId?.substring(0, 8)}`}
-                  shipper="Atlas Global Logistics"
-                  consignee="Tech Imports Inc."
-                  vessel="MSC AMSTERDAM"
-                  pol="CNSHA"
-                  pod="ESBCN"
-                />
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-white border border-slate-200 rounded-xl shadow-sm">
+                  <FileText className="w-16 h-16 mb-4 text-slate-300" />
+                  <p className="font-bold text-lg text-slate-500">
+                    HBL Preview
+                  </p>
+                  <p className="text-sm mt-2">
+                    Download the file to view its full contents.
+                  </p>
+                  <a
+                    href={selectedDoc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors text-sm font-medium"
+                  >
+                    Download HBL
+                  </a>
+                </div>
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-white border border-slate-200 rounded-xl shadow-sm">
                   <FileText className="w-16 h-16 mb-4 text-slate-300" />

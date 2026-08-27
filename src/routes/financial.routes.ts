@@ -143,19 +143,16 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
         .from(invoices)
         .where(eq(invoices.status, 'OVERDUE'));
 
-      // If DB is empty, provide fallback visuals for the premium dashboard experience
-      const hasData = shipmentsCount.count > 0;
-
       return reply.send({
-        totalShipments: hasData ? shipmentsCount.count : 1250,
-        onTimePercent: 92.5,
-        costPerShipment: 450,
-        revenueMtd: hasData ? revenueSum.total || 0 : 1500000,
-        costMtd: 1100000,
-        marginPercent: 26.7,
-        pendingInvoices: hasData ? pendingCount.count : 38,
-        overdueInvoices: hasData ? overdueCount.count : 7,
-        totalRevenue: hasData ? revenueSum.total || 0 : 4200000,
+        totalShipments: shipmentsCount.count,
+        onTimePercent: 0,
+        costPerShipment: 0,
+        revenueMtd: revenueSum.total || 0,
+        costMtd: 0,
+        marginPercent: 0,
+        pendingInvoices: pendingCount.count,
+        overdueInvoices: overdueCount.count,
+        totalRevenue: revenueSum.total || 0,
       });
     } catch (error: any) {
       reply.code(500).send({ error: error.message });
@@ -167,27 +164,47 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const [shipmentsCount] = await db.select({ count: sql<number>`count(*)` }).from(shipments);
       const hasData = shipmentsCount.count > 0;
 
-      // Mockup data for a premium dashboard experience if empty
+      if (hasData) {
+        // Aggregate real shipment statuses
+        const statusRows = await db
+          .select({ status: shipments.status, count: sql<number>`count(*)` })
+          .from(shipments)
+          .groupBy(shipments.status);
+
+        const volumeByStatus = statusRows.map((r) => ({ status: r.status, count: r.count }));
+
+        // Aggregate real revenue/cost data from invoices by month
+        const arRows = await db
+          .select({ month: sql<string>`strftime('%m', ${invoices.createdAt})`, total: sql<number>`sum(${invoices.amount})` })
+          .from(invoices)
+          .where(eq(invoices.type, 'AR'))
+          .groupBy(sql`strftime('%m', ${invoices.createdAt})`);
+
+        const apRows = await db
+          .select({ month: sql<string>`strftime('%m', ${invoices.createdAt})`, total: sql<number>`sum(${invoices.amount})` })
+          .from(invoices)
+          .where(eq(invoices.type, 'AP'))
+          .groupBy(sql`strftime('%m', ${invoices.createdAt})`);
+
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const arMap = Object.fromEntries(arRows.map(r => [r.month, r.total || 0]));
+        const apMap = Object.fromEntries(apRows.map(r => [r.month, r.total || 0]));
+        const months = new Set([...Object.keys(arMap), ...Object.keys(apMap)]);
+        const revenueTrend = Array.from(months).sort().map(m => ({
+          name: monthNames[parseInt(m, 10) - 1] || m,
+          revenue: arMap[m] || 0,
+          costs: apMap[m] || 0,
+        }));
+
+        return reply.send({ revenueTrend, volumeByStatus });
+      }
+
+      // Fallback mock data for empty database
       const revenueTrend = [
-        { name: 'Jan', revenue: 450000, costs: 320000 },
-        { name: 'Feb', revenue: 520000, costs: 380000 },
-        { name: 'Mar', revenue: 480000, costs: 350000 },
-        { name: 'Apr', revenue: 610000, costs: 420000 },
-        { name: 'May', revenue: 590000, costs: 410000 },
-        { name: 'Jun', revenue: 750000, costs: 490000 },
+        { name: 'Jan', revenue: 0, costs: 0 },
       ];
 
-      const volumeByStatus = [
-        { status: 'In Transit', count: 420 },
-        { status: 'Customs Hold', count: 35 },
-        { status: 'Pending', count: 150 },
-        { status: 'Completed', count: 850 },
-      ];
-
-      // If we had actual data, we could group by month and sum here.
-      // Since this is a demo, we will just return the mockup if DB is empty,
-      // and if DB has data we can still return mockup or real data.
-      // For now we will just return the mockup to ensure charts look beautiful.
+      const volumeByStatus: { status: string; count: number }[] = [];
 
       return reply.send({ revenueTrend, volumeByStatus });
     } catch (error: any) {

@@ -5,7 +5,6 @@ import {
   Landmark,
   ArrowUpRight,
   ArrowDownRight,
-  Plus,
   Search,
   FileText,
   CheckCircle2,
@@ -227,9 +226,6 @@ export default function InvoicingModule() {
                 Reports
               </Button>
             </div>
-            <Button className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 border border-white/10 transition-all hover:scale-105 active:scale-95">
-              <Plus className="w-5 h-5 mr-2" /> New Invoice
-            </Button>
           </div>
         </div>
 

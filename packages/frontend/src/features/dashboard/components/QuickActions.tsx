@@ -1,5 +1,5 @@
 
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function QuickActions() {
@@ -11,14 +11,6 @@ export function QuickActions() {
         className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
       >
         <Search className="w-5 h-5" />
-      </motion.button>
-      
-      <motion.button 
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-      >
-        <Filter className="w-5 h-5" />
       </motion.button>
 
       <motion.button 

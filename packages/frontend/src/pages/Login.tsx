@@ -7,8 +7,8 @@ import { Globe, Lock, Mail, ArrowRight, Loader2, Anchor } from "lucide-react";
 
 export default function LoginModule() {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("demo@atlas.com"); // Pre-filled for demo
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 

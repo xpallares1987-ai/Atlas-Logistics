@@ -30,7 +30,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         id: userId,
         email,
         hashedPassword,
-        role: "ADMIN" // Default for testing
+        role: "USER"
       });
 
       const session = await lucia.createSession(userId, {});
