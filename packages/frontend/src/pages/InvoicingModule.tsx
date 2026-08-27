@@ -26,6 +26,14 @@ import {
   TableRow,
 } from "@atlas/ui";
 
+interface InvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
 interface Invoice {
   id: string;
   invoiceNumber: string;
@@ -37,6 +45,10 @@ interface Invoice {
   dueDate: string;
   shipmentId?: string;
   partyId: string;
+}
+
+interface InvoiceDetail extends Invoice {
+  items: InvoiceItem[];
 }
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
@@ -73,6 +85,12 @@ export default function InvoicingModule() {
   const { data: invoicesData, isLoading } = useApiQuery<Invoice[]>(
     ["invoices"],
     "/invoices",
+  );
+
+  const { data: invoiceDetail } = useApiQuery<InvoiceDetail>(
+    ["invoice-detail", selectedInvoice?.id ?? ""],
+    `/invoices/${selectedInvoice?.id}`,
+    { enabled: !!selectedInvoice },
   );
   const invoices = Array.isArray(invoicesData) ? invoicesData : [];
 
@@ -556,56 +574,38 @@ export default function InvoicingModule() {
                         </TableRow>
                       </TableHeader>
                       <TableBody className="divide-y divide-slate-200">
-                        <TableRow className="border-0">
-                          <TableCell className="py-4">
-                            <p className="font-bold text-slate-900">
-                              Freight Charges
-                            </p>
-                            <p className="text-sm text-slate-500">
-                              Ocean freight logistics
-                            </p>
-                          </TableCell>
-                          <TableCell className="text-center py-4 text-slate-700">
-                            1
-                          </TableCell>
-                          <TableCell className="text-right py-4 text-slate-700">
-                            {new Intl.NumberFormat("en-US", {
-                              style: "currency",
-                              currency: selectedInvoice.currency,
-                            }).format(selectedInvoice.amount * 0.9)}
-                          </TableCell>
-                          <TableCell className="text-right py-4 font-bold text-slate-900">
-                            {new Intl.NumberFormat("en-US", {
-                              style: "currency",
-                              currency: selectedInvoice.currency,
-                            }).format(selectedInvoice.amount * 0.9)}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow className="border-0">
-                          <TableCell className="py-4">
-                            <p className="font-bold text-slate-900">
-                              Port Handling
-                            </p>
-                            <p className="text-sm text-slate-500">
-                              Terminal handling charges (THC)
-                            </p>
-                          </TableCell>
-                          <TableCell className="text-center py-4 text-slate-700">
-                            1
-                          </TableCell>
-                          <TableCell className="text-right py-4 text-slate-700">
-                            {new Intl.NumberFormat("en-US", {
-                              style: "currency",
-                              currency: selectedInvoice.currency,
-                            }).format(selectedInvoice.amount * 0.1)}
-                          </TableCell>
-                          <TableCell className="text-right py-4 font-bold text-slate-900">
-                            {new Intl.NumberFormat("en-US", {
-                              style: "currency",
-                              currency: selectedInvoice.currency,
-                            }).format(selectedInvoice.amount * 0.1)}
-                          </TableCell>
-                        </TableRow>
+                        {(invoiceDetail?.items ?? []).length > 0 ? (
+                          invoiceDetail!.items.map((item) => (
+                            <TableRow key={item.id} className="border-0">
+                              <TableCell className="py-4">
+                                <p className="font-bold text-slate-900">
+                                  {item.description}
+                                </p>
+                              </TableCell>
+                              <TableCell className="text-center py-4 text-slate-700">
+                                {item.quantity}
+                              </TableCell>
+                              <TableCell className="text-right py-4 text-slate-700">
+                                {new Intl.NumberFormat("en-US", {
+                                  style: "currency",
+                                  currency: selectedInvoice.currency,
+                                }).format(item.unitPrice)}
+                              </TableCell>
+                              <TableCell className="text-right py-4 font-bold text-slate-900">
+                                {new Intl.NumberFormat("en-US", {
+                                  style: "currency",
+                                  currency: selectedInvoice.currency,
+                                }).format(item.total)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow className="border-0">
+                            <TableCell colSpan={4} className="py-4 text-center text-slate-500">
+                              No line items
+                            </TableCell>
+                          </TableRow>
+                        )}
                       </TableBody>
                     </Table>
 

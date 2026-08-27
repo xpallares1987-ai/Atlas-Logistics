@@ -219,6 +219,51 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
     }
   });
 
+  fastify.get("/invoices/:id", async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+
+      const invoiceRecords = await db
+        .select({
+          id: invoices.id,
+          invoiceNumber: invoices.invoiceNumber,
+          type: invoices.type,
+          party: companies.name,
+          partyId: invoices.companyId,
+          amount: invoices.amount,
+          currency: invoices.currency,
+          status: invoices.status,
+          dueDate: invoices.dueDate,
+          shipmentId: invoices.shipmentId,
+        })
+        .from(invoices)
+        .leftJoin(companies, eq(invoices.companyId, companies.id))
+        .where(eq(invoices.id, id));
+
+      if (invoiceRecords.length === 0) {
+        return reply.code(404).send({ error: "Invoice not found" });
+      }
+
+      const items = await db
+        .select()
+        .from(invoiceItems)
+        .where(eq(invoiceItems.invoiceId, id));
+
+      return reply.send({
+        ...invoiceRecords[0],
+        items: items.map((i) => ({
+          id: i.id,
+          description: i.description,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          total: i.total,
+        })),
+      });
+    } catch (error: any) {
+      reply.code(500).send({ error: error.message });
+    }
+  });
+
   fastify.get("/invoices/:id/pdf", async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
