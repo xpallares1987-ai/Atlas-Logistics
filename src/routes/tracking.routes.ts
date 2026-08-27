@@ -147,8 +147,11 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
         .select({ companyId: shipments.companyId })
         .from(shipments)
         .limit(1);
-      
-      const clientCompanyId = companyIdRes.length > 0 ? companyIdRes[0].companyId : "00000000-0000-0000-0000-000000000000";
+
+      const clientCompanyId =
+        companyIdRes.length > 0
+          ? companyIdRes[0].companyId
+          : "00000000-0000-0000-0000-000000000000";
 
       await db.insert(shipments).values({
         id: shipmentId,

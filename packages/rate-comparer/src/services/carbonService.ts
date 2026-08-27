@@ -38,4 +38,3 @@ export function getCarbonRating(kgCO2: number): "green" | "amber" | "red" {
   if (kgCO2 < 10000) return "amber";
   return "red";
 }
-

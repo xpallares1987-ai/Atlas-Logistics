@@ -7,9 +7,13 @@ import fastifyJwt from "@fastify/jwt";
 import fastifyRedis from "@fastify/redis";
 import fastifyWebsocket from "@fastify/websocket";
 import fastifyMultipart from "@fastify/multipart";
+import swagger from "@fastify/swagger";
+import swaggerUI from "@fastify/swagger-ui";
+import metrics from "fastify-metrics";
 import { redis } from "./config/redis.js";
 
 import bpmnRoutes from "./routes/bpmn.routes.js";
+import "./cron/backup-scheduler.js"; // start cron scheduler
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import { logger } from "./config/logger.js";
 import { authMiddleware } from "./middleware/auth.js";
@@ -32,15 +36,32 @@ import adminDbRoutes from "./routes/admin-db.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
 import customsRoutes from "./routes/customs.routes.js";
+import warehouseRoutes from "./routes/warehouse.routes.js";
+import airCargoRoutes from "./routes/air-cargo.routes.js";
+import { incotermsRoutes } from "./routes/incoterms.routes.js";
+import { claimsRoutes } from "./routes/claims.routes.js";
+import { roadFreightRoutes } from "./routes/road-freight.routes.js";
 
 // Removed tRPC imports
 
 const app = Fastify({ loggerInstance: logger });
 
 // Security Middlewares
+const isProduction = process.env.NODE_ENV === "production";
 app.register(fastifyHelmet, {
-  contentSecurityPolicy:
-    process.env.NODE_ENV === "production" ? undefined : false,
+  contentSecurityPolicy: isProduction
+    ? {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'nonce-%{nonce}'"],
+          styleSrc: ["'self'", "'nonce-%{nonce}'"],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          frameAncestors: ["'none'"],
+          upgradeInsecureRequests: true,
+        },
+      }
+    : false,
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" },
 });
@@ -90,6 +111,14 @@ app.register(fastifyRateLimit, {
   timeWindow: "15 minutes",
   redis: redis, // Use shared Redis (or mock) for rate limiting
 });
+app.register(metrics, { endpoint: "/metrics" });
+app.register(swagger, {
+  openapi: {
+    info: { title: "Atlas Logistics API", version: "1.0.0" },
+  },
+  exposeRoute: true,
+});
+app.register(swaggerUI, { routePrefix: "/docs", exposeRoute: true });
 
 app.register(fastifyCookie, {
   secret:
@@ -112,7 +141,11 @@ app.addHook("onRequest", async (request, reply) => {
     request.url.startsWith("/api/tracking/") ||
     request.url.startsWith("/api/auth/") ||
     request.url.startsWith("/admin/") ||
-    request.url === "/api/health"
+    request.url.startsWith("/api/warehouse/ws") ||
+    request.url === "/api/health" ||
+    request.url === "/health" ||
+    request.url === "/metrics" ||
+    request.url.startsWith("/docs")
   ) {
     return;
   }
@@ -124,7 +157,7 @@ app.addHook("onRequest", async (request, reply) => {
 // Register routes as plugins
 app.register(shipmentsRoutes, { prefix: "/api/shipments" });
 app.register(exceptionsRoutes, { prefix: "/api/shipments/exceptions" });
-app.register(shipmentsRoutes, { prefix: "/api/tracking" });
+// Removed duplicate shipmentsRoutes registration for tracking (trackingRoutes registered separately)
 app.register(quotesRoutes, { prefix: "/api/quotes" });
 app.register(quotesRoutes, { prefix: "/api/rates" });
 app.register(financialRoutes, { prefix: "/api" });
@@ -143,5 +176,10 @@ app.register(bpmnRoutes, { prefix: "/api" });
 app.register(dashboardRoutes, { prefix: "/api/dashboard" });
 app.register(healthRoutes, { prefix: "/api" });
 app.register(customsRoutes, { prefix: "/api" });
+app.register(warehouseRoutes, { prefix: "/api/warehouse" });
+app.register(airCargoRoutes, { prefix: "/api" });
+app.register(incotermsRoutes, { prefix: "/api/incoterms" });
+app.register(claimsRoutes, { prefix: "/api/claims" });
+app.register(roadFreightRoutes, { prefix: "/api/road-freight" });
 
 export default app;

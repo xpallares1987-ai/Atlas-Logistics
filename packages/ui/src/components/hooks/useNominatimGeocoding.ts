@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export interface Coordinates {
   lat: number;
@@ -19,10 +19,10 @@ export function useNominatimGeocoding(locationName: string) {
         // Nominatim is OpenStreetMap's search API. Free to use, no registration needed.
         // It requires a User-Agent header (or valid email) to avoid being blocked.
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationName)}&format=json&limit=1`
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationName)}&format=json&limit=1`,
         );
         if (!response.ok) {
-          throw new Error('Geocoding failed');
+          throw new Error("Geocoding failed");
         }
         const data = await response.json();
         if (data && data.length > 0) {
@@ -34,8 +34,8 @@ export function useNominatimGeocoding(locationName: string) {
           setCoordinates(null);
         }
       } catch (err) {
-        console.error('Error in geocoding:', err);
-        setError('Failed to resolve location coordinates.');
+        console.error("Error in geocoding:", err);
+        setError("Failed to resolve location coordinates.");
       } finally {
         setLoading(false);
       }

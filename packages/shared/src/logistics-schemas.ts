@@ -138,7 +138,10 @@ export type StockItem = z.infer<typeof StockItemSchema>;
 export const CreateShipmentSchema = z.object({
   body: z
     .object({
-      referenceNumber: z.string().regex(/^[A-Z0-9-]+$/, "Invalid reference format").max(100),
+      referenceNumber: z
+        .string()
+        .regex(/^[A-Z0-9-]+$/, "Invalid reference format")
+        .max(100),
       status: z
         .enum([
           "DRAFT",
@@ -195,7 +198,10 @@ export const UpdateShipmentSchema = z.object({
 export const CreateQuoteSchema = z.object({
   body: z
     .object({
-      quoteNumber: z.string().regex(/^[A-Z0-9-]+$/).max(100),
+      quoteNumber: z
+        .string()
+        .regex(/^[A-Z0-9-]+$/)
+        .max(100),
       customerId: z.string().uuid(),
       originLocationId: z.string().uuid().optional(),
       destinationLocationId: z.string().uuid().optional(),
@@ -214,11 +220,18 @@ export const CreateQuoteSchema = z.object({
 export const CreateInvoiceSchema = z.object({
   body: z
     .object({
-      invoiceNumber: z.string().regex(/^[A-Z0-9-]+$/).max(100),
+      invoiceNumber: z
+        .string()
+        .regex(/^[A-Z0-9-]+$/)
+        .max(100),
       type: z.enum(["AR", "AP", "CN", "DN"]),
       partyId: z.string().uuid(),
       shipmentId: z.string().uuid().optional(),
-      currency: z.string().length(3).regex(/^[A-Z]{3}$/).default("USD"),
+      currency: z
+        .string()
+        .length(3)
+        .regex(/^[A-Z]{3}$/)
+        .default("USD"),
       subtotal: z.number().nonnegative().optional(),
       taxAmount: z.number().nonnegative().optional(),
       totalAmount: z.number().nonnegative(),

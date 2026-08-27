@@ -110,4 +110,3 @@ export async function decryptData<T>(
   const jsonStr = await decryptToken(encrypted, pin);
   return JSON.parse(jsonStr) as T;
 }
-

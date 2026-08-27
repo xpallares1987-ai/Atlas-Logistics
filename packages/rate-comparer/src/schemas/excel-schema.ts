@@ -81,4 +81,3 @@ export function validateFreightRates(data: any[]): ValidatedFreightRate[] {
     }
   });
 }
-

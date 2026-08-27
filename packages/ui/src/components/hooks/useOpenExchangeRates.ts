@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 interface ExchangeRates {
   amount: number;
@@ -7,8 +7,12 @@ interface ExchangeRates {
   rates: Record<string, number>;
 }
 
-export function useOpenExchangeRates(baseCurrency: string = 'USD') {
-  const [rates, setRates] = useState<Record<string, number>>({ USD: 1, EUR: 0.9, GBP: 0.75 }); // fallbacks
+export function useOpenExchangeRates(baseCurrency: string = "USD") {
+  const [rates, setRates] = useState<Record<string, number>>({
+    USD: 1,
+    EUR: 0.9,
+    GBP: 0.75,
+  }); // fallbacks
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,9 +22,11 @@ export function useOpenExchangeRates(baseCurrency: string = 'USD') {
         setLoading(true);
         // Frankfurter API is a free, open-source API for current and historical foreign exchange rates published by the ECB.
         // It does not require an API key or registration.
-        const response = await fetch(`https://open.er-api.com/v6/latest/${baseCurrency}`);
+        const response = await fetch(
+          `https://open.er-api.com/v6/latest/${baseCurrency}`,
+        );
         if (!response.ok) {
-          throw new Error('Failed to fetch exchange rates');
+          throw new Error("Failed to fetch exchange rates");
         }
         const data: ExchangeRates = await response.json();
         setRates({
@@ -28,8 +34,8 @@ export function useOpenExchangeRates(baseCurrency: string = 'USD') {
           ...data.rates,
         });
       } catch (err) {
-        console.error('Error fetching exchange rates:', err);
-        setError('Could not load live rates, using fallback values.');
+        console.error("Error fetching exchange rates:", err);
+        setError("Could not load live rates, using fallback values.");
       } finally {
         setLoading(false);
       }

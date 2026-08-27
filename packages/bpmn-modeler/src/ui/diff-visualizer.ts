@@ -1,6 +1,6 @@
-import { DiagramVersion } from '../services/history-service';
-import Modeler from 'bpmn-js/lib/Modeler';
-import { fitViewport } from '../services/modeler-service';
+import { DiagramVersion } from "../services/history-service";
+import Modeler from "bpmn-js/lib/Modeler";
+import { fitViewport } from "../services/modeler-service";
 
 export class DiffVisualizer {
   private container: HTMLDialogElement;
@@ -9,8 +9,8 @@ export class DiffVisualizer {
 
   constructor(currentModeler: Modeler) {
     this.currentModeler = currentModeler;
-    this.container = document.createElement('dialog');
-    this.container.className = 'modal modal--large diff-modal';
+    this.container = document.createElement("dialog");
+    this.container.className = "modal modal--large diff-modal";
     this.container.innerHTML = `
       <div class="modal__header">
         <h2 class="modal__title">Comparación Visual de Versiones</h2>
@@ -30,16 +30,23 @@ export class DiffVisualizer {
     `;
 
     document.body.appendChild(this.container);
-    this.canvas = this.container.querySelector('#diffCanvas') as HTMLElement;
+    this.canvas = this.container.querySelector("#diffCanvas") as HTMLElement;
 
-    this.container.querySelector('.btn--close')?.addEventListener('click', () => this.close());
+    this.container
+      .querySelector(".btn--close")
+      ?.addEventListener("click", () => this.close());
   }
 
   async open(versions: DiagramVersion[]) {
-    const select = this.container.querySelector('#versionSelect') as HTMLSelectElement;
+    const select = this.container.querySelector(
+      "#versionSelect",
+    ) as HTMLSelectElement;
     select.innerHTML = versions
-      .map((v) => `<option value="${v.id}">${v.label} (${new Date(v.timestamp).toLocaleString()})</option>`)
-      .join('');
+      .map(
+        (v) =>
+          `<option value="${v.id}">${v.label} (${new Date(v.timestamp).toLocaleString()})</option>`,
+      )
+      .join("");
 
     select.onchange = async () => {
       const version = versions.find((v) => v.id === select.value);
@@ -54,18 +61,18 @@ export class DiffVisualizer {
   }
 
   private async visualizeDiff(oldXml: string) {
-    const { default: BpmnModeler } = await import('bpmn-js/lib/Modeler');
+    const { default: BpmnModeler } = await import("bpmn-js/lib/Modeler");
     // @ts-expect-error: bpmn-js-differ lacks type definitions
-    const { default: BpmnDiffer } = await import('bpmn-js-differ');
+    const { default: BpmnDiffer } = await import("bpmn-js-differ");
 
-    this.canvas.innerHTML = '';
+    this.canvas.innerHTML = "";
 
     const differModeler = new BpmnModeler({
       container: this.canvas,
       additionalModules: [
         {
-          __init__: ['changeVisualization'],
-          changeVisualization: ['type', function () {}],
+          __init__: ["changeVisualization"],
+          changeVisualization: ["type", function () {}],
         },
       ],
     });
@@ -80,11 +87,15 @@ export class DiffVisualizer {
       const currentDefinitions = differModeler.getDefinitions();
 
       const diff = new BpmnDiffer().diff(oldDefinitions, currentDefinitions);
-      const canvas = differModeler.get('canvas') as any;
+      const canvas = differModeler.get("canvas") as any;
 
-      Object.keys(diff.added).forEach((id) => canvas.addMarker(id, 'diff-added'));
-      Object.keys(diff.changed).forEach((id) => canvas.addMarker(id, 'diff-changed'));
-      Object.keys(diff.removed).forEach((id) => console.log('Eliminado:', id));
+      Object.keys(diff.added).forEach((id) =>
+        canvas.addMarker(id, "diff-added"),
+      );
+      Object.keys(diff.changed).forEach((id) =>
+        canvas.addMarker(id, "diff-changed"),
+      );
+      Object.keys(diff.removed).forEach((id) => console.log("Eliminado:", id));
 
       fitViewport(differModeler);
     } catch (err) {}

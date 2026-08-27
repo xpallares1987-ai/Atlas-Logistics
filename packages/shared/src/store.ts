@@ -15,5 +15,6 @@ export const useAppStore = create<AppState>((set: any) => ({
   quoteCart: [],
   setCurrency: (currency: string) => set({ currency }),
   setLanguage: (language: string) => set({ language }),
-  addToCart: (item: any) => set((state: AppState) => ({ quoteCart: [...state.quoteCart, item] })),
+  addToCart: (item: any) =>
+    set((state: AppState) => ({ quoteCart: [...state.quoteCart, item] })),
 }));

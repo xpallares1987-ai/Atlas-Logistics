@@ -10,21 +10,21 @@
  */
 
 export function initPassiveEventsPatch() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
-  const eventTypes = ['wheel', 'mousewheel', 'touchstart', 'touchmove'];
+  const eventTypes = ["wheel", "mousewheel", "touchstart", "touchmove"];
   const originalAddEventListener = EventTarget.prototype.addEventListener;
 
   EventTarget.prototype.addEventListener = function (
     type: string,
     listener: EventListenerOrEventListenerObject,
-    options?: boolean | AddEventListenerOptions
+    options?: boolean | AddEventListenerOptions,
   ) {
     let addOptions = options;
 
     if (
       eventTypes.includes(type) &&
-      (typeof options === 'undefined' || options === null || options === false)
+      (typeof options === "undefined" || options === null || options === false)
     ) {
       // Solo hacer pasivo si el usuario no ha especificado explícitamente que no lo sea.
       // Si el listener es de una librería como bpmn-js que espera preventDefault,
@@ -35,5 +35,5 @@ export function initPassiveEventsPatch() {
     return originalAddEventListener.call(this, type, listener, addOptions);
   };
 
-  console.log('⚡ Passive Event Listeners Shim initialized');
+  console.log("⚡ Passive Event Listeners Shim initialized");
 }

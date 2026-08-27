@@ -591,14 +591,14 @@ export default function ComparisonTable({
     // Add headers and rows
     const headers = Object.keys(excelRows[0]);
     worksheet.addRow(headers);
-    excelRows.forEach(row => worksheet.addRow(Object.values(row)));
+    excelRows.forEach((row) => worksheet.addRow(Object.values(row)));
 
     // Fit column widths elegantly
     const max_width = excelRows.reduce(
       (w, r) => Math.max(w, String(r["Carrier / Lines (Naviera)"]).length),
       15,
     );
-    
+
     worksheet.columns = [
       { width: max_width + 2 },
       { width: 20 },
@@ -2031,4 +2031,3 @@ export default function ComparisonTable({
     </div>
   );
 }
-

@@ -1,23 +1,29 @@
-import { migrate } from 'drizzle-orm/libsql/migrator';
-import { db } from './index.js';
+import { migrate } from "drizzle-orm/libsql/migrator";
+import { db, databaseUrl } from "./index.js";
 
 export async function runMigrations() {
-  console.log('Running database migrations...');
+  console.log(`Running database migrations on ${databaseUrl}...`);
   try {
-    await migrate(db, { migrationsFolder: './drizzle' });
-    console.log('Database migrations completed successfully.');
+    await migrate(db, { migrationsFolder: "./drizzle" });
+    console.log(
+      `Database migrations on ${databaseUrl} completed successfully.`,
+    );
   } catch (error) {
-    console.error('Error running migrations:', error);
+    console.error("Error running migrations:", error);
     throw error;
   }
 }
 
-const isMain = import.meta.url.includes('migrate.ts') || process.argv[1].includes('migrate.ts');
+const isMain =
+  import.meta.url.includes("migrate.ts") ||
+  process.argv[1].includes("migrate.ts");
 if (isMain) {
-  runMigrations().then(() => {
-    process.exit(0);
-  }).catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+  runMigrations()
+    .then(() => {
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
 }

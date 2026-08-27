@@ -1,5 +1,5 @@
-import { sql } from 'drizzle-orm';
-import { db } from './index.js';
+import { sql } from "drizzle-orm";
+import { db } from "./index.js";
 
 async function main() {
   try {

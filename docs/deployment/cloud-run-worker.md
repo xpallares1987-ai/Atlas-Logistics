@@ -35,6 +35,7 @@ gcloud run deploy atlas-worker \
 ```
 
 ### 3. Consideraciones Adicionales
+
 - **Concurrencia vs Peticiones HTTP**: A diferencia del servicio web que escala por peticiones HTTP simultáneas, este worker realiza el procesamiento en background procesando tareas de **BullMQ**. Configura el escalado de Cloud Run basado en uso de CPU (CPU Utilization) para los contenedores que hacen background processing.
 - **Graceful Shutdown**: El código captura `SIGTERM`. Cloud Run envía esta señal cuando va a apagar un contenedor (ej. por scale to zero o redespliegue). El nodo tiene 10 segundos para cerrar conexiones antes del SIGKILL.
 - **Sin puerto expuesto**: Este servicio no necesita exponer un puerto web porque solo se conecta a Redis y a la base de datos de manera saliente (`--no-allow-unauthenticated`).

@@ -1,8 +1,8 @@
-import { AtlasWorker, AtlasBpmnError } from '../../utils/worker-base.js';
-import { NO_RATES_FOUND, CARRIER_TIMEOUT } from '../../utils/error-codes.js';
-import { db } from '../../../db/index.js';
-import { rates, lanes } from '../../../db/schema/index.js';
-import { and, eq, gte } from 'drizzle-orm';
+import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
+import { NO_RATES_FOUND, CARRIER_TIMEOUT } from "../../utils/error-codes.js";
+import { db } from "../../../db/index.js";
+import { rates, lanes } from "../../../db/schema/index.js";
+import { and, eq, gte } from "drizzle-orm";
 
 interface FetchRatesInput {
   origin: string;
@@ -40,12 +40,14 @@ interface FetchRatesOutput {
  * can be plugged in via the abstract fetch methods below.
  */
 class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
-  readonly taskType = 'atlas.rates.fetch';
+  readonly taskType = "atlas.rates.fetch";
 
   async execute(job: any): Promise<FetchRatesOutput> {
     const { origin, destination, containerType } = job.variables;
 
-    console.log(`[FetchRates] Querying rates: ${origin} → ${destination} (${containerType || 'ANY'})`);
+    console.log(
+      `[FetchRates] Querying rates: ${origin} → ${destination} (${containerType || "ANY"})`,
+    );
 
     try {
       // Query local rates database
@@ -69,7 +71,7 @@ class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
           rates: mockRates,
           rateCount: mockRates.length,
           fetchedAt: new Date().toISOString(),
-          status: 'MOCK_DATA',
+          status: "MOCK_DATA",
         };
       }
 
@@ -78,7 +80,7 @@ class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
         const l = row.lanes;
         return {
           id: r.id,
-          carrier: r.carrierId || 'UNKNOWN',
+          carrier: r.carrierId || "UNKNOWN",
           serviceLine: r.serviceLine,
           origin: l?.originLocationId || origin,
           destination: l?.destinationLocationId || destination,
@@ -89,7 +91,7 @@ class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
           thc: r.thc,
           totalCost: r.baseRate + r.baf + r.pss + r.thc,
           validTo: String(r.validTo),
-          currency: 'USD',
+          currency: "USD",
         };
       });
 
@@ -97,7 +99,7 @@ class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
         rates: carrierRates,
         rateCount: carrierRates.length,
         fetchedAt: new Date().toISOString(),
-        status: 'SUCCESS',
+        status: "SUCCESS",
       };
     } catch (error) {
       throw new AtlasBpmnError(
@@ -112,63 +114,78 @@ class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
     return [
       {
         id: `mock-maersk-${Date.now()}`,
-        carrier: 'Maersk',
-        serviceLine: 'AE7 - Asia Express',
-        origin, destination,
+        carrier: "Maersk",
+        serviceLine: "AE7 - Asia Express",
+        origin,
+        destination,
         transitTime: 28,
         baseOceanFreight: 1050,
-        baf: 85, pss: 60, thc: 120,
+        baf: 85,
+        pss: 60,
+        thc: 120,
         totalCost: 1315,
-        validTo: '2026-12-31',
-        currency: 'USD',
+        validTo: "2026-12-31",
+        currency: "USD",
       },
       {
         id: `mock-msc-${Date.now()}`,
-        carrier: 'MSC',
-        serviceLine: 'Silk Route',
-        origin, destination,
+        carrier: "MSC",
+        serviceLine: "Silk Route",
+        origin,
+        destination,
         transitTime: 30,
         baseOceanFreight: 980,
-        baf: 75, pss: 50, thc: 110,
+        baf: 75,
+        pss: 50,
+        thc: 110,
         totalCost: 1215,
-        validTo: '2026-12-31',
-        currency: 'USD',
+        validTo: "2026-12-31",
+        currency: "USD",
       },
       {
         id: `mock-hapag-${Date.now()}`,
-        carrier: 'Hapag-Lloyd',
-        serviceLine: 'Far East Loop 1',
-        origin, destination,
+        carrier: "Hapag-Lloyd",
+        serviceLine: "Far East Loop 1",
+        origin,
+        destination,
         transitTime: 26,
         baseOceanFreight: 1120,
-        baf: 90, pss: 70, thc: 130,
+        baf: 90,
+        pss: 70,
+        thc: 130,
         totalCost: 1410,
-        validTo: '2026-12-31',
-        currency: 'USD',
+        validTo: "2026-12-31",
+        currency: "USD",
       },
       {
         id: `mock-cosco-${Date.now()}`,
-        carrier: 'COSCO',
-        serviceLine: 'CEN - China Europe Network',
-        origin, destination,
+        carrier: "COSCO",
+        serviceLine: "CEN - China Europe Network",
+        origin,
+        destination,
         transitTime: 32,
         baseOceanFreight: 920,
-        baf: 65, pss: 45, thc: 100,
+        baf: 65,
+        pss: 45,
+        thc: 100,
         totalCost: 1130,
-        validTo: '2026-12-31',
-        currency: 'USD',
+        validTo: "2026-12-31",
+        currency: "USD",
       },
       {
         id: `mock-evergreen-${Date.now()}`,
-        carrier: 'Evergreen',
-        serviceLine: 'CEM - China Europe Mediterranean',
-        origin, destination,
+        carrier: "Evergreen",
+        serviceLine: "CEM - China Europe Mediterranean",
+        origin,
+        destination,
         transitTime: 29,
         baseOceanFreight: 1000,
-        baf: 80, pss: 55, thc: 115,
+        baf: 80,
+        pss: 55,
+        thc: 115,
         totalCost: 1250,
-        validTo: '2026-12-31',
-        currency: 'USD',
+        validTo: "2026-12-31",
+        currency: "USD",
       },
     ];
   }

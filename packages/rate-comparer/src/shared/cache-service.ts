@@ -126,4 +126,3 @@ export async function swrFetch<T>(config: SWRConfig<T>): Promise<T | null> {
   const freshRaw = await runBackgroundRevalidation();
   return freshRaw ? await parser(freshRaw) : null;
 }
-

@@ -35,7 +35,7 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   // New WebSocket route for notifications (Demurrage, etc)
   fastify.get("/ws/notifications", { websocket: true }, (socket, req) => {
     logger.info("New WebSocket connection established");
-    
+
     // Broadcast function wrapper
     const onEvent = (data: any) => {
       socket.send(JSON.stringify(data));
@@ -43,11 +43,16 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
     // Listen to our global emitter
     emitter.on("newEvent", onEvent);
-    
-    // Optional: send a welcome ping
-    socket.send(JSON.stringify({ type: 'CONNECTED', message: 'WebSocket ready for alerts' }));
 
-    socket.on("message", message => {
+    // Optional: send a welcome ping
+    socket.send(
+      JSON.stringify({
+        type: "CONNECTED",
+        message: "WebSocket ready for alerts",
+      }),
+    );
+
+    socket.on("message", (message) => {
       // client could send messages back if needed
     });
 

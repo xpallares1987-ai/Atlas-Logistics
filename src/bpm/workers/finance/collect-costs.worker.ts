@@ -11,18 +11,25 @@ interface CollectCostsOutput {
 /**
  * Collects all estimated costs for a shipment.
  */
-class CollectCostsWorker extends AtlasWorker<CollectCostsInput, CollectCostsOutput> {
+class CollectCostsWorker extends AtlasWorker<
+  CollectCostsInput,
+  CollectCostsOutput
+> {
   readonly taskType = "atlas.invoice.collect-costs";
 
   async execute(job: any): Promise<CollectCostsOutput> {
     const { shipmentId } = job.variables;
 
-    console.log(`[CollectCostsWorker] Collecting costs for shipment ${shipmentId}...`);
+    console.log(
+      `[CollectCostsWorker] Collecting costs for shipment ${shipmentId}...`,
+    );
 
     // Mocking the cost collection
-    const expectedCost = 1250.00; // Simulated aggregated cost
+    const expectedCost = 1250.0; // Simulated aggregated cost
 
-    console.log(`[CollectCostsWorker] Total expected cost for shipment ${shipmentId} is $${expectedCost}.`);
+    console.log(
+      `[CollectCostsWorker] Total expected cost for shipment ${shipmentId} is $${expectedCost}.`,
+    );
 
     return {
       expectedCost,

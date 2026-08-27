@@ -1,47 +1,110 @@
-# Atlas Logistics Architecture
+# Atlas Logistics System Architecture
 
-This document details the current architectural structure and design of **Atlas Logistics**.
+This document provides a comprehensive overview of the architecture, component topology, data persistence, and deterministic calculation engines powering **Atlas Logistics ERP**.
 
-## 1. Overview: Frontend-First and Super-App
+---
 
-The project has moved away from traditional heavy backend API architectures (independent Node.js servers, Fastify, Motores de workflow externos) in favor of a unified **Frontend-First** model.
-The entire application runs and renders directly in the browser as a Super-App powered by **Vite** and **React Router**. This approach eliminates unnecessary API hops for most UI interactions, deeply integrating state management directly within the frontend monorepo host while delegating heavy asynchronous jobs to worker nodes.
+## 1. High-Level Architectural Model
 
-## 2. Turborepo and Package Management
+Atlas Logistics employs a **Hybrid Micro-Frontend and Fastify Backend** architecture designed for ultra-low latency, zero operational cloud costs ($0 local architecture), and full compliance with international freight forwarding regulations.
 
-The ecosystem is built on a Monorepo managed by `Turborepo` and `pnpm` (version 10+). Dependencies are linked using local *symlinks* (`workspace:*`) ensuring maximum code reuse and parallel compilation times.
+```mermaid
+graph TD
+    User["Logistics Operator / Forwarder / Customs Broker"] --> Host["@atlas/frontend (Vite + React 19 + TailwindCSS)"]
+    
+    subgraph Monorepo Workspaces
+        Host --> MFE1["@atlas/warehouse-ops (Vite Module Federation)"]
+        Host --> MFE2["@atlas/rate-comparer (Dynamic Pricing & Surcharges)"]
+        Host --> MFE3["@atlas/bpmn-modeler (ISO/IEC 19510 BPMN Modeler)"]
+        Host --> UI["@atlas/ui (Dark Glassmorphism Design System)"]
+        Host --> Shared["@atlas/shared (Zod Schemas, Types, Cryptography)"]
+    end
+    
+    Host -->|REST / JSON + WebSockets| API["Fastify 5 Backend Server (:3001)"]
+    
+    subgraph Deterministic Core Services
+        API --> CustomsEng["Customs & TARIC Engine (54-Box DUA, HS Codes, Sanctions)"]
+        API --> AirCargoEng["IATA e-Freight Engine (Modulo-7 Checksum, DGR, Cargo-XML)"]
+        API --> IncotermsEng["Incoterms® 2020 & Customs Normalizer (UCC Art. 70-74)"]
+        API --> ClaimsEng["Cargo Claims & SDR Liability Engine (Hague-Visby, Montreal, CMR)"]
+        API --> RoadEng["Road Freight & e-CMR Engine (ADR 1.1.3.6, 33-Pallet Capacity, Tachograph)"]
+        API --> PDFEng["PDFKit Vector Generator (e-CMR, Carta de Porte, AWB, DUA, Claims)"]
+    end
+    
+    subgraph Data & Queue Layer
+        API --> DB["Local SQLite Database (atlas.db via @libsql/client + Drizzle ORM)"]
+        API --> Redis["Redis Queue Broker (BullMQ Background Workers)"]
+    end
+```
 
-### Main Structure
+---
 
-- **`packages/frontend` (Host App)**: This is the heart of the application. It acts as the main orchestrator that consolidates routing (React Router) and the general layout. It is the only frontend that runs to start the entire ecosystem.
-- **Integrated Modules (in `packages/`)**:
-  - **`packages/dashboard`**: Main panel for shipments, logistics telemetry, and container visibility.
-  - **`packages/rate-comparer`**: Module dedicated to the ingestion, comparison, and analytics of freight rates.
-  - **`packages/bpmn-modeler`**: Module dedicated to BPMN workflow orchestration.
-  - **`packages/mfe-warehouse`**: **Micro-Frontend (MFE)** dedicated to Warehouse Operations using Module Federation.
-- **`packages/shared` and `packages/ui`**: Contain shared utilities and UI components consumed by the main application.
+## 2. Monorepo Topology (Turborepo & pnpm Workspaces)
 
-*(Note: Legacy external `apps`, `functions`, and `data` directories have been removed in favor of strict Monorepo packing.)*
+The codebase is organized into modular packages using `pnpm` workspaces:
 
-## 3. Data Layer (SQLite & Drizzle)
+| Package | Role | Key Technologies |
+|---|---|---|
+| **`packages/frontend`** | Main Host Super-App | React 19, Vite 8, React Router 7, TanStack Query, TailwindCSS |
+| **`packages/dashboard`** | Operational analytics & KPIs | React 19, Lucide, Recharts |
+| **`packages/rate-comparer`** | Multi-carrier ocean/air freight rating | Dynamic rate matrices, BAF/CAF surcharges |
+| **`packages/bpmn-modeler`** | Business process modeler & versioning | BPMN 2.0 XML parser, canvas designer |
+| **`packages/warehouse-ops`** | Warehouse digital twin & dock traffic | 3D & 2.5D visual rack & pallet management |
+| **`packages/ui`** | Reusable design system | Glassmorphism styling tokens, buttons, modal wrappers |
+| **`packages/shared`** | Shared utilities and cryptographic security | Zod schemas, DOMPurify, timingSafeEqual |
 
-All persistent state and database queries for the Super-App are performed using **Local SQLite** and **Drizzle ORM**.
+---
 
-1. **Local SQLite (`atlas.db`)**: The single source of truth for the local environment, achieving $0 operational costs.
-2. **libSQL Driver**: We use `@libsql/client` (WASM/JS) rather than `better-sqlite3` to ensure the project runs seamlessly on Windows and Node 24 without native C++ compilation (node-gyp) errors.
-3. **Drizzle ORM**: Used for strict TypeScript schemas and migrations, executed locally via `pnpm run db:push`.
+## 3. Backend & API Services (Fastify 5)
 
-## 4. CI/CD Pipeline and Continuous Integration
+The server runtime is built on **Fastify 5**, providing high throughput and native plugin modularity:
 
-The repository is configured for ultra-efficient continuous integration automated with **GitHub Actions**:
-- **Build and Testing**: The official build command is `pnpm run build` at the root, which uses Turbo to package in parallel using remote/local caches.
-- **Code Scanning and Security**: Constant code analysis in CI with CodeQL and `njsscan` to prevent vulnerability regressions.
-- **E2E Testing**: Automated End-to-End testing orchestrated locally using **Playwright**.
+- **Authentication & RBAC**: `@fastify/jwt` handles session validation and role authorization across `ADMIN`, `MANAGER`, `OPERATIONS`, `EXECUTIVE`, `SALES`, `CUSTOMER`, and `DRIVER`.
+- **Real-Time WebSockets**: `@fastify/websocket` broadcasts instantaneous dispatch, customs status updates, and demurrage alerts.
+- **REST Endpoints**:
+  - `/api/auth`: Login, user registration, role validation.
+  - `/api/customs-declarations`: 54-box DUA declarations, TARIC calculations, DUA XML/PDF.
+  - `/api/air-cargo`: e-AWB, Modulo-7 validation, DGR screening, Cargo-XML/IMP.
+  - `/api/incoterms`: 11-rule responsibility matrix, customs valuation normalizer, commercial contracts.
+  - `/api/claims`: Cargo claims, statutory SDR caps, Carrier Protest Letters, Subrogation Receipts.
+  - `/api/road-freight`: e-CMR consignments, ADR 1.1.3.6 points, trailer load %, Carta de Porte PDF.
 
-## 5. Security and Access Control (RBAC)
+---
 
-Authentication and multi-tenant authorization have been upgraded from mock providers to a robust **JWT-based Authentication** system using `@fastify/jwt`. A global `AuthContext` governs Role-Based Access Control (RBAC), securely gating sensitive modules (e.g. Agent Settlements, Finance) based on the user's validated identity stored in the SQLite database.
+## 4. Deterministic Business & Regulatory Engines
 
-## 6. Asynchronous Tasks (BullMQ)
+All logistics calculations are 100% deterministic, executing strictly defined mathematical and legal formulas:
 
-Heavy workflows or background processing are decoupled from the main thread using **BullMQ** with Redis (AtlasEngine Workers) rather than relying on external Cloud Tasks, keeping the stack fully self-hosted. This setup handles robust retry mechanisms, rate limiting, and delayed background jobs. In cases where Redis connectivity is temporarily lost, the system gracefully handles reconnections to ensure jobs are safely queued and executed without data loss.
+1. **Customs Valuation Normalization (EU UCC Art. 70–74)**:
+   $$\text{CIF Customs Value} = \text{Invoice Price} + \text{Additions (Freight, Origin Terminal, Insurance)} - \text{Deductions (Post-Import Duty, Inland Freight)}$$
+2. **IATA Modulo-7 Checksum Verification**:
+   $$\text{Checksum} = \text{Serial Number (7 digits)} \pmod 7$$
+3. **ADR 2025 Section 1.1.3.6 Small Load Exemption (Puntos ADR)**:
+   $$\text{Total Points} = \sum (\text{Quantity (kg/L)} \times \text{Multiplier}) \le 1,000 \implies \text{Exempt from orange plates}$$
+4. **Statutory International Carrier Liability Limits (SDR / DEG)**:
+   - **Maritime (Hague-Visby)**: $\max(\text{Gross kg} \times 2.00, \; \text{Packages} \times 666.67) \times \text{Rate}_{\text{SDR}\to\text{EUR}}$
+   - **Air Cargo (Montreal 1999)**: $\text{Gross kg} \times 22.00 \times \text{Rate}_{\text{SDR}\to\text{EUR}}$
+   - **Road Freight (CMR)**: $\text{Gross kg} \times 8.33 \times \text{Rate}_{\text{SDR}\to\text{EUR}}$
+   - **Rail Freight (CIM)**: $\text{Gross kg} \times 17.00 \times \text{Rate}_{\text{SDR}\to\text{EUR}}$
+
+---
+
+## 5. Persistence & Database Design (Drizzle ORM & SQLite)
+
+The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
+- **Environment Isolation & Resolution**:
+  - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
+  - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
+  - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
+- **59 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+- **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`) and immutable audit logs.
+- **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.
+- **Automated Backup Utility**: Daily snapshot scheduler saving database state to `/backups`.
+
+---
+
+## 6. Testing & Quality Assurance
+
+- **Vitest Suite**: 30 test suites with 135 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
+- **Playwright E2E**: End-to-end browser tests verifying user flows across all operational modules.
+- **CodeQL SAST**: Continuous security analysis with zero alerts.

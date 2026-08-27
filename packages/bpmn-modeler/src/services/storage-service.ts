@@ -1,13 +1,13 @@
-import { decryptToken, encryptToken } from '@atlas/shared';
-import { DiagramTab } from '../types';
+import { decryptToken, encryptToken } from "@atlas/shared";
+import { DiagramTab } from "../types";
 
 export { decryptToken, encryptToken };
 
 function isStorageAvailable(): boolean {
   try {
     const storage = window.localStorage;
-    const testKey = '__mi_aplicacion_test__';
-    storage.setItem(testKey, '1');
+    const testKey = "__mi_aplicacion_test__";
+    storage.setItem(testKey, "1");
     storage.removeItem(testKey);
     return true;
   } catch {
@@ -45,9 +45,17 @@ export interface StorageKeys {
   tabsState: string;
 }
 
-export function saveUiSession(keys: StorageKeys, uiState: { propertiesPanelOpen?: boolean } = {}) {
+export function saveUiSession(
+  keys: StorageKeys,
+  uiState: { propertiesPanelOpen?: boolean } = {},
+) {
   if (!keys.uiState) return false;
-  return safeSetItem(keys.uiState, JSON.stringify({ propertiesPanelOpen: Boolean(uiState.propertiesPanelOpen) }));
+  return safeSetItem(
+    keys.uiState,
+    JSON.stringify({
+      propertiesPanelOpen: Boolean(uiState.propertiesPanelOpen),
+    }),
+  );
 }
 
 export function loadUiSession(keys: StorageKeys) {
@@ -55,18 +63,26 @@ export function loadUiSession(keys: StorageKeys) {
   const raw = safeGetItem(keys.uiState);
   if (!raw) return null;
   try {
-    return { propertiesPanelOpen: Boolean(JSON.parse(raw).propertiesPanelOpen) };
+    return {
+      propertiesPanelOpen: Boolean(JSON.parse(raw).propertiesPanelOpen),
+    };
   } catch {
     return null;
   }
 }
 
-export function saveTabsSession(keys: StorageKeys, tabs: DiagramTab[], activeTabId: string) {
+export function saveTabsSession(
+  keys: StorageKeys,
+  tabs: DiagramTab[],
+  activeTabId: string,
+) {
   if (!keys.tabsState) return false;
   return safeSetItem(keys.tabsState, JSON.stringify({ tabs, activeTabId }));
 }
 
-export function loadTabsSession(keys: StorageKeys): { tabs: DiagramTab[]; activeTabId: string; } | null {
+export function loadTabsSession(
+  keys: StorageKeys,
+): { tabs: DiagramTab[]; activeTabId: string } | null {
   if (!keys.tabsState) return null;
   const raw = safeGetItem(keys.tabsState);
   if (!raw) return null;
@@ -76,4 +92,3 @@ export function loadTabsSession(keys: StorageKeys): { tabs: DiagramTab[]; active
     return null;
   }
 }
-

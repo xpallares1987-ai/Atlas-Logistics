@@ -3,6 +3,12 @@ import request from "supertest";
 import app from "../../app.js";
 import { db } from "../../db/index.js";
 
+// Mock auth middleware for unit tests
+vi.mock("../../middleware/auth.js", () => ({
+  authMiddleware: vi.fn(async () => {}),
+  requireRole: vi.fn(() => async () => {}),
+}));
+
 // Mock the database
 vi.mock("../../db/index.js", () => ({
   db: {
@@ -34,14 +40,13 @@ describe("Shipments Routes", () => {
   it("should create a new shipment", async () => {
     const payload = {
       referenceNumber: "SHP-001",
-      originLocationId: "LOC-A",
-      destinationLocationId: "LOC-B",
-      status: "PENDING",
-      transportMode: "OCEAN",
+      status: "DRAFT",
     };
 
     await app.ready();
-    const response = await request(app.server).post("/api/shipments").send(payload);
+    const response = await request(app.server)
+      .post("/api/shipments")
+      .send(payload);
 
     expect(response.status).toBe(200);
     expect(response.body.referenceNumber).toBe("REF-123");

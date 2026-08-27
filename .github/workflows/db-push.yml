@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to run migrations on'
+        description: "Environment to run migrations on"
         required: true
-        default: 'production'
+        default: "production"
 
 jobs:
   db-push:

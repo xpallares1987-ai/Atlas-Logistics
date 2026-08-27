@@ -1,4 +1,4 @@
-import { DynamicRateEngine } from '@atlas/ui/src/components/DynamicRateEngine';
+import { DynamicRateEngine } from "@atlas/ui/src/components/DynamicRateEngine";
 
 export default function DynamicPricingModule() {
   return (

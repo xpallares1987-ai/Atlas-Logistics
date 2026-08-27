@@ -1,95 +1,56 @@
-### Resumen ejecutivo
+# Resumen Ejecutivo del Proyecto — Atlas Logistics ERP
 
-**Atlas Logistics** es un monorepo tipo Super-App para la gestión de la cadena de suministro que unifica frontend, backend, orquestación de procesos y una capa de datos tipada y segura. El proyecto prioriza un enfoque **frontend-first** con Vite y React, orquestación nativa con AtlasEngine (BullMQ + Drizzle), persistencia mediante **SQLite local (libSQL)** y una capa de IA para capacidades predictivas y analíticas. El repositorio usa **pnpm** y **Turborepo** para builds rápidos y compartición de código.
+### Visión General
+**Atlas Logistics** es una plataforma integral (Super-App ERP) para la gestión completa de la cadena de suministro internacional y transporte multimodal (marítimo, aéreo, terrestre y aduanero). El sistema combina un frontend modular de alto rendimiento (Vite, React 19, TailwindCSS Glassmorphism), un backend de baja latencia con **Fastify 5**, persistencia local de coste cero (**SQLite / libSQL** con Drizzle ORM), y motores deterministas para el cumplimiento de normativas aduaneras, aéreas, terrestres y mercantiles internacionales.
 
-### Arquitectura y stack técnico
+---
 
-**Estructura general**
-- **Monorepo** gestionado con Turborepo y pnpm workspaces.  
-- **Frontend**: Vite, React 19, TailwindCSS (Glassmorphism); paquetes principales @atlas/frontend, @atlas/ui, @atlas/dashboard, @atlas/warehouse-ops (MFE).  
-- **Backend**: Node.js con Fastify (Auth JWT + WebSockets); AtlasEngine Workers basados en BullMQ.
-- **Orquestación**: AtlasEngine con trabajos programados en BullMQ y UI embeddada.  
-- **Capa de datos**: SQLite local como fachada tipada sobre Drizzle ORM para un coste $0 garantizado.
-- **IA**: Integración para Text-to-SQL, predictETA, OCR y optimizadores.
+### Módulos Principales Implementados
 
-**Herramientas y prácticas**
-- **Gestión de paquetes**: pnpm v10+ con overrides y enlaces locales.
-- **Calidad y CI**: ESLint, Prettier, Husky, lint-staged, CodeQL, njsscan, GitHub Actions, Playwright E2E.  
-- **Contenedores**: Docker Compose para entorno local con Nginx, Node backend, y Redis.  
-- **Observabilidad**: métricas y trazas en workers; logs estructurados para tareas en background.
+| Módulo | Estándar / Normativa | Funcionalidades Clave |
+|---|---|---|
+| **Customs Clearance & TARIC** | DUA / SAD (54 Casillas), Nomenclatura TARIC, CAU | Cálculo de aranceles, IVA aduanero, antidumping, cribado de sanciones UE/ONU, exportación XML y DUA PDF oficial. |
+| **IATA e-Freight & Air Cargo** | IATA Res. 600a, Modulo-7, DGR Lithium Batteries | Emisión e-AWB (MAWB/HAWB), rating volumétrico 1:6000 ($167\text{ kg/m}^3$), mensajería Cargo-XML/IMP y AWB PDF. |
+| **Incoterms® 2020 & Contratos** | Reglas Oficiales ICC Incoterms® 2020, CAU Arts. 70–74 | Matriz 11 reglas × 10 etapas, normalizador de valor en aduana (DUA Box 46), cláusulas de entrega y contrato mercantil PDF bilingüe. |
+| **Siniestros & Recobros** | La Haya-Visby, Montreal 1999, CMR, CIM/COTIF | Cálculo de límites estatutarios en DEG, plazos de prescripción, Cartas de Reserva Formal y Recibos de Subrogación PDF. |
+| **Transporte Terrestre & e-CMR** | Protocolo e-CMR de Ginebra (24 Cajas), Ley 15/2009, RDL 3/2022 | Despacho FTL/LTL, calculadora ADR 1.1.3.6 (1.000 puntos), capacidad de trailer 33 pallets y tacógrafo CE 561/2006. |
+| **Container Planner 3D & LCL** | ISO 668 Contenedores Marítimos | Cubicaje 3D de contenedores, centro de gravedad, distribución de ejes y consolidación LCL multi-cliente. |
+| **Warehouse Digital Twin** | Gestión de Almacén & Tráfico de Andenes | Visualización 3D y 2.5D de almacén, control de muelles, inventario y tareas de fulfillment. |
+| **BPMN 2.0 Workflows & Pricing** | ISO/IEC 19510 (BPMN 2.0) | Modelador visual de procesos logísticos con versionado, motor de tarifas dinámicas con recargos BAF/CAF/PSS. |
 
-### Desarrollo local y despliegue
+---
 
-**Requisitos**
-- **Node.js** 22 o superior.  
-- **pnpm** 10 o superior.  
-- **Docker Desktop** (opcional) para entorno local con contenedores.
+### Stack Tecnológico
 
-**Comandos esenciales**
-`ash
+- **Frontend**: React 19, TypeScript 5.7+, Vite 8, TailwindCSS, Framer Motion, Lucide Icons.
+- **Backend**: Node.js 22+, Fastify 5, `@fastify/jwt`, `@fastify/websocket`, `pdfkit`.
+- **Persistencia**: SQLite (libSQL client) + Drizzle ORM (59 tablas, triggers, vistas, secuencias).
+- **Asincronía**: BullMQ + ioredis (con fallback en memoria para desarrollo autónomo).
+- **Control de Calidad**: Vitest (30 suites, 135 tests unitarios e integrados, 100% aprobados), Playwright E2E.
+- **Monorepo**: Turborepo + pnpm v10 workspaces (`@atlas/frontend`, `@atlas/dashboard`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/warehouse-ops`, `@atlas/ui`, `@atlas/shared`).
+
+---
+
+### Comandos de Operación Rápida
+
+```bash
+# Instalación de dependencias
 pnpm install
-pnpm run dev
-pnpm run db:push
+
+# Compilación de todo el monorepo
+pnpm run build
+
+# Entorno de Desarrollo (Base de datos local: file:atlas-erp-v2.db)
+pnpm run db:migrate
 pnpm run db:seed
-pnpm run db:reset-and-seed
-docker compose up --build -d
-docker compose down
-docker compose down -v
-pnpm run lint
-pnpm run test:e2e
-`
+pnpm run dev
 
-**Flujo rápido**
-- Clonar el repositorio y ejecutar pnpm install.  
-- Crear .env.local a partir de .env.example y añadir variables locales.  
-- Sincronizar esquema con pnpm run db:push y poblar datos con pnpm run db:seed.  
-- Levantar entorno con pnpm run dev o docker compose up --build -d.  
-- Ejecutar linters y tests antes de abrir PRs.
+# Entorno de Producción (Base de datos aislada: file:atlas-erp-prod.db o DATABASE_URL)
+pnpm run db:migrate:prod
+pnpm run db:seed:prod
+pnpm run start:prod   # o: pnpm start
 
-**Workers y orquestación**
-- Crear AtlasWorker en src/bpm/workers/.  
-- Registrar worker en src/bpm/workers/index.ts para arranque automático.
-
-### Seguridad y gobernanza
-
-**Autenticación y autorización**
-- **Mock Auth** de desarrollo para pruebas locales, reduciendo costes y facilitando testeo rápido.
-- Componentes frontend **RoleGate** y **ProtectedRoute** para control de UI simulando roles.
-
-**Gestión de credenciales y despliegue**
-- Evitar claves estáticas en el repositorio.  
-- Variables sensibles gestionadas por secretos en CI/CD local (.env.local).
-
-**Auditoría y respuesta**
-- Escaneos automáticos en CI con CodeQL y njsscan.  
-- Proceso de reporte de vulnerabilidades con respuesta en 24 a 48 horas.
-
-**Políticas de contribución**
-- Flujo Git Flow y Conventional Commits.  
-- PRs bloqueados hasta pasar linters, tests y escaneos.  
-- Código de conducta y normas de revisión obligatorias.
-
-### Cambios recientes y archivos clave
-
-**Migraciones y cambios destacados**
-- Consolidación del frontend bajo packages/frontend y limpieza de repositorios antiguos (eliminación de carpetas legacy).
-- Migración de la capa de datos en la nube (GCP) hacia arquitectura $0 con **SQLite local**.
-- Implementación de modelo de roles mockeado para validación en frontend.
-- Automatización de simulación de ERP con BullMQ (AtlasEngine).
-- Integración fullstack del **Customer Portal** (con tracking de eventos y backend HBL generation) y **Document Vault** (carga real de archivos `FormData` y vistas de UI interactivas).
-
-**Archivos y rutas importantes**
-- **README.md**: visión general y comandos de inicio.  
-- **ARCHITECTURE.md**: diseño de alto nivel y patrones operativos.  
-- **atlas_logistics_local_guide.md**: guía práctica para desarrollo local y Atlas Workers.  
-- **CHANGELOG.md**: historial de cambios y migraciones.  
-- **SECURITY.md** y **CODE_OF_CONDUCT.md**: políticas de seguridad y conducta.  
-- **CONTRIBUTING.md**: normas de contribución y flujo de trabajo.  
-
-### Checklist de arranque rápido
-
-1. Clonar el repositorio y ejecutar **pnpm install**.  
-2. Crear **.env.local** a partir de **.env.example** con variables requeridas.
-3. Ejecutar **pnpm run db:push** y **pnpm run db:seed**.  
-4. Levantar entorno con **pnpm run dev** o **docker compose up --build -d**.  
-5. Ejecutar linters y tests: **pnpm run lint**, **pnpm run test:e2e**.
+# Ejecución de pruebas
+pnpm test
+npx playwright test
+```

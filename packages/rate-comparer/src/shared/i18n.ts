@@ -35,4 +35,3 @@ export class I18nEngine<T> {
     window.location.reload();
   }
 }
-

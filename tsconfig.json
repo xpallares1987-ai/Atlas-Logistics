@@ -9,5 +9,13 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist"
   },
-  "include": ["src/**/*", "drizzle.config.ts", "vite.config.ts", "camunda-config/**/*", "drop-schema.ts", "seed_customer.ts"]
+  "include": [
+    "src/**/*",
+    "drizzle.config.ts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "camunda-config/**/*",
+    "drop-schema.ts",
+    "seed_customer.ts"
+  ]
 }

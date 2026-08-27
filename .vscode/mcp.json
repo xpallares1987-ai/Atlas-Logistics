@@ -2,11 +2,8 @@
   "servers": {
     "playwright": {
       "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@playwright/mcp@latest"
-      ],
+      "command": "pnpm",
+      "args": ["dlx", "-y", "@playwright/mcp@latest"],
       "cwd": "${workspaceFolder}"
     }
   }

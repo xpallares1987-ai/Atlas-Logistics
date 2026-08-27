@@ -48,4 +48,3 @@ export function subscribeToEvents(
     ch.removeEventListener("message", listener);
   };
 }
-

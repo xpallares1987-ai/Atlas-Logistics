@@ -15,7 +15,10 @@ describe("dom utilities", () => {
   });
 
   it("should ensure element is provided", () => {
-    const el = document.createElement("div");
+    const el =
+      typeof document !== "undefined"
+        ? document.createElement("div")
+        : ({ tagName: "div" } as any);
     expect(ensureElement(el)).toBe(el);
     expect(() => ensureElement(null)).toThrow("No valid element provided");
   });

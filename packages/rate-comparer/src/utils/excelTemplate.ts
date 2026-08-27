@@ -65,7 +65,7 @@ export async function downloadRateTemplate() {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("DATOS");
 
-  wsData.forEach(row => worksheet.addRow(row));
+  wsData.forEach((row) => worksheet.addRow(row));
 
   // Set column widths for better readability
   worksheet.columns = [

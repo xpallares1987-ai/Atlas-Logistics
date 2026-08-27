@@ -1,4 +1,4 @@
-import { AtlasWorker } from '../../utils/worker-base.js';
+import { AtlasWorker } from "../../utils/worker-base.js";
 
 interface GenerateManifestInput {
   shipmentId: string;
@@ -26,13 +26,17 @@ interface GenerateManifestOutput {
  * Generates a Cargo Manifest document.
  * Lists all cargo aboard a vessel for a specific voyage.
  */
-class GenerateManifestWorker extends AtlasWorker<GenerateManifestInput, GenerateManifestOutput> {
-  readonly taskType = 'atlas.docs.generate-manifest';
+class GenerateManifestWorker extends AtlasWorker<
+  GenerateManifestInput,
+  GenerateManifestOutput
+> {
+  readonly taskType = "atlas.docs.generate-manifest";
 
   async execute(job: any): Promise<GenerateManifestOutput> {
-    const { referenceNumber, vessel, voyage, hblNumber, mblNumber } = job.variables;
+    const { referenceNumber, vessel, voyage, hblNumber, mblNumber } =
+      job.variables;
 
-    const manifestNumber = `MNF-${referenceNumber.replace('SHP-', '')}`;
+    const manifestNumber = `MNF-${referenceNumber.replace("SHP-", "")}`;
 
     console.log(`[GenerateManifest] Creating manifest ${manifestNumber}`);
     console.log(`  Vessel: ${vessel} / ${voyage}`);

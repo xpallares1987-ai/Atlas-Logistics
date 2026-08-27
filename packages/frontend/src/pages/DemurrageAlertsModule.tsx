@@ -1,4 +1,4 @@
-import { DemurrageAlerts } from '@atlas/ui/src/components/DemurrageAlerts';
+import { DemurrageAlerts } from "@atlas/ui/src/components/DemurrageAlerts";
 
 export default function DemurrageAlertsModule() {
   return (
