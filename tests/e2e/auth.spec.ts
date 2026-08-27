@@ -6,7 +6,7 @@ test.describe("Authentication & RBAC", () => {
     await page.goto("/login");
 
     // Wait for the form to render
-    await expect(page.locator("text=Atlas ERP")).toBeVisible();
+    await expect(page.getByText("Atlas Enterprise")).toBeVisible();
 
     // Fill credentials
     await page.fill('input[type="email"]', "admin@atlas.com");
