@@ -325,6 +325,7 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
           id: invoiceId,
           invoiceNumber: data.invoiceNumber,
           type: data.type || "AR",
+          shipmentId: data.shipmentId || null,
           companyId: data.partyId || "00000000-0000-0000-0000-000000000000",
           amount: data.totalAmount || 0,
           taxAmount: data.taxAmount || 0,
