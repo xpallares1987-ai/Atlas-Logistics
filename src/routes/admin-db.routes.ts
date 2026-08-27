@@ -56,12 +56,10 @@ const adminDbRoutes: FastifyPluginAsync = async (fastify, opts) => {
       };
 
       if (!tableName || !columns || columns.length === 0) {
-        return reply
-          .status(400)
-          .send({
-            success: false,
-            error: "tableName and columns are required",
-          });
+        return reply.status(400).send({
+          success: false,
+          error: "tableName and columns are required",
+        });
       }
 
       // Very basic sanity check
@@ -106,12 +104,10 @@ const adminDbRoutes: FastifyPluginAsync = async (fastify, opts) => {
         };
 
       if (!columnName || !dataType) {
-        return reply
-          .status(400)
-          .send({
-            success: false,
-            error: "columnName and dataType are required",
-          });
+        return reply.status(400).send({
+          success: false,
+          error: "columnName and dataType are required",
+        });
       }
       if (
         !/^[a-zA-Z0-9_]+$/.test(table) ||

@@ -7,7 +7,9 @@ Atlas Logistics es una **Super-App integral de Gestión de Cadena de Suministro 
 ---
 
 ## 🚀 El Nuevo Paradigma (Arquitectura $0)
+
 Tras nuestra Fase 6 de refactorización, el proyecto se ejecuta **100% en local sin coste operativo** (Zero-Cost Architecture), eliminando dependencias externas cloud en desarrollo:
+
 - **Base de Datos:** Drizzle ORM + libSQL (SQLite local de alto rendimiento). Funcionalidades avanzadas inyectadas vía Triggers, Vistas y Secuencias personalizadas.
 - **Background Jobs:** BullMQ + ioredis (con fallback asíncrono si Redis se desconecta).
 - **Tiempo Real:** Fastify WebSockets (sin necesidad de Firebase).
@@ -18,22 +20,26 @@ Tras nuestra Fase 6 de refactorización, el proyecto se ejecuta **100% en local 
 Atlas Logistics cubre todo el ciclo de vida operativo de un embarque y la facturación de un freight forwarder, ahora con un diseño premium **Glassmorphism**:
 
 ### 🔐 Seguridad y Arquitectura Empresarial
+
 - **Autenticación y RBAC**: Sistema de login basado en JWT con control de acceso por roles (Fastify-JWT).
 - **Notificaciones en Tiempo Real**: Alertas instantáneas (Demoras, Aduanas) vía WebSockets (`ws://`).
 - **Micro-Frontends (MFE)**: Escalabilidad empresarial usando Vite Module Federation (`mfe-warehouse`).
 
 ### 📦 Operaciones Núcleo
+
 - **Sailing Schedules**: Buscador de rutas marítimas y control de fechas de corte.
 - **Booking & B/L**: Emisión de HBL/MBL y tablero Kanban de reservas.
 - **Rate Comparer (`@atlas/rate-comparer`)**: Comparación dinámica de tarifas marítimas y aéreas.
 - **Warehouse Operations (`mfe-warehouse`)**: Módulo federado con vista isométrica 2.5D de andenes y control de inventario en tiempo real.
 
 ### ⚖️ Finanzas y Cumplimiento
+
 - **Customs Clearance**: Seguimiento de DUA, semáforo aduanero impulsado por IA y validaciones de código HS.
 - **Agent Settlements**: Liquidación a agentes con exportación integrada a PDF.
 - **Facturación y Reconciliación**: Análisis de rentabilidad (A/R y A/P).
 
 ### 🌐 Vista Externa y Cliente
+
 - **Customer Portal**: Portal marca blanca para que los clientes rastreen sus cargas (tracking de hitos).
 - **Document Vault**: Sistema premium de gestión documental con persistencia real (uploads), filtrado inteligente (grid view), previsualización integrada de documentos y descarga dinámica.
 
@@ -63,12 +69,14 @@ Atlas-Logistics/
 ## 🚀 Inicio Rápido (Desarrollo Local)
 
 ### Requisitos Previos
+
 - **Node.js**: >= 20.0
 - **pnpm**: v10+
 
 ### Instalación y Ejecución
 
 1. Clonar el repositorio e instalar dependencias:
+
 ```bash
 git clone https://github.com/xpallares1987-ai/Atlas-Logistics.git
 cd Atlas-Logistics
@@ -76,11 +84,13 @@ pnpm install
 ```
 
 2. Ejecutar la compilación del monorepo:
+
 ```bash
 pnpm run build
 ```
 
 3. Inicializar la Base de Datos Local (SQLite/libSQL):
+
 ```bash
 # Generar y aplicar migraciones de Drizzle a la DB
 pnpm run db:generate
@@ -92,11 +102,13 @@ pnpm run db:seed
 ```
 
 4. Iniciar el servidor de desarrollo local:
+
 ```bash
 pnpm run dev
 ```
 
 5. Ejecutar la suite de pruebas unitarias y E2E:
+
 ```bash
 # Pruebas unitarias en paquetes compartidos
 pnpm --filter @atlas/shared test
@@ -105,8 +117,7 @@ pnpm --filter @atlas/shared test
 npx playwright test
 ```
 
-
-
 ## 📖 Documentación Adicional
+
 - [Arquitectura del Sistema (docs/architecture/system-architecture.md)](docs/architecture/system-architecture.md)
 - [Guía de Contribución](CONTRIBUTING.md)

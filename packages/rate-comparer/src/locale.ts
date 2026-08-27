@@ -196,4 +196,3 @@ export const LOCALES: Record<LanguageCode, TranslationSet> = {
     totalFreightLabel: "Gesamtsumme",
   },
 };
-

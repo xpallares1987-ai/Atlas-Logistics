@@ -117,7 +117,9 @@ export function initDeployModal(statusbar: Statusbar, state: AppState) {
           "success",
         );
       } else {
-        throw new Error("Producción no está disponible localmente. Use Sandbox.");
+        throw new Error(
+          "Producción no está disponible localmente. Use Sandbox.",
+        );
       }
 
       modal.close();

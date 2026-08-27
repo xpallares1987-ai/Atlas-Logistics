@@ -124,14 +124,14 @@ export const Warehouse3D = () => {
       .then((res) => res.json())
       .then((json) => {
         if (!json.success || !json.data) return;
-        
+
         // Map backend data to 3D pallets, generating random positions for racks
         const mappedPallets = json.data.map((item: any, i: number) => {
           // simple logic to place pallets across 3 racks (z: -4, 0, 4), and random heights
           const rackZ = [-4, 0, 4][i % 3];
           const rackX = -2 + (i % 3) * 2; // -2, 0, 2
           const rackY = 0.5 + Math.floor(i / 3) * 2; // stacking up
-          
+
           return {
             pos: [rackX, rackY, rackZ],
             color: item.zone === "DRY" ? "#ef4444" : "#3b82f6",
@@ -140,7 +140,7 @@ export const Warehouse3D = () => {
             destination: item.customer || "Unknown",
           };
         });
-        
+
         setPallets(mappedPallets);
       })
       .catch(console.error);

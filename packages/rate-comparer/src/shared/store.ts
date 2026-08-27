@@ -105,11 +105,11 @@ import { useDispatch, useSelector } from "react-redux";
 export const useAppStore = () => {
   const dispatch = useDispatch();
   const state = useSelector((s: RootState) => s.app);
-  return { 
-    ...state, 
+  return {
+    ...state,
     setCurrency: (cur: string) => dispatch(appSlice.actions.setCurrency(cur)),
     setLanguage: (lang: string) => dispatch(appSlice.actions.setLanguage(lang)),
     toggleSidebar: () => dispatch(appSlice.actions.toggleSidebar()),
-    dispatch 
+    dispatch,
   };
 };

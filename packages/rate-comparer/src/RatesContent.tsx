@@ -25,8 +25,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "./components";
 
-
-
 export default function RatesContent() {
   const { currency, setCurrency } = useAppStore();
   const { tenantId } = useAuth();
@@ -55,16 +53,21 @@ export default function RatesContent() {
 
   // Derived filter logic
   const availableCarriers = Array.from(new Set(quotes.map((q) => q.carrier)));
-  const maxAvailableTransit = quotes.length > 0 ? Math.max(...quotes.map((q) => q.transit)) : 60;
-  const maxAvailableCO2 = quotes.length > 0 ? Math.max(...quotes.map((q) => q.co2Emissions)) : 5000;
-  const maxAvailablePrice = quotes.length > 0 ? Math.max(...quotes.map((q) => q.rate)) : 10000;
+  const maxAvailableTransit =
+    quotes.length > 0 ? Math.max(...quotes.map((q) => q.transit)) : 60;
+  const maxAvailableCO2 =
+    quotes.length > 0 ? Math.max(...quotes.map((q) => q.co2Emissions)) : 5000;
+  const maxAvailablePrice =
+    quotes.length > 0 ? Math.max(...quotes.map((q) => q.rate)) : 10000;
 
-  const currentMaxTransit = maxTransitTime !== null ? maxTransitTime : maxAvailableTransit;
+  const currentMaxTransit =
+    maxTransitTime !== null ? maxTransitTime : maxAvailableTransit;
   const currentMaxCO2 = maxCO2 !== null ? maxCO2 : maxAvailableCO2;
   const currentMaxPrice = maxPrice !== null ? maxPrice : maxAvailablePrice;
 
   const filteredQuotes = quotes.filter((q) => {
-    if (selectedCarriers.length > 0 && !selectedCarriers.includes(q.carrier)) return false;
+    if (selectedCarriers.length > 0 && !selectedCarriers.includes(q.carrier))
+      return false;
     if (q.transit > currentMaxTransit) return false;
     if (q.co2Emissions > currentMaxCO2) return false;
     if (requireDirect && !q.isDirect) return false;
@@ -305,10 +308,14 @@ export default function RatesContent() {
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-8 relative z-10 space-y-6 w-full">
         {quotes.length > 0 && (
-          <RouteAnalyticsChart 
-            origin={origin?.name || origin?.locode || ""} 
-            destination={destination?.name || destination?.locode || ""} 
-            currentLowestRate={filteredQuotes.length > 0 ? Math.min(...filteredQuotes.map(q => q.rate)) : 0} 
+          <RouteAnalyticsChart
+            origin={origin?.name || origin?.locode || ""}
+            destination={destination?.name || destination?.locode || ""}
+            currentLowestRate={
+              filteredQuotes.length > 0
+                ? Math.min(...filteredQuotes.map((q) => q.rate))
+                : 0
+            }
           />
         )}
 
@@ -327,7 +334,11 @@ export default function RatesContent() {
               >
                 <SlidersHorizontal className="w-4 h-4" />
                 Advanced Filters
-                {(selectedCarriers.length > 0 || maxTransitTime !== null || maxCO2 !== null || requireDirect || maxPrice !== null) && (
+                {(selectedCarriers.length > 0 ||
+                  maxTransitTime !== null ||
+                  maxCO2 !== null ||
+                  requireDirect ||
+                  maxPrice !== null) && (
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 )}
               </button>

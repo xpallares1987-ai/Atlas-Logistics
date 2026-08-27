@@ -197,4 +197,3 @@ export async function generateCustomerQuote(
 
   doc.save(`Quote_${rate.carrier}_${rate.pol}_${rate.pod}.pdf`);
 }
-

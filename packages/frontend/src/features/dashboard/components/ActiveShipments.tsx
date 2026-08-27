@@ -9,13 +9,18 @@ import {
   TableRow,
 } from "@atlas/ui";
 
-import { useApiQuery } from '../../../hooks/useApiQuery';
-import { useDashboardStore } from '../store';
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import { useDashboardStore } from "../store";
 
 export function ActiveShipments() {
   const { dateRange } = useDashboardStore();
-  const queryStr = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
-  const { data } = useApiQuery<any>(['dashboard', dateRange], `/dashboard${queryStr}`);
+  const queryStr = dateRange
+    ? `?start=${dateRange.start}&end=${dateRange.end}`
+    : "";
+  const { data } = useApiQuery<any>(
+    ["dashboard", dateRange],
+    `/dashboard${queryStr}`,
+  );
   const shipments: any[] = data?.activeList || [];
 
   // Map backend shipments to UI format
@@ -77,8 +82,8 @@ export function ActiveShipments() {
                       : shipment.status === "Pending"
                         ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
                         : shipment.status === "Confirmed"
-                        ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                        : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                   }`}
                 >
                   {shipment.status}
@@ -118,8 +123,8 @@ export function ActiveShipments() {
                         : shipment.status === "Pending"
                           ? "bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
                           : shipment.status === "Confirmed"
-                          ? "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
-                          : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                            ? "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                            : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                     }`}
                     style={{ width: `${shipment.progress}%` }}
                   />
@@ -201,8 +206,8 @@ export function ActiveShipments() {
                               : shipment.status === "Pending"
                                 ? "text-purple-400"
                                 : shipment.status === "Confirmed"
-                                ? "text-amber-400"
-                                : "text-emerald-400"
+                                  ? "text-amber-400"
+                                  : "text-emerald-400"
                           } font-medium`}
                         >
                           {shipment.status}
@@ -239,4 +244,3 @@ export function ActiveShipments() {
     </div>
   );
 }
-

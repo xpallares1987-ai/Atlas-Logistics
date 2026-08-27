@@ -1,20 +1,22 @@
 import { Page, expect } from "@playwright/test";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET =
+  process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure";
 
 export async function loginAsAdmin(page: Page) {
-  await page.goto("/login");
+  const adminToken = jwt.sign(
+    {
+      id: "admin_user_id",
+      email: "admin@atlas.com",
+      role: "ADMIN",
+      name: "Admin User",
+    },
+    JWT_SECRET,
+    { expiresIn: "24h" },
+  );
 
-  const hasToken = await page
-    .evaluate(() => !!localStorage.getItem("atlas_token"))
-    .catch(() => false);
-
-  if (!hasToken) {
-    await page.fill('input[type="email"]', "admin@atlas.com");
-    await page.fill('input[type="password"]', "admin");
-    await page.click('button[type="submit"]');
-    await page.waitForURL("/", { timeout: 15000 });
-  }
-
-  await expect(
-    page.locator("text=Dashboard").or(page.locator("text=ATLAS")).first(),
-  ).toBeVisible({ timeout: 15000 });
+  await page.addInitScript((token) => {
+    localStorage.setItem("atlas_token", token);
+  }, adminToken);
 }

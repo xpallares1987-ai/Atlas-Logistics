@@ -3,7 +3,9 @@ import RedisMock from "ioredis-mock";
 import { logger } from "./logger.js";
 
 // Forced mock in dev unless REDIS_HOST is explicitly provided and not localhost
-const USE_MOCK = process.env.NODE_ENV !== "production" && process.env.USE_REDIS_MOCK !== "false";
+const USE_MOCK =
+  process.env.NODE_ENV !== "production" &&
+  process.env.USE_REDIS_MOCK !== "false";
 
 export let isRedisAvailable = false;
 
@@ -13,8 +15,8 @@ const REDIS_PORT = process.env.REDIS_PORT
   ? parseInt(process.env.REDIS_PORT, 10)
   : 6379;
 
-export const redis = USE_MOCK 
-  ? new (RedisMock as any)() 
+export const redis = USE_MOCK
+  ? new (RedisMock as any)()
   : new Redis({
       host: REDIS_HOST,
       port: REDIS_PORT,
@@ -38,7 +40,9 @@ export const connectRedis = async () => {
   try {
     if (USE_MOCK) {
       isRedisAvailable = true;
-      logger.info("Conectado a Redis Mock (ioredis-mock) en memoria. Entorno sin Redis local.");
+      logger.info(
+        "Conectado a Redis Mock (ioredis-mock) en memoria. Entorno sin Redis local.",
+      );
       return;
     }
     await redis.connect();

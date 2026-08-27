@@ -1,6 +1,12 @@
 import { Suspense, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Box, Environment, Text, TransformControls } from "@react-three/drei";
+import {
+  OrbitControls,
+  Box,
+  Environment,
+  Text,
+  TransformControls,
+} from "@react-three/drei";
 import {
   Package,
   Box as BoxIcon,
@@ -28,18 +34,27 @@ interface CargoItem {
 const CargoBox = ({ item, isSelected, onSelect, mode }: any) => {
   if (isSelected) {
     return (
-      <TransformControls 
-        mode={mode} 
-        position={[item.x, item.y, item.z]} 
+      <TransformControls
+        mode={mode}
+        position={[item.x, item.y, item.z]}
         onObjectChange={() => {
           // You could save back to state here if needed
         }}
       >
-        <group onClick={(e) => { e.stopPropagation(); onSelect(item.id); }}>
+        <group
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(item.id);
+          }}
+        >
           <Box args={[item.width, item.height, item.depth]}>
             <meshStandardMaterial color={item.color} roughness={0.7} />
           </Box>
-          <Text position={[0, item.height / 2 + 0.1, 0]} fontSize={0.2} color="black">
+          <Text
+            position={[0, item.height / 2 + 0.1, 0]}
+            fontSize={0.2}
+            color="black"
+          >
             {item.label}
           </Text>
         </group>
@@ -48,14 +63,21 @@ const CargoBox = ({ item, isSelected, onSelect, mode }: any) => {
   }
 
   return (
-    <group 
-      position={[item.x, item.y, item.z]} 
-      onClick={(e) => { e.stopPropagation(); onSelect(item.id); }}
+    <group
+      position={[item.x, item.y, item.z]}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect(item.id);
+      }}
     >
       <Box args={[item.width, item.height, item.depth]}>
         <meshStandardMaterial color={item.color} roughness={0.7} />
       </Box>
-      <Text position={[0, item.height / 2 + 0.1, 0]} fontSize={0.2} color="black">
+      <Text
+        position={[0, item.height / 2 + 0.1, 0]}
+        fontSize={0.2}
+        color="black"
+      >
         {item.label}
       </Text>
     </group>
@@ -63,7 +85,17 @@ const CargoBox = ({ item, isSelected, onSelect, mode }: any) => {
 };
 
 // Container Component (40ft HQ representation)
-const SeaContainer = ({ cargo, selectedId, onSelect, mode }: { cargo: CargoItem[], selectedId: string | null, onSelect: (id: string | null) => void, mode: "translate" | "rotate" }) => {
+const SeaContainer = ({
+  cargo,
+  selectedId,
+  onSelect,
+  mode,
+}: {
+  cargo: CargoItem[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  mode: "translate" | "rotate";
+}) => {
   return (
     <group onPointerMissed={() => onSelect(null)}>
       {/* Floor */}
@@ -112,7 +144,9 @@ export default function ContainerPlannerModule() {
     "Container is empty or unsorted. Run heuristic optimization to pack items.",
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [transformMode, setTransformMode] = useState<"translate" | "rotate">("translate");
+  const [transformMode, setTransformMode] = useState<"translate" | "rotate">(
+    "translate",
+  );
 
   // Fetch the first available container to plan
   const { data: containers } = useQuery({
@@ -207,14 +241,18 @@ export default function ContainerPlannerModule() {
               <pointLight position={[10, 10, 10]} intensity={1} />
               <Environment preset="city" />
               {!isLoading && (
-                <SeaContainer 
-                  cargo={cargo} 
-                  selectedId={selectedId} 
-                  onSelect={setSelectedId} 
-                  mode={transformMode} 
+                <SeaContainer
+                  cargo={cargo}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  mode={transformMode}
                 />
               )}
-              <OrbitControls makeDefault autoRotate={!selectedId} autoRotateSpeed={0.5} />
+              <OrbitControls
+                makeDefault
+                autoRotate={!selectedId}
+                autoRotateSpeed={0.5}
+              />
             </Canvas>
           </Suspense>
 
@@ -259,7 +297,7 @@ export default function ContainerPlannerModule() {
               {cargo.map((item: CargoItem) => (
                 <div
                   key={item.id}
-                  className={`flex justify-between items-center text-sm p-3 rounded-xl border cursor-pointer transition-transform ${selectedId === item.id ? 'scale-105 shadow-md ring-2 ring-indigo-500' : 'hover:scale-[1.02]'}`}
+                  className={`flex justify-between items-center text-sm p-3 rounded-xl border cursor-pointer transition-transform ${selectedId === item.id ? "scale-105 shadow-md ring-2 ring-indigo-500" : "hover:scale-[1.02]"}`}
                   onClick={() => setSelectedId(item.id)}
                   style={{
                     backgroundColor: `${item.color}15`,

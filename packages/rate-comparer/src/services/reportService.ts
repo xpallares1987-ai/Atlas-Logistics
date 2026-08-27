@@ -77,4 +77,3 @@ export async function generateExecutiveReport(
 
   doc.save(`Freight_Executive_Report_${Date.now()}.pdf`);
 }
-

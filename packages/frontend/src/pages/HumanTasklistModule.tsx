@@ -1,4 +1,4 @@
-import { HumanTasklist } from '@atlas/ui/src/components/HumanTasklist';
+import { HumanTasklist } from "@atlas/ui/src/components/HumanTasklist";
 
 export default function HumanTasklistModule() {
   return (
@@ -7,4 +7,3 @@ export default function HumanTasklistModule() {
     </div>
   );
 }
-

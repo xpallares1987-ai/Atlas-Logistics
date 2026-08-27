@@ -1,6 +1,6 @@
-import { AtlasWorker, AtlasBpmnError } from '../../utils/worker-base.js';
-import { AIS_UNAVAILABLE, VESSEL_NOT_FOUND } from '../../utils/error-codes.js';
-import { webcrypto } from 'crypto';
+import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
+import { AIS_UNAVAILABLE, VESSEL_NOT_FOUND } from "../../utils/error-codes.js";
+import { webcrypto } from "crypto";
 
 interface CheckAisInput {
   vessel: string;
@@ -29,7 +29,7 @@ interface CheckAisOutput {
  * In production: connects to MarineTraffic, VesselFinder, or AIS provider.
  */
 class CheckAisWorker extends AtlasWorker<CheckAisInput, CheckAisOutput> {
-  readonly taskType = 'atlas.tracking.check-ais';
+  readonly taskType = "atlas.tracking.check-ais";
 
   async execute(job: any): Promise<CheckAisOutput> {
     const { vessel } = job.variables;
@@ -39,17 +39,21 @@ class CheckAisWorker extends AtlasWorker<CheckAisInput, CheckAisOutput> {
     // Simulate AIS API call
     await new Promise((resolve) => setTimeout(resolve, 200));
 
-    const getRandom = () => webcrypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
+    const getRandom = () =>
+      webcrypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
 
     // 5% chance of AIS unavailability for realistic simulation
     if (getRandom() < 0.05) {
-      throw new AtlasBpmnError(AIS_UNAVAILABLE, `AIS data temporarily unavailable for ${vessel}`);
+      throw new AtlasBpmnError(
+        AIS_UNAVAILABLE,
+        `AIS data temporarily unavailable for ${vessel}`,
+      );
     }
 
     // Generate realistic mock position
-    const lat = 20 + getRandom() * 40;   // 20°N to 60°N
+    const lat = 20 + getRandom() * 40; // 20°N to 60°N
     const lon = -10 + getRandom() * 130; // -10°E to 120°E
-    const speed = 12 + getRandom() * 8;  // 12-20 knots
+    const speed = 12 + getRandom() * 8; // 12-20 knots
     const course = Math.floor(getRandom() * 360);
 
     const position: AisPosition = {
@@ -58,7 +62,7 @@ class CheckAisWorker extends AtlasWorker<CheckAisInput, CheckAisOutput> {
       course,
       speed: Math.round(speed * 10) / 10,
       timestamp: new Date().toISOString(),
-      status: 'UNDER_WAY',
+      status: "UNDER_WAY",
     };
 
     const distanceNm = Math.floor(500 + getRandom() * 5000);
@@ -66,7 +70,9 @@ class CheckAisWorker extends AtlasWorker<CheckAisInput, CheckAisOutput> {
     const eta = new Date();
     eta.setHours(eta.getHours() + hoursToArrival);
 
-    console.log(`[CheckAIS] ${vessel}: ${position.latitude}°N, ${position.longitude}°E | Speed: ${position.speed}kn | ETA: ${eta.toISOString().split('T')[0]}`);
+    console.log(
+      `[CheckAIS] ${vessel}: ${position.latitude}°N, ${position.longitude}°E | Speed: ${position.speed}kn | ETA: ${eta.toISOString().split("T")[0]}`,
+    );
 
     return {
       positionFound: true,

@@ -2,10 +2,14 @@ export async function readFileAsText(file: File): Promise<string> {
   return await file.text();
 }
 
-export function downloadFile(fileName: string, content: string, mimeType: string) {
+export function downloadFile(
+  fileName: string,
+  content: string,
+  mimeType: string,
+) {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = fileName;
   a.click();
@@ -13,7 +17,7 @@ export function downloadFile(fileName: string, content: string, mimeType: string
 }
 
 export async function openTextFile(
-  fileInput: HTMLInputElement
+  fileInput: HTMLInputElement,
 ): Promise<{ text: string; name: string } | null> {
   return new Promise((resolve) => {
     fileInput.onchange = async () => {
@@ -27,5 +31,5 @@ export async function openTextFile(
 }
 
 export function resetFileInput(fileInput: HTMLInputElement) {
-  fileInput.value = '';
+  fileInput.value = "";
 }

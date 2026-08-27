@@ -29,18 +29,10 @@ export default defineConfig({
     },
   ],
 
-  webServer: [
-    {
-      command: "pnpm run start:backend",
-      url: "http://localhost:3001/api/health",
-      reuseExistingServer: !process.env.CI,
-      timeout: 60000,
-    },
-    {
-      command: "pnpm run dev",
-      url: "http://localhost:3000",
-      reuseExistingServer: !process.env.CI,
-      timeout: 60000,
-    },
-  ],
+  webServer: {
+    command: "pnpm run dev",
+    url: "http://localhost:3000",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120000,
+  },
 });

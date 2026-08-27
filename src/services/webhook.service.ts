@@ -17,7 +17,9 @@ export class WebhookService {
     }
 
     try {
-      logger.info(`[WebhookService] Skipping dispatch of ${eventType} (webhooks table missing in local SQLite)`);
+      logger.info(
+        `[WebhookService] Skipping dispatch of ${eventType} (webhooks table missing in local SQLite)`,
+      );
     } catch (error) {
       logger.error(error, "Error in WebhookService.dispatchEvent:");
     }

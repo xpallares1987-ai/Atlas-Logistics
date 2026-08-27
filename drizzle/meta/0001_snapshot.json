@@ -244,12 +244,8 @@
           "name": "contacts_company_id_companies_id_fk",
           "tableFrom": "contacts",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -348,12 +344,8 @@
           "name": "contracts_company_id_companies_id_fk",
           "tableFrom": "contracts",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -466,12 +458,8 @@
           "name": "locations_company_id_companies_id_fk",
           "tableFrom": "locations",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -511,12 +499,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -644,9 +628,7 @@
       "indexes": {
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },
@@ -655,12 +637,8 @@
           "name": "users_company_id_companies_id_fk",
           "tableFrom": "users",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1230,12 +1208,8 @@
           "name": "lanes_origin_location_id_locations_id_fk",
           "tableFrom": "lanes",
           "tableTo": "locations",
-          "columnsFrom": [
-            "origin_location_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["origin_location_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1243,12 +1217,8 @@
           "name": "lanes_destination_location_id_locations_id_fk",
           "tableFrom": "lanes",
           "tableTo": "locations",
-          "columnsFrom": [
-            "destination_location_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["destination_location_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1397,12 +1367,8 @@
           "name": "quotes_customer_id_companies_id_fk",
           "tableFrom": "quotes",
           "tableTo": "companies",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1410,12 +1376,8 @@
           "name": "quotes_origin_location_id_locations_id_fk",
           "tableFrom": "quotes",
           "tableTo": "locations",
-          "columnsFrom": [
-            "origin_location_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["origin_location_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1423,12 +1385,8 @@
           "name": "quotes_destination_location_id_locations_id_fk",
           "tableFrom": "quotes",
           "tableTo": "locations",
-          "columnsFrom": [
-            "destination_location_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["destination_location_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1436,12 +1394,8 @@
           "name": "quotes_created_by_users_id_fk",
           "tableFrom": "quotes",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1549,12 +1503,8 @@
           "name": "rate_tiers_rate_id_rates_id_fk",
           "tableFrom": "rate_tiers",
           "tableTo": "rates",
-          "columnsFrom": [
-            "rate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rate_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1727,12 +1677,8 @@
           "name": "rates_carrier_id_carriers_id_fk",
           "tableFrom": "rates",
           "tableTo": "carriers",
-          "columnsFrom": [
-            "carrier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["carrier_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1740,12 +1686,8 @@
           "name": "rates_lane_id_lanes_id_fk",
           "tableFrom": "rates",
           "tableTo": "lanes",
-          "columnsFrom": [
-            "lane_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lane_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1753,12 +1695,8 @@
           "name": "rates_company_id_companies_id_fk",
           "tableFrom": "rates",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1766,12 +1704,8 @@
           "name": "rates_created_by_users_id_fk",
           "tableFrom": "rates",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1779,12 +1713,8 @@
           "name": "rates_updated_by_users_id_fk",
           "tableFrom": "rates",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1885,12 +1815,8 @@
           "name": "surcharges_rate_id_rates_id_fk",
           "tableFrom": "surcharges",
           "tableTo": "rates",
-          "columnsFrom": [
-            "rate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rate_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2039,12 +1965,8 @@
           "name": "bookings_customer_id_companies_id_fk",
           "tableFrom": "bookings",
           "tableTo": "companies",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2192,12 +2114,8 @@
           "name": "cargo_items_shipment_id_shipments_id_fk",
           "tableFrom": "cargo_items",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2205,12 +2123,8 @@
           "name": "cargo_items_container_id_shipment_containers_id_fk",
           "tableFrom": "cargo_items",
           "tableTo": "shipment_containers",
-          "columnsFrom": [
-            "container_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["container_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2352,12 +2266,8 @@
           "name": "customs_declarations_shipment_id_shipments_id_fk",
           "tableFrom": "customs_declarations",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2365,12 +2275,8 @@
           "name": "customs_declarations_broker_id_customs_brokers_id_fk",
           "tableFrom": "customs_declarations",
           "tableTo": "customs_brokers",
-          "columnsFrom": [
-            "broker_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["broker_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2378,12 +2284,8 @@
           "name": "customs_declarations_hs_code_id_hs_codes_id_fk",
           "tableFrom": "customs_declarations",
           "tableTo": "hs_codes",
-          "columnsFrom": [
-            "hs_code_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hs_code_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2483,12 +2385,8 @@
           "name": "demurrage_alerts_shipment_id_shipments_id_fk",
           "tableFrom": "demurrage_alerts",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2570,9 +2468,7 @@
       "indexes": {
         "hs_codes_code_unique": {
           "name": "hs_codes_code_unique",
-          "columns": [
-            "code"
-          ],
+          "columns": ["code"],
           "isUnique": true
         }
       },
@@ -2699,12 +2595,8 @@
           "name": "route_segments_shipment_id_shipments_id_fk",
           "tableFrom": "route_segments",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2712,12 +2604,8 @@
           "name": "route_segments_origin_location_id_locations_id_fk",
           "tableFrom": "route_segments",
           "tableTo": "locations",
-          "columnsFrom": [
-            "origin_location_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["origin_location_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2725,12 +2613,8 @@
           "name": "route_segments_destination_location_id_locations_id_fk",
           "tableFrom": "route_segments",
           "tableTo": "locations",
-          "columnsFrom": [
-            "destination_location_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["destination_location_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2843,12 +2727,8 @@
           "name": "schedules_lane_id_lanes_id_fk",
           "tableFrom": "schedules",
           "tableTo": "lanes",
-          "columnsFrom": [
-            "lane_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lane_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2856,12 +2736,8 @@
           "name": "schedules_carrier_id_carriers_id_fk",
           "tableFrom": "schedules",
           "tableTo": "carriers",
-          "columnsFrom": [
-            "carrier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["carrier_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2967,12 +2843,8 @@
           "name": "shipment_containers_shipment_id_shipments_id_fk",
           "tableFrom": "shipment_containers",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3190,12 +3062,8 @@
           "name": "shipments_lane_id_lanes_id_fk",
           "tableFrom": "shipments",
           "tableTo": "lanes",
-          "columnsFrom": [
-            "lane_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lane_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3203,12 +3071,8 @@
           "name": "shipments_schedule_id_schedules_id_fk",
           "tableFrom": "shipments",
           "tableTo": "schedules",
-          "columnsFrom": [
-            "schedule_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["schedule_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3216,12 +3080,8 @@
           "name": "shipments_port_of_entry_id_locations_id_fk",
           "tableFrom": "shipments",
           "tableTo": "locations",
-          "columnsFrom": [
-            "port_of_entry_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["port_of_entry_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3229,12 +3089,8 @@
           "name": "shipments_company_id_companies_id_fk",
           "tableFrom": "shipments",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3242,12 +3098,8 @@
           "name": "shipments_created_by_users_id_fk",
           "tableFrom": "shipments",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3255,12 +3107,8 @@
           "name": "shipments_updated_by_users_id_fk",
           "tableFrom": "shipments",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3408,12 +3256,8 @@
           "name": "warehouse_traffic_shipment_id_shipments_id_fk",
           "tableFrom": "warehouse_traffic",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3532,9 +3376,7 @@
       "indexes": {
         "agent_settlements_statement_number_unique": {
           "name": "agent_settlements_statement_number_unique",
-          "columns": [
-            "statement_number"
-          ],
+          "columns": ["statement_number"],
           "isUnique": true
         }
       },
@@ -3543,12 +3385,8 @@
           "name": "agent_settlements_agent_id_companies_id_fk",
           "tableFrom": "agent_settlements",
           "tableTo": "companies",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3654,12 +3492,8 @@
           "name": "costs_shipment_id_shipments_id_fk",
           "tableFrom": "costs",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3667,12 +3501,8 @@
           "name": "costs_vendor_id_carriers_id_fk",
           "tableFrom": "costs",
           "tableTo": "carriers",
-          "columnsFrom": [
-            "vendor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vendor_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3828,12 +3658,8 @@
           "name": "invoice_items_invoice_id_invoices_id_fk",
           "tableFrom": "invoice_items",
           "tableTo": "invoices",
-          "columnsFrom": [
-            "invoice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4004,9 +3830,7 @@
       "indexes": {
         "invoices_invoiceNumber_unique": {
           "name": "invoices_invoiceNumber_unique",
-          "columns": [
-            "invoiceNumber"
-          ],
+          "columns": ["invoiceNumber"],
           "isUnique": true
         }
       },
@@ -4015,12 +3839,8 @@
           "name": "invoices_shipment_id_shipments_id_fk",
           "tableFrom": "invoices",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4028,12 +3848,8 @@
           "name": "invoices_company_id_companies_id_fk",
           "tableFrom": "invoices",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4041,12 +3857,8 @@
           "name": "invoices_created_by_users_id_fk",
           "tableFrom": "invoices",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4054,12 +3866,8 @@
           "name": "invoices_updated_by_users_id_fk",
           "tableFrom": "invoices",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4167,12 +3975,8 @@
           "name": "payments_invoice_id_invoices_id_fk",
           "tableFrom": "payments",
           "tableTo": "invoices",
-          "columnsFrom": [
-            "invoice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4276,12 +4080,8 @@
           "name": "revenues_shipment_id_shipments_id_fk",
           "tableFrom": "revenues",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4461,12 +4261,8 @@
           "name": "bpmn_versions_diagram_id_bpmn_diagrams_id_fk",
           "tableFrom": "bpmn_versions",
           "tableTo": "bpmn_diagrams",
-          "columnsFrom": [
-            "diagram_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["diagram_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4474,12 +4270,8 @@
           "name": "bpmn_versions_author_id_users_id_fk",
           "tableFrom": "bpmn_versions",
           "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4585,12 +4377,8 @@
           "name": "documents_shipment_id_shipments_id_fk",
           "tableFrom": "documents",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4598,12 +4386,8 @@
           "name": "documents_uploaded_by_users_id_fk",
           "tableFrom": "documents",
           "tableTo": "users",
-          "columnsFrom": [
-            "uploaded_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["uploaded_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4702,12 +4486,8 @@
           "name": "equipments_current_location_id_locations_id_fk",
           "tableFrom": "equipments",
           "tableTo": "locations",
-          "columnsFrom": [
-            "current_location_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["current_location_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4807,12 +4587,8 @@
           "name": "notifications_user_id_users_id_fk",
           "tableFrom": "notifications",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4911,12 +4687,8 @@
           "name": "pending_ai_reviews_shipment_id_shipments_id_fk",
           "tableFrom": "pending_ai_reviews",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5029,12 +4801,8 @@
           "name": "tasks_assigned_to_users_id_fk",
           "tableFrom": "tasks",
           "tableTo": "users",
-          "columnsFrom": [
-            "assigned_to"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["assigned_to"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5042,12 +4810,8 @@
           "name": "tasks_shipment_id_shipments_id_fk",
           "tableFrom": "tasks",
           "tableTo": "shipments",
-          "columnsFrom": [
-            "shipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5198,12 +4962,8 @@
           "name": "warehouse_inventory_location_id_locations_id_fk",
           "tableFrom": "warehouse_inventory",
           "tableTo": "locations",
-          "columnsFrom": [
-            "location_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["location_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5318,12 +5078,8 @@
           "name": "invoice_event_logs_invoice_id_invoices_id_fk",
           "tableFrom": "invoice_event_logs",
           "tableTo": "invoices",
-          "columnsFrom": [
-            "invoice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5331,12 +5087,8 @@
           "name": "invoice_event_logs_changed_by_users_id_fk",
           "tableFrom": "invoice_event_logs",
           "tableTo": "users",
-          "columnsFrom": [
-            "changed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["changed_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5405,12 +5157,8 @@
           "name": "rate_change_logs_rate_id_rates_id_fk",
           "tableFrom": "rate_change_logs",
           "tableTo": "rates",
-          "columnsFrom": [
-            "rate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rate_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5418,12 +5166,8 @@
           "name": "rate_change_logs_changed_by_users_id_fk",
           "tableFrom": "rate_change_logs",
           "tableTo": "users",
-          "columnsFrom": [
-            "changed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["changed_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5570,12 +5314,8 @@
           "name": "fulfillment_tasks_order_id_orders_id_fk",
           "tableFrom": "fulfillment_tasks",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5583,12 +5323,8 @@
           "name": "fulfillment_tasks_assigned_to_users_id_fk",
           "tableFrom": "fulfillment_tasks",
           "tableTo": "users",
-          "columnsFrom": [
-            "assigned_to"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["assigned_to"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5685,9 +5421,7 @@
       "indexes": {
         "inventory_items_sku_unique": {
           "name": "inventory_items_sku_unique",
-          "columns": [
-            "sku"
-          ],
+          "columns": ["sku"],
           "isUnique": true
         }
       },

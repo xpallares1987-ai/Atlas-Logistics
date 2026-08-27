@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { X, Package, Hash, Scale, AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import {
+  X,
+  Package,
+  Hash,
+  Scale,
+  AlertCircle,
+  Loader2,
+  CheckCircle,
+} from "lucide-react";
 
 interface BookingDrawerProps {
   rate: any;
@@ -7,7 +15,11 @@ interface BookingDrawerProps {
   onBook: (bookingData: any) => Promise<void>;
 }
 
-export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerProps) {
+export default function BookingDrawer({
+  rate,
+  onClose,
+  onBook,
+}: BookingDrawerProps) {
   const [commodity, setCommodity] = useState("General Cargo");
   const [weight, setWeight] = useState("");
   const [poNumber, setPoNumber] = useState("");
@@ -27,7 +39,7 @@ export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerPr
         weight: Number(weight),
         poNumber,
       });
-      
+
       const newRef = `BKG-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       setBookingRef(newRef);
       setIsSuccess(true);
@@ -40,14 +52,13 @@ export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerPr
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[100] transition-opacity"
         onClick={onClose}
       />
-      
+
       {/* Drawer */}
       <div className="fixed top-0 right-0 h-full w-full max-w-md bg-slate-900 border-l border-slate-700/50 shadow-[auto_-5px_50px_rgba(0,0,0,0.5)] z-[101] flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
-        
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900/80 backdrop-blur-xl relative">
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent pointer-events-none" />
@@ -57,7 +68,7 @@ export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerPr
             </div>
             Book Shipment
           </h2>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors relative z-10"
           >
@@ -71,86 +82,106 @@ export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerPr
             <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mb-2 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
               <CheckCircle className="w-12 h-12 text-emerald-400" />
             </div>
-            <h3 className="text-2xl font-black text-white text-center">Booking Confirmed!</h3>
+            <h3 className="text-2xl font-black text-white text-center">
+              Booking Confirmed!
+            </h3>
             <p className="text-slate-400 text-center text-sm">
-              Your shipment has been successfully booked. You will receive a confirmation email shortly.
+              Your shipment has been successfully booked. You will receive a
+              confirmation email shortly.
             </p>
             <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 w-full text-center mt-4 shadow-inner">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Booking Reference</p>
-              <p className="text-lg font-mono font-bold text-indigo-400">{bookingRef}</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
+                Booking Reference
+              </p>
+              <p className="text-lg font-mono font-bold text-indigo-400">
+                {bookingRef}
+              </p>
             </div>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            
             {/* Rate Summary */}
             <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 shadow-inner">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">Selected Route</h3>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="font-bold text-white text-sm">{rate.carrierName}</div>
-              <div className="h-4 w-px bg-slate-700" />
-              <div className="text-indigo-400 text-sm font-black">{rate.transitTimeDays} Days</div>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-              <span className="truncate max-w-[120px]">{rate.pol?.split(",")[0]}</span>
-              <span className="text-emerald-400">→</span>
-              <span className="truncate max-w-[120px]">{rate.pod?.split(",")[0]}</span>
-            </div>
-          </div>
-
-          <form id="booking-form" onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm font-medium flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>{error}</span>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
+                Selected Route
+              </h3>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="font-bold text-white text-sm">
+                  {rate.carrierName}
+                </div>
+                <div className="h-4 w-px bg-slate-700" />
+                <div className="text-indigo-400 text-sm font-black">
+                  {rate.transitTimeDays} Days
+                </div>
               </div>
-            )}
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Package className="w-3.5 h-3.5 text-indigo-400" />
-                Commodity Description
-              </label>
-              <input 
-                type="text" 
-                required
-                value={commodity}
-                onChange={(e) => setCommodity(e.target.value)}
-                placeholder="e.g. Electronics, Garments, Auto Parts"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
-              />
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <span className="truncate max-w-[120px]">
+                  {rate.pol?.split(",")[0]}
+                </span>
+                <span className="text-emerald-400">→</span>
+                <span className="truncate max-w-[120px]">
+                  {rate.pod?.split(",")[0]}
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Scale className="w-3.5 h-3.5 text-indigo-400" />
-                Total Weight (KG)
-              </label>
-              <input 
-                type="number" 
-                required
-                min="1"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                placeholder="e.g. 15000"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
-              />
-            </div>
+            <form
+              id="booking-form"
+              onSubmit={handleSubmit}
+              className="space-y-5"
+            >
+              {error && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm font-medium flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Hash className="w-3.5 h-3.5 text-indigo-400" />
-                PO / Reference Number
-              </label>
-              <input 
-                type="text" 
-                value={poNumber}
-                onChange={(e) => setPoNumber(e.target.value)}
-                placeholder="Optional"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
-              />
-            </div>
-          </form>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Package className="w-3.5 h-3.5 text-indigo-400" />
+                  Commodity Description
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={commodity}
+                  onChange={(e) => setCommodity(e.target.value)}
+                  placeholder="e.g. Electronics, Garments, Auto Parts"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Scale className="w-3.5 h-3.5 text-indigo-400" />
+                  Total Weight (KG)
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  placeholder="e.g. 15000"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Hash className="w-3.5 h-3.5 text-indigo-400" />
+                  PO / Reference Number
+                </label>
+                <input
+                  type="text"
+                  value={poNumber}
+                  onChange={(e) => setPoNumber(e.target.value)}
+                  placeholder="Optional"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
+                />
+              </div>
+            </form>
           </div>
         )}
 
@@ -158,16 +189,20 @@ export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerPr
         <div className="p-6 border-t border-slate-800 bg-slate-900 shrink-0">
           {isSuccess ? (
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={onClose}
                 className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-colors"
               >
                 Done
               </button>
-              <button 
+              <button
                 onClick={() => {
                   onClose();
-                  window.dispatchEvent(new CustomEvent("app-navigate", { detail: { path: "/bookings" } }));
+                  window.dispatchEvent(
+                    new CustomEvent("app-navigate", {
+                      detail: { path: "/bookings" },
+                    }),
+                  );
                 }}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-colors"
               >
@@ -175,20 +210,20 @@ export default function BookingDrawer({ rate, onClose, onBook }: BookingDrawerPr
               </button>
             </div>
           ) : (
-            <button 
+            <button
               type="submit"
               form="booking-form"
-            disabled={isSubmitting}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] transition-all duration-300 flex items-center justify-center gap-2"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              'Confirm Booking'
-            )}
+              disabled={isSubmitting}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] transition-all duration-300 flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Confirm Booking"
+              )}
             </button>
           )}
         </div>

@@ -229,4 +229,3 @@ export function streamXml<T>(
     parser.write(xmlContent).close();
   });
 }
-

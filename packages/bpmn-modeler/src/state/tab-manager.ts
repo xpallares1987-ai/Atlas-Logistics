@@ -1,12 +1,16 @@
-import { safeTrim, ensureExtension } from '@atlas/shared';
-import { Toast } from '@atlas/ui';
-import { createModeler, cleanupModeler, importDiagram } from '../services/modeler-service';
-import { getDiagramXml, loadXmlFromUrl } from '../services/xml-service';
-import { saveTabsSession } from '../services/storage-service';
-import { setDiagramName, renderTabs } from '../ui/render';
-import type { AppUi, DiagramTab } from '../types';
-import type { AppState } from '../state';
-import APP_CONFIG from '../config';
+import { safeTrim, ensureExtension } from "@atlas/shared";
+import { Toast } from "@atlas/ui";
+import {
+  createModeler,
+  cleanupModeler,
+  importDiagram,
+} from "../services/modeler-service";
+import { getDiagramXml, loadXmlFromUrl } from "../services/xml-service";
+import { saveTabsSession } from "../services/storage-service";
+import { setDiagramName, renderTabs } from "../ui/render";
+import type { AppUi, DiagramTab } from "../types";
+import type { AppState } from "../state";
+import APP_CONFIG from "../config";
 
 let bindModelerEvents: () => void;
 let getUi: () => AppUi;
@@ -22,7 +26,7 @@ export function createTab(name: string, xml: string): DiagramTab {
 
 export function getSafeDiagramName(name: string): string {
   const trimmed = safeTrim(name, APP_CONFIG.download.defaultFileName);
-  return ensureExtension(trimmed, '.bpmn');
+  return ensureExtension(trimmed, ".bpmn");
 }
 
 export function updateTabsUi(state: AppState) {
@@ -32,7 +36,7 @@ export function updateTabsUi(state: AppState) {
     state.tabs,
     state.activeTabId,
     (tabId) => handleSwitchTab(state, tabId),
-    (tabId) => handleCloseTab(state, tabId)
+    (tabId) => handleCloseTab(state, tabId),
   );
 }
 
@@ -64,15 +68,23 @@ export async function handleSwitchTab(state: AppState, tabId: string) {
     await importDiagram(state.modeler, nextTab.xml);
     setDiagramName(ui.diagramName, nextTab.name);
     updateTabsUi(state);
-    await saveTabsSession(APP_CONFIG.storage.keys, state.tabs, state.activeTabId);
-    Toast.show(`Cambiado a: ${nextTab.name}`, 'info');
+    await saveTabsSession(
+      APP_CONFIG.storage.keys,
+      state.tabs,
+      state.activeTabId,
+    );
+    Toast.show(`Cambiado a: ${nextTab.name}`, "info");
   }
 }
 
 export async function handleCloseTab(state: AppState, tabId: string) {
   const tab = state.tabs.find((t) => t.id === tabId);
   if (tab?.isDirty) {
-    if (!confirm(`El diagrama "${tab.name}" tiene cambios sin guardar. ¿Cerrar de todos modos?`))
+    if (
+      !confirm(
+        `El diagrama "${tab.name}" tiene cambios sin guardar. ¿Cerrar de todos modos?`,
+      )
+    )
       return;
   }
 
@@ -86,7 +98,11 @@ export async function handleCloseTab(state: AppState, tabId: string) {
     await handleSwitchTab(state, nextTab.id);
   } else {
     updateTabsUi(state);
-    await saveTabsSession(APP_CONFIG.storage.keys, state.tabs, state.activeTabId);
+    await saveTabsSession(
+      APP_CONFIG.storage.keys,
+      state.tabs,
+      state.activeTabId,
+    );
   }
 }
 
@@ -101,11 +117,15 @@ export async function handleNewDiagram(state: AppState) {
   await handleNewTab(state);
 }
 
-export async function loadDiagramInNewTab(state: AppState, xml: string, fileName: string) {
+export async function loadDiagramInNewTab(
+  state: AppState,
+  xml: string,
+  fileName: string,
+) {
   const tab = createTab(fileName, xml);
   state.tabs.push(tab);
   await handleSwitchTab(state, tab.id);
-  Toast.show(`Cargado: ${tab.name}`, 'success');
+  Toast.show(`Cargado: ${tab.name}`, "success");
 }
 
 export function initTabManager(dependencies: {
@@ -115,5 +135,3 @@ export function initTabManager(dependencies: {
   getUi = dependencies.getUi;
   bindModelerEvents = dependencies.bindModelerEvents;
 }
-
-

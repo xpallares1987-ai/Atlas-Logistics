@@ -127,4 +127,3 @@ export const ExternalWarehousesSchema = z.object({
     WarehouseInfo: WarehouseInfoSchema.optional(),
   }),
 });
-

@@ -93,4 +93,3 @@ export function formatCurrency(amount: number, currency: string): string {
     minimumFractionDigits: 2,
   }).format(amount);
 }
-

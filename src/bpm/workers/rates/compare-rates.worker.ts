@@ -1,4 +1,4 @@
-import { AtlasWorker } from '../../utils/worker-base.js';
+import { AtlasWorker } from "../../utils/worker-base.js";
 
 interface CompareRatesInput {
   rates: Array<{
@@ -37,8 +37,11 @@ interface CompareRatesOutput {
  * Ranks and scores carrier rates based on cost, transit time,
  * and a weighted scoring algorithm.
  */
-class CompareRatesWorker extends AtlasWorker<CompareRatesInput, CompareRatesOutput> {
-  readonly taskType = 'atlas.rates.compare';
+class CompareRatesWorker extends AtlasWorker<
+  CompareRatesInput,
+  CompareRatesOutput
+> {
+  readonly taskType = "atlas.rates.compare";
 
   async execute(job: any): Promise<CompareRatesOutput> {
     const { rates, preferCost = false, preferSpeed = false } = job.variables;
@@ -49,7 +52,7 @@ class CompareRatesWorker extends AtlasWorker<CompareRatesInput, CompareRatesOutp
         bestValue: null as any,
         cheapest: null as any,
         fastest: null as any,
-        comparisonSummary: 'No rates available for comparison',
+        comparisonSummary: "No rates available for comparison",
       };
     }
 
@@ -71,17 +74,19 @@ class CompareRatesWorker extends AtlasWorker<CompareRatesInput, CompareRatesOutp
     const scored: RankedRate[] = rates.map((rate: any) => {
       const costScore = 1 - (rate.totalCost - minCost) / costRange; // Lower cost = higher score
       const speedScore = 1 - (rate.transitTime - minTime) / timeRange; // Shorter time = higher score
-      const score = Math.round((costScore * costWeight + speedScore * speedWeight) * 100);
+      const score = Math.round(
+        (costScore * costWeight + speedScore * speedWeight) * 100,
+      );
 
-      let recommendation = 'Standard Option';
+      let recommendation = "Standard Option";
       if (rate.totalCost === minCost && rate.transitTime === minTime) {
-        recommendation = '⭐ Best Overall';
+        recommendation = "⭐ Best Overall";
       } else if (rate.totalCost === minCost) {
-        recommendation = '💰 Most Economical';
+        recommendation = "💰 Most Economical";
       } else if (rate.transitTime === minTime) {
-        recommendation = '🚀 Fastest';
+        recommendation = "🚀 Fastest";
       } else if (score >= 70) {
-        recommendation = '✅ Good Value';
+        recommendation = "✅ Good Value";
       }
 
       return {
@@ -100,7 +105,9 @@ class CompareRatesWorker extends AtlasWorker<CompareRatesInput, CompareRatesOutp
     scored.forEach((r, i) => (r.rank = i + 1));
 
     const cheapest = [...scored].sort((a, b) => a.totalCost - b.totalCost)[0];
-    const fastest = [...scored].sort((a, b) => a.transitTime - b.transitTime)[0];
+    const fastest = [...scored].sort(
+      (a, b) => a.transitTime - b.transitTime,
+    )[0];
 
     const summary = `Compared ${scored.length} carriers. Best value: ${scored[0].carrier} (score: ${scored[0].score}). Cheapest: ${cheapest.carrier} ($${cheapest.totalCost}). Fastest: ${fastest.carrier} (${fastest.transitTime}d).`;
 

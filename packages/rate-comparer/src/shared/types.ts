@@ -104,4 +104,3 @@ export interface Shipment {
   notes?: Note[];
   auditHistory?: AuditLog[];
 }
-

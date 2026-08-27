@@ -11,28 +11,39 @@
         "type": "stat",
         "title": "Successful Backups",
         "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
-        "targets": [
-          { "expr": "sum(backup_success_total)" }
-        ],
-        "options": { "reduceOptions": { "calcs": ["lastNotZero"] }, "orientation": "horizontal" }
+        "targets": [{ "expr": "sum(backup_success_total)" }],
+        "options": {
+          "reduceOptions": { "calcs": ["lastNotZero"] },
+          "orientation": "horizontal"
+        }
       },
       {
         "type": "stat",
         "title": "Failed Backups",
         "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
-        "targets": [
-          { "expr": "sum(backup_failure_total)" }
-        ],
-        "options": { "reduceOptions": { "calcs": ["lastNotZero"] }, "orientation": "horizontal" }
+        "targets": [{ "expr": "sum(backup_failure_total)" }],
+        "options": {
+          "reduceOptions": { "calcs": ["lastNotZero"] },
+          "orientation": "horizontal"
+        }
       },
       {
         "type": "graph",
         "title": "Backup Duration (seconds)",
         "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
         "targets": [
-          { "expr": "histogram_quantile(0.5, sum(rate(backup_duration_seconds_bucket[5m])) by (le) )", "legendFormat": "p50" },
-          { "expr": "histogram_quantile(0.9, sum(rate(backup_duration_seconds_bucket[5m])) by (le) )", "legendFormat": "p90" },
-          { "expr": "histogram_quantile(0.99, sum(rate(backup_duration_seconds_bucket[5m])) by (le) )", "legendFormat": "p99" }
+          {
+            "expr": "histogram_quantile(0.5, sum(rate(backup_duration_seconds_bucket[5m])) by (le) )",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.9, sum(rate(backup_duration_seconds_bucket[5m])) by (le) )",
+            "legendFormat": "p90"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(backup_duration_seconds_bucket[5m])) by (le) )",
+            "legendFormat": "p99"
+          }
         ],
         "lines": true,
         "fill": 1,

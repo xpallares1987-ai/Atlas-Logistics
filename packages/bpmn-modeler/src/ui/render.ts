@@ -1,9 +1,9 @@
-import { ensureElement } from '@atlas/shared';
-import { DiagramTab } from '../types';
+import { ensureElement } from "@atlas/shared";
+import { DiagramTab } from "../types";
 
 export function setDiagramName(element: HTMLElement | null, name: string) {
-  const el = ensureElement(element, 'elemento de nombre de diagrama');
-  const safeName = name && name.trim() ? name.trim() : 'diagram.bpmn';
+  const el = ensureElement(element, "elemento de nombre de diagrama");
+  const safeName = name && name.trim() ? name.trim() : "diagram.bpmn";
   el.textContent = safeName;
 }
 
@@ -12,19 +12,21 @@ export function renderTabs(
   tabs: DiagramTab[],
   activeTabId: string,
   onSwitch: (id: string) => void,
-  onClose: (id: string) => void
+  onClose: (id: string) => void,
 ) {
-  container.innerHTML = '';
+  container.innerHTML = "";
   tabs.forEach((tab) => {
-    const tabEl = document.createElement('div');
-    tabEl.className = `tab ${tab.id === activeTabId ? 'tab--active' : ''}`;
+    const tabEl = document.createElement("div");
+    tabEl.className = `tab ${tab.id === activeTabId ? "tab--active" : ""}`;
     tabEl.innerHTML = `
-      <span class="tab-name">${tab.name}${tab.isDirty ? '*' : ''}</span>
+      <span class="tab-name">${tab.name}${tab.isDirty ? "*" : ""}</span>
       <button class="tab-close" title="Cerrar">&times;</button>
     `;
 
-    tabEl.querySelector('.tab-name')?.addEventListener('click', () => onSwitch(tab.id));
-    tabEl.querySelector('.tab-close')?.addEventListener('click', (e) => {
+    tabEl
+      .querySelector(".tab-name")
+      ?.addEventListener("click", () => onSwitch(tab.id));
+    tabEl.querySelector(".tab-close")?.addEventListener("click", (e) => {
       e.stopPropagation();
       onClose(tab.id);
     });
@@ -32,4 +34,3 @@ export function renderTabs(
     container.appendChild(tabEl);
   });
 }
-

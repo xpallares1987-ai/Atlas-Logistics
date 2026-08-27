@@ -1,5 +1,5 @@
-import { AtlasWorker, AtlasBpmnError } from '../../utils/worker-base.js';
-import { INVOICE_MISMATCH } from '../../utils/error-codes.js';
+import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
+import { INVOICE_MISMATCH } from "../../utils/error-codes.js";
 
 interface ReconcileCostsInput {
   shipmentId: string;
@@ -31,8 +31,11 @@ interface ReconcileCostsOutput {
  * Reconciles expected vs actual costs for a shipment.
  * Identifies discrepancies between quoted rates and final invoiced amounts.
  */
-class ReconcileCostsWorker extends AtlasWorker<ReconcileCostsInput, ReconcileCostsOutput> {
-  readonly taskType = 'atlas.invoice.reconcile-costs';
+class ReconcileCostsWorker extends AtlasWorker<
+  ReconcileCostsInput,
+  ReconcileCostsOutput
+> {
+  readonly taskType = "atlas.invoice.reconcile-costs";
 
   async execute(job: any): Promise<ReconcileCostsOutput> {
     const { referenceNumber, expectedCosts = [] } = job.variables;
@@ -40,11 +43,10 @@ class ReconcileCostsWorker extends AtlasWorker<ReconcileCostsInput, ReconcileCos
     console.log(`[ReconcileCosts] Reconciling costs for ${referenceNumber}`);
 
     // If no cost data provided, generate mock reconciliation
-    const costs = expectedCosts.length > 0
-      ? expectedCosts
-      : this.getMockCosts();
+    const costs =
+      expectedCosts.length > 0 ? expectedCosts : this.getMockCosts();
 
-    const discrepancies: ReconcileCostsOutput['discrepancies'] = [];
+    const discrepancies: ReconcileCostsOutput["discrepancies"] = [];
     let totalExpected = 0;
     let totalActual = 0;
 
@@ -64,18 +66,23 @@ class ReconcileCostsWorker extends AtlasWorker<ReconcileCostsInput, ReconcileCos
     }
 
     const variance = Math.round((totalActual - totalExpected) * 100) / 100;
-    const variancePercent = totalExpected > 0
-      ? Math.round((variance / totalExpected) * 10000) / 100
-      : 0;
+    const variancePercent =
+      totalExpected > 0
+        ? Math.round((variance / totalExpected) * 10000) / 100
+        : 0;
 
     // Flag if variance exceeds 5%
     const reconciled = Math.abs(variancePercent) <= 5;
 
     if (!reconciled) {
-      console.warn(`[ReconcileCosts] ⚠ High variance for ${referenceNumber}: ${variancePercent}%`);
+      console.warn(
+        `[ReconcileCosts] ⚠ High variance for ${referenceNumber}: ${variancePercent}%`,
+      );
     }
 
-    console.log(`[ReconcileCosts] Expected: $${totalExpected} | Actual: $${totalActual} | Variance: ${variancePercent}% | Discrepancies: ${discrepancies.length}`);
+    console.log(
+      `[ReconcileCosts] Expected: $${totalExpected} | Actual: $${totalActual} | Variance: ${variancePercent}% | Discrepancies: ${discrepancies.length}`,
+    );
 
     return {
       reconciled,
@@ -90,12 +97,42 @@ class ReconcileCostsWorker extends AtlasWorker<ReconcileCostsInput, ReconcileCos
 
   private getMockCosts() {
     return [
-      { category: 'Ocean Freight', expectedAmount: 1200, actualAmount: 1200, currency: 'USD' },
-      { category: 'BAF', expectedAmount: 85, actualAmount: 90, currency: 'USD' },
-      { category: 'THC Origin', expectedAmount: 120, actualAmount: 120, currency: 'USD' },
-      { category: 'THC Dest', expectedAmount: 150, actualAmount: 155, currency: 'USD' },
-      { category: 'Documentation', expectedAmount: 45, actualAmount: 45, currency: 'USD' },
-      { category: 'Customs Clearance', expectedAmount: 75, actualAmount: 80, currency: 'USD' },
+      {
+        category: "Ocean Freight",
+        expectedAmount: 1200,
+        actualAmount: 1200,
+        currency: "USD",
+      },
+      {
+        category: "BAF",
+        expectedAmount: 85,
+        actualAmount: 90,
+        currency: "USD",
+      },
+      {
+        category: "THC Origin",
+        expectedAmount: 120,
+        actualAmount: 120,
+        currency: "USD",
+      },
+      {
+        category: "THC Dest",
+        expectedAmount: 150,
+        actualAmount: 155,
+        currency: "USD",
+      },
+      {
+        category: "Documentation",
+        expectedAmount: 45,
+        actualAmount: 45,
+        currency: "USD",
+      },
+      {
+        category: "Customs Clearance",
+        expectedAmount: 75,
+        actualAmount: 80,
+        currency: "USD",
+      },
     ];
   }
 }

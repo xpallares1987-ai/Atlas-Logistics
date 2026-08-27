@@ -124,4 +124,3 @@ export interface TranslationSet {
   oceanLabel: string;
   totalFreightLabel: string;
 }
-

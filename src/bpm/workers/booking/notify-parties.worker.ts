@@ -1,4 +1,4 @@
-import { AtlasWorker } from '../../utils/worker-base.js';
+import { AtlasWorker } from "../../utils/worker-base.js";
 
 interface NotifyPartiesInput {
   referenceNumber: string;
@@ -24,8 +24,11 @@ interface NotifyPartiesOutput {
  * Sends notifications to all relevant parties about the shipment.
  * In production: email/SMS/EDI notifications via messaging service.
  */
-class NotifyPartiesWorker extends AtlasWorker<NotifyPartiesInput, NotifyPartiesOutput> {
-  readonly taskType = 'atlas.notify.parties';
+class NotifyPartiesWorker extends AtlasWorker<
+  NotifyPartiesInput,
+  NotifyPartiesOutput
+> {
+  readonly taskType = "atlas.notify.parties";
 
   async execute(job: any): Promise<NotifyPartiesOutput> {
     const vars = job.variables;
@@ -39,7 +42,9 @@ class NotifyPartiesWorker extends AtlasWorker<NotifyPartiesInput, NotifyPartiesO
 
     // Notify consignee
     if (vars.consigneeName) {
-      console.log(`[NotifyParties] 📧 Notifying consignee: ${vars.consigneeName}`);
+      console.log(
+        `[NotifyParties] 📧 Notifying consignee: ${vars.consigneeName}`,
+      );
       parties.push(`Consignee: ${vars.consigneeName}`);
     }
 
@@ -50,16 +55,20 @@ class NotifyPartiesWorker extends AtlasWorker<NotifyPartiesInput, NotifyPartiesO
     }
 
     // Notify internal ops team
-    parties.push('Internal: Operations Team');
+    parties.push("Internal: Operations Team");
     console.log(`[NotifyParties] 📧 Notifying internal operations team`);
 
     // Notify carrier agent
     if (vars.selectedCarrier) {
       parties.push(`Carrier Agent: ${vars.selectedCarrier}`);
-      console.log(`[NotifyParties] 📧 Notifying carrier agent: ${vars.selectedCarrier}`);
+      console.log(
+        `[NotifyParties] 📧 Notifying carrier agent: ${vars.selectedCarrier}`,
+      );
     }
 
-    console.log(`[NotifyParties] ✓ Sent ${parties.length} notifications for ${vars.referenceNumber}`);
+    console.log(
+      `[NotifyParties] ✓ Sent ${parties.length} notifications for ${vars.referenceNumber}`,
+    );
 
     return {
       notificationsSent: parties.length,

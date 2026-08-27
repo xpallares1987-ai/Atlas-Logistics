@@ -1,7 +1,10 @@
-import { AtlasWorker, AtlasBpmnError } from '../../utils/worker-base.js';
-import { CARRIER_REJECTION, NO_SPACE_AVAILABLE } from '../../utils/error-codes.js';
-import { shipments } from '../../../db/schema/index.js';
-import { eq } from 'drizzle-orm';
+import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
+import {
+  CARRIER_REJECTION,
+  NO_SPACE_AVAILABLE,
+} from "../../utils/error-codes.js";
+import { shipments } from "../../../db/schema/index.js";
+import { eq } from "drizzle-orm";
 
 interface ConfirmBookingInput {
   shipmentId: string;
@@ -25,17 +28,32 @@ interface ConfirmBookingOutput {
  * Simulates carrier booking confirmation.
  * In production, this would call the carrier's API (Inttra, CargoSmart, etc.)
  */
-class ConfirmBookingWorker extends AtlasWorker<ConfirmBookingInput, ConfirmBookingOutput> {
-  readonly taskType = 'atlas.booking.confirm';
+class ConfirmBookingWorker extends AtlasWorker<
+  ConfirmBookingInput,
+  ConfirmBookingOutput
+> {
+  readonly taskType = "atlas.booking.confirm";
 
   async execute(job: any): Promise<ConfirmBookingOutput> {
-    const { shipmentId, referenceNumber, selectedCarrier, origin, destination } = job.variables;
+    const {
+      shipmentId,
+      referenceNumber,
+      selectedCarrier,
+      origin,
+      destination,
+    } = job.variables;
 
-    console.log(`[ConfirmBooking] Confirming with ${selectedCarrier} for ${referenceNumber}`);
+    console.log(
+      `[ConfirmBooking] Confirming with ${selectedCarrier} for ${referenceNumber}`,
+    );
 
     // Simulate carrier API response
     // In production: await carrierApi.createBooking(...)
-    const confirmation = this.simulateCarrierResponse(selectedCarrier, origin, destination);
+    const confirmation = this.simulateCarrierResponse(
+      selectedCarrier,
+      origin,
+      destination,
+    );
 
     if (!confirmation.accepted) {
       throw new AtlasBpmnError(
@@ -48,14 +66,16 @@ class ConfirmBookingWorker extends AtlasWorker<ConfirmBookingInput, ConfirmBooki
     await this.db
       .update(shipments)
       .set({
-        status: 'BOOKED',
+        status: "BOOKED",
         vesselName: confirmation.vessel,
         voyageNumber: confirmation.voyage,
         updatedAt: new Date(),
       })
       .where(eq(shipments.id, shipmentId));
 
-    console.log(`[ConfirmBooking] ✓ Booking confirmed: ${confirmation.bookingRef} on ${confirmation.vessel}`);
+    console.log(
+      `[ConfirmBooking] ✓ Booking confirmed: ${confirmation.bookingRef} on ${confirmation.vessel}`,
+    );
 
     return {
       bookingConfirmed: true,
@@ -67,27 +87,35 @@ class ConfirmBookingWorker extends AtlasWorker<ConfirmBookingInput, ConfirmBooki
     };
   }
 
-  private simulateCarrierResponse(carrier: string, origin: string, destination: string) {
+  private simulateCarrierResponse(
+    carrier: string,
+    origin: string,
+    destination: string,
+  ) {
     // 90% success rate for demo
     const accepted = Math.random() > 0.1;
 
     if (!accepted) {
       return {
         accepted: false,
-        reason: 'No available space on preferred vessel',
-        bookingRef: '', vessel: '', voyage: '', etd: '', eta: '',
+        reason: "No available space on preferred vessel",
+        bookingRef: "",
+        vessel: "",
+        voyage: "",
+        etd: "",
+        eta: "",
       };
     }
 
     const vessels: Record<string, string[]> = {
-      'Maersk': ['Maersk Eindhoven', 'Maersk Elba', 'Maersk Essen'],
-      'MSC': ['MSC Gülsün', 'MSC Isabella', 'MSC Mina'],
-      'Hapag-Lloyd': ['Berlin Express', 'Hamburg Express', 'Madrid Express'],
-      'COSCO': ['COSCO Shipping Universe', 'COSCO Shipping Pisces'],
-      'Evergreen': ['Ever Given', 'Ever Forward', 'Ever Glory'],
+      Maersk: ["Maersk Eindhoven", "Maersk Elba", "Maersk Essen"],
+      MSC: ["MSC Gülsün", "MSC Isabella", "MSC Mina"],
+      "Hapag-Lloyd": ["Berlin Express", "Hamburg Express", "Madrid Express"],
+      COSCO: ["COSCO Shipping Universe", "COSCO Shipping Pisces"],
+      Evergreen: ["Ever Given", "Ever Forward", "Ever Glory"],
     };
 
-    const vesselList = vessels[carrier] || ['MV Generic Vessel'];
+    const vesselList = vessels[carrier] || ["MV Generic Vessel"];
     const vessel = vesselList[Math.floor(Math.random() * vesselList.length)];
     const voyage = `${carrier.substring(0, 3).toUpperCase()}${Math.floor(100 + Math.random() * 900)}E`;
 
@@ -98,12 +126,12 @@ class ConfirmBookingWorker extends AtlasWorker<ConfirmBookingInput, ConfirmBooki
 
     return {
       accepted: true,
-      reason: '',
+      reason: "",
       bookingRef: `BKG-${carrier.substring(0, 3).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
       vessel,
       voyage,
-      etd: etdDate.toISOString().split('T')[0],
-      eta: etaDate.toISOString().split('T')[0],
+      etd: etdDate.toISOString().split("T")[0],
+      eta: etaDate.toISOString().split("T")[0],
     };
   }
 }

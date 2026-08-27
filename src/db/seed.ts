@@ -198,6 +198,149 @@ async function main() {
     });
   }
 
+  // 5.1 HS CODES & TRADE SANCTIONS
+  const standardHsCodes = [
+    {
+      id: "hs_85044090",
+      code: "8504.40.90.90",
+      description: "Static converters and switching power supply units",
+      chapter: "85 - Electrical Machinery",
+      adValoremDuty: 0.033,
+      specificDutyPerKg: 0,
+      vatRate: 0.21,
+      isDualUse: 0,
+    },
+    {
+      id: "hs_84713000",
+      code: "8471.30.00.00",
+      description:
+        "Portable automatic data processing machines (laptops, tablets)",
+      chapter: "84 - Nuclear Reactors, Boilers, Machinery",
+      adValoremDuty: 0.0,
+      specificDutyPerKg: 0,
+      vatRate: 0.21,
+      isDualUse: 0,
+    },
+    {
+      id: "hs_61091000",
+      code: "6109.10.00.10",
+      description:
+        "T-shirts, singlets and other vests, knitted or crocheted, of cotton",
+      chapter: "61 - Articles of Apparel and Clothing, Knitted",
+      adValoremDuty: 0.12,
+      specificDutyPerKg: 0,
+      vatRate: 0.21,
+      isDualUse: 0,
+    },
+    {
+      id: "hs_87082990",
+      code: "8708.29.90.00",
+      description:
+        "Parts and accessories of the motor vehicles bodies (bumpers, trims)",
+      chapter: "87 - Vehicles Other than Railway or Tramway",
+      adValoremDuty: 0.045,
+      specificDutyPerKg: 0,
+      vatRate: 0.21,
+      isDualUse: 0,
+    },
+    {
+      id: "hs_22042106",
+      code: "2204.21.06.00",
+      description:
+        "Wine of fresh grapes in containers holding 2L or less (Rioja/DOCa)",
+      chapter: "22 - Beverages, Spirits and Vinegar",
+      adValoremDuty: 0.0,
+      specificDutyPerKg: 0.131,
+      vatRate: 0.21,
+      isDualUse: 0,
+    },
+    {
+      id: "hs_90138000",
+      code: "9013.80.00.00",
+      description:
+        "Liquid crystal devices, lasers and other optical appliances (Dual-Use)",
+      chapter: "90 - Optical, Photographic, Measuring, Precision Instruments",
+      adValoremDuty: 0.04,
+      specificDutyPerKg: 0,
+      vatRate: 0.21,
+      isDualUse: 1,
+    },
+    {
+      id: "hs_30049000",
+      code: "3004.90.00.00",
+      description:
+        "Medicaments consisting of mixed or unmixed products for retail sale",
+      chapter: "30 - Pharmaceutical Products",
+      adValoremDuty: 0.0,
+      specificDutyPerKg: 0,
+      vatRate: 0.04,
+      isDualUse: 0,
+    },
+    {
+      id: "hs_04069001",
+      code: "0406.90.01.00",
+      description:
+        "Cheese and curd, aged specialty varieties (Manchego, Gouda)",
+      chapter: "04 - Dairy Produce, Birds Eggs, Natural Honey",
+      adValoremDuty: 0.0,
+      specificDutyPerKg: 0.188,
+      vatRate: 0.1,
+      isDualUse: 0,
+    },
+  ];
+
+  const hsCodeIds: string[] = [];
+  for (const hs of standardHsCodes) {
+    hsCodeIds.push(hs.id);
+    await db.insert(schema.hsCodes).values(hs).onConflictDoNothing();
+  }
+
+  const sanctions = [
+    {
+      id: "sanc_kp",
+      countryCode: "KP",
+      countryName: "North Korea",
+      sanctionType: "EMBARGO",
+      description: "Comprehensive trade embargo under UN and EU sanctions",
+    },
+    {
+      id: "sanc_ir",
+      countryCode: "IR",
+      countryName: "Iran",
+      sanctionType: "RESTRICTED",
+      description:
+        "Targeted sanctions on proliferation-sensitive nuclear activities",
+    },
+    {
+      id: "sanc_sy",
+      countryCode: "SY",
+      countryName: "Syria",
+      sanctionType: "EMBARGO",
+      description: "EU restrictive measures in view of the situation in Syria",
+    },
+    {
+      id: "sanc_ru",
+      countryCode: "RU",
+      countryName: "Russian Federation",
+      sanctionType: "RESTRICTED",
+      description:
+        "Sectoral sanctions on dual-use technology, advanced electronics, and maritime goods",
+    },
+    {
+      id: "sanc_cu",
+      countryCode: "CU",
+      countryName: "Cuba",
+      sanctionType: "RESTRICTED",
+      description: "Financial and commercial transaction scrutiny",
+    },
+  ];
+  for (const s of sanctions) {
+    await db.insert(schema.tradeSanctions).values(s).onConflictDoNothing();
+  }
+  console.log(
+    `✅ Creados ${hsCodeIds.length} códigos arancelarios TARIC y ${sanctions.length} sanciones comerciales.`,
+  );
+
   // 6. RATES & SCHEDULES
   const rateIds = [];
   const scheduleIds = [];
@@ -320,14 +463,121 @@ async function main() {
     }
 
     // Customs
-    if (Math.random() > 0.5) {
+    if (Math.random() > 0.4) {
+      const hsId = faker.helpers.arrayElement(hsCodeIds);
+      const hsItem = standardHsCodes.find((h) => h.id === hsId)!;
+      const customsValue = faker.number.float({
+        min: 5000,
+        max: 85000,
+        fractionDigits: 2,
+      });
+      const duty = Math.round(customsValue * hsItem.adValoremDuty * 100) / 100;
+      const vat =
+        Math.round((customsValue + duty) * hsItem.vatRate * 100) / 100;
+      const totalPayable = Math.round((duty + vat) * 100) / 100;
+
+      const origin = faker.helpers.arrayElement([
+        "CN",
+        "US",
+        "VN",
+        "TR",
+        "IN",
+        "RU",
+      ]);
+      const isSanctionedOrigin = origin === "RU";
+      const isDualUse = hsItem.isDualUse === 1;
+
+      let status = "Green Channel";
+      let riskScore = faker.number.int({ min: 5, max: 18 });
+      const triggeredRules: string[] = [
+        "EORI validation: Valid registered trader (ESB88492019)",
+        `HS Code classification: ${hsItem.code} verified against TARIC 2026`,
+      ];
+
+      if (isSanctionedOrigin || isDualUse) {
+        status = "Red Channel";
+        riskScore = faker.number.int({ min: 75, max: 95 });
+        if (isSanctionedOrigin) {
+          triggeredRules.push(
+            "Trade Sanctions Alert: Origin under restricted trade regime (RU)",
+          );
+        }
+        if (isDualUse) {
+          triggeredRules.push(
+            "Dual-Use Commodity Alert: Dual-use optical/machinery requires export/import authorization",
+          );
+        }
+      } else if (customsValue > 50000) {
+        status = "Orange Channel";
+        riskScore = faker.number.int({ min: 35, max: 55 });
+        triggeredRules.push(
+          "Valuation Audit: High-value consignment requires physical commercial invoice verification",
+        );
+      }
+
+      const blNumber = `BL-${faker.string.alphanumeric(8).toUpperCase()}`;
+      const duaNumber = `26ES000811${faker.string.numeric(8)}`;
+
+      const sampleDuaData = JSON.stringify({
+        box1_declarationType: "IM4 - Importacion definitiva a libre practica",
+        box2_exporter: "Global Freight Logistics Ltd (Shanghai, CN)",
+        box8_consignee: "Iberica Import Logistics SL (Barcelona, ES)",
+        box14_declarant:
+          "Atlas Logistics Customs Brokerage SL (EORI: ESB88492019)",
+        box20_deliveryTerms: "CIF - Puerto de Barcelona",
+        box22_currency: "EUR",
+        box22_totalAmount: customsValue,
+        box31_packages: "40 Pallets - " + hsItem.description,
+        box33_hsCode: hsItem.code,
+        box34_originCountry: origin,
+        box36_preference: "100 - Arancel aduanero de terceros paises",
+        box44_documents: [
+          "N935 - Factura comercial definitiva",
+          "N705 - Conocimiento de embarque (Bill of Lading)",
+          "N714 - Lista de empaque (Packing List)",
+        ],
+        box46_customsValue: customsValue,
+        box47_taxes: [
+          {
+            code: "A00",
+            name: "Derechos de Aduana (Duty)",
+            base: customsValue,
+            rate: `${(hsItem.adValoremDuty * 100).toFixed(1)}%`,
+            amount: duty,
+          },
+          {
+            code: "B00",
+            name: "IVA a la Importacion (VAT)",
+            base: customsValue + duty,
+            rate: `${(hsItem.vatRate * 100).toFixed(1)}%`,
+            amount: vat,
+          },
+        ],
+        box47_total: totalPayable,
+        box54_placeDate: `Barcelona, ${new Date().toLocaleDateString("es-ES")}`,
+      });
+
       await db.insert(schema.customsDeclarations).values({
         id: faker.string.uuid(),
         shipmentId: id,
         brokerId: faker.helpers.arrayElement(brokerIds),
-        dutiesAmount: faker.number.int({ min: 100, max: 5000 }),
-        taxesAmount: faker.number.int({ min: 50, max: 2000 }),
-        status: faker.helpers.arrayElement(["PENDING", "CLEARED", "HELD"]),
+        hsCodeId: hsId,
+        blNumber,
+        duaNumber,
+        type: "Import",
+        customsValue,
+        dutiesAmount: duty,
+        taxesAmount: vat,
+        totalPayable,
+        status,
+        riskScore,
+        riskFlags: JSON.stringify(triggeredRules),
+        eoriNumber: "ESB" + faker.string.numeric(8),
+        originCountry: origin,
+        destinationCountry: "ES",
+        duaData: sampleDuaData,
+        aiRiskScore: riskScore,
+        aiRiskFlag: triggeredRules.join(" | "),
       });
     }
   }
@@ -431,16 +681,23 @@ async function main() {
   // 11. AGENT SETTLEMENTS
   const { agentSettlements } = schema;
   for (let i = 0; i < companyIds.length; i++) {
-    await db.insert(agentSettlements).values({
-      id: faker.string.uuid(),
-      statementNumber: "STMT-GEN-" + i.toString().padStart(3, "0"),
-      agentId: companyIds[i],
-      periodStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-      periodEnd: new Date(),
-      netBalance: (i + 1) * 15000,
-      currency: "USD",
-      status: i === 0 ? "Pending" : "Paid",
-    });
+    await db
+      .insert(agentSettlements)
+      .values({
+        id: faker.string.uuid(),
+        statementNumber:
+          "STMT-" +
+          faker.string.alphanumeric(6).toUpperCase() +
+          "-" +
+          i.toString().padStart(3, "0"),
+        agentId: companyIds[i],
+        periodStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        periodEnd: new Date(),
+        netBalance: (i + 1) * 15000,
+        currency: "USD",
+        status: i === 0 ? "Pending" : "Paid",
+      })
+      .onConflictDoNothing();
   }
   console.log(
     `✅ Creados ${companyIds.length} settlements de agentes (Agent Settlements).`,

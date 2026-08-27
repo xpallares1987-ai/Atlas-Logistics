@@ -366,4 +366,3 @@ export function runUnitTestSuite(): TestCaseResult[] {
 
   return results;
 }
-

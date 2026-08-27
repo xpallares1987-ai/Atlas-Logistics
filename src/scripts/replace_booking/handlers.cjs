@@ -1,5 +1,5 @@
 // src/scripts/replace_booking/handlers.cjs
-const fs = require('fs');
+const fs = require("fs");
 
 function injectHandlers(content) {
   const dndHandlers = `
@@ -35,12 +35,12 @@ function injectHandlers(content) {
 
     const handleDragOver = e => { e.preventDefault(); };
   `;
-  const lines = content.split('\n');
-  const returnIdx = lines.findIndex(l => l.includes('return ('));
+  const lines = content.split("\n");
+  const returnIdx = lines.findIndex((l) => l.includes("return ("));
   if (returnIdx !== -1) {
     lines.splice(returnIdx, 0, dndHandlers);
   }
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 module.exports = { injectHandlers };

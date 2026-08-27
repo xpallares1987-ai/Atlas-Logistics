@@ -172,9 +172,7 @@
       "reported_by": null,
       "title": "Elliptic Uses a Cryptographic Primitive with a Risky Implementation",
       "metadata": null,
-      "cves": [
-        "CVE-2025-14505"
-      ],
+      "cves": ["CVE-2025-14505"],
       "access": "public",
       "severity": "low",
       "module_name": "elliptic",
@@ -187,9 +185,7 @@
         "score": 5.6,
         "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:L"
       },
-      "cwe": [
-        "CWE-1240"
-      ],
+      "cwe": ["CWE-1240"],
       "url": "https://github.com/advisories/GHSA-848j-6mx2-7j84"
     },
     "1130715": {
@@ -213,9 +209,7 @@
       "reported_by": null,
       "title": "undici vulnerable to downstream response desynchronization via retry interceptor",
       "metadata": null,
-      "cves": [
-        "CVE-2026-16728"
-      ],
+      "cves": ["CVE-2026-16728"],
       "access": "public",
       "severity": "moderate",
       "module_name": "undici",
@@ -228,9 +222,7 @@
         "score": 4.8,
         "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N"
       },
-      "cwe": [
-        "CWE-444"
-      ],
+      "cwe": ["CWE-444"],
       "url": "https://github.com/advisories/GHSA-8xcm-r25x-g524"
     },
     "1130716": {
@@ -254,9 +246,7 @@
       "reported_by": null,
       "title": "undici vulnerable to downstream response desynchronization via retry interceptor",
       "metadata": null,
-      "cves": [
-        "CVE-2026-16728"
-      ],
+      "cves": ["CVE-2026-16728"],
       "access": "public",
       "severity": "moderate",
       "module_name": "undici",
@@ -269,9 +259,7 @@
         "score": 4.8,
         "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N"
       },
-      "cwe": [
-        "CWE-444"
-      ],
+      "cwe": ["CWE-444"],
       "url": "https://github.com/advisories/GHSA-8xcm-r25x-g524"
     },
     "1130718": {
@@ -295,9 +283,7 @@
       "reported_by": null,
       "title": "undici vulnerable to cross-user information disclosure and parse-time crash via degenerate private cache directives",
       "metadata": null,
-      "cves": [
-        "CVE-2026-13697"
-      ],
+      "cves": ["CVE-2026-13697"],
       "access": "public",
       "severity": "high",
       "module_name": "undici",
@@ -310,11 +296,7 @@
         "score": 7.4,
         "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:H"
       },
-      "cwe": [
-        "CWE-200",
-        "CWE-248",
-        "CWE-525"
-      ],
+      "cwe": ["CWE-200", "CWE-248", "CWE-525"],
       "url": "https://github.com/advisories/GHSA-4cwx-7wf7-3272"
     },
     "1130719": {
@@ -338,9 +320,7 @@
       "reported_by": null,
       "title": "fast-uri vulnerable to host confusion via backslash authority introducer",
       "metadata": null,
-      "cves": [
-        "CVE-2026-18446"
-      ],
+      "cves": ["CVE-2026-18446"],
       "access": "public",
       "severity": "high",
       "module_name": "fast-uri",
@@ -353,9 +333,7 @@
         "score": 7.5,
         "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
       },
-      "cwe": [
-        "CWE-436"
-      ],
+      "cwe": ["CWE-436"],
       "url": "https://github.com/advisories/GHSA-7p8r-x3mc-p8w7"
     },
     "1130720": {
@@ -385,9 +363,7 @@
       "reported_by": null,
       "title": "fast-uri vulnerable to host confusion via backslash authority introducer",
       "metadata": null,
-      "cves": [
-        "CVE-2026-18446"
-      ],
+      "cves": ["CVE-2026-18446"],
       "access": "public",
       "severity": "high",
       "module_name": "fast-uri",
@@ -400,9 +376,7 @@
         "score": 7.5,
         "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
       },
-      "cwe": [
-        "CWE-436"
-      ],
+      "cwe": ["CWE-436"],
       "url": "https://github.com/advisories/GHSA-7p8r-x3mc-p8w7"
     },
     "1130726": {
@@ -426,9 +400,7 @@
       "reported_by": null,
       "title": "undici vulnerable to CRLF Injection via blob-like body 'type' property",
       "metadata": null,
-      "cves": [
-        "CVE-2026-15157"
-      ],
+      "cves": ["CVE-2026-15157"],
       "access": "public",
       "severity": "moderate",
       "module_name": "undici",
@@ -441,9 +413,7 @@
         "score": 4.2,
         "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:N"
       },
-      "cwe": [
-        "CWE-93"
-      ],
+      "cwe": ["CWE-93"],
       "url": "https://github.com/advisories/GHSA-m8rv-5g2x-5cg5"
     },
     "1130727": {
@@ -467,9 +437,7 @@
       "reported_by": null,
       "title": "undici vulnerable to CRLF Injection via blob-like body 'type' property",
       "metadata": null,
-      "cves": [
-        "CVE-2026-15157"
-      ],
+      "cves": ["CVE-2026-15157"],
       "access": "public",
       "severity": "moderate",
       "module_name": "undici",
@@ -482,9 +450,7 @@
         "score": 4.2,
         "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:N"
       },
-      "cwe": [
-        "CWE-93"
-      ],
+      "cwe": ["CWE-93"],
       "url": "https://github.com/advisories/GHSA-m8rv-5g2x-5cg5"
     },
     "1130729": {
@@ -508,9 +474,7 @@
       "reported_by": null,
       "title": "undici vulnerable to cross-user information disclosure via whitespace around equals in Cache-Control directives",
       "metadata": null,
-      "cves": [
-        "CVE-2026-14643"
-      ],
+      "cves": ["CVE-2026-14643"],
       "access": "public",
       "severity": "moderate",
       "module_name": "undici",
@@ -523,10 +487,7 @@
         "score": 5.9,
         "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
       },
-      "cwe": [
-        "CWE-436",
-        "CWE-524"
-      ],
+      "cwe": ["CWE-436", "CWE-524"],
       "url": "https://github.com/advisories/GHSA-jr45-8vmc-qm54"
     },
     "1130731": {
@@ -550,9 +511,7 @@
       "reported_by": null,
       "title": "undici vulnerable to cookie attribute injection via unsanitized domain and unparsed setCookie fields",
       "metadata": null,
-      "cves": [
-        "CVE-2026-16729"
-      ],
+      "cves": ["CVE-2026-16729"],
       "access": "public",
       "severity": "moderate",
       "module_name": "undici",
@@ -565,9 +524,7 @@
         "score": 4.8,
         "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N"
       },
-      "cwe": [
-        "CWE-74"
-      ],
+      "cwe": ["CWE-74"],
       "url": "https://github.com/advisories/GHSA-v3r7-h72x-cjcm"
     },
     "1130732": {
@@ -591,9 +548,7 @@
       "reported_by": null,
       "title": "undici vulnerable to cookie attribute injection via unsanitized domain and unparsed setCookie fields",
       "metadata": null,
-      "cves": [
-        "CVE-2026-16729"
-      ],
+      "cves": ["CVE-2026-16729"],
       "access": "public",
       "severity": "moderate",
       "module_name": "undici",
@@ -606,9 +561,7 @@
         "score": 4.8,
         "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N"
       },
-      "cwe": [
-        "CWE-74"
-      ],
+      "cwe": ["CWE-74"],
       "url": "https://github.com/advisories/GHSA-v3r7-h72x-cjcm"
     },
     "1138115": {
@@ -647,9 +600,7 @@
         "score": 7.5,
         "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
       },
-      "cwe": [
-        "CWE-407"
-      ],
+      "cwe": ["CWE-407"],
       "url": "https://github.com/advisories/GHSA-5p4m-2wfm-xmqj"
     },
     "1138538": {
@@ -689,9 +640,7 @@
         "score": 0,
         "vectorString": null
       },
-      "cwe": [
-        "CWE-79"
-      ],
+      "cwe": ["CWE-79"],
       "url": "https://github.com/advisories/GHSA-55q2-fjhq-7xh7"
     },
     "1138813": {
@@ -771,9 +720,7 @@
       "reported_by": null,
       "title": "nanoid: custom generators can loop indefinitely when size is zero",
       "metadata": null,
-      "cves": [
-        "CVE-2026-67213"
-      ],
+      "cves": ["CVE-2026-67213"],
       "access": "public",
       "severity": "high",
       "module_name": "nanoid",
@@ -786,9 +733,7 @@
         "score": 5.9,
         "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H"
       },
-      "cwe": [
-        "CWE-835"
-      ],
+      "cwe": ["CWE-835"],
       "url": "https://github.com/advisories/GHSA-2v37-7h3g-55p8"
     }
   },

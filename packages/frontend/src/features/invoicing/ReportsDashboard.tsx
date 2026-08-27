@@ -28,7 +28,7 @@ const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#f43f5e"];
 export function ReportsDashboard({ invoices }: { invoices: Invoice[] }) {
   const agingData = useMemo(() => {
     const buckets = {
-      "Current": 0,
+      Current: 0,
       "1-30 Days": 0,
       "31-60 Days": 0,
       "61-90 Days": 0,
@@ -39,7 +39,11 @@ export function ReportsDashboard({ invoices }: { invoices: Invoice[] }) {
 
     invoices.forEach((inv) => {
       // Only consider AR that is not paid
-      if (inv.type === "AR" && inv.status !== "Paid" && inv.status !== "Cancelled") {
+      if (
+        inv.type === "AR" &&
+        inv.status !== "Paid" &&
+        inv.status !== "Cancelled"
+      ) {
         const due = new Date(inv.dueDate);
         const diffTime = now.getTime() - due.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -67,10 +71,13 @@ export function ReportsDashboard({ invoices }: { invoices: Invoice[] }) {
   const statusData = useMemo(() => {
     const statusCounts = invoices
       .filter((inv) => inv.type === "AR")
-      .reduce((acc, inv) => {
-        acc[inv.status] = (acc[inv.status] || 0) + inv.amount;
-        return acc;
-      }, {} as Record<string, number>);
+      .reduce(
+        (acc, inv) => {
+          acc[inv.status] = (acc[inv.status] || 0) + inv.amount;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
 
     return Object.keys(statusCounts).map((key) => ({
       name: key,
@@ -106,16 +113,30 @@ export function ReportsDashboard({ invoices }: { invoices: Invoice[] }) {
         <h3 className="text-lg font-bold text-white mb-6">A/R Aging Summary</h3>
         <div className="flex-1 min-h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={agingData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+            <BarChart
+              data={agingData}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <XAxis
+                dataKey="name"
+                stroke="#64748b"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
               <YAxis
                 stroke="#64748b"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(value) => `$${value >= 1000 ? (value / 1000).toFixed(0) + "k" : value}`}
+                tickFormatter={(value) =>
+                  `$${value >= 1000 ? (value / 1000).toFixed(0) + "k" : value}`
+                }
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ fill: "rgba(255,255,255,0.05)" }}
+              />
               <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
                 {agingData.map((entry, index) => {
                   let color = "#3b82f6"; // default blue
@@ -153,7 +174,10 @@ export function ReportsDashboard({ invoices }: { invoices: Invoice[] }) {
                 stroke="none"
               >
                 {statusData.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
@@ -163,8 +187,13 @@ export function ReportsDashboard({ invoices }: { invoices: Invoice[] }) {
           <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col gap-3 pointer-events-none">
             {statusData.map((entry, index) => (
               <div key={entry.name} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                <span className="text-sm font-medium text-slate-300">{entry.name}</span>
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                />
+                <span className="text-sm font-medium text-slate-300">
+                  {entry.name}
+                </span>
               </div>
             ))}
           </div>

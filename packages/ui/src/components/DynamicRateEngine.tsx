@@ -132,17 +132,17 @@ export function DynamicRateEngine() {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.05 }
-    }
+      transition: { staggerChildren: 0.05 },
+    },
   };
 
   const rowVariants = {
     hidden: { opacity: 0, x: -20 },
-    show: { opacity: 1, x: 0 }
+    show: { opacity: 1, x: 0 },
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex flex-col h-full min-h-[calc(100vh-4rem)] flex-1 bg-slate-950 text-slate-200"
@@ -151,7 +151,7 @@ export function DynamicRateEngine() {
       <div className="p-6 border-b border-slate-800/60 glass-panel border-b-0 rounded-none rounded-b-2xl mx-6 shadow-2xl">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
           {/* Search Criteria */}
-          <motion.div 
+          <motion.div
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             className="flex-1 glass-card p-6 relative overflow-hidden"
@@ -201,7 +201,7 @@ export function DynamicRateEngine() {
               </div>
             </div>
             <div className="mt-5 flex justify-end">
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-bold py-2.5 px-6 rounded-xl transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(59,130,246,0.3)]"
@@ -212,7 +212,7 @@ export function DynamicRateEngine() {
           </motion.div>
 
           {/* Pricing Strategy (Markup) */}
-          <motion.div 
+          <motion.div
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
@@ -255,7 +255,9 @@ export function DynamicRateEngine() {
                     Target Markup Value
                   </label>
                   <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-950/50 px-2 py-0.5 rounded">
-                    {marginType === "flat" ? `$${marginValue}` : `${marginValue}%`}
+                    {marginType === "flat"
+                      ? `$${marginValue}`
+                      : `${marginValue}%`}
                   </span>
                 </div>
                 <div className="relative">
@@ -301,7 +303,7 @@ export function DynamicRateEngine() {
       {/* Bottom Panel: Results Table */}
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="max-w-7xl mx-auto space-y-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -339,7 +341,8 @@ export function DynamicRateEngine() {
                     </span>
                     {/* Tooltip */}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-slate-800/95 backdrop-blur text-slate-200 text-xs p-3 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none border border-slate-700">
-                      Includes BAF (Bunker), PSS (Peak Season) and Origin/Dest THC.
+                      Includes BAF (Bunker), PSS (Peak Season) and Origin/Dest
+                      THC.
                     </div>
                   </th>
                   <th className="py-5 px-6 text-right text-indigo-400 bg-indigo-900/10">
@@ -351,7 +354,7 @@ export function DynamicRateEngine() {
                   <th className="py-5 px-6 text-center">Action</th>
                 </tr>
               </thead>
-              <motion.tbody 
+              <motion.tbody
                 variants={tableVariants}
                 initial="hidden"
                 animate="show"
@@ -385,16 +388,19 @@ export function DynamicRateEngine() {
                               {rate.carrier || "Unknown Carrier"}
                               {idx === 0 && (
                                 <span className="flex items-center gap-1 text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-mono uppercase tracking-widest border border-emerald-500/30">
-                                  <CheckCircle2 className="w-3 h-3" /> Best Choice
+                                  <CheckCircle2 className="w-3 h-3" /> Best
+                                  Choice
                                 </span>
                               )}
                             </div>
                             <div className="text-xs text-slate-400 mt-1 flex items-center gap-2 font-medium">
-                              <span className="bg-slate-800 px-2 py-0.5 rounded">{rate.serviceLine}</span>
+                              <span className="bg-slate-800 px-2 py-0.5 rounded">
+                                {rate.serviceLine}
+                              </span>
                               <span className="text-slate-600">•</span>
                               <span className="flex items-center gap-1 text-slate-300">
-                                <Clock className="w-3.5 h-3.5 text-slate-500" /> {rate.transitTime}{" "}
-                                Days Transit
+                                <Clock className="w-3.5 h-3.5 text-slate-500" />{" "}
+                                {rate.transitTime} Days Transit
                               </span>
                             </div>
                           </div>
@@ -417,9 +423,24 @@ export function DynamicRateEngine() {
                           )}
                         </div>
                         <div className="text-[10px] text-slate-500 mt-1.5 uppercase tracking-widest flex justify-end gap-2 font-semibold">
-                          <span title={`BAF: ${rate.baf}`} className="bg-slate-800 px-1.5 rounded">BAF</span>
-                          <span title={`PSS: ${rate.pss}`} className="bg-slate-800 px-1.5 rounded">PSS</span>
-                          <span title={`THC: ${rate.thc}`} className="bg-slate-800 px-1.5 rounded">THC</span>
+                          <span
+                            title={`BAF: ${rate.baf}`}
+                            className="bg-slate-800 px-1.5 rounded"
+                          >
+                            BAF
+                          </span>
+                          <span
+                            title={`PSS: ${rate.pss}`}
+                            className="bg-slate-800 px-1.5 rounded"
+                          >
+                            PSS
+                          </span>
+                          <span
+                            title={`THC: ${rate.thc}`}
+                            className="bg-slate-800 px-1.5 rounded"
+                          >
+                            THC
+                          </span>
                         </div>
                       </td>
 

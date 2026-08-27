@@ -37,7 +37,7 @@ class FileInsuranceClaimWorker extends AtlasWorker<
     const filedAt = new Date().toISOString();
 
     console.log(
-      `[FileInsuranceClaimWorker] Filed claim ${claimReference} for shipment ${shipmentId}. Amount: ${claimAmount} ${currency}. Reason: ${reason}`
+      `[FileInsuranceClaimWorker] Filed claim ${claimReference} for shipment ${shipmentId}. Amount: ${claimAmount} ${currency}. Reason: ${reason}`,
     );
 
     return {

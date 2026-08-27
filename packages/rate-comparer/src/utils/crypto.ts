@@ -52,4 +52,3 @@ declare global {
     DECRYPTED_DATA?: unknown;
   }
 }
-

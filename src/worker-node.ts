@@ -9,15 +9,15 @@ import { startOcrWorker } from "./queues/ocr.queue.js";
 async function startWorkerNode() {
   logger.info("Initializing Worker Node...");
   await loadSecrets(process.env.GOOGLE_CLOUD_PROJECT || "atlas-logistics");
-  
+
   if (db) {
     logger.info("Database connection initialized in worker node.");
   }
-  
+
   await connectRedis();
 
   logger.info("Starting background workers...");
-  
+
   // Iniciamos los procesos en segundo plano (Zeebe Workers y utilidades AI)
   startAiParserWorker();
   registerAllWorkers();

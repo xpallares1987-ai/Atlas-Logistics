@@ -22,7 +22,7 @@ export default class CustomPalette {
       group: string,
       className: string,
       title: string,
-      options?: any
+      options?: any,
     ) {
       function createListener(event: any) {
         const shape = _elementFactory.createShape({ type, ...options });
@@ -41,40 +41,40 @@ export default class CustomPalette {
     }
 
     return {
-      'custom-separator': {
-        group: 'logistics',
+      "custom-separator": {
+        group: "logistics",
         separator: true,
       },
-      'create.customs-task': createAction(
-        'bpmn:Task',
-        'logistics',
-        'bpmn-icon-customs',
-        'Tarea de Aduanas',
-        { businessObject: { name: 'Despacho Aduanas' } }
+      "create.customs-task": createAction(
+        "bpmn:Task",
+        "logistics",
+        "bpmn-icon-customs",
+        "Tarea de Aduanas",
+        { businessObject: { name: "Despacho Aduanas" } },
       ),
-      'create.warehouse-task': createAction(
-        'bpmn:Task',
-        'logistics',
-        'bpmn-icon-warehouse',
-        'Tarea de Almacén',
-        { businessObject: { name: 'Recepción Almacén' } }
+      "create.warehouse-task": createAction(
+        "bpmn:Task",
+        "logistics",
+        "bpmn-icon-warehouse",
+        "Tarea de Almacén",
+        { businessObject: { name: "Recepción Almacén" } },
       ),
-      'create.lcl-task': createAction(
-        'bpmn:Task',
-        'logistics',
-        'bpmn-icon-lcl',
-        'Consolidación LCL',
-        { businessObject: { name: 'Consolidación LCL' } }
+      "create.lcl-task": createAction(
+        "bpmn:Task",
+        "logistics",
+        "bpmn-icon-lcl",
+        "Consolidación LCL",
+        { businessObject: { name: "Consolidación LCL" } },
       ),
-      'create.crossdock-task': createAction(
-        'bpmn:Task',
-        'logistics',
-        'bpmn-icon-crossdock',
-        'Cross-docking',
-        { businessObject: { name: 'Operación Cross-dock' } }
+      "create.crossdock-task": createAction(
+        "bpmn:Task",
+        "logistics",
+        "bpmn-icon-crossdock",
+        "Cross-docking",
+        { businessObject: { name: "Operación Cross-dock" } },
       ),
     };
   }
 }
 
-CustomPalette.$inject = ['palette', 'create', 'elementFactory', 'translate'];
+CustomPalette.$inject = ["palette", "create", "elementFactory", "translate"];

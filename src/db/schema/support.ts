@@ -27,7 +27,9 @@ export const notifications = sqliteTable("notifications", {
 
 export const warehouseInventory = sqliteTable("warehouse_inventory", {
   id: text("id").primaryKey(),
-  locationId: text("location_id").notNull().references(() => locations.id),
+  locationId: text("location_id")
+    .notNull()
+    .references(() => locations.id),
   ownership: text("ownership").notNull().default("INTERNAL"), // INTERNAL, EXTERNAL
   customer: text("customer"),
   buyer: text("buyer"),

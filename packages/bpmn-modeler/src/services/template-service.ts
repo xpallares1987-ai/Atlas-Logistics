@@ -2,7 +2,7 @@ export interface TemplateMetadata {
   id: string;
   name: string;
   description?: string;
-  category: 'bpmn' | 'dmn' | 'form';
+  category: "bpmn" | "dmn" | "form";
 }
 
 export interface Template {

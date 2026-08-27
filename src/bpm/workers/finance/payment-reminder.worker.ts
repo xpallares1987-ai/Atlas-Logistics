@@ -9,12 +9,17 @@ interface PaymentReminderOutput {
   reminderSent: boolean;
 }
 
-class PaymentReminderWorker extends AtlasWorker<PaymentReminderInput, PaymentReminderOutput> {
+class PaymentReminderWorker extends AtlasWorker<
+  PaymentReminderInput,
+  PaymentReminderOutput
+> {
   readonly taskType = "atlas.invoice.payment-reminder";
 
   async execute(job: any): Promise<PaymentReminderOutput> {
     const { invoiceNumber } = job.variables;
-    console.log(`[PaymentReminderWorker] Sending payment reminder for invoice ${invoiceNumber}`);
+    console.log(
+      `[PaymentReminderWorker] Sending payment reminder for invoice ${invoiceNumber}`,
+    );
     return { reminderSent: true };
   }
 }

@@ -1,4 +1,4 @@
-import { AtlasWorker } from '../../utils/worker-base.js';
+import { AtlasWorker } from "../../utils/worker-base.js";
 
 interface GenerateHblInput {
   shipmentId: string;
@@ -27,15 +27,27 @@ interface GenerateHblOutput {
  * Generates a House Bill of Lading (HBL) document.
  * In production: renders a PDF from template with real data.
  */
-class GenerateHblWorker extends AtlasWorker<GenerateHblInput, GenerateHblOutput> {
-  readonly taskType = 'atlas.docs.generate-hbl';
+class GenerateHblWorker extends AtlasWorker<
+  GenerateHblInput,
+  GenerateHblOutput
+> {
+  readonly taskType = "atlas.docs.generate-hbl";
 
   async execute(job: any): Promise<GenerateHblOutput> {
-    const { referenceNumber, shipperName, consigneeName, origin, destination, vessel } = job.variables;
+    const {
+      referenceNumber,
+      shipperName,
+      consigneeName,
+      origin,
+      destination,
+      vessel,
+    } = job.variables;
 
-    const hblNumber = `HBL-${referenceNumber.replace('SHP-', '')}`;
+    const hblNumber = `HBL-${referenceNumber.replace("SHP-", "")}`;
 
-    console.log(`[GenerateHBL] Creating HBL ${hblNumber} for ${referenceNumber}`);
+    console.log(
+      `[GenerateHBL] Creating HBL ${hblNumber} for ${referenceNumber}`,
+    );
     console.log(`  Shipper: ${shipperName} → Consignee: ${consigneeName}`);
     console.log(`  Route: ${origin} → ${destination} on ${vessel}`);
 

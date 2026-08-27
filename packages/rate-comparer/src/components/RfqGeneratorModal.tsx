@@ -38,10 +38,12 @@ export default function RfqGeneratorModal({
   const [markupValue, setMarkupValue] = useState(15);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hideCarrier, setHideCarrier] = useState(false);
-  const [includedSurcharges, setIncludedSurcharges] = useState<Record<string, boolean>>(() => {
+  const [includedSurcharges, setIncludedSurcharges] = useState<
+    Record<string, boolean>
+  >(() => {
     const initialState: Record<string, boolean> = {};
     if (rate?.surcharges) {
-      rate.surcharges.forEach(s => {
+      rate.surcharges.forEach((s) => {
         initialState[s.name] = true;
       });
     }
@@ -62,17 +64,22 @@ export default function RfqGeneratorModal({
   };
 
   const getBaseFreight = () => {
-    return convertAmount(rate.baseFreightCost || rate.baseRate || 0, rate.currency);
+    return convertAmount(
+      rate.baseFreightCost || rate.baseRate || 0,
+      rate.currency,
+    );
   };
 
   const getExcludedSurchargesTotal = () => {
     return (rate.surcharges || [])
-      .filter(s => !includedSurcharges[s.name])
+      .filter((s) => !includedSurcharges[s.name])
       .reduce((sum, s) => sum + convertAmount(s.amount, rate.currency), 0);
   };
 
   const displayedBaseFreight = getBaseFreight() + getExcludedSurchargesTotal();
-  const displayedSurcharges = (rate.surcharges || []).filter(s => includedSurcharges[s.name]);
+  const displayedSurcharges = (rate.surcharges || []).filter(
+    (s) => includedSurcharges[s.name],
+  );
 
   const calculateTotalWithMarkup = () => {
     const baseTotal = getBaseTotal();
@@ -152,7 +159,7 @@ export default function RfqGeneratorModal({
           [
             rate.pol,
             rate.pod,
-            hideCarrier ? "Premium Carrier" : (rate.carrierName || rate.carrier),
+            hideCarrier ? "Premium Carrier" : rate.carrierName || rate.carrier,
             `${rate.transitTimeDays} days`,
             rate.isDirect ? "Direct" : "Transshipment",
           ],
@@ -233,7 +240,10 @@ export default function RfqGeneratorModal({
         customerId: "00000000-0000-0000-0000-000000000001", // Placeholder or from context
         equipment: rate.containerType || "40HC",
         buyRateTotal: getBaseTotal(),
-        sellMargin: markupType === "percentage" ? markupValue : (markupValue / getBaseTotal()) * 100,
+        sellMargin:
+          markupType === "percentage"
+            ? markupValue
+            : (markupValue / getBaseTotal()) * 100,
         sellRateTotal: finalTotal,
         status: "SENT",
         validTo: validUntilDate.toISOString(),
@@ -251,7 +261,7 @@ export default function RfqGeneratorModal({
       } catch (err) {
         console.error("Error saving quote", err);
       }
-      
+
       alert("Quote generated and saved successfully!");
     } finally {
       setIsGenerating(false);
@@ -346,25 +356,50 @@ export default function RfqGeneratorModal({
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
                   <div>
-                    <h4 className="text-xs font-bold text-slate-700">White-label Quote</h4>
-                    <p className="text-[10px] text-slate-500">Hide carrier name on PDF</p>
+                    <h4 className="text-xs font-bold text-slate-700">
+                      White-label Quote
+                    </h4>
+                    <p className="text-[10px] text-slate-500">
+                      Hide carrier name on PDF
+                    </p>
                   </div>
-                  <Switch checked={hideCarrier} onChange={(e) => setHideCarrier(e.target.checked)} />
+                  <Switch
+                    checked={hideCarrier}
+                    onChange={(e) => setHideCarrier(e.target.checked)}
+                  />
                 </div>
 
                 {rate.surcharges && rate.surcharges.length > 0 && (
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
-                    <h4 className="text-xs font-bold text-slate-700">Include Surcharges as Line Items</h4>
-                    <p className="text-[10px] text-slate-500 mb-2">Excluded surcharges will be rolled into Base Ocean Freight.</p>
+                    <h4 className="text-xs font-bold text-slate-700">
+                      Include Surcharges as Line Items
+                    </h4>
+                    <p className="text-[10px] text-slate-500 mb-2">
+                      Excluded surcharges will be rolled into Base Ocean
+                      Freight.
+                    </p>
                     {rate.surcharges.map((s) => (
                       <div key={s.name} className="flex items-center gap-2">
-                        <Checkbox 
+                        <Checkbox
                           id={`surcharge-${s.name}`}
-                          checked={includedSurcharges[s.name]} 
-                          onChange={(e) => setIncludedSurcharges(prev => ({...prev, [s.name]: e.target.checked}))}
+                          checked={includedSurcharges[s.name]}
+                          onChange={(e) =>
+                            setIncludedSurcharges((prev) => ({
+                              ...prev,
+                              [s.name]: e.target.checked,
+                            }))
+                          }
                         />
-                        <label htmlFor={`surcharge-${s.name}`} className="text-xs font-medium text-slate-700 cursor-pointer">
-                          {s.name} (+ {activeCurrency} {convertAmount(s.amount, rate.currency).toLocaleString()})
+                        <label
+                          htmlFor={`surcharge-${s.name}`}
+                          className="text-xs font-medium text-slate-700 cursor-pointer"
+                        >
+                          {s.name} (+ {activeCurrency}{" "}
+                          {convertAmount(
+                            s.amount,
+                            rate.currency,
+                          ).toLocaleString()}
+                          )
                         </label>
                       </div>
                     ))}
@@ -426,7 +461,10 @@ export default function RfqGeneratorModal({
                     {rate.pol} → {rate.pod}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
-                    {hideCarrier ? "Premium Carrier" : (rate.carrierName || rate.carrier)} • {rate.transitTimeDays} days
+                    {hideCarrier
+                      ? "Premium Carrier"
+                      : rate.carrierName || rate.carrier}{" "}
+                    • {rate.transitTimeDays} days
                   </p>
                 </div>
 
@@ -441,12 +479,19 @@ export default function RfqGeneratorModal({
                       {activeCurrency} {displayedBaseFreight.toLocaleString()}
                     </span>
                   </div>
-                  
-                  {displayedSurcharges.map(s => (
-                    <div key={s.name} className="flex justify-between text-xs text-slate-500">
+
+                  {displayedSurcharges.map((s) => (
+                    <div
+                      key={s.name}
+                      className="flex justify-between text-xs text-slate-500"
+                    >
                       <span>{s.name}</span>
                       <span>
-                        + {activeCurrency} {convertAmount(s.amount, rate.currency).toLocaleString()}
+                        + {activeCurrency}{" "}
+                        {convertAmount(
+                          s.amount,
+                          rate.currency,
+                        ).toLocaleString()}
                       </span>
                     </div>
                   ))}
@@ -491,4 +536,3 @@ export default function RfqGeneratorModal({
     </AnimatePresence>
   );
 }
-

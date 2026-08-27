@@ -1,4 +1,3 @@
-
 export interface DiagramVersion {
   id: string;
   tabId: string;
@@ -7,13 +6,13 @@ export interface DiagramVersion {
   xml: string;
 }
 
-const LOCAL_STORAGE_HISTORY_KEY = 'bpmn.diagram-history';
+const LOCAL_STORAGE_HISTORY_KEY = "bpmn.diagram-history";
 
 function isLocalStorageAvailable(): boolean {
   try {
     const storage = window.localStorage;
-    const testKey = '__mi_history_test__';
-    storage.setItem(testKey, '1');
+    const testKey = "__mi_history_test__";
+    storage.setItem(testKey, "1");
     storage.removeItem(testKey);
     return true;
   } catch {
@@ -24,7 +23,11 @@ function isLocalStorageAvailable(): boolean {
 export class HistoryService {
   constructor() {}
 
-  async saveVersion(tabId: string, label: string, xml: string): Promise<DiagramVersion> {
+  async saveVersion(
+    tabId: string,
+    label: string,
+    xml: string,
+  ): Promise<DiagramVersion> {
     const version: DiagramVersion = {
       id: crypto.randomUUID(),
       tabId,
@@ -42,7 +45,10 @@ export class HistoryService {
       if (history[tabId].length > 50) {
         history[tabId].pop();
       }
-      window.localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(history));
+      window.localStorage.setItem(
+        LOCAL_STORAGE_HISTORY_KEY,
+        JSON.stringify(history),
+      );
     }
 
     return version;
@@ -60,8 +66,13 @@ export class HistoryService {
     if (isLocalStorageAvailable()) {
       const history = this.getLocalStorageHistory();
       if (history[tabId]) {
-        history[tabId] = history[tabId].filter((v: DiagramVersion) => v.id !== versionId);
-        window.localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(history));
+        history[tabId] = history[tabId].filter(
+          (v: DiagramVersion) => v.id !== versionId,
+        );
+        window.localStorage.setItem(
+          LOCAL_STORAGE_HISTORY_KEY,
+          JSON.stringify(history),
+        );
         return true;
       }
     }
@@ -72,7 +83,10 @@ export class HistoryService {
     if (isLocalStorageAvailable()) {
       const history = this.getLocalStorageHistory();
       delete history[tabId];
-      window.localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(history));
+      window.localStorage.setItem(
+        LOCAL_STORAGE_HISTORY_KEY,
+        JSON.stringify(history),
+      );
       return true;
     }
     return false;

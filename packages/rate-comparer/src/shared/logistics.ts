@@ -53,4 +53,3 @@ export function calculateUtilization(
   );
   return (totalVolume / container.volumeCapacity) * 100;
 }
-

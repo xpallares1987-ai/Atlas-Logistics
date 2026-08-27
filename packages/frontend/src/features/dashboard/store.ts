@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface DashboardState {
   dateRange: { start: string; end: string } | null;
@@ -9,5 +9,5 @@ interface DashboardState {
 export const useDashboardStore = create<DashboardState>((set) => ({
   dateRange: null,
   setDateRange: (start, end) => set({ dateRange: { start, end } }),
-  clearDateRange: () => set({ dateRange: null })
+  clearDateRange: () => set({ dateRange: null }),
 }));

@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Bot, Send, User, Database } from "lucide-react";
 
 export function DataAnalystChat() {
-  const [messages, setMessages] = useState<{ role: "user" | "bot"; text: string; sql?: string }[]>([
+  const [messages, setMessages] = useState<
+    { role: "user" | "bot"; text: string; sql?: string }[]
+  >([
     {
       role: "bot",
       text: "Hola, soy el Atlas Data Analyst. ¿Qué necesitas saber de tus datos logísticos hoy?",
@@ -20,8 +22,8 @@ export function DataAnalystChat() {
 
     try {
       // Mock API call to local backend
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       setMessages((prev) => [
         ...prev,
         {
@@ -49,25 +51,36 @@ export function DataAnalystChat() {
   return (
     <div className="flex flex-col h-[500px] w-full max-w-2xl bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden shadow-2xl relative transform gpu will-change-transform">
       <div className="absolute top-0 right-0 p-32 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
-      
+
       <div className="px-6 py-4 border-b border-slate-700/50 bg-slate-900/40 flex items-center gap-3 relative z-10">
         <div className="p-2 bg-indigo-500/20 rounded-xl">
           <Database className="text-indigo-400 w-5 h-5" />
         </div>
         <div>
           <h3 className="text-white font-bold">Atlas Data Analyst</h3>
-          <p className="text-xs text-slate-400">Gemini 2.5 Text-to-SQL Engine</p>
+          <p className="text-xs text-slate-400">
+            Gemini 2.5 Text-to-SQL Engine
+          </p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4 relative z-10">
         {messages.map((m, i) => (
-          <div key={i} className={`flex gap-3 max-w-[85%] ${m.role === "user" ? "ml-auto flex-row-reverse" : ""}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${m.role === "user" ? "bg-slate-700 text-slate-300" : "bg-indigo-500 text-white shadow-[0_0_15px_-3px_rgba(99,102,241,0.5)]"}`}>
+          <div
+            key={i}
+            className={`flex gap-3 max-w-[85%] ${m.role === "user" ? "ml-auto flex-row-reverse" : ""}`}
+          >
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${m.role === "user" ? "bg-slate-700 text-slate-300" : "bg-indigo-500 text-white shadow-[0_0_15px_-3px_rgba(99,102,241,0.5)]"}`}
+            >
               {m.role === "user" ? <User size={16} /> : <Bot size={16} />}
             </div>
-            <div className={`space-y-2 ${m.role === "user" ? "items-end" : "items-start"}`}>
-              <div className={`p-3 rounded-2xl ${m.role === "user" ? "bg-indigo-600/90 text-white rounded-tr-sm" : "bg-slate-800/80 text-slate-200 rounded-tl-sm border border-slate-700/50"}`}>
+            <div
+              className={`space-y-2 ${m.role === "user" ? "items-end" : "items-start"}`}
+            >
+              <div
+                className={`p-3 rounded-2xl ${m.role === "user" ? "bg-indigo-600/90 text-white rounded-tr-sm" : "bg-slate-800/80 text-slate-200 rounded-tl-sm border border-slate-700/50"}`}
+              >
                 <p className="text-sm leading-relaxed">{m.text}</p>
               </div>
               {m.sql && m.sql !== "null" && (

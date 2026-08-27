@@ -2,30 +2,30 @@
 /// <reference types="vite-plugin-pwa/client" />
 
 // Declaraciones de módulos para archivos de assets
-declare module '*.css' {
+declare module "*.css" {
   const content: Record<string, string>;
   export default content;
 }
 
-declare module '*.svg' {
-  import type { FunctionComponent, SVGAttributes } from 'react';
+declare module "*.svg" {
+  import type { FunctionComponent, SVGAttributes } from "react";
   const ReactComponent: FunctionComponent<SVGAttributes<SVGElement>>;
   export { ReactComponent };
   const src: string;
   export default src;
 }
 
-declare module '*.png' {
+declare module "*.png" {
   const content: string;
   export default content;
 }
 
-declare module '*.jpg' {
+declare module "*.jpg" {
   const content: string;
   export default content;
 }
 
-declare module '*.webp' {
+declare module "*.webp" {
   const content: string;
   export default content;
 }

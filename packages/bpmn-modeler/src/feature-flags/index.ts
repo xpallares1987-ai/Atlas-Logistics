@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const FeatureSchema = z.object({
   enableSysMetadata: z.boolean().default(false),

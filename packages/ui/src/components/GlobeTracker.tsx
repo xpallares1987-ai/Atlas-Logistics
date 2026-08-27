@@ -26,7 +26,12 @@ interface GlobeTrackerProps {
   height?: number;
 }
 
-export function GlobeTracker({ markers = [], arcs = [], width, height }: GlobeTrackerProps) {
+export function GlobeTracker({
+  markers = [],
+  arcs = [],
+  width,
+  height,
+}: GlobeTrackerProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [mounted, setMounted] = useState(false);
 
@@ -36,17 +41,23 @@ export function GlobeTracker({ markers = [], arcs = [], width, height }: GlobeTr
       // Auto-rotate
       globeRef.current.controls().autoRotate = true;
       globeRef.current.controls().autoRotateSpeed = 0.5;
-      
+
       // Setup initial view
       if (markers.length > 0) {
-        globeRef.current.pointOfView({ lat: markers[0].lat, lng: markers[0].lng, altitude: 2 }, 1000);
+        globeRef.current.pointOfView(
+          { lat: markers[0].lat, lng: markers[0].lng, altitude: 2 },
+          1000,
+        );
       } else {
         globeRef.current.pointOfView({ lat: 20, lng: 0, altitude: 2.5 });
       }
     }
   }, [markers]);
 
-  if (!mounted) return <div className="animate-pulse bg-slate-800/50 rounded-2xl w-full h-full min-h-[400px]"></div>;
+  if (!mounted)
+    return (
+      <div className="animate-pulse bg-slate-800/50 rounded-2xl w-full h-full min-h-[400px]"></div>
+    );
 
   return (
     <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl relative">
@@ -58,7 +69,7 @@ export function GlobeTracker({ markers = [], arcs = [], width, height }: GlobeTr
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         backgroundColor="rgba(0,0,0,0)"
-        
+
         // Markers
         labelsData={markers}
         labelLat={(d: any) => d.lat}
@@ -68,7 +79,7 @@ export function GlobeTracker({ markers = [], arcs = [], width, height }: GlobeTr
         labelDotRadius={(d: any) => (d.size || 1.5) / 2}
         labelColor={(d: any) => d.color || "#10b981"}
         labelResolution={2}
-        
+
         // Arcs
         arcsData={arcs}
         arcStartLat={(d: any) => d.startLat}

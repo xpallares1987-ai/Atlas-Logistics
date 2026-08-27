@@ -9,4 +9,3 @@ export const DataRowSchema = z.object({
 });
 
 export const DataSchema = z.array(DataRowSchema);
-

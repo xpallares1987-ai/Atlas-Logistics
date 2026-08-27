@@ -25,7 +25,9 @@ class MatchAPWorker extends AtlasWorker<MatchAPInput, MatchAPOutput> {
   async execute(job: any): Promise<MatchAPOutput> {
     const { shipmentId, expectedCost = 1000 } = job.variables;
 
-    console.log(`[MatchAPWorker] Matching invoices for shipment ${shipmentId}...`);
+    console.log(
+      `[MatchAPWorker] Matching invoices for shipment ${shipmentId}...`,
+    );
 
     // Fetch the pending AI parsed invoice
     const pendingReviews = await db
@@ -34,8 +36,8 @@ class MatchAPWorker extends AtlasWorker<MatchAPInput, MatchAPOutput> {
       .where(
         and(
           eq(pendingAiReviews.shipmentId, shipmentId),
-          eq(pendingAiReviews.status, "PENDING")
-        )
+          eq(pendingAiReviews.status, "PENDING"),
+        ),
       )
       .limit(1);
 
@@ -49,17 +51,19 @@ class MatchAPWorker extends AtlasWorker<MatchAPInput, MatchAPOutput> {
       }
     } else {
       // If no AI review found, simulate an amount with a slight variance
-      actualAmount = Math.round(expectedCost * (1 + (Math.random() * 0.1 - 0.05)));
+      actualAmount = Math.round(
+        expectedCost * (1 + (Math.random() * 0.1 - 0.05)),
+      );
     }
 
     const variance = Math.abs(expectedCost - actualAmount);
     const variancePercent = (variance / expectedCost) * 100;
-    
+
     // Consider it matched if variance is less than 5%
     const allMatched = variancePercent <= 5;
 
     console.log(
-      `[MatchAPWorker] Match result: expected=$${expectedCost}, actual=$${actualAmount}, variance=${variancePercent.toFixed(2)}%, matched=${allMatched}`
+      `[MatchAPWorker] Match result: expected=$${expectedCost}, actual=$${actualAmount}, variance=${variancePercent.toFixed(2)}%, matched=${allMatched}`,
     );
 
     return {

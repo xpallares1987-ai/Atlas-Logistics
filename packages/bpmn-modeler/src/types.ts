@@ -1,8 +1,8 @@
 /// <reference types="@react-three/fiber" />
-import Modeler from 'bpmn-js/lib/Modeler';
-import { Sidebar } from './ui/sidebar';
-import { Toolbar } from './ui/toolbar';
-import { Theme } from '@atlas/shared';
+import Modeler from "bpmn-js/lib/Modeler";
+import { Sidebar } from "./ui/sidebar";
+import { Toolbar } from "./ui/toolbar";
+import { Theme } from "@atlas/shared";
 
 export type { Theme };
 
@@ -67,4 +67,3 @@ export interface AppState {
   sidebar: Sidebar | null;
   cleanups: (() => void)[];
 }
-

@@ -72,7 +72,7 @@ export function WarehouseInboundOutbound({ mode }: Props) {
         const res = await fetch("/api/operations/warehouse/inventory");
         if (!res.ok) throw new Error("Failed to load inventory");
         const json = await res.json();
-        
+
         let data = json.data;
         if (!data || data.length === 0) {
           data = mockData; // fallback
@@ -117,13 +117,13 @@ export function WarehouseInboundOutbound({ mode }: Props) {
       const res = await fetch("/api/operations/warehouse/inventory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: [newItem] })
+        body: JSON.stringify({ items: [newItem] }),
       });
-      
+
       if (!res.ok) {
         throw new Error("Backend save failed");
       }
-      
+
       alert(`✅ Recibo guardado exitosamente.`);
     } catch (err) {
       console.error("Error saving online, queuing offline:", err);

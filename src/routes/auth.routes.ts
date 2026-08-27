@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET =
-  process.env.JWT_SECRET || "atlas-logistics-super-secret-key-12345";
+  process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure";
 
 const authRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.post(
