@@ -27,6 +27,6 @@ test.describe("Authentication & RBAC", () => {
     await page.fill('input[type="password"]', "badpassword");
     await page.click('button[type="submit"]');
 
-    await expect(page.locator("text=Invalid credentials")).toBeVisible();
+    await expect(page.getByText("Credenciales inválidas")).toBeVisible();
   });
 });
