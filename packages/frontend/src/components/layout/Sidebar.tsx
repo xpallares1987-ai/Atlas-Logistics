@@ -22,6 +22,7 @@ import {
   X,
   Plane,
   FileSignature,
+  Truck,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -235,6 +236,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Plane}
               >
                 Air Freight (e-AWB)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/road-freight"
+                icon={Truck}
+              >
+                Road Freight (e-CMR)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
