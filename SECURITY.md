@@ -18,6 +18,7 @@ If you discover a vulnerability in this project, **PLEASE DO NOT report it via p
 Please send an email to the architecture team. We will acknowledge receipt within 24 hours and issue a patch (Hotfix) for critical vulnerabilities in less than 48 hours.
 
 ### Critical Areas of Focus
+
 - **Secrets Management:** Automated deployments (CI/CD) securely manage environment variables. Any attempt to inject or exfiltrate private keys or credentials is considered critical.
 - **Code-Level Vulnerabilities (Timing Attacks and Randomness):** The repository uses `timingSafeEqual` for sensitive comparisons and `crypto.getRandomValues()` strictly (without modulo bias) to prevent prediction or timing analysis vulnerabilities.
 - **Database Access and RBAC:** Privilege escalation through failures in the mock AuthProvider or API role guards. Ensure that sensitive operations always validate roles at the route level.
@@ -27,7 +28,8 @@ Please send an email to the architecture team. We will acknowledge receipt withi
 ## Continuous Auditing and Code Scanning
 
 Atlas Logistics mandatorily employs **GitHub Advanced Security** in continuous integration:
+
 - **CodeQL & njsscan:** Every Pull Request is statically analyzed (SAST) looking for logical, memory, or secret exposure vulnerabilities. Code integration (merge) is not allowed with pending CodeQL alerts.
 - **Dependabot:** Actively monitors the dependency tree (`pnpm`) to enforce updates of libraries with detected CVEs.
 
-We encourage security researchers to audit deployments, provided it is done responsibly and in local or *sandbox* environments.
+We encourage security researchers to audit deployments, provided it is done responsibly and in local or _sandbox_ environments.

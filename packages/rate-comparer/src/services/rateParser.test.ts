@@ -103,4 +103,3 @@ June;Barcelona;New York;MSC;1000;EUR;100;EUR;50;USD;30;EUR`;
     });
   });
 });
-

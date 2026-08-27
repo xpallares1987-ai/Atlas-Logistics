@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useRef, useMemo, useEffect } from "react";
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sphere, Html } from '@react-three/drei';
-import * as THREE from 'three';
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, Sphere, Html } from "@react-three/drei";
+import * as THREE from "three";
 
 interface GlobeProps {
   shipments: any[];
@@ -54,7 +54,7 @@ function Markers({ shipments }: { shipments: any[] }) {
             <meshBasicMaterial color="#38bdf8" />
           </mesh>
           {/* Opcional: Html de react-three/drei para tooltips */}
-          <Html distanceFactor={10} style={{ pointerEvents: 'none' }}>
+          <Html distanceFactor={10} style={{ pointerEvents: "none" }}>
             <div className="bg-slate-900/80 backdrop-blur border border-sky-500/30 text-sky-300 text-[8px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap">
               {p.data.shipment_ref || `SHP-${i}`}
             </div>
@@ -78,11 +78,20 @@ export function InteractiveGlobe({ shipments = [] }: GlobeProps) {
       </div>
       <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
         <ambientLight intensity={0.5} />
-        <directionalLight position={[10, 10, 5]} intensity={1.5} color="#38bdf8" />
+        <directionalLight
+          position={[10, 10, 5]}
+          intensity={1.5}
+          color="#38bdf8"
+        />
         <pointLight position={[-10, -10, -5]} intensity={1} color="#818cf8" />
         <Earth />
         <Markers shipments={shipments} />
-        <OrbitControls enableZoom={true} enablePan={false} autoRotate={true} autoRotateSpeed={0.5} />
+        <OrbitControls
+          enableZoom={true}
+          enablePan={false}
+          autoRotate={true}
+          autoRotateSpeed={0.5}
+        />
       </Canvas>
     </div>
   );

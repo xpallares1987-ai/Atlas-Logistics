@@ -47,7 +47,8 @@ const itemVariants: Variants = {
 export default function AgentSettlementsModule() {
   const [activeTab, setActiveTab] = useState<"All" | "Pending" | "Paid">("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSettlement, setSelectedSettlement] = useState<AgentSettlement | null>(null);
+  const [selectedSettlement, setSelectedSettlement] =
+    useState<AgentSettlement | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -212,10 +213,10 @@ export default function AgentSettlementsModule() {
         </motion.div>
       </div>
 
-      <SettlementDetailsDrawer 
-        isOpen={!!selectedSettlement} 
-        onClose={() => setSelectedSettlement(null)} 
-        settlement={selectedSettlement} 
+      <SettlementDetailsDrawer
+        isOpen={!!selectedSettlement}
+        onClose={() => setSelectedSettlement(null)}
+        settlement={selectedSettlement}
       />
 
       {/* Main List */}
@@ -326,7 +327,10 @@ export default function AgentSettlementsModule() {
                         className="w-8 h-8 rounded-full bg-white/5 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 border border-transparent hover:border-indigo-500/30 p-0"
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(`/api/agent-settlements/${settlement.id}/pdf`, '_blank');
+                          window.open(
+                            `/api/agent-settlements/${settlement.id}/pdf`,
+                            "_blank",
+                          );
                         }}
                       >
                         <Download className="w-4 h-4" />

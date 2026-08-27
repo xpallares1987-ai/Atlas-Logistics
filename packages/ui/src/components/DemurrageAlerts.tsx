@@ -54,13 +54,16 @@ export function DemurrageAlerts() {
     if (containers.length > 0) {
       const prevIds = new Set(prevContainersRef.current.map((c) => c.id));
       const newCriticalAlerts = containers.filter(
-        (c) => !prevIds.has(c.id) && (c.freeTimeDays - c.dwellDays) <= 0
+        (c) => !prevIds.has(c.id) && c.freeTimeDays - c.dwellDays <= 0,
       );
 
-      if (newCriticalAlerts.length > 0 && prevContainersRef.current.length > 0) {
+      if (
+        newCriticalAlerts.length > 0 &&
+        prevContainersRef.current.length > 0
+      ) {
         Toast.show(
           `${newCriticalAlerts.length} new critical D&D alert(s) detected.`,
-          "error"
+          "error",
         );
       }
 
@@ -318,12 +321,18 @@ Control Tower Global Logistics`;
               <div className="flex flex-col gap-4 p-4 lg:hidden">
                 {filteredContainers.map((c) => {
                   const remaining = c.freeTimeDays - c.dwellDays;
-                  const exposure = remaining < 0 ? Math.abs(remaining) * c.ratePerDay : 0;
+                  const exposure =
+                    remaining < 0 ? Math.abs(remaining) * c.ratePerDay : 0;
                   return (
-                    <div key={c.id} className="bg-slate-800/40 border border-white/5 rounded-2xl p-4 flex flex-col gap-4">
+                    <div
+                      key={c.id}
+                      className="bg-slate-800/40 border border-white/5 rounded-2xl p-4 flex flex-col gap-4"
+                    >
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-bold text-slate-200 text-lg">{c.container}</p>
+                          <p className="font-bold text-slate-200 text-lg">
+                            {c.container}
+                          </p>
                           <p className="text-sm text-slate-400">{c.carrier}</p>
                         </div>
                         <div className="flex flex-col items-end">
@@ -342,22 +351,36 @@ Control Tower Global Logistics`;
                           )}
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4 text-sm mt-2">
                         <div>
-                          <span className="text-xs text-slate-500 uppercase block mb-1">Ruta (POD)</span>
-                          <span className="font-medium text-slate-300">{c.pod}</span>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">
+                            Ruta (POD)
+                          </span>
+                          <span className="font-medium text-slate-300">
+                            {c.pod}
+                          </span>
                         </div>
                         <div>
-                          <span className="text-xs text-slate-500 uppercase block mb-1">Estancia</span>
-                          <span className="font-medium text-slate-300">{c.dwellDays} d</span>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">
+                            Estancia
+                          </span>
+                          <span className="font-medium text-slate-300">
+                            {c.dwellDays} d
+                          </span>
                         </div>
                         <div>
-                          <span className="text-xs text-slate-500 uppercase block mb-1">Tarifa/Día</span>
-                          <span className="font-medium text-slate-400 font-mono">${c.ratePerDay}</span>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">
+                            Tarifa/Día
+                          </span>
+                          <span className="font-medium text-slate-400 font-mono">
+                            ${c.ratePerDay}
+                          </span>
                         </div>
                         <div>
-                          <span className="text-xs text-slate-500 uppercase block mb-1">Penalización</span>
+                          <span className="text-xs text-slate-500 uppercase block mb-1">
+                            Penalización
+                          </span>
                           {exposure > 0 ? (
                             <strong className="text-red-400 font-mono text-base">
                               ${exposure.toLocaleString("es-ES")}
@@ -369,7 +392,7 @@ Control Tower Global Logistics`;
                           )}
                         </div>
                       </div>
-                      
+
                       {exposure > 0 && (
                         <div className="mt-2 pt-4 border-t border-white/5 flex justify-end gap-2">
                           <button
@@ -460,20 +483,20 @@ Control Tower Global Logistics`;
                           </td>
                           <td className="px-6 py-4">
                             {exposure > 0 ? (
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition-all"
-                                    onClick={() => dismissMutation.mutate(c.id)}
-                                  >
-                                    <CheckCircle size={14} /> Dismiss
-                                  </button>
-                                  <button
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all"
-                                    onClick={() => openEmailDraft(c)}
-                                  >
-                                    <Mail size={14} /> Exención
-                                  </button>
-                                </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition-all"
+                                  onClick={() => dismissMutation.mutate(c.id)}
+                                >
+                                  <CheckCircle size={14} /> Dismiss
+                                </button>
+                                <button
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all"
+                                  onClick={() => openEmailDraft(c)}
+                                >
+                                  <Mail size={14} /> Exención
+                                </button>
+                              </div>
                             ) : (
                               <button
                                 className="px-3 py-1.5 bg-slate-800 text-slate-500 text-xs font-bold rounded-lg cursor-not-allowed"

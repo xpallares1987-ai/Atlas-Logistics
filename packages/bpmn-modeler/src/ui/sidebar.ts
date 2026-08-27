@@ -1,4 +1,4 @@
-import { ensureElement, qs } from '@atlas/shared';
+import { ensureElement, qs } from "@atlas/shared";
 
 export interface Sidebar {
   toggle: () => void;
@@ -18,22 +18,28 @@ export function createSidebar({
   initialOpen?: boolean;
   onChange?: (isOpen: boolean) => void;
 }): Sidebar {
-  const sidebar = typeof sidebarElement === 'string' ? ensureElement(qs(sidebarElement), 'panel lateral') : ensureElement(sidebarElement, 'panel lateral');
-  const button = typeof toggleButton === 'string' ? qs<HTMLElement>(toggleButton) : toggleButton;
+  const sidebar =
+    typeof sidebarElement === "string"
+      ? ensureElement(qs(sidebarElement), "panel lateral")
+      : ensureElement(sidebarElement, "panel lateral");
+  const button =
+    typeof toggleButton === "string"
+      ? qs<HTMLElement>(toggleButton)
+      : toggleButton;
 
   let isOpen = Boolean(initialOpen);
 
   function render() {
     if (isOpen) {
-      sidebar.classList.remove('sidebar--hidden');
-      sidebar.setAttribute('aria-hidden', 'false');
+      sidebar.classList.remove("sidebar--hidden");
+      sidebar.setAttribute("aria-hidden", "false");
     } else {
-      sidebar.classList.add('sidebar--hidden');
-      sidebar.setAttribute('aria-hidden', 'true');
+      sidebar.classList.add("sidebar--hidden");
+      sidebar.setAttribute("aria-hidden", "true");
     }
     if (button) {
-      button.setAttribute('aria-expanded', String(isOpen));
-      button.textContent = isOpen ? 'Ocultar' : 'Propiedades';
+      button.setAttribute("aria-expanded", String(isOpen));
+      button.textContent = isOpen ? "Ocultar" : "Propiedades";
     }
   }
 
@@ -50,8 +56,8 @@ export function createSidebar({
     setOpen,
     isOpen: () => isOpen,
     destroy: () => {
-      if (button) ['aria-expanded'].forEach((attr) => button.removeAttribute(attr));
+      if (button)
+        ["aria-expanded"].forEach((attr) => button.removeAttribute(attr));
     },
   };
 }
-

@@ -1,38 +1,41 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Lock, Mail, ArrowRight, ShieldCheck } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const [email, setEmail] = useState('admin@atlas.com');
-  const [password, setPassword] = useState('admin');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("admin@atlas.com");
+  const [password, setPassword] = useState("admin");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || ""}/api/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        },
+      );
+
       const data = await res.json();
-      
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to login');
+        throw new Error(data.error || "Failed to login");
       }
 
       login(data.token, data.user);
-      navigate('/');
+      navigate("/");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -47,7 +50,7 @@ export default function Login() {
       <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none" />
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none mix-blend-overlay" />
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
@@ -55,7 +58,7 @@ export default function Login() {
       >
         <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-duration-500" />
-          
+
           <div className="relative z-10 mb-8 text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl mx-auto flex items-center justify-center mb-6 shadow-lg shadow-indigo-500/30 border border-indigo-400/50">
               <ShieldCheck className="w-8 h-8 text-white" />
@@ -63,14 +66,16 @@ export default function Login() {
             <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-tight mb-2">
               Atlas ERP
             </h1>
-            <p className="text-slate-400 font-medium">Enterprise Access Portal</p>
+            <p className="text-slate-400 font-medium">
+              Enterprise Access Portal
+            </p>
           </div>
 
           <form onSubmit={handleLogin} className="relative z-10 space-y-5">
             {error && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }} 
-                animate={{ opacity: 1, height: 'auto' }} 
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
                 className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm p-3 rounded-xl text-center font-medium"
               >
                 {error}
@@ -78,7 +83,9 @@ export default function Login() {
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">Work Email</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">
+                Work Email
+              </label>
               <div className="relative group/input">
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                   <Mail className="w-5 h-5 text-slate-500 group-focus-within/input:text-indigo-400 transition-colors" />
@@ -95,7 +102,9 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">Password</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">
+                Password
+              </label>
               <div className="relative group/input">
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                   <Lock className="w-5 h-5 text-slate-500 group-focus-within/input:text-indigo-400 transition-colors" />
@@ -129,9 +138,13 @@ export default function Login() {
 
           <div className="mt-8 text-center relative z-10">
             <p className="text-xs text-slate-500 font-medium">
-              Demo Credentials:<br/>
-              <span className="text-slate-400">admin@atlas.com / admin</span><br/>
-              <span className="text-slate-400">finance@atlas.com / password123</span>
+              Demo Credentials:
+              <br />
+              <span className="text-slate-400">admin@atlas.com / admin</span>
+              <br />
+              <span className="text-slate-400">
+                finance@atlas.com / password123
+              </span>
             </p>
           </div>
         </div>

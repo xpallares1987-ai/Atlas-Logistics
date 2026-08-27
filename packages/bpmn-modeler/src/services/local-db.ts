@@ -1,4 +1,3 @@
-import { SharedDatabase } from '@atlas/shared';
+import { SharedDatabase } from "@atlas/shared";
 
-export const db = new SharedDatabase('BpmnModelerDB');
-
+export const db = new SharedDatabase("BpmnModelerDB");

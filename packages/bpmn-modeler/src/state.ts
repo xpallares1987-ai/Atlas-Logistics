@@ -1,13 +1,19 @@
-import { AppState } from './types';
-import APP_CONFIG from './config';
-import { loadTheme, saveTheme, applyTheme, publishEvent, Theme } from '@atlas/shared';
+import { AppState } from "./types";
+import APP_CONFIG from "./config";
+import {
+  loadTheme,
+  saveTheme,
+  applyTheme,
+  publishEvent,
+  Theme,
+} from "@atlas/shared";
 
 export type { AppState };
 
 export const state: AppState = {
   modeler: null,
   tabs: [],
-  activeTabId: '',
+  activeTabId: "",
   propertiesPanelOpen: APP_CONFIG.ui.propertiesPanelOpen,
   theme: loadTheme(),
   toolbar: null,
@@ -27,10 +33,9 @@ export function updateTheme(theme: Theme, isFromBroadcast: boolean = false) {
   if (!isFromBroadcast) {
     try {
       publishEvent({
-        type: 'THEME_CHANGED',
+        type: "THEME_CHANGED",
         payload: { theme },
       });
     } catch {}
   }
 }
-

@@ -1,9 +1,10 @@
 {
-    "recommendations": [
-        "google.gemini-cli-vscode-ide-companion",
-        "dbaeumer.vscode-eslint",
-        "bradlc.vscode-tailwindcss",
-        "esbenp.prettier-vscode",
-        "ms-playwright.playwright"
-    ]
+  "recommendations": [
+    "google.gemini-cli-vscode-ide-companion",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "ms-playwright.playwright",
+    "ms-azuretools.vscode-docker"
+  ]
 }

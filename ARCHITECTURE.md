@@ -9,7 +9,7 @@ The entire application runs and renders directly in the browser as a Super-App p
 
 ## 2. Turborepo and Package Management
 
-The ecosystem is built on a Monorepo managed by `Turborepo` and `pnpm` (version 10+). Dependencies are linked using local *symlinks* (`workspace:*`) ensuring maximum code reuse and parallel compilation times.
+The ecosystem is built on a Monorepo managed by `Turborepo` and `pnpm` (version 10+). Dependencies are linked using local _symlinks_ (`workspace:*`) ensuring maximum code reuse and parallel compilation times.
 
 ### Main Structure
 
@@ -21,7 +21,7 @@ The ecosystem is built on a Monorepo managed by `Turborepo` and `pnpm` (version 
   - **`packages/mfe-warehouse`**: **Micro-Frontend (MFE)** dedicated to Warehouse Operations using Module Federation.
 - **`packages/shared` and `packages/ui`**: Contain shared utilities and UI components consumed by the main application.
 
-*(Note: Legacy external `apps`, `functions`, and `data` directories have been removed in favor of strict Monorepo packing.)*
+_(Note: Legacy external `apps`, `functions`, and `data` directories have been removed in favor of strict Monorepo packing.)_
 
 ## 3. Data Layer (SQLite & Drizzle)
 
@@ -34,6 +34,7 @@ All persistent state and database queries for the Super-App are performed using 
 ## 4. CI/CD Pipeline and Continuous Integration
 
 The repository is configured for ultra-efficient continuous integration automated with **GitHub Actions**:
+
 - **Build and Testing**: The official build command is `pnpm run build` at the root, which uses Turbo to package in parallel using remote/local caches.
 - **Code Scanning and Security**: Constant code analysis in CI with CodeQL and `njsscan` to prevent vulnerability regressions.
 - **E2E Testing**: Automated End-to-End testing orchestrated locally using **Playwright**.

@@ -19,7 +19,7 @@ import {
   Trash2,
   Book,
   Download,
-  GripVertical
+  GripVertical,
 } from "lucide-react";
 import {
   DndContext,
@@ -72,7 +72,7 @@ export default function BookingManagementModule() {
     ["bookings"],
     "/operations/bookings",
   );
-  
+
   const { data: companies = [] } = useApiQuery<any[]>(
     ["companies"],
     "/operations/companies",
@@ -373,7 +373,9 @@ export default function BookingManagementModule() {
       <div
         ref={setNodeRef}
         className={`w-[340px] shrink-0 rounded-2xl p-4 flex flex-col shadow-inner border transition-colors duration-200 ${
-          isOver ? "bg-indigo-50 border-indigo-200" : "bg-slate-200/50 border-slate-200/60"
+          isOver
+            ? "bg-indigo-50 border-indigo-200"
+            : "bg-slate-200/50 border-slate-200/60"
         }`}
       >
         <div className="flex justify-between items-center mb-5 px-2">
@@ -393,12 +395,17 @@ export default function BookingManagementModule() {
 
   // Helper component for cards
   const DraggableCard = ({ bkg }: any) => {
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-      id: bkg.id,
-      data: bkg,
-    });
+    const { attributes, listeners, setNodeRef, transform, isDragging } =
+      useDraggable({
+        id: bkg.id,
+        data: bkg,
+      });
     const style = transform
-      ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 50, opacity: isDragging ? 0.8 : 1 }
+      ? {
+          transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+          zIndex: 50,
+          opacity: isDragging ? 0.8 : 1,
+        }
       : undefined;
 
     return (
@@ -407,12 +414,18 @@ export default function BookingManagementModule() {
         style={style}
         onClick={() => handleSelectBooking(bkg)}
         className={`bg-white p-5 rounded-xl border-2 transition-all cursor-grab active:cursor-grabbing hover:-translate-y-1 hover:shadow-lg ${
-          selectedBkg?.id === bkg.id ? "border-indigo-400 shadow-md ring-2 ring-indigo-500/10" : "border-slate-100 shadow-sm hover:border-indigo-200"
+          selectedBkg?.id === bkg.id
+            ? "border-indigo-400 shadow-md ring-2 ring-indigo-500/10"
+            : "border-slate-100 shadow-sm hover:border-indigo-200"
         } ${isDragging ? "shadow-2xl scale-105" : ""}`}
       >
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-2">
-            <span {...listeners} {...attributes} className="cursor-grab p-1 -ml-1 text-slate-300 hover:text-slate-500">
+            <span
+              {...listeners}
+              {...attributes}
+              className="cursor-grab p-1 -ml-1 text-slate-300 hover:text-slate-500"
+            >
               <GripVertical size={16} />
             </span>
             <div className="font-mono font-bold text-slate-800 text-sm bg-slate-100 px-2 py-0.5 rounded">
@@ -570,19 +583,28 @@ export default function BookingManagementModule() {
               </div>
             </div>
           ) : (
-            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <DndContext
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
               <div className="flex-1 flex overflow-x-auto p-6 gap-6 bg-slate-100/30">
                 {["Pending", "Confirmed", "In Transit", "Completed"].map(
                   (col) => {
-                    const colBookings = shipments.filter((s) => s.status === col);
+                    const colBookings = shipments.filter(
+                      (s) => s.status === col,
+                    );
                     return (
-                      <DroppableColumn key={col} col={col} count={colBookings.length}>
+                      <DroppableColumn
+                        key={col}
+                        col={col}
+                        count={colBookings.length}
+                      >
                         {colBookings.map((bkg) => (
                           <DraggableCard key={bkg.id} bkg={bkg} />
                         ))}
                       </DroppableColumn>
                     );
-                  }
+                  },
                 )}
               </div>
             </DndContext>
@@ -677,7 +699,9 @@ export default function BookingManagementModule() {
                       {selectedBkg?.status === "Confirmed" && (
                         <Button
                           variant="outline"
-                          onClick={() => alert("Navigating to Shipment details...")}
+                          onClick={() =>
+                            alert("Navigating to Shipment details...")
+                          }
                           className="bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 mr-2"
                         >
                           <Ship className="w-4 h-4 mr-2" /> View Active Shipment
@@ -733,9 +757,13 @@ export default function BookingManagementModule() {
                           >
                             <option value="">Select a Customer...</option>
                             {companies.map((c) => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
                             ))}
-                            <option value="Demo Customer Ltd">Demo Customer Ltd</option>
+                            <option value="Demo Customer Ltd">
+                              Demo Customer Ltd
+                            </option>
                           </Select>
                         </div>
                         <div>

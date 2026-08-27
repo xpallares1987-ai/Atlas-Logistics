@@ -9,7 +9,7 @@ import { FreightRate } from "../types";
 const analysisCache = {
   get: async <T>(key: string) => null as T | null,
   set: async (key: string, val: string) => {},
-  generateKey: (data: any) => JSON.stringify(data)
+  generateKey: (data: any) => JSON.stringify(data),
 };
 const AnalysisCache = analysisCache;
 
@@ -140,4 +140,3 @@ export async function getLogisticsInsights(
     return "Error al generar insights de IA. Por favor, revise la consola para más detalles.";
   }
 }
-

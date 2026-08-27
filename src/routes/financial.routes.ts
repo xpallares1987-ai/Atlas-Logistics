@@ -18,23 +18,69 @@ const ensureFinancialSeedData = async () => {
   const existingCompanies = await db.select().from(companies).limit(1);
   if (existingCompanies.length === 0) {
     await db.insert(companies).values([
-      { id: "comp-2", name: "Oceanic Partners Co.", type: "Partner", status: "Active", createdAt: new Date(), updatedAt: new Date() },
-      { id: "comp-3", name: "Global Freight Inc", type: "Partner", status: "Active", createdAt: new Date(), updatedAt: new Date() }
+      {
+        id: "comp-2",
+        name: "Oceanic Partners Co.",
+        type: "Partner",
+        status: "Active",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "comp-3",
+        name: "Global Freight Inc",
+        type: "Partner",
+        status: "Active",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     ]);
   }
 
   const existingInvoices = await db.select().from(invoices).limit(1);
   if (existingInvoices.length === 0) {
     await db.insert(invoices).values([
-      { id: uuidv4(), invoiceNumber: "INV-AP-1001", companyId: "comp-2", type: "AP", amount: 12500, currency: "USD", status: "Paid", dueDate: new Date(), createdAt: new Date(), updatedAt: new Date() },
-      { id: uuidv4(), invoiceNumber: "INV-AP-1002", companyId: "comp-2", type: "AP", amount: 8000, currency: "USD", status: "Pending", dueDate: new Date(), createdAt: new Date(), updatedAt: new Date() },
+      {
+        id: uuidv4(),
+        invoiceNumber: "INV-AP-1001",
+        companyId: "comp-2",
+        type: "AP",
+        amount: 12500,
+        currency: "USD",
+        status: "Paid",
+        dueDate: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: uuidv4(),
+        invoiceNumber: "INV-AP-1002",
+        companyId: "comp-2",
+        type: "AP",
+        amount: 8000,
+        currency: "USD",
+        status: "Pending",
+        dueDate: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     ]);
   }
 
   const existingSettlements = await db.select().from(agentSettlements).limit(1);
   if (existingSettlements.length === 0) {
     await db.insert(agentSettlements).values([
-      { id: uuidv4(), statementNumber: "STMT-2023-11", agentId: "comp-2", periodStart: new Date("2023-11-01"), periodEnd: new Date("2023-11-30"), netBalance: 20500, currency: "USD", status: "Paid", createdAt: new Date() }
+      {
+        id: uuidv4(),
+        statementNumber: "STMT-2023-11",
+        agentId: "comp-2",
+        periodStart: new Date("2023-11-01"),
+        periodEnd: new Date("2023-11-30"),
+        netBalance: 20500,
+        currency: "USD",
+        status: "Paid",
+        createdAt: new Date(),
+      },
     ]);
   }
 };
@@ -95,21 +141,25 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const resultMap: Record<string, { ap: number; ar: number }> = {
         "Ocean Freight": { ap: 0, ar: 0 },
         "Customs Brokerage": { ap: 0, ar: 0 },
-        "Drayage": { ap: 0, ar: 0 },
-        "Warehousing": { ap: 0, ar: 0 },
-        "Agent": { ap: 0, ar: 0 },
-        "Other": { ap: 0, ar: 0 },
+        Drayage: { ap: 0, ar: 0 },
+        Warehousing: { ap: 0, ar: 0 },
+        Agent: { ap: 0, ar: 0 },
+        Other: { ap: 0, ar: 0 },
       };
 
-      allItems.forEach(item => {
+      allItems.forEach((item) => {
         let matchedCategory = "Other";
         for (const cat of categories) {
-          if (cat.match.some(m => item.description?.toLowerCase().includes(m.toLowerCase()))) {
+          if (
+            cat.match.some((m) =>
+              item.description?.toLowerCase().includes(m.toLowerCase()),
+            )
+          ) {
             matchedCategory = cat.key;
             break;
           }
         }
-        
+
         if (item.type === "AR") {
           resultMap[matchedCategory].ar += item.total;
         } else if (item.type === "AP") {
@@ -117,27 +167,34 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
         }
       });
 
-      const data = Object.keys(resultMap).map(key => ({
-        category: key,
-        ap: resultMap[key].ap,
-        ar: resultMap[key].ar,
-      })).filter(x => x.ap > 0 || x.ar > 0);
+      const data = Object.keys(resultMap)
+        .map((key) => ({
+          category: key,
+          ap: resultMap[key].ap,
+          ar: resultMap[key].ar,
+        }))
+        .filter((x) => x.ap > 0 || x.ar > 0);
 
       if (data.length === 0) {
         return reply.send({
           data: [
-            { category: 'Ocean Freight', ap: 45000, ar: 58000 },
-            { category: 'Customs Brokerage', ap: 5200, ar: 8500 },
-            { category: 'Drayage', ap: 12000, ar: 14500 },
-            { category: 'Warehousing', ap: 8500, ar: 12000 },
-            { category: 'Insurance', ap: 1500, ar: 2500 },
+            { category: "Ocean Freight", ap: 45000, ar: 58000 },
+            { category: "Customs Brokerage", ap: 5200, ar: 8500 },
+            { category: "Drayage", ap: 12000, ar: 14500 },
+            { category: "Warehousing", ap: 8500, ar: 12000 },
+            { category: "Insurance", ap: 1500, ar: 2500 },
           ],
-          alerts: ["Using placeholder data. Create bookings & invoices to see real data."]
+          alerts: [
+            "Using placeholder data. Create bookings & invoices to see real data.",
+          ],
         });
       }
 
       const alerts: string[] = [];
-      if (resultMap["Ocean Freight"]?.ar > 0 && resultMap["Ocean Freight"]?.ap === 0) {
+      if (
+        resultMap["Ocean Freight"]?.ar > 0 &&
+        resultMap["Ocean Freight"]?.ap === 0
+      ) {
         alerts.push("Missing AP (Cost) invoice for recorded Ocean Freight AR.");
       }
 
@@ -166,7 +223,7 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const [overdueCount] = await db
         .select({ count: sql<number>`count(*)` })
         .from(invoices)
-        .where(eq(invoices.status, 'OVERDUE'));
+        .where(eq(invoices.status, "OVERDUE"));
 
       // If DB is empty, provide fallback visuals for the premium dashboard experience
       const hasData = shipmentsCount.count > 0;
@@ -189,17 +246,19 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
   fastify.get("/dashboard-charts", async (_request, reply) => {
     try {
-      const [shipmentsCount] = await db.select({ count: sql<number>`count(*)` }).from(shipments);
+      const [shipmentsCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(shipments);
       const hasData = shipmentsCount.count > 0;
 
       // Mockup data for a premium dashboard experience for historical trend
       const revenueTrend = [
-        { name: 'Jan', revenue: 450000, costs: 320000 },
-        { name: 'Feb', revenue: 520000, costs: 380000 },
-        { name: 'Mar', revenue: 480000, costs: 350000 },
-        { name: 'Apr', revenue: 610000, costs: 420000 },
-        { name: 'May', revenue: 590000, costs: 410000 },
-        { name: 'Jun', revenue: 750000, costs: 490000 },
+        { name: "Jan", revenue: 450000, costs: 320000 },
+        { name: "Feb", revenue: 520000, costs: 380000 },
+        { name: "Mar", revenue: 480000, costs: 350000 },
+        { name: "Apr", revenue: 610000, costs: 420000 },
+        { name: "May", revenue: 590000, costs: 410000 },
+        { name: "Jun", revenue: 750000, costs: 490000 },
       ];
 
       // Query real bookings volume
@@ -212,14 +271,14 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
         .groupBy(bookings.status);
 
       let volumeByStatus = [
-        { status: 'In Transit', count: 0 },
-        { status: 'Completed', count: 0 },
-        { status: 'Pending', count: 0 },
-        { status: 'Confirmed', count: 0 },
+        { status: "In Transit", count: 0 },
+        { status: "Completed", count: 0 },
+        { status: "Pending", count: 0 },
+        { status: "Confirmed", count: 0 },
       ];
 
       statusCounts.forEach((row) => {
-        const item = volumeByStatus.find(v => v.status === row.status);
+        const item = volumeByStatus.find((v) => v.status === row.status);
         if (item) {
           item.count = row.count;
         } else {
@@ -230,10 +289,10 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
       // If DB is completely empty (no bookings), fall back to mock data so UI looks good
       if (statusCounts.length === 0) {
         volumeByStatus = [
-          { status: 'In Transit', count: 420 },
-          { status: 'Pending', count: 150 },
-          { status: 'Completed', count: 850 },
-          { status: 'Confirmed', count: 35 },
+          { status: "In Transit", count: 420 },
+          { status: "Pending", count: 150 },
+          { status: "Completed", count: 850 },
+          { status: "Confirmed", count: 35 },
         ];
       }
 
@@ -338,7 +397,9 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const invoiceData: InvoiceData = {
         ...invoiceRecords[0],
         party: invoiceRecords[0].party || "Unknown Client",
-        dueDate: invoiceRecords[0].dueDate ? new Date(invoiceRecords[0].dueDate).toISOString() : new Date().toISOString(),
+        dueDate: invoiceRecords[0].dueDate
+          ? new Date(invoiceRecords[0].dueDate).toISOString()
+          : new Date().toISOString(),
         items: items.map((i) => ({
           description: i.description,
           quantity: i.quantity,
@@ -350,7 +411,10 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const pdfBuffer = await PDFService.generateInvoice(invoiceData);
 
       reply.header("Content-Type", "application/pdf");
-      reply.header("Content-Disposition", `inline; filename="Invoice-${invoiceData.invoiceNumber}.pdf"`);
+      reply.header(
+        "Content-Disposition",
+        `inline; filename="Invoice-${invoiceData.invoiceNumber}.pdf"`,
+      );
       return reply.send(pdfBuffer);
     } catch (error: any) {
       reply.code(500).send({ error: error.message });
@@ -429,10 +493,14 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
           .where(eq(invoices.id, id))
           .limit(1);
 
-        if (paidInvoice.length > 0 && paidInvoice[0].type === "AR" && paidInvoice[0].shipmentId) {
+        if (
+          paidInvoice.length > 0 &&
+          paidInvoice[0].type === "AR" &&
+          paidInvoice[0].shipmentId
+        ) {
           const profitShareAmount = paidInvoice[0].amount * 0.15; // 15% to destination agent
           const agentId = "comp-2"; // Demo agent company ID
-          const apInvoiceId = `inv_ap_${uuidv4().substring(0,8)}`;
+          const apInvoiceId = `inv_ap_${uuidv4().substring(0, 8)}`;
 
           await db.transaction(async (tx) => {
             // Generate AP Invoice
@@ -451,7 +519,7 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
             });
 
             await tx.insert(invoiceItems).values({
-              id: `item_ap_${uuidv4().substring(0,8)}`,
+              id: `item_ap_${uuidv4().substring(0, 8)}`,
               invoiceId: apInvoiceId,
               description: `Destination Agent Profit Share (15%) - Ref: ${paidInvoice[0].shipmentId}`,
               quantity: 1,
@@ -463,7 +531,7 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
             // Generate Agent Settlement record
             await tx.insert(agentSettlements).values({
-              id: `settlement_${uuidv4().substring(0,8)}`,
+              id: `settlement_${uuidv4().substring(0, 8)}`,
               statementNumber: `STMT-${paidInvoice[0].shipmentId}`,
               agentId: agentId,
               periodStart: new Date(),
@@ -487,7 +555,7 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get("/agent-settlements", async (request, reply) => {
     try {
       await ensureFinancialSeedData();
-      
+
       const settlements = await db
         .select({
           id: agentSettlements.id,
@@ -547,19 +615,19 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get("/agent-settlements/:id/invoices", async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      
+
       const settlementRecord = await db
         .select()
         .from(agentSettlements)
         .where(eq(agentSettlements.id, id))
         .limit(1);
-        
+
       if (settlementRecord.length === 0) {
         return reply.code(404).send({ error: "Settlement not found" });
       }
-      
+
       const st = settlementRecord[0];
-      
+
       const apInvoices = await db
         .select({
           id: invoices.id,
@@ -569,11 +637,11 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
           status: invoices.status,
           dueDate: invoices.dueDate,
           createdAt: invoices.createdAt,
-          shipmentId: invoices.shipmentId
+          shipmentId: invoices.shipmentId,
         })
         .from(invoices)
         .where(
-          sql`${invoices.companyId} = ${st.agentId} AND ${invoices.type} = 'AP' AND ${invoices.createdAt} >= ${st.periodStart} AND ${invoices.createdAt} <= ${st.periodEnd}`
+          sql`${invoices.companyId} = ${st.agentId} AND ${invoices.type} = 'AP' AND ${invoices.createdAt} >= ${st.periodStart} AND ${invoices.createdAt} <= ${st.periodEnd}`,
         );
 
       return reply.send(apInvoices);
@@ -621,7 +689,10 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const pdfBuffer = await PDFService.generateAgentSettlement(pdfData);
 
       reply.header("Content-Type", "application/pdf");
-      reply.header("Content-Disposition", `attachment; filename=Settlement_${st.statementNumber}.pdf`);
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename=Settlement_${st.statementNumber}.pdf`,
+      );
       return reply.send(pdfBuffer);
     } catch (error: any) {
       reply.code(500).send({ error: error.message });

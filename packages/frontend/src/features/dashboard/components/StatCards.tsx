@@ -1,12 +1,17 @@
 import { motion } from "framer-motion";
 import { Anchor, Ship, TrendingUp, AlertTriangle } from "lucide-react";
-import { useApiQuery } from '../../../hooks/useApiQuery';
-import { useDashboardStore } from '../store';
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import { useDashboardStore } from "../store";
 
 export function StatCards() {
   const { dateRange } = useDashboardStore();
-  const queryStr = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
-  const { data } = useApiQuery<any>(['dashboard', dateRange], `/dashboard${queryStr}`);
+  const queryStr = dateRange
+    ? `?start=${dateRange.start}&end=${dateRange.end}`
+    : "";
+  const { data } = useApiQuery<any>(
+    ["dashboard", dateRange],
+    `/dashboard${queryStr}`,
+  );
   const statsData = data?.stats;
 
   const stats = [
@@ -35,9 +40,7 @@ export function StatCards() {
     {
       id: 3,
       name: "Total Revenue",
-      value: statsData
-        ? `$${(statsData.revenue / 1000).toFixed(1)}k`
-        : "...",
+      value: statsData ? `$${(statsData.revenue / 1000).toFixed(1)}k` : "...",
       change: "+8.2%",
       trend: "up",
       icon: TrendingUp,
@@ -100,4 +103,3 @@ export function StatCards() {
     </div>
   );
 }
-

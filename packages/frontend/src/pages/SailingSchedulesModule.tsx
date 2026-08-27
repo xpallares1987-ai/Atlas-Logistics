@@ -69,7 +69,7 @@ function DynamicPriceButton({
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       className="flex items-center gap-4"
@@ -126,7 +126,7 @@ export default function SailingSchedulesModule() {
       const queryParams = new URLSearchParams({
         origin,
         destination,
-        date
+        date,
       }).toString();
       const res = await fetch(`${API_URL}/schedules?${queryParams}`);
       return res.json();
@@ -149,10 +149,9 @@ export default function SailingSchedulesModule() {
 
   return (
     <div className="flex flex-col h-full bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30">
-      
       {/* Header & Search Bar */}
       <div className="relative z-10 p-6 md:p-10 border-b border-white/10 bg-slate-900/50 backdrop-blur-2xl">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-[1400px] mx-auto"
@@ -162,7 +161,8 @@ export default function SailingSchedulesModule() {
             Sailing Schedules
           </h1>
           <p className="text-slate-400 font-medium max-w-2xl">
-            Compare live dynamic spot rates, optimize transit times, and securely book ocean freight across the global alliance network.
+            Compare live dynamic spot rates, optimize transit times, and
+            securely book ocean freight across the global alliance network.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4 bg-white/5 backdrop-blur-xl p-3 md:p-4 rounded-2xl border border-white/10 shadow-2xl">
@@ -178,7 +178,7 @@ export default function SailingSchedulesModule() {
                 className="w-full bg-slate-950/50 hover:bg-slate-950/80 focus:bg-slate-950 border border-white/5 focus:border-indigo-500/50 text-white placeholder-slate-500 rounded-xl py-3.5 pl-12 pr-4 outline-none transition-all"
               />
             </div>
-            
+
             <div className="flex items-center justify-center text-slate-500 px-2 hidden md:block">
               <ArrowRight className="w-5 h-5" />
             </div>
@@ -226,7 +226,7 @@ export default function SailingSchedulesModule() {
         <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
         {!hasSearched ? (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="h-full flex flex-col items-center justify-center text-slate-400 z-10 relative"
@@ -234,13 +234,20 @@ export default function SailingSchedulesModule() {
             <div className="w-24 h-24 mb-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
               <Ship className="w-10 h-10 text-indigo-400/50" />
             </div>
-            <p className="text-xl font-medium text-slate-300">Ready to explore global shipping routes?</p>
-            <p className="text-slate-500 mt-2 max-w-md text-center">Enter your origin, destination, and preferred date to discover the most efficient and cost-effective sailing schedules.</p>
+            <p className="text-xl font-medium text-slate-300">
+              Ready to explore global shipping routes?
+            </p>
+            <p className="text-slate-500 mt-2 max-w-md text-center">
+              Enter your origin, destination, and preferred date to discover the
+              most efficient and cost-effective sailing schedules.
+            </p>
           </motion.div>
         ) : isLoading ? (
           <div className="flex flex-col items-center justify-center h-64 z-10 relative gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-t-2 border-indigo-400"></div>
-            <p className="text-indigo-400 font-medium animate-pulse">Scanning alliance networks...</p>
+            <p className="text-indigo-400 font-medium animate-pulse">
+              Scanning alliance networks...
+            </p>
           </div>
         ) : (
           <div className="max-w-[1400px] mx-auto z-10 relative">
@@ -283,8 +290,12 @@ export default function SailingSchedulesModule() {
             {schedules.length === 0 ? (
               <div className="text-center p-12 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md">
                 <AlertCircle className="w-12 h-12 text-rose-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">No Schedules Found</h3>
-                <p className="text-slate-400">Try adjusting your search criteria or port locations.</p>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  No Schedules Found
+                </h3>
+                <p className="text-slate-400">
+                  Try adjusting your search criteria or port locations.
+                </p>
               </div>
             ) : (
               <div className="space-y-5">
@@ -318,20 +329,26 @@ export default function SailingSchedulesModule() {
                               {sch.carrier}
                               {sch.status === "Delayed" && (
                                 <span className="flex items-center gap-1 text-[10px] bg-rose-500/20 border border-rose-500/30 text-rose-300 px-2.5 py-1 rounded-md font-mono uppercase tracking-wider shadow-sm">
-                                  <AlertCircle className="w-3.5 h-3.5" /> Delayed
+                                  <AlertCircle className="w-3.5 h-3.5" />{" "}
+                                  Delayed
                                 </span>
                               )}
                             </h4>
                             <p className="text-sm text-slate-400 flex items-center gap-2 mt-1 font-medium">
-                              <Ship className="w-4 h-4 text-slate-500" /> {sch.vessel} 
-                              <span className="text-slate-600">•</span> Voy: {sch.voyage}
+                              <Ship className="w-4 h-4 text-slate-500" />{" "}
+                              {sch.vessel}
+                              <span className="text-slate-600">
+                                •
+                              </span> Voy: {sch.voyage}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
                             {sch.transitTime}
-                            <span className="text-base font-medium text-slate-500 ml-1">Days</span>
+                            <span className="text-base font-medium text-slate-500 ml-1">
+                              Days
+                            </span>
                           </div>
                           <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-widest font-bold">
                             Transit Time
@@ -341,7 +358,6 @@ export default function SailingSchedulesModule() {
 
                       {/* Bottom Info Grid */}
                       <div className="p-5 md:p-6 flex flex-col lg:flex-row gap-8 items-center justify-between">
-                        
                         {/* Timeline */}
                         <div className="flex items-center gap-6 md:gap-10 w-full lg:w-auto flex-1">
                           <div className="w-24 md:w-32">
@@ -351,9 +367,11 @@ export default function SailingSchedulesModule() {
                             <p className="text-lg font-bold text-white">
                               {sch.departure}
                             </p>
-                            <p className="text-xs text-indigo-300 mt-0.5 truncate">{origin.split(' ')[0]}</p>
+                            <p className="text-xs text-indigo-300 mt-0.5 truncate">
+                              {origin.split(" ")[0]}
+                            </p>
                           </div>
-                          
+
                           <div className="flex-1 flex items-center justify-center relative min-w-[100px]">
                             <div className="absolute inset-0 flex items-center">
                               <div className="w-full border-t-2 border-dashed border-white/20"></div>
@@ -362,7 +380,7 @@ export default function SailingSchedulesModule() {
                               <Ship className="w-5 h-5" />
                             </div>
                           </div>
-                          
+
                           <div className="text-right w-24 md:w-32">
                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                               Arrival
@@ -370,7 +388,9 @@ export default function SailingSchedulesModule() {
                             <p className="text-lg font-bold text-white">
                               {sch.arrival}
                             </p>
-                            <p className="text-xs text-emerald-300 mt-0.5 truncate">{destination.split(' ')[0]}</p>
+                            <p className="text-xs text-emerald-300 mt-0.5 truncate">
+                              {destination.split(" ")[0]}
+                            </p>
                           </div>
                         </div>
 
@@ -413,7 +433,6 @@ export default function SailingSchedulesModule() {
                             isBooked={bookedSchedules.has(sch.id)}
                           />
                         </div>
-
                       </div>
                     </motion.div>
                   ))}

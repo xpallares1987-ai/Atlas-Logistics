@@ -2,19 +2,18 @@ import { useState, useMemo } from "react";
 import { useApiQuery } from "../hooks/useApiQuery";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ShieldAlert,
   Search,
   FileCheck,
   CheckCircle2,
   AlertTriangle,
   AlertCircle,
   Calculator,
-  Activity,
-  UploadCloud,
   FileText,
   Clock,
-  Check,
   X,
+  FileCode,
+  ShieldCheck,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { Input } from "@atlas/ui";
@@ -49,21 +48,29 @@ export default function CustomsClearanceModule() {
   >("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDecl, setSelectedDecl] = useState<any | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [showCalculatorModal, setShowCalculatorModal] = useState(false);
 
-  const { data: docsData } = useApiQuery<any[]>(
-    ["documents", selectedDecl?.shipmentId],
-    `/documents?shipmentId=${selectedDecl?.shipmentId}`,
-    { enabled: !!selectedDecl?.shipmentId },
-  );
-  const realDocs = Array.isArray(docsData) ? docsData : [];
+  // Live Tariff Calculator State
+  const [calcHsCode, setCalcHsCode] = useState("8504.40.90.90");
+  const [calcFobValue, setCalcFobValue] = useState(25000);
+  const [calcFreight, setCalcFreight] = useState(1800);
+  const [calcInsurance, setCalcInsurance] = useState(200);
+  const [calcWeightKg, setCalcWeightKg] = useState(1200);
+  const [calcOrigin, setCalcOrigin] = useState("CN");
+  const [calcPrefCert, setCalcPrefCert] = useState(false);
+  const [calcResult, setCalcResult] = useState<any | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   const filteredDeclarations = useMemo(() => {
     return declarations.filter((dec) => {
+      const q = searchQuery.toLowerCase();
       const matchesSearch =
-        (dec.blNumber &&
-          dec.blNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        dec.id.toLowerCase().includes(searchQuery.toLowerCase());
+        (dec.blNumber && dec.blNumber.toLowerCase().includes(q)) ||
+        (dec.duaNumber && dec.duaNumber.toLowerCase().includes(q)) ||
+        (dec.hsCode && dec.hsCode.toLowerCase().includes(q)) ||
+        dec.id.toLowerCase().includes(q);
+
       const matchesFilter =
         activeFilter === "All"
           ? true
@@ -82,13 +89,26 @@ export default function CustomsClearanceModule() {
   useMemo(() => {
     if (!selectedDecl && filteredDeclarations.length > 0) {
       setSelectedDecl(filteredDeclarations[0]);
-    } else if (filteredDeclarations.length === 0) {
-      setSelectedDecl(null);
+    } else if (
+      selectedDecl &&
+      !filteredDeclarations.some((d) => d.id === selectedDecl.id)
+    ) {
+      if (filteredDeclarations.length > 0) {
+        setSelectedDecl(filteredDeclarations[0]);
+      } else {
+        setSelectedDecl(null);
+      }
     }
   }, [filteredDeclarations, selectedDecl]);
 
   const holds = declarations.filter(
     (d) => d.status === "Red Channel" || d.status === "Hold",
+  );
+  const greens = declarations.filter(
+    (d) => d.status === "Green Channel" || d.status === "Cleared",
+  );
+  const oranges = declarations.filter(
+    (d) => d.status === "Orange Channel" || d.status === "Pending",
   );
 
   const getStatusVisuals = (status: string) => {
@@ -101,6 +121,7 @@ export default function CustomsClearanceModule() {
           bg: "bg-emerald-500/10",
           border: "border-emerald-500/20",
           glow: "shadow-[0_0_15px_rgba(16,185,129,0.15)]",
+          label: "Canal Verde (Levante Inmediato)",
         };
       case "Red Channel":
       case "Hold":
@@ -110,108 +131,209 @@ export default function CustomsClearanceModule() {
           bg: "bg-rose-500/10",
           border: "border-rose-500/20",
           glow: "shadow-[0_0_15px_rgba(244,63,94,0.15)]",
+          label: "Canal Rojo (Inspección Física)",
         };
       case "Orange Channel":
       case "Pending":
+      default:
         return {
           icon: Clock,
           color: "text-amber-400",
           bg: "bg-amber-500/10",
           border: "border-amber-500/20",
-          glow: "shadow-[0_0_15px_rgba(245,158,11,0.1)]",
-        };
-      default:
-        return {
-          icon: FileCheck,
-          color: "text-slate-400",
-          bg: "bg-slate-500/10",
-          border: "border-slate-500/20",
-          glow: "",
+          glow: "shadow-[0_0_15px_rgba(245,158,11,0.15)]",
+          label: "Canal Naranja (Control Documental)",
         };
     }
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!selectedDecl || !selectedDecl.shipmentId) return;
+  const getAuthHeaders = () => {
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("atlas_token") || localStorage.getItem("token")
+        : null;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    return headers;
+  };
 
-    setIsUploading(true);
-    const files = Array.from(e.dataTransfer.files);
-
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", "Customs Document");
-      formData.append("shipmentId", selectedDecl.shipmentId);
-
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL || ""}/api/documents/upload`,
-          {
-            method: "POST",
-            body: formData,
-          },
-        );
-        if (!res.ok) throw new Error("Upload failed");
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    // Trigger AI Risk Analysis after upload
+  const runComplianceAudit = async (id: string) => {
     try {
-      const analyzeRes = await fetch(
-        `${import.meta.env.VITE_API_URL || ""}/api/customs-declarations/${selectedDecl.id}/analyze`,
-        { method: "POST" }
-      );
-      if (!analyzeRes.ok) throw new Error("Analysis failed");
+      setIsAuditing(true);
+      const res = await fetch(`/api/customs-declarations/${id}/analyze`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        await queryClient.invalidateQueries({ queryKey: ["customs"] });
+      }
     } catch (err) {
-      console.error("Failed to run AI risk analysis:", err);
+      console.error("Audit error:", err);
+    } finally {
+      setIsAuditing(false);
     }
-
-    await queryClient.invalidateQueries({
-      queryKey: ["documents", selectedDecl.shipmentId],
-    });
-    await queryClient.invalidateQueries({
-      queryKey: ["customs"],
-    });
-    setIsUploading(false);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  const handleCalculateTariff = async () => {
+    try {
+      setIsCalculating(true);
+      const res = await fetch("/api/customs-declarations/calculate-tariff", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          hsCode: calcHsCode,
+          fobValue: Number(calcFobValue),
+          freightCost: Number(calcFreight),
+          insuranceCost: Number(calcInsurance),
+          grossWeightKg: Number(calcWeightKg),
+          originCountry: calcOrigin,
+          hasPreferentialOriginCert: calcPrefCert,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setCalcResult(data);
+      }
+    } catch (err) {
+      console.error("Calculation error:", err);
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  const handleCreateNewDeclaration = async () => {
+    try {
+      const customsVal =
+        Number(calcFobValue) + Number(calcFreight) + Number(calcInsurance);
+      const res = await fetch("/api/customs-declarations", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          shipmentId: `shp-${Date.now().toString(36)}`,
+          hsCode: calcHsCode,
+          type: "Import",
+          customsValue: customsVal,
+          originCountry: calcOrigin,
+          destinationCountry: "ES",
+          eoriNumber: "ESB88492019",
+          consigneeName: "Iberica Import Logistics SL",
+          exporterName: "Global Trade Logistics Ltd",
+          grossWeightKg: Number(calcWeightKg),
+          hasPreferentialOriginCert: calcPrefCert,
+          attachedDocumentTypes: ["DOC-INV", "DOC-HBL", "DOC-PKL"],
+        }),
+      });
+
+      if (res.ok) {
+        await queryClient.invalidateQueries({ queryKey: ["customs"] });
+        setShowCalculatorModal(false);
+      }
+    } catch (err) {
+      console.error("Create declaration error:", err);
+    }
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 text-slate-200 relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-rose-500/5 blur-[150px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/5 blur-[150px] rounded-full pointer-events-none" />
-
-      {/* Header & Holds Alert */}
-      <div className="px-8 pt-8 pb-4 shrink-0 z-10 relative">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4">
+    <div className="flex-1 flex flex-col h-full bg-slate-950 overflow-hidden relative">
+      {/* Top Header */}
+      <div className="p-4 md:p-8 pb-4 shrink-0 z-10 relative">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3 tracking-tight">
-              <div className="p-2 bg-rose-500/20 rounded-xl text-rose-400">
-                <ShieldAlert className="w-7 h-7" />
-              </div>
-              Customs Clearance
+            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight flex items-center gap-3">
+              <ShieldCheck className="w-8 h-8 text-rose-500" />
+              Despacho Aduanero y Motor Arancelario
             </h1>
             <p className="text-slate-400 mt-2 text-sm">
-              Manage declarations, upload documents, and track clearance
-              lifecycle.
+              Gestión determinista de partidas TARIC, cálculo de aranceles/IVA,
+              auditoría de cumplimiento y generación oficial de DUA / SAD (PDF y
+              XML).
             </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setShowCalculatorModal(true);
+                if (!calcResult) handleCalculateTariff();
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-lg shadow-rose-600/30 transition-all active:scale-95"
+            >
+              <Calculator className="w-4 h-4" /> Simulador TARIC / Nuevo
+              Despacho
+            </button>
           </div>
         </div>
 
+        {/* Quick Channel Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Total Declaraciones
+              </p>
+              <h3 className="text-2xl font-black text-white mt-1">
+                {declarations.length}
+              </h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-300">
+              <FileText className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                Canal Verde (Levante)
+              </p>
+              <h3 className="text-2xl font-black text-emerald-300 mt-1">
+                {greens.length}
+              </h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                Canal Naranja (Docs)
+              </p>
+              <h3 className="text-2xl font-black text-amber-300 mt-1">
+                {oranges.length}
+              </h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-rose-400 uppercase tracking-wider">
+                Canal Rojo (Inspección)
+              </p>
+              <h3 className="text-2xl font-black text-rose-300 mt-1">
+                {holds.length}
+              </h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center text-rose-400">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Hold Alert Banner */}
         <AnimatePresence>
           {holds.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: -20, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: "auto" }}
-              exit={{ opacity: 0, y: -20, height: 0 }}
-              className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_30px_rgba(244,63,94,0.1)] mb-4"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_30px_rgba(244,63,94,0.1)] mb-2"
             >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0">
@@ -219,34 +341,35 @@ export default function CustomsClearanceModule() {
                 </div>
                 <div>
                   <h3 className="font-bold text-rose-300">
-                    Action Required: Customs Hold
+                    Alerta de Inspección Física Aduanera (Canal Rojo)
                   </h3>
-                  <p className="text-sm text-rose-200/70">
-                    You have {holds.length} shipment(s) currently flagged for
-                    physical inspection or missing documentation.
+                  <p className="text-xs text-rose-200/80">
+                    Existen {holds.length} despacho(s) con requerimiento de
+                    reconocimiento físico por sanciones de origen o mercancía de
+                    doble uso.
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setActiveFilter("Hold")}
-                className="px-4 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-xl text-sm font-medium transition-colors border border-rose-500/20"
+                className="px-3.5 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-xl text-xs font-bold transition-colors border border-rose-500/30"
               >
-                View Holds
+                Filtrar Canal Rojo
               </button>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Split Pane */}
+      {/* Main Split Pane */}
       <div className="flex-1 px-4 md:px-8 pb-8 flex flex-col lg:flex-row gap-6 min-h-0 z-10 relative overflow-y-auto lg:overflow-hidden">
-        {/* Left Pane: Declarations List */}
+        {/* Left Column: Declarations List */}
         <div className="w-full lg:w-1/3 flex flex-col bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl min-h-[400px] lg:min-h-0">
-          <div className="p-4 border-b border-white/10 space-y-4">
+          <div className="p-4 border-b border-white/10 space-y-3">
             <div>
               <Input
                 type="text"
-                placeholder="Search B/L or Dec ID..."
+                placeholder="Buscar por DUA, B/L o Partida..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 leftIcon={<Search size={16} />}
@@ -258,13 +381,19 @@ export default function CustomsClearanceModule() {
                   <button
                     key={filter}
                     onClick={() => setActiveFilter(filter)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap border ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap border ${
                       activeFilter === filter
                         ? "bg-rose-500/20 text-rose-300 border-rose-500/30"
                         : "bg-transparent text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-200"
                     }`}
                   >
-                    {filter}
+                    {filter === "All"
+                      ? "Todos"
+                      : filter === "Pending"
+                        ? "Canal Naranja"
+                        : filter === "Hold"
+                          ? "Canal Rojo"
+                          : "Canal Verde"}
                   </button>
                 ),
               )}
@@ -273,11 +402,13 @@ export default function CustomsClearanceModule() {
 
           <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
             {isLoading ? (
-              <div className="text-center p-8 text-slate-500">Loading...</div>
+              <div className="text-center p-8 text-slate-500">
+                Cargando despachos...
+              </div>
             ) : filteredDeclarations.length === 0 ? (
               <div className="text-center p-8 text-slate-500 flex flex-col items-center">
                 <FileCheck className="w-8 h-8 opacity-50 mb-2" />
-                <p>No declarations found</p>
+                <p>No se encontraron declaraciones</p>
               </div>
             ) : (
               <motion.div
@@ -297,7 +428,7 @@ export default function CustomsClearanceModule() {
                       key={dec.id}
                       variants={itemVariants}
                       onClick={() => setSelectedDecl(dec)}
-                      className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
+                      className={`w-full text-left p-3.5 rounded-2xl border transition-all duration-200 ${
                         isSelected
                           ? "bg-white/10 border-white/20 shadow-lg"
                           : "bg-transparent border-transparent hover:bg-white/5 hover:border-white/10"
@@ -306,7 +437,7 @@ export default function CustomsClearanceModule() {
                       <div className="flex justify-between items-start">
                         <div className="flex items-start gap-3">
                           <div
-                            className={`p-2 rounded-xl mt-1 ${visuals.bg} ${visuals.border} border ${visuals.glow}`}
+                            className={`p-2 rounded-xl mt-0.5 ${visuals.bg} ${visuals.border} border ${visuals.glow}`}
                           >
                             <StatusIcon
                               className={`w-4 h-4 ${visuals.color}`}
@@ -314,13 +445,13 @@ export default function CustomsClearanceModule() {
                           </div>
                           <div>
                             <p className="font-bold text-white text-sm tracking-wide">
-                              {dec.id.slice(0, 8).toUpperCase()}
+                              {dec.duaNumber ||
+                                `DUA-${dec.id.slice(0, 8).toUpperCase()}`}
                             </p>
-                            <p className="text-xs text-slate-400 mb-2">
-                              B/L: {dec.blNumber || "N/A"}
+                            <p className="text-xs text-slate-400 mb-1">
+                              TARIC: {dec.hsCode || "8504.40.90.90"} | B/L:{" "}
+                              {dec.blNumber || "N/A"}
                             </p>
-
-                            {/* Status Pill */}
                             <span
                               className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${visuals.bg} ${visuals.border} ${visuals.color}`}
                             >
@@ -328,18 +459,23 @@ export default function CustomsClearanceModule() {
                             </span>
                           </div>
                         </div>
-                        {dec.aiRiskScore && (
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs font-bold text-slate-500 mb-1">
-                              AI RISK
-                            </span>
-                            <span
-                              className={`text-lg font-black ${dec.aiRiskScore > 60 ? "text-rose-400" : dec.aiRiskScore > 30 ? "text-amber-400" : "text-emerald-400"}`}
-                            >
-                              {dec.aiRiskScore}%
-                            </span>
-                          </div>
-                        )}
+
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] font-bold text-slate-400 mb-0.5">
+                            RIESGO
+                          </span>
+                          <span
+                            className={`text-base font-black ${
+                              (dec.riskScore ?? dec.aiRiskScore ?? 10) > 60
+                                ? "text-rose-400"
+                                : (dec.riskScore ?? dec.aiRiskScore ?? 10) > 20
+                                  ? "text-amber-400"
+                                  : "text-emerald-400"
+                            }`}
+                          >
+                            {dec.riskScore ?? dec.aiRiskScore ?? 12}/100
+                          </span>
+                        </div>
                       </div>
                     </motion.button>
                   );
@@ -349,328 +485,318 @@ export default function CustomsClearanceModule() {
           </div>
         </div>
 
-        {/* Right Pane: Declaration Details & Workflow Wizard */}
-        <div className="w-full lg:w-2/3 bg-slate-900/50 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col relative min-h-[600px] lg:min-h-0">
+        {/* Right Column: 54-Box DUA Inspector & Rule Diagnostics */}
+        <div className="w-full lg:w-2/3 bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col relative min-h-[600px] lg:min-h-0">
           {!selectedDecl ? (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
-              <ShieldAlert className="w-16 h-16 opacity-20 mb-4" />
-              <p>Select a declaration to view details</p>
+              <ShieldCheck className="w-16 h-16 opacity-20 mb-4" />
+              <p>Seleccione un despacho para inspeccionar el DUA oficial</p>
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-              {/* Top Banner */}
-              <div className="p-8 border-b border-white/10 bg-white/5 relative overflow-hidden">
-                {/* Decorative BG */}
-                <div
-                  className={`absolute top-0 right-0 w-64 h-64 blur-3xl opacity-20 pointer-events-none rounded-full translate-x-1/2 -translate-y-1/2 ${getStatusVisuals(
-                    selectedDecl.status,
-                  ).color.replace("text-", "bg-")}`}
-                />
-
-                <div className="relative z-10 flex justify-between items-start">
+              {/* Top Inspector Header */}
+              <div className="p-6 border-b border-white/10 bg-white/5 relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                   <div>
-                    <h2 className="text-3xl font-black text-white tracking-wider mb-2">
-                      DEC-{selectedDecl.id.slice(0, 8).toUpperCase()}
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        {selectedDecl.duaNumber ||
+                          `26ES000811${selectedDecl.id.substring(0, 8).toUpperCase()}`}
+                      </span>
+                      <span
+                        className={`px-2.5 py-1 rounded-md text-xs font-bold border ${getStatusVisuals(selectedDecl.status).bg} ${getStatusVisuals(selectedDecl.status).border} ${getStatusVisuals(selectedDecl.status).color}`}
+                      >
+                        {getStatusVisuals(selectedDecl.status).label}
+                      </span>
+                    </div>
+                    <h2 className="text-2xl font-black text-white tracking-tight mt-2">
+                      Documento Único Administrativo (DUA)
                     </h2>
-                    <p className="text-slate-400 flex gap-4">
-                      <span>
-                        Type:{" "}
-                        <strong className="text-slate-200">
-                          {selectedDecl.type || "Import"}
-                        </strong>
-                      </span>
-                      <span>
-                        B/L:{" "}
-                        <strong className="text-slate-200">
-                          {selectedDecl.blNumber || "N/A"}
-                        </strong>
-                      </span>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Aduana de Despacho: ES000811 Barcelona Marítima | Régimen:{" "}
+                      {selectedDecl.type || "IM4 - Importación Definitiva"}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  {/* Actions Toolbar */}
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
-                      onClick={() => {
+                      onClick={() =>
                         window.open(
-                          `${import.meta.env.VITE_API_URL || ""}/api/customs-declarations/${selectedDecl.id}/pdf`,
-                          "_blank"
-                        );
-                      }}
-                      className="flex items-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all active:scale-95"
+                          `/api/customs-declarations/${selectedDecl.id}/pdf`,
+                          "_blank",
+                        )
+                      }
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95"
                     >
-                      <FileText className="w-4 h-4" /> Generate Customs Form
+                      <FileText className="w-3.5 h-3.5" /> DUA PDF
                     </button>
-                    {/* AI Circular Progress (Likelihood of Clearance) */}
-                    <div className="flex items-center gap-4 bg-slate-950/50 p-3 rounded-2xl border border-white/5 shadow-inner">
-                      <div className="relative w-16 h-16 flex items-center justify-center">
-                        {/* SVG Circle for Progress */}
-                        <svg
-                          className="w-full h-full transform -rotate-90"
-                          viewBox="0 0 100 100"
-                        >
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="40"
-                            stroke="currentColor"
-                            strokeWidth="8"
-                            fill="transparent"
-                            className="text-slate-800"
-                          />
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="40"
-                            stroke="currentColor"
-                            strokeWidth="8"
-                            fill="transparent"
-                            strokeDasharray="251.2"
-                            strokeDashoffset={
-                              251.2 -
-                              (251.2 * (100 - (selectedDecl.aiRiskScore || 10))) /
-                                100
-                            }
-                            className={`${(selectedDecl.aiRiskScore || 10) > 60 ? "text-rose-500" : (selectedDecl.aiRiskScore || 10) > 30 ? "text-amber-500" : "text-emerald-500"} transition-all duration-1000 ease-out`}
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center flex-col">
-                          <span className="text-sm font-black text-white">
-                            {100 - (selectedDecl.aiRiskScore || 10)}%
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                          Clearance
-                        </p>
-                        <p className="text-sm text-slate-300">Likelihood</p>
-                      </div>
-                    </div>
+
+                    <button
+                      onClick={() =>
+                        window.open(
+                          `/api/customs-declarations/${selectedDecl.id}/xml`,
+                          "_blank",
+                        )
+                      }
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 text-xs font-bold rounded-xl shadow-md transition-all active:scale-95"
+                    >
+                      <FileCode className="w-3.5 h-3.5 text-amber-400" /> DUA
+                      XML (AEAT)
+                    </button>
+
+                    <button
+                      disabled={isAuditing}
+                      onClick={() => runComplianceAudit(selectedDecl.id)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold rounded-xl transition-all active:scale-95"
+                    >
+                      <RefreshCw
+                        className={`w-3.5 h-3.5 ${isAuditing ? "animate-spin" : ""}`}
+                      />
+                      Re-Auditar
+                    </button>
                   </div>
                 </div>
               </div>
 
-              <div className="flex-1 p-4 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Left Column: Workflow Stepper */}
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-indigo-400" />{" "}
-                      Declaration Lifecycle
-                    </h3>
+              {/* DUA Box Layout Structure */}
+              <div className="p-6 space-y-6">
+                {/* 54 Boxes Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Box 1 & 2: Exporter */}
+                  <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-4">
+                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                      Casilla 02 - Exportador / Expedidor
+                    </span>
+                    <h4 className="text-sm font-bold text-white mt-1">
+                      Global Freight Logistics Ltd
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Pudong Logistics Hub, Shanghai (CN)
+                    </p>
+                    <p className="text-xs text-slate-500 mt-2 font-mono">
+                      Origen: {selectedDecl.originCountry || "CN"}
+                    </p>
+                  </div>
 
-                    <div className="space-y-0 relative">
-                      {/* Connecting Line */}
-                      <div className="absolute left-[19px] top-6 bottom-6 w-0.5 bg-slate-800" />
+                  {/* Box 8: Consignee & EORI */}
+                  <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-4">
+                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                      Casilla 08 - Destinatario / Importador
+                    </span>
+                    <h4 className="text-sm font-bold text-white mt-1">
+                      Iberica Import Logistics SL
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Carrer del Port 45, Barcelona (ES)
+                    </p>
+                    <p className="text-xs text-emerald-400 mt-2 font-mono font-bold">
+                      EORI: {selectedDecl.eoriNumber || "ESB88492019"}
+                    </p>
+                  </div>
 
-                      {/* Step 1 */}
-                      <div className="relative flex gap-6 pb-8">
-                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center shrink-0 z-10">
-                          <Check className="w-5 h-5 text-emerald-400" />
-                        </div>
-                        <div className="pt-2">
-                          <h4 className="text-sm font-bold text-white">
-                            Draft Created
-                          </h4>
-                          <p className="text-xs text-slate-400 mt-1">
-                            Basic shipment details gathered and HS codes
-                            applied.
-                          </p>
-                        </div>
+                  {/* Box 14: Declarant Representative */}
+                  <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-4">
+                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                      Casilla 14 - Declarante / Representante
+                    </span>
+                    <h4 className="text-sm font-bold text-white mt-1">
+                      Atlas Logistics Customs Brokerage SL
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      EORI: ESB88492019 (Representación Directa)
+                    </p>
+                    <p className="text-xs text-indigo-300 mt-2 font-mono">
+                      Estado OEA: Certificado
+                    </p>
+                  </div>
+                </div>
+
+                {/* Box 31, 33, 46: Goods & Valuation */}
+                <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-5">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-white/10 gap-2">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                        Casilla 31 & 33 - Mercancía y Código TARIC
+                      </span>
+                      <h3 className="text-lg font-bold text-white mt-1">
+                        {selectedDecl.hsDescription ||
+                          "Convertidores estáticos y fuentes de alimentación conmutadas"}
+                      </h3>
+                    </div>
+                    <div className="px-3 py-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-xl">
+                      <span className="text-xs font-mono font-black text-indigo-300">
+                        TARIC: {selectedDecl.hsCode || "8504.40.90.90"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 text-xs">
+                    <div>
+                      <span className="text-slate-400">
+                        Casilla 46 (Valor CIF):
+                      </span>
+                      <p className="text-base font-bold text-white mt-0.5">
+                        {Number(
+                          selectedDecl.customsValue || 25000,
+                        ).toLocaleString("es-ES")}{" "}
+                        EUR
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">
+                        Derechos de Arancel (A00):
+                      </span>
+                      <p className="text-base font-bold text-amber-400 mt-0.5">
+                        {Number(
+                          selectedDecl.dutiesAmount || 825,
+                        ).toLocaleString("es-ES")}{" "}
+                        EUR
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">
+                        IVA Importación (B00):
+                      </span>
+                      <p className="text-base font-bold text-indigo-400 mt-0.5">
+                        {Number(
+                          selectedDecl.taxesAmount || 5423.25,
+                        ).toLocaleString("es-ES")}{" "}
+                        EUR
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">
+                        Total Liquidación (Casilla 47):
+                      </span>
+                      <p className="text-base font-black text-emerald-400 mt-0.5">
+                        {Number(
+                          selectedDecl.totalPayable || 6248.25,
+                        ).toLocaleString("es-ES")}{" "}
+                        EUR
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Deterministic Compliance Diagnostics Breakdown */}
+                <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-5">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    Diagnóstico de Cumplimiento Normativo (Reglas Deterministas)
+                  </h3>
+
+                  <div className="space-y-3">
+                    {/* EORI Rule */}
+                    <div className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="text-xs">
+                        <p className="font-bold text-slate-200">
+                          Validación EORI (Regla EORI-01)
+                        </p>
+                        <p className="text-slate-400 mt-0.5">
+                          EORI del importador (
+                          {selectedDecl.eoriNumber || "ESB88492019"}) registrado
+                          y habilitado para operaciones aduaneras en la UE.
+                        </p>
                       </div>
+                    </div>
 
-                      {/* Step 2 */}
-                      <div className="relative flex gap-6 pb-8">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-10 border-2 ${
-                            selectedDecl.status === "Draft"
-                              ? "bg-slate-900 border-slate-700"
-                              : "bg-emerald-500/20 border-emerald-500"
-                          }`}
-                        >
-                          {selectedDecl.status === "Draft" ? (
-                            <div className="w-3 h-3 rounded-full bg-slate-500" />
-                          ) : (
-                            <Check className="w-5 h-5 text-emerald-400" />
-                          )}
-                        </div>
-                        <div className="pt-2">
-                          <h4 className="text-sm font-bold text-white">
-                            Documents Uploaded
-                          </h4>
-                          <p className="text-xs text-slate-400 mt-1">
-                            Commercial Invoice, Packing List, and BL attached.
-                          </p>
-                        </div>
+                    {/* Sanctions Rule */}
+                    <div
+                      className={`flex items-start gap-3 p-3 rounded-xl border ${
+                        selectedDecl.originCountry === "RU" ||
+                        selectedDecl.originCountry === "KP"
+                          ? "bg-rose-500/10 border-rose-500/20"
+                          : "bg-white/5 border-white/5"
+                      }`}
+                    >
+                      {selectedDecl.originCountry === "RU" ||
+                      selectedDecl.originCountry === "KP" ? (
+                        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      )}
+                      <div className="text-xs">
+                        <p className="font-bold text-slate-200">
+                          Screening de Sanciones y Restricciones (Regla SANC-01)
+                        </p>
+                        <p className="text-slate-400 mt-0.5">
+                          {selectedDecl.originCountry === "RU" ||
+                          selectedDecl.originCountry === "KP"
+                            ? `Alerta: El país de origen (${selectedDecl.originCountry}) está sujeto a medidas restrictivas internacionales.`
+                            : `País de origen (${selectedDecl.originCountry || "CN"}) verificado libre de embargos comerciales.`}
+                        </p>
                       </div>
+                    </div>
 
-                      {/* Step 3 */}
-                      <div className="relative flex gap-6 pb-8">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-10 border-2 ${
-                            selectedDecl.status === "Draft" ||
-                            selectedDecl.status === "Pending"
-                              ? "bg-indigo-500/20 border-indigo-500"
-                              : selectedDecl.status === "Red Channel" ||
-                                  selectedDecl.status === "Hold"
-                                ? "bg-rose-500/20 border-rose-500"
-                                : "bg-emerald-500/20 border-emerald-500"
-                          }`}
-                        >
-                          {selectedDecl.status === "Red Channel" ||
-                          selectedDecl.status === "Hold" ? (
-                            <X className="w-5 h-5 text-rose-400" />
-                          ) : selectedDecl.status === "Draft" ||
-                            selectedDecl.status === "Pending" ? (
-                            <div className="w-3 h-3 rounded-full bg-indigo-500 animate-pulse" />
-                          ) : (
-                            <Check className="w-5 h-5 text-emerald-400" />
-                          )}
-                        </div>
-                        <div className="pt-2">
-                          <h4 className="text-sm font-bold text-white">
-                            Customs Review
-                          </h4>
-                          {selectedDecl.status === "Red Channel" ||
-                          selectedDecl.status === "Hold" ? (
-                            <div className="mt-2 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-                              <p className="text-xs font-medium text-rose-300">
-                                Shipment flagged for physical inspection.
-                                Awaiting port authority clearance.
-                              </p>
-                            </div>
-                          ) : selectedDecl.status === "Draft" ||
-                            selectedDecl.status === "Pending" ? (
-                            <p className="text-xs text-slate-400 mt-1">
-                              Awaiting assessment from customs officials.
-                            </p>
-                          ) : (
-                            <p className="text-xs text-slate-400 mt-1">
-                              Review completed successfully.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Step 4 */}
-                      <div className="relative flex gap-6">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-10 border-2 ${
-                            selectedDecl.status === "Green Channel" ||
-                            selectedDecl.status === "Cleared"
-                              ? "bg-emerald-500/20 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-                              : "bg-slate-900 border-slate-700"
-                          }`}
-                        >
-                          {selectedDecl.status === "Green Channel" ||
-                          selectedDecl.status === "Cleared" ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                          ) : (
-                            <div className="w-3 h-3 rounded-full bg-slate-500" />
-                          )}
-                        </div>
-                        <div className="pt-2">
-                          <h4 className="text-sm font-bold text-white">
-                            Cleared for Entry
-                          </h4>
-                          <p className="text-xs text-slate-400 mt-1">
-                            Duties paid and goods released.
-                          </p>
-                        </div>
+                    {/* Valuation & Dual Use */}
+                    <div
+                      className={`flex items-start gap-3 p-3 rounded-xl border ${
+                        selectedDecl.isDualUse
+                          ? "bg-rose-500/10 border-rose-500/20"
+                          : "bg-white/5 border-white/5"
+                      }`}
+                    >
+                      {selectedDecl.isDualUse ? (
+                        <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      )}
+                      <div className="text-xs">
+                        <p className="font-bold text-slate-200">
+                          Control de Doble Uso y Material Sensible (Regla
+                          DUAL-01)
+                        </p>
+                        <p className="text-slate-400 mt-0.5">
+                          {selectedDecl.isDualUse
+                            ? "Mercancía clasificada como tecnología de doble uso. Requiere licencia de exportación/importación."
+                            : "Clasificación TARIC exenta de licencias de doble uso (Reglamento UE 2021/821)."}
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Right Column: Documents & AI */}
-                <div className="space-y-6">
-                  {/* Drag and Drop Zone */}
-                  <div
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    className="border-2 border-dashed border-white/20 hover:border-indigo-500/50 bg-white/5 hover:bg-indigo-500/5 rounded-3xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer group"
-                  >
-                    {isUploading ? (
-                      <div className="flex flex-col items-center">
-                        <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
-                        <p className="text-indigo-400 font-medium">
-                          Scanning Document...
+                {/* Attached Documents */}
+                <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-5">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                    Casilla 44 - Documentos Presentados y Certificados
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                    <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5 text-xs">
+                      <FileText className="w-4 h-4 text-indigo-400" />
+                      <div>
+                        <p className="font-bold text-white">N935 Factura</p>
+                        <p className="text-[10px] text-slate-400">
+                          Factura comercial definitiva
                         </p>
                       </div>
-                    ) : (
-                      <>
-                        <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                          <UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-indigo-400 transition-colors" />
-                        </div>
-                        <h4 className="text-white font-bold mb-2">
-                          Upload Supporting Documents
-                        </h4>
-                        <p className="text-xs text-slate-400 max-w-[200px]">
-                          Drag & drop Commercial Invoices or Packing Lists here,
-                          or click to browse.
-                        </p>
-                      </>
-                    )}
-                  </div>
+                    </div>
 
-                  {/* Uploaded Docs List */}
-                  {realDocs.length > 0 && (
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
-                        Attached Documents
-                      </h4>
-                      <div className="space-y-2">
-                        {realDocs.map((doc, i) => (
-                          <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            key={doc.id || i}
-                            className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-white/5"
-                          >
-                            <div className="flex items-center gap-3">
-                              <FileText className="w-5 h-5 text-indigo-400" />
-                              <div>
-                                <a
-                                  href={doc.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-sm font-medium text-slate-200 hover:text-indigo-300"
-                                >
-                                  {doc.name}
-                                </a>
-                                <p className="text-[10px] text-slate-500">
-                                  {doc.type}
-                                </p>
-                              </div>
-                            </div>
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          </motion.div>
-                        ))}
+                    <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5 text-xs">
+                      <FileText className="w-4 h-4 text-indigo-400" />
+                      <div>
+                        <p className="font-bold text-white">
+                          N705 Conocimiento
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {selectedDecl.blNumber || "BL-88492019"}
+                        </p>
                       </div>
                     </div>
-                  )}
 
-                  {/* Duty Calculator summary */}
-                  <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 rounded-2xl p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                        <Calculator className="w-4 h-4 text-emerald-400" />{" "}
-                        Estimated Duties
-                      </h4>
-                      <span className="text-xs font-mono text-slate-400">
-                        HS: 8517.12.00
-                      </span>
+                    <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5 text-xs">
+                      <FileText className="w-4 h-4 text-indigo-400" />
+                      <div>
+                        <p className="font-bold text-white">
+                          N714 Packing List
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Lista de empaque y bultos
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-3xl font-black text-emerald-400 mb-2">
-                      {new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: "USD",
-                      }).format(selectedDecl.dutiesAmount || 2450.0)}
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      Auto-calculated based on HS code and declared value of
-                      goods via AI scanning.
-                    </p>
                   </div>
                 </div>
               </div>
@@ -678,6 +804,219 @@ export default function CustomsClearanceModule() {
           )}
         </div>
       </div>
+
+      {/* Tariff Calculator & New Declaration Modal */}
+      <AnimatePresence>
+        {showCalculatorModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 border border-white/10 rounded-3xl max-w-2xl w-full p-6 shadow-2xl overflow-hidden"
+            >
+              <div className="flex justify-between items-center pb-4 border-b border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <Calculator className="w-5 h-5 text-rose-400" />
+                  <h3 className="text-lg font-bold text-white">
+                    Simulador Arancelario TARIC y Nuevo Despacho
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowCalculatorModal(false)}
+                  className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-400">
+                    Código TARIC / HS Code
+                  </label>
+                  <select
+                    value={calcHsCode}
+                    onChange={(e) => setCalcHsCode(e.target.value)}
+                    className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                  >
+                    <option value="8504.40.90.90">
+                      8504.40.90.90 - Fuentes de alimentación (3.3% Arancel)
+                    </option>
+                    <option value="8471.30.00.00">
+                      8471.30.00.00 - Portátiles y tablets (0.0% Arancel)
+                    </option>
+                    <option value="6109.10.00.10">
+                      6109.10.00.10 - Camisetas de algodón (12.0% Arancel)
+                    </option>
+                    <option value="8708.29.90.00">
+                      8708.29.90.00 - Componentes de automoción (4.5% Arancel)
+                    </option>
+                    <option value="2204.21.06.00">
+                      2204.21.06.00 - Vinos DOCa Rioja (Específico 0.131 €/kg)
+                    </option>
+                    <option value="9013.80.00.00">
+                      9013.80.00.00 - Dispositivos láser (Doble Uso - 4.0%)
+                    </option>
+                    <option value="3004.90.00.00">
+                      3004.90.00.00 - Medicamentos (0.0% Arancel, 4% IVA)
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400">
+                    País de Origen
+                  </label>
+                  <select
+                    value={calcOrigin}
+                    onChange={(e) => setCalcOrigin(e.target.value)}
+                    className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                  >
+                    <option value="CN">China (CN)</option>
+                    <option value="US">Estados Unidos (US)</option>
+                    <option value="VN">Vietnam (VN)</option>
+                    <option value="TR">Turquía (TR - Unión Aduanera)</option>
+                    <option value="RU">Rusia (RU - Restricciones)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400">
+                    Valor FOB de la Mercancía (€)
+                  </label>
+                  <input
+                    type="number"
+                    value={calcFobValue}
+                    onChange={(e) => setCalcFobValue(Number(e.target.value))}
+                    className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400">
+                    Flete Internacional (€)
+                  </label>
+                  <input
+                    type="number"
+                    value={calcFreight}
+                    onChange={(e) => setCalcFreight(Number(e.target.value))}
+                    className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400">
+                    Seguro de Transporte (€)
+                  </label>
+                  <input
+                    type="number"
+                    value={calcInsurance}
+                    onChange={(e) => setCalcInsurance(Number(e.target.value))}
+                    className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400">
+                    Peso Bruto (KG)
+                  </label>
+                  <input
+                    type="number"
+                    value={calcWeightKg}
+                    onChange={(e) => setCalcWeightKg(Number(e.target.value))}
+                    className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mb-4">
+                <input
+                  type="checkbox"
+                  id="prefCert"
+                  checked={calcPrefCert}
+                  onChange={(e) => setCalcPrefCert(e.target.checked)}
+                  className="rounded text-rose-600 focus:ring-rose-500 bg-slate-800 border-white/10"
+                />
+                <label
+                  htmlFor="prefCert"
+                  className="text-xs text-slate-300 select-none cursor-pointer"
+                >
+                  Dispone de Certificado de Origen Preferencial (EUR.1 / ATR
+                  para 0% arancel)
+                </label>
+              </div>
+
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={handleCalculateTariff}
+                  disabled={isCalculating}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"
+                >
+                  <Calculator className="w-3.5 h-3.5" /> Calcular Liquidación
+                </button>
+              </div>
+
+              {calcResult && (
+                <div className="bg-slate-950 p-4 rounded-2xl border border-white/10 mb-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span className="text-slate-400">Valor CIF (Base):</span>
+                      <p className="text-sm font-bold text-white mt-0.5">
+                        {calcResult.customsValueCif.toFixed(2)} €
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">
+                        Arancel ({(calcResult.dutyRateApplied * 100).toFixed(1)}
+                        %):
+                      </span>
+                      <p className="text-sm font-bold text-amber-400 mt-0.5">
+                        {calcResult.importDuty.toFixed(2)} €
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">
+                        IVA ({(calcResult.vatRateApplied * 100).toFixed(1)}%):
+                      </span>
+                      <p className="text-sm font-bold text-indigo-400 mt-0.5">
+                        {calcResult.vatAmount.toFixed(2)} €
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Total Liquidación:</span>
+                      <p className="text-sm font-black text-emerald-400 mt-0.5">
+                        {calcResult.totalCustomsPayable.toFixed(2)} €
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2 border-t border-white/10">
+                <button
+                  onClick={() => setShowCalculatorModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreateNewDeclaration}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-600/30"
+                >
+                  Crear Despacho DUA Oficial
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;

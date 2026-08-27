@@ -79,9 +79,13 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
     const result = (rates || [])
       .map((r) => {
         const numId = parseInt(r.id?.substring(0, 8) || "0", 16) || 0;
-        const transitTimeDays = r.transit ?? r.transitTimeDays ?? (20 + (numId % 20));
-        const isDirect = r.isDirect ?? (numId % 3 === 0);
-        const carrierName = typeof r.carrier === "string" ? r.carrier : (r.carrier?.name || "Unknown Carrier");
+        const transitTimeDays =
+          r.transit ?? r.transitTimeDays ?? 20 + (numId % 20);
+        const isDirect = r.isDirect ?? numId % 3 === 0;
+        const carrierName =
+          typeof r.carrier === "string"
+            ? r.carrier
+            : r.carrier?.name || "Unknown Carrier";
 
         const diff = (r.totalCost || 0) - (r.baseFreightCost || 0);
         const surcharges = [
@@ -449,11 +453,15 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
                   <button
                     onClick={() => {
                       addToCart(rate);
-                      window.dispatchEvent(new CustomEvent('add-to-cart', { detail: rate }));
+                      window.dispatchEvent(
+                        new CustomEvent("add-to-cart", { detail: rate }),
+                      );
                     }}
                     disabled={isBooked}
                     className={`text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-1.5 ${
-                      isBooked ? "text-emerald-500 cursor-default" : "text-slate-500 hover:text-indigo-400 cursor-pointer"
+                      isBooked
+                        ? "text-emerald-500 cursor-default"
+                        : "text-slate-500 hover:text-indigo-400 cursor-pointer"
                     }`}
                   >
                     {isBooked ? (
@@ -560,10 +568,10 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
         <RfqGeneratorModal rate={rfqRate} onClose={() => setRfqRate(null)} />
       )}
       {drawerRate && (
-        <BookingDrawer 
-          rate={drawerRate} 
-          onClose={() => setDrawerRate(null)} 
-          onBook={handleBookingConfirm} 
+        <BookingDrawer
+          rate={drawerRate}
+          onClose={() => setDrawerRate(null)}
+          onBook={handleBookingConfirm}
         />
       )}
     </div>

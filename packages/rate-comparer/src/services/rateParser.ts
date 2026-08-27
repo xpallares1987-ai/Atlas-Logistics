@@ -690,4 +690,3 @@ export function parseSemicolonCSV(
     return true;
   });
 }
-

@@ -1,4 +1,3 @@
-
 import { useAuth } from "../auth/AuthProvider";
 import { Building2, ChevronDown } from "lucide-react";
 
@@ -12,7 +11,8 @@ const AVAILABLE_TENANTS = [
 export default function TenantSwitcher() {
   const { role, tenantId, setTenantId } = useAuth();
 
-  const currentTenant = AVAILABLE_TENANTS.find((t) => t.id === tenantId) || AVAILABLE_TENANTS[0];
+  const currentTenant =
+    AVAILABLE_TENANTS.find((t) => t.id === tenantId) || AVAILABLE_TENANTS[0];
 
   if (role !== "ADMIN") {
     return (
@@ -30,7 +30,7 @@ export default function TenantSwitcher() {
         {currentTenant.name}
         <ChevronDown className="w-3 h-3 opacity-70" />
       </button>
-      
+
       <div className="absolute top-full mt-2 right-0 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
         {AVAILABLE_TENANTS.map((tenant) => (
           <button

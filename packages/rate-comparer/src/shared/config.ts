@@ -11,4 +11,3 @@ export const createEnvValidator = <T extends z.ZodRawShape>(schema: T) => {
     return result.data;
   };
 };
-

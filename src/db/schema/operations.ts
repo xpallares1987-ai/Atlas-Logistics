@@ -6,11 +6,15 @@ import { locations, companies, users } from "./core.js";
 
 export const routeSegments = sqliteTable("route_segments", {
   id: text("id").primaryKey(),
-  shipmentId: text("shipment_id").notNull().references(() => shipments.id),
+  shipmentId: text("shipment_id")
+    .notNull()
+    .references(() => shipments.id),
   sequenceOrder: integer("sequence_order").notNull(),
   transportMode: text("transport_mode").notNull(),
   originLocationId: text("origin_location_id").references(() => locations.id),
-  destinationLocationId: text("destination_location_id").references(() => locations.id),
+  destinationLocationId: text("destination_location_id").references(
+    () => locations.id,
+  ),
   departureTime: integer("departure_time", { mode: "timestamp" }),
   arrivalTime: integer("arrival_time", { mode: "timestamp" }),
   status: text("status").notNull(),
@@ -110,6 +114,21 @@ export const hsCodes = sqliteTable("hs_codes", {
   id: text("id").primaryKey(),
   code: text("code").notNull().unique(),
   description: text("description").notNull(),
+  chapter: text("chapter"),
+  adValoremDuty: real("ad_valorem_duty").default(0),
+  specificDutyPerKg: real("specific_duty_per_kg").default(0),
+  vatRate: real("vat_rate").default(0.21),
+  isDualUse: integer("is_dual_use").default(0),
+  ...commonAuditFields,
+});
+
+export const tradeSanctions = sqliteTable("trade_sanctions", {
+  id: text("id").primaryKey(),
+  countryCode: text("country_code").notNull(),
+  countryName: text("country_name").notNull(),
+  sanctionType: text("sanction_type").notNull(), // EMBARGO, RESTRICTED, DUAL_USE_ONLY
+  description: text("description"),
+  isActive: integer("is_active").default(1),
   ...commonAuditFields,
 });
 
@@ -121,12 +140,21 @@ export const customsDeclarations = sqliteTable("customs_declarations", {
   brokerId: text("broker_id").references(() => customsBrokers.id),
   hsCodeId: text("hs_code_id").references(() => hsCodes.id),
   blNumber: text("bl_number"),
+  duaNumber: text("dua_number"),
   type: text("type").default("Import"),
+  customsValue: real("customs_value"),
   dutiesAmount: real("duties_amount"),
   taxesAmount: real("taxes_amount"),
-  status: text("status").notNull(),
-  aiRiskScore: integer("ai_risk_score"),
-  aiRiskFlag: text("ai_risk_flag"),
+  totalPayable: real("total_payable"),
+  status: text("status").notNull(), // Pending, Green Channel, Orange Channel, Red Channel, Cleared, Hold
+  riskScore: integer("risk_score"),
+  riskFlags: text("risk_flags"), // JSON array of deterministic rule messages
+  eoriNumber: text("eori_number"),
+  originCountry: text("origin_country"),
+  destinationCountry: text("destination_country"),
+  duaData: text("dua_data"), // JSON representation of 54 DUA boxes
+  aiRiskScore: integer("ai_risk_score"), // legacy fallback
+  aiRiskFlag: text("ai_risk_flag"), // legacy fallback
   ...commonAuditFields,
 });
 
@@ -158,4 +186,3 @@ export const demurrageAlerts = sqliteTable("demurrage_alerts", {
   lastNotified: integer("last_notified", { mode: "timestamp" }),
   ...commonAuditFields,
 });
-

@@ -8,17 +8,17 @@ In the interest of fostering an open, welcoming, and inclusive environment, we a
 
 Examples of behavior that contribute to creating a positive environment include:
 
-* Using welcoming and inclusive language.
-* Being respectful of differing viewpoints and experiences.
-* Peacefully accepting constructive criticism (especially in reviews of critical infrastructure code like Camunda or Database schemas).
-* Showing empathy towards other community members.
+- Using welcoming and inclusive language.
+- Being respectful of differing viewpoints and experiences.
+- Peacefully accepting constructive criticism (especially in reviews of critical infrastructure code like Camunda or Database schemas).
+- Showing empathy towards other community members.
 
 Examples of unacceptable behavior include:
 
-* The use of sexualized language or imagery.
-* Insulting or derogatory comments, and personal or political attacks.
-* Public or private harassment.
-* Intentionally modifying critical infrastructure dependencies without technical consensus, which could affect supply chain deployments.
+- The use of sexualized language or imagery.
+- Insulting or derogatory comments, and personal or political attacks.
+- Public or private harassment.
+- Intentionally modifying critical infrastructure dependencies without technical consensus, which could affect supply chain deployments.
 
 ## Scope
 

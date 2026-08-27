@@ -57,4 +57,3 @@ class EventBus {
 
 // Singleton instance to be shared across the ESM modules
 export const eventBus = new EventBus();
-

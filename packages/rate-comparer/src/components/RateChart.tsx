@@ -2265,4 +2265,3 @@ export default function RateChart({
     </div>
   );
 }
-

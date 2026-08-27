@@ -1,4 +1,4 @@
-import { ensureElement } from '@atlas/shared';
+import { ensureElement } from "@atlas/shared";
 
 export interface Statusbar {
   setStatus: (message: string, state?: string) => void;
@@ -16,12 +16,12 @@ export function createStatusbar({
   statusElement: HTMLElement;
   selectionElement: HTMLElement;
 }): Statusbar {
-  const statusEl = ensureElement(statusElement, 'elemento de estado');
-  const selectionEl = ensureElement(selectionElement, 'elemento de selección');
+  const statusEl = ensureElement(statusElement, "elemento de estado");
+  const selectionEl = ensureElement(selectionElement, "elemento de selección");
 
-  function setStatus(message: string, state: string = '') {
+  function setStatus(message: string, state: string = "") {
     statusEl.textContent = message;
-    statusEl.className = `statusbar__status ${state ? `is-${state}` : ''}`;
+    statusEl.className = `statusbar__status ${state ? `is-${state}` : ""}`;
   }
 
   return {
@@ -29,13 +29,12 @@ export function createStatusbar({
     setSelection: (msg: string) => {
       selectionEl.textContent = msg;
     },
-    setError: (msg: string) => setStatus(msg, 'error'),
-    setSuccess: (msg: string) => setStatus(msg, 'success'),
-    setWarning: (msg: string) => setStatus(msg, 'warning'),
-    reset: (status = 'Listo', selection = 'Sin selección') => {
+    setError: (msg: string) => setStatus(msg, "error"),
+    setSuccess: (msg: string) => setStatus(msg, "success"),
+    setWarning: (msg: string) => setStatus(msg, "warning"),
+    reset: (status = "Listo", selection = "Sin selección") => {
       setStatus(status);
       selectionEl.textContent = selection;
     },
   };
 }
-

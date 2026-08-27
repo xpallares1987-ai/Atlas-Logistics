@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import "bpmn-js/dist/assets/diagram-js.css";
@@ -56,8 +55,8 @@ export default function WorkflowManagerModule() {
       modelerRef.current = new BpmnModeler({
         container: containerRef.current,
         keyboard: {
-          bindTo: window
-        }
+          bindTo: window,
+        },
       });
 
       modelerRef.current.importXML(INITIAL_XML).catch((err: any) => {
@@ -83,15 +82,15 @@ export default function WorkflowManagerModule() {
     setIsSaving(true);
     try {
       const { xml } = await modelerRef.current.saveXML({ format: true });
-      
+
       const res = await fetch("/api/bpmn/diagrams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: workflowName,
           description: "Visual automation workflow",
-          xmlContent: xml
-        })
+          xmlContent: xml,
+        }),
       });
 
       if (res.ok) {
@@ -117,26 +116,28 @@ export default function WorkflowManagerModule() {
             <Settings className="text-indigo-500" />
             WORKFLOWS MODELER
           </h1>
-          <p className="text-slate-400 mt-1">Design and automate your logistics processes</p>
+          <p className="text-slate-400 mt-1">
+            Design and automate your logistics processes
+          </p>
         </div>
-        
+
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
             <FileText className="text-slate-400" size={16} />
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={workflowName}
               onChange={(e) => setWorkflowName(e.target.value)}
               className="bg-transparent text-white outline-none w-48 text-sm"
               placeholder="Workflow Name"
             />
           </div>
-          <button 
+          <button
             onClick={handleSave}
             disabled={isSaving}
             className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all duration-300 shadow-xl ${
-              saveSuccess 
-                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-emerald-500/20" 
+              saveSuccess
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-emerald-500/20"
                 : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20"
             }`}
           >
@@ -160,7 +161,11 @@ export default function WorkflowManagerModule() {
       {/* BPMN Canvas Container */}
       <div className="flex-1 bg-white rounded-xl overflow-hidden shadow-2xl relative border-2 border-slate-800">
         {/* We need to apply a tiny CSS fix since bpmn-js defaults to a white background, but the parent has dark theme */}
-        <div ref={containerRef} className="w-full h-full" style={{ background: "#ffffff" }} />
+        <div
+          ref={containerRef}
+          className="w-full h-full"
+          style={{ background: "#ffffff" }}
+        />
       </div>
 
       <style>{`
@@ -178,4 +183,3 @@ export default function WorkflowManagerModule() {
     </div>
   );
 }
-

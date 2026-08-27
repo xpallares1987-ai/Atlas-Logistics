@@ -19,6 +19,7 @@ pnpm add lucide-react --filter @atlas/frontend
 ```
 
 ### Database Modification Rules
+
 - The database is managed by **Local SQLite** and **Drizzle ORM**.
 - If you need to alter tables, edit the TypeScript schema files (e.g., in `src/db/schema.ts`).
 - After making changes, you **MUST** push the schema directly to your local database:
@@ -29,6 +30,7 @@ pnpm add lucide-react --filter @atlas/frontend
 - **Data Seeding**: Bulk insertions must be performed using local scripts connecting directly to `atlas.db` via the libSQL driver (`@libsql/client`).
 
 ### Backend and AI Functions Rules
+
 - Backend API logic is centralized locally in the Fastify application under `src/`.
 - Ensure new API routes are secured via JWT and RBAC (`@fastify/jwt` in `auth.routes.ts`) before merging.
 - Real-time updates should emit events to the WebSocket server (`ws://`) instead of long-polling.
@@ -37,5 +39,6 @@ pnpm add lucide-react --filter @atlas/frontend
 - Native Python dependencies required by the AI should be provided using Gemini's `code_execution` tool, not by adding complex dependencies to the Node.js runtime.
 
 ## Visual Style and Design
+
 - Atlas Logistics uses a rigorous **Dark Premium Glassmorphism** style.
 - Please use the global CSS tokens defined in `packages/frontend/src/index.css`. Do not overuse arbitrary colors; rely on semi-transparent backgrounds, subtle borders, and blur effects (`backdrop-blur`).

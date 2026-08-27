@@ -302,4 +302,3 @@ export default function ConsoleLogs({ t }: ConsoleLogsProps) {
     </div>
   );
 }
-

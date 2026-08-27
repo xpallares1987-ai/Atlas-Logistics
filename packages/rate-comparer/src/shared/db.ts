@@ -50,4 +50,3 @@ export class SharedDatabase extends Dexie {
     });
   }
 }
-

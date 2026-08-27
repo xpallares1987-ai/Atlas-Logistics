@@ -1,17 +1,19 @@
-const fs = require('fs');
+const fs = require("fs");
 
-const FILE_PATH = 'packages/frontend/src/pages/BookingManagementModule.tsx';
-let content = fs.readFileSync(FILE_PATH, 'utf8');
-const lines = content.split('\n');
+const FILE_PATH = "packages/frontend/src/pages/BookingManagementModule.tsx";
+let content = fs.readFileSync(FILE_PATH, "utf8");
+const lines = content.split("\n");
 
 // Use modular injection functions
-const { injectState } = require('./src/scripts/replace_booking/state.cjs');
-const { injectHandlers } = require('./src/scripts/replace_booking/handlers.cjs');
-const { injectHeader } = require('./src/scripts/replace_booking/header.cjs');
+const { injectState } = require("./src/scripts/replace_booking/state.cjs");
+const {
+  injectHandlers,
+} = require("./src/scripts/replace_booking/handlers.cjs");
+const { injectHeader } = require("./src/scripts/replace_booking/header.cjs");
 content = injectState(content);
 content = injectHandlers(content);
 content = injectHeader(content);
-content = lines.join('\n');
+content = lines.join("\n");
 
 // 3. Update the header for the toggle
 const headerOld = `<button
@@ -47,14 +49,23 @@ content = content.replace(headerOld, headerNew);
 // 4. Update the layout
 // We know lines 348 is `<div className="max-w-4xl mx-auto">`
 // We know line 716 is `            </div>` (closing of the flex-1 overflow-y-auto block, the end of the true branch)
-const newLines = content.split('\n');
+const newLines = content.split("\n");
 
-const layoutStartIdx = newLines.findIndex(l => l.includes('<div className="flex-1 overflow-hidden flex">'));
+const layoutStartIdx = newLines.findIndex((l) =>
+  l.includes('<div className="flex-1 overflow-hidden flex">'),
+);
 
-const detailsStartIdx = newLines.findIndex(l => l.includes('<div className="max-w-4xl mx-auto">'));
-const detailsEndIdx = newLines.findIndex(l => l.includes('<FileText className="w-16 h-16 mb-4 text-slate-200" />')) - 2;
+const detailsStartIdx = newLines.findIndex((l) =>
+  l.includes('<div className="max-w-4xl mx-auto">'),
+);
+const detailsEndIdx =
+  newLines.findIndex((l) =>
+    l.includes('<FileText className="w-16 h-16 mb-4 text-slate-200" />'),
+  ) - 2;
 
-const oldDetailsView = newLines.slice(detailsStartIdx, detailsEndIdx + 1).join('\n');
+const oldDetailsView = newLines
+  .slice(detailsStartIdx, detailsEndIdx + 1)
+  .join("\n");
 
 const newLayoutTop = `
       <div className="flex-1 overflow-hidden relative flex bg-slate-50/50">
@@ -182,7 +193,12 @@ const newLayoutBottom = `
   );
 }`;
 
-const finalLines = [...newLines.slice(0, layoutStartIdx), newLayoutTop, oldDetailsView, newLayoutBottom];
+const finalLines = [
+  ...newLines.slice(0, layoutStartIdx),
+  newLayoutTop,
+  oldDetailsView,
+  newLayoutBottom,
+];
 
-fs.writeFileSync(FILE_PATH, finalLines.join('\n'));
-console.log('Successfully updated BookingManagementModule.tsx');
+fs.writeFileSync(FILE_PATH, finalLines.join("\n"));
+console.log("Successfully updated BookingManagementModule.tsx");

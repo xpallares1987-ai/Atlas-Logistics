@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
-const weatherCache = new Map<string, {
-  temp: number;
-  windSpeed: number;
-  description: string;
-  icon: string;
-  timestamp: number;
-}>();
+const weatherCache = new Map<
+  string,
+  {
+    temp: number;
+    windSpeed: number;
+    description: string;
+    icon: string;
+    timestamp: number;
+  }
+>();
 
 const CACHE_TTL = 3600000; // 1 hour in ms
 
@@ -37,7 +40,7 @@ export function usePortWeather(lat: number, lon: number) {
           temp: cached.temp,
           windSpeed: cached.windSpeed,
           description: cached.description,
-          icon: cached.icon
+          icon: cached.icon,
         });
         return;
       }
@@ -47,36 +50,45 @@ export function usePortWeather(lat: number, lon: number) {
       try {
         // Fetch current weather using Open-Meteo
         const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m,weather_code&wind_speed_unit=kn&timezone=auto`
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m,weather_code&wind_speed_unit=kn&timezone=auto`,
         );
-        if (!response.ok) throw new Error('Weather API error');
+        if (!response.ok) throw new Error("Weather API error");
         const data = await response.json();
-        
+
         if (!mounted) return;
-        
+
         // Simple mapping from WMO weather codes to lucide icons (rough approximation)
         const code = data.current.weather_code;
-        let icon = 'Sun';
-        let desc = 'Clear';
-        
-        if (code >= 1 && code <= 3) { icon = 'Cloud'; desc = 'Partly Cloudy'; }
-        else if (code >= 51 && code <= 67) { icon = 'CloudRain'; desc = 'Rain'; }
-        else if (code >= 71 && code <= 77) { icon = 'CloudSnow'; desc = 'Snow'; }
-        else if (code >= 95) { icon = 'CloudLightning'; desc = 'Thunderstorm'; }
-        
+        let icon = "Sun";
+        let desc = "Clear";
+
+        if (code >= 1 && code <= 3) {
+          icon = "Cloud";
+          desc = "Partly Cloudy";
+        } else if (code >= 51 && code <= 67) {
+          icon = "CloudRain";
+          desc = "Rain";
+        } else if (code >= 71 && code <= 77) {
+          icon = "CloudSnow";
+          desc = "Snow";
+        } else if (code >= 95) {
+          icon = "CloudLightning";
+          desc = "Thunderstorm";
+        }
+
         setWeather({
           temp: data.current.temperature_2m, // Celsius
           windSpeed: data.current.wind_speed_10m, // Knots
           description: desc,
-          icon
+          icon,
         });
-        
+
         weatherCache.set(cacheKey, {
           temp: data.current.temperature_2m,
           windSpeed: data.current.wind_speed_10m,
           description: desc,
           icon,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       } catch (err: any) {
         if (mounted) setError(err.message);
@@ -86,7 +98,9 @@ export function usePortWeather(lat: number, lon: number) {
     };
 
     fetchWeather();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [lat, lon]);
 
   return { weather, loading, error };

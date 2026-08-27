@@ -36,4 +36,3 @@ export const LoginOverlay = () => {
     </div>
   );
 };
-
