@@ -8,3 +8,4 @@ export * from "./audit.js";
 export * from "./views.js";
 export * from "./warehouse.js";
 export * from "./air_cargo.js";
+export * from "./incoterms.js";
