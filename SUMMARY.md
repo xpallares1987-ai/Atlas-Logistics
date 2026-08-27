@@ -40,12 +40,15 @@ pnpm install
 # Compilación de todo el monorepo
 pnpm run build
 
-# Base de datos: migraciones y seed masivo
+# Entorno de Desarrollo (Base de datos local: file:atlas-erp-v2.db)
 pnpm run db:migrate
 pnpm run db:seed
-
-# Servidor de desarrollo unificado (Backend :3001 + Frontend :3002)
 pnpm run dev
+
+# Entorno de Producción (Base de datos aislada: file:atlas-erp-prod.db o DATABASE_URL)
+pnpm run db:migrate:prod
+pnpm run db:seed:prod
+pnpm run start:prod   # o: pnpm start
 
 # Ejecución de pruebas
 pnpm test

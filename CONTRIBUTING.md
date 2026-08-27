@@ -31,13 +31,13 @@ Thank you for contributing to Atlas Logistics! We maintain high engineering stan
 
 ## 🗄️ Database & Schema Standards
 
-- **Local Persistence ($0 Cloud Cost)**: State is stored locally in SQLite via the `@libsql/client` driver and **Drizzle ORM**.
-- **Schema Modifications**:
+- **Local Persistence & Environment Isolation**: State is stored locally in SQLite via the `@libsql/client` driver and **Drizzle ORM**. Development defaults to `file:atlas-erp-v2.db` while production defaults to `file:atlas-erp-prod.db` (or custom `DATABASE_URL`).
+- **Schema Modifications Workflow**:
   1. Add or modify table schemas under `src/db/schema/*.ts`.
   2. Export schema definitions in `src/db/schema/index.ts`.
   3. Generate migrations using `pnpm run db:generate`.
-  4. Apply migrations locally via `pnpm run db:migrate`.
-  5. Add realistic seed data in `src/db/seed.ts`.
+  4. Apply migrations on development DB via `pnpm run db:migrate` and verify production DB via `pnpm run db:migrate:prod`.
+  5. Add realistic seed data in `src/db/seed.ts` (tested with `pnpm run db:seed` and `pnpm run db:seed:prod`).
 
 ---
 

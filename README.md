@@ -122,9 +122,42 @@ pnpm run dev
 ```
 *Frontend disponible en [http://localhost:3002](http://localhost:3002) y API Backend en [http://localhost:3001](http://localhost:3001).*
 
-5. **Ejecutar Pruebas:**
+---
+
+## 🗄️ Gestión de Entornos de Base de Datos (Dev vs. Prod)
+
+Atlas Logistics cuenta con aislamiento nativo de bases de datos por entorno mediante resolución dinámica en Drizzle ORM:
+
+| Entorno | Archivo / Destino por Defecto | Variables de Entorno | Comandos de Operación |
+|---|---|---|---|
+| **Desarrollo** (`development`) | `file:atlas-erp-v2.db` | `.env.local` / `.env` | `pnpm run db:migrate`<br>`pnpm run db:seed`<br>`pnpm run dev` |
+| **Producción** (`production`) | `file:atlas-erp-prod.db` *(o `DATABASE_URL` personalizada)* | `.env.production` | `pnpm run db:migrate:prod`<br>`pnpm run db:seed:prod`<br>`pnpm run start:prod` |
+
+### Puesta en Marcha en Producción:
 ```bash
-# Suite completa Vitest (30 archivos, 135 tests)
+# 1. Copiar y configurar el archivo de variables de producción
+cp .env.production.example .env.production
+
+# 2. Aplicar migraciones sobre la base de datos de producción
+pnpm run db:migrate:prod
+
+# 3. Poblar triggers y usuario administrador inicial
+pnpm run db:seed:prod
+
+# 4. Iniciar el servidor Backend en modo producción
+pnpm run start:prod
+# O:
+pnpm start
+```
+
+> **Tip para Despliegues Remotos / Turso:** Puedes conectar Atlas Logistics a una base de datos distribuida en la nube especificando `DATABASE_URL=libsql://tu-cluster.turso.io` y `DATABASE_AUTH_TOKEN=tu-token` en `.env.production`.
+
+---
+
+## 🧪 Pruebas Automatizadas
+
+```bash
+# Suite completa Vitest (30 archivos, 135 tests unitarios e integrados)
 pnpm test
 
 # Pruebas End-to-End con Playwright
