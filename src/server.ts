@@ -1,8 +1,13 @@
 import dotenv from "dotenv";
-dotenv.config({ path: ".env.local", override: false });
+const isProduction = process.env.NODE_ENV === "production";
+dotenv.config({
+  path: isProduction ? ".env.production" : ".env.local",
+  override: false,
+});
+dotenv.config({ path: ".env", override: false });
 
 import app from "./app.js";
-import { db } from "./db/index.js";
+import { db, databaseUrl } from "./db/index.js";
 import { initPubSub } from "./services/pubsub.service.js";
 import { loadSecrets } from "./config/secrets.js";
 import { logger } from "./config/logger.js";
@@ -13,14 +18,16 @@ const PORT = parseInt(
 );
 
 async function bootstrap() {
-  logger.info("Starting Atlas Logistics Backend...");
+  logger.info(
+    `Starting Atlas Logistics Backend (Mode: ${process.env.NODE_ENV || "development"})...`,
+  );
 
   if (process.env.GOOGLE_CLOUD_PROJECT) {
     await loadSecrets(process.env.GOOGLE_CLOUD_PROJECT);
   }
 
   if (db) {
-    logger.info("Database connection initialized.");
+    logger.info(`Database connection initialized: ${databaseUrl}`);
   }
 
   await connectRedis();
