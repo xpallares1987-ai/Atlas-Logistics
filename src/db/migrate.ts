@@ -1,11 +1,13 @@
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { db } from "./index.js";
+import { db, databaseUrl } from "./index.js";
 
 export async function runMigrations() {
-  console.log("Running database migrations...");
+  console.log(`Running database migrations on ${databaseUrl}...`);
   try {
     await migrate(db, { migrationsFolder: "./drizzle" });
-    console.log("Database migrations completed successfully.");
+    console.log(
+      `Database migrations on ${databaseUrl} completed successfully.`,
+    );
   } catch (error) {
     console.error("Error running migrations:", error);
     throw error;

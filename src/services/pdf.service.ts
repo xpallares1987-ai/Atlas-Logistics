@@ -671,4 +671,1641 @@ export class PDFService {
       }
     });
   }
+
+  static generateAirWaybill(data: {
+    awbNumber: string;
+    type?: string;
+    airlinePrefix?: string;
+    airlineName?: string;
+    originAirport: string;
+    destinationAirport: string;
+    flightNumber?: string;
+    flightDate?: Date | string;
+    shipperData: any;
+    consigneeData: any;
+    issuingAgentData?: any;
+    pieces: number;
+    grossWeightKg: number;
+    volumeCbm?: number;
+    chargeableWeightKg: number;
+    rateClass?: string;
+    ratePerKg: number;
+    freightCharge: number;
+    otherCharges?: Array<{ code: string; name: string; amount: number }>;
+    totalPrepaid?: number;
+    totalCollect?: number;
+    currency?: string;
+    natureOfGoods: string;
+    specialHandlingCodes?: string[];
+    handlingInfo?: string;
+    eAwbCertified?: boolean;
+  }): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: "A4",
+          margin: 30,
+        });
+
+        const buffers: Buffer[] = [];
+        doc.on("data", (chunk: Buffer) => buffers.push(chunk));
+        doc.on("end", () => resolve(Buffer.concat(buffers)));
+
+        // Header Title & Neutral AWB Bar
+        doc.rect(30, 30, 535, 45).fillAndStroke("#0f172a", "#334155");
+        doc.fillColor("#ffffff").fontSize(14).font("Helvetica-Bold");
+        doc.text(`${data.airlineName || "IATA NEUTRAL"} AIR WAYBILL`, 40, 40);
+        doc.fontSize(8).font("Helvetica");
+        doc.text(
+          "NOT NEGOTIABLE AIR WAYBILL (AIR CONSIGNMENT NOTE) - ISSUED ACCORDING TO IATA RESOLUTION 600a",
+          40,
+          58,
+        );
+
+        doc
+          .fontSize(14)
+          .font("Helvetica-Bold")
+          .text(data.awbNumber || "075-84920153", 400, 42, {
+            align: "right",
+            width: 155,
+          });
+
+        let currentY = 80;
+
+        // Box 1 & Box 2: Shipper and Consignee
+        doc.fillColor("#000000").rect(30, currentY, 265, 75).stroke();
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7)
+          .text("1. SHIPPER'S NAME AND ADDRESS / EXPEDIDOR", 35, currentY + 5);
+        doc
+          .font("Helvetica")
+          .fontSize(8)
+          .text(
+            data.shipperData?.name || "Atlas Freight Solutions SL",
+            35,
+            currentY + 16,
+          );
+        doc.text(
+          data.shipperData?.address || "Centro de Carga Aérea, 28042 Madrid",
+          35,
+          currentY + 28,
+        );
+        doc.text(
+          `Country: ${data.shipperData?.country || "ES"} | Tel: ${data.shipperData?.contact || "N/A"}`,
+          35,
+          currentY + 50,
+        );
+
+        // Box 3: Issuing Carrier's Agent
+        doc.rect(295, currentY, 270, 75).stroke();
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7)
+          .text(
+            "3. ISSUING CARRIER'S AGENT / AGENTE EMISOR",
+            300,
+            currentY + 5,
+          );
+        doc
+          .font("Helvetica")
+          .fontSize(8)
+          .text(
+            data.issuingAgentData?.name || "ATLAS AIR CARGO FORWARDING",
+            300,
+            currentY + 16,
+          );
+        doc.text(
+          `City: ${data.issuingAgentData?.city || data.originAirport} | IATA Code: ${data.issuingAgentData?.iataCode || "78-4-7291/0014"}`,
+          300,
+          currentY + 28,
+        );
+        doc.text(
+          `CASS Account: ${data.issuingAgentData?.cassAddress || "ES-CASS-8819"}`,
+          300,
+          currentY + 40,
+        );
+        doc
+          .font("Helvetica-Bold")
+          .text(
+            `e-AWB Certified: ${data.eAwbCertified !== false ? "YES (IATA Res 672)" : "NO"}`,
+            300,
+            currentY + 55,
+          );
+
+        currentY += 80;
+
+        // Box 2: Consignee
+        doc.rect(30, currentY, 265, 65).stroke();
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7)
+          .text(
+            "2. CONSIGNEE'S NAME AND ADDRESS / DESTINATARIO",
+            35,
+            currentY + 5,
+          );
+        doc
+          .font("Helvetica")
+          .fontSize(8)
+          .text(
+            data.consigneeData?.name || "Atlas Global Logistics USA Inc",
+            35,
+            currentY + 16,
+          );
+        doc.text(
+          data.consigneeData?.address ||
+            "JFK International Airport, Jamaica, NY",
+          35,
+          currentY + 28,
+        );
+        doc.text(
+          `Country: ${data.consigneeData?.country || "US"} | Contact: ${data.consigneeData?.contact || "N/A"}`,
+          35,
+          currentY + 45,
+        );
+
+        // Box 5 & 6: Airport of Departure & Requested Routing
+        doc.rect(295, currentY, 270, 65).stroke();
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7)
+          .text(
+            "5. AIRPORT OF DEPARTURE & ROUTING / ORIGEN Y RUTA",
+            300,
+            currentY + 5,
+          );
+        doc
+          .font("Helvetica")
+          .fontSize(9)
+          .text(
+            `${data.originAirport}  ➔  ${data.destinationAirport}`,
+            300,
+            currentY + 18,
+          );
+        doc
+          .fontSize(8)
+          .text(
+            `Flight/Date: ${data.flightNumber || "IB6251"} / ${data.flightDate ? new Date(data.flightDate).toLocaleDateString("es-ES") : "SCHEDULED"}`,
+            300,
+            currentY + 34,
+          );
+        doc.text(
+          `Currency: ${data.currency || "EUR"} | CHGS Code: PP (Prepaid)`,
+          300,
+          currentY + 48,
+        );
+
+        currentY += 70;
+
+        // Box 8: Handling Information & Special Handling Codes
+        doc.rect(30, currentY, 535, 45).fillAndStroke("#f8fafc", "#94a3b8");
+        doc.fillColor("#0f172a").font("Helvetica-Bold").fontSize(7);
+        doc.text(
+          "8. HANDLING INFORMATION & SPECIAL HANDLING CODES (SHC) / INFORMACIÓN DE MANIPULACIÓN",
+          35,
+          currentY + 5,
+        );
+        doc.fillColor("#000000").font("Helvetica").fontSize(8);
+        doc.text(
+          data.handlingInfo || "GENERAL CARGO - HANDLE WITH CARE",
+          35,
+          currentY + 16,
+          { width: 520 },
+        );
+        doc
+          .font("Helvetica-Bold")
+          .text(
+            `Special Handling Codes: ${(data.specialHandlingCodes || ["GEN"]).join(" | ")}`,
+            35,
+            currentY + 30,
+          );
+
+        currentY += 52;
+
+        // Box 9: Standard Rating Table (8 columns)
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(9)
+          .text(
+            "9. RATING & CHARGES CALCULATION / LIQUIDACIÓN DE FLETE AÉREO",
+            30,
+            currentY,
+          );
+        currentY += 12;
+
+        // Table Header
+        doc.rect(30, currentY, 535, 18).fillAndStroke("#e2e8f0", "#64748b");
+        doc.fillColor("#0f172a").fontSize(7).font("Helvetica-Bold");
+        doc.text("Pieces", 35, currentY + 5);
+        doc.text("Gross Wt (kg)", 75, currentY + 5);
+        doc.text("Class", 145, currentY + 5);
+        doc.text("Vol (m³)", 180, currentY + 5);
+        doc.text("Chrg Wt (kg)", 225, currentY + 5);
+        doc.text("Rate / kg", 295, currentY + 5);
+        doc.text("Total Freight", 360, currentY + 5);
+        doc.text("Nature of Goods / DGR", 435, currentY + 5);
+
+        currentY += 18;
+
+        // Table Body Row
+        doc.fillColor("#000000").rect(30, currentY, 535, 30).stroke();
+        doc.fontSize(8).font("Helvetica");
+        doc.text(String(data.pieces || 1), 35, currentY + 8);
+        doc.text(Number(data.grossWeightKg || 0).toFixed(1), 75, currentY + 8);
+        doc.text(data.rateClass || "Q", 145, currentY + 8);
+        doc.text(Number(data.volumeCbm || 0).toFixed(3), 180, currentY + 8);
+        doc.text(
+          Number(data.chargeableWeightKg || 0).toFixed(1),
+          225,
+          currentY + 8,
+        );
+        doc.text(
+          `${Number(data.ratePerKg || 0).toFixed(2)} ${data.currency || "EUR"}`,
+          295,
+          currentY + 8,
+        );
+        doc
+          .font("Helvetica-Bold")
+          .text(
+            `${Number(data.freightCharge || 0).toFixed(2)} ${data.currency || "EUR"}`,
+            360,
+            currentY + 8,
+          );
+        doc
+          .font("Helvetica")
+          .fontSize(7)
+          .text(data.natureOfGoods || "General Cargo", 435, currentY + 5, {
+            width: 125,
+          });
+
+        currentY += 35;
+
+        // Box 10: Other Charges Breakdown
+        doc.rect(30, currentY, 265, 85).stroke();
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7)
+          .text(
+            "10. OTHER CHARGES DUE CARRIER / OTROS RECARGOS IATA",
+            35,
+            currentY + 5,
+          );
+
+        let otherY = currentY + 16;
+        const otherList = data.otherCharges || [];
+        if (otherList.length === 0) {
+          doc
+            .font("Helvetica")
+            .fontSize(7)
+            .text("No additional surcharges", 35, otherY);
+        } else {
+          doc.font("Helvetica").fontSize(7);
+          for (const oc of otherList.slice(0, 4)) {
+            doc.text(`${oc.code} - ${oc.name || oc.code}:`, 35, otherY);
+            doc.text(
+              `${Number(oc.amount).toFixed(2)} ${data.currency || "EUR"}`,
+              230,
+              otherY,
+              { align: "right", width: 60 },
+            );
+            otherY += 12;
+          }
+        }
+
+        // Box 11: Prepaid / Collect Totals Summary
+        doc.rect(295, currentY, 270, 85).fillAndStroke("#f1f5f9", "#cbd5e1");
+        doc.fillColor("#0f172a").font("Helvetica-Bold").fontSize(7);
+        doc.text("11. TOTALS SUMMARY / RESUMEN TOTAL", 300, currentY + 5);
+
+        const totalPrepaid = Number(data.totalPrepaid || 0);
+        const totalCollect = Number(data.totalCollect || 0);
+        const totalPayable =
+          totalPrepaid > 0 ? totalPrepaid : data.freightCharge || 0;
+
+        doc.font("Helvetica").fontSize(8).fillColor("#334155");
+        doc.text("Weight Charge (Flete Base):", 300, currentY + 20);
+        doc.text(
+          `${Number(data.freightCharge || 0).toFixed(2)} ${data.currency || "EUR"}`,
+          480,
+          currentY + 20,
+          { align: "right", width: 80 },
+        );
+
+        doc.text("Total Other Charges Due Carrier:", 300, currentY + 34);
+        const sumOther = otherList.reduce(
+          (acc, c) => acc + Number(c.amount || 0),
+          0,
+        );
+        doc.text(
+          `${sumOther.toFixed(2)} ${data.currency || "EUR"}`,
+          480,
+          currentY + 34,
+          { align: "right", width: 80 },
+        );
+
+        doc
+          .rect(295, currentY + 50, 270, 25)
+          .fillAndStroke("#0284c7", "#0369a1");
+        doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(10);
+        doc.text("TOTAL PREPAID:", 305, currentY + 58);
+        doc.text(
+          `${totalPayable.toFixed(2)} ${data.currency || "EUR"}`,
+          460,
+          currentY + 58,
+          { align: "right", width: 100 },
+        );
+
+        currentY += 92;
+
+        // Box 12: Shipper Certification & Carrier Signature
+        doc.fillColor("#000000").rect(30, currentY, 535, 55).stroke();
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7)
+          .text(
+            "12. SHIPPER'S CERTIFICATION & ISSUING CARRIER SIGNATURE / CERTIFICACIÓN Y FIRMA",
+            35,
+            currentY + 5,
+          );
+        doc
+          .font("Helvetica")
+          .fontSize(6.5)
+          .text(
+            "Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is properly described by name and is in proper condition for carriage by air according to the applicable Dangerous Goods Regulations.",
+            35,
+            currentY + 16,
+            { width: 520 },
+          );
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7)
+          .text(
+            `Executed at: ${data.originAirport} | Date: ${new Date().toISOString().substring(0, 10)} | Signature of Issuing Carrier or Agent: ATLAS AIR CARGO ELECTRONIC CERTIFICATE`,
+            35,
+            currentY + 40,
+          );
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  /**
+   * Generates official bilingual commercial freight & sales contract PDF with ICC Incoterms® 2020 clauses
+   */
+  public static async generateCommercialContract(data: {
+    contractNumber: string;
+    title: string;
+    incotermCode: string;
+    namedPlace: string;
+    transportMode: string;
+    currency: string;
+    goodsValue: number;
+    freightEstimatedCost: number;
+    insuranceEstimatedCost: number;
+    customsEstimatedDuty: number;
+    effectiveDate: string | Date;
+    expiryDate?: string | Date;
+    governingLaw: string;
+    disputeJurisdiction: string;
+    sellerData: any;
+    buyerData: any;
+    forwarderData?: any;
+    milestonesData?: any[];
+  }): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ size: "A4", margin: 36 });
+        const buffers: Buffer[] = [];
+
+        doc.on("data", (chunk: Buffer) => buffers.push(chunk));
+        doc.on("end", () => resolve(Buffer.concat(buffers)));
+
+        // Header Background Banner
+        doc.rect(36, 36, 523, 50).fill("#0f172a");
+        doc
+          .fillColor("#ffffff")
+          .font("Helvetica-Bold")
+          .fontSize(14)
+          .text("ATLAS LOGISTICS ENTERPRISE", 48, 46);
+        doc
+          .fontSize(8.5)
+          .font("Helvetica")
+          .text(
+            "INTERNATIONAL COMMERCIAL & FREIGHT FORWARDING CONTRACT",
+            48,
+            62,
+          );
+        doc
+          .fontSize(8)
+          .fillColor("#38bdf8")
+          .text(`INCOTERMS® 2020 COMPLIANT | ${data.contractNumber}`, 360, 52, {
+            align: "right",
+          });
+
+        // Contract Title & Metadata
+        doc
+          .fillColor("#0f172a")
+          .font("Helvetica-Bold")
+          .fontSize(11)
+          .text(data.title, 36, 96);
+        doc
+          .fontSize(8)
+          .font("Helvetica")
+          .fillColor("#475569")
+          .text(
+            `Effective Date: ${new Date(data.effectiveDate).toISOString().substring(0, 10)} | Expiry: ${data.expiryDate ? new Date(data.expiryDate).toISOString().substring(0, 10) : "Open-ended"} | Currency: ${data.currency}`,
+            36,
+            110,
+          );
+
+        // Parties 2-Column Box
+        const startY = 126;
+        doc.rect(36, startY, 255, 95).strokeColor("#cbd5e1").stroke();
+        doc.rect(298, startY, 261, 95).strokeColor("#cbd5e1").stroke();
+
+        // Seller
+        doc.rect(36, startY, 255, 16).fill("#f1f5f9");
+        doc
+          .fillColor("#1e293b")
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .text("1. SELLER / EXPORTADOR (PARTE VENDEDORA)", 42, startY + 4);
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(8.5)
+          .fillColor("#0f172a")
+          .text(data.sellerData?.name || "N/A", 42, startY + 22);
+        doc
+          .font("Helvetica")
+          .fontSize(7.5)
+          .fillColor("#475569")
+          .text(
+            `Tax ID / NIF: ${data.sellerData?.taxId || "N/A"}`,
+            42,
+            startY + 36,
+          )
+          .text(
+            `Address: ${data.sellerData?.address || "N/A"}`,
+            42,
+            startY + 48,
+            { width: 240 },
+          )
+          .text(
+            `Country: ${data.sellerData?.country || "ES"} | Contact: ${data.sellerData?.contact || "N/A"}`,
+            42,
+            startY + 74,
+          );
+
+        // Buyer
+        doc.rect(298, startY, 261, 16).fill("#f1f5f9");
+        doc
+          .fillColor("#1e293b")
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .text("2. BUYER / IMPORTADOR (PARTE COMPRADORA)", 304, startY + 4);
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(8.5)
+          .fillColor("#0f172a")
+          .text(data.buyerData?.name || "N/A", 304, startY + 22);
+        doc
+          .font("Helvetica")
+          .fontSize(7.5)
+          .fillColor("#475569")
+          .text(
+            `Tax ID / VAT: ${data.buyerData?.taxId || "N/A"}`,
+            304,
+            startY + 36,
+          )
+          .text(
+            `Address: ${data.buyerData?.address || "N/A"}`,
+            304,
+            startY + 48,
+            { width: 245 },
+          )
+          .text(
+            `Country: ${data.buyerData?.country || "N/A"} | Contact: ${data.buyerData?.contact || "N/A"}`,
+            304,
+            startY + 74,
+          );
+
+        // Incoterm 2020 Core Terms Box
+        const incoY = 228;
+        doc
+          .rect(36, incoY, 523, 58)
+          .strokeColor("#0284c7")
+          .lineWidth(1.2)
+          .stroke();
+        doc.rect(36, incoY, 523, 16).fill("#e0f2fe");
+        doc
+          .fillColor("#0369a1")
+          .font("Helvetica-Bold")
+          .fontSize(8)
+          .text(
+            "3. INCOTERMS® 2020 DELIVERY & RISK TRANSFER CLAUSE (CLÁUSULA DE ENTREGA)",
+            42,
+            incoY + 4,
+          );
+
+        doc
+          .fillColor("#0f172a")
+          .font("Helvetica-Bold")
+          .fontSize(10)
+          .text(
+            `Rule: ${data.incotermCode} (${data.namedPlace})`,
+            42,
+            incoY + 22,
+          );
+        doc
+          .font("Helvetica")
+          .fontSize(7.5)
+          .fillColor("#334155")
+          .text(
+            `Transport Mode: ${data.transportMode} | Freight Forwarder: ${data.forwarderData?.name || "Atlas Logistics SL"}`,
+            42,
+            incoY + 36,
+          )
+          .text(
+            `Jurisdiction: ${data.disputeJurisdiction} | Governing Law: ${data.governingLaw}`,
+            42,
+            incoY + 46,
+          );
+
+        // Commercial Financial Breakdown Table
+        const finY = 293;
+        doc.rect(36, finY, 523, 16).fill("#f8fafc");
+        doc
+          .strokeColor("#cbd5e1")
+          .lineWidth(0.8)
+          .rect(36, finY, 523, 54)
+          .stroke();
+        doc
+          .fillColor("#1e293b")
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .text(
+            "4. FINANCIAL SUMMARY & ESTIMATED LOGISTICS COSTS",
+            42,
+            finY + 4,
+          );
+
+        doc.font("Helvetica").fontSize(7.5).fillColor("#475569");
+        doc.text("Valor Mercancía (Goods Value):", 42, finY + 22);
+        doc.text("Flete Internacional Est. (Freight):", 180, finY + 22);
+        doc.text("Seguro Est. (Insurance):", 320, finY + 22);
+        doc.text("Arancel Est. (Customs Duty):", 440, finY + 22);
+
+        doc.font("Helvetica-Bold").fontSize(8.5).fillColor("#0f172a");
+        doc.text(
+          `${data.goodsValue?.toFixed(2)} ${data.currency}`,
+          42,
+          finY + 34,
+        );
+        doc.text(
+          `${data.freightEstimatedCost?.toFixed(2)} ${data.currency}`,
+          180,
+          finY + 34,
+        );
+        doc.text(
+          `${data.insuranceEstimatedCost?.toFixed(2)} ${data.currency}`,
+          320,
+          finY + 34,
+        );
+        doc.text(
+          `${data.customsEstimatedDuty?.toFixed(2)} ${data.currency}`,
+          440,
+          finY + 34,
+        );
+
+        // Incoterms 10-Stage Responsibility Matrix Table
+        const tableY = 354;
+        doc.rect(36, tableY, 523, 16).fill("#f1f5f9");
+        doc
+          .fillColor("#0f172a")
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .text(
+            "5. INCOTERMS® 2020 10-STAGE COST & RISK ALLOCATION MATRIX",
+            42,
+            tableY + 4,
+          );
+
+        const stagesList = [
+          {
+            num: "1",
+            name: "Embalaje y Verificación (Packaging)",
+            cost: "Vendedor",
+            risk: "Vendedor",
+          },
+          {
+            num: "2",
+            name: "Carga en Origen (Loading Origin)",
+            cost: data.incotermCode === "EXW" ? "Comprador" : "Vendedor",
+            risk: data.incotermCode === "EXW" ? "Comprador" : "Vendedor",
+          },
+          {
+            num: "3",
+            name: "Transporte Interior Origen (Pre-carriage)",
+            cost: ["EXW"].includes(data.incotermCode)
+              ? "Comprador"
+              : "Vendedor",
+            risk: ["EXW", "FCA"].includes(data.incotermCode)
+              ? "Comprador"
+              : "Vendedor",
+          },
+          {
+            num: "4",
+            name: "Despacho Exportación (Export Customs)",
+            cost: data.incotermCode === "EXW" ? "Comprador" : "Vendedor",
+            risk: data.incotermCode === "EXW" ? "Comprador" : "Vendedor",
+          },
+          {
+            num: "5",
+            name: "Manipulación Terminal Origen (OTHC)",
+            cost: ["EXW", "FCA", "FAS"].includes(data.incotermCode)
+              ? "Comprador"
+              : "Vendedor",
+            risk: ["EXW", "FCA", "FAS"].includes(data.incotermCode)
+              ? "Comprador"
+              : "Vendedor",
+          },
+          {
+            num: "6",
+            name: "Flete Internacional (Main Freight)",
+            cost: ["EXW", "FCA", "FAS", "FOB"].includes(data.incotermCode)
+              ? "Comprador"
+              : "Vendedor",
+            risk: [
+              "EXW",
+              "FCA",
+              "FAS",
+              "FOB",
+              "CFR",
+              "CIF",
+              "CPT",
+              "CIP",
+            ].includes(data.incotermCode)
+              ? "Comprador"
+              : "Vendedor",
+          },
+          {
+            num: "7",
+            name: "Seguro de Transporte (Insurance)",
+            cost: ["CIF", "CIP"].includes(data.incotermCode)
+              ? "Vendedor (Obligatorio)"
+              : "Comprador (Opcional)",
+            risk: "Comprador",
+          },
+          {
+            num: "8",
+            name: "Manipulación Terminal Destino (DTHC)",
+            cost: ["DAP", "DPU", "DDP"].includes(data.incotermCode)
+              ? "Vendedor"
+              : "Comprador",
+            risk: ["DAP", "DPU", "DDP"].includes(data.incotermCode)
+              ? "Vendedor"
+              : "Comprador",
+          },
+          {
+            num: "9",
+            name: "Despacho de Importación y Aranceles",
+            cost: data.incotermCode === "DDP" ? "Vendedor" : "Comprador",
+            risk: data.incotermCode === "DDP" ? "Vendedor" : "Comprador",
+          },
+          {
+            num: "10",
+            name: "Descarga en Destino (Unloading)",
+            cost: data.incotermCode === "DPU" ? "Vendedor" : "Comprador",
+            risk: data.incotermCode === "DPU" ? "Vendedor" : "Comprador",
+          },
+        ];
+
+        let currRowY = tableY + 16;
+        for (const stage of stagesList) {
+          doc.rect(36, currRowY, 523, 14).strokeColor("#e2e8f0").stroke();
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(6.5)
+            .fillColor("#1e293b")
+            .text(stage.num, 42, currRowY + 3.5);
+          doc
+            .font("Helvetica")
+            .fontSize(6.5)
+            .fillColor("#334155")
+            .text(stage.name, 56, currRowY + 3.5);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(6.5)
+            .fillColor("#0284c7")
+            .text(`Coste: ${stage.cost}`, 320, currRowY + 3.5);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(6.5)
+            .fillColor("#059669")
+            .text(`Riesgo: ${stage.risk}`, 430, currRowY + 3.5);
+          currRowY += 14;
+        }
+
+        // Legal Declaration & Signatures
+        const signY = currRowY + 10;
+        doc
+          .font("Helvetica")
+          .fontSize(6.5)
+          .fillColor("#64748b")
+          .text(
+            "Las partes convienen expresamente que la interpretación de las obligaciones de entrega, costes, seguro y riesgos se rigen por las reglas oficiales Incoterms® 2020 de la Cámara de Comercio Internacional (ICC). Ambas partes aceptan la firma electrónica y digital.",
+            36,
+            signY,
+            { width: 523 },
+          );
+
+        // Signatures 2-Boxes
+        const boxY = signY + 26;
+        doc.rect(36, boxY, 255, 60).strokeColor("#cbd5e1").stroke();
+        doc.rect(298, boxY, 261, 60).strokeColor("#cbd5e1").stroke();
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7)
+          .fillColor("#1e293b")
+          .text("FOR THE SELLER (POR LA PARTE VENDEDORA):", 42, boxY + 6)
+          .text("FOR THE BUYER (POR LA PARTE COMPRADORA):", 304, boxY + 6);
+
+        doc
+          .font("Helvetica")
+          .fontSize(6.5)
+          .fillColor("#64748b")
+          .text(
+            "Firma Digital Certificada / Authorized Signature",
+            42,
+            boxY + 46,
+          )
+          .text(
+            "Firma Digital Certificada / Authorized Signature",
+            304,
+            boxY + 46,
+          );
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  /**
+   * Generates formal Notice of Claim & Carrier Protest Letter (Carta de Reserva al Porteador)
+   */
+  public static async generateCarrierProtestLetter(claim: {
+    claimNumber: string;
+    transportDocNumber: string;
+    transportMode: string;
+    governingConvention: string;
+    incidentType: string;
+    incidentDate: string | Date;
+    noticeDate: string | Date;
+    deliveryDate?: string | Date;
+    claimantName: string;
+    carrierName: string;
+    packagesDamaged: number;
+    damagedWeightKg: number;
+    claimedAmount: number;
+    claimedCurrency: string;
+    statutoryLimitEur: number;
+    incidentDescription: string;
+    surveyorData?: any;
+  }): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ size: "A4", margin: 36 });
+        const buffers: Buffer[] = [];
+
+        doc.on("data", (chunk: Buffer) => buffers.push(chunk));
+        doc.on("end", () => resolve(Buffer.concat(buffers)));
+
+        // Header Background Banner
+        doc.rect(36, 36, 523, 50).fill("#1e293b");
+        doc
+          .fillColor("#ffffff")
+          .font("Helvetica-Bold")
+          .fontSize(13)
+          .text("ATLAS LOGISTICS LEGAL & CLAIMS DEPARTMENT", 48, 46);
+        doc
+          .fontSize(8)
+          .font("Helvetica")
+          .text("FORMAL NOTICE OF CARGO CLAIM & RESERVATION OF RIGHTS", 48, 62);
+        doc
+          .fontSize(8)
+          .fillColor("#38bdf8")
+          .text(
+            `REF: ${claim.claimNumber} | ${claim.governingConvention}`,
+            360,
+            52,
+            { align: "right" },
+          );
+
+        // Addressee / Carrier Box
+        const carrierY = 96;
+        doc.rect(36, carrierY, 523, 50).strokeColor("#cbd5e1").stroke();
+        doc
+          .fillColor("#0f172a")
+          .font("Helvetica-Bold")
+          .fontSize(8.5)
+          .text(
+            "TO / DESTINATARIO (CARRIER / OPERADOR DE TRANSPORTE):",
+            44,
+            carrierY + 6,
+          );
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(10)
+          .fillColor("#0284c7")
+          .text(claim.carrierName, 44, carrierY + 20);
+        doc
+          .font("Helvetica")
+          .fontSize(8)
+          .fillColor("#475569")
+          .text(
+            `Transport Document: ${claim.transportDocNumber} | Mode: ${claim.transportMode}`,
+            44,
+            carrierY + 34,
+          );
+
+        // Transport Particulars & Incident Grid
+        const gridY = 154;
+        doc.rect(36, gridY, 523, 85).strokeColor("#cbd5e1").stroke();
+        doc.rect(36, gridY, 523, 16).fill("#f1f5f9");
+        doc
+          .fillColor("#1e293b")
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .text(
+            "1. TRANSPORT PARTICULARS & DAMAGE SPECIFICATION",
+            44,
+            gridY + 4,
+          );
+
+        doc.font("Helvetica").fontSize(7.5).fillColor("#475569");
+        doc.text(`Claimant / Cargador: ${claim.claimantName}`, 44, gridY + 24);
+        doc.text(
+          `Incident Date: ${new Date(claim.incidentDate).toISOString().substring(0, 10)}`,
+          300,
+          gridY + 24,
+        );
+        doc.text(
+          `Delivery Date: ${claim.deliveryDate ? new Date(claim.deliveryDate).toISOString().substring(0, 10) : "N/A"}`,
+          300,
+          gridY + 38,
+        );
+        doc.text(
+          `Damaged Packages: ${claim.packagesDamaged} units`,
+          44,
+          gridY + 38,
+        );
+        doc.text(
+          `Damaged Gross Weight: ${claim.damagedWeightKg} kg`,
+          44,
+          gridY + 52,
+        );
+        doc.text(
+          `Claimed Amount: ${claim.claimedAmount.toFixed(2)} ${claim.claimedCurrency}`,
+          300,
+          gridY + 52,
+        );
+        doc.text(
+          `Governing Convention: ${claim.governingConvention} (Statutory Limit: ${claim.statutoryLimitEur.toFixed(2)} EUR)`,
+          44,
+          gridY + 66,
+        );
+
+        // Incident Description Box
+        const descY = 247;
+        doc.rect(36, descY, 523, 55).strokeColor("#cbd5e1").stroke();
+        doc.rect(36, descY, 523, 16).fill("#f1f5f9");
+        doc
+          .fillColor("#1e293b")
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .text(
+            "2. STATEMENT OF DAMAGE / DESCRIPCIÓN DEL SINIESTRO",
+            44,
+            descY + 4,
+          );
+        doc
+          .font("Helvetica")
+          .fontSize(7.5)
+          .fillColor("#334155")
+          .text(claim.incidentDescription, 44, descY + 22, { width: 505 });
+
+        // Legal Notice & Reservation Clause
+        const legalY = 310;
+        doc
+          .rect(36, legalY, 523, 90)
+          .strokeColor("#dc2626")
+          .lineWidth(1)
+          .stroke();
+        doc.rect(36, legalY, 523, 16).fill("#fef2f2");
+        doc
+          .fillColor("#991b1b")
+          .font("Helvetica-Bold")
+          .fontSize(8)
+          .text(
+            "3. FORMAL RESERVATION OF RIGHTS & LEGAL NOTICE (CARTA DE RESERVA FORMAL)",
+            44,
+            legalY + 4,
+          );
+
+        const legalText = `Por medio de la presente, ponemos en su conocimiento que las mercancías amparadas bajo el documento de transporte ${claim.transportDocNumber} fueron entregadas con graves daños / pérdidas consistentes en ${claim.incidentType}.
+En cumplimiento estricto de los plazos de protesta establecidos en el Convenio aplicable (${claim.governingConvention}), formulamos formal y expresa RESERVA DE DERECHOS frente a su compañía como porteador contractual / efectivo, haciéndoles formalmente responsables de todos los daños, perjuicios, deméritos y gastos derivados.
+Se les requiere para que procedan a la peritación conjunta de los daños y al inmediato abono de la cantidad reclamada de ${claim.claimedAmount.toFixed(2)} ${claim.claimedCurrency}.`;
+
+        doc
+          .font("Helvetica")
+          .fontSize(7)
+          .fillColor("#1e293b")
+          .text(legalText, 44, legalY + 22, { width: 505, lineGap: 2 });
+
+        // Signatures
+        const signY = 410;
+        doc.rect(36, signY, 523, 65).strokeColor("#cbd5e1").stroke();
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .fillColor("#0f172a")
+          .text(
+            "ISSUED ON BEHALF OF CLAIMANT & CARGO INTERESTS / EN NOMBRE DE LOS INTERESES DE LA CARGA:",
+            44,
+            signY + 6,
+          );
+        doc
+          .font("Helvetica")
+          .fontSize(7)
+          .fillColor("#475569")
+          .text(
+            `Atlas Logistics Claims Department | Date of Issue: ${new Date(claim.noticeDate).toISOString().substring(0, 10)}`,
+            44,
+            signY + 20,
+          );
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7)
+          .fillColor("#0284c7")
+          .text(
+            "Digital Legal Signature & Corporate Seal Certified",
+            44,
+            signY + 48,
+          );
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  /**
+   * Generates official Subrogation Receipt & Assignment of Rights (Recibo de Finiquito y Subrogación de Derechos)
+   */
+  public static async generateSubrogationReceipt(claim: {
+    claimNumber: string;
+    transportDocNumber: string;
+    claimantName: string;
+    carrierName: string;
+    claimedAmount: number;
+    claimedCurrency: string;
+    insurancePayoutAmount: number;
+    incidentDate: string | Date;
+    governingConvention: string;
+  }): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ size: "A4", margin: 36 });
+        const buffers: Buffer[] = [];
+
+        doc.on("data", (chunk: Buffer) => buffers.push(chunk));
+        doc.on("end", () => resolve(Buffer.concat(buffers)));
+
+        // Header Background Banner
+        doc.rect(36, 36, 523, 50).fill("#064e3b");
+        doc
+          .fillColor("#ffffff")
+          .font("Helvetica-Bold")
+          .fontSize(13)
+          .text("ATLAS LOGISTICS CARGO INSURANCE DIVISION", 48, 46);
+        doc
+          .fontSize(8)
+          .font("Helvetica")
+          .text(
+            "SUBROGATION RECEIPT & ASSIGNMENT OF RIGHTS (RECIBO DE FINIQUITO Y SUBROGACIÓN)",
+            48,
+            62,
+          );
+        doc
+          .fontSize(8)
+          .fillColor("#6ee7b7")
+          .text(`REF: ${claim.claimNumber}`, 360, 52, { align: "right" });
+
+        // Amount Box
+        const amountY = 96;
+        doc.rect(36, amountY, 523, 40).fill("#ecfdf5");
+        doc
+          .strokeColor("#10b981")
+          .lineWidth(1)
+          .rect(36, amountY, 523, 40)
+          .stroke();
+        doc
+          .fillColor("#065f46")
+          .font("Helvetica-Bold")
+          .fontSize(8.5)
+          .text(
+            "INDEMNIFICATION SETTLEMENT AMOUNT (IMPORTE DE INDEMNIZACIÓN):",
+            44,
+            amountY + 6,
+          );
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(14)
+          .fillColor("#047857")
+          .text(
+            `${claim.insurancePayoutAmount.toFixed(2)} ${claim.claimedCurrency}`,
+            44,
+            amountY + 18,
+          );
+
+        // Subrogation Legal Terms
+        const termsY = 146;
+        doc.rect(36, termsY, 523, 200).strokeColor("#cbd5e1").stroke();
+        doc.rect(36, termsY, 523, 16).fill("#f1f5f9");
+        doc
+          .fillColor("#1e293b")
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .text(
+            "LEGAL SUBROGATION CLAUSE & ASSIGNMENT OF RECOVERY RIGHTS (ART. 43 LCS / CAU)",
+            44,
+            termsY + 4,
+          );
+
+        const subrogationText = `RECIBIMOS de ATLAS LOGISTICS y sus Aseguradores la suma de ${claim.insurancePayoutAmount.toFixed(2)} ${claim.claimedCurrency} en concepto de indemnización total y definitiva por las pérdidas y/o daños sufridos por las mercancías transportadas bajo el documento de transporte ${claim.transportDocNumber} con fecha de siniestro ${new Date(claim.incidentDate).toISOString().substring(0, 10)}.
+En consideración a dicho pago, por la presente nos declaramos totalmente indemnizados y:
+1. SUBROGAMOS a ATLAS LOGISTICS y a sus Aseguradores en todos nuestros derechos, acciones, privilegios y pretensiones contra el porteador (${claim.carrierName}), armador, fletador, transportista efectivo y cualesquiera otros terceros responsables del daño, de conformidad con el Art. 43 de la Ley de Contrato de Seguro y la legislación mercantil aplicable.
+2. AUTORIZAMOS irrevocablemente a los Aseguradores a entablar todas las acciones judiciales o extrajudiciales de recobro en nuestro nombre o en el suyo propio, obligándonos a facilitar cuanta documentación, pruebas periciales y testimonios sean precisos para la efectividad del recobro.
+3. GARANTIZAMOS que no hemos otorgado renuncia ni descargo de responsabilidad a favor de los causantes del daño ni realizado acto alguno que perjudique el derecho de subrogación.`;
+
+        doc
+          .font("Helvetica")
+          .fontSize(7.5)
+          .fillColor("#334155")
+          .text(subrogationText, 44, termsY + 24, { width: 505, lineGap: 3 });
+
+        // Signatures 2-Boxes
+        const signY = 360;
+        doc.rect(36, signY, 255, 75).strokeColor("#cbd5e1").stroke();
+        doc.rect(298, signY, 261, 75).strokeColor("#cbd5e1").stroke();
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .fillColor("#1e293b")
+          .text("THE CLAIMANT / EL ASEGURADO (CEDENTE):", 42, signY + 6)
+          .text("THE INSURER / EL ASEGURADOR (SUBROGADO):", 304, signY + 6);
+
+        doc
+          .font("Helvetica")
+          .fontSize(7)
+          .fillColor("#475569")
+          .text(claim.claimantName, 42, signY + 20)
+          .text("Atlas Cargo Underwriting / Claims Dept.", 304, signY + 20)
+          .text("Firma y Sello / Authorized Signature & Stamp", 42, signY + 56)
+          .text(
+            "Firma y Sello / Authorized Signature & Stamp",
+            304,
+            signY + 56,
+          );
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  /**
+   * Generates official Geneva 24-Box e-CMR Consignment Note (CMR Waybill)
+   */
+  public static async generateEcmrWaybill(c: {
+    consignmentNumber: string;
+    senderName: string;
+    senderAddress: string;
+    senderCountry: string;
+    consigneeName: string;
+    consigneeAddress: string;
+    consigneeCountry: string;
+    carrierName: string;
+    carrierVat: string;
+    tractorPlate: string;
+    trailerPlate: string;
+    driverName: string;
+    originCity: string;
+    destinationCity: string;
+    pickupDate: string | Date;
+    deliveryDate?: string | Date;
+    totalPallets: number;
+    totalGrossWeightKg: number;
+    isAdrHazardous: boolean;
+    adrTotalPoints: number;
+    orangePlatesRequired: boolean;
+    tunnelRestrictionCode?: string | null;
+    goodsDescription: string;
+    specialInstructions?: string | null;
+  }): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ size: "A4", margin: 36 });
+        const buffers: Buffer[] = [];
+
+        doc.on("data", (chunk: Buffer) => buffers.push(chunk));
+        doc.on("end", () => resolve(Buffer.concat(buffers)));
+
+        // Header Background Banner
+        doc.rect(36, 36, 523, 44).fill("#0f172a");
+        doc
+          .fillColor("#ffffff")
+          .font("Helvetica-Bold")
+          .fontSize(11)
+          .text(
+            "INTERNATIONAL CONSIGNMENT NOTE / LETTRE DE VOITURE INTERNATIONALE",
+            48,
+            44,
+          );
+        doc
+          .fontSize(7.5)
+          .font("Helvetica")
+          .text(
+            "Subject to the Convention on the Contract for the International Carriage of Goods by Road (CMR)",
+            48,
+            58,
+          );
+        doc
+          .fontSize(9)
+          .fillColor("#38bdf8")
+          .font("Helvetica-Bold")
+          .text(`e-CMR: ${c.consignmentNumber}`, 380, 48, { align: "right" });
+
+        // Row 1: Sender (Box 1) & Consignee (Box 2)
+        const row1Y = 86;
+        doc.rect(36, row1Y, 255, 70).strokeColor("#cbd5e1").stroke();
+        doc.rect(298, row1Y, 261, 70).strokeColor("#cbd5e1").stroke();
+
+        doc.rect(36, row1Y, 255, 14).fill("#f8fafc");
+        doc.rect(298, row1Y, 261, 14).fill("#f8fafc");
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+          .fillColor("#1e293b")
+          .text(
+            "1. SENDER / EXPÉDITEUR (Name, address, country)",
+            42,
+            row1Y + 3.5,
+          )
+          .text(
+            "2. CONSIGNEE / DESTINATAIRE (Name, address, country)",
+            304,
+            row1Y + 3.5,
+          );
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .fillColor("#0f172a")
+          .text(c.senderName, 42, row1Y + 18)
+          .text(c.consigneeName, 304, row1Y + 18);
+
+        doc
+          .font("Helvetica")
+          .fontSize(6.5)
+          .fillColor("#475569")
+          .text(c.senderAddress, 42, row1Y + 30, { width: 240 })
+          .text(`Country: ${c.senderCountry}`, 42, row1Y + 54)
+          .text(c.consigneeAddress, 304, row1Y + 30, { width: 245 })
+          .text(`Country: ${c.consigneeCountry}`, 304, row1Y + 54);
+
+        // Row 2: Delivery Place (Box 3) & Taking Over (Box 4)
+        const row2Y = 160;
+        doc.rect(36, row2Y, 255, 40).strokeColor("#cbd5e1").stroke();
+        doc.rect(298, row2Y, 261, 40).strokeColor("#cbd5e1").stroke();
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+          .fillColor("#1e293b")
+          .text("3. PLACE OF DELIVERY / LIEU DE LIVRAISON", 42, row2Y + 4)
+          .text(
+            "4. PLACE AND DATE OF TAKING OVER / PRISE EN CHARGE",
+            304,
+            row2Y + 4,
+          );
+
+        doc
+          .font("Helvetica")
+          .fontSize(7)
+          .fillColor("#334155")
+          .text(c.destinationCity, 42, row2Y + 16)
+          .text(
+            `Delivery Date: ${c.deliveryDate ? new Date(c.deliveryDate).toISOString().substring(0, 10) : "TBD"}`,
+            42,
+            row2Y + 26,
+          )
+          .text(c.originCity, 304, row2Y + 16)
+          .text(
+            `Date: ${new Date(c.pickupDate).toISOString().substring(0, 10)}`,
+            304,
+            row2Y + 26,
+          );
+
+        // Row 3: Cargo Items & ADR Particulars (Boxes 6 - 12)
+        const row3Y = 204;
+        doc.rect(36, row3Y, 523, 110).strokeColor("#cbd5e1").stroke();
+        doc.rect(36, row3Y, 523, 16).fill("#f1f5f9");
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+          .fillColor("#1e293b")
+          .text(
+            "6-12. MARKS, NUMBER OF PACKAGES, DESCRIPTION OF GOODS, GROSS WEIGHT & ADR CLASS",
+            42,
+            row3Y + 4.5,
+          );
+
+        doc
+          .font("Helvetica")
+          .fontSize(7.5)
+          .fillColor("#1e293b")
+          .text(`Nature of Goods: ${c.goodsDescription}`, 44, row3Y + 24, {
+            width: 505,
+          })
+          .text(
+            `Total Pallets / Packages: ${c.totalPallets} Euro-pallets`,
+            44,
+            row3Y + 46,
+          )
+          .text(
+            `Gross Weight: ${c.totalGrossWeightKg.toLocaleString()} kg`,
+            300,
+            row3Y + 46,
+          );
+
+        // ADR Badge Box
+        const adrY = row3Y + 62;
+        if (c.isAdrHazardous) {
+          doc.rect(44, adrY, 505, 38).fill("#fff1f2");
+          doc
+            .strokeColor("#f43f5e")
+            .lineWidth(0.8)
+            .rect(44, adrY, 505, 38)
+            .stroke();
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(7.5)
+            .fillColor("#e11d48")
+            .text(
+              "ADR DANGEROUS GOODS / MARCHANDISES DANGEREUSES:",
+              50,
+              adrY + 4,
+            );
+          doc
+            .font("Helvetica")
+            .fontSize(6.5)
+            .fillColor("#9f1239")
+            .text(
+              `Total ADR Points: ${c.adrTotalPoints.toFixed(0)} pts | Orange Plates: ${c.orangePlatesRequired ? "MANDATORY / EXIGÉES" : "EXEMPT (1.1.3.6)"}`,
+              50,
+              adrY + 16,
+            )
+            .text(
+              `Tunnel Restriction: ${c.tunnelRestrictionCode || "None"} | Driver ADR Training: ${c.orangePlatesRequired ? "Required" : "Exempt"}`,
+              50,
+              adrY + 26,
+            );
+        } else {
+          doc.rect(44, adrY, 505, 24).fill("#f8fafc");
+          doc
+            .strokeColor("#e2e8f0")
+            .lineWidth(0.8)
+            .rect(44, adrY, 505, 24)
+            .stroke();
+          doc
+            .font("Helvetica")
+            .fontSize(7)
+            .fillColor("#64748b")
+            .text(
+              "NON-HAZARDOUS CARGO: Goods not subject to ADR regulations.",
+              50,
+              adrY + 8,
+            );
+        }
+
+        // Row 4: Carrier Particulars & Vehicle Registration (Box 16)
+        const row4Y = 320;
+        doc.rect(36, row4Y, 523, 50).strokeColor("#cbd5e1").stroke();
+        doc.rect(36, row4Y, 523, 14).fill("#f8fafc");
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+          .fillColor("#1e293b")
+          .text(
+            "16. CARRIER / TRANSPORTEUR (Name, address, country, vehicle registration)",
+            42,
+            row4Y + 3.5,
+          );
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .fillColor("#0f172a")
+          .text(c.carrierName, 44, row4Y + 18);
+        doc
+          .font("Helvetica")
+          .fontSize(7)
+          .fillColor("#475569")
+          .text(
+            `VAT: ${c.carrierVat} | Driver: ${c.driverName}`,
+            44,
+            row4Y + 30,
+          )
+          .text(
+            `Tractor Plate (Tractora): ${c.tractorPlate} | Semi-Trailer: ${c.trailerPlate}`,
+            300,
+            row4Y + 30,
+          );
+
+        // Row 5: Sender Instructions & Reservations (Boxes 13 & 18)
+        const row5Y = 374;
+        doc.rect(36, row5Y, 523, 40).strokeColor("#cbd5e1").stroke();
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+          .fillColor("#1e293b")
+          .text(
+            "13. SENDER'S INSTRUCTIONS / INSTRUCTIONS DE L'EXPÉDITEUR",
+            42,
+            row5Y + 4,
+          );
+        doc
+          .font("Helvetica")
+          .fontSize(6.5)
+          .fillColor("#475569")
+          .text(
+            c.specialInstructions ||
+              "Transport performed according to standard CMR conditions.",
+            42,
+            row5Y + 16,
+            { width: 505 },
+          );
+
+        // Signatures 3-Boxes (Boxes 22, 23, 24)
+        const signY = 418;
+        const boxWidth = 169;
+        doc.rect(36, signY, boxWidth, 70).strokeColor("#cbd5e1").stroke();
+        doc.rect(213, signY, boxWidth, 70).strokeColor("#cbd5e1").stroke();
+        doc.rect(390, signY, boxWidth, 70).strokeColor("#cbd5e1").stroke();
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+          .fillColor("#1e293b")
+          .text("22. SENDER SIGNATURE / TIMBRE", 42, signY + 6)
+          .text("23. CARRIER SIGNATURE / TIMBRE", 219, signY + 6)
+          .text("24. CONSIGNEE RECEIPT / TIMBRE", 396, signY + 6);
+
+        doc
+          .font("Helvetica")
+          .fontSize(6)
+          .fillColor("#64748b")
+          .text("Date & Signature", 42, signY + 54)
+          .text("Driver Signature & Stamp", 219, signY + 54)
+          .text("Goods Received in Good Order", 396, signY + 54);
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  /**
+   * Generates official Spanish Carta de Porte Nacional (Ley 15/2009 & RDL 3/2022)
+   */
+  public static async generateCartaDePorte(c: {
+    consignmentNumber: string;
+    senderName: string;
+    senderAddress: string;
+    consigneeName: string;
+    consigneeAddress: string;
+    carrierName: string;
+    carrierVat: string;
+    tractorPlate: string;
+    trailerPlate: string;
+    driverName: string;
+    driverLicense: string;
+    originCity: string;
+    destinationCity: string;
+    pickupDate: string | Date;
+    deliveryDate?: string | Date;
+    totalPallets: number;
+    totalGrossWeightKg: number;
+    goodsDescription: string;
+    specialInstructions?: string | null;
+  }): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ size: "A4", margin: 36 });
+        const buffers: Buffer[] = [];
+
+        doc.on("data", (chunk: Buffer) => buffers.push(chunk));
+        doc.on("end", () => resolve(Buffer.concat(buffers)));
+
+        // Header Background Banner
+        doc.rect(36, 36, 523, 44).fill("#7c2d12");
+        doc
+          .fillColor("#ffffff")
+          .font("Helvetica-Bold")
+          .fontSize(12)
+          .text("CARTA DE PORTE NACIONAL DE TRANSPORTE DE MERCANCÍAS", 48, 44);
+        doc
+          .fontSize(7.5)
+          .font("Helvetica")
+          .text(
+            "Documento de control obligatorio conforme a la Ley 15/2009 y Orden FOM/2861/2012",
+            48,
+            58,
+          );
+        doc
+          .fontSize(9)
+          .fillColor("#fdba74")
+          .font("Helvetica-Bold")
+          .text(`Nº: ${c.consignmentNumber}`, 380, 48, { align: "right" });
+
+        // Cargador Contractual / Expedidor / Destinatario
+        const partiesY = 86;
+        doc.rect(36, partiesY, 255, 65).strokeColor("#cbd5e1").stroke();
+        doc.rect(298, partiesY, 261, 65).strokeColor("#cbd5e1").stroke();
+
+        doc.rect(36, partiesY, 255, 14).fill("#fff7ed");
+        doc.rect(298, partiesY, 261, 14).fill("#fff7ed");
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+          .fillColor("#9a3412")
+          .text("1. CARGADOR CONTRACTUAL / EXPEDIDOR", 42, partiesY + 3.5)
+          .text("2. DESTINATARIO DE LAS MERCANCÍAS", 304, partiesY + 3.5);
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .fillColor("#0f172a")
+          .text(c.senderName, 42, partiesY + 18)
+          .text(c.consigneeName, 304, partiesY + 18);
+
+        doc
+          .font("Helvetica")
+          .fontSize(6.5)
+          .fillColor("#475569")
+          .text(c.senderAddress, 42, partiesY + 30, { width: 240 })
+          .text(c.consigneeAddress, 304, partiesY + 30, { width: 245 });
+
+        // Porteador Efectivo y Vehículo
+        const vehY = 156;
+        doc.rect(36, vehY, 523, 50).strokeColor("#cbd5e1").stroke();
+        doc.rect(36, vehY, 523, 14).fill("#fff7ed");
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+          .fillColor("#9a3412")
+          .text(
+            "3. PORTEADOR EFECTIVO, CONDUCTOR Y MATRÍCULAS DE VEHÍCULOS",
+            42,
+            vehY + 3.5,
+          );
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7.5)
+          .fillColor("#0f172a")
+          .text(c.carrierName, 44, vehY + 18);
+        doc
+          .font("Helvetica")
+          .fontSize(7)
+          .fillColor("#475569")
+          .text(
+            `NIF/CIF: ${c.carrierVat} | Conductor: ${c.driverName} (DNI/Permiso: ${c.driverLicense})`,
+            44,
+            vehY + 30,
+          )
+          .text(
+            `Matrícula Cabeza Tractora: ${c.tractorPlate} | Semirremolque: ${c.trailerPlate}`,
+            300,
+            vehY + 30,
+          );
+
+        // Mercancía
+        const cargoY = 212;
+        doc.rect(36, cargoY, 523, 75).strokeColor("#cbd5e1").stroke();
+        doc.rect(36, cargoY, 523, 14).fill("#f1f5f9");
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+          .fillColor("#1e293b")
+          .text(
+            "4. IDENTIFICACIÓN Y NATURALEZA DE LAS MERCANCÍAS TRANSPORTADAS",
+            42,
+            cargoY + 3.5,
+          );
+
+        doc
+          .font("Helvetica")
+          .fontSize(7.5)
+          .fillColor("#1e293b")
+          .text(`Descripción: ${c.goodsDescription}`, 44, cargoY + 20, {
+            width: 505,
+          })
+          .text(
+            `Bultos / Pallets: ${c.totalPallets} Euro-pallets`,
+            44,
+            cargoY + 44,
+          )
+          .text(
+            `Peso Bruto Total: ${c.totalGrossWeightKg.toLocaleString()} kg`,
+            300,
+            cargoY + 44,
+          )
+          .text(
+            `Origen: ${c.originCity} | Destino: ${c.destinationCity}`,
+            44,
+            cargoY + 58,
+          );
+
+        // Cláusulas Legales RDL 3/2022
+        const legalY = 294;
+        doc
+          .rect(36, legalY, 523, 100)
+          .strokeColor("#b45309")
+          .lineWidth(0.8)
+          .stroke();
+        doc.rect(36, legalY, 523, 14).fill("#fef3c7");
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7)
+          .fillColor("#92400e")
+          .text(
+            "5. DECLARACIONES LEGALES OBLIGATORIAS (LEY 15/2009 Y RDL 3/2022)",
+            42,
+            legalY + 3.5,
+          );
+
+        const rdlText = `A) PROHIBICIÓN DE CARGA Y DESCARGA: En aplicación del Art. 2 del RDL 3/2022 y la Disposición Adicional 13ª de la LOTT, el conductor NO participará en las labores de carga ni descarga de las mercancías, siendo estas por cuenta exclusiva del cargador / destinatario.
+B) CLÁUSULA DE PARALIZACIONES: Cuando el vehículo haya de esperar más de una hora hasta que concluya su carga o descarga, el cargador o destinatario indemnizará al porteador por concepto de paralización conforme a la tarifa reglamentaria IPREM/hora (Ley 15/2009, Art. 22).
+C) RESPONSABILIDAD: El contrato se rige por el límite estatutario de indemnización de la Ley 15/2009 (un tercio del IPREM por kg dañado o el Convenio CMR en caso de tramo internacional).`;
+
+        doc
+          .font("Helvetica")
+          .fontSize(6.5)
+          .fillColor("#1e293b")
+          .text(rdlText, 42, legalY + 20, { width: 505, lineGap: 3 });
+
+        // Signatures 3-Boxes
+        const signY = 404;
+        const boxWidth = 169;
+        doc.rect(36, signY, boxWidth, 65).strokeColor("#cbd5e1").stroke();
+        doc.rect(213, signY, boxWidth, 65).strokeColor("#cbd5e1").stroke();
+        doc.rect(390, signY, boxWidth, 65).strokeColor("#cbd5e1").stroke();
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+          .fillColor("#1e293b")
+          .text("FIRMA DEL CARGADOR", 42, signY + 6)
+          .text("FIRMA DEL PORTEADOR / CONDUCTOR", 219, signY + 6)
+          .text("FIRMA DEL DESTINATARIO", 396, signY + 6);
+
+        doc
+          .font("Helvetica")
+          .fontSize(6)
+          .fillColor("#64748b")
+          .text("Firma y Sello Origen", 42, signY + 50)
+          .text("Conforme a la Carga", 219, signY + 50)
+          .text("Recibido Conforme Destino", 396, signY + 50);
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
 }

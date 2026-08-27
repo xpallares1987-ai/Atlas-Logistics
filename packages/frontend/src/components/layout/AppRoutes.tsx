@@ -50,6 +50,16 @@ const BookingManagementModule = React.lazy(
 const CustomsClearanceModule = React.lazy(
   () => import("../../pages/CustomsClearanceModule"),
 );
+const AirCargoModule = React.lazy(() => import("../../pages/AirCargoModule"));
+const IncotermsContractsModule = React.lazy(
+  () => import("../../pages/IncotermsContractsModule"),
+);
+const CargoClaimsModule = React.lazy(
+  () => import("../../pages/CargoClaimsModule"),
+);
+const RoadFreightModule = React.lazy(
+  () => import("../../pages/RoadFreightModule"),
+);
 const InvoicingModule = React.lazy(() => import("../../pages/InvoicingModule"));
 const AgentSettlementsModule = React.lazy(
   () => import("../../pages/AgentSettlementsModule"),
@@ -196,6 +206,58 @@ export const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
               <CustomsClearanceModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/air-freight"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+            >
+              <AirCargoModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contracts"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "ADMIN",
+                "MANAGER",
+                "OPERATIONS",
+                "EXECUTIVE",
+                "SALES",
+              ]}
+            >
+              <IncotermsContractsModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/claims"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+            >
+              <CargoClaimsModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/road-freight"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "ADMIN",
+                "MANAGER",
+                "OPERATIONS",
+                "EXECUTIVE",
+                "DRIVER",
+              ]}
+            >
+              <RoadFreightModule />
             </ProtectedRoute>
           }
         />

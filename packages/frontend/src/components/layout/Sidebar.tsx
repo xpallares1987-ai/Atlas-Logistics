@@ -20,6 +20,9 @@ import {
   Landmark,
   Users,
   X,
+  Plane,
+  FileSignature,
+  Truck,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -226,6 +229,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Cuboid}
               >
                 {t("sidebar.lclEngine")}
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/air-freight"
+                icon={Plane}
+              >
+                Air Freight (e-AWB)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/road-freight"
+                icon={Truck}
+              >
+                Road Freight (e-CMR)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/contracts"
+                icon={FileSignature}
+              >
+                Incoterms & Contracts
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/claims"
+                icon={ShieldAlert}
+              >
+                Claims & Subrogation
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}

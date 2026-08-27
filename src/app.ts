@@ -37,6 +37,10 @@ import adminRoutes from "./routes/admin.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
 import customsRoutes from "./routes/customs.routes.js";
 import warehouseRoutes from "./routes/warehouse.routes.js";
+import airCargoRoutes from "./routes/air-cargo.routes.js";
+import { incotermsRoutes } from "./routes/incoterms.routes.js";
+import { claimsRoutes } from "./routes/claims.routes.js";
+import { roadFreightRoutes } from "./routes/road-freight.routes.js";
 
 // Removed tRPC imports
 
@@ -173,5 +177,9 @@ app.register(dashboardRoutes, { prefix: "/api/dashboard" });
 app.register(healthRoutes, { prefix: "/api" });
 app.register(customsRoutes, { prefix: "/api" });
 app.register(warehouseRoutes, { prefix: "/api/warehouse" });
+app.register(airCargoRoutes, { prefix: "/api" });
+app.register(incotermsRoutes, { prefix: "/api/incoterms" });
+app.register(claimsRoutes, { prefix: "/api/claims" });
+app.register(roadFreightRoutes, { prefix: "/api/road-freight" });
 
 export default app;

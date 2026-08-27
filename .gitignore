@@ -20,6 +20,7 @@ out/
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Logs
 npm-debug.log*
@@ -58,6 +59,7 @@ out/
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Logs
 npm-debug.log*
