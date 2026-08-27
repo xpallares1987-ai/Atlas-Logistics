@@ -39,14 +39,19 @@ docker compose logs -f api
 ```
 
 ### 3. Database Initialization & Seeding Inside Containers
-When initializing a fresh Docker volume, run Drizzle migrations and populate seed data:
+When initializing a fresh Docker container or mounting a production database volume:
 ```bash
-# Execute migration inside backend container
+# Execute migration on development database (atlas-erp-v2.db)
 docker compose exec api pnpm run db:migrate
 
-# Populate realistic seed data (customs, air cargo, incoterms, claims, road freight)
+# Execute migration on production database (atlas-erp-prod.db or mounted volume)
+docker compose exec api pnpm run db:migrate:prod
+
+# Populate seed data
 docker compose exec api pnpm run db:seed
 ```
+
+> **Production Tip:** For production Docker deployments, pass `NODE_ENV=production` and map a persistent volume to `/app/atlas-erp-prod.db` or specify `DATABASE_URL=file:/data/production.db` (or a remote Turso cluster `libsql://...`).
 
 ### 4. Stop Services
 ```bash
