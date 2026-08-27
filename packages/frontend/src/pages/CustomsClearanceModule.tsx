@@ -146,7 +146,7 @@ export default function CustomsClearanceModule() {
 
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL || ""}/documents/upload`,
+          `${import.meta.env.VITE_API_URL || "/api"}/documents/upload`,
           {
             method: "POST",
             body: formData,
