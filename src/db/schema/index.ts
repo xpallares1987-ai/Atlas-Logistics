@@ -10,3 +10,4 @@ export * from "./warehouse.js";
 export * from "./air_cargo.js";
 export * from "./incoterms.js";
 export * from "./claims.js";
+export * from "./road_freight.js";
