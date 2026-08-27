@@ -245,6 +245,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
+                to="/claims"
+                icon={ShieldAlert}
+              >
+                Claims & Subrogation
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
                 to="/warehouse"
                 icon={Boxes}
               >
