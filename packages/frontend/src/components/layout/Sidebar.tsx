@@ -165,6 +165,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Agent Settlements
               </NavLink>
             )}
+            {isAdminOrFF && (
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/treasury"
+                icon={BadgeDollarSign}
+              >
+                Treasury & CASS
+              </NavLink>
+            )}
             {(isAdminOrFF || isCustomsBroker) && (
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
