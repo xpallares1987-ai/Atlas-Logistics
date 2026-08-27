@@ -151,15 +151,21 @@ export default function RatesContent() {
 
       if (rates && rates.length > 0) {
         // Map Drizzle Rate schema to match the expected RateTable format
-        const mappedQuotes = rates.map((r) => ({
-          carrier: r.carrier || "Unknown",
-          rate: r.baseOceanFreight + r.baf + r.pss + r.thc,
-          transit: r.transitTime,
-          currency: "USD",
-          origin: origin.locode || origin.name,
-          destination: destination.locode || destination.name,
-          containerType: r.containerType,
-        }));
+        const mappedQuotes = rates.map((r) => {
+          const totalCost = r.baseOceanFreight + r.baf + r.pss + r.thc;
+          return {
+            id: r.id,
+            carrier: r.carrier || "Unknown",
+            rate: totalCost,
+            baseFreightCost: r.baseOceanFreight,
+            totalCost,
+            transit: r.transitTime,
+            currency: "USD",
+            origin: origin.locode || origin.name,
+            destination: destination.locode || destination.name,
+            containerType: r.containerType,
+          };
+        });
         setQuotes(mappedQuotes);
       } else {
         setError("No rates found for the selected route.");

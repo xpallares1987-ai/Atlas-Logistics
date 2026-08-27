@@ -49,7 +49,7 @@ export default function WorkflowManagerModule() {
       title: "Recalculate Profitability",
       description: "Aggregate all AR/AP invoices and update total profit margins for all shipments.",
       icon: <DollarSign className="text-emerald-500" size={24} />,
-      endpoint: "/api/financial/profitability",
+      endpoint: "/api/profitability",
     },
     {
       id: "lcl-pack",
