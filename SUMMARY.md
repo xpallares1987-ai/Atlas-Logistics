@@ -14,6 +14,7 @@
 | **Incoterms® 2020 & Contratos** | Reglas Oficiales ICC Incoterms® 2020, CAU Arts. 70–74 | Matriz 11 reglas × 10 etapas, normalizador de valor en aduana (DUA Box 46), cláusulas de entrega y contrato mercantil PDF bilingüe. |
 | **Siniestros & Recobros** | La Haya-Visby, Montreal 1999, CMR, CIM/COTIF | Cálculo de límites estatutarios en DEG, plazos de prescripción, Cartas de Reserva Formal y Recibos de Subrogación PDF. |
 | **Transporte Terrestre & e-CMR** | Protocolo e-CMR de Ginebra (24 Cajas), Ley 15/2009, RDL 3/2022 | Despacho FTL/LTL, calculadora ADR 1.1.3.6 (1.000 puntos), capacidad de trailer 33 pallets y tacógrafo CE 561/2006. |
+| **Tesorería & CASS / Navieras** | Reconciliación 3-Way Match & Riesgo FX | Casación automática de facturas de porteadores (tolerancia ±1% / ±5€), monitor FX multidivisa, notas de cargo y estados de liquidación PDF. |
 | **Container Planner 3D & LCL** | ISO 668 Contenedores Marítimos | Cubicaje 3D de contenedores, centro de gravedad, distribución de ejes y consolidación LCL multi-cliente. |
 | **Warehouse Digital Twin** | Gestión de Almacén & Tráfico de Andenes | Visualización 3D y 2.5D de almacén, control de muelles, inventario y tareas de fulfillment. |
 | **BPMN 2.0 Workflows & Pricing** | ISO/IEC 19510 (BPMN 2.0) | Modelador visual de procesos logísticos con versionado, motor de tarifas dinámicas con recargos BAF/CAF/PSS. |
@@ -24,9 +25,9 @@
 
 - **Frontend**: React 19, TypeScript 5.7+, Vite 8, TailwindCSS, Framer Motion, Lucide Icons.
 - **Backend**: Node.js 22+, Fastify 5, `@fastify/jwt`, `@fastify/websocket`, `pdfkit`.
-- **Persistencia**: SQLite (libSQL client) + Drizzle ORM (59 tablas, triggers, vistas, secuencias).
+- **Persistencia**: SQLite (libSQL client) + Drizzle ORM (63 tablas, triggers, vistas, secuencias).
 - **Asincronía**: BullMQ + ioredis (con fallback en memoria para desarrollo autónomo).
-- **Control de Calidad**: Vitest (30 suites, 135 tests unitarios e integrados, 100% aprobados), Playwright E2E.
+- **Control de Calidad**: Vitest (33 suites, 151 tests unitarios e integrados, 100% aprobados), Playwright E2E.
 - **Monorepo**: Turborepo + pnpm v10 workspaces (`@atlas/frontend`, `@atlas/dashboard`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/warehouse-ops`, `@atlas/ui`, `@atlas/shared`).
 
 ---

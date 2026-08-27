@@ -41,6 +41,7 @@ import airCargoRoutes from "./routes/air-cargo.routes.js";
 import { incotermsRoutes } from "./routes/incoterms.routes.js";
 import { claimsRoutes } from "./routes/claims.routes.js";
 import { roadFreightRoutes } from "./routes/road-freight.routes.js";
+import { treasuryRoutes } from "./routes/treasury.routes.js";
 
 // Removed tRPC imports
 
@@ -181,5 +182,6 @@ app.register(airCargoRoutes, { prefix: "/api" });
 app.register(incotermsRoutes, { prefix: "/api/incoterms" });
 app.register(claimsRoutes, { prefix: "/api/claims" });
 app.register(roadFreightRoutes, { prefix: "/api/road-freight" });
+app.register(treasuryRoutes, { prefix: "/api/treasury" });
 
 export default app;

@@ -68,6 +68,7 @@ The server runtime is built on **Fastify 5**, providing high throughput and nati
   - `/api/incoterms`: 11-rule responsibility matrix, customs valuation normalizer, commercial contracts.
   - `/api/claims`: Cargo claims, statutory SDR caps, Carrier Protest Letters, Subrogation Receipts.
   - `/api/road-freight`: e-CMR consignments, ADR 1.1.3.6 points, trailer load %, Carta de Porte PDF.
+  - `/api/treasury`: 3-Way Match reconciler, FX risk exposure, cash flow forecast, carrier dispute letters & settlement statements PDF.
 
 ---
 
@@ -86,6 +87,10 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
    - **Air Cargo (Montreal 1999)**: $\text{Gross kg} \times 22.00 \times \text{Rate}_{\text{SDR}\to\text{EUR}}$
    - **Road Freight (CMR)**: $\text{Gross kg} \times 8.33 \times \text{Rate}_{\text{SDR}\to\text{EUR}}$
    - **Rail Freight (CIM)**: $\text{Gross kg} \times 17.00 \times \text{Rate}_{\text{SDR}\to\text{EUR}}$
+5. **Carrier Invoice 3-Way Match & Variance Tolerance Rule**:
+   $$\text{Variance} = \text{Billed Amount} - \text{Expected Quote} \implies \text{Within Tolerance if } |\text{Variance}| \le 5.00 \text{ or } \frac{|\text{Variance}|}{\text{Expected}} \le 1.0\%$$
+6. **Multi-Currency Treasury Unrealized FX Gain/Loss**:
+   $$\text{Unrealized FX}_{\text{EUR}} = \left(\frac{\text{Net Exposure}_{\text{CCY}}}{\text{Spot Rate}_{\text{CCY}}}\right) - \left(\frac{\text{Net Exposure}_{\text{CCY}}}{\text{Book Rate}_{\text{CCY}}}\right)$$
 
 ---
 
@@ -96,7 +101,7 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
   - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
   - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
   - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
-- **59 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+- **63 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
 - **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`) and immutable audit logs.
 - **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.
 - **Automated Backup Utility**: Daily snapshot scheduler saving database state to `/backups`.
@@ -105,6 +110,6 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
 
 ## 6. Testing & Quality Assurance
 
-- **Vitest Suite**: 30 test suites with 135 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
+- **Vitest Suite**: 33 test suites with 151 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
 - **Playwright E2E**: End-to-end browser tests verifying user flows across all operational modules.
 - **CodeQL SAST**: Continuous security analysis with zero alerts.

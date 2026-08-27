@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.3.0] - 2026-08-27
+
+### 🌟 Added
+- **Multi-Currency Treasury, Hedging & IATA CASS / Ocean Carrier Auto-Reconciliation Engine**:
+  - **Automated 3-Way Match Algorithm**: Deterministic reconciliation between Carrier Invoices (Airlines/CASS, Ocean Navieras, Road Carriers), Internal Bookings/Quotes, and issued Transport Manifests (B/L, AWB, CMR) with configurable variance tolerance ($\pm 1\%$ or $\pm 5\text{ EUR/USD}$).
+  - **Demurrage & Surcharge Audit Engine**: Automatic detection and flagging of unauthorized detention/demurrage charges, double-billed fuel (BAF), and terminal handling (THC) discrepancies.
+  - **Multi-Currency Treasury & FX Risk Monitor**: Real-time reference rate matrix (EUR base vs USD, GBP, CNY, JPY, CHF, AED), realized/unrealized FX gains & losses, unhedged exposure risk grading, and 30/60/90-day cash flow liquidity forecasting.
+  - **Formal Legal Dispute & Settlement PDFs**:
+    - **Carrier Freight Dispute / Debit Note PDF (*Nota de Cargo y Carta de Discrepancia*)** itemizing unauthorized surcharges with formal 14-day credit note requisition.
+    - **Official Carrier Settlement Statement PDF (*Estado de Liquidación y Orden de Pago*)** detailing approved net payable amounts, IATA CASS withholdings/commissions, and official treasury sign-off.
+  - **Dedicated Treasury Workbench (`/treasury`)**: 3-tabbed interactive UI (3-Way Match Conciliator, FX Treasury Monitor, and Disputes Center) with live 3-way match simulator modal.
+
 ## [1.2.0] - 2026-08-27
 
 ### 🌟 Added

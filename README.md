@@ -61,7 +61,15 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
 - **Calculadora ADR 2025 (Exención 1.1.3.6)**: Algoritmo de cómputo de los 1.000 puntos para determinar exención de placas naranja y carné ADR.
 - **Optimizador de Ruta y Tacógrafo (CE 561/2006)**: Control de capacidad de semirremolque (33 Euro-pallets / 24.000 kg) y cronograma de pausas reglamentarias de 45 minutos.
 
-### 7. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 7. 💰 Tesorería Multidivisa & Reconciliación de Porteadores (3-Way Match & CASS)
+- **Motor de Casación 3-Way Match**: Reconciliación automática entre Facturas de Porteadores (Aerolíneas/CASS, Navieras, Carretera), Cotizaciones internas (*Bookings*) y Documentos de transporte (B/L, AWB, CMR) con tolerancia configurable ($\pm 1\%$ o $\pm 5\text{ EUR/USD}$).
+- **Auditoría de Demoras y Sobrecargos**: Detección inmediata de recargos indebidos, paralizaciones no autorizadas y duplicidad de cargos BAF/THC.
+- **Monitor de Riesgo Cambiario (FX) y Flujo de Caja**: Matriz de divisas oficiales (EUR base vs USD, GBP, CNY, JPY, CHF, AED), cálculo de ganancias/pérdidas latentes y proyección de liquidez a 30/60/90 días.
+- **Documentación Legal PDF**:
+  - **Nota de Cargo / Carta de Disputa al Porteador (*Carrier Debit Note PDF*)** con solicitud de factura rectificativa a 14 días.
+  - **Estado Oficial de Liquidación y Orden de Pago (*Settlement Statement PDF*)** con retenciones CASS y firma digital de tesorería.
+
+### 8. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---
@@ -157,7 +165,7 @@ pnpm start
 ## 🧪 Pruebas Automatizadas
 
 ```bash
-# Suite completa Vitest (30 archivos, 135 tests unitarios e integrados)
+# Suite completa Vitest (33 archivos, 151 tests unitarios e integrados)
 pnpm test
 
 # Pruebas End-to-End con Playwright
