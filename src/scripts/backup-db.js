@@ -3,7 +3,6 @@
 
 import { promises as fs } from "fs";
 import path from "path";
-import { Storage } from "@google-cloud/storage";
 
 const DB_PATH = process.env.LOCAL_DB_PATH
   ? path.resolve(process.cwd(), process.env.LOCAL_DB_PATH)
@@ -60,6 +59,7 @@ async function backup() {
     console.log(`✅ Backup created: ${backupFile}`);
     // Upload to GCS if bucket is configured
     if (process.env.GCS_BACKUP_BUCKET) {
+      const { Storage } = await import("@google-cloud/storage");
       const storage = new Storage();
       const bucket = storage.bucket(process.env.GCS_BACKUP_BUCKET);
       await bucket.upload(backupFile);

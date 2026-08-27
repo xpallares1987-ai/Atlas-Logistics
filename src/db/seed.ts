@@ -5,12 +5,12 @@ import { sql } from "drizzle-orm";
 import * as schema from "./schema/index.js";
 import "dotenv/config";
 
-// Provide fallback since .env might not have TURSO_URL or LOCAL_DB_URL yet.
-const client = createClient({ url: "file:atlas-erp-v2.db" });
-const db = drizzle(client, { schema });
+import { client, db, databaseUrl } from "./index.js";
 
 async function main() {
-  console.log("🌱 Comenzando la inyección masiva de datos realistas (Seed)...");
+  console.log(
+    `🌱 Comenzando la inyección masiva de datos realistas (Seed) en: ${databaseUrl}...`,
+  );
 
   console.log(
     "⚙️ Creando Triggers e inyectando lógica avanzada (Sequences)...",
