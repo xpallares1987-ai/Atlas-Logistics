@@ -1,74 +1,61 @@
-# Atlas Logistics - Docker Environment (Local Development)
+# Atlas Logistics — Docker Environment (Local & Production Deployment)
 
-This document describes the architecture and steps to run the Atlas Logistics platform in a local environment using Docker Compose. The configuration is designed to provide a secure and efficient replica, utilizing **Alpine Linux** base images to minimize the attack surface.
+This document describes the container architecture, services, and operational steps to run the Atlas Logistics platform using Docker and Docker Compose.
 
-## Services Architecture
+---
 
-The local environment orchestrates the following containers:
+## 🐳 Services Architecture
 
-- **`app` (Frontend)**: Served via **Nginx** (image: `nginx:alpine`). The container compiles the Vite/Turborepo frontend using Node 22 (Alpine) and `pnpm v11`.
-- **`api` (Backend)**: Express API backend (image: `node:22-alpine`). Built with `Dockerfile.backend`. Listens on port `3001` and connects to the local SQLite Database.
-- **`redis` (Redis)**: In-memory system for caching and queue management (image: `redis:7.2-alpine`).
+The local environment orchestrates the following lightweight, secure containers based on **Alpine Linux**:
 
-## Prerequisites
+- **`app` (Frontend)**: Served via **Nginx** (`nginx:alpine`). Serves the compiled Vite/React 19 Super-App with client-side routing support and proxying to the API backend. Listens on port `3000` (or `3002` in dev).
+- **`api` (Backend Fastify)**: Node.js 22 (`node:22-alpine`) Fastify 5 API server. Manages JWT authentication, REST endpoints, WebSocket connections (`ws://`), PDF generation (`pdfkit`), and SQLite/libSQL database access (`atlas.db`). Listens on port `3001`.
+- **`redis` (Redis Caching & Queue)**: High-performance in-memory cache and queue broker for BullMQ background jobs (`redis:7.2-alpine`).
 
-1. [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
-2. A configured `.env.local` file in the project root.
-   > **⚠️ IMPORTANT!** Use the `.env.example` file as a template. NEVER expose real passwords or production API Keys (like Gemini or GitHub PATs) inside the repository or directly in `docker-compose.yml`.
+---
 
-## Usage Instructions
+## 📋 Prerequisites
 
-### 1. Start the Environment
+1. [Docker Engine](https://docs.docker.com/get-docker/) (v24+) and [Docker Compose](https://docs.docker.com/compose/install/) (v2+).
+2. A configured `.env.local` file in the project root based on `.env.example`.
 
-To build and start all services in the background:
+---
 
+## 🚀 Usage Instructions
+
+### 1. Build and Start All Services
 ```bash
 docker compose up --build -d
 ```
+*The application will be accessible at [http://localhost:3000](http://localhost:3000) (or configured port).*
 
-_Your application will be available at [http://localhost:3000](http://localhost:3000)._
-
-### 2. Check Container Status
-
+### 2. Check Service Logs and Status
 ```bash
-docker ps
+# Check running containers
+docker compose ps
+
+# View live logs
+docker compose logs -f api
 ```
 
-### 3. Stop the Environment
-
-To safely shut down the services without losing data:
-
+### 3. Database Initialization & Seeding Inside Containers
+When initializing a fresh Docker volume, run Drizzle migrations and populate seed data:
 ```bash
+# Execute migration inside backend container
+docker compose exec api pnpm run db:migrate
+
+# Populate realistic seed data (customs, air cargo, incoterms, claims, road freight)
+docker compose exec api pnpm run db:seed
+```
+
+### 4. Stop Services
+```bash
+# Gracefully stop containers without data loss
 docker compose stop
-```
 
-To destroy the containers and release the virtual network (data volumes will persist):
-
-```bash
+# Tear down containers and networks (data volumes persist)
 docker compose down
-```
 
-### 4. Clean Restart (Data Destruction)
-
-If you need to restart the Database from scratch (delete the physical volume):
-
-```bash
+# Complete teardown including physical volumes
 docker compose down -v
-```
-
-## Database Operations (Drizzle)
-
-The application uses Drizzle ORM. If you start the API container from scratch or update the schema (`schema.ts`), you must synchronize and populate it.
-**Run these commands on your host machine**:
-
-1. **Push the schema (Automatic migrations):**
-
-```bash
-pnpm run db:push
-```
-
-2. **Seed with massive realistic data:**
-
-```bash
-npx tsx src/db/seed.ts
 ```

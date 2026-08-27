@@ -1,44 +1,60 @@
 # Contributing to Atlas Logistics
 
-Thank you for your interest in contributing to Atlas Logistics! As a monorepo project (Turborepo) with complex database and AI integrations, we have established the following guidelines to ensure project stability.
+Thank you for contributing to Atlas Logistics! We maintain high engineering standards to ensure platform stability, deterministic regulatory calculations, and zero-cost local execution.
 
-## Workflow (Git Flow)
+---
 
-1. **Branching**: Create a branch from `main` following the naming convention `type/short-description` (e.g., `feat/gemini-integration`, `fix/camunda-worker`).
-2. **Commits**: We use `commitlint`. Make sure your messages follow [Conventional Commits](https://www.conventionalcommits.org/). For example: `feat(dashboard): add predictive ETA badge`.
-3. **Pull Requests**: Open the PR against `main`. Your PR must pass all tests and the linter (`pnpm run lint`) in the GitHub Actions pipeline. **NOTE:** PRs will not be accepted if the Code Scanning pipeline (CodeQL or njsscan) reports vulnerabilities or open alerts.
-4. **Testing**: We strongly recommend running `pnpm run test:e2e` locally to validate the super-app using **Playwright** before pushing.
+## 🛠️ Development Workflow (Git Flow & Conventional Commits)
 
-## Monorepo Development
+1. **Branching**: Create feature branches from `main` using descriptive naming:
+   - `feat/feature-name` (e.g. `feat/air-cargo-rating`, `feat/road-freight-ecmr`)
+   - `fix/bug-description` (e.g. `fix/customs-taric-calculation`)
+2. **Commit Standards**: We strictly enforce [Conventional Commits](https://www.conventionalcommits.org/) via `commitlint`:
+   ```bash
+   feat(claims): add Hague-Visby statutory SDR carrier liability calculator
+   fix(customs): correct TARIC antidumping duty formula for steel fasteners
+   docs(architecture): update e-CMR and dispatch engine specification
+   ```
+3. **Pull Requests**:
+   - All PRs must pass the root build (`pnpm run build`), ESLint checks, and the full Vitest suite (`pnpm test`).
+   - GitHub Advanced Security (CodeQL SAST and Dependabot) scans must pass with zero critical alerts before merging.
 
-When working on the unified project, you can install dependencies directly into the Super-App folder or the desired package:
+---
 
-```bash
-# Add a dependency to the main app:
-pnpm add lucide-react --filter @atlas/frontend
-```
+## 🏗️ Monorepo Guidelines
 
-### Database Modification Rules
+- **Package Management**: We use `pnpm` (v10+) with Turborepo workspaces (`packages/*`).
+- **Shared Code**: Shared TypeScript types, utility functions, and Zod schemas should reside in `@atlas/shared` (`packages/shared`).
+- **UI Components**: Visual components, glassmorphism tokens, and interactive widgets belong in `@atlas/ui` (`packages/ui`).
 
-- The database is managed by **Local SQLite** and **Drizzle ORM**.
-- If you need to alter tables, edit the TypeScript schema files (e.g., in `src/db/schema.ts`).
-- After making changes, you **MUST** push the schema directly to your local database:
+---
+
+## 🗄️ Database & Schema Standards
+
+- **Local Persistence ($0 Cloud Cost)**: State is stored locally in SQLite via the `@libsql/client` driver and **Drizzle ORM**.
+- **Schema Modifications**:
+  1. Add or modify table schemas under `src/db/schema/*.ts`.
+  2. Export schema definitions in `src/db/schema/index.ts`.
+  3. Generate migrations using `pnpm run db:generate`.
+  4. Apply migrations locally via `pnpm run db:migrate`.
+  5. Add realistic seed data in `src/db/seed.ts`.
+
+---
+
+## ⚙️ Backend API & Deterministic Engines
+
+- **Fastify REST Routes**: Group endpoints cleanly by domain in `src/routes/*.routes.ts` and register them with appropriate prefixes in `src/app.ts`.
+- **RBAC Guards**: Secure sensitive operational and financial routes using `@fastify/jwt` role validation.
+- **Deterministic Services**: All regulatory, customs, air freight rating, Incoterms risk matrices, and legal liability calculations must be 100% deterministic, testable with unit tests, and devoid of non-deterministic side-effects.
+
+---
+
+## 🧪 Testing Standards
+
+- **Unit & Integration Tests**: Every new service or route must have corresponding Vitest test files (`*.test.ts`) covering normal cases, boundary values, and error conditions.
+- **E2E Tests**: Significant user flows and workbench modules should be accompanied by Playwright tests under `tests/e2e/*.spec.ts`.
+- Run all tests locally before submitting a PR:
   ```bash
-  pnpm run db:push
+  pnpm test
+  npx playwright test
   ```
-- **Forbidden**: Do not use cloud database services or Firebase Data Connect. The architecture relies on `$0` cost infrastructure.
-- **Data Seeding**: Bulk insertions must be performed using local scripts connecting directly to `atlas.db` via the libSQL driver (`@libsql/client`).
-
-### Backend and AI Functions Rules
-
-- Backend API logic is centralized locally in the Fastify application under `src/`.
-- Ensure new API routes are secured via JWT and RBAC (`@fastify/jwt` in `auth.routes.ts`) before merging.
-- Real-time updates should emit events to the WebSocket server (`ws://`) instead of long-polling.
-- For **heavy or asynchronous processes**, use **BullMQ (AtlasEngine Workers)** instead of keeping the HTTP request waiting.
-- For **Artificial Intelligence modules**, we centralize the logic in specialized services (like `geminiService.ts`). When creating new prompts, make sure to carefully document and sanitize inputs.
-- Native Python dependencies required by the AI should be provided using Gemini's `code_execution` tool, not by adding complex dependencies to the Node.js runtime.
-
-## Visual Style and Design
-
-- Atlas Logistics uses a rigorous **Dark Premium Glassmorphism** style.
-- Please use the global CSS tokens defined in `packages/frontend/src/index.css`. Do not overuse arbitrary colors; rely on semi-transparent backgrounds, subtle borders, and blur effects (`backdrop-blur`).
