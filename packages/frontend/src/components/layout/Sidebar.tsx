@@ -20,6 +20,7 @@ import {
   Landmark,
   Users,
   X,
+  Plane,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -226,6 +227,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Cuboid}
               >
                 {t("sidebar.lclEngine")}
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/air-freight"
+                icon={Plane}
+              >
+                Air Freight (e-AWB)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}

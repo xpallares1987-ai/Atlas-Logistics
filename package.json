@@ -23,7 +23,7 @@
     "db:reset": "sh .devcontainer/reset-db.sh",
     "db:seed": "tsx src/db/seed.ts",
     "db:reset-and-seed": "sh .devcontainer/reset-db.sh && tsx src/db/seed.ts",
-    "start:backend": "tsx src/server.ts",
+    "start:backend": "tsx watch src/server.ts",
     "start:worker": "tsx src/worker-node.ts",
     "test:e2e": "playwright test",
     "admin:create": "tsx src/admin/cli.ts",
