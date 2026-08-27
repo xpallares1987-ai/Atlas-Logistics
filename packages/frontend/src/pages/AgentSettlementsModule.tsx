@@ -26,7 +26,7 @@ interface AgentSettlement {
   status: "Pending" | "Paid" | "Draft" | "Approved";
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
