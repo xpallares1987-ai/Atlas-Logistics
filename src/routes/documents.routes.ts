@@ -100,7 +100,8 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
     handler: async (request, reply) => {
       try {
-        const data = await request.file();
+        const body = request.body as any;
+        const data = body.file;
         if (!data) {
           return reply.code(400).send({ error: "No file uploaded" });
         }
@@ -117,8 +118,6 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         
         const fileUrl = `/api/documents/download/${safeFilename}`;
 
-        // We assume shipmentId is passed in the multipart fields
-        const body = request.body as any;
         const shipmentId = body.shipmentId?.value;
         const docType = body.type?.value || "Commercial Invoice";
 
