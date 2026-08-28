@@ -5,6 +5,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.4.0] - 2026-08-28
+
+### 🌟 Added
+- **Cold Chain & Temperature-Controlled Pharma/Reefer Monitoring Engine (EU GDP & EN 12830)**:
+  - **Regulated Cold Chain Profiles**: Built-in coverage for Ultra-Cold ($-80^\circ\text{C}$ to $-60^\circ\text{C}$ Dry Ice UN 1845), Frozen ($-25^\circ\text{C}$ to $-15^\circ\text{C}$), Refrigerated Pharma ($+2^\circ\text{C}$ to $+8^\circ\text{C}$), Controlled Room Temperature CRT ($+15^\circ\text{C}$ to $+25^\circ\text{C}$), and Fresh Perishables ($+0^\circ\text{C}$ to $+4^\circ\text{C}$).
+  - **Arrhenius Mean Kinetic Temperature (MKT) Calculator**: 100% deterministic MKT engine implementing standard activation energy ($\Delta H = 83.144\text{ kJ/mol}$) and thermal excursion duration/severity analysis.
+  - **Cold Chain Thermal Physics Simulator**:
+    - Dry Ice (UN 1845) sublimation kinetics and remaining transit holdover hours.
+    - Reefer Genset diesel fuel burn rate ($\text{L/hr}$) and total trip consumption based on temperature differential ($\Delta T$).
+  - **GDP Quality Release & Batch Certificate PDF**:
+    - Responsible Person (RP / QP) formal quality release workflow (`RELEASED_FOR_DISTRIBUTION`, `QUARANTINE_INVESTIGATION`, `REJECTED_DISPOSAL`).
+    - Official bilingual **Pharma Cold Chain & GDP Release Certificate PDF** (EU GDP Guidelines 2013/C 343/01, WHO TRS 961 and EN 12830).
+  - **Interactive Cold Chain Workbench (`/cold-chain`)**: 3-tabbed UI for live datalogger telemetry monitoring, thermal simulators, and batch quality release audit.
+
 ## [1.3.0] - 2026-08-27
 
 ### 🌟 Added

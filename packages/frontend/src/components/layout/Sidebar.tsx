@@ -23,6 +23,7 @@ import {
   Plane,
   FileSignature,
   Truck,
+  Snowflake,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -252,6 +253,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Truck}
               >
                 Road Freight (e-CMR)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/cold-chain"
+                icon={Snowflake}
+              >
+                Cold Chain (Pharma GDP)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}

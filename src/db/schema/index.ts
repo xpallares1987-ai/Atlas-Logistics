@@ -12,3 +12,4 @@ export * from "./incoterms.js";
 export * from "./claims.js";
 export * from "./road_freight.js";
 export * from "./treasury_settlements.js";
+export * from "./cold_chain.js";
