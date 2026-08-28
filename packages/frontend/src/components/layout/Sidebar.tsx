@@ -24,6 +24,7 @@ import {
   FileSignature,
   Truck,
   Snowflake,
+  TrainTrack,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -267,6 +268,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Leaf}
               >
                 CBAM & Carbon (EU ETS)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/rail-freight"
+                icon={TrainTrack}
+              >
+                Rail Freight (CIM / TEN-T)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}

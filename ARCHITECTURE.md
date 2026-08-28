@@ -71,6 +71,7 @@ The server runtime is built on **Fastify 5**, providing high throughput and nati
   - `/api/treasury`: 3-Way Match reconciler, FX risk exposure, cash flow forecast, carrier dispute letters & settlement statements PDF.
   - `/api/cold-chain`: Datalogger telemetry (EN 12830), Arrhenius MKT calculator, Dry Ice holdover, Reefer Genset fuel burn, GDP Release Certificate PDF.
   - `/api/cbam`: CBAM catalog, verified installations, embedded emissions calculation, Article 9 foreign carbon deductions, EU registry XML, and CBAM declaration certificate PDF.
+  - `/api/rail`: Corridors TEN-T (RFC4/RFC6), terminals, rolling stock wagons, CIM consignments, train consists (750m), axle loads (EN 15528), braking percentage, ERA TAF-TSI XML, CIM PDF & Brake Sheet PDF.
 
 ---
 
@@ -102,6 +103,10 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
    $$\text{Emisiones Integradas Totales } (\text{tCO}_2\text{e}) = \text{Masa Neta (t)} \times SE_{\text{total}}$$
 10. **CBAM Article 9 Net Carbon Liability & Foreign Credit**:
    $$\text{Net Carbon Liability (€)} = \max\left(0, \; (\text{Total Embedded } \text{tCO}_2\text{e} \times P_{\text{EU ETS}}) - \text{Foreign Carbon Price Paid (€)}\right)$$
+11. **Wagon Axle Load Distribution & Line Class Limits (EN 15528)**:
+   $$\text{Axle Load (t/axle)} = \frac{\text{Wagon Tare} + \text{Payload}}{\text{Number of Axles}} \le \text{UIC Limit (A: 16.0t, B: 18.0t, C: 20.0t, D: 22.5t)}$$
+12. **Train Consist Statutory Brake Percentage (UIC 544-1 / TAF-TSI)**:
+   $$\text{Brake Percentage } (\%) = \frac{\sum \text{Braked Mass (Loco + Wagons)}}{\sum \text{Gross Mass (Loco + Wagons)}} \times 100 \ge \text{Slot Required } \%$$
 
 ---
 
@@ -112,7 +117,7 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
   - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
   - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
   - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
-- **70 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+- **76 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
 - **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`) and immutable audit logs.
 - **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.
 - **Automated Backup Utility**: Daily snapshot scheduler saving database state to `/backups`.

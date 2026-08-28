@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.6.0] - 2026-08-28
+
+### 🌟 Added
+- **Rail Intermodal Freight & Trans-European Corridors Engine (COTIF / CIM & TEN-T 750m)**:
+  - **COTIF / CIM Regulatory Framework**: Uniform Rules governing international carriage of goods by rail, 17 SDR/kg statutory carrier liability limitation, and official **CIM Consignment Note PDF (UIC 992)**.
+  - **Train Consist Dynamics & Braking Physics Engine**: Deterministic calculation of total convoy length vs 750m TEN-T corridor limits, train gross tonnage, total braked weight, and statutory brake percentage verification ($\ge 65\%$).
+  - **UIC Line Category & Axle Load Auditor (EN 15528)**: Axle load distribution verification against infrastructure classes: Category A (16.0 t/axle), Category B (18.0 t/axle), Category C (20.0 t/axle), Category D (22.5 t/axle).
+  - **P400 Rolling Motorway & Intermodal Compatibility**: Dedicated pocket wagons (Sdggmrss T3000e / Sggmrss 90') and gauge clearance checks for P400 semitrailers.
+  - **European Union Railway Agency (ERA) TAF-TSI Telematic Messaging**: Standardized **TAF-TSI XML** generator for train composition data interchange with Infrastructure Managers (Adif, SNCF Réseau, DB Netze).
+  - **Official Train Composition & Brake Sheet PDF**: Bilingual *Boletín Oficial de Composición de Tren y Frenado* with driver sign-off.
+  - **Dedicated Rail Freight Workbench (`/rail-freight`)**: 3-tabbed interactive interface for CIM tracking across Mediterranean (RFC6) & Atlantic (RFC4) corridors, train formation simulator, and rolling stock audit.
+
 ## [1.5.0] - 2026-08-28
 
 ### 🌟 Added

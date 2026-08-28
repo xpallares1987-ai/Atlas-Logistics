@@ -71,6 +71,13 @@
       "when": 1787895883921,
       "tag": "0009_hesitant_the_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1787948305280,
+      "tag": "0010_sloppy_magik",
+      "breakpoints": true
     }
   ]
 }

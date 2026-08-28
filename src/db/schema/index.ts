@@ -14,3 +14,4 @@ export * from "./road_freight.js";
 export * from "./treasury_settlements.js";
 export * from "./cold_chain.js";
 export * from "./cbam.js";
+export * from "./rail.js";
