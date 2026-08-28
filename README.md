@@ -104,7 +104,21 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
 - **Interoperabilidad Telemática ERA TAF-TSI**:
   - Generador de mensajes **TAF-TSI XML** para el intercambio de datos de convoy y orden de expedición con Administradores de Infraestructura (Adif, SNCF Réseau, DB Netze).
 
-### 11. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 11. 🏛️ Depósito Aduanero, Zona Franca & Regímenes Especiales (CAU & AEAT)
+- **Regímenes Especiales del Código Aduanero de la Unión (CAU Arts. 210–242)**:
+  - **Depósito Aduanero (DA - Régimen 7100)**: Suspensión total de aranceles e IVA a la importación por tiempo ilimitado.
+  - **Depósito Distinto del Aduanero (DDA - Régimen 7600)**: Exención técnica de IVA conforme a la Ley 37/1992 para operaciones asimiladas a la importación.
+  - **Almacén de Depósito Temporal (ADT - Art. 149 CAU)**: Control y alertas automáticas de permanencia con límite estricto de 90 días.
+  - **Zona Franca (ZF)**: Exclusión perimetral aduanera y almacenamiento libre de tributos.
+- **Gestión Financiera de Avales Globales ante la AEAT (Arts. 89–98 CAU)**:
+  - Monitor en tiempo real de consumo y crédito disponible del aval bancario: $\text{Aval Disponible} = \text{Límite Aval} - \sum (\text{Arancel} + \text{IVA Suspendido})$.
+  - Simulador de liquidación fiscal por desvinculación a Libre Práctica (Régimen 4071) vs exención por Reexportación a tercer país (Régimen 3171).
+- **Libro Oficial de Registro Contable de Existencias & Manipulaciones Usuales (Art. 220 CAU)**:
+  - Registro cronológico inmutable de asientos contables auditables para inspecciones de la AEAT.
+  - Validador reglamentario de manipulaciones usuales (Anexo 71-03: etiquetado CE, reacondicionamiento, conservación, toma de muestras).
+  - Emisión oficial del **Documento de Vinculación a Depósito (DVD PDF)** y **Certificado Oficial de Existencias Bajo Control Aduanero en PDF**.
+
+### 12. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---
