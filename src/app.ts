@@ -45,6 +45,7 @@ import { treasuryRoutes } from "./routes/treasury.routes.js";
 import { coldChainRoutes } from "./routes/cold-chain.routes.js";
 import { cbamRoutes } from "./routes/cbam.routes.js";
 import { railRoutes } from "./routes/rail.routes.js";
+import { customsWarehouseRoutes } from "./routes/customs-warehouse.routes.js";
 
 // Removed tRPC imports
 
@@ -189,5 +190,6 @@ app.register(treasuryRoutes, { prefix: "/api/treasury" });
 app.register(coldChainRoutes, { prefix: "/api/cold-chain" });
 app.register(cbamRoutes, { prefix: "/api/cbam" });
 app.register(railRoutes, { prefix: "/api/rail" });
+app.register(customsWarehouseRoutes, { prefix: "/api/customs-warehouse" });
 
 export default app;

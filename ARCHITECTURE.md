@@ -72,6 +72,7 @@ The server runtime is built on **Fastify 5**, providing high throughput and nati
   - `/api/cold-chain`: Datalogger telemetry (EN 12830), Arrhenius MKT calculator, Dry Ice holdover, Reefer Genset fuel burn, GDP Release Certificate PDF.
   - `/api/cbam`: CBAM catalog, verified installations, embedded emissions calculation, Article 9 foreign carbon deductions, EU registry XML, and CBAM declaration certificate PDF.
   - `/api/rail`: Corridors TEN-T (RFC4/RFC6), terminals, rolling stock wagons, CIM consignments, train consists (750m), axle loads (EN 15528), braking percentage, ERA TAF-TSI XML, CIM PDF & Brake Sheet PDF.
+  - `/api/customs-warehouse`: Facilities (DA/DDA/ADT/ZF), guarantees (AEAT GRN), inventory lots, official stock ledger, debt suspension & discharge tax settlement, DVD PDF, and Stock Certificate PDF.
 
 ---
 
@@ -107,6 +108,10 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
    $$\text{Axle Load (t/axle)} = \frac{\text{Wagon Tare} + \text{Payload}}{\text{Number of Axles}} \le \text{UIC Limit (A: 16.0t, B: 18.0t, C: 20.0t, D: 22.5t)}$$
 12. **Train Consist Statutory Brake Percentage (UIC 544-1 / TAF-TSI)**:
    $$\text{Brake Percentage } (\%) = \frac{\sum \text{Braked Mass (Loco + Wagons)}}{\sum \text{Gross Mass (Loco + Wagons)}} \times 100 \ge \text{Slot Required } \%$$
+13. **Customs Debt Suspension & Guarantee Availability (CAU Arts. 89–98 & 210–242)**:
+   $$\text{Suspended Duty (€)} = \text{Customs Value} \times \left(\frac{\text{Tariff Rate } \%}{100}\right)$$
+   $$\text{Suspended VAT (€)} = (\text{Customs Value} + \text{Suspended Duty}) \times \left(\frac{\text{VAT } \%}{100}\right)$$
+   $$\text{Available Bank Guarantee (€)} = \text{Total Guarantee (GRN)} - \sum (\text{Suspended Duty} + \text{Suspended VAT})$$
 
 ---
 
@@ -117,7 +122,7 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
   - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
   - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
   - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
-- **76 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+- **81 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
 - **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`) and immutable audit logs.
 - **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.
 - **Automated Backup Utility**: Daily snapshot scheduler saving database state to `/backups`.

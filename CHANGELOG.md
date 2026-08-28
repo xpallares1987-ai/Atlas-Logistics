@@ -5,6 +5,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.7.0] - 2026-08-28
+
+### 🌟 Added
+- **Customs Warehouse, Free Zone & Special Regimes Engine (CAU Arts. 210–242 & AEAT)**:
+  - **Union Customs Code (UCC / CAU) Special Regimes**:
+    - **Bonded Customs Warehouse (DA - Regime 7100)**: Indefinite customs duty and import VAT suspension for non-Union goods.
+    - **Non-Customs Bonded Warehouse (DDA - Regime 7600)**: VAT exemption under Spanish VAT Act (Ley 37/1992) for operations assimilated to imports.
+    - **Temporary Storage Facility (ADT - Art. 149 UCC)**: Automated 90-day maximum stay deadline tracking and infraction alerts.
+    - **Free Zone (ZF)**: Fiscal perimeter management for duty-free storage.
+  - **Comprehensive Guarantee & Bank Bond (GRN) Management (UCC Arts. 89–98)**:
+    - Real-time credit availability tracking ($\text{Available} = \text{Limit} - \sum (\text{Duty} + \text{VAT Suspendido})$).
+    - Discharge Tax Settlement Simulator: Free Circulation (Regime 4071) vs Third Country Re-exportation (Regime 3171).
+  - **Official Customs Stock Ledger (Libro Oficial de Existencias AEAT)**:
+    - Immutable sequential ledger bookkeeping of entries, usual handlings, and discharges.
+    - Automated validator of **Authorized Usual Forms of Handling** under Article 220 UCC (Annex 71-03: CE marking, repacking, testing, preservation).
+  - **Official Documentation Outputs in PDF**:
+    - Official **Customs Bonding Document (DVD PDF)**.
+    - Official **Customs Stock & Suspended Debt Certificate PDF**.
+  - **Dedicated Customs Warehouse Workbench (`/customs-warehouse`)**: 3-tabbed interactive interface for inventory lots monitoring, bank bond credit tracking, and facility capacity auditing.
+
 ## [1.6.0] - 2026-08-28
 
 ### 🌟 Added
