@@ -92,7 +92,19 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
   - Generador de **XML Oficial para el Registro Transitorio CBAM** de la Comisión Europea (DG TAXUD).
   - Emisión del **Certificado Oficial de Declaración de Emisiones Integradas y Obligaciones CBAM en PDF**.
 
-### 10. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 10. 🚆 Ferrocarril Intermodal & Corredores Transeuropeos (CIM / TEN-T)
+- **Convenio COTIF / Reglas Uniformes CIM (Formulario UIC 992)**: Gestión de expedientes de transporte internacional ferroviario y emisión oficial de la **Carta de Porte CIM en PDF**.
+- **Física de Trenes Bloque & Seguridad Operacional**:
+  - Límite de longitud máxima de convoy ($\le 750\text{ metros}$ estándar TEN-T Corredores Mediterráneo RFC6 y Atlántico RFC4).
+  - Cálculo determinista del **Porcentaje de Masa Frenada** ($\text{Brake } \% \ge 65\%$).
+  - Emisión del **Boletín Oficial de Composición de Tren y Frenado en PDF** (*Train Composition & Brake Sheet*).
+- **Auditoría de Cargas por Eje UIC (Norma EN 15528)**:
+  - Verificación estricta de límites de infraestructura: Categoría A (16.0 t/eje), B (18.0 t/eje), C (20.0 t/eje), D (22.5 t/eje).
+  - Compatibilidad de gálibo intermodal para **Autopistas Ferroviarias (semirremolques P400** sobre vagones canguro T3000e / Sdggmrss).
+- **Interoperabilidad Telemática ERA TAF-TSI**:
+  - Generador de mensajes **TAF-TSI XML** para el intercambio de datos de convoy y orden de expedición con Administradores de Infraestructura (Adif, SNCF Réseau, DB Netze).
+
+### 11. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---
