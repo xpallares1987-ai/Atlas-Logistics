@@ -263,6 +263,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
+                to="/cbam"
+                icon={Leaf}
+              >
+                CBAM & Carbon (EU ETS)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
                 to="/contracts"
                 icon={FileSignature}
               >

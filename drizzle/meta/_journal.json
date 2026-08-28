@@ -64,6 +64,13 @@
       "when": 1787895026348,
       "tag": "0008_stormy_starhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1787895883921,
+      "tag": "0009_hesitant_the_leader",
+      "breakpoints": true
     }
   ]
 }

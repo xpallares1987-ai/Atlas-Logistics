@@ -79,7 +79,20 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
   - Dictamen formal de la Persona Responsable (RP / QP): `RELEASED_FOR_DISTRIBUTION`, `QUARANTINE_INVESTIGATION`, `REJECTED_DISPOSAL`.
   - Emisión del **Certificado Oficial de Inspección de Cadena de Frío y Liberación Farmacéutica en PDF** (Directiva UE 2013/C 343/01, WHO TRS 961 y EN 12830).
 
-### 9. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 9. 🌿 Mecanismo de Ajuste en Frontera por Carbono (CBAM) & Alcance 3
+- **Reglamento (UE) 2023/956 & 2023/1773**: Cobertura integral de los 6 sectores regulados (Hierro y Acero, Aluminio, Cemento, Fertilizantes, Hidrógeno, Electricidad).
+- **Cálculo de Emisiones Integradas Directas e Indirectas**:
+  - Emisiones Directas (Alcance 1 de proceso) e Indirectas (Alcance 2 por electricidad).
+  - Cálculo de precursores complejos (*complex goods*, ej. palanquilla en perfiles de acero o alúmina en aluminio).
+  - Comparativa de factores verificados de instalación vs. Valores por Defecto (*Default Values*) de la Comisión Europea (DG TAXUD).
+- **Liquidación Financiera EU ETS & Deducciones en Origen (Art. 9)**:
+  - Valoración de certificados CBAM según cotización semanal de derechos EU ETS (€/tCO2e).
+  - Deducción automática de precios de carbono efectivamente satisfechos en el país de origen (ej. UK ETS, China National ETS).
+- **Exportación Telemática Oficial**:
+  - Generador de **XML Oficial para el Registro Transitorio CBAM** de la Comisión Europea (DG TAXUD).
+  - Emisión del **Certificado Oficial de Declaración de Emisiones Integradas y Obligaciones CBAM en PDF**.
+
+### 10. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---

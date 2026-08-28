@@ -16,6 +16,7 @@
 | **Transporte Terrestre & e-CMR** | Protocolo e-CMR de Ginebra (24 Cajas), Ley 15/2009, RDL 3/2022 | Despacho FTL/LTL, calculadora ADR 1.1.3.6 (1.000 puntos), capacidad de trailer 33 pallets y tacógrafo CE 561/2006. |
 | **Tesorería & CASS / Navieras** | Reconciliación 3-Way Match & Riesgo FX | Casación automática de facturas de porteadores (tolerancia ±1% / ±5€), monitor FX multidivisa, notas de cargo y estados de liquidación PDF. |
 | **Cadena de Frío & Farma GDP** | Directiva UE 2013/C 343/01, EN 12830, WHO TRS 961 | Monitorización de dataloggers (-80°C a +25°C), cálculo MKT Arrhenius, autonomía de hielo seco UN 1845, consumo genset reefer y Certificados Oficiales de Liberación GDP en PDF. |
+| **Ajuste en Frontera por Carbono (CBAM)** | Reglamento (UE) 2023/956, 2023/1773, EU ETS | Emisiones integradas directas/indirectas, precursores complejos, deducción de precios de carbono en origen (Art. 9), generación de XML para el Registro Transitorio UE y certificados PDF. |
 | **Container Planner 3D & LCL** | ISO 668 Contenedores Marítimos | Cubicaje 3D de contenedores, centro de gravedad, distribución de ejes y consolidación LCL multi-cliente. |
 | **Warehouse Digital Twin** | Gestión de Almacén & Tráfico de Andenes | Visualización 3D y 2.5D de almacén, control de muelles, inventario y tareas de fulfillment. |
 | **BPMN 2.0 Workflows & Pricing** | ISO/IEC 19510 (BPMN 2.0) | Modelador visual de procesos logísticos con versionado, motor de tarifas dinámicas con recargos BAF/CAF/PSS. |
@@ -26,9 +27,9 @@
 
 - **Frontend**: React 19, TypeScript 5.7+, Vite 8, TailwindCSS, Framer Motion, Lucide Icons.
 - **Backend**: Node.js 22+, Fastify 5, `@fastify/jwt`, `@fastify/websocket`, `pdfkit`.
-- **Persistencia**: SQLite (libSQL client) + Drizzle ORM (66 tablas, triggers, vistas, secuencias).
+- **Persistencia**: SQLite (libSQL client) + Drizzle ORM (70 tablas, triggers, vistas, secuencias).
 - **Asincronía**: BullMQ + ioredis (con fallback en memoria para desarrollo autónomo).
-- **Control de Calidad**: Vitest (36 suites, 168 tests unitarios e integrados, 100% aprobados), Playwright E2E.
+- **Control de Calidad**: Vitest (40 suites, 184 tests unitarios e integrados, 100% aprobados), Playwright E2E.
 - **Monorepo**: Turborepo + pnpm v10 workspaces (`@atlas/frontend`, `@atlas/dashboard`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/warehouse-ops`, `@atlas/ui`, `@atlas/shared`).
 
 ---
