@@ -69,7 +69,17 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
   - **Nota de Cargo / Carta de Disputa al Porteador (*Carrier Debit Note PDF*)** con solicitud de factura rectificativa a 14 días.
   - **Estado Oficial de Liquidación y Orden de Pago (*Settlement Statement PDF*)** con retenciones CASS y firma digital de tesorería.
 
-### 8. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 8. ❄️ Cadena de Frío, Monitorización Reefer & Farma GDP (EN 12830)
+- **Perfiles Térmicos Regulados**: Cobertura integral de rangos Ultra-Cold ($-80^\circ\text{C}$ a $-60^\circ\text{C}$ Hielo Seco UN 1845), Congelado ($-25^\circ\text{C}$ a $-15^\circ\text{C}$), Refrigerado Farmacéutico ($+2^\circ\text{C}$ a $+8^\circ\text{C}$), Ambiente Controlado CRT ($+15^\circ\text{C}$ a $+25^\circ\text{C}$) y Perecederos Frescos ($+0^\circ\text{C}$ a $+4^\circ\text{C}$).
+- **Cálculo Cinético MKT (Ecuación de Arrhenius)**: Determinación exacta de la Temperatura Cinética Media ($\Delta H = 83,14\text{ kJ/mol}$) para cuantificar el impacto térmico real sobre la estabilidad farmacéutica.
+- **Física Térmica Determinista**:
+  - **Sublimación y Autonomía de Hielo Seco**: Cálculo de tasa de sublimación horaria y reserva en kg a la llegada estimada.
+  - **Genset Diésel Reefer**: Consumo de combustible ($\text{L/h}$) y autonomía del generador según diferencial térmico ($\Delta T$).
+- **Garantía de Calidad GDP & Certificados Oficiales PDF**:
+  - Dictamen formal de la Persona Responsable (RP / QP): `RELEASED_FOR_DISTRIBUTION`, `QUARANTINE_INVESTIGATION`, `REJECTED_DISPOSAL`.
+  - Emisión del **Certificado Oficial de Inspección de Cadena de Frío y Liberación Farmacéutica en PDF** (Directiva UE 2013/C 343/01, WHO TRS 961 y EN 12830).
+
+### 9. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---
