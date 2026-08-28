@@ -5,6 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.5.0] - 2026-08-28
+
+### 🌟 Added
+- **Carbon Border Adjustment Mechanism (CBAM) & Scope 3 Decarbonization Engine (EU Reg. 2023/956)**:
+  - **Comprehensive 6-Sector CBAM Catalog**: Mapped CN/TARIC codes and default emission benchmarks for Iron & Steel, Aluminium, Cement, Fertilizers, Hydrogen, and Electricity.
+  - **Embedded Emissions Calculation Engine**: 100% deterministic calculation of Direct (Scope 1 process), Indirect (Scope 2 electricity), and complex precursor emissions ($SE_{\text{total}} = SE_{\text{direct}} + SE_{\text{indirect}} + SE_{\text{precursor}}$).
+  - **Verified Installation Audit vs EU Defaults**: Benchmarking of verified third-country plant emission certificates against European Commission default baseline values.
+  - **Article 9 Foreign Carbon Price Deduction & EU ETS Valuation**:
+    - Carbon liability calculation based on weekly average EU ETS quota spot rates (€/tCO2e).
+    - Statutory deduction of carbon taxes and ETS certificates effectively paid in country of origin (e.g. UK ETS, China National ETS).
+  - **European Commission Official Reporting Formats**:
+    - Telematic **XML Generator for the EU CBAM Transitional Registry (DG TAXUD)** following official XSD schema (Header, Declarant, Importer, Emissions, Precursors, Foreign Carbon Credits).
+    - Official bilingual **CBAM Embedded Emissions & Carbon Liability Declaration Certificate PDF**.
+  - **Dedicated CBAM Workbench (`/cbam`)**: 3-tabbed interactive interface for quarterly filings monitoring, emissions/precursors simulator, and EU ETS financial liability reconciliation.
+
 ## [1.4.0] - 2026-08-28
 
 ### 🌟 Added

@@ -43,6 +43,7 @@ import { claimsRoutes } from "./routes/claims.routes.js";
 import { roadFreightRoutes } from "./routes/road-freight.routes.js";
 import { treasuryRoutes } from "./routes/treasury.routes.js";
 import { coldChainRoutes } from "./routes/cold-chain.routes.js";
+import { cbamRoutes } from "./routes/cbam.routes.js";
 
 // Removed tRPC imports
 
@@ -185,5 +186,6 @@ app.register(claimsRoutes, { prefix: "/api/claims" });
 app.register(roadFreightRoutes, { prefix: "/api/road-freight" });
 app.register(treasuryRoutes, { prefix: "/api/treasury" });
 app.register(coldChainRoutes, { prefix: "/api/cold-chain" });
+app.register(cbamRoutes, { prefix: "/api/cbam" });
 
 export default app;
