@@ -19,6 +19,7 @@
 | **Ajuste en Frontera por Carbono (CBAM)** | Reglamento (UE) 2023/956, 2023/1773, EU ETS | Emisiones integradas directas/indirectas, precursores complejos, deducción de precios de carbono en origen (Art. 9), generación de XML para el Registro Transitorio UE y certificados PDF. |
 | **Ferrocarril Intermodal & Corredores TEN-T** | Convenio COTIF / Reglas CIM (UIC 992), TAF-TSI, EN 15528 | Trenes bloque TEN-T (750m), cálculo de masa frenada (≥65%), cargas por eje UIC A-D (hasta 22.5t), gálibo P400, interoperabilidad ancho ibérico/UIC, XML TAF-TSI y Carta de Porte CIM PDF. |
 | **Depósito Aduanero, Zona Franca & Regímenes** | CAU Arts. 210–242 (DA 7100, DDA 7600, ADT 90d, ZF) | Libro Oficial de Existencias AEAT, control de avales globales bancarios, cálculo de deuda suspendida (arancel + IVA), DVD PDF y Certificados de Stock PDF. |
+| **FuelEU Maritime & EU ETS Marítimo** | Reg. (UE) 2023/1805 & Dir. (UE) 2023/959 | Intensidad GEI WtW (gCO2eq/MJ), balance de cumplimiento, penalizaciones (2.400€/t), pooling de flota (Art. 21), derechos EUA, XML THETIS-MRV y Certificados FuelEU PDF. |
 | **Container Planner 3D & LCL** | ISO 668 Contenedores Marítimos | Cubicaje 3D de contenedores, centro de gravedad, distribución de ejes y consolidación LCL multi-cliente. |
 | **Warehouse Digital Twin** | Gestión de Almacén & Tráfico de Andenes | Visualización 3D y 2.5D de almacén, control de muelles, inventario y tareas de fulfillment. |
 | **BPMN 2.0 Workflows & Pricing** | ISO/IEC 19510 (BPMN 2.0) | Modelador visual de procesos logísticos con versionado, motor de tarifas dinámicas con recargos BAF/CAF/PSS. |
@@ -29,9 +30,9 @@
 
 - **Frontend**: React 19, TypeScript 5.7+, Vite 8, TailwindCSS, Framer Motion, Lucide Icons.
 - **Backend**: Node.js 22+, Fastify 5, `@fastify/jwt`, `@fastify/websocket`, `pdfkit`.
-- **Persistencia**: SQLite (libSQL client) + Drizzle ORM (81 tablas, triggers, vistas, secuencias).
+- **Persistencia**: SQLite (libSQL client) + Drizzle ORM (86 tablas, triggers, vistas, secuencias).
 - **Asincronía**: BullMQ + ioredis (con fallback en memoria para desarrollo autónomo).
-- **Control de Calidad**: Vitest (47 suites, 225 tests unitarios e integrados, 100% aprobados), Playwright E2E.
+- **Control de Calidad**: Vitest (51 suites, 250 tests unitarios e integrados, 100% aprobados), Playwright E2E.
 - **Monorepo**: Turborepo + pnpm v10 workspaces (`@atlas/frontend`, `@atlas/dashboard`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/warehouse-ops`, `@atlas/ui`, `@atlas/shared`).
 
 ---

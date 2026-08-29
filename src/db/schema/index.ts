@@ -16,3 +16,4 @@ export * from "./cold_chain.js";
 export * from "./cbam.js";
 export * from "./rail.js";
 export * from "./customs_warehouse.js";
+export * from "./fueleu_maritime.js";

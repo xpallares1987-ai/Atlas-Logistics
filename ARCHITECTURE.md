@@ -73,6 +73,7 @@ The server runtime is built on **Fastify 5**, providing high throughput and nati
   - `/api/cbam`: CBAM catalog, verified installations, embedded emissions calculation, Article 9 foreign carbon deductions, EU registry XML, and CBAM declaration certificate PDF.
   - `/api/rail`: Corridors TEN-T (RFC4/RFC6), terminals, rolling stock wagons, CIM consignments, train consists (750m), axle loads (EN 15528), braking percentage, ERA TAF-TSI XML, CIM PDF & Brake Sheet PDF.
   - `/api/customs-warehouse`: Facilities (DA/DDA/ADT/ZF), guarantees (AEAT GRN), inventory lots, official stock ledger, debt suspension & discharge tax settlement, DVD PDF, and Stock Certificate PDF.
+  - `/api/fueleu`: Marine fuels, merchant vessels, voyages, compliance accounts, fleet pools (Art. 21), EU ETS liability & Green BAF per TEU, EMSA THETIS-MRV XML, FuelEU Compliance Certificate PDF & BDN PDF.
 
 ---
 
@@ -112,6 +113,14 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
    $$\text{Suspended Duty (€)} = \text{Customs Value} \times \left(\frac{\text{Tariff Rate } \%}{100}\right)$$
    $$\text{Suspended VAT (€)} = (\text{Customs Value} + \text{Suspended Duty}) \times \left(\frac{\text{VAT } \%}{100}\right)$$
    $$\text{Available Bank Guarantee (€)} = \text{Total Guarantee (GRN)} - \sum (\text{Suspended Duty} + \text{Suspended VAT})$$
+14. **FuelEU Maritime Well-to-Wake GHG Intensity & Compliance Balance (Reg. UE 2023/1805)**:
+   $$GHG_{\text{actual}} = \frac{\sum (M_i \times LCV_i \times WtW_i) + E_{\text{OPS}} \times WtW_{\text{OPS}}}{\sum (M_i \times LCV_i) + E_{\text{OPS}}}$$
+   $$\text{Compliance Balance (gCO}_2\text{eq)} = (\text{GHG Target} - \text{GHG Actual}) \times \text{Total Energy (MJ)}$$
+   $$\text{FuelEU Penalty (€)} = \frac{|\text{Deficit } CB|}{GHG_{\text{actual}} \times 41.000\text{ MJ/t}} \times 2.400\text{ €/t VLSFO-equiv}$$
+15. **EU ETS Maritime Multi-Gas Geographic Scope Allocation (Dir. UE 2023/959)**:
+   $$\text{Gross } \text{tCO}_2\text{eq} = \text{CO}_2 + (\text{CH}_4 \times 28) + (\text{N}_2\text{O} \times 265)$$
+   $$\text{EU ETS Scope Obligation} = \text{Scope Factor (1.0 Intra-EU / 0.5 Extra-EU)} \times \text{Gross } \text{tCO}_2\text{eq}$$
+   $$\text{Green BAF Surcharge (€/TEU)} = \frac{\text{FuelEU Cost/Penalty (€)} + \text{EU ETS Liability (€)}}{\text{Carried TEUs}}$$
 
 ---
 
@@ -122,7 +131,7 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
   - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
   - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
   - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
-- **81 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+- **86 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
 - **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`) and immutable audit logs.
 - **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.
 - **Automated Backup Utility**: Daily snapshot scheduler saving database state to `/backups`.
