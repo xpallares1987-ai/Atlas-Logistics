@@ -122,6 +122,9 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
     $$\text{Minimum Insured Amount (EUR)} = \text{Invoice CIF Amount} \times 1.10 \quad (\ge 110\%)$$
     $$\text{Opening Fee (€)} = \text{Credit Amount} \times \left(\frac{\text{Opening Rate } \%}{100}\right) \times \left\lceil \frac{\text{Tenor Days}}{90} \right\rceil$$
     $$\text{Confirmation Fee (€)} = \text{Credit Amount} \times \left(\frac{\text{Confirmation Rate } \%}{100}\right) \times \left(\frac{\text{Tenor Days}}{360}\right)$$
+16. **AEO / C-TPAT Readiness & Partner Risk Scoring (CAU Art. 39 & ISO 28000)**:
+    $$\text{AEO Overall Readiness (\%)} = \sum_{i=1}^{6} \left( w_i \times \text{Score Bloque CAE } i \right) \quad (\ge 85\% \implies \text{Audit Ready})$$
+    $$\text{Partner Risk Score} = (0.40 \times \text{Questionnaire}) + 35\text{ (AEO)} + 15\text{ (C-TPAT)} + 10\text{ (ISO 28000)} - 15\text{ (if audit } > 12\text{m)}$$
 
 ---
 
@@ -132,8 +135,9 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
   - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
   - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
   - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
-- **91 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
-- **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`) and immutable audit logs.
+- **96 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+- **WAL Journal Mode & Busy Timeout**: High-concurrency transaction resiliency for background jobs and concurrent Fastify requests.
+- **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`, `OEA-YYYY-XXXX`) and immutable audit logs.
 - **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.
 - **Automated Backup Utility**: Daily snapshot scheduler saving database state to `/backups`.
 
@@ -141,6 +145,6 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
 
 ## 6. Testing & Quality Assurance
 
-- **Vitest Suite**: 55 test suites with 270 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
+- **Vitest Suite**: 60 test suites with 293 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
 - **Playwright E2E**: End-to-end browser tests verifying user flows across all operational modules.
 - **CodeQL SAST**: Continuous security analysis with zero alerts.

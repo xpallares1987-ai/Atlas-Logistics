@@ -152,7 +152,24 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
   - **Informe Oficial de Auditoría de Discrepancias UCP 600 / ISBP 745 en PDF**.
   - **Certificado de Garantía Bancaria a Primera Demanda URDG 758 en PDF**.
 
-### 14. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 14. 🛡️ Operador Económico Autorizado (OEA / AEO) & Seguridad en Cadena de Suministro (CAU Art. 38-39 / C-TPAT / ISO 28000)
+- **Estatuto OEA & Cuestionario de Auto-Evaluación (CAE de la AEAT / DG TAXUD)**:
+  - Cobertura de modalidades: **OEAF** (Aduanas y Seguridad), **OEAC** (Simplificaciones Aduaneras) y **OEAS** (Seguridad y Protección).
+  - Scoring determinista de los 6 bloques oficiales bajo el Artículo 39 del CAU (Información general, Historial aduanero sin sanciones graves, Registros contables, Solvencia financiera, Cualificación profesional y Medidas de seguridad).
+  - Emisión oficial del **Dossier de Autoevaluación OEA (Cuestionario CAE de la AEAT) en PDF**.
+- **Protocolo de Inspección en 7 Puntos de Contenedores y Semirremolques (C-TPAT / OEAS)**:
+  - Verificación física obligatoria de los 7 puntos estructurales: Pared frontal, Lateral izquierdo, Lateral derecho, Suelo/travesaños, Techo exterior, Puertas/mecanismos de cierre y Tren de rodaje/chasis.
+  - Detección fitosanitaria de plagas agrícolas (*WDO check*) y manipulación de compartimentos ocultos.
+  - Emisión del **Acta Oficial de Inspección de Seguridad en 7 Puntos en PDF**.
+- **Trazabilidad de Precintos de Alta Seguridad ISO 17712 (Clase 'H')**:
+  - Libro registro inmutable de precintos de perno (*bolt*) y cable (*cable seal*) certificados Clase 'H'.
+  - Registro de cadena de custodia, colocación en muelle, verificación en puerto de llegada e informe de incidencias de manipulación (*Tamper Incident Report*).
+  - Emisión del **Certificado de Precintado ISO 17712 & Cadena de Custodia en PDF**.
+- **Homologación de Socios Comerciales & Matriz de Riesgo ISO 28000**:
+  - Evaluación y screening determinista de transportistas, agentes de aduanas, almacenes y empacadores (*Low / Medium / High Risk*).
+  - Emisión de la **Matriz Oficial de Evaluación de Riesgos de Proveedores Logísticos en PDF**.
+
+### 15. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---
