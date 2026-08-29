@@ -104,23 +104,24 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
    $$SE_{\text{total}} = SE_{\text{direct}} + SE_{\text{indirect}} + \sum \left( \frac{\text{Masa Precursor } i}{\text{Masa Producto}} \times SE_{\text{precursor } i} \right)$$
    $$\text{Emisiones Integradas Totales } (\text{tCO}_2\text{e}) = \text{Masa Neta (t)} \times SE_{\text{total}}$$
 10. **CBAM Article 9 Net Carbon Liability & Foreign Credit**:
-   $$\text{Net Carbon Liability (€)} = \max\left(0, \; (\text{Total Embedded } \text{tCO}_2\text{e} \times P_{\text{EU ETS}}) - \text{Foreign Carbon Price Paid (€)}\right)$$
+    $$\text{Net Carbon Liability (€)} = \max\left(0, \; (\text{Total Embedded } \text{tCO}_2\text{e} \times P_{\text{EU ETS}}) - \text{Foreign Carbon Price Paid (€)}\right)$$
 11. **Wagon Axle Load Distribution & Line Class Limits (EN 15528)**:
-   $$\text{Axle Load (t/axle)} = \frac{\text{Wagon Tare} + \text{Payload}}{\text{Number of Axles}} \le \text{UIC Limit (A: 16.0t, B: 18.0t, C: 20.0t, D: 22.5t)}$$
-12. **Train Consist Statutory Brake Percentage (UIC 544-1 / TAF-TSI)**:
-   $$\text{Brake Percentage } (\%) = \frac{\sum \text{Braked Mass (Loco + Wagons)}}{\sum \text{Gross Mass (Loco + Wagons)}} \times 100 \ge \text{Slot Required } \%$$
-13. **Customs Debt Suspension & Guarantee Availability (CAU Arts. 89–98 & 210–242)**:
-   $$\text{Suspended Duty (€)} = \text{Customs Value} \times \left(\frac{\text{Tariff Rate } \%}{100}\right)$$
-   $$\text{Suspended VAT (€)} = (\text{Customs Value} + \text{Suspended Duty}) \times \left(\frac{\text{VAT } \%}{100}\right)$$
-   $$\text{Available Bank Guarantee (€)} = \text{Total Guarantee (GRN)} - \sum (\text{Suspended Duty} + \text{Suspended VAT})$$
-14. **FuelEU Maritime Well-to-Wake GHG Intensity & Compliance Balance (Reg. UE 2023/1805)**:
-   $$GHG_{\text{actual}} = \frac{\sum (M_i \times LCV_i \times WtW_i) + E_{\text{OPS}} \times WtW_{\text{OPS}}}{\sum (M_i \times LCV_i) + E_{\text{OPS}}}$$
-   $$\text{Compliance Balance (gCO}_2\text{eq)} = (\text{GHG Target} - \text{GHG Actual}) \times \text{Total Energy (MJ)}$$
-   $$\text{FuelEU Penalty (€)} = \frac{|\text{Deficit } CB|}{GHG_{\text{actual}} \times 41.000\text{ MJ/t}} \times 2.400\text{ €/t VLSFO-equiv}$$
-15. **EU ETS Maritime Multi-Gas Geographic Scope Allocation (Dir. UE 2023/959)**:
-   $$\text{Gross } \text{tCO}_2\text{eq} = \text{CO}_2 + (\text{CH}_4 \times 28) + (\text{N}_2\text{O} \times 265)$$
-   $$\text{EU ETS Scope Obligation} = \text{Scope Factor (1.0 Intra-EU / 0.5 Extra-EU)} \times \text{Gross } \text{tCO}_2\text{eq}$$
-   $$\text{Green BAF Surcharge (€/TEU)} = \frac{\text{FuelEU Cost/Penalty (€)} + \text{EU ETS Liability (€)}}{\text{Carried TEUs}}$$
+    $$\text{Axle Load (t/axle)} = \frac{\text{Wagon Tare} + \text{Payload}}{\text{Number of Axles}} \le \text{UIC Limit (A: 16.0t, B: 18.0t, C: 20.0t, D: 22.5t)}$$
+12. **TEN-T Rail Freight Braking & Block Train Mass (UIC 992 / ERA TAF-TSI)**:
+    $$\text{Braked Mass Percentage (}\lambda\text{)} = \left(\frac{\sum \text{Braked Mass (t)}}{\text{Total Train Weight (t)}}\right) \times 100 \ge 65\%$$
+13. **FuelEU Maritime Well-to-Wake (WtW) Energy & GHG Intensity (Regulation (EU) 2023/1805)**:
+    $$\text{Energy Used (MJ)} = \sum_{i} \left( M_i \times \text{LCV}_i \right) + E_{\text{OPS}}$$
+    $$\text{GHG Intensity (}g\text{CO}_2\text{eq/MJ)} = \frac{\sum_{i} \left( M_i \times \text{LCV}_i \times \text{GHG}_{\text{WtW},i} \right)}{\text{Total Energy Used (MJ)}}$$
+    $$\text{Compliance Balance (CB, gCO}_2\text{eq)} = \left(\text{GHG Target} - \text{Actual GHG Intensity}\right) \times \text{Total Energy Used (MJ)}$$
+    $$\text{Statutory Penalty (€)} = \frac{|\min(0, \text{CB})|}{\text{Actual GHG Intensity} \times 41,000} \times 2,400\text{ €/t}$$
+14. **EU ETS Maritime Multi-Gas Geographic Scope Allocation (Directive (EU) 2023/959)**:
+    $$\text{Gross } \text{tCO}_2\text{eq} = \text{CO}_2 + (\text{CH}_4 \times 28) + (\text{N}_2\text{O} \times 265)$$
+    $$\text{EU ETS Scope Obligation} = \text{Scope Factor (1.0 Intra-EU / 0.5 Extra-EU)} \times \text{Gross } \text{tCO}_2\text{eq}$$
+    $$\text{Green BAF Surcharge (€/TEU)} = \frac{\text{FuelEU Cost/Penalty (€)} + \text{EU ETS Liability (€)}}{\text{Carried TEUs}}$$
+15. **Trade Finance UCP 600 Bank Charges & Insurance Formulas (UCP 600 Art. 28 & ISBP 745)**:
+    $$\text{Minimum Insured Amount (EUR)} = \text{Invoice CIF Amount} \times 1.10 \quad (\ge 110\%)$$
+    $$\text{Opening Fee (€)} = \text{Credit Amount} \times \left(\frac{\text{Opening Rate } \%}{100}\right) \times \left\lceil \frac{\text{Tenor Days}}{90} \right\rceil$$
+    $$\text{Confirmation Fee (€)} = \text{Credit Amount} \times \left(\frac{\text{Confirmation Rate } \%}{100}\right) \times \left(\frac{\text{Tenor Days}}{360}\right)$$
 
 ---
 
@@ -131,7 +132,7 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
   - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
   - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
   - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
-- **86 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+- **91 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
 - **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`) and immutable audit logs.
 - **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.
 - **Automated Backup Utility**: Daily snapshot scheduler saving database state to `/backups`.
@@ -140,6 +141,6 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
 
 ## 6. Testing & Quality Assurance
 
-- **Vitest Suite**: 33 test suites with 151 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
+- **Vitest Suite**: 55 test suites with 270 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
 - **Playwright E2E**: End-to-end browser tests verifying user flows across all operational modules.
 - **CodeQL SAST**: Continuous security analysis with zero alerts.

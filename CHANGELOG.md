@@ -5,6 +5,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.9.0] - 2026-08-29
+
+### 🌟 Added
+- **International Trade Finance & Documentary Credit Engine (UCP 600 / URDG 758 / URC 522 / SWIFT MT700)**:
+  - **ICC Uniform Customs & Practice (UCP 600 & eUCP v2.1)**: Commercial Letters of Credit (Sight, Deferred, Acceptance Usance, Negotiation) with issuing/confirming bank workflows and presentation deadlines.
+  - **Demand Guarantees & Standby Letters of Credit (URDG 758 / ISP98)**: International performance bonds, advance payment guarantees, and tender bonds with independent payment undertakings.
+  - **Documentary Collections (URC 522)**: Documents against Payment (D/P) and Documents against Acceptance (D/A) processing.
+  - **Deterministic UCP 600 & ISBP 745 Discrepancy Validator**:
+    - **Presentation Deadline (Art. 14c & ISBP A19)**: 21-calendar-day strict limit after shipped-on-board date.
+    - **Tolerance Rules (Art. 30)**: Standard $+/-5\%$ tolerance monitoring on amount and drawings.
+    - **Commercial Invoice (Art. 18)**: Strict currency matching and literal goods description verification against Field 45A.
+    - **Transport Documents (Arts. 19–27)**: Mandatory *Clean on Board* verification and rejection of claused bills of lading.
+    - **Insurance Coverage (Art. 28)**: Statutory minimum $110\%$ CIF/CIP invoice value verification and inception date audit.
+  - **Bank Fee & Commission Engine**: Quarterly opening fee calculation ($\ge 90\text{ days}$), confirmation risk spread, discrepancy penalties, and amendment charges.
+  - **SWIFT Telematics & Official PDF Output**:
+    - Standardized **SWIFT MT700** (Issue of Documentary Credit) and **SWIFT MT734** (Advice of Refusal) generators.
+    - Official **Trade Credit Presentation Dossier PDF** under UCP 600.
+    - Official **UCP 600 / ISBP 745 Discrepancy Examination Report PDF**.
+    - Official **Demand Guarantee Certificate PDF** under URDG 758.
+  - **Interactive Workbench (`/trade-finance`)**: 3-tabbed interface with top KPIs, credit inventory, discrepancy auditor, and bank fee simulator.
+
 ## [1.8.0] - 2026-08-29
 
 ### 🌟 Added
