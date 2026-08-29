@@ -133,7 +133,26 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
   - **Certificado Oficial de Cumplimiento FuelEU Maritime & Liquidación EU ETS en PDF** (formato de auditoría DNV / Bureau Veritas).
   - **Informe de Travesía & Declaración de Combustible (BDN Audit Sheet) en PDF**.
 
-### 13. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 13. 🏦 Financiación Internacional & Créditos Documentarios (UCP 600 / URDG 758 / URC 522 / SWIFT MT700)
+- **Reglas Uniformes de la Cámara de Comercio Internacional (CCI / ICC)**:
+  - **Créditos Documentarios Comerciales (UCP 600 / eUCP v2.1)**: Emisión, confirmación bancaria y liquidación de cartas de crédito a la vista (*Sight*) o a plazo (*Deferred / Acceptance Usance*).
+  - **Garantías Bancarias a Primera Demanda & Standby L/C (URDG 758 / ISP98)**: Avales internacionales de cumplimiento de contrato (*Performance Bond*), pago anticipado (*Advance Payment Guarantee*) y licitación (*Bid Bond*).
+  - **Remesas Documentarias (URC 522)**: Cobranzas documentarias bajo Documentos contra Pago (D/P) o Documentos contra Aceptación (D/A).
+- **Motor Exhaustivo de Auditoría de Discrepancias UCP 600 / ISBP 745**:
+  - **Plazo de Presentación (Art. 14c & ISBP A19)**: Verificación del límite de 21 días naturales tras la fecha de embarque (*Shipped on Board*).
+  - **Tolerancia en Importes y Cantidades (Art. 30)**: Control de margen estricto de $+/-5\%$ (o $+/-10\%$ para importes aproximados).
+  - **Factura Comercial (Art. 18)**: Cotejo literal con el campo 45A del crédito y coincidencia estricta de divisa.
+  - **Conocimiento de Embarque (Arts. 19–27)**: Detección y bloqueo de B/L con reservas (*Claused / Unclean B/L*) y verificación de mención expresa *Clean on Board*.
+  - **Póliza / Certificado de Seguro (Art. 28)**: Cobertura mínima obligatoria del $110\%$ del valor CIF/CIP de factura y fecha de vigencia anterior o igual al embarque.
+- **Simulador Determinista de Comisiones Bancarias**:
+  - Cálculo de comisiones de apertura trimestral ($\ge 90\text{ días}$), diferencial de riesgo de confirmación por país/banco emisor, recargos por discrepancias y enmiendas MT707.
+- **Mensajería Telemática SWIFT & Documentación Oficial PDF**:
+  - Generador telemático de mensajes **SWIFT MT700** (Apertura de Crédito) y **SWIFT MT734** (Aviso de Rechazo y Discrepancias).
+  - **Dossier de Presentación Bancaria en PDF** (Inventario de documentos y carta de remisión bajo UCP 600).
+  - **Informe Oficial de Auditoría de Discrepancias UCP 600 / ISBP 745 en PDF**.
+  - **Certificado de Garantía Bancaria a Primera Demanda URDG 758 en PDF**.
+
+### 14. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---
