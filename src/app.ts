@@ -48,6 +48,7 @@ import { railRoutes } from "./routes/rail.routes.js";
 import { customsWarehouseRoutes } from "./routes/customs-warehouse.routes.js";
 import { fuelEuRoutes } from "./routes/fueleu.routes.js";
 import { tradeFinanceRoutes } from "./routes/trade-finance.routes.js";
+import { aeoSecurityRoutes } from "./routes/aeo-security.routes.js";
 
 // Removed tRPC imports
 
@@ -195,5 +196,6 @@ app.register(railRoutes, { prefix: "/api/rail" });
 app.register(customsWarehouseRoutes, { prefix: "/api/customs-warehouse" });
 app.register(fuelEuRoutes, { prefix: "/api/fueleu" });
 app.register(tradeFinanceRoutes, { prefix: "/api/trade-finance" });
+app.register(aeoSecurityRoutes, { prefix: "/api/aeo-security" });
 
 export default app;

@@ -5,6 +5,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.10.0] - 2026-08-29
+
+### 🌟 Added
+- **Authorized Economic Operator (AEO / OEA) & Supply Chain Security Engine (UCC Arts. 38-39 / C-TPAT / ISO 28000 / ISO 17712)**:
+  - **EU UCC AEO & Self-Assessment Questionnaire (CAE AEAT / DG TAXUD)**:
+    - Modality coverage: **OEAF** (Full Combined Customs & Security), **OEAC** (Customs Simplifications), and **OEAS** (Security & Safety).
+    - Weighted evaluation and readiness scoring of all 6 official CAE blocks under UCC Article 39 (General info, Customs & tax compliance, Commercial & logistics records, Financial solvency, Practical competence, and Security & safety standards).
+    - Disqualifying deficiency checks on critical customs infringements (Art. 39.a).
+  - **C-TPAT / OEAS 7-Point Container & Vehicle Physical Security Protocol**:
+    - Mandatory 7-point structural inspection verification: Front wall, Left side, Right side, Floor, Roof/ceiling, Doors/locks, and Undercarriage.
+    - Contraband, false compartment, and agricultural contamination (*WDO check*) detection.
+  - **ISO 17712 High-Security Mechanical Seals Ledger (Class 'H')**:
+    - Immutable tracking of bolt and cable seals, manufacturer test certifications, equipment linkage, affixation timestamps, port of entry verification, and tamper incident logging.
+  - **Supply Chain Business Partner Security Risk & Screening (ISO 28000)**:
+    - Multi-criteria risk scoring of hauliers, customs brokers, warehouse keepers, and packers based on AEO/C-TPAT credentials and security questionnaire audits (*Low, Medium, High Risk*).
+  - **Official Regulatory Documentation in PDF**:
+    - Official **AEO Self-Assessment Audit Report (CAE DG TAXUD / AEAT) in PDF**.
+    - Official **7-Point Container/Vehicle Security Inspection Certificate (C-TPAT / OEAS) in PDF**.
+    - Official **ISO 17712 High-Security Seal & Chain of Custody Certificate in PDF**.
+    - Official **Business Partner Security Risk Matrix (ISO 28000) in PDF**.
+  - **Interactive Workbench (`/aeo-security`)**: 3-tabbed dashboard with top KPIs, CAE audit inspector, 7-point simulator, seal ledger, and partner screening calculator.
+
 ## [1.9.0] - 2026-08-29
 
 ### 🌟 Added
