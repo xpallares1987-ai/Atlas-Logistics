@@ -5,6 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.8.0] - 2026-08-29
+
+### 🌟 Added
+- **FuelEU Maritime, EU ETS & Fleet Decarbonization Engine (Regulation (EU) 2023/1805 & Directive (EU) 2023/959)**:
+  - **Well-to-Wake (WtW) GHG Intensity Accounting**: Multi-fuel consumption accounting ($g\text{CO}_2\text{eq/MJ}$) including LCV and WtW factors for VLSFO, MGO, HFO, LNG (with methane slip), Bio-MGO (HVO), Bio-LNG, E-Methanol (RFNBO), and Onshore Power Supply (OPS).
+  - **Statutory Reduction Trajectory & Compliance Balance (CB)**: Reduction targets from $91.16\text{ }g/\text{MJ}$ baseline ($-2\%$ 2025–2029: $89.34\text{ }g/\text{MJ}$, $-6\%$ 2030, down to $-80\%$ in 2050).
+  - **Remedial Penalty & OPS Berth Non-Compliance**: Deterministic calculation of statutory financial penalties ($2,400\text{ €/t VLSFO-equiv}$) and port hotel load OPS electricity penalties ($1.50\text{ €/kWh}$).
+  - **Fleet Compliance Pooling & Flexibility (Arts. 20–21)**: Pooling mechanics enabling zero-penalty neutralization between green vessels (E-Methanol/Biofuel) and conventional vessels (VLSFO), alongside banking and borrowing (1.10x).
+  - **EU ETS Maritime & Green BAF Engine**: Geographical scope allocation ($100\%$ intra-EU & berth, $50\%$ extra-EU) covering $\text{CO}_2$, $\text{CH}_4$ (GWP 28), and $\text{N}_2\text{O}$ (GWP 265), with Green BAF surcharge breakdown per TEU and 40ft container.
+  - **Telematics & Official Documentation**:
+    - Standardized **EMSA THETIS-MRV / FuelEU XML** telematics message generator.
+    - Official **FuelEU Maritime & EU ETS Compliance Certificate PDF** for Classification Society verifiers (DNV / Bureau Veritas).
+    - Official **Bunker Delivery Note & Voyage GHG Emissions Audit Sheet PDF**.
+  - **Dedicated FuelEU Workbench (`/fueleu-maritime`)**: 3-tabbed interactive interface for voyage GHG accounting, EU ETS carbon liability simulator, and fleet pooling manager.
+
 ## [1.7.0] - 2026-08-28
 
 ### 🌟 Added

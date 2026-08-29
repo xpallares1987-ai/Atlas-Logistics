@@ -26,6 +26,7 @@ import {
   Snowflake,
   TrainTrack,
   Building2,
+  Ship,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -283,6 +284,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Building2}
               >
                 Customs Warehouse (DA/DDA/ADT)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/fueleu-maritime"
+                icon={Ship}
+              >
+                FuelEU Maritime (EU ETS)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}

@@ -118,7 +118,22 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
   - Validador reglamentario de manipulaciones usuales (Anexo 71-03: etiquetado CE, reacondicionamiento, conservación, toma de muestras).
   - Emisión oficial del **Documento de Vinculación a Depósito (DVD PDF)** y **Certificado Oficial de Existencias Bajo Control Aduanero en PDF**.
 
-### 12. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 12. 🚢 FuelEU Maritime, EU ETS Marítimo & Descarbonización de Flota (Reg. UE 2023/1805 & Dir. 2023/959)
+- **Reglamento (UE) 2023/1805 (FuelEU Maritime)**:
+  - Intensidad de Emisiones de Gases de Efecto Invernadero (GEI) de la energía utilizada a bordo ($g\text{CO}_2\text{eq/MJ}$) considerando ciclo de vida Well-to-Wake (WtW: Well-to-Tank + Tank-to-Wake).
+  - Trayectoria de reducción obligatoria: $-2\%$ en 2025–2029 ($89.34\text{ }g/\text{MJ}$), $-6\%$ en 2030, hasta $-80\%$ en 2050.
+  - Cálculo determinista del **Balance de Cumplimiento (Compliance Balance - CB)** y **Penalización FuelEU** ($2.400\text{ €/t VLSFO-equiv}$).
+  - Control de **Conexión Eléctrica en Muelle (OPS - Onshore Power Supply)** con penalización por no conexión ($1.50\text{ €/kWh}$).
+  - Mecanismos de flexibilidad: **Pooling de Flota (Art. 21)** para neutralizar multas compensando buques verdes (E-Metanol/Bio-LNG) con buques a VLSFO, **Banking** y **Borrowing** (1.10x).
+- **Directiva (UE) 2023/959 (Régimen de Comercio de Derechos de Emisión EU ETS Marítimo)**:
+  - Asignación de alcances: $100\%$ intra-UE y atraques; $50\%$ viajes extra-UE para $\text{CO}_2$, $\text{CH}_4$ (GWP 28) y $\text{N}_2\text{O}$ (GWP 265).
+  - Motor de **Recargo Ecológico Marítimo (Green BAF / ETS Surcharge)** por TEU y contenedor de 40 pies.
+- **Exportación Telemática & Documentos Oficiales en PDF**:
+  - Generador de **XML Oficial para el Sistema THETIS-MRV / FuelEU de la EMSA**.
+  - **Certificado Oficial de Cumplimiento FuelEU Maritime & Liquidación EU ETS en PDF** (formato de auditoría DNV / Bureau Veritas).
+  - **Informe de Travesía & Declaración de Combustible (BDN Audit Sheet) en PDF**.
+
+### 13. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---
