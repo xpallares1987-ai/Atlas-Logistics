@@ -103,3 +103,4 @@ storybook-static
 
 # Release stray artifacts
 1.1.0
+e2e/.auth/user.json
