@@ -117,7 +117,12 @@ export default function SailingSchedulesModule() {
   const { data: schedules = [], isLoading } = useQuery<Schedule[]>({
     queryKey: ["schedules", origin, destination, date],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/schedules`);
+      const queryParams = new URLSearchParams({
+        origin,
+        destination,
+        date,
+      });
+      const res = await fetch(`${API_URL}/schedules?${queryParams}`);
       return res.json();
     },
     enabled: hasSearched,
