@@ -20,23 +20,17 @@ export default defineConfig({
 
   projects: [
     {
-      name: "setup",
-      testMatch: /global\.setup\.ts/,
-    },
-    {
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        storageState: "e2e/.auth/user.json",
       },
-      dependencies: ["setup"],
     },
   ],
 
-  // webServer: {
-  //   command: "pnpm concurrently \"pnpm run start:backend\" \"pnpm run dev\"",
-  //   url: "http://localhost:3000",
-  //   reuseExistingServer: !process.env.CI,
-  //   timeout: 120000,
-  // },
+  webServer: {
+    command: "pnpm concurrently \"pnpm run start:backend\" \"pnpm run dev\"",
+    url: "http://localhost:3000",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120000,
+  },
 });

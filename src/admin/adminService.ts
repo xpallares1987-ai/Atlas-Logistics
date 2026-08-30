@@ -1,19 +1,20 @@
 // src/admin/adminService.ts
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
 import { Argon2id } from 'oslo/password';
+import { db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
 
-const client = createClient({ url: 'file:atlas-erp-v2.db' });
-const db = drizzle(client, { schema });
-
 export async function createAdmin() {
-  const hashedPassword = await new Argon2id().hash('admin');
+  const email = process.env.ADMIN_EMAIL;
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) {
+    throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD environment variables are required');
+  }
+  const hashedPassword = await new Argon2id().hash(password);
   await db
     .insert(schema.users)
     .values({
       id: 'admin_user_id',
-      email: 'admin@atlas.com',
+      email,
       hashedPassword,
       role: 'ADMIN',
     })

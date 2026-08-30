@@ -70,7 +70,7 @@ export function WarehouseTrafficControl() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const res = await fetch("/api/operations/warehouse/traffic");
+        const res = await fetch("/api/warehouse/traffic");
         if (!res.ok) throw new Error("Failed to load traffic");
         const json = await res.json();
 
@@ -115,7 +115,7 @@ export function WarehouseTrafficControl() {
 
     try {
       const res = await fetch(
-        `/api/operations/warehouse/traffic/${updatedVehicle.id}`,
+        `/api/warehouse/traffic/${updatedVehicle.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

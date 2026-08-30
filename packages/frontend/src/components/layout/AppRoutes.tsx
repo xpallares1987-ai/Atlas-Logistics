@@ -255,7 +255,6 @@ export const AppRoutes = () => {
                 "MANAGER",
                 "OPERATIONS",
                 "EXECUTIVE",
-                "DRIVER",
               ]}
             >
               <RoadFreightModule />

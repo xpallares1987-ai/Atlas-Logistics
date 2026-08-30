@@ -161,50 +161,36 @@ const financialRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
   fastify.get("/dashboard-charts", async (_request, reply) => {
     try {
-      const [shipmentsCount] = await db.select({ count: sql<number>`count(*)` }).from(shipments);
-      const hasData = shipmentsCount.count > 0;
+      // Aggregate real shipment statuses
+      const statusRows = await db
+        .select({ status: shipments.status, count: sql<number>`count(*)` })
+        .from(shipments)
+        .groupBy(shipments.status);
 
-      if (hasData) {
-        // Aggregate real shipment statuses
-        const statusRows = await db
-          .select({ status: shipments.status, count: sql<number>`count(*)` })
-          .from(shipments)
-          .groupBy(shipments.status);
+      const volumeByStatus = statusRows.map((r) => ({ status: r.status, count: r.count }));
 
-        const volumeByStatus = statusRows.map((r) => ({ status: r.status, count: r.count }));
+      // Aggregate real revenue/cost data from invoices by month
+      const arRows = await db
+        .select({ month: sql<string>`strftime('%m', ${invoices.createdAt})`, total: sql<number>`sum(${invoices.amount})` })
+        .from(invoices)
+        .where(eq(invoices.type, 'AR'))
+        .groupBy(sql`strftime('%m', ${invoices.createdAt})`);
 
-        // Aggregate real revenue/cost data from invoices by month
-        const arRows = await db
-          .select({ month: sql<string>`strftime('%m', ${invoices.createdAt})`, total: sql<number>`sum(${invoices.amount})` })
-          .from(invoices)
-          .where(eq(invoices.type, 'AR'))
-          .groupBy(sql`strftime('%m', ${invoices.createdAt})`);
+      const apRows = await db
+        .select({ month: sql<string>`strftime('%m', ${invoices.createdAt})`, total: sql<number>`sum(${invoices.amount})` })
+        .from(invoices)
+        .where(eq(invoices.type, 'AP'))
+        .groupBy(sql`strftime('%m', ${invoices.createdAt})`);
 
-        const apRows = await db
-          .select({ month: sql<string>`strftime('%m', ${invoices.createdAt})`, total: sql<number>`sum(${invoices.amount})` })
-          .from(invoices)
-          .where(eq(invoices.type, 'AP'))
-          .groupBy(sql`strftime('%m', ${invoices.createdAt})`);
-
-        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const arMap = Object.fromEntries(arRows.map(r => [r.month, r.total || 0]));
-        const apMap = Object.fromEntries(apRows.map(r => [r.month, r.total || 0]));
-        const months = new Set([...Object.keys(arMap), ...Object.keys(apMap)]);
-        const revenueTrend = Array.from(months).sort().map(m => ({
-          name: monthNames[parseInt(m, 10) - 1] || m,
-          revenue: arMap[m] || 0,
-          costs: apMap[m] || 0,
-        }));
-
-        return reply.send({ revenueTrend, volumeByStatus });
-      }
-
-      // Fallback mock data for empty database
-      const revenueTrend = [
-        { name: 'Jan', revenue: 0, costs: 0 },
-      ];
-
-      const volumeByStatus: { status: string; count: number }[] = [];
+      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const arMap = Object.fromEntries(arRows.map(r => [r.month, r.total || 0]));
+      const apMap = Object.fromEntries(apRows.map(r => [r.month, r.total || 0]));
+      const months = new Set([...Object.keys(arMap), ...Object.keys(apMap)]);
+      const revenueTrend = Array.from(months).sort().map(m => ({
+        name: monthNames[parseInt(m, 10) - 1] || m,
+        revenue: arMap[m] || 0,
+        costs: apMap[m] || 0,
+      }));
 
       return reply.send({ revenueTrend, volumeByStatus });
     } catch (error: any) {

@@ -13,7 +13,7 @@ export function StatCards() {
   const stats = [
     {
       id: 1,
-      name: "Active Shipments",
+      name: "Total Shipments",
       value: statsData ? statsData.totalShipments.toLocaleString() : "...",
       change: "+12.5%",
       trend: "up",

@@ -69,7 +69,7 @@ export function WarehouseInboundOutbound({ mode }: Props) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const res = await fetch("/api/operations/warehouse/inventory");
+        const res = await fetch("/api/warehouse/inventory");
         if (!res.ok) throw new Error("Failed to load inventory");
         const json = await res.json();
 
@@ -114,7 +114,7 @@ export function WarehouseInboundOutbound({ mode }: Props) {
 
     try {
       // Persist to Backend
-      const res = await fetch("/api/operations/warehouse/inventory", {
+      const res = await fetch("/api/warehouse/inventory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: [newItem] }),

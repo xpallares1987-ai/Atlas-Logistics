@@ -363,9 +363,9 @@ const operationsRoutes: FastifyPluginAsync = async (fastify, opts) => {
       if (body.vessel) updateData.vessel = body.vessel;
       if (body.voyage) updateData.voyage = body.voyage;
       if (body.commodities) updateData.cargoDetails = JSON.stringify(body.commodities);
-      // Map customer if provided
-      if (body.customer && body.customer !== "Demo Customer Ltd") {
-        updateData.customerId = body.customer;
+      // Only update customerId if a valid company ID is provided (not free-text shipper names)
+      if (body.customerId) {
+        updateData.customerId = body.customerId;
       }
 
       const updated = await db

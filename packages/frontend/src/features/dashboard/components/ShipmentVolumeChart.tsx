@@ -3,10 +3,10 @@ import { Package } from 'lucide-react';
 import { useApiQuery } from '../../../hooks/useApiQuery';
 
 const COLORS: Record<string, string> = {
-  'In Transit': '#3b82f6',     // blue
-  'Customs Hold': '#f59e0b',   // amber
-  'Pending': '#8b5cf6',        // purple
-  'Completed': '#10b981',      // emerald
+  'PENDING': '#8b5cf6',        // purple
+  'IN_TRANSIT': '#3b82f6',     // blue
+  'CUSTOMS': '#f59e0b',        // amber
+  'DELIVERED': '#10b981',      // emerald
 };
 
 export function ShipmentVolumeChart() {

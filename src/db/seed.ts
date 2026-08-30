@@ -2,6 +2,7 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { faker } from "@faker-js/faker";
 import { sql } from "drizzle-orm";
+import { Argon2id } from "oslo/password";
 import * as schema from "./schema/index.js";
 import "dotenv/config";
 
@@ -67,12 +68,14 @@ async function main() {
 
   // 2. USERS & CONTACTS
   const userIds = ["admin_user_id"];
+  const adminPasswordHash = await new Argon2id().hash("admin");
   await db
     .insert(schema.users)
     .values({
       id: "admin_user_id",
       companyId: companyIds[0],
       email: "admin@atlas.com",
+      hashedPassword: adminPasswordHash,
       role: "ADMIN",
     })
     .onConflictDoNothing();

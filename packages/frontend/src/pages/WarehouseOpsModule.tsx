@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Truck,
   Box,
@@ -17,6 +17,35 @@ export default function WarehouseOpsModule() {
   const [activeTab, setActiveTab] = useState<
     "traffic" | "inbound" | "outbound" | "3d"
   >("traffic");
+  const [kpis, setKpis] = useState({ activeVehicles: 0, inboundPallets: 0, docksAvailable: "0 / 0", loadEfficiency: "0%" });
+
+  useEffect(() => {
+    async function fetchKpis() {
+      try {
+        const [trafficRes, inventoryRes] = await Promise.all([
+          fetch("/api/warehouse/traffic"),
+          fetch("/api/warehouse/inventory"),
+        ]);
+        const traffic = trafficRes.ok ? await trafficRes.json() : [];
+        const inventory = inventoryRes.ok ? await inventoryRes.json() : [];
+        const activeVehicles = Array.isArray(traffic) ? traffic.filter((v: any) => v.status !== "DISPATCHED").length : 0;
+        const inboundPallets = Array.isArray(inventory) ? inventory.reduce((sum: number, i: any) => sum + (i.expectedQuantity || 0), 0) : 0;
+        const totalDocks = 8;
+        const usedDocks = Array.isArray(traffic) ? traffic.filter((v: any) => v.assignedDock).length : 0;
+        const available = totalDocks - usedDocks;
+        const efficiency = Array.isArray(traffic) && traffic.length > 0
+          ? Math.round((traffic.filter((v: any) => v.status === "DISPATCHED").length / traffic.length) * 100)
+          : 0;
+        setKpis({
+          activeVehicles,
+          inboundPallets,
+          docksAvailable: `${available} / ${totalDocks}`,
+          loadEfficiency: `${efficiency}%`,
+        });
+      } catch { /* keep defaults */ }
+    }
+    fetchKpis();
+  }, []);
 
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-500 min-h-full flex flex-col">
@@ -40,7 +69,7 @@ export default function WarehouseOpsModule() {
                 Active Vehicles
               </span>
             </div>
-            <span className="text-4xl font-black text-white">12</span>
+            <span className="text-4xl font-black text-white">{kpis.activeVehicles}</span>
             <span className="text-emerald-400 text-xs font-semibold">
               +3 expected in 1h
             </span>
@@ -53,7 +82,7 @@ export default function WarehouseOpsModule() {
                 Inbound Pallets
               </span>
             </div>
-            <span className="text-4xl font-black text-white">450</span>
+            <span className="text-4xl font-black text-white">{kpis.inboundPallets}</span>
             <span className="text-blue-400 text-xs font-semibold">
               92% processing rate
             </span>
@@ -66,7 +95,7 @@ export default function WarehouseOpsModule() {
                 Docks Available
               </span>
             </div>
-            <span className="text-4xl font-black text-white">2 / 8</span>
+            <span className="text-4xl font-black text-white">{kpis.docksAvailable}</span>
             <span className="text-amber-400 text-xs font-semibold">
               High congestion
             </span>
@@ -79,7 +108,7 @@ export default function WarehouseOpsModule() {
                 Load Efficiency
               </span>
             </div>
-            <span className="text-4xl font-black text-white">96%</span>
+            <span className="text-4xl font-black text-white">{kpis.loadEfficiency}</span>
             <span className="text-emerald-400 text-xs font-semibold">
               Optimized via heuristics
             </span>

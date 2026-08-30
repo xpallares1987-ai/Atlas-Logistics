@@ -4,6 +4,39 @@ import { lanes } from "./pricing.js";
 import { carriers, customsBrokers } from "./vendors.js";
 import { locations, companies, users } from "./core.js";
 
+export const routeSegments = sqliteTable("route_segments", {
+  id: text("id").primaryKey(),
+  shipmentId: text("shipment_id")
+    .notNull()
+    .references(() => shipments.id),
+  sequenceOrder: integer("sequence_order").notNull(),
+  transportMode: text("transport_mode").notNull(),
+  originLocationId: text("origin_location_id").references(() => locations.id),
+  destinationLocationId: text("destination_location_id").references(
+    () => locations.id,
+  ),
+  departureTime: integer("departure_time", { mode: "timestamp" }),
+  arrivalTime: integer("arrival_time", { mode: "timestamp" }),
+  status: text("status").notNull(),
+  ...commonAuditFields,
+});
+
+export const warehouseTraffic = sqliteTable("warehouse_traffic", {
+  id: text("id").primaryKey(),
+  shipmentId: text("shipment_id").references(() => shipments.id),
+  driverName: text("driver_name"),
+  deviceNumber: text("device_number").notNull(), // Matricula / Vagon
+  deviceType: text("device_type").notNull(), // TRUCK, WAGON, CONTAINER_20, CONTAINER_40
+  status: text("status").notNull(), // WAITING, DOCK_ASSIGNED, LOADING, UNLOADING, DISPATCHED
+  eta: text("eta"), // string or timestamp
+  assignedDock: text("assigned_dock"),
+  cargoDescription: text("cargo_description"),
+  totalWeightExpected: real("total_weight_expected"),
+  expectedQuantity: integer("expected_quantity"),
+  type: text("type").notNull(), // INBOUND, OUTBOUND
+  ...commonAuditFields,
+});
+
 export const schedules = sqliteTable("schedules", {
   id: text("id").primaryKey(),
   laneId: text("lane_id")
@@ -81,6 +114,21 @@ export const hsCodes = sqliteTable("hs_codes", {
   id: text("id").primaryKey(),
   code: text("code").notNull().unique(),
   description: text("description").notNull(),
+  chapter: text("chapter"),
+  adValoremDuty: real("ad_valorem_duty").default(0),
+  specificDutyPerKg: real("specific_duty_per_kg").default(0),
+  vatRate: real("vat_rate").default(0.21),
+  isDualUse: integer("is_dual_use").default(0),
+  ...commonAuditFields,
+});
+
+export const tradeSanctions = sqliteTable("trade_sanctions", {
+  id: text("id").primaryKey(),
+  countryCode: text("country_code").notNull(),
+  countryName: text("country_name").notNull(),
+  sanctionType: text("sanction_type").notNull(), // EMBARGO, RESTRICTED, DUAL_USE_ONLY
+  description: text("description"),
+  isActive: integer("is_active").default(1),
   ...commonAuditFields,
 });
 
@@ -92,12 +140,21 @@ export const customsDeclarations = sqliteTable("customs_declarations", {
   brokerId: text("broker_id").references(() => customsBrokers.id),
   hsCodeId: text("hs_code_id").references(() => hsCodes.id),
   blNumber: text("bl_number"),
+  duaNumber: text("dua_number"),
   type: text("type").default("Import"),
+  customsValue: real("customs_value"),
   dutiesAmount: real("duties_amount"),
   taxesAmount: real("taxes_amount"),
-  status: text("status").notNull(),
-  aiRiskScore: integer("ai_risk_score"),
-  aiRiskFlag: text("ai_risk_flag"),
+  totalPayable: real("total_payable"),
+  status: text("status").notNull(), // Pending, Green Channel, Orange Channel, Red Channel, Cleared, Hold
+  riskScore: integer("risk_score"),
+  riskFlags: text("risk_flags"), // JSON array of deterministic rule messages
+  eoriNumber: text("eori_number"),
+  originCountry: text("origin_country"),
+  destinationCountry: text("destination_country"),
+  duaData: text("dua_data"), // JSON representation of 54 DUA boxes
+  aiRiskScore: integer("ai_risk_score"), // legacy fallback
+  aiRiskFlag: text("ai_risk_flag"), // legacy fallback
   ...commonAuditFields,
 });
 
@@ -107,7 +164,7 @@ export const bookings = sqliteTable("bookings", {
   customerId: text("customer_id")
     .notNull()
     .references(() => companies.id),
-  status: text("status").notNull().default("Pending"), // Pending, Confirmed, Rejected, Cancelled
+  status: text("status").notNull().default("DRAFT"), // DRAFT, CONFIRMED, DOCUMENTATION, ON_BOARD, Rejected, Cancelled
   origin: text("origin"),
   destination: text("destination"),
   serviceType: text("service_type"), // FCL, LCL, AIR, ROAD
@@ -116,5 +173,16 @@ export const bookings = sqliteTable("bookings", {
   voyage: text("voyage"),
   cargoDetails: text("cargo_details"), // JSON string
   estimatedDeparture: integer("estimated_departure", { mode: "timestamp" }),
+  ...commonAuditFields,
+});
+
+export const demurrageAlerts = sqliteTable("demurrage_alerts", {
+  id: text("id").primaryKey(),
+  shipmentId: text("shipment_id")
+    .notNull()
+    .references(() => shipments.id),
+  containerNumber: text("container_number").notNull(),
+  alertStatus: text("alert_status").notNull().default("active"), // active, mitigated, dismissed
+  lastNotified: integer("last_notified", { mode: "timestamp" }),
   ...commonAuditFields,
 });

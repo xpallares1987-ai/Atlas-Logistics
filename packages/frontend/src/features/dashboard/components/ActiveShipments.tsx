@@ -16,7 +16,7 @@ export function ActiveShipments() {
 
   // Map backend shipments to UI format
   // If no shipments exist, we could provide some visual defaults, but let's just map real data.
-  const activeShipments = shipments.slice(0, 5).map((s) => {
+  const activeShipments = shipments.filter((s) => s.status !== "DELIVERED" && s.status !== "COMPLETED").slice(0, 5).map((s) => {
     // Generate some display logic based on status
     const isTransit = s.status === "IN_TRANSIT" || s.status === "Departed";
     const progress = s.status === "COMPLETED" ? 100 : isTransit ? 65 : 20;
