@@ -97,6 +97,14 @@ export default function LclConsolidationModule() {
             }
             return c;
           }));
+          void fetch('/api/operations/lcl/consolidate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              masterContainerId: activeContainerId,
+              assignedCargoIds: cargoIds,
+            }),
+          }).catch(console.error);
         }}
       />
     </motion.div>
