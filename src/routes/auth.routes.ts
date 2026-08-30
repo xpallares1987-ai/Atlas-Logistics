@@ -71,7 +71,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
       reply.setCookie(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
       return { success: true, message: "Autenticado correctamente" };
     } catch (error) {
-      return reply.code(400).send({ error: "Formato de petición inválido" });
+      if (error instanceof z.ZodError) {
+        return reply.code(400).send({ error: "Formato de petición inválido" });
+      }
+      request.log.error(error);
+      return reply.code(500).send({ error: "Error interno del servidor" });
     }
   });
 
