@@ -53,7 +53,12 @@ export default async function authRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const { email, password } = loginSchema.parse(request.body);
+      const { email, password } = z
+        .object({
+          email: z.string().email(),
+          password: z.string().min(1),
+        })
+        .parse(request.body);
       
       const [existingUser] = await db.select().from(users).where(eq(users.email, email));
       if (!existingUser || !existingUser.hashedPassword) {
