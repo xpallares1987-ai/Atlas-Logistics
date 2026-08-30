@@ -99,7 +99,7 @@ export default function WarehouseOpsModule() {
   const { data: trafficRes, isLoading: loadingTraffic } = useQuery({
     queryKey: ["warehouse-traffic"],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/operations/warehouse/traffic`);
+      const res = await fetch(`${API_URL}/api/warehouse/traffic`);
       if (!res.ok) throw new Error("Failed to load traffic");
       return res.json();
     },
