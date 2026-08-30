@@ -28,7 +28,7 @@ export function CreateInvoiceModal({
   const [partyId, setPartyId] = useState(
     "00000000-0000-0000-0000-000000000001",
   );
-  const [shipmentId, setShipmentId] = useState("SHP-001");
+  const [shipmentId, setShipmentId] = useState("");
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
@@ -73,7 +73,7 @@ export function CreateInvoiceModal({
         invoiceNumber: `INV-${Math.floor(Math.random() * 100000)}`,
         type,
         partyId,
-        shipmentId,
+        shipmentId: shipmentId || undefined,
         currency: "USD",
         dueDate: new Date(dueDate).toISOString(),
         totalAmount,

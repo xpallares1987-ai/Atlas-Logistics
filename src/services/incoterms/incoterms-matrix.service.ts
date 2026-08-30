@@ -1272,10 +1272,8 @@ export class IncotermsMatrixService {
 
     const cleaned = namedPlace.trim().replace(/\s+/g, " ");
     const hasIncotermsMention = /incoterms[®\s]*2020/i.test(cleaned);
-    const firstToken = (cleaned.split(/\s+/, 1)[0] ?? "").replace(
-      /[^\p{L}\p{N}]+$/u,
-      "",
-    );
+    // Extract the first word-boundary token, ignoring any following punctuation
+    const firstToken = cleaned.match(/^[\p{L}\p{N}]+/u)?.[0] ?? "";
     const hasIncotermCode =
       firstToken.localeCompare(incotermCode, undefined, {
         sensitivity: "accent",

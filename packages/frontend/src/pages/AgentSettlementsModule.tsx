@@ -10,7 +10,6 @@ import {
   FileText,
   BadgeDollarSign,
   TrendingUp,
-  Download,
 } from "lucide-react";
 import { motion, Variants } from "framer-motion";
 import { Button, Input } from "@atlas/ui";
@@ -314,12 +313,6 @@ export default function AgentSettlementsModule() {
                           }).format(settlement.netBalance)}
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        className="w-8 h-8 rounded-full bg-white/5 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 border border-transparent hover:border-indigo-500/30 p-0"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
                     </div>
                   </motion.div>
                 ))}

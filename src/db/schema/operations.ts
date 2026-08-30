@@ -158,6 +158,21 @@ export const customsDeclarations = sqliteTable("customs_declarations", {
   ...commonAuditFields,
 });
 
+export const warehouseTraffic = sqliteTable("warehouse_traffic", {
+  id: text("id").primaryKey(),
+  deviceNumber: text("device_number").notNull(),
+  driverName: text("driver_name"),
+  deviceType: text("device_type").notNull().default("TRUCK"),
+  status: text("status").notNull().default("WAITING"),
+  eta: text("eta"),
+  assignedDock: text("assigned_dock"),
+  cargoDescription: text("cargo_description"),
+  totalWeightExpected: real("total_weight_expected").default(0),
+  expectedQuantity: integer("expected_quantity").default(1),
+  type: text("type").notNull().default("INBOUND"),
+  ...commonAuditFields,
+});
+
 export const bookings = sqliteTable("bookings", {
   id: text("id").primaryKey(),
   referenceNumber: text("reference_number"),

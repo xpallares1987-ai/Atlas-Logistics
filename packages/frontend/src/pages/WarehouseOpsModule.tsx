@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   Truck,
   Box,
@@ -12,6 +12,17 @@ import { WarehouseTrafficControl } from "@atlas/ui/src/components/WarehouseTraff
 import { WarehouseInboundOutbound } from "@atlas/ui/src/components/WarehouseInboundOutbound";
 import { Warehouse3D } from "@atlas/ui/src/components/Warehouse3D";
 import { Button } from "@atlas/ui";
+import { useApiQuery } from "../hooks/useApiQuery";
+
+interface TrafficRecord {
+  id: string;
+  status: string;
+  type: string;
+  expectedQuantity: number;
+  assignedDock: string | null;
+}
+
+const TOTAL_DOCKS = 8;
 
 export default function WarehouseOpsModule() {
   const [activeTab, setActiveTab] = useState<
@@ -47,6 +58,33 @@ export default function WarehouseOpsModule() {
     fetchKpis();
   }, []);
 
+  const { data: trafficData } = useApiQuery<{ data: TrafficRecord[] }>(
+    ["warehouse-traffic"],
+    "/warehouse/traffic",
+  );
+
+  const traffic: TrafficRecord[] = useMemo(
+    () => trafficData?.data ?? [],
+    [trafficData],
+  );
+
+  const activeVehicles = useMemo(
+    () => traffic.filter((t) => t.status !== "DEPARTED").length,
+    [traffic],
+  );
+  const inboundPallets = useMemo(
+    () =>
+      traffic
+        .filter((t) => t.type === "INBOUND" && t.status !== "DEPARTED")
+        .reduce((acc, t) => acc + (t.expectedQuantity ?? 0), 0),
+    [traffic],
+  );
+  const occupiedDocks = useMemo(
+    () => traffic.filter((t) => t.assignedDock && t.status !== "DEPARTED").length,
+    [traffic],
+  );
+  const availableDocks = Math.max(0, TOTAL_DOCKS - occupiedDocks);
+
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-500 min-h-full flex flex-col">
       {/* Header & KPI Summary */}
@@ -69,9 +107,9 @@ export default function WarehouseOpsModule() {
                 Active Vehicles
               </span>
             </div>
-            <span className="text-4xl font-black text-white">{kpis.activeVehicles}</span>
+            <span className="text-4xl font-black text-white">{activeVehicles}</span>
             <span className="text-emerald-400 text-xs font-semibold">
-              +3 expected in 1h
+              {activeVehicles === 0 ? "No active vehicles" : "On-site now"}
             </span>
           </div>
 
@@ -82,9 +120,9 @@ export default function WarehouseOpsModule() {
                 Inbound Pallets
               </span>
             </div>
-            <span className="text-4xl font-black text-white">{kpis.inboundPallets}</span>
+            <span className="text-4xl font-black text-white">{inboundPallets}</span>
             <span className="text-blue-400 text-xs font-semibold">
-              92% processing rate
+              {inboundPallets === 0 ? "No inbound" : "Expected today"}
             </span>
           </div>
 
@@ -95,9 +133,9 @@ export default function WarehouseOpsModule() {
                 Docks Available
               </span>
             </div>
-            <span className="text-4xl font-black text-white">{kpis.docksAvailable}</span>
-            <span className="text-amber-400 text-xs font-semibold">
-              High congestion
+            <span className="text-4xl font-black text-white">{availableDocks} / {TOTAL_DOCKS}</span>
+            <span className={`text-xs font-semibold ${availableDocks === 0 ? "text-rose-400" : availableDocks < 3 ? "text-amber-400" : "text-emerald-400"}`}>
+              {availableDocks === 0 ? "All docks occupied" : `${occupiedDocks} occupied`}
             </span>
           </div>
 
@@ -108,9 +146,13 @@ export default function WarehouseOpsModule() {
                 Load Efficiency
               </span>
             </div>
-            <span className="text-4xl font-black text-white">{kpis.loadEfficiency}</span>
+            <span className="text-4xl font-black text-white">
+              {TOTAL_DOCKS > 0
+                ? `${Math.round(((TOTAL_DOCKS - availableDocks) / TOTAL_DOCKS) * 100)}%`
+                : "0%"}
+            </span>
             <span className="text-emerald-400 text-xs font-semibold">
-              Optimized via heuristics
+              Dock utilization
             </span>
           </div>
         </div>
