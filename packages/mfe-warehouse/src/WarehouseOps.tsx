@@ -108,7 +108,7 @@ export default function WarehouseOpsModule() {
   const { data: inventoryRes, isLoading: loadingInventory } = useQuery({
     queryKey: ["warehouse-inventory"],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/operations/warehouse/inventory`);
+      const res = await fetch(`${API_URL}/api/warehouse/inventory`);
       if (!res.ok) throw new Error("Failed to load inventory");
       return res.json();
     },
