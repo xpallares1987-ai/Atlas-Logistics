@@ -1272,7 +1272,10 @@ export class IncotermsMatrixService {
 
     const cleaned = namedPlace.trim().replace(/\s+/g, " ");
     const hasIncotermsMention = /incoterms[®\s]*2020/i.test(cleaned);
-    const firstToken = cleaned.split(/\s+/, 1)[0] ?? "";
+    const firstToken = (cleaned.split(/\s+/, 1)[0] ?? "").replace(
+      /[^\p{L}\p{N}]+$/u,
+      "",
+    );
     const hasIncotermCode =
       firstToken.localeCompare(incotermCode, undefined, {
         sensitivity: "accent",
