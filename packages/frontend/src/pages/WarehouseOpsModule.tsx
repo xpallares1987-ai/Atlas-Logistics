@@ -28,35 +28,6 @@ export default function WarehouseOpsModule() {
   const [activeTab, setActiveTab] = useState<
     "traffic" | "inbound" | "outbound" | "3d"
   >("traffic");
-  const [kpis, setKpis] = useState({ activeVehicles: 0, inboundPallets: 0, docksAvailable: "0 / 0", loadEfficiency: "0%" });
-
-  useEffect(() => {
-    async function fetchKpis() {
-      try {
-        const [trafficRes, inventoryRes] = await Promise.all([
-          fetch("/api/warehouse/traffic"),
-          fetch("/api/warehouse/inventory"),
-        ]);
-        const traffic = trafficRes.ok ? await trafficRes.json() : [];
-        const inventory = inventoryRes.ok ? await inventoryRes.json() : [];
-        const activeVehicles = Array.isArray(traffic) ? traffic.filter((v: any) => v.status !== "DISPATCHED").length : 0;
-        const inboundPallets = Array.isArray(inventory) ? inventory.reduce((sum: number, i: any) => sum + (i.expectedQuantity || 0), 0) : 0;
-        const totalDocks = 8;
-        const usedDocks = Array.isArray(traffic) ? traffic.filter((v: any) => v.assignedDock).length : 0;
-        const available = totalDocks - usedDocks;
-        const efficiency = Array.isArray(traffic) && traffic.length > 0
-          ? Math.round((traffic.filter((v: any) => v.status === "DISPATCHED").length / traffic.length) * 100)
-          : 0;
-        setKpis({
-          activeVehicles,
-          inboundPallets,
-          docksAvailable: `${available} / ${totalDocks}`,
-          loadEfficiency: `${efficiency}%`,
-        });
-      } catch { /* keep defaults */ }
-    }
-    fetchKpis();
-  }, []);
 
   const { data: trafficData } = useApiQuery<{ data: TrafficRecord[] }>(
     ["warehouse-traffic"],
