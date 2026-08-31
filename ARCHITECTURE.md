@@ -74,6 +74,9 @@ The server runtime is built on **Fastify 5**, providing high throughput and nati
   - `/api/rail`: Corridors TEN-T (RFC4/RFC6), terminals, rolling stock wagons, CIM consignments, train consists (750m), axle loads (EN 15528), braking percentage, ERA TAF-TSI XML, CIM PDF & Brake Sheet PDF.
   - `/api/customs-warehouse`: Facilities (DA/DDA/ADT/ZF), guarantees (AEAT GRN), inventory lots, official stock ledger, debt suspension & discharge tax settlement, DVD PDF, and Stock Certificate PDF.
   - `/api/fueleu`: Marine fuels, merchant vessels, voyages, compliance accounts, fleet pools (Art. 21), EU ETS liability & Green BAF per TEU, EMSA THETIS-MRV XML, FuelEU Compliance Certificate PDF & BDN PDF.
+  - `/api/trade-finance`: Documentary credits (UCP 600), demand guarantees (URDG 758), collections (URC 522), discrepancy validation, fee simulator, SWIFT MT700/MT734, presentation dossiers PDF.
+  - `/api/aeo-security`: AEO self-assessment audits (CAE DG TAXUD/AEAT), 7-point C-TPAT/OEAS container inspections, ISO 17712 security seals ledger, ISO 28000 partner risk matrices, 4 official PDF reports.
+  - `/api/chartering`: Voyage & Time charter fixtures (Gencon 2022 / NYPE 2015), NOR & turn-time validation, SOF event chronology, laytime & demurrage/despatch computation (ATS/WTS), time charter off-hire audit, 4 maritime PDF documents.
 
 ---
 
@@ -121,10 +124,15 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
 15. **Trade Finance UCP 600 Bank Charges & Insurance Formulas (UCP 600 Art. 28 & ISBP 745)**:
     $$\text{Minimum Insured Amount (EUR)} = \text{Invoice CIF Amount} \times 1.10 \quad (\ge 110\%)$$
     $$\text{Opening Fee (€)} = \text{Credit Amount} \times \left(\frac{\text{Opening Rate } \%}{100}\right) \times \left\lceil \frac{\text{Tenor Days}}{90} \right\rceil$$
-    $$\text{Confirmation Fee (€)} = \text{Credit Amount} \times \left(\frac{\text{Confirmation Rate } \%}{100}\right) \times \left(\frac{\text{Tenor Days}}{360}\right)$$
 16. **AEO / C-TPAT Readiness & Partner Risk Scoring (CAU Art. 39 & ISO 28000)**:
     $$\text{AEO Overall Readiness (\%)} = \sum_{i=1}^{6} \left( w_i \times \text{Score Bloque CAE } i \right) \quad (\ge 85\% \implies \text{Audit Ready})$$
-    $$\text{Partner Risk Score} = (0.40 \times \text{Questionnaire}) + 35\text{ (AEO)} + 15\text{ (C-TPAT)} + 10\text{ (ISO 28000)} - 15\text{ (if audit } > 12\text{m)}$$
+17. **Maritime Laytime, Demurrage & Despatch Formulas (BIMCO Gencon / ASBATANKVO)**:
+    $$\text{Allowed Laytime (Days)} = \frac{\text{Cargo Quantity (MT)}}{\text{Loading/Discharge Rate (MT/WWD)}}$$
+    $$\text{Net Laytime Used} = \sum \left( \text{Event Duration} \times \frac{\text{\% Counted}}{100} \right)$$
+    $$\text{Demurrage Payable (\$)} = \left(\frac{\text{Net Used} - \text{Allowed}}{86400}\right) \times \text{Demurrage Rate/Day} \quad (\text{if Net Used} > \text{Allowed})$$
+    $$\text{Despatch Due (\$)} = \left(\frac{\text{Allowed} - \text{Net Used}}{86400}\right) \times \text{Despatch Rate/Day} \quad (\text{if Net Used} < \text{Allowed})$$
+18. **Time Charter Net Payable Balance (NYPE 2015)**:
+    $$\text{Net Payable} = (\text{Total Days} \times \text{Daily Hire}) - (\text{Off-Hire Days} \times \text{Daily Hire}) - \text{Bunker Offset} - \text{Commissions}$$
 
 ---
 
@@ -135,9 +143,9 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
   - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
   - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
   - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
-- **96 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+- **101 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
 - **WAL Journal Mode & Busy Timeout**: High-concurrency transaction resiliency for background jobs and concurrent Fastify requests.
-- **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`, `OEA-YYYY-XXXX`) and immutable audit logs.
+- **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`, `OEA-YYYY-XXXX`, `CP-YYYY-XXXX`) and immutable audit logs.
 - **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.
 - **Automated Backup Utility**: Daily snapshot scheduler saving database state to `/backups`.
 
@@ -145,6 +153,6 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
 
 ## 6. Testing & Quality Assurance
 
-- **Vitest Suite**: 60 test suites with 293 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
+- **Vitest Suite**: 64 test suites with 310 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
 - **Playwright E2E**: End-to-end browser tests verifying user flows across all operational modules.
 - **CodeQL SAST**: Continuous security analysis with zero alerts.
