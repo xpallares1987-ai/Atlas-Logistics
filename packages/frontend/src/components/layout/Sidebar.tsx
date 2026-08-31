@@ -29,6 +29,7 @@ import {
   Ship,
   ShieldCheck,
   Anchor,
+  Flame,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -314,6 +315,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Anchor}
               >
                 Chartering & Laytime (BIMCO)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/general-average"
+                icon={Flame}
+              >
+                General Average (YAR 2016)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}

@@ -50,6 +50,7 @@ import { fuelEuRoutes } from "./routes/fueleu.routes.js";
 import { tradeFinanceRoutes } from "./routes/trade-finance.routes.js";
 import { aeoSecurityRoutes } from "./routes/aeo-security.routes.js";
 import { charteringLaytimeRoutes } from "./routes/chartering-laytime.routes.js";
+import { generalAverageRoutes } from "./routes/general-average.routes.js";
 
 // Removed tRPC imports
 
@@ -199,5 +200,6 @@ app.register(fuelEuRoutes, { prefix: "/api/fueleu" });
 app.register(tradeFinanceRoutes, { prefix: "/api/trade-finance" });
 app.register(aeoSecurityRoutes, { prefix: "/api/aeo-security" });
 app.register(charteringLaytimeRoutes, { prefix: "/api/chartering" });
+app.register(generalAverageRoutes, { prefix: "/api/general-average" });
 
 export default app;
