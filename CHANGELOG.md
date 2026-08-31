@@ -5,6 +5,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.12.0] - 2026-08-31
+
+### 🌟 Added
+- **Maritime General Average & Salvage Engine (York-Antwerp Rules 2016 / Lloyd's Open Form LOF 2024 / SCOPIC 2020 / Lloyd's Average Bond LAB 77 & Underwriter Guarantees)**:
+  - **Relational Data Model (`src/db/schema/general_average.ts`)**:
+    - 5 specialized tables bringing database total to **106 tables**: `gaCases`, `gaAllowances`, `gaContributoryInterests`, `gaSecurities`, `gaAdjustments`.
+    - Migration `0016_blushing_the_executioner.sql` applied to dev and production databases.
+  - **Deterministic Allowance & Statutory Costs Service (`GeneralAverageAllowanceService`)**:
+    - Admissible sacrifices and expenses per York-Antwerp Rules 2016 (Rules I to XI).
+    - Rule XX: 2.5% statutory commission on port of refuge disbursements and cargo lightening.
+    - Rule XXI: CMI annual interest rate computed from casualty date to adjustment date.
+  - **Contributory Value Assessment Service (`ContributoryValueService`)**:
+    - Net sound values at destination for Vessel, Freight at Risk, Cargo CIF parcels, and Containers ($CV = \text{Sound} - \text{Damage} + \text{Made Good}$).
+  - **Adjustment & Apportionment Engine (`GeneralAverageAdjustmentService`)**:
+    - Global rate of contribution $\text{Rate } \% = (GA_{\text{Total}} / CV_{\text{Total}}) \times 100$.
+    - Apportionment per interest, debtor/creditor balance sheet reconciliation with zero discrepancy.
+    - Recommended cash deposit calculation with safety margin ($CV \times (\text{Rate} + 10\%)$).
+  - **Official Regulatory Documentation in PDF (`PDFService`)**:
+    - Official **Master's Declaration of General Average & Sea Protest PDF** (YAR 2016).
+    - Official **Lloyd's Average Bond Form (LAB 77 PDF)**.
+    - Official **Underwriter's Average Guarantee PDF**.
+    - Official **General Average Adjustment Statement & Apportionment Matrix PDF**.
+  - **Fastify REST API & Integration Tests**:
+    - `/api/general-average/*` endpoints passing all 9 integration tests.
+  - **Interactive Workbench (`/general-average`)**:
+    - 3-tabbed interface with 4 top KPI cards, Case & Protest viewer, live deterministic York-Antwerp Rules adjustment simulator, and LAB 77 security manager.
+  - **Playwright E2E Testing**:
+    - End-to-end test suite in `tests/e2e/general-average.spec.ts`.
+
 ## [1.11.0] - 2026-08-31
 
 ### 🌟 Added

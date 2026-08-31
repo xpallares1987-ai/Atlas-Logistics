@@ -188,9 +188,23 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
   - **Póliza de Fletamento / Fixture Recap PDF** (Gencon 2022 / NYPE 2015 con cláusulas BIMCO).
   - **Estado de Hechos Oficial (Statement of Facts SOF PDF)** con cronología completa de escala y firma de capitán/agente.
   - **Hoja de Liquidación de Planchas & Estado de Demoras/Despatch PDF** (*Laytime Calculation Sheet & Statement of Account*).
-  - **Estado de Liquidación de Fletamento por Tiempo (Time Charter Hire & Off-Hire Statement PDF)**.
+### 16. 🚨 Avería Gruesa Marítima & Salvamento (York-Antwerp Rules 2016 / LOF 2024 / SCOPIC / LAB 77)
+- **Régimen Internacional York-Antwerp Rules (YAR 2016 / 1994)**:
+  - Soporte integral de siniestros mayores: Incendios a bordo y daños por extinción (Regla III), varadas voluntarias/involuntarias y esfuerzo de máquinas para reflotar (Regla VII), alijo y transbordo de carga en barcazas (Regla VIII), gastos de entrada, estancia y salida en puerto de refugio (Regla X), salarios de tripulación y combustible (Regla XI), y reparaciones provisionales (Regla XIV).
+- **Contratos de Salvamento Marítimo & Cláusula SCOPIC**:
+  - Gestión y liquidación pericial de salvamentos bajo **Lloyd's Open Form (LOF 2024 / 2020)** con cláusula de compensación especial ambiental **SCOPIC 2020** (*Special Compensation P&I Club Clause*) y acuerdos amistosos con empresas de salvamento (Smit, Boluda, Svitzer).
+- **Liquidación Determinista 4-en-1**:
+  - **Masa Activa Admisible**: Cómputo de sacrificios y gastos con **comisión estatutaria del 2.5%** sobre fondos desembolsados (Regla XX) e **intereses anuales CMI** (Regla XXI) desde la fecha del siniestro hasta la emisión del ajuste.
+  - **Masa Pasiva Contributoria**: Tasación de valores netos salvados en destino para Buque ($V_{\text{Sound}} - \text{Daño Particular} + \text{Made Good}$), Flete al Riesgo, Cargamento CIF comercial y Contenedores.
+  - **Tasa de Contribución & Matriz de Prorrateo**: $\text{Tasa } \% = (GA_{\text{Total}} / CV_{\text{Total}}) \times 100$, determinación de balances netos y conciliación de saldos deudores vs acreedores con margen cero de discrepancia.
+  - **Gestor de Garantías y Depósitos**: Emisión y validación de compromisos **Lloyd's Average Bond (Form LAB 77)**, Garantías de Aseguradores de Transporte (*Underwriter's Average Guarantee*) y depósitos en efectivo en cuentas fiduciarias (*Cash Deposits* bajo Regla XXII).
+- **Paquete Documental Oficial Marítimo en PDF**:
+  - **Declaración Formal de Avería Gruesa & Protesta de Mar Notarial en PDF** (YAR 2016).
+  - **Lloyd's Average Bond (Formulario Oficial LAB 77 en PDF)** vinculante para consignatarios.
+  - **Garantía de Asegurador de Transportes (Average Guarantee en PDF)**.
+  - **Cuadro y Dictamen Pericial de Liquidación de Avería Gruesa en PDF** (*General Average Adjustment Statement & Apportionment Matrix*).
 
-### 16. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 17. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---

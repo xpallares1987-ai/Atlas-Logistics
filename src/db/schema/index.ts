@@ -20,3 +20,4 @@ export * from "./fueleu_maritime.js";
 export * from "./trade_finance.js";
 export * from "./aeo_security.js";
 export * from "./chartering_laytime.js";
+export * from "./general_average.js";

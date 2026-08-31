@@ -133,6 +133,13 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
     $$\text{Despatch Due (\$)} = \left(\frac{\text{Allowed} - \text{Net Used}}{86400}\right) \times \text{Despatch Rate/Day} \quad (\text{if Net Used} < \text{Allowed})$$
 18. **Time Charter Net Payable Balance (NYPE 2015)**:
     $$\text{Net Payable} = (\text{Total Days} \times \text{Daily Hire}) - (\text{Off-Hire Days} \times \text{Daily Hire}) - \text{Bunker Offset} - \text{Commissions}$$
+19. **General Average Apportionment & Rate of Contribution (York-Antwerp Rules 2016)**:
+    $$GA_{\text{Total}} = \sum \text{Sacrificios} + \sum \text{Gastos Refugio} + \text{Salvamento LOF} + (0.025 \times \text{Desembolsos}) + \text{Intereses CMI}$$
+    $$CV_{\text{Total}} = CV_{\text{Buque}} + CV_{\text{Flete}} + \sum CV_{\text{Carga CIF}} + CV_{\text{Contenedores}}$$
+    $$\text{Tasa de Contribución } \% = \left( \frac{GA_{\text{Total}}}{CV_{\text{Total}}} \right) \times 100$$
+20. **Interest Net Financial Balance & Recommended Cash Deposit (Rule XXII)**:
+    $$\text{Net Balance } i = \left( CV_i \times \frac{\text{Tasa } \%}{100} \right) - \text{Made Good Allowance } i$$
+    $$\text{Cash Deposit } i = CV_i \times \left( \frac{\text{Tasa } \% + 10\%}{100} \right)$$
 
 ---
 
@@ -143,9 +150,9 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
   - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
   - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
   - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
-- **101 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+- **106 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
 - **WAL Journal Mode & Busy Timeout**: High-concurrency transaction resiliency for background jobs and concurrent Fastify requests.
-- **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`, `OEA-YYYY-XXXX`, `CP-YYYY-XXXX`) and immutable audit logs.
+- **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`, `OEA-YYYY-XXXX`, `CP-YYYY-XXXX`, `GA-YYYY-XXXX`) and immutable audit logs.
 - **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.
 - **Automated Backup Utility**: Daily snapshot scheduler saving database state to `/backups`.
 
@@ -153,6 +160,6 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
 
 ## 6. Testing & Quality Assurance
 
-- **Vitest Suite**: 64 test suites with 310 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
+- **Vitest Suite**: 68 test suites with 323 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
 - **Playwright E2E**: End-to-end browser tests verifying user flows across all operational modules.
 - **CodeQL SAST**: Continuous security analysis with zero alerts.

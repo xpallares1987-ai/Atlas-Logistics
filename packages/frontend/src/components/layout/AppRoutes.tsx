@@ -83,6 +83,9 @@ const AeoSecurityModule = React.lazy(
 const CharteringLaytimeModule = React.lazy(
   () => import("../../pages/CharteringLaytimeModule"),
 );
+const GeneralAverageModule = React.lazy(
+  () => import("../../pages/GeneralAverageModule"),
+);
 const InvoicingModule = React.lazy(() => import("../../pages/InvoicingModule"));
 const AgentSettlementsModule = React.lazy(
   () => import("../../pages/AgentSettlementsModule"),
@@ -371,6 +374,16 @@ export const AppRoutes = () => {
               allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
             >
               <CharteringLaytimeModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/general-average"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+            >
+              <GeneralAverageModule />
             </ProtectedRoute>
           }
         />
