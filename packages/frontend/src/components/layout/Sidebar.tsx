@@ -28,6 +28,7 @@ import {
   Building2,
   Ship,
   ShieldCheck,
+  Anchor,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -306,6 +307,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={ShieldCheck}
               >
                 AEO & Security (OEA / C-TPAT)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/chartering-laytime"
+                icon={Anchor}
+              >
+                Chartering & Laytime (BIMCO)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}

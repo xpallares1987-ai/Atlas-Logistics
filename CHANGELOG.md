@@ -5,6 +5,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.11.0] - 2026-08-31
+
+### 🌟 Added
+- **Maritime Chartering & Laytime / Demurrage Engine (BIMCO Gencon 2022 / NYPE 2015 / ASBATANKVO)**:
+  - **Charter Party & Fixture Management (Voyage & Time Charter)**:
+    - Support for standard forms: **BIMCO Gencon 2022**, **NYPE 2015**, and **ASBATANKVO**.
+    - Full parameters: FIOST terms, cargo quantity with MOLOO/MOLCO margins, loading/discharging ports, laycan windows, daily hire and freight rates.
+  - **Notice of Readiness (NOR) & Turn Time Calculation Service (`NorTurnTimeService`)**:
+    - Business hours checking and weekend rollover (Saturday afternoon / Sunday to Monday 08:00 UTC).
+    - Turn-time expiry calculation (e.g., 12 hours) and early commencement if operations start before expiry.
+    - Contractual clauses verification: **WIPON** (*Whether In Port Or Not*), **WIBON** (*Whether In Berth Or Not*), **WIFPON** (*Whether In Free Pratique Or Not*), and **WCCON** (*Whether Customs Cleared Or Not*).
+  - **Deterministic Laytime, Demurrage & Despatch Calculator (`LaytimeCalculationService`)**:
+    - Allowed laytime computation ($MT / \text{Rate}$).
+    - Chronological SOF event evaluation with automatic deductions for weather/rain (**WWD**), Sundays/holidays (**SHEX** EIU / UU, **FHEX**), and ship-side breakdowns.
+    - Enforcement of universal maritime rule: *"Once on demurrage, always on demurrage"*.
+    - Demurrage vs Despatch financial settlement under **ATS** (*All Time Saved*) and **WTS** (*Working Time Saved*).
+  - **Time Charter Hire & Off-Hire Audit Service (`TimeCharterHireService`)**:
+    - Period gross hire, off-hire days deductions, bunker compensation (VLSFO / MGO), address commission, and brokerage commissions.
+  - **Official Maritime Documentation in PDF (`PDFService`)**:
+    - Official **Charter Party / Fixture Recap PDF** (Gencon 2022 / NYPE 2015).
+    - Official **Statement of Facts (SOF PDF)** with port stay milestones and event chronology.
+    - Official **Laytime Calculation Sheet & Statement of Account PDF**.
+    - Official **Time Charter Hire & Off-Hire Statement PDF**.
+  - **Interactive Workbench (`/chartering-laytime`)**: 3-tabbed interface with top KPIs, Fixtures manager, interactive Laytime & Rain simulator, and Time Charter audit tool.
+
 ## [1.10.0] - 2026-08-29
 
 ### 🌟 Added

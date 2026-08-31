@@ -169,7 +169,28 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
   - Evaluación y screening determinista de transportistas, agentes de aduanas, almacenes y empacadores (*Low / Medium / High Risk*).
   - Emisión de la **Matriz Oficial de Evaluación de Riesgos de Proveedores Logísticos en PDF**.
 
-### 15. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 15. ⚓ Fletamentos Marítimos & Liquidación de Planchas y Demoras (BIMCO Gencon 2022 / NYPE 2015 / ASBATANKVO)
+- **Suite Integral de Pólizas de Fletamento**:
+  - **Fletamento por Viaje (Voyage Charter / BIMCO Gencon 2022 & ASBATANKVO)**: Contratos FIOST (*Free In and Out Stowed and Trimmed*), fletes por tonelada métrica, márgenes MOLOO/MOLCO (+/- 5%), tasas de carga/descarga y cómputo de planchas.
+  - **Fletamento por Tiempo (Time Charter / NYPE 2015)**: Alquiler por día de navegación, auditoría de velocidad y consumo (*Speed & Consumption*), off-hire por avería o desviación y compensación de búnkeres consumidos (VLSFO / MGO).
+- **Validación de Notice of Readiness (NOR) & Turn Time**:
+  - Verificación reglamentaria de días hábiles y horario de oficina (desplazamiento de avisos en domingo/sábado a lunes 08:00 UTC).
+  - Cómputo de vencimiento de tiempo de espera (*Turn Time / e.g. 12 horas*) o inicio anticipado si las operaciones comienzan antes.
+  - Cláusulas contractuales marítimas: **WIPON** (*Whether In Port Or Not*), **WIBON** (*Whether In Berth Or Not*), **WIFPON** (*Whether In Free Pratique Or Not*) y **WCCON** (*Whether Customs Cleared Or Not*).
+- **Cronología SOF (Statement of Facts) & Deducciones Automáticas**:
+  - Registro cronológico inmutable de escala: EOSP, fondeo, atraque (*all fast*), inicio de plancha, eventos operativos e interrupciones.
+  - Deducciones automáticas: Temporal y lluvia bajo días de trabajo con tiempo favorable (**WWD - Weather Working Days**), domingos y festivos bajo **SHEX** (*Sundays and Holidays Excluded* - EIU vs UU) y **FHEX** (*Fridays and Holidays Excluded*), y averías de grúas/bodegas del buque.
+  - Regla Marítima Universal: *"Once on demurrage, always on demurrage"* (cesan las deducciones de lluvia y festivos cuando se agota la plancha permitida).
+- **Liquidación de Demurrage & Despatch (ATS vs WTS)**:
+  - Cómputo exacto de días y horas de exceso (Demurrage a favor del armador) o tiempo ahorrado (Despatch a favor del fletador).
+  - Modalidades: **ATS** (*All Time Saved* / 24h continuas) y **WTS** (*Working Time Saved* / solo horas laborables de plancha).
+- **Documentación Legal Marítima PDF**:
+  - **Póliza de Fletamento / Fixture Recap PDF** (Gencon 2022 / NYPE 2015 con cláusulas BIMCO).
+  - **Estado de Hechos Oficial (Statement of Facts SOF PDF)** con cronología completa de escala y firma de capitán/agente.
+  - **Hoja de Liquidación de Planchas & Estado de Demoras/Despatch PDF** (*Laytime Calculation Sheet & Statement of Account*).
+  - **Estado de Liquidación de Fletamento por Tiempo (Time Charter Hire & Off-Hire Statement PDF)**.
+
+### 16. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---
