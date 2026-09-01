@@ -333,6 +333,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
+                to="/cargo-insurance"
+                icon={ShieldCheck}
+              >
+                Cargo Insurance (ICC/LMA)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
                 to="/contracts"
                 icon={FileSignature}
               >

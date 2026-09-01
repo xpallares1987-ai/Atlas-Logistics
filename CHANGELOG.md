@@ -5,6 +5,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.14.0] - 2026-09-01
+
+### 🌟 Added
+- **Cargo Insurance & Marine Open Cover Policy Engine (Institute Cargo Clauses ICC A/B/C 2009 / LMA/IUA / UCP 600 Art. 28 / Incoterms® CIF & CIP)**:
+  - **Relational Data Model (`src/db/schema/cargo_insurance.ts`)**:
+    - 5 specialized tables bringing database total to **116 tables**: `insuranceOpenPolicies`, `insuranceCertificates`, `insuranceBordereaux`, `insuranceBordereauLines`, `insuranceClaimsSettlements`.
+    - Migration `0018_little_polaris.sql` applied cleanly to both dev and production SQLite databases.
+  - **Insured Value Calculator Service (`InsuredValueCalculatorService`)**:
+    - Calculates statutory 110% CIF / CIP insured sum under UCP 600 Art. 28 ($\text{Suma Asegurada} = \text{CIF Base} \times 1.10$).
+    - Validates currency match, minimum statutory markup rules, and conveyance limits.
+  - **Actuarial Premium Rating Service (`ActuarialPremiumRatingService`)**:
+    - Rule-based rating for Institute Cargo Clauses (A) All Risks (0.25%), ICC (B) (0.18%), ICC (C) (0.12%), ICC Air (0.20%).
+    - Multipliers for commodity risk (General Cargo, Machinery, DGR Chemicals, Electronics, Pharma/Reefer) and transport modes (Maritime FCL/LCL, Air, Road).
+    - War & Strikes surcharge (+0.04%), minimum premium ($50.00), statutory IPS tax (6.0%) and Consorcio de Compensación de Seguros CCS (0.005%).
+  - **Claim Adjustment & Settlement Service (`ClaimAdjustmentSettlementService`)**:
+    - Particular average assessment ($(\text{Sound Value} - \text{Salvage}) / \text{Sound Value} \times 100$), actual vs constructive total loss evaluation, and deductible deduction.
+  - **Official Regulatory Documentation in PDF (`PDFService`)**:
+    - Official **Certificate of Cargo Insurance PDF (UCP 600 Art. 28)** with international banking validity.
+    - Official **Marine Open Cover Policy Schedule PDF**.
+    - Official **Monthly Insurance Declaration Bordereau PDF**.
+    - Official **Cargo Insurance Claim Adjustment Statement PDF**.
+  - **Fastify REST API & Integration Tests**:
+    - `/api/cargo-insurance/*` endpoints passing all 10 integration tests.
+  - **Interactive Workbench (`/cargo-insurance`)**:
+    - 3-tabbed interface with 4 top KPI cards, Actuarial & 110% CIF Quote Calculator, Open Cover Policy & Bordereau manager, and Certificate & Claim Settlement simulator.
+  - **Playwright E2E Testing**:
+    - End-to-end test suite in `tests/e2e/cargo-insurance.spec.ts`.
+
 ## [1.13.0] - 2026-09-01
 
 ### 🌟 Added

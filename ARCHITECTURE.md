@@ -79,6 +79,7 @@ The server runtime is built on **Fastify 5**, providing high throughput and nati
   - `/api/chartering`: Voyage & Time charter fixtures (Gencon 2022 / NYPE 2015), NOR & turn-time validation, SOF event chronology, laytime & demurrage/despatch computation (ATS/WTS), time charter off-hire audit, 4 maritime PDF documents.
   - `/api/general-average`: York-Antwerp Rules 2016 allowances (Rules I..XI, XX 2.5%, XXI CMI interest), contributory values, adjustment apportionment, Lloyd's Average Bond LAB 77, 4 marine casualty PDFs.
   - `/api/dangerous-goods`: IMDG 7.2.4 segregation matrix, ADR 1.1.3.6 1,000 points calculation, IATA DGR lithium battery classifier (UN 3480 CAO & SoC ≤30%), EmS emergency cards, IMO DGD & IATA DGD PDFs.
+  - `/api/cargo-insurance`: Actuarial premium rating (ICC A/B/C/Air), 110% CIF sum calculation (UCP 600 Art. 28), Open Cover policies, monthly Bordereaux, particular average claim adjustment, 4 insurance PDFs.
 
 ---
 
@@ -135,6 +136,9 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
 20. **IMDG Table 7.2.4 Chemical Segregation & Prohibited Co-Load Function**:
     $$\text{Status}(A, B) = \text{IMDG\_Matrix}(\text{Class}_A, \text{Class}_B) \in \{0, 1, 2, 3, 4, X\}$$
     $$\text{Container Audit} = \begin{cases} \text{Violation} & \text{if } \exists (i, j) \text{ with code } \in \{X, 4, 3, 2\} \\ \text{Compliant} & \text{otherwise} \end{cases}$$
+21. **UCP 600 Art. 28 Insured Value & Actuarial Rating Formula**:
+    $$\text{Insured Sum} = (\text{Invoice} + \text{Freight} + \text{Insurance}) \times 1.10 \quad (110\% \text{ CIF})$$
+    $$\text{Gross Premium} = \max\left(\text{Min Premium}, \; \text{Insured Sum} \times \frac{\text{Rate}_{\text{Clause}} \times F_{\text{Commodity}} \times F_{\text{Mode}} + \text{Rate}_{\text{War}}}{100}\right) \times (1 + 0.06_{\text{IPS}} + 0.00005_{\text{CCS}})$$
 
 ---
 
@@ -145,9 +149,9 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
   - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
   - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
   - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
-- **111 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+- **116 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
 - **WAL Journal Mode & Busy Timeout**: High-concurrency transaction resiliency for background jobs and concurrent Fastify requests.
-- **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`, `OEA-YYYY-XXXX`, `CP-YYYY-XXXX`, `GA-YYYY-XXXX`, `DGD-YYYY-XXXX`) and immutable audit logs.
+- **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`, `OEA-YYYY-XXXX`, `CP-YYYY-XXXX`, `GA-YYYY-XXXX`, `DGD-YYYY-XXXX`, `INS-CERT-YYYY-XXXX`) and immutable audit logs.
 - **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.
 - **Automated Backup Utility**: Daily snapshot scheduler saving database state to `/backups`.
 
@@ -155,6 +159,6 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
 
 ## 6. Testing & Quality Assurance
 
-- **Vitest Suite**: 73 test suites with 346 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
+- **Vitest Suite**: 77 test suites with 364 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
 - **Playwright E2E**: End-to-end browser tests verifying user flows across all operational modules.
 - **CodeQL SAST**: Continuous security analysis with zero alerts.
