@@ -12,6 +12,7 @@ jobs:
   db-push:
     name: Push DB Schema
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     permissions:
       contents: read
     env:
