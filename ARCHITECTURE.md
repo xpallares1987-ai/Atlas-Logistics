@@ -77,6 +77,8 @@ The server runtime is built on **Fastify 5**, providing high throughput and nati
   - `/api/trade-finance`: Documentary credits (UCP 600), demand guarantees (URDG 758), collections (URC 522), discrepancy validation, fee simulator, SWIFT MT700/MT734, presentation dossiers PDF.
   - `/api/aeo-security`: AEO self-assessment audits (CAE DG TAXUD/AEAT), 7-point C-TPAT/OEAS container inspections, ISO 17712 security seals ledger, ISO 28000 partner risk matrices, 4 official PDF reports.
   - `/api/chartering`: Voyage & Time charter fixtures (Gencon 2022 / NYPE 2015), NOR & turn-time validation, SOF event chronology, laytime & demurrage/despatch computation (ATS/WTS), time charter off-hire audit, 4 maritime PDF documents.
+  - `/api/general-average`: York-Antwerp Rules 2016 allowances (Rules I..XI, XX 2.5%, XXI CMI interest), contributory values, adjustment apportionment, Lloyd's Average Bond LAB 77, 4 marine casualty PDFs.
+  - `/api/dangerous-goods`: IMDG 7.2.4 segregation matrix, ADR 1.1.3.6 1,000 points calculation, IATA DGR lithium battery classifier (UN 3480 CAO & SoC ≤30%), EmS emergency cards, IMO DGD & IATA DGD PDFs.
 
 ---
 
@@ -108,38 +110,31 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
    $$\text{Emisiones Integradas Totales } (\text{tCO}_2\text{e}) = \text{Masa Neta (t)} \times SE_{\text{total}}$$
 10. **CBAM Article 9 Net Carbon Liability & Foreign Credit**:
     $$\text{Net Carbon Liability (€)} = \max\left(0, \; (\text{Total Embedded } \text{tCO}_2\text{e} \times P_{\text{EU ETS}}) - \text{Foreign Carbon Price Paid (€)}\right)$$
-11. **Wagon Axle Load Distribution & Line Class Limits (EN 15528)**:
-    $$\text{Axle Load (t/axle)} = \frac{\text{Wagon Tare} + \text{Payload}}{\text{Number of Axles}} \le \text{UIC Limit (A: 16.0t, B: 18.0t, C: 20.0t, D: 22.5t)}$$
-12. **TEN-T Rail Freight Braking & Block Train Mass (UIC 992 / ERA TAF-TSI)**:
-    $$\text{Braked Mass Percentage (}\lambda\text{)} = \left(\frac{\sum \text{Braked Mass (t)}}{\text{Total Train Weight (t)}}\right) \times 100 \ge 65\%$$
-13. **FuelEU Maritime Well-to-Wake (WtW) Energy & GHG Intensity (Regulation (EU) 2023/1805)**:
-    $$\text{Energy Used (MJ)} = \sum_{i} \left( M_i \times \text{LCV}_i \right) + E_{\text{OPS}}$$
-    $$\text{GHG Intensity (}g\text{CO}_2\text{eq/MJ)} = \frac{\sum_{i} \left( M_i \times \text{LCV}_i \times \text{GHG}_{\text{WtW},i} \right)}{\text{Total Energy Used (MJ)}}$$
-    $$\text{Compliance Balance (CB, gCO}_2\text{eq)} = \left(\text{GHG Target} - \text{Actual GHG Intensity}\right) \times \text{Total Energy Used (MJ)}$$
-    $$\text{Statutory Penalty (€)} = \frac{|\min(0, \text{CB})|}{\text{Actual GHG Intensity} \times 41,000} \times 2,400\text{ €/t}$$
-14. **EU ETS Maritime Multi-Gas Geographic Scope Allocation (Directive (EU) 2023/959)**:
-    $$\text{Gross } \text{tCO}_2\text{eq} = \text{CO}_2 + (\text{CH}_4 \times 28) + (\text{N}_2\text{O} \times 265)$$
-    $$\text{EU ETS Scope Obligation} = \text{Scope Factor (1.0 Intra-EU / 0.5 Extra-EU)} \times \text{Gross } \text{tCO}_2\text{eq}$$
-    $$\text{Green BAF Surcharge (€/TEU)} = \frac{\text{FuelEU Cost/Penalty (€)} + \text{EU ETS Liability (€)}}{\text{Carried TEUs}}$$
-15. **Trade Finance UCP 600 Bank Charges & Insurance Formulas (UCP 600 Art. 28 & ISBP 745)**:
-    $$\text{Minimum Insured Amount (EUR)} = \text{Invoice CIF Amount} \times 1.10 \quad (\ge 110\%)$$
-    $$\text{Opening Fee (€)} = \text{Credit Amount} \times \left(\frac{\text{Opening Rate } \%}{100}\right) \times \left\lceil \frac{\text{Tenor Days}}{90} \right\rceil$$
-16. **AEO / C-TPAT Readiness & Partner Risk Scoring (CAU Art. 39 & ISO 28000)**:
-    $$\text{AEO Overall Readiness (\%)} = \sum_{i=1}^{6} \left( w_i \times \text{Score Bloque CAE } i \right) \quad (\ge 85\% \implies \text{Audit Ready})$$
-17. **Maritime Laytime, Demurrage & Despatch Formulas (BIMCO Gencon / ASBATANKVO)**:
-    $$\text{Allowed Laytime (Days)} = \frac{\text{Cargo Quantity (MT)}}{\text{Loading/Discharge Rate (MT/WWD)}}$$
-    $$\text{Net Laytime Used} = \sum \left( \text{Event Duration} \times \frac{\text{\% Counted}}{100} \right)$$
-    $$\text{Demurrage Payable (\$)} = \left(\frac{\text{Net Used} - \text{Allowed}}{86400}\right) \times \text{Demurrage Rate/Day} \quad (\text{if Net Used} > \text{Allowed})$$
-    $$\text{Despatch Due (\$)} = \left(\frac{\text{Allowed} - \text{Net Used}}{86400}\right) \times \text{Despatch Rate/Day} \quad (\text{if Net Used} < \text{Allowed})$$
-18. **Time Charter Net Payable Balance (NYPE 2015)**:
+11. **TEN-T Rail Convoy Braking Percentage (UIC 992)**:
+    $$\text{Brake } \% = \left( \frac{\sum \text{Braked Mass (t)}}{\text{Total Train Weight (t)}} \right) \times 100 \ge 65\%$$
+12. **Customs Guarantee Available Balance (UCC Art. 89-98)**:
+    $$\text{Credit Available} = \text{Guarantee Limit} - \sum (\text{Customs Duty Suspended} + \text{VAT Suspended})$$
+13. **FuelEU Maritime Compliance Balance (EU Reg. 2023/1805)**:
+    $$CB = (GHG_{\text{target}} - GHG_{\text{actual}}) \times \sum E_i \quad [\text{gCO}_2\text{eq}]$$
+    $$\text{Penalty (€)} = \frac{|CB|}{GHG_{\text{actual}} \times 41,000} \times 2,400$$
+14. **UCP 600 Letter of Credit Banking Fee Schedule**:
+    $$\text{Total Fee} = \text{Issuance Fee} + \text{Confirmation Fee} + \text{Settlement Commission} + \text{Swift Transmissions}$$
+15. **AEO CAE Compliance Scoring (UCC Art. 39)**:
+    $$\text{Score}_{\text{Total}} = \sum_{b=1}^{6} (w_b \times S_b) \ge 80\% \implies \text{AEO Status Approved}$$
+16. **BIMCO Laytime Allowed & Time Sheet Resolution**:
+    $$\text{Laytime Allowed (Days)} = \frac{\text{Total Cargo (MT)}}{\text{Loading/Discharge Rate (MT/Day)}}$$
+17. **Demurrage / Despatch Settlement (ATS vs WTS)**:
+    $$\text{Demurrage Due} = \text{Demurrage Rate/Day} \times \text{Days Exceeded}$$
+    $$\text{Despatch Due} = (\text{Demurrage Rate} \times 0.5) \times \text{Days Saved}$$
+18. **Time Charter Net Hire Settlement**:
     $$\text{Net Payable} = (\text{Total Days} \times \text{Daily Hire}) - (\text{Off-Hire Days} \times \text{Daily Hire}) - \text{Bunker Offset} - \text{Commissions}$$
 19. **General Average Apportionment & Rate of Contribution (York-Antwerp Rules 2016)**:
     $$GA_{\text{Total}} = \sum \text{Sacrificios} + \sum \text{Gastos Refugio} + \text{Salvamento LOF} + (0.025 \times \text{Desembolsos}) + \text{Intereses CMI}$$
     $$CV_{\text{Total}} = CV_{\text{Buque}} + CV_{\text{Flete}} + \sum CV_{\text{Carga CIF}} + CV_{\text{Contenedores}}$$
     $$\text{Tasa de Contribución } \% = \left( \frac{GA_{\text{Total}}}{CV_{\text{Total}}} \right) \times 100$$
-20. **Interest Net Financial Balance & Recommended Cash Deposit (Rule XXII)**:
-    $$\text{Net Balance } i = \left( CV_i \times \frac{\text{Tasa } \%}{100} \right) - \text{Made Good Allowance } i$$
-    $$\text{Cash Deposit } i = CV_i \times \left( \frac{\text{Tasa } \% + 10\%}{100} \right)$$
+20. **IMDG Table 7.2.4 Chemical Segregation & Prohibited Co-Load Function**:
+    $$\text{Status}(A, B) = \text{IMDG\_Matrix}(\text{Class}_A, \text{Class}_B) \in \{0, 1, 2, 3, 4, X\}$$
+    $$\text{Container Audit} = \begin{cases} \text{Violation} & \text{if } \exists (i, j) \text{ with code } \in \{X, 4, 3, 2\} \\ \text{Compliant} & \text{otherwise} \end{cases}$$
 
 ---
 
@@ -150,9 +145,9 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
   - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
   - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
   - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
-- **106 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+- **111 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
 - **WAL Journal Mode & Busy Timeout**: High-concurrency transaction resiliency for background jobs and concurrent Fastify requests.
-- **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`, `OEA-YYYY-XXXX`, `CP-YYYY-XXXX`, `GA-YYYY-XXXX`) and immutable audit logs.
+- **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`, `OEA-YYYY-XXXX`, `CP-YYYY-XXXX`, `GA-YYYY-XXXX`, `DGD-YYYY-XXXX`) and immutable audit logs.
 - **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.
 - **Automated Backup Utility**: Daily snapshot scheduler saving database state to `/backups`.
 
@@ -160,6 +155,6 @@ The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
 
 ## 6. Testing & Quality Assurance
 
-- **Vitest Suite**: 68 test suites with 323 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
+- **Vitest Suite**: 73 test suites with 346 unit & integration tests covering all deterministic services and Fastify routes with 100% pass rate.
 - **Playwright E2E**: End-to-end browser tests verifying user flows across all operational modules.
 - **CodeQL SAST**: Continuous security analysis with zero alerts.

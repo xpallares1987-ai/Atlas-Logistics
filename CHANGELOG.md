@@ -5,6 +5,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.13.0] - 2026-09-01
+
+### 🌟 Added
+- **Multimodal Dangerous Goods & Hazardous Materials Engine (IMO IMDG Code Amdt 41-22 / ICAO-IATA DGR 66th Ed. / UNECE ADR 2025 / RID 2025)**:
+  - **Relational Data Model (`src/db/schema/dangerous_goods.ts`)**:
+    - 5 specialized tables bringing database total to **111 tables**: `dgShipments`, `dgConsignmentItems`, `dgSegregationAudits`, `dgEmergencyCards`, `dgPackingCertificates`.
+    - Migration `0017_robust_vapor.sql` applied cleanly to both dev and production SQLite databases.
+  - **Master UN Catalog & IMDG 7.2.4 Segregation Engine (`DgCatalogSegregationService`)**:
+    - Master chemical catalog with UN numbers (UN 1203, UN 1789, UN 1993, UN 3480, UN 1072, UN 0004, UN 2794, UN 3082).
+    - Table 7.2.4 segregation matrix evaluating codes `0` (None), `1` ("Away from"), `2` ("Separated from"), `3` ("Separated by compartment"), `4` ("Separated longitudinally"), and `X` ("Prohibited co-load").
+    - Multi-item container/vehicle co-loading audit evaluating all $\binom{n}{2}$ pairs.
+  - **Packaging Exemption & Lithium Battery Classifier (`DgPackagingExemptionService`)**:
+    - Limited Quantities (LQ Cap 3.4) and Excepted Quantities (EQ E0..E5 Cap 3.5) compliance check.
+    - UNECE ADR 1.1.3.6 1,000-points calculation engine with transport category multipliers (Cat 0: $\infty$, Cat 1: $\times 50/\times 20$, Cat 2: $\times 3$, Cat 3: $\times 1$, Cat 4: $\times 0$).
+    - IATA DGR Lithium Battery classifier (UN 3480 / UN 3481 / UN 3090 / UN 3091) evaluating Sections IA, IB, II, CAO requirement, and State of Charge (SoC $\le 30\%$).
+  - **Emergency Response & EmS Guide Engine (`DgEmergencyResponseService`)**:
+    - EmS Fire (F-A..F-J) and Spillage (S-A..S-Z) schedules, Kemler hazard IDs, and ADR tunnel categories (B to E).
+  - **Transport Document Formatting Service (`DgTransportDocumentService`)**:
+    - Legal UN transport sequence string formatter under IMDG 5.4 / ADR 5.4.1.
+  - **Official Regulatory Documentation in PDF (`PDFService`)**:
+    - Official **Multimodal Dangerous Goods Form PDF (IMO DGD / MDGF)** under IMDG 5.4 & ADR 5.4.
+    - Official **IATA Shipper's Declaration for Dangerous Goods PDF** with CAO red candy stripe header.
+    - Official **Dangerous Goods Emergency Response Card & EmS Sheet PDF**.
+    - Official **Container / Vehicle Packing Certificate PDF (IMDG 5.4.2 / ADR 5.4.2)**.
+  - **Fastify REST API & Integration Tests**:
+    - `/api/dangerous-goods/*` endpoints passing all 9 integration tests.
+  - **Interactive Workbench (`/dangerous-goods`)**:
+    - 3-tabbed interface with 4 top KPI cards, Catalog & Segregation Simulator, Exemptions / 1,000 Points / Lithium Battery Calculator, and Multimodal DGD / PDF manager.
+  - **Playwright E2E Testing**:
+    - End-to-end test suite in `tests/e2e/dangerous-goods.spec.ts`.
+
 ## [1.12.0] - 2026-08-31
 
 ### 🌟 Added
