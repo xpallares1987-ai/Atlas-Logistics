@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Anchor,
   Flame,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -322,6 +323,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Flame}
               >
                 General Average (YAR 2016)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/dangerous-goods"
+                icon={Zap}
+              >
+                Dangerous Goods (IMDG/ADR)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}

@@ -204,7 +204,22 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
   - **Garantía de Asegurador de Transportes (Average Guarantee en PDF)**.
   - **Cuadro y Dictamen Pericial de Liquidación de Avería Gruesa en PDF** (*General Average Adjustment Statement & Apportionment Matrix*).
 
-### 17. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 17. ☣️ Gestión Multimodal de Mercancías Peligrosas (IMO IMDG Code Amdt 41-22 / ICAO-IATA DGR 66th / UNECE ADR 2025 / RID 2025)
+- **Marco Normativo Multimodal 4-en-1**:
+  - **Marítimo (IMO IMDG Code Enmienda 41-22)**: Matriz de segregación química (Cap. 7.2.4) para 18 clases y subclases, fichas de emergencia EmS (Fuego F-A..F-J / Derrame S-A..S-Z) y control de contaminantes marinos (MARPOL Anexo III).
+  - **Aéreo (OACI/ICAO TI & IATA DGR 66ª Edición)**: Instrucciones de embalaje de pasajeros vs. Avión Exclusivo de Carga (**CAO - Cargo Aircraft Only**), y clasificación estricta de **Baterías de Ion-Litio y Metal-Litio (UN 3480 / UN 3481 / UN 3090 / UN 3091)** bajo Secciones IA, IB y II con límite de Estado de Carga (**SoC $\le 30\%$**).
+  - **Carretera & Ferrocarril (UNECE ADR 2025 / RID 2025)**: Números de peligro Kemler, categorías de túneles (B a E) y cálculo determinista de la **Exención de 1.000 Puntos por Unidad de Transporte (ADR 1.1.3.6)**.
+- **Motores Analíticos Deterministas**:
+  - **Validador de Matriz de Segregación IMDG 7.2.4**: Evaluación de compatibilidad de todas las combinaciones $\binom{n}{2}$ en contenedor/vehículo con detección de códigos `0` (Compatible), `1` ("Lejos de"), `2` ("Separado de"), `3` ("Separado por compartimento"), `4` ("Separado longitudinalmente") y `X` ("Prohibido").
+  - **Calculadora de Exenciones LQ & EQ**: Control de Cantidades Limitadas (LQ - Cap. 3.4) y Exceptuadas (EQ E0..E5 - Cap. 3.5).
+  - **Generador de Fichas de Intervención & EPIs**: Asignación automática de protocolos de extinción, contención de fugas y Equipos de Protección Individual según sustancia UN.
+- **Paquete Documental Oficial Multimodal en PDF**:
+  - **Declaración Multimodal de Mercancías Peligrosas en PDF (IMO DGD / MDGF)** bajo IMDG Cap. 5.4 y ADR Cap. 5.4.
+  - **Declaración del Expedidor para Mercancías Peligrosas en PDF (IATA Shipper's DGD PDF)** con certificación OACI/IATA.
+  - **Ficha de Emergencia e Instrucciones Escritas en PDF (EmS Fire/Spillage Card)**.
+  - **Certificado Oficial de Embalaje y Estiba de Contenedor o Vehículo en PDF (IMDG 5.4.2 / ADR 5.4.2)**.
+
+### 18. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---
