@@ -219,7 +219,23 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
   - **Ficha de Emergencia e Instrucciones Escritas en PDF (EmS Fire/Spillage Card)**.
   - **Certificado Oficial de Embalaje y Estiba de Contenedor o Vehículo en PDF (IMDG 5.4.2 / ADR 5.4.2)**.
 
-### 18. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 18. 🛡️ Seguro de Transporte de Mercancías & Pólizas Flotantes (Institute Cargo Clauses ICC A/B/C 2009 / LMA / UCP 600 Art. 28)
+- **Suscripción Actuarial & Cláusulas del Instituto de Londres (LMA/IUA)**:
+  - **Institute Cargo Clauses (A) 'All Risks' (CL. 382)**, **ICC (B) 'Major Perils' (CL. 383)** e **ICC (C) 'Basic Perils' (CL. 384)**, más **ICC (Air) (CL. 387)**.
+  - Coberturas adicionales: **Institute War Clauses (Cargo)** y **Institute Strikes Clauses (Cargo)**.
+  - Exclusiones mandatorias: **Institute Cyber Attack Exclusion Clause (CL. 380)** y **Sanction Limitation Clause (JC 2010/014)**.
+- **Motor de Tarificación & Liquidación 4-en-1**:
+  - **Calculadora de Suma Asegurada (110% CIF / CIP)**: Cumplimiento estricto del Artículo 28 de las Reglas **UCP 600** para créditos documentarios e Incoterms® 2020 ($\text{Suma Asegurada} = \text{CIF Base} \times 1.10$).
+  - **Algoritmo Actuarial de Primas**: Ponderación determinista de factores de mercancía, modo de transporte, recargos por zonas de guerra/huelga, prima mínima e impuestos (**IPS 6% + Consorcio de Compensación de Seguros CCS 0.005%**).
+  - **Gestor de Pólizas Flotantes (*Open Cover*) & Bordereau**: Control de límites por buque/embarque (*conveyance limits*) y agregación mensual de aplicaciones para liquidación a aseguradoras.
+  - **Tasador Pericial de Siniestros & Averías Particulares**: Cómputo de depreciación de valor en destino ($(\text{Sano} - \text{Salvamento}) / \text{Sano} \times 100$) y deducción de franquicias fijas o porcentuales.
+- **Paquete Documental Oficial en PDF**:
+  - **Certificado Oficial de Seguro de Transporte de Mercancías en PDF (UCP 600 Art. 28)** con validez bancaria internacional.
+  - **Cuadro de Condiciones de Póliza Flotante en PDF (Open Cover Policy Schedule PDF)**.
+  - **Bordereau Mensual de Declaración de Expediciones de Seguros en PDF**.
+  - **Dictamen Pericial de Ajuste y Liquidación de Siniestro en PDF (Claim Settlement Statement PDF)**.
+
+### 19. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---

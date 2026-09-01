@@ -89,6 +89,9 @@ const GeneralAverageModule = React.lazy(
 const DangerousGoodsModule = React.lazy(
   () => import("../../pages/DangerousGoodsModule"),
 );
+const CargoInsuranceModule = React.lazy(
+  () => import("../../pages/CargoInsuranceModule"),
+);
 const InvoicingModule = React.lazy(() => import("../../pages/InvoicingModule"));
 const AgentSettlementsModule = React.lazy(
   () => import("../../pages/AgentSettlementsModule"),
@@ -397,6 +400,16 @@ export const AppRoutes = () => {
               allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
             >
               <DangerousGoodsModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cargo-insurance"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+            >
+              <CargoInsuranceModule />
             </ProtectedRoute>
           }
         />

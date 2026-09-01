@@ -22,3 +22,4 @@ export * from "./aeo_security.js";
 export * from "./chartering_laytime.js";
 export * from "./general_average.js";
 export * from "./dangerous_goods.js";
+export * from "./cargo_insurance.js";

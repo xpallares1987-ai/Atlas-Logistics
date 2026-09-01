@@ -25,6 +25,7 @@
 | **Fletamentos & Planchas (Laytime Engine)** | BIMCO Gencon 2022, NYPE 2015, ASBATANKVO | Validación NOR/Turn-Time (WIPON/WIBON), cronología SOF (WWD/SHEX), demoras/despatch (ATS/WTS), off-hire time charter y 4 documentos PDF oficiales. |
 | **Avería Gruesa & Salvamento (General Average)** | York-Antwerp Rules 2016, LOF 2024, SCOPIC | Liquidación de masa activa (sacrificios + 2.5% comisión Regla XX + interés CMI Regla XXI), masa pasiva contributoria, prorrateo pericial, Lloyd's Average Bond LAB 77 y 4 PDFs oficiales. |
 | **Mercancías Peligrosas (Dangerous Goods / ADR)** | IMO IMDG Amdt 41-22, IATA DGR 66th, UNECE ADR 2025, RID | Matriz de segregación química IMDG 7.2.4 (Grados 1 a 4 y 'X'), cálculo de exenciones LQ/EQ y 1.000 puntos ADR 1.1.3.6, control IATA baterías de litio (Sec IA/IB/II SoC ≤30%), fichas EmS y 4 PDFs oficiales. |
+| **Seguro de Transporte & Pólizas de Carga** | Institute Cargo Clauses ICC A/B/C 2009, LMA/IUA, UCP 600 Art. 28 | Tarificación actuarial de primas, cálculo 110% CIF bajo UCP 600, gestión de pólizas flotantes Open Cover con Bordereaux mensuales, liquidación pericial de averías particulares y 4 PDFs oficiales. |
 | **Container Planner 3D & LCL** | ISO 668 Contenedores Marítimos | Cubicaje 3D de contenedores, centro de gravedad, distribución de ejes y consolidación LCL multi-cliente. |
 | **Warehouse Digital Twin** | Gestión de Almacén & Tráfico de Andenes | Visualización 3D y 2.5D de almacén, control de muelles, inventario y tareas de fulfillment. |
 | **BPMN 2.0 Workflows & Pricing** | ISO/IEC 19510 (BPMN 2.0) | Modelador visual de procesos logísticos con versionado, motor de tarifas dinámicas con recargos BAF/CAF/PSS. |
@@ -35,9 +36,9 @@
 
 - **Frontend**: React 19, TypeScript 5.7+, Vite 8, TailwindCSS, Framer Motion, Lucide Icons.
 - **Backend**: Node.js 22+, Fastify 5, `@fastify/jwt`, `@fastify/websocket`, `pdfkit`.
-- **Persistencia**: SQLite (libSQL client) + Drizzle ORM (111 tablas, triggers, vistas, secuencias).
+- **Persistencia**: SQLite (libSQL client) + Drizzle ORM (116 tablas, triggers, vistas, secuencias).
 - **Asincronía**: BullMQ + ioredis (con fallback en memoria para desarrollo autónomo).
-- **Control de Calidad**: Vitest (73 suites, 346 tests unitarios e integrados, 100% aprobados), Playwright E2E.
+- **Control de Calidad**: Vitest (77 suites, 364 tests unitarios e integrados, 100% aprobados), Playwright E2E.
 - **Monorepo**: Turborepo + pnpm v10 workspaces (`@atlas/frontend`, `@atlas/dashboard`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/warehouse-ops`, `@atlas/ui`, `@atlas/shared`).
 
 ---
