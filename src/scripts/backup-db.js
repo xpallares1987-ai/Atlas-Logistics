@@ -7,10 +7,24 @@ import path from "path";
 const DB_PATH = process.env.LOCAL_DB_PATH
   ? path.resolve(process.cwd(), process.env.LOCAL_DB_PATH)
   : path.resolve(process.cwd(), "atlas-erp-v2.db");
-const BACKUP_DIR = path.resolve(
-  process.cwd(),
-  process.env.BACKUP_DIR || "backups",
-);
+const PROJECT_ROOT = path.resolve(process.cwd());
+
+function resolveBackupDir() {
+  const configuredBackupDir = process.env.BACKUP_DIR || "backups";
+  const resolvedBackupDir = path.resolve(PROJECT_ROOT, configuredBackupDir);
+  const relativeBackupDir = path.relative(PROJECT_ROOT, resolvedBackupDir);
+
+  if (
+    relativeBackupDir.startsWith("..") ||
+    path.isAbsolute(relativeBackupDir)
+  ) {
+    throw new Error("BACKUP_DIR must resolve inside the project root");
+  }
+
+  return resolvedBackupDir;
+}
+
+const BACKUP_DIR = resolveBackupDir();
 const MAX_BACKUPS = parseInt(process.env.MAX_LOCAL_BACKUPS || "30", 10);
 
 async function ensureBackupDir() {
