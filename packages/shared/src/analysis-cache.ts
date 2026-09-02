@@ -39,7 +39,11 @@ export class AnalysisCache {
   /**
    * Compresses and stores an encrypted result for a given key.
    */
-  async set(key: string, value: any): Promise<void> {
+  /**
+   * Stores a value under a cache key after JSON serialization, compression,
+   * and encryption.
+   */
+  async set(key: string, value: unknown): Promise<void> {
     if (typeof window === "undefined" || typeof indexedDB === "undefined")
       return;
     try {
@@ -55,6 +59,9 @@ export class AnalysisCache {
 
   /**
    * Retrieves, decrypts and decompresses a result for a given key.
+   */
+  /**
+   * Loads a cached value, decrypts it, decompresses it, and parses JSON.
    */
   async get<T>(key: string): Promise<T | null> {
     if (typeof window === "undefined" || typeof indexedDB === "undefined")
@@ -77,6 +84,9 @@ export class AnalysisCache {
   /**
    * Clears a specific key from the cache.
    */
+  /**
+   * Removes a cached value for the provided key.
+   */
   async delete(key: string): Promise<void> {
     if (typeof window === "undefined" || typeof indexedDB === "undefined")
       return;
@@ -91,7 +101,10 @@ export class AnalysisCache {
   /**
    * Generates a simple hash for a value to use as a key.
    */
-  static generateKey(value: any): string {
+  /**
+   * Produces a deterministic cache key from a serializable value.
+   */
+  static generateKey(value: unknown): string {
     const str = JSON.stringify(value);
     let hash = 0;
     for (let i = 0; i < str.length; i++) {

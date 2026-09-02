@@ -1,6 +1,6 @@
 # Atlas Logistics 🌍🚢✈️🚛
 
-Atlas Logistics es una **Super-App integral de Gestión de Cadena de Suministro (SCM) y Transporte Multimodal**. Centraliza operaciones de transitarios (*freight forwarders*), agentes de aduanas, aerolíneas, navieras y transportistas terrestres, proporcionando un motor determinista de contratación comercial, despacho aduanero europeo, cálculo de estiba 3D, e-freight aéreo, despacho de transporte por carretera y liquidación estatutaria de siniestros.
+Atlas Logistics es una **Super-App integral de Gestión de Cadena de Suministro (SCM) y Transporte Multimodal**. Centraliza operaciones de transitarios (*freight forwarders*), agentes de aduanas, aerolíneas, navieras y transportistas terrestres, con un backend Fastify, un host PWA en `packages/frontend`, librerías compartidas en `packages/shared` y `packages/ui`, y módulos especializados para comparación de tarifas, modelado BPMN y operaciones de almacén.
 
 ![Atlas Logistics Status](https://img.shields.io/badge/Status-Active-success) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue) ![pnpm](https://img.shields.io/badge/pnpm-v10-orange) ![Fastify](https://img.shields.io/badge/Fastify-5.2+-emerald) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
@@ -13,7 +13,7 @@ Atlas Logistics se ejecuta **100% en local sin coste operativo de nube**, utiliz
 - **Base de Datos:** Drizzle ORM + libSQL (`atlas.db`, SQLite de alto rendimiento) con migraciones estructuradas, triggers de auditoría inmutables, secuencias autoincrementales y vistas SQL nativas.
 - **Backend API:** Fastify 5 con autenticación JWT (`@fastify/jwt`), control de acceso por roles (RBAC) y WebSockets nativos (`ws://`).
 - **Background Jobs:** BullMQ + ioredis con fallback resiliente en memoria si Redis no está conectado.
-- **Monorepo:** Turborepo + pnpm workspaces con empaquetado modular (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/warehouse-ops`).
+- **Monorepo:** Turborepo + pnpm workspaces con empaquetado modular (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/dashboard`, `@atlas/warehouse-ops`).
 
 ---
 
@@ -306,7 +306,18 @@ pnpm run db:seed
 ```bash
 pnpm run dev
 ```
-*Frontend disponible en [http://localhost:3002](http://localhost:3002) y API Backend en [http://localhost:3001](http://localhost:3001).*
+*El host frontend y el backend arrancan juntos; por defecto el frontend usa Vite en `3000/3002` según el paquete y el backend Fastify escucha en `3001`.*
+
+### Scripts útiles
+
+| Comando | Qué hace |
+|---|---|
+| `pnpm run build` | Compila el monorepo completo |
+| `pnpm run test` | Ejecuta la suite Vitest |
+| `pnpm run lint` | Ejecuta ESLint en todo el repo |
+| `pnpm run dev` | Arranca backend y apps de desarrollo |
+| `pnpm --filter @atlas/frontend type-check` | Valida el frontend principal |
+| `npx playwright test` | Ejecuta E2E |
 
 ---
 
@@ -337,6 +348,13 @@ pnpm start
 ```
 
 > **Tip para Despliegues Remotos / Turso:** Puedes conectar Atlas Logistics a una base de datos distribuida en la nube especificando `DATABASE_URL=libsql://tu-cluster.turso.io` y `DATABASE_AUTH_TOKEN=tu-token` en `.env.production`.
+
+### Estado del código
+
+- Los paquetes públicos exportan utilidades de análisis, cifrado, logística, almacenamiento y sincronización desde `packages/shared`.
+- `packages/ui` concentra componentes reutilizables, hooks visuales y primitivas de diseño.
+- `packages/rate-comparer` expone lógica compartida para comparación de tarifas, parsing, cálculo y UI de comparador.
+- `src/app.ts` es el punto de ensamblado del backend Fastify, con registro de rutas, middleware de auth y middleware de seguridad.
 
 ---
 
