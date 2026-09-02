@@ -340,6 +340,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
+                to="/bulk-operations"
+                icon={Anchor}
+              >
+                Bulk Operations (IMSBC/Draft)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
                 to="/contracts"
                 icon={FileSignature}
               >
