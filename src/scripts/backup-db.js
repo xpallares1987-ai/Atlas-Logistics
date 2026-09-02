@@ -3,30 +3,42 @@
 
 import { promises as fs } from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const ROOT_DIR = path.resolve(process.cwd());
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.resolve(SCRIPT_DIR, "../..");
+
+function isWithinDirectory(parentDir, candidatePath) {
+  const relative = path.relative(parentDir, candidatePath);
+  return (
+    relative === "" ||
+    (relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
+}
+
+function resolveWithinRoot(inputPath, label) {
+  const resolved = path.resolve(ROOT_DIR, inputPath);
+
+  if (!isWithinDirectory(ROOT_DIR, resolved)) {
+    throw new Error(`Invalid ${label} traversal attempt: ${inputPath}`);
+  }
+
+  return resolved;
+}
 
 function getSafeDbPath() {
   const envPath = process.env.LOCAL_DB_PATH;
   if (!envPath) {
     return path.resolve(ROOT_DIR, "atlas-erp-v2.db");
   }
-  const safeBaseName = path.basename(envPath);
-  const resolved = path.resolve(ROOT_DIR, safeBaseName);
-  if (!resolved.startsWith(ROOT_DIR)) {
-    throw new Error(`Invalid DB_PATH traversal attempt: ${envPath}`);
-  }
-  return resolved;
+  return resolveWithinRoot(envPath, "DB_PATH");
 }
 
 function getSafeBackupDir() {
   const envDir = process.env.BACKUP_DIR || "backups";
-  const safeDirName = path.basename(envDir);
-  const resolved = path.resolve(ROOT_DIR, safeDirName);
-  if (!resolved.startsWith(ROOT_DIR)) {
-    throw new Error(`Invalid BACKUP_DIR traversal attempt: ${envDir}`);
-  }
-  return resolved;
+  return resolveWithinRoot(envDir, "BACKUP_DIR");
 }
 
 const DB_PATH = getSafeDbPath();
@@ -69,7 +81,7 @@ async function pruneOldBackups() {
         !safeFileName.includes("\\")
       ) {
         const fullPath = path.resolve(safeDir, safeFileName);
-        if (fullPath.startsWith(safeDir)) {
+        if (isWithinDirectory(safeDir, fullPath)) {
           const stats = await fs.stat(fullPath);
           dbFiles.push({ name: safeFileName, fullPath, mtime: stats.mtimeMs });
         }
@@ -79,7 +91,7 @@ async function pruneOldBackups() {
     dbFiles.sort((a, b) => b.mtime - a.mtime); // newest first
     const toDelete = dbFiles.slice(MAX_BACKUPS);
     for (const file of toDelete) {
-      if (file.fullPath.startsWith(safeDir)) {
+      if (isWithinDirectory(safeDir, file.fullPath)) {
         await fs.unlink(file.fullPath);
         console.log(`🗑️ Deleted old backup: ${file.fullPath}`);
       }
@@ -97,7 +109,7 @@ async function backup() {
   const backupFileName = `atlas-erp-v2-${safeTimestamp}.db`;
   const backupFile = path.resolve(safeDir, backupFileName);
 
-  if (!backupFile.startsWith(safeDir)) {
+  if (!isWithinDirectory(safeDir, backupFile)) {
     throw new Error("Invalid backup target path");
   }
 
@@ -125,13 +137,16 @@ async function backup() {
 
 export {
   backup,
-  pruneOldBackups,
-  ensureBackupDir,
-  getSafeDbPath,
-  getSafeBackupDir,
-  DB_PATH,
   BACKUP_DIR,
+  DB_PATH,
+  ensureBackupDir,
+  getSafeBackupDir,
+  getSafeDbPath,
+  isWithinDirectory,
   MAX_BACKUPS,
+  pruneOldBackups,
+  resolveWithinRoot,
+  ROOT_DIR,
 };
 
 // Run backup if executed directly via node CLI
