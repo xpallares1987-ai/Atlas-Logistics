@@ -11,7 +11,6 @@ overrides:
   valibot: ^1.4.2
   fast-xml-parser: ^5.9.3
   postcss: ^8.5.16
-  uuid: ^14.0.1
   esbuild: ^0.25.0
   nanoid: '>=3.3.17'
   js-yaml: '>=4.3.1'
@@ -306,7 +305,7 @@ importers:
         specifier: ^8.67.0
         version: 8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
       uuid:
-        specifier: ^14.0.1
+        specifier: ^14.0.0
         version: 14.0.1
       vite:
         specifier: ^8.1.5
@@ -8994,6 +8993,11 @@ packages:
     resolution: {integrity: sha512-6ZxzVpzDXDa3bJWaHilVayA+BH/1zmxCJoVgvmqJnid/gPoKHxUrS/aC/T6LGQtNHT+XHG9fXPJB4d+IrU30Ew==}
     hasBin: true
 
+  uuid@8.3.2:
+    resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+    hasBin: true
+
   valibot@1.4.2:
     resolution: {integrity: sha512-gjdCvJ6d3RyHAneqxMYMW9QMCwYMb3jpOO0IyHZV1bnRHFBHrX3VkIILt5XYR0WhwHiH7Mty8ovuPZ/O3gamrg==}
     peerDependencies:
@@ -14699,7 +14703,7 @@ snapshots:
       saxes: 5.0.1
       tmp: 0.2.7
       unzipper: 0.10.14
-      uuid: 14.0.1
+      uuid: 8.3.2
 
   execa@10.0.0:
     dependencies:
@@ -18320,6 +18324,8 @@ snapshots:
       base64-arraybuffer: 1.0.2
 
   uuid@14.0.1: {}
+
+  uuid@8.3.2: {}
 
   valibot@1.4.2(typescript@7.0.2):
     optionalDependencies:

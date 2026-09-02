@@ -143,7 +143,6 @@
       "valibot": "^1.4.2",
       "fast-xml-parser": "^5.9.3",
       "postcss": "^8.5.16",
-      "uuid": "^14.0.1",
       "esbuild": "^0.25.0",
       "nanoid": ">=3.3.17",
       "js-yaml": ">=4.3.1",
