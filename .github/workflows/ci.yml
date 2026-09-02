@@ -59,10 +59,7 @@ jobs:
         run: pnpm run lint
 
       - name: Run Tests
-        run: |
-          pnpm run db:migrate
-          pnpm run db:seed
-          pnpm run test
+        run: pnpm run test
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
