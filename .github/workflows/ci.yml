@@ -58,6 +58,12 @@ jobs:
       - name: Turbo Lint
         run: pnpm run lint
 
+      - name: Prepare Test Database
+        run: |
+          touch .env.local
+          pnpm run db:migrate
+          pnpm run db:seed
+
       - name: Run Tests
         run: pnpm run test
 
@@ -65,11 +71,7 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run E2E Tests (Playwright)
-        run: |
-          touch .env.local
-          pnpm run db:migrate
-          pnpm run db:seed
-          npx playwright test
+        run: npx playwright test
 
       - name: Upload Playwright Report
         if: always()
