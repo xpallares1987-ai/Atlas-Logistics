@@ -235,7 +235,19 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
   - **Bordereau Mensual de Declaración de Expediciones de Seguros en PDF**.
   - **Dictamen Pericial de Ajuste y Liquidación de Siniestro en PDF (Claim Settlement Statement PDF)**.
 
-### 19. 🏭 Gestión de Almacén & Gemelo Digital 3D
+### 19. ⚓ Logística de Graneles & Operaciones de Terminal Portuaria (IMSBC Code / BLU Code / IMO Grain Code / ASTM 54)
+- **Marco Normativo Multigranel 4-en-1**:
+  - **Cálculo Hidrostático de Calados (Draft Survey)**: Determinación legal de la masa de carga por desplazamiento hidrostático a partir de 6 lecturas de calado (Proa, Popa, Centro babor/estribor), corrección por deformación (*Quarter Mean / Mean of Means*), correcciones de asiento de 1º y 2º orden, corrección de densidad del agua ($\rho / 1.025$) y deducción de consumibles y lastre.
+  - **Código Marítimo Internacional de Cargas Sólidas a Granel (IMSBC Code)**: Control de cargas del Grupo A (susceptibles de licuefacción), Grupo B (peligro químico) y Grupo C; cálculo determinista del **Límite de Humedad Transportable (TML)** a partir del **Punto de Fluidez (FMP)** ($\text{TML} = \text{FMP} \times 0.90$) con **rechazo mandatorio automático** si la humedad real excede el TML.
+  - **Código Internacional para el Transporte sin Riesgo de Granos a Granel (IMO Grain Code / SOLAS Cap. VI Regla 9)**: Cálculo de momentos escorantes volumétricos por bodega, verificación de ángulo de escora estática residual ($\theta \le 12^\circ$), altura metacéntrica inicial ($GM_0 \ge 0.30\text{ m}$) y área bajo la curva $GZ$.
+  - **Sondeo de Tanques & Graneles Líquidos (ASTM-IP Petroleum Tables 54A/54B)**: Medición de espacio vacío (*Ullage*), deducción de agua libre (*Free Water Dip*), factor de corrección de volumen por temperatura (*VCF*) y cálculo de toneladas métricas en aire y vacío.
+- **Paquete Documental Oficial en PDF**:
+  - **Certificado Oficial de Cálculo de Calados & Masa de Carga en PDF (Draft Survey Report & Displacement Certificate PDF)**.
+  - **Declaración Oficial de Carga Sólida a Granel & Ensayo de Humedad TML en PDF (IMSBC Code Bulk Cargo Declaration PDF)**.
+  - **Plan de Carga & Estabilidad de Cereales en PDF (IMO Grain Code Stability Certificate PDF)**.
+  - **Informe de Sondeo de Tanques & Volumen Estándar en PDF (Tanker Ullage Survey ASTM Table 54 PDF)**.
+
+### 20. 🏭 Gestión de Almacén & Gemelo Digital 3D
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
 ---

@@ -53,6 +53,7 @@ import { charteringLaytimeRoutes } from "./routes/chartering-laytime.routes.js";
 import { generalAverageRoutes } from "./routes/general-average.routes.js";
 import { dangerousGoodsRoutes } from "./routes/dangerous-goods.routes.js";
 import { cargoInsuranceRoutes } from "./routes/cargo-insurance.routes.js";
+import { bulkOperationsRoutes } from "./routes/bulk-operations.routes.js";
 
 // Removed tRPC imports
 
@@ -205,5 +206,6 @@ app.register(charteringLaytimeRoutes, { prefix: "/api/chartering" });
 app.register(generalAverageRoutes, { prefix: "/api/general-average" });
 app.register(dangerousGoodsRoutes, { prefix: "/api/dangerous-goods" });
 app.register(cargoInsuranceRoutes, { prefix: "/api/cargo-insurance" });
+app.register(bulkOperationsRoutes, { prefix: "/api/bulk-operations" });
 
 export default app;
