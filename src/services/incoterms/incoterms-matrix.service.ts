@@ -1272,9 +1272,11 @@ export class IncotermsMatrixService {
 
     const cleaned = namedPlace.trim().replace(/\s+/g, " ");
     const hasIncotermsMention = /incoterms[®\s]*2020/i.test(cleaned);
-    const hasIncotermCode = new RegExp(`^${incotermCode}\\b`, "i").test(
-      cleaned,
+    const escapedCode = String(incotermCode || "").replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&",
     );
+    const hasIncotermCode = new RegExp(`^${escapedCode}\\b`, "i").test(cleaned);
 
     let formatted = cleaned;
     if (!hasIncotermCode) {
