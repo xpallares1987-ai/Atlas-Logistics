@@ -1,5 +1,5 @@
 /**
- * Logistics Utilities for Container Planning
+ * Core logistics helpers for container planning and utilization math.
  */
 
 export interface CargoItem {
@@ -19,14 +19,14 @@ export interface Container {
 }
 
 /**
- * Calculates volume of a cargo item in m3
+ * Calculates volume of a cargo item in cubic meters.
  */
 export function calculateVolume(item: CargoItem): number {
   return (item.width * item.height * item.length) / 1000000;
 }
 
 /**
- * Validates if a cargo item fits within container dimensions
+ * Checks whether a cargo item fits within a container's dimensions.
  */
 export function fitsInContainer(
   item: CargoItem,
@@ -40,7 +40,7 @@ export function fitsInContainer(
 }
 
 /**
- * Calculates container utilization percentage
+ * Calculates the volume utilization percentage for a set of cargo items.
  */
 export function calculateUtilization(
   items: CargoItem[],
