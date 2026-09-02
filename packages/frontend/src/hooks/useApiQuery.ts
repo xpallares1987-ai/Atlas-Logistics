@@ -8,6 +8,9 @@ import {
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
+/**
+ * Performs a JSON API request against the configured backend base URL.
+ */
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const token =
     typeof window !== "undefined"
@@ -44,6 +47,9 @@ export function useApiQuery<T>(
   });
 }
 
+/**
+ * Creates a mutation hook for JSON endpoints with a shared fetch wrapper.
+ */
 export function useApiMutation<TData, TVariables>(
   path: string,
   method: "POST" | "PUT" | "PATCH" | "DELETE" = "POST",

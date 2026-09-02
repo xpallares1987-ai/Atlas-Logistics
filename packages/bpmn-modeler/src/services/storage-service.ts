@@ -3,6 +3,9 @@ import { DiagramTab } from "../types";
 
 export { decryptToken, encryptToken };
 
+/**
+ * Checks whether localStorage can be used in the current runtime.
+ */
 function isStorageAvailable(): boolean {
   try {
     const storage = window.localStorage;
@@ -15,6 +18,9 @@ function isStorageAvailable(): boolean {
   }
 }
 
+/**
+ * Writes a value to localStorage when storage is available.
+ */
 function safeSetItem(key: string, value: string): boolean {
   if (!isStorageAvailable()) return false;
   try {
@@ -25,6 +31,9 @@ function safeSetItem(key: string, value: string): boolean {
   }
 }
 
+/**
+ * Reads a value from localStorage when storage is available.
+ */
 function safeGetItem(key: string): string | null {
   if (!isStorageAvailable()) return null;
   try {
@@ -45,6 +54,9 @@ export interface StorageKeys {
   tabsState: string;
 }
 
+/**
+ * Persists the editor UI session state used by the BPMN modeler.
+ */
 export function saveUiSession(
   keys: StorageKeys,
   uiState: { propertiesPanelOpen?: boolean } = {},
@@ -58,6 +70,9 @@ export function saveUiSession(
   );
 }
 
+/**
+ * Reads the editor UI session state from localStorage.
+ */
 export function loadUiSession(keys: StorageKeys) {
   if (!keys.uiState) return null;
   const raw = safeGetItem(keys.uiState);
@@ -71,6 +86,9 @@ export function loadUiSession(keys: StorageKeys) {
   }
 }
 
+/**
+ * Persists tab state for the BPMN modeler workspace.
+ */
 export function saveTabsSession(
   keys: StorageKeys,
   tabs: DiagramTab[],
@@ -80,6 +98,9 @@ export function saveTabsSession(
   return safeSetItem(keys.tabsState, JSON.stringify({ tabs, activeTabId }));
 }
 
+/**
+ * Restores tab state for the BPMN modeler workspace.
+ */
 export function loadTabsSession(
   keys: StorageKeys,
 ): { tabs: DiagramTab[]; activeTabId: string } | null {

@@ -1,3 +1,5 @@
+// Barrel export for shared rate-comparer utilities used by the app and tests.
+// Keep this in sync with the underlying modules to avoid stale re-exports.
 // @ts-nocheck
 export * from "./analysis-cache";
 export * from "./hooks";

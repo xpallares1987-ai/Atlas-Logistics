@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  real,
+  index,
+} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { invoices } from "./finance.js";
 import { rates } from "./pricing.js";
@@ -14,15 +20,23 @@ export const customsEventLogs = sqliteTable("customs_event_logs", {
     .default(sql`(strftime('%s', 'now'))`),
 });
 
-export const shipmentEventLogs = sqliteTable("shipment_event_logs", {
-  id: text("id").primaryKey(),
-  shipmentId: text("shipment_id").notNull(),
-  status: text("status").notNull(),
-  location: text("location").notNull(),
-  recordedAt: integer("recorded_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(strftime('%s', 'now'))`),
-});
+export const shipmentEventLogs = sqliteTable(
+  "shipment_event_logs",
+  {
+    id: text("id").primaryKey(),
+    shipmentId: text("shipment_id").notNull(),
+    status: text("status").notNull(),
+    location: text("location").notNull(),
+    recordedAt: integer("recorded_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(strftime('%s', 'now'))`),
+  },
+  (table) => ({
+    shipmentIdIdx: index("idx_shipment_event_logs_shipment_id").on(
+      table.shipmentId,
+    ),
+  }),
+);
 
 export const invoiceEventLogs = sqliteTable("invoice_event_logs", {
   id: text("id").primaryKey(),
