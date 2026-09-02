@@ -5,6 +5,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.15.0] - 2026-09-02
+
+### 🌟 Added
+- **Bulk Cargo & Port Terminal Operations Engine (IMSBC Code / BLU Code / IMO Grain Code / ASTM-IP 54 Draft & Ullage Surveys)**:
+  - **Relational Data Model (`src/db/schema/bulk_operations.ts`)**:
+    - 5 specialized tables bringing database total to **121 tables**: `bulkVesselOperations`, `bulkDraftSurveys`, `bulkImsbcDeclarations`, `bulkGrainStabilityPlans`, `bulkUllageSurveys`.
+    - Migration `0019_flowery_salo.sql` applied cleanly to both dev and production SQLite databases.
+  - **Hydrostatic Draft Survey Engine (`DraftSurveyCalculatorService`)**:
+    - 6-point drafts to mean drafts ($F_m, A_m, M_m$), apparent trim, deflection (*hogging/sagging*), and Quarter Mean Draft ($DQM$).
+    - 1st and 2nd trim corrections ($C_1, C_2$), water density factor ($\rho / 1.025$), deductible accounting (ballast, fuel, diesel, fresh water, sludge), and net cargo tonnage certified.
+  - **IMSBC Code Liquefaction & Safety Evaluator (`ImsbcLiquefactionEvaluatorService`)**:
+    - Transportable Moisture Limit calculation ($\text{TML} = \text{FMP} \times 0.90$) and mandatory loading rejection rule if moisture $> \text{TML}$ under IMSBC Section 7.
+    - Solid bulk categorization (Group A liquefiable, Group B chemical hazard MHB, Group C non-hazardous) and angle of repose trimming checks.
+  - **IMO Grain Code Stability Evaluator (`GrainStabilityCalculatorService`)**:
+    - Volumetric heeling moments, displacement-corrected heeling moment ($HM$), residual static heel angle ($\theta \le 12.0^\circ$), initial metacentric height ($GM_0 \ge 0.30\text{ m}$), and dynamical stability area under $GZ$ curve ($\ge 0.075\text{ m}\cdot\text{rad}$).
+  - **ASTM-IP Petroleum Ullage / Tank Survey Engine (`AstmUllageTankSurveyService`)**:
+    - Free water deduction ($GOV = TOV - FW$), Volume Correction Factor ($VCF$) via ASTM Table 54A/54B temperature curve, Gross/Net Standard Volume at 15°C ($GSV / NSV$), and commercial billing mass in air ($NSV \times (\text{Density}_{15} - 0.0011)$).
+  - **Official Regulatory Documentation in PDF (`PDFService`)**:
+    - Official **Hydrostatic Draft Survey Report & Displacement Certificate PDF**.
+    - Official **IMSBC Code Bulk Cargo Declaration & TML Certificate PDF**.
+    - Official **IMO Grain Code Stability & Loading Certificate PDF**.
+    - Official **Tanker Ullage & Liquid Quantity Survey Report PDF (ASTM Table 54)**.
+  - **Fastify REST API & Integration Tests**:
+    - `/api/bulk-operations/*` endpoints passing all 11 integration tests.
+  - **Interactive Workbench (`/bulk-operations`)**:
+    - 3-tabbed interface with 4 top KPI cards, 6-Point Draft Survey & Hydrostatic Calculator, IMSBC TML / Grain Code Stability Evaluator, and Tanker Ullage ASTM Liquid Manager.
+  - **Playwright E2E Testing**:
+    - End-to-end test suite in `tests/e2e/bulk-operations.spec.ts`.
+
 ## [1.14.0] - 2026-09-01
 
 ### 🌟 Added

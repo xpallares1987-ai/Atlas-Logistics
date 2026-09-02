@@ -134,6 +134,13 @@
       "when": 1788290250164,
       "tag": "0018_little_polaris",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1788330314296,
+      "tag": "0019_flowery_salo",
+      "breakpoints": true
     }
   ]
 }

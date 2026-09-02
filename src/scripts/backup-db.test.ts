@@ -1,24 +1,32 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "fs";
 import path from "path";
-import { backup, pruneOldBackups, ensureBackupDir } from "./backup-db.js";
-
-const TEST_BACKUP_DIR = path.resolve(process.cwd(), "backups-test");
-const TEST_DB_PATH = path.resolve(process.cwd(), "atlas-erp-test.db");
+import {
+  backup,
+  ensureBackupDir,
+  getSafeBackupDir,
+  getSafeDbPath,
+} from "./backup-db.js";
 
 describe("Database Backup & Pruning Utility", () => {
+  let testBackupDir: string;
+  let testDbPath: string;
+
   beforeEach(async () => {
     process.env.BACKUP_DIR = "backups-test";
     process.env.LOCAL_DB_PATH = "atlas-erp-test.db";
     process.env.MAX_LOCAL_BACKUPS = "3";
-    await fs.writeFile(TEST_DB_PATH, "dummy sqlite content for backup test");
-    await fs.mkdir(TEST_BACKUP_DIR, { recursive: true });
+    testBackupDir = getSafeBackupDir();
+    testDbPath = getSafeDbPath();
+
+    await fs.writeFile(testDbPath, "dummy sqlite content for backup test");
+    await fs.mkdir(testBackupDir, { recursive: true });
   });
 
   afterEach(async () => {
     try {
-      await fs.rm(TEST_DB_PATH, { force: true });
-      await fs.rm(TEST_BACKUP_DIR, { recursive: true, force: true });
+      await fs.rm(testDbPath, { force: true });
+      await fs.rm(testBackupDir, { recursive: true, force: true });
     } catch {}
   });
 
@@ -29,8 +37,12 @@ describe("Database Backup & Pruning Utility", () => {
   it("backup should create a copy of the database", async () => {
     const backupFilePath = await backup();
     expect(backupFilePath).toBeDefined();
+
+    const safeFileName = path.basename(backupFilePath);
+    const safeBackupPath = path.resolve(testBackupDir, safeFileName);
+
     const exists = await fs
-      .stat(backupFilePath)
+      .stat(safeBackupPath)
       .then(() => true)
       .catch(() => false);
     expect(exists).toBe(true);
