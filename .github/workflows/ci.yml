@@ -58,7 +58,17 @@ jobs:
       - name: Turbo Lint
         run: pnpm run lint
 
+      - name: Prepare Unit Test Database
+        env:
+          DATABASE_URL: file:atlas-unit-tests.db
+        run: |
+          touch .env.local
+          pnpm run db:migrate
+          pnpm run db:seed
+
       - name: Run Tests
+        env:
+          DATABASE_URL: file:atlas-unit-tests.db
         run: pnpm run test
 
       - name: Install Playwright Browsers
