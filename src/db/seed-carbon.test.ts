@@ -114,7 +114,6 @@ describe("seedCarbonModule", () => {
       .select()
       .from(carbonCalculationLegs)
       .where(eq(carbonCalculationLegs.calculationId, "calc-sh-2026-0891"));
-
     expect(preservedCertificate?.certificateNumber).toBe(
       "ATLAS-CARBON-PRESERVE-001",
     );

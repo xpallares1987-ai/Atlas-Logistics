@@ -6,6 +6,8 @@ import {
   type UseMutationOptions,
 } from "@tanstack/react-query";
 
+export { useQueryClient };
+
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 /**
@@ -21,7 +23,7 @@ async function apiRequest(path: string, options?: RequestInit) {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${""}${token}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
   });
@@ -108,4 +110,13 @@ export function useApiMutation<TData, TVariables>(
   });
 }
 
-export { useQueryClient };
+/**
+ * Invalidate one or more query key prefixes.
+ */
+export function useInvalidateQueries() {
+  const queryClient = useQueryClient();
+  return (...keys: (readonly unknown[])[]) =>
+    Promise.all(
+      keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+    );
+}

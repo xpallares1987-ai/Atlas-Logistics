@@ -1,4 +1,5 @@
 import { db } from "./index.js";
+import { and, asc, eq } from "drizzle-orm";
 import {
   carbonCalculations,
   carbonCalculationLegs,
@@ -8,7 +9,101 @@ import {
 import { GlecCalculatorService } from "../services/carbon/glec-calculator.service.js";
 import { fileURLToPath } from "url";
 import path from "path";
-import { and, eq, inArray, or } from "drizzle-orm";
+
+type SeedLeg = {
+  legOrder: number;
+  originName: string;
+  destinationName: string;
+  mode:
+    | "OCEAN_CONTAINER"
+    | "OCEAN_BULK"
+    | "AIR_FREIGHT"
+    | "AIR_BELLY"
+    | "ROAD_DIESEL"
+    | "ROAD_HVO"
+    | "ROAD_EV"
+    | "RAIL_ELECTRIC"
+    | "RAIL_DIESEL";
+  distanceKm: number;
+  weightTonnes: number;
+  factors: {
+    wtw: number;
+    ttw: number;
+    wtt: number;
+  };
+  legTco2eWtw: number;
+  legTco2eTtw: number;
+  legTco2eWtt: number;
+};
+
+async function upsertFixtureLegByNaturalKey(
+  calculationId: string,
+  leg: SeedLeg,
+) {
+  const fixtureLegId = `${calculationId}-leg-${leg.legOrder}`;
+  const existingLegRows = await db
+    .select({ id: carbonCalculationLegs.id })
+    .from(carbonCalculationLegs)
+    .where(
+      and(
+        eq(carbonCalculationLegs.calculationId, calculationId),
+        eq(carbonCalculationLegs.legOrder, leg.legOrder),
+      ),
+    )
+    .orderBy(asc(carbonCalculationLegs.createdAt), asc(carbonCalculationLegs.id));
+
+  const primaryLeg =
+    existingLegRows.find((row) => row.id === fixtureLegId) ?? existingLegRows[0];
+
+  if (!primaryLeg) {
+    await db.insert(carbonCalculationLegs).values({
+      id: fixtureLegId,
+      calculationId,
+      legOrder: leg.legOrder,
+      originName: leg.originName,
+      destinationName: leg.destinationName,
+      mode: leg.mode,
+      distanceKm: leg.distanceKm,
+      weightTonnes: leg.weightTonnes,
+      emissionFactorWtw: leg.factors.wtw,
+      emissionFactorTtw: leg.factors.ttw,
+      emissionFactorWtt: leg.factors.wtt,
+      legTco2eWtw: leg.legTco2eWtw,
+      legTco2eTtw: leg.legTco2eTtw,
+      legTco2eWtt: leg.legTco2eWtt,
+    });
+    return;
+  }
+
+  await db
+    .update(carbonCalculationLegs)
+    .set({
+      id: fixtureLegId,
+      calculationId,
+      legOrder: leg.legOrder,
+      originName: leg.originName,
+      destinationName: leg.destinationName,
+      mode: leg.mode,
+      distanceKm: leg.distanceKm,
+      weightTonnes: leg.weightTonnes,
+      emissionFactorWtw: leg.factors.wtw,
+      emissionFactorTtw: leg.factors.ttw,
+      emissionFactorWtt: leg.factors.wtt,
+      legTco2eWtw: leg.legTco2eWtw,
+      legTco2eTtw: leg.legTco2eTtw,
+      legTco2eWtt: leg.legTco2eWtt,
+    })
+    .where(eq(carbonCalculationLegs.id, primaryLeg.id));
+
+  for (const duplicateLeg of existingLegRows) {
+    if (duplicateLeg.id === primaryLeg.id) {
+      continue;
+    }
+    await db
+      .delete(carbonCalculationLegs)
+      .where(eq(carbonCalculationLegs.id, duplicateLeg.id));
+  }
+}
 
 export async function seedCarbonModule() {
   console.log(
@@ -111,25 +206,6 @@ export async function seedCarbonModule() {
     ])
     .onConflictDoNothing();
 
-  await db
-    .delete(carbonCalculationLegs)
-    .where(
-      or(
-        and(
-          eq(carbonCalculationLegs.calculationId, calc1Id),
-          inArray(carbonCalculationLegs.legOrder, [1, 2]),
-        ),
-        and(
-          eq(carbonCalculationLegs.calculationId, calc2Id),
-          inArray(carbonCalculationLegs.legOrder, [1, 2]),
-        ),
-        and(
-          eq(carbonCalculationLegs.calculationId, calc3Id),
-          inArray(carbonCalculationLegs.legOrder, [1, 2]),
-        ),
-      ),
-    );
-
   // 2. Pre-calculated Journeys
   const journey1Legs = [
     {
@@ -173,25 +249,7 @@ export async function seedCarbonModule() {
     .onConflictDoNothing();
 
   for (const leg of j1.legs) {
-    await db
-      .insert(carbonCalculationLegs)
-      .values({
-        id: `${calc1Id}-leg-${leg.legOrder}`,
-        calculationId: calc1Id,
-        legOrder: leg.legOrder,
-        originName: leg.originName,
-        destinationName: leg.destinationName,
-        mode: leg.mode,
-        distanceKm: leg.distanceKm,
-        weightTonnes: leg.weightTonnes,
-        emissionFactorWtw: leg.factors.wtw,
-        emissionFactorTtw: leg.factors.ttw,
-        emissionFactorWtt: leg.factors.wtt,
-        legTco2eWtw: leg.legTco2eWtw,
-        legTco2eTtw: leg.legTco2eTtw,
-        legTco2eWtt: leg.legTco2eWtt,
-      })
-      .onConflictDoNothing();
+    await upsertFixtureLegByNaturalKey(calc1Id, leg);
   }
 
   // Pre-seed Certificate 1
@@ -252,25 +310,7 @@ export async function seedCarbonModule() {
     .onConflictDoNothing();
 
   for (const leg of j2.legs) {
-    await db
-      .insert(carbonCalculationLegs)
-      .values({
-        id: `${calc2Id}-leg-${leg.legOrder}`,
-        calculationId: calc2Id,
-        legOrder: leg.legOrder,
-        originName: leg.originName,
-        destinationName: leg.destinationName,
-        mode: leg.mode,
-        distanceKm: leg.distanceKm,
-        weightTonnes: leg.weightTonnes,
-        emissionFactorWtw: leg.factors.wtw,
-        emissionFactorTtw: leg.factors.ttw,
-        emissionFactorWtt: leg.factors.wtt,
-        legTco2eWtw: leg.legTco2eWtw,
-        legTco2eTtw: leg.legTco2eTtw,
-        legTco2eWtt: leg.legTco2eWtt,
-      })
-      .onConflictDoNothing();
+    await upsertFixtureLegByNaturalKey(calc2Id, leg);
   }
 
   // Journey 3: Rail Green Corridor
@@ -316,25 +356,7 @@ export async function seedCarbonModule() {
     .onConflictDoNothing();
 
   for (const leg of j3.legs) {
-    await db
-      .insert(carbonCalculationLegs)
-      .values({
-        id: `${calc3Id}-leg-${leg.legOrder}`,
-        calculationId: calc3Id,
-        legOrder: leg.legOrder,
-        originName: leg.originName,
-        destinationName: leg.destinationName,
-        mode: leg.mode,
-        distanceKm: leg.distanceKm,
-        weightTonnes: leg.weightTonnes,
-        emissionFactorWtw: leg.factors.wtw,
-        emissionFactorTtw: leg.factors.ttw,
-        emissionFactorWtt: leg.factors.wtt,
-        legTco2eWtw: leg.legTco2eWtw,
-        legTco2eTtw: leg.legTco2eTtw,
-        legTco2eWtt: leg.legTco2eWtt,
-      })
-      .onConflictDoNothing();
+    await upsertFixtureLegByNaturalKey(calc3Id, leg);
   }
 
   // Pre-seed Certificate 2
