@@ -1,5 +1,10 @@
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
+import {
+  calculateCarbonSchema,
+  carbonOffsetSchema,
+  compareGreenRouteSchema,
+} from "@atlas/shared";
 import { db } from "../db/index.js";
 import {
   carbonCalculations,
@@ -12,45 +17,6 @@ import { v4 as uuidv4 } from "uuid";
 import { GlecCalculatorService } from "../services/carbon/glec-calculator.service.js";
 import { CarbonOffsetService } from "../services/carbon/carbon-offset.service.js";
 import { CarbonPdfService } from "../services/carbon/carbon-pdf.service.js";
-
-const transportModeSchema = z.enum([
-  "OCEAN_CONTAINER",
-  "OCEAN_BULK",
-  "AIR_FREIGHT",
-  "AIR_BELLY",
-  "ROAD_DIESEL",
-  "ROAD_HVO",
-  "ROAD_EV",
-  "RAIL_ELECTRIC",
-  "RAIL_DIESEL",
-]);
-
-const legCalculationSchema = z.object({
-  originName: z.string().trim().min(1),
-  destinationName: z.string().trim().min(1),
-  mode: transportModeSchema,
-  distanceKm: z.number().finite().positive(),
-  weightKg: z.number().finite().positive(),
-});
-
-const calculateSchema = z.object({
-  entityType: z.enum(["SHIPMENT", "QUOTE", "SIMULATION"]).optional(),
-  entityId: z.string().trim().min(1).optional(),
-  referenceCode: z.string().trim().min(1).optional(),
-  originCity: z.string().trim().min(1).optional(),
-  destinationCity: z.string().trim().min(1).optional(),
-  legs: z.array(legCalculationSchema).min(1),
-});
-
-const compareGreenRouteSchema = z.object({
-  legs: z.array(legCalculationSchema).min(1),
-});
-
-const offsetSchema = z.object({
-  calculationId: z.string().trim().min(1),
-  projectId: z.string().trim().min(1),
-  beneficiaryName: z.string().trim().min(1).default("Atlas Logistics Customer"),
-});
 
 export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
   // Optional auth verification hook (allows unauthenticated in test if needed or verifies JWT)
@@ -217,49 +183,51 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/carbon/calculate - Execute GLEC v3 calculation and save
   fastify.post("/calculate", async (req, reply) => {
     try {
-      const body = calculateSchema.parse(req.body);
+      const body = calculateCarbonSchema.parse(req.body);
       const journey = GlecCalculatorService.calculateJourney(body.legs);
       const calculationId = uuidv4();
       const referenceCode =
         body.referenceCode || `CALC-${Date.now().toString().slice(-6)}`;
       const entityType = body.entityType || "SIMULATION";
 
-      await db.insert(carbonCalculations).values({
-        id: calculationId,
-        entityType,
-        entityId: body.entityId || null,
-        referenceCode,
-        originCity: body.originCity || body.legs[0].originName,
-        destinationCity:
-          body.destinationCity ||
-          body.legs[body.legs.length - 1].destinationName,
-        totalWeightKg: body.legs[0].weightKg,
-        totalDistanceKm: journey.totalDistanceKm,
-        totalTco2eWtw: journey.totalTco2eWtw,
-        totalTco2eTtw: journey.totalTco2eTtw,
-        totalTco2eWtt: journey.totalTco2eWtt,
-        carbonIntensityGco2ePerTkm: journey.carbonIntensityGco2ePerTkm,
-        status: "CALCULATED",
-      });
-
-      for (const leg of journey.legs) {
-        await db.insert(carbonCalculationLegs).values({
-          id: uuidv4(),
-          calculationId,
-          legOrder: leg.legOrder,
-          originName: leg.originName,
-          destinationName: leg.destinationName,
-          mode: leg.mode,
-          distanceKm: leg.distanceKm,
-          weightTonnes: leg.weightTonnes,
-          emissionFactorWtw: leg.factors.wtw,
-          emissionFactorTtw: leg.factors.ttw,
-          emissionFactorWtt: leg.factors.wtt,
-          legTco2eWtw: leg.legTco2eWtw,
-          legTco2eTtw: leg.legTco2eTtw,
-          legTco2eWtt: leg.legTco2eWtt,
+      await db.transaction(async (tx) => {
+        await tx.insert(carbonCalculations).values({
+          id: calculationId,
+          entityType,
+          entityId: body.entityId || null,
+          referenceCode,
+          originCity: body.originCity || body.legs[0].originName,
+          destinationCity:
+            body.destinationCity ||
+            body.legs[body.legs.length - 1].destinationName,
+          totalWeightKg: body.legs[0].weightKg,
+          totalDistanceKm: journey.totalDistanceKm,
+          totalTco2eWtw: journey.totalTco2eWtw,
+          totalTco2eTtw: journey.totalTco2eTtw,
+          totalTco2eWtt: journey.totalTco2eWtt,
+          carbonIntensityGco2ePerTkm: journey.carbonIntensityGco2ePerTkm,
+          status: "CALCULATED",
         });
-      }
+
+        for (const leg of journey.legs) {
+          await tx.insert(carbonCalculationLegs).values({
+            id: uuidv4(),
+            calculationId,
+            legOrder: leg.legOrder,
+            originName: leg.originName,
+            destinationName: leg.destinationName,
+            mode: leg.mode,
+            distanceKm: leg.distanceKm,
+            weightTonnes: leg.weightTonnes,
+            emissionFactorWtw: leg.factors.wtw,
+            emissionFactorTtw: leg.factors.ttw,
+            emissionFactorWtt: leg.factors.wtt,
+            legTco2eWtw: leg.legTco2eWtw,
+            legTco2eTtw: leg.legTco2eTtw,
+            legTco2eWtt: leg.legTco2eWtt,
+          });
+        }
+      });
 
       return reply.send({
         success: true,
@@ -326,7 +294,7 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/carbon/offset - Purchase carbon credits and issue certificate
   fastify.post("/offset", async (req, reply) => {
     try {
-      const body = offsetSchema.parse(req.body);
+      const body = carbonOffsetSchema.parse(req.body);
       const result = await CarbonOffsetService.processOffset(body);
 
       return reply.send({

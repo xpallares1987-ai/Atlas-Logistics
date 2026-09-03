@@ -1,4 +1,5 @@
 export * from "./analysis-cache.js";
+export * from "./carbon-schemas.js";
 export * from "./hooks.js";
 export * from "./types/warehouse.js";
 export * from "./dom.js";

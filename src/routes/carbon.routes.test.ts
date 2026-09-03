@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import app from "../app.js";
 import jwt from "jsonwebtoken";
+import { eq } from "drizzle-orm";
+import { client, db } from "../db/index.js";
+import { carbonCalculations } from "../db/schema/index.js";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure";
@@ -105,6 +108,55 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
     expect(result.calculationId).toBeDefined();
     expect(result.journey.totalTco2eWtw).toBeGreaterThan(0);
     expect(result.journey.legs.length).toBe(2);
+  });
+
+  it("POST /api/carbon/calculate should roll back the parent when a leg insert fails", async () => {
+    const referenceCode = "TEST-CALC-ROLLBACK";
+    await client.execute(`
+      CREATE TRIGGER test_fail_carbon_leg
+      BEFORE INSERT ON carbon_calculation_legs
+      WHEN NEW.origin_name = 'FORCE_TRANSACTION_FAILURE'
+      BEGIN
+        SELECT RAISE(FAIL, 'forced leg insertion failure');
+      END;
+    `);
+
+    try {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/carbon/calculate",
+        headers: authHeader,
+        payload: {
+          referenceCode,
+          legs: [
+            {
+              originName: "Madrid",
+              destinationName: "Paris",
+              mode: "ROAD_DIESEL",
+              distanceKm: 1200,
+              weightKg: 20000,
+            },
+            {
+              originName: "FORCE_TRANSACTION_FAILURE",
+              destinationName: "Berlin",
+              mode: "RAIL_ELECTRIC",
+              distanceKm: 800,
+              weightKg: 20000,
+            },
+          ],
+        },
+      });
+
+      expect(res.statusCode).toBe(500);
+      const calculation = await db
+        .select()
+        .from(carbonCalculations)
+        .where(eq(carbonCalculations.referenceCode, referenceCode))
+        .get();
+      expect(calculation).toBeUndefined();
+    } finally {
+      await client.execute("DROP TRIGGER test_fail_carbon_leg");
+    }
   });
 
   it("POST /api/carbon/compare-green-route should return alternative corridors", async () => {

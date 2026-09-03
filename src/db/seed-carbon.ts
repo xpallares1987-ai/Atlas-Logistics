@@ -1,4 +1,4 @@
-import { db, client } from "./index.js";
+import { db } from "./index.js";
 import {
   carbonCalculations,
   carbonCalculationLegs,
@@ -13,86 +13,6 @@ export async function seedCarbonModule() {
   console.log(
     "🌱 Initializing and seeding Carbon Emissions Module (ISO 14083 / GLEC)...",
   );
-
-  // Create tables if they do not exist
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS carbon_calculations (
-      id TEXT PRIMARY KEY,
-      entity_type TEXT NOT NULL DEFAULT 'SHIPMENT',
-      entity_id TEXT,
-      reference_code TEXT NOT NULL,
-      origin_city TEXT NOT NULL,
-      destination_city TEXT NOT NULL,
-      total_weight_kg REAL NOT NULL,
-      total_distance_km REAL NOT NULL,
-      total_tco2e_wtw REAL NOT NULL,
-      total_tco2e_ttw REAL NOT NULL,
-      total_tco2e_wtt REAL NOT NULL,
-      carbon_intensity_gco2e_per_tkm REAL NOT NULL,
-      status TEXT NOT NULL DEFAULT 'CALCULATED',
-      offset_project_id TEXT,
-      offset_cost_eur REAL,
-      certificate_number TEXT,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS carbon_calculation_legs (
-      id TEXT PRIMARY KEY,
-      calculation_id TEXT NOT NULL,
-      leg_order INTEGER NOT NULL,
-      origin_name TEXT NOT NULL,
-      destination_name TEXT NOT NULL,
-      mode TEXT NOT NULL,
-      distance_km REAL NOT NULL,
-      weight_tonnes REAL NOT NULL,
-      emission_factor_wtw REAL NOT NULL,
-      emission_factor_ttw REAL NOT NULL,
-      emission_factor_wtt REAL NOT NULL,
-      leg_tco2e_wtw REAL NOT NULL,
-      leg_tco2e_ttw REAL NOT NULL,
-      leg_tco2e_wtt REAL NOT NULL,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (calculation_id) REFERENCES carbon_calculations(id) ON DELETE CASCADE
-    );
-  `);
-
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS carbon_offset_projects (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      standard TEXT NOT NULL,
-      category TEXT NOT NULL,
-      country TEXT NOT NULL,
-      price_per_tco2e_eur REAL NOT NULL,
-      available_credits_tco2e REAL NOT NULL,
-      description TEXT NOT NULL,
-      image_url TEXT,
-      verification_registry_url TEXT,
-      active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS carbon_certificates (
-      id TEXT PRIMARY KEY,
-      certificate_number TEXT NOT NULL UNIQUE,
-      calculation_id TEXT NOT NULL,
-      beneficiary_name TEXT NOT NULL,
-      project_id TEXT NOT NULL,
-      project_name TEXT NOT NULL,
-      project_standard TEXT NOT NULL,
-      offset_tco2e REAL NOT NULL,
-      amount_paid_eur REAL NOT NULL,
-      qr_validation_url TEXT NOT NULL,
-      issued_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (calculation_id) REFERENCES carbon_calculations(id),
-      FOREIGN KEY (project_id) REFERENCES carbon_offset_projects(id)
-    );
-  `);
 
   // 1. Seed Verified Projects
   const project1Id = "proj-amazon-reforest-01";

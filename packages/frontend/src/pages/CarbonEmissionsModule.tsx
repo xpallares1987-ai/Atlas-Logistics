@@ -1,4 +1,13 @@
 import { Button, Input } from "@atlas/ui";
+import {
+  calculateCarbonSchema,
+  carbonOffsetSchema,
+  compareGreenRouteSchema,
+  type CalculateCarbonInput,
+  type CarbonLegCalculationInput,
+  type CarbonOffsetInput,
+  type CompareGreenRouteInput,
+} from "@atlas/shared";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -22,14 +31,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useApiMutation, useApiQuery } from "../hooks/useApiQuery";
-
-interface LegInput {
-  originName: string;
-  destinationName: string;
-  mode: string;
-  distanceKm: number;
-  weightKg: number;
-}
 
 const toNumber = (value: unknown, fallback = 0) => {
   const numericValue = Number(value);
@@ -57,7 +58,7 @@ export default function CarbonEmissionsModule() {
   );
   const [calcOriginCity, setCalcOriginCity] = useState("Barcelona");
   const [calcDestinationCity, setCalcDestinationCity] = useState("Rotterdam");
-  const [calcLegs, setCalcLegs] = useState<LegInput[]>([
+  const [calcLegs, setCalcLegs] = useState<CarbonLegCalculationInput[]>([
     {
       originName: "Barcelona Port (BEST Terminal)",
       destinationName: "Lyon Railhub",
@@ -121,30 +122,34 @@ export default function CarbonEmissionsModule() {
   const selectedCalculationTotal = toNumber(selectedCalculation?.totalTco2eWtw);
 
   // Mutations
-  const calculateMutation = useApiMutation<any, any>(
+  const calculateMutation = useApiMutation<any, CalculateCarbonInput>(
     "/carbon/calculate",
     "POST",
   );
-  const compareMutation = useApiMutation<any, any>(
+  const compareMutation = useApiMutation<any, CompareGreenRouteInput>(
     "/carbon/compare-green-route",
     "POST",
   );
-  const offsetMutation = useApiMutation<any, any>("/carbon/offset", "POST");
+  const offsetMutation = useApiMutation<any, CarbonOffsetInput>(
+    "/carbon/offset",
+    "POST",
+  );
 
   // Handle Calculate Journey in Simulator
   const handleRunCalculation = async () => {
     try {
-      const payload = {
+      const payload = calculateCarbonSchema.parse({
         referenceCode: calcRefCode,
         originCity: calcOriginCity,
         destinationCity: calcDestinationCity,
         legs: calcLegs,
-      };
+      });
       const res: any = await calculateMutation.mutateAsync(payload);
       setCalcResult(res.journey);
 
       // Also get green alternatives
-      const altRes: any = await compareMutation.mutateAsync({ legs: calcLegs });
+      const altPayload = compareGreenRouteSchema.parse({ legs: calcLegs });
+      const altRes: any = await compareMutation.mutateAsync(altPayload);
       setGreenAlternatives(altRes.alternatives || []);
 
       refetchSummary();
@@ -176,7 +181,7 @@ export default function CarbonEmissionsModule() {
 
   const handleLegChange = (
     index: number,
-    field: keyof LegInput,
+    field: keyof CarbonLegCalculationInput,
     value: any,
   ) => {
     const updated = [...calcLegs];
@@ -192,11 +197,12 @@ export default function CarbonEmissionsModule() {
     }
 
     try {
-      await offsetMutation.mutateAsync({
+      const payload = carbonOffsetSchema.parse({
         calculationId: selectedCalculation.id,
         projectId: offsetSelectedProjectId,
         beneficiaryName: beneficiaryInput || "Atlas Logistics Customer",
       });
+      await offsetMutation.mutateAsync(payload);
 
       setShowOffsetModal(false);
       refetchSummary();

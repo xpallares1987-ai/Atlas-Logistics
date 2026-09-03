@@ -71,6 +71,14 @@ describe("CarbonOffsetService", () => {
       .where(eq(carbonOffsetProjects.id, projectId));
   });
 
+  it("generates collision-resistant certificate numbers", () => {
+    const certificateNumber = CarbonOffsetService.generateCertificateNumber();
+
+    expect(certificateNumber).toMatch(
+      /^ATLAS-CARBON-\d{4}-[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/,
+    );
+  });
+
   it("rejects insufficient inventory without updating the calculation", async () => {
     await insertCalculation(calculationId, 2);
 
