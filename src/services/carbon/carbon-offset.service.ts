@@ -6,6 +6,7 @@ import {
 } from "../../db/schema/index.js";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { randomInt } from "node:crypto";
 
 export interface OffsetPurchaseInput {
   calculationId: string;
@@ -37,8 +38,8 @@ export class CarbonOffsetService {
    */
   public static generateCertificateNumber(): string {
     const year = new Date().getFullYear();
-    const randomHex = Math.floor(1000 + Math.random() * 9000);
-    return `ATLAS-CARBON-${year}-${randomHex}`;
+    const randomSuffix = randomInt(1000, 10000);
+    return `ATLAS-CARBON-${year}-${randomSuffix}`;
   }
 
   /**
