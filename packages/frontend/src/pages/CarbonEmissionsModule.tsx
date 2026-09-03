@@ -30,7 +30,7 @@ import {
   Truck,
 } from "lucide-react";
 import { useState } from "react";
-import { useApiMutation, useApiQuery } from "../hooks/useApiQuery";
+import { useApiAllPagesQuery, useApiMutation, useApiQuery } from "../hooks/useApiQuery";
 
 const toNumber = (value: unknown, fallback = 0) => {
   const numericValue = Number(value);
@@ -84,8 +84,8 @@ export default function CarbonEmissionsModule() {
   );
 
   // 2. Fetch Calculations List
-  const { data: calculations = [], refetch: refetchCalculations } = useApiQuery<
-    any[]
+  const { data: calculations = [], refetch: refetchCalculations } = useApiAllPagesQuery<
+    any
   >(
     ["carbon-calculations", searchQuery],
     `/carbon/calculations?q=${encodeURIComponent(searchQuery)}`,
@@ -98,8 +98,8 @@ export default function CarbonEmissionsModule() {
   );
 
   // 4. Fetch Certificates List
-  const { data: certificates = [], refetch: refetchCertificates } = useApiQuery<
-    any[]
+  const { data: certificates = [], refetch: refetchCertificates } = useApiAllPagesQuery<
+    any
   >(["carbon-certificates"], "/carbon/certificates");
 
   // 5. Fetch Calculation Details

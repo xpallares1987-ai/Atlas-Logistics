@@ -27,6 +27,7 @@ describe("seedCarbonModule", () => {
   });
 
   it("is repeat-safe and preserves non-fixture carbon data", async () => {
+    const legacyDuplicateLegId = "legacy-carbon-fixture-leg-1";
     await db.insert(carbonOffsetProjects).values({
       id: projectId,
       name: "Preserved Project",
@@ -61,11 +62,30 @@ describe("seedCarbonModule", () => {
       amountPaidEur: 10,
       qrValidationUrl: "https://example.test/preserved",
     });
+    await db.insert(carbonCalculationLegs).values({
+      id: legacyDuplicateLegId,
+      calculationId: "calc-sh-2026-0891",
+      legOrder: 1,
+      originName: "Legacy Fixture Origin",
+      destinationName: "Legacy Fixture Destination",
+      mode: "ROAD_DIESEL",
+      distanceKm: 1,
+      weightTonnes: 1,
+      emissionFactorWtw: 1,
+      emissionFactorTtw: 1,
+      emissionFactorWtt: 1,
+      legTco2eWtw: 1,
+      legTco2eTtw: 1,
+      legTco2eWtt: 1,
+    });
 
     const fixtureLegsBefore = await db
       .select()
       .from(carbonCalculationLegs)
       .where(eq(carbonCalculationLegs.calculationId, "calc-sh-2026-0891"));
+    const fixtureLegsUniqueCountBefore = new Set(
+      fixtureLegsBefore.map((leg) => leg.legOrder),
+    ).size;
 
     await seedCarbonModule();
     await seedCarbonModule();
@@ -79,10 +99,24 @@ describe("seedCarbonModule", () => {
       .select()
       .from(carbonCalculationLegs)
       .where(eq(carbonCalculationLegs.calculationId, "calc-sh-2026-0891"));
+    const fixtureLegOrderCounts = fixtureLegs.reduce(
+      (counts, leg) => {
+        counts.set(leg.legOrder, (counts.get(leg.legOrder) ?? 0) + 1);
+        return counts;
+      },
+      new Map<number, number>(),
+    );
 
     expect(preservedCertificate?.certificateNumber).toBe(
       "ATLAS-CARBON-PRESERVE-001",
     );
-    expect(fixtureLegs).toHaveLength(fixtureLegsBefore.length);
+    expect(fixtureLegs).toHaveLength(fixtureLegsUniqueCountBefore);
+    expect(fixtureLegs.find((leg) => leg.id === legacyDuplicateLegId)).toBeFalsy();
+    expect([...fixtureLegOrderCounts.values()]).toEqual(
+      expect.arrayContaining([1]),
+    );
+    expect([...fixtureLegOrderCounts.values()].every((count) => count === 1)).toBe(
+      true,
+    );
   });
 });

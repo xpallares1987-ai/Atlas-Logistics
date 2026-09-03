@@ -12,7 +12,7 @@ import {
   carbonOffsetProjects,
   carbonCertificates,
 } from "../db/schema/index.js";
-import { and, count, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, or, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { GlecCalculatorService } from "../services/carbon/glec-calculator.service.js";
 import {
@@ -33,6 +33,8 @@ const calculationListQuerySchema = paginationSchema.extend({
     .default("ALL"),
   q: z.string().trim().max(100).optional(),
 });
+
+const escapeLikePattern = (value: string) => value.replace(/[\\%_]/g, "\\$&");
 
 export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
   // Optional auth verification hook (allows unauthenticated in test if needed or verifies JWT)
@@ -114,16 +116,17 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { entityType, status, q, page, pageSize } =
         calculationListQuerySchema.parse(req.query);
+      const escapedQuery = q ? escapeLikePattern(q) : undefined;
       const where = and(
         entityType === "ALL"
           ? undefined
           : eq(carbonCalculations.entityType, entityType),
         status === "ALL" ? undefined : eq(carbonCalculations.status, status),
-        q
+        escapedQuery
           ? or(
-              like(carbonCalculations.referenceCode, `%${q}%`),
-              like(carbonCalculations.originCity, `%${q}%`),
-              like(carbonCalculations.destinationCity, `%${q}%`),
+              sql`${carbonCalculations.referenceCode} LIKE ${`%${escapedQuery}%`} ESCAPE '\\'`,
+              sql`${carbonCalculations.originCity} LIKE ${`%${escapedQuery}%`} ESCAPE '\\'`,
+              sql`${carbonCalculations.destinationCity} LIKE ${`%${escapedQuery}%`} ESCAPE '\\'`,
             )
           : undefined,
       );
@@ -132,7 +135,10 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
           .select()
           .from(carbonCalculations)
           .where(where)
-          .orderBy(desc(carbonCalculations.createdAt))
+          .orderBy(
+            desc(carbonCalculations.createdAt),
+            desc(carbonCalculations.id),
+          )
           .limit(pageSize)
           .offset((page - 1) * pageSize),
         db
@@ -355,7 +361,7 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         db
           .select()
           .from(carbonCertificates)
-          .orderBy(desc(carbonCertificates.issuedAt))
+          .orderBy(desc(carbonCertificates.issuedAt), desc(carbonCertificates.id))
           .limit(pageSize)
           .offset((page - 1) * pageSize),
         db.select({ value: count() }).from(carbonCertificates).get(),
