@@ -6,7 +6,7 @@ test.describe("Incoterms® 2020 & Commercial Freight Contracting Engine", () => 
     await loginAsAdmin(page);
   });
 
-  it("should render Incoterms workbench and KPI cards", async ({ page }) => {
+  test("should render Incoterms workbench and KPI cards", async ({ page }) => {
     await page.goto("/contracts");
 
     // Header
@@ -29,7 +29,7 @@ test.describe("Incoterms® 2020 & Commercial Freight Contracting Engine", () => 
     ).toBeVisible();
   });
 
-  it("should select commercial contract and inspect clauses and PDF export", async ({
+  test("should select commercial contract and inspect clauses and PDF export", async ({
     page,
   }) => {
     await page.goto("/contracts");
@@ -66,7 +66,7 @@ test.describe("Incoterms® 2020 & Commercial Freight Contracting Engine", () => 
     await expect(pdfLink).toBeVisible();
   });
 
-  it("should switch to 11 Incoterms Matrix tab and open simulator modal", async ({
+  test("should switch to 11 Incoterms Matrix tab and open simulator modal", async ({
     page,
   }) => {
     await page.goto("/contracts");

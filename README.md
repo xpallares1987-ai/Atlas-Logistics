@@ -279,7 +279,7 @@ Atlas-Logistics/
 ## 🚀 Inicio Rápido
 
 ### Requisitos Previos
-- **Node.js**: >= 20.0 (recomendado 22+)
+- **Node.js**: >= 22.22.1
 - **pnpm**: >= 10.0
 
 ### Instalación y Puesta en Marcha
@@ -334,6 +334,8 @@ Atlas Logistics cuenta con aislamiento nativo de bases de datos por entorno medi
 ```bash
 # 1. Copiar y configurar el archivo de variables de producción
 cp .env.production.example .env.production
+# Configure ADMIN_PASSWORD with a unique value from your deployment secret manager.
+# db:seed:prod rejects missing values and the insecure "admin" default.
 
 # 2. Aplicar migraciones sobre la base de datos de producción
 pnpm run db:migrate:prod

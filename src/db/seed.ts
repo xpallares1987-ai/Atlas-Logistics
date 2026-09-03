@@ -7,7 +7,7 @@ import "dotenv/config";
 
 import { client, db, databaseUrl } from "./index.js";
 
-async function main() {
+export async function seedDatabase() {
   console.log(
     `🌱 Comenzando la inyección masiva de datos realistas (Seed) en: ${databaseUrl}...`,
   );
@@ -6467,10 +6467,13 @@ CALLE ARAGÓN 220, BARCELONA, SPAIN
   await import("../admin/adminService.js").then((m) => m.createAdmin());
   console.log("✅ Admin user ensured after seeding.");
   console.log("🎉 Seed masivo completado exitosamente.");
-  process.exit(0);
 }
 
-main().catch((e) => {
-  console.error("Error durante el seed:", e);
-  process.exit(1);
-});
+if (process.argv[1]?.endsWith("seed.ts")) {
+  seedDatabase()
+    .then(() => process.exit(0))
+    .catch((e) => {
+      console.error("Error durante el seed:", e);
+      process.exit(1);
+    });
+}

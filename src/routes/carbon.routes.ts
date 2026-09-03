@@ -5,7 +5,7 @@ import {
   carbonCalculationLegs,
   carbonOffsetProjects,
   carbonCertificates,
-} from "../db/schema/index.js";
+} from "../db/schema/carbon_emissions.js";
 import { eq, desc, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -189,11 +189,9 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     if (!body || !body.legs || body.legs.length === 0) {
-      return reply
-        .status(400)
-        .send({
-          error: "At least one journey leg is required for calculation",
-        });
+      return reply.status(400).send({
+        error: "At least one journey leg is required for calculation",
+      });
     }
 
     try {

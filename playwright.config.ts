@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL || "http://localhost:3000";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
@@ -12,7 +14,7 @@ export default defineConfig({
     timeout: 30000,
   },
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || "http://localhost:3002",
+    baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -30,11 +32,19 @@ export default defineConfig({
   ],
 
   webServer: process.env.CI
-    ? {
-        command: "pnpm run dev",
-        url: "http://localhost:3000",
-        reuseExistingServer: true,
-        timeout: 120000,
-      }
+    ? [
+        {
+          command: "pnpm run start:backend",
+          url: "http://localhost:3001/api/auth/me",
+          reuseExistingServer: true,
+          timeout: 120000,
+        },
+        {
+          command: "pnpm --filter @atlas/frontend dev",
+          url: baseURL,
+          reuseExistingServer: true,
+          timeout: 120000,
+        },
+      ]
     : undefined,
 });

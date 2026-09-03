@@ -3,7 +3,7 @@ import {
   carbonCalculations,
   carbonOffsetProjects,
   carbonCertificates,
-} from "../../db/schema/index.js";
+} from "../../db/schema/carbon_emissions.js";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 

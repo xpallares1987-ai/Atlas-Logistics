@@ -14,9 +14,7 @@ export async function runMigrations() {
   }
 }
 
-const isMain =
-  import.meta.url.includes("migrate.ts") ||
-  process.argv[1].includes("migrate.ts");
+const isMain = process.argv[1]?.endsWith("migrate.ts");
 if (isMain) {
   runMigrations()
     .then(() => {

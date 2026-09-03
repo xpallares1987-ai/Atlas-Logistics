@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import { users } from "../db/schema/core.js";
 import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+import { Argon2id } from "oslo/password";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure";
@@ -40,9 +41,14 @@ const authRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
         const user = userResult[0];
 
-        // In a real app we'd bcrypt.compare(password, user.passwordHash)
-        // For this demo/ERP prototype, we'll allow mock passwords if they match 'password123' or their role
-        if (password !== "password123" && password !== "admin") {
+        const validPassword =
+          !!user.hashedPassword &&
+          (await new Argon2id().verify(user.hashedPassword, password));
+        const validDevelopmentPassword =
+          process.env.NODE_ENV !== "production" &&
+          (password === "password123" || password === "admin");
+
+        if (!validPassword && !validDevelopmentPassword) {
           return reply.code(401).send({ error: "Invalid credentials" });
         }
 
