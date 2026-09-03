@@ -6,7 +6,7 @@ test.describe("Multi-Currency Treasury, Hedging & IATA CASS / Ocean Carrier Auto
     await loginAsAdmin(page);
   });
 
-  it("should render Treasury & CASS workbench with KPI cards", async ({
+  test("should render Treasury & CASS workbench with KPI cards", async ({
     page,
   }) => {
     await page.goto("/treasury");
@@ -29,7 +29,7 @@ test.describe("Multi-Currency Treasury, Hedging & IATA CASS / Ocean Carrier Auto
     ).toBeVisible();
   });
 
-  it("should inspect 3-Way Match lines and PDF export links", async ({
+  test("should inspect 3-Way Match lines and PDF export links", async ({
     page,
   }) => {
     await page.goto("/treasury");
@@ -61,7 +61,7 @@ test.describe("Multi-Currency Treasury, Hedging & IATA CASS / Ocean Carrier Auto
     await expect(disputePdf).toBeVisible();
   });
 
-  it("should switch between 3-Way Match, FX Treasury and Disputes tabs", async ({
+  test("should switch between 3-Way Match, FX Treasury and Disputes tabs", async ({
     page,
   }) => {
     await page.goto("/treasury");
@@ -86,7 +86,7 @@ test.describe("Multi-Currency Treasury, Hedging & IATA CASS / Ocean Carrier Auto
     ).toBeVisible();
   });
 
-  it("should open and execute 3-Way Match simulation modal", async ({
+  test("should open and execute 3-Way Match simulation modal", async ({
     page,
   }) => {
     await page.goto("/treasury");

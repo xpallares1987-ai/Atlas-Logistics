@@ -6,7 +6,9 @@ test.describe("Automated Road Freight (FTL/LTL) & e-CMR Dispatch Engine", () => 
     await loginAsAdmin(page);
   });
 
-  it("should render Road Freight workbench and KPI cards", async ({ page }) => {
+  test("should render Road Freight workbench and KPI cards", async ({
+    page,
+  }) => {
     await page.goto("/road-freight");
 
     // Header
@@ -25,7 +27,7 @@ test.describe("Automated Road Freight (FTL/LTL) & e-CMR Dispatch Engine", () => 
     await expect(page.locator("p:has-text('Expediciones ADR')")).toBeVisible();
   });
 
-  it("should select consignment and inspect 4-panel details and PDF buttons", async ({
+  test("should select consignment and inspect 4-panel details and PDF buttons", async ({
     page,
   }) => {
     await page.goto("/road-freight");
@@ -60,7 +62,7 @@ test.describe("Automated Road Freight (FTL/LTL) & e-CMR Dispatch Engine", () => 
     await expect(cdpLink).toBeVisible();
   });
 
-  it("should open ADR & Route Planner modal and simulate tachograph driving hours", async ({
+  test("should open ADR & Route Planner modal and simulate tachograph driving hours", async ({
     page,
   }) => {
     await page.goto("/road-freight");

@@ -6,7 +6,7 @@ test.describe("Automated Freight Cargo Claims & Insurance Subrogation Engine", (
     await loginAsAdmin(page);
   });
 
-  it("should render Claims workbench and KPI cards", async ({ page }) => {
+  test("should render Claims workbench and KPI cards", async ({ page }) => {
     await page.goto("/claims");
 
     // Header
@@ -25,7 +25,7 @@ test.describe("Automated Freight Cargo Claims & Insurance Subrogation Engine", (
     await expect(page.locator("p:has-text('Recobro Liquidado')")).toBeVisible();
   });
 
-  it("should select claim and inspect 4-box details and PDF export buttons", async ({
+  test("should select claim and inspect 4-box details and PDF export buttons", async ({
     page,
   }) => {
     await page.goto("/claims");
@@ -68,7 +68,7 @@ test.describe("Automated Freight Cargo Claims & Insurance Subrogation Engine", (
     await expect(subrogationLink).toBeVisible();
   });
 
-  it("should open SDR and Carrier Liability Calculator modal and compute statutory limit", async ({
+  test("should open SDR and Carrier Liability Calculator modal and compute statutory limit", async ({
     page,
   }) => {
     await page.goto("/claims");
