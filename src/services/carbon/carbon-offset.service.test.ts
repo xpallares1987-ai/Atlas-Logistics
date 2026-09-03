@@ -185,6 +185,9 @@ describe("CarbonOffsetService", () => {
       .where(eq(carbonCertificates.calculationId, calculationId));
 
     expect(project?.availableCreditsTco2e).toBeCloseTo(0.6);
+    expect(result.issuedAt).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+    );
     expect(calculation).toMatchObject({
       status: "OFFSET_COMPLETED",
       offsetProjectId: projectId,
@@ -197,6 +200,7 @@ describe("CarbonOffsetService", () => {
       certificateNumber: result.certificateNumber,
       offsetTco2e: 0.4,
       amountPaidEur: 8,
+      issuedAt: result.issuedAt,
     });
   });
 

@@ -571,7 +571,7 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
     const secondCalcId = "calc-stable-cert-b";
     const firstCertId = "cert-stable-order-a";
     const secondCertId = "cert-stable-order-b";
-    const issuedAt = "2099-01-01 00:00:00";
+    const issuedAt = "2099-01-01T00:00:00.000Z";
     await db.insert(carbonOffsetProjects).values({
       id: testProjectId,
       name: "Stable Order Project",
@@ -657,11 +657,15 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
       expect(ids).toContain(secondCertId);
       expect(ids).toContain(firstCertId);
     } finally {
-      await db.delete(carbonCertificates).where(eq(carbonCertificates.id, firstCertId));
+      await db
+        .delete(carbonCertificates)
+        .where(eq(carbonCertificates.id, firstCertId));
       await db
         .delete(carbonCertificates)
         .where(eq(carbonCertificates.id, secondCertId));
-      await db.delete(carbonCalculations).where(eq(carbonCalculations.id, firstCalcId));
+      await db
+        .delete(carbonCalculations)
+        .where(eq(carbonCalculations.id, firstCalcId));
       await db
         .delete(carbonCalculations)
         .where(eq(carbonCalculations.id, secondCalcId));

@@ -147,7 +147,7 @@ export const carbonCertificates = sqliteTable(
     qrValidationUrl: text("qr_validation_url").notNull(),
     issuedAt: text("issued_at")
       .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
   },
   (table) => ({
     issuedAtIdIdx: index("idx_carbon_certificates_issued_at_id").on(
