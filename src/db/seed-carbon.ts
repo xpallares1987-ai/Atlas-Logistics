@@ -9,6 +9,7 @@ import {
 import { GlecCalculatorService } from "../services/carbon/glec-calculator.service.js";
 import { fileURLToPath } from "url";
 import path from "path";
+import { normalizeCarbonSearch } from "../services/carbon/carbon-search.js";
 
 type SeedLeg = {
   legOrder: number;
@@ -235,6 +236,11 @@ export async function seedCarbonModule() {
       referenceCode: "SH-2026-0891",
       originCity: "Shanghai",
       destinationCity: "Madrid",
+      searchTextNormalized: normalizeCarbonSearch(
+        "SH-2026-0891",
+        "Shanghai",
+        "Madrid",
+      ),
       totalWeightKg: 22000,
       totalDistanceKm: j1.totalDistanceKm,
       totalTco2eWtw: j1.totalTco2eWtw,
@@ -299,6 +305,11 @@ export async function seedCarbonModule() {
       referenceCode: "SH-2026-0904",
       originCity: "Frankfurt",
       destinationCity: "New York",
+      searchTextNormalized: normalizeCarbonSearch(
+        "SH-2026-0904",
+        "Frankfurt",
+        "New York",
+      ),
       totalWeightKg: 4500,
       totalDistanceKm: j2.totalDistanceKm,
       totalTco2eWtw: j2.totalTco2eWtw,
@@ -342,6 +353,11 @@ export async function seedCarbonModule() {
       referenceCode: "SH-2026-0912",
       originCity: "Rotterdam",
       destinationCity: "Viena",
+      searchTextNormalized: normalizeCarbonSearch(
+        "SH-2026-0912",
+        "Rotterdam",
+        "Viena",
+      ),
       totalWeightKg: 45000,
       totalDistanceKm: j3.totalDistanceKm,
       totalTco2eWtw: j3.totalTco2eWtw,

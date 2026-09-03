@@ -39,6 +39,11 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const res = await apiRequest(path);
+  return res.blob();
+}
+
 export interface PaginatedApiResult<T> {
   items: T[];
   total: number;

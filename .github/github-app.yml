@@ -1,4 +1,3 @@
 automation:
   auto_issue_session: true
   remote_control: true
-model: claude-opus-5

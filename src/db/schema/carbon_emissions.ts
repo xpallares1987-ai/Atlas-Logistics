@@ -13,6 +13,7 @@ export const carbonCalculations = sqliteTable("carbon_calculations", {
   referenceCode: text("reference_code").notNull(), // e.g. "SH-2026-0891" or "QT-2026-0045"
   originCity: text("origin_city").notNull(),
   destinationCity: text("destination_city").notNull(),
+  searchTextNormalized: text("search_text_normalized").notNull().default(""),
   totalWeightKg: real("total_weight_kg").notNull(),
   totalDistanceKm: real("total_distance_km").notNull(),
   totalTco2eWtw: real("total_tco2e_wtw").notNull(), // Well-to-Wheel Total

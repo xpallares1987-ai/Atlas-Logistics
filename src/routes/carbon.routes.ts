@@ -12,7 +12,7 @@ import {
   carbonOffsetProjects,
   carbonCertificates,
 } from "../db/schema/index.js";
-import { and, count, desc, eq, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { GlecCalculatorService } from "../services/carbon/glec-calculator.service.js";
 import {
@@ -20,6 +20,7 @@ import {
   CarbonOffsetService,
 } from "../services/carbon/carbon-offset.service.js";
 import { CarbonPdfService } from "../services/carbon/carbon-pdf.service.js";
+import { normalizeCarbonSearch } from "../services/carbon/carbon-search.js";
 
 const paginationSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -117,18 +118,16 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { entityType, status, q, page, pageSize } =
         calculationListQuerySchema.parse(req.query);
-      const searchPattern = q ? `%${escapeLikePattern(q)}%` : undefined;
+      const searchPattern = q
+        ? `%${escapeLikePattern(normalizeCarbonSearch(q))}%`
+        : undefined;
       const where = and(
         entityType === "ALL"
           ? undefined
           : eq(carbonCalculations.entityType, entityType),
         status === "ALL" ? undefined : eq(carbonCalculations.status, status),
         searchPattern
-          ? or(
-              sql`${carbonCalculations.referenceCode} LIKE ${searchPattern} ESCAPE ${"\\"}`,
-              sql`${carbonCalculations.originCity} LIKE ${searchPattern} ESCAPE ${"\\"}`,
-              sql`${carbonCalculations.destinationCity} LIKE ${searchPattern} ESCAPE ${"\\"}`,
-            )
+          ? sql`${carbonCalculations.searchTextNormalized} LIKE ${searchPattern} ESCAPE ${"\\"}`
           : undefined,
       );
       const [items, total] = await Promise.all([
@@ -217,6 +216,10 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
       const referenceCode =
         body.referenceCode || `CALC-${Date.now().toString().slice(-6)}`;
       const entityType = body.entityType || "SIMULATION";
+      const originCity = body.originCity || body.legs[0].originName;
+      const destinationCity =
+        body.destinationCity ||
+        body.legs[body.legs.length - 1].destinationName;
 
       await db.transaction(async (tx) => {
         await tx.insert(carbonCalculations).values({
@@ -224,10 +227,13 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
           entityType,
           entityId: body.entityId || null,
           referenceCode,
-          originCity: body.originCity || body.legs[0].originName,
-          destinationCity:
-            body.destinationCity ||
-            body.legs[body.legs.length - 1].destinationName,
+          originCity,
+          destinationCity,
+          searchTextNormalized: normalizeCarbonSearch(
+            referenceCode,
+            originCity,
+            destinationCity,
+          ),
           totalWeightKg: body.legs[0].weightKg,
           totalDistanceKm: journey.totalDistanceKm,
           totalTco2eWtw: journey.totalTco2eWtw,

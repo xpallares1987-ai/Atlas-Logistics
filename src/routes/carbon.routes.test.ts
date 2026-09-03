@@ -8,6 +8,7 @@ import {
   carbonCertificates,
   carbonOffsetProjects,
 } from "../db/schema/index.js";
+import { normalizeCarbonSearch } from "../services/carbon/carbon-search.js";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure";
@@ -114,6 +115,11 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
         referenceCode: "LOAD%_CHECK",
         originCity: "Madrid",
         destinationCity: "Paris",
+        searchTextNormalized: normalizeCarbonSearch(
+          "LOAD%_CHECK",
+          "Madrid",
+          "Paris",
+        ),
         totalWeightKg: 1000,
         totalDistanceKm: 100,
         totalTco2eWtw: 1,
@@ -126,6 +132,11 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
         referenceCode: "LOAD-PLAIN-CHECK",
         originCity: "Lisbon",
         destinationCity: "Berlin",
+        searchTextNormalized: normalizeCarbonSearch(
+          "LOAD-PLAIN-CHECK",
+          "Lisbon",
+          "Berlin",
+        ),
         totalWeightKg: 1000,
         totalDistanceKm: 100,
         totalTco2eWtw: 1,
@@ -166,6 +177,11 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
         referenceCode: "STABLE-A",
         originCity: "Madrid",
         destinationCity: "Paris",
+        searchTextNormalized: normalizeCarbonSearch(
+          "STABLE-A",
+          "Madrid",
+          "Paris",
+        ),
         totalWeightKg: 1000,
         totalDistanceKm: 100,
         totalTco2eWtw: 1,
@@ -179,6 +195,11 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
         referenceCode: "STABLE-B",
         originCity: "Madrid",
         destinationCity: "Paris",
+        searchTextNormalized: normalizeCarbonSearch(
+          "STABLE-B",
+          "Madrid",
+          "Paris",
+        ),
         totalWeightKg: 1000,
         totalDistanceKm: 100,
         totalTco2eWtw: 1,
@@ -214,6 +235,42 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
       await db
         .delete(carbonCalculations)
         .where(eq(carbonCalculations.id, secondId));
+    }
+  });
+
+  it("GET /api/carbon/calculations should match Unicode case and accents", async () => {
+    const calculationId = "calc-unicode-search";
+    await db.insert(carbonCalculations).values({
+      id: calculationId,
+      referenceCode: "UNICODE-SEARCH",
+      originCity: "MÁLAGA",
+      destinationCity: "Zürich",
+      searchTextNormalized: normalizeCarbonSearch(
+        "UNICODE-SEARCH",
+        "MÁLAGA",
+        "Zürich",
+      ),
+      totalWeightKg: 1000,
+      totalDistanceKm: 100,
+      totalTco2eWtw: 1,
+      totalTco2eTtw: 0.8,
+      totalTco2eWtt: 0.2,
+      carbonIntensityGco2ePerTkm: 10,
+    });
+
+    try {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/carbon/calculations?q=m%C3%A1laga",
+        headers: authHeader,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().map((item: any) => item.id)).toContain(calculationId);
+    } finally {
+      await db
+        .delete(carbonCalculations)
+        .where(eq(carbonCalculations.id, calculationId));
     }
   });
 

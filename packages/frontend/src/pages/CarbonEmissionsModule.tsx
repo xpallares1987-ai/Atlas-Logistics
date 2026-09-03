@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import {
+  apiFetchBlob,
   useApiMutation,
   useApiQuery,
   usePaginatedApiQuery,
@@ -231,6 +232,23 @@ export default function CarbonEmissionsModule() {
       refetchCertificates();
     } catch (err: any) {
       alert("Error en la compensación: " + err.message);
+    }
+  };
+
+  const handleOpenCertificatePdf = async (certificate: any) => {
+    try {
+      const blob = await apiFetchBlob(
+        `/carbon/certificates/${certificate.id}/pdf`,
+      );
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      link.click();
+      window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (err: any) {
+      alert("Error al abrir el certificado: " + err.message);
     }
   };
 
@@ -1202,15 +1220,14 @@ export default function CarbonEmissionsModule() {
                       {new Date(cert.issuedAt).toLocaleDateString("es-ES")}
                     </td>
                     <td className="py-3 px-3 text-right">
-                      <a
-                        href={`/api/carbon/certificates/${cert.id}/pdf`}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCertificatePdf(cert)}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition"
                       >
                         <Download size={13} />
                         PDF
-                      </a>
+                      </button>
                     </td>
                   </tr>
                 ))}
