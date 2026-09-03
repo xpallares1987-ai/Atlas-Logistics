@@ -65,7 +65,6 @@ jobs:
           touch .env.local
           pnpm run db:migrate
           pnpm run db:seed
-          pnpm exec tsx src/db/seed-carbon.ts
 
       - name: Run Tests
         env:

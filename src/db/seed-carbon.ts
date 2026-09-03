@@ -4,7 +4,7 @@ import {
   carbonCalculationLegs,
   carbonOffsetProjects,
   carbonCertificates,
-} from "./schema/index.js";
+} from "./schema/carbon_emissions.js";
 import { v4 as uuidv4 } from "uuid";
 import { GlecCalculatorService } from "../services/carbon/glec-calculator.service.js";
 
@@ -398,9 +398,7 @@ export async function seedCarbonModule() {
   );
 }
 
-const isMain =
-  import.meta.url.includes("seed-carbon.ts") ||
-  (process.argv[1] && process.argv[1].includes("seed-carbon.ts"));
+const isMain = process.argv[1]?.includes("seed-carbon");
 if (isMain) {
   seedCarbonModule()
     .then(() => process.exit(0))

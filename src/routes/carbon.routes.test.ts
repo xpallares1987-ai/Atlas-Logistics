@@ -1,14 +1,21 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import app from "../app.js";
+import Fastify from "fastify";
+import fastifyJwt from "@fastify/jwt";
 import jwt from "jsonwebtoken";
+import { carbonRoutes } from "./carbon.routes.js";
+import { seedCarbonModule } from "../db/seed-carbon.js";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure";
 
 describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
+  const app = Fastify();
   let authHeader: { authorization: string };
 
   beforeAll(async () => {
+    await seedCarbonModule();
+    await app.register(fastifyJwt, { secret: JWT_SECRET });
+    await app.register(carbonRoutes, { prefix: "/api/carbon" });
     await app.ready();
     const token = jwt.sign(
       {
