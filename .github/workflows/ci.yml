@@ -26,7 +26,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 20.19.0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -58,17 +58,7 @@ jobs:
       - name: Turbo Lint
         run: pnpm run lint
 
-      - name: Prepare Unit Test Database
-        env:
-          DATABASE_URL: file:atlas-unit-tests.db
-        run: |
-          touch .env.local
-          pnpm run db:migrate
-          pnpm run db:seed
-
       - name: Run Tests
-        env:
-          DATABASE_URL: file:atlas-unit-tests.db
         run: pnpm run test
 
       - name: Install Playwright Browsers
