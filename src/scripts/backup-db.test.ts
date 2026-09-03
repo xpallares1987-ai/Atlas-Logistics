@@ -144,12 +144,9 @@ describe("resolveWithinRoot", () => {
     expect(resolveWithinRoot(insideAbsolute, "TEST_PATH")).toBe(insideAbsolute);
   });
 
-  it("rejects a leading-dot directory name (conservative '..' prefix check)", () => {
-    // isWithinDirectory flags any relative path starting with ".." as
-    // escaping the root, so literal names like "..backups" are also
-    // rejected even though they don't actually traverse upward.
-    expect(() => resolveWithinRoot("..backups", "TEST_PATH")).toThrow(
-      "Invalid TEST_PATH traversal attempt",
+  it("accepts a leading-dot directory name that remains within the root", () => {
+    expect(resolveWithinRoot("..backups", "TEST_PATH")).toBe(
+      path.resolve(REPO_ROOT, "..backups"),
     );
   });
 

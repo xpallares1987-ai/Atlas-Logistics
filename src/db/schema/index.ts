@@ -24,3 +24,4 @@ export * from "./general_average.js";
 export * from "./dangerous_goods.js";
 export * from "./cargo_insurance.js";
 export * from "./bulk_operations.js";
+export * from "./carbon_emissions.js";
