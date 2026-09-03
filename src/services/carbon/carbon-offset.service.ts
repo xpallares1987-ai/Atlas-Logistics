@@ -4,6 +4,7 @@ import {
   carbonOffsetProjects,
   carbonCertificates,
 } from "../../db/schema/index.js";
+import crypto from "crypto";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
@@ -37,7 +38,7 @@ export class CarbonOffsetService {
    */
   public static generateCertificateNumber(): string {
     const year = new Date().getFullYear();
-    const randomHex = Math.floor(1000 + Math.random() * 9000);
+    const randomHex = crypto.randomInt(1000, 10000);
     return `ATLAS-CARBON-${year}-${randomHex}`;
   }
 
