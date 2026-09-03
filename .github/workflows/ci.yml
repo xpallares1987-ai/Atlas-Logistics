@@ -58,18 +58,29 @@ jobs:
       - name: Turbo Lint
         run: pnpm run lint
 
+      - name: Prepare Test Database
+        run: |
+          touch .env.local
+          pnpm run db:migrate
+          pnpm run db:seed
+
       - name: Run Tests
         run: pnpm run test
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      - name: Run E2E Tests (Playwright)
+      - name: Prepare E2E Database
+        env:
+          DATABASE_URL: file:./atlas-e2e.db
         run: |
-          touch .env.local
           pnpm run db:migrate
           pnpm run db:seed
-          npx playwright test
+
+      - name: Run E2E Tests (Playwright)
+        env:
+          DATABASE_URL: file:./atlas-e2e.db
+        run: npx playwright test
 
       - name: Upload Playwright Report
         if: always()

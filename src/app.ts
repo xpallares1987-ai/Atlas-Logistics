@@ -54,6 +54,7 @@ import { generalAverageRoutes } from "./routes/general-average.routes.js";
 import { dangerousGoodsRoutes } from "./routes/dangerous-goods.routes.js";
 import { cargoInsuranceRoutes } from "./routes/cargo-insurance.routes.js";
 import { bulkOperationsRoutes } from "./routes/bulk-operations.routes.js";
+import { carbonRoutes } from "./routes/carbon.routes.js";
 
 // Removed tRPC imports
 
@@ -118,6 +119,7 @@ app.register(fastifyCors, {
     cb(null, false);
   },
   credentials: true,
+  exposedHeaders: ["x-total-count", "x-page", "x-page-size"],
 });
 app.register(fastifyRateLimit, {
   max: 100,
@@ -207,5 +209,6 @@ app.register(generalAverageRoutes, { prefix: "/api/general-average" });
 app.register(dangerousGoodsRoutes, { prefix: "/api/dangerous-goods" });
 app.register(cargoInsuranceRoutes, { prefix: "/api/cargo-insurance" });
 app.register(bulkOperationsRoutes, { prefix: "/api/bulk-operations" });
+app.register(carbonRoutes, { prefix: "/api/carbon" });
 
 export default app;

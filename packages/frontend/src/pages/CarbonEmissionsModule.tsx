@@ -1,4 +1,13 @@
 import { Button, Input } from "@atlas/ui";
+import {
+  calculateCarbonSchema,
+  carbonOffsetSchema,
+  compareGreenRouteSchema,
+  type CalculateCarbonInput,
+  type CarbonLegCalculationInput,
+  type CarbonOffsetInput,
+  type CompareGreenRouteInput,
+} from "@atlas/shared";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -21,15 +30,13 @@ import {
   Truck,
 } from "lucide-react";
 import { useState } from "react";
-import { useApiMutation, useApiQuery } from "../hooks/useApiQuery";
-
-interface LegInput {
-  originName: string;
-  destinationName: string;
-  mode: string;
-  distanceKm: number;
-  weightKg: number;
-}
+import {
+  apiFetchBlob,
+  useApiMutation,
+  useInvalidateQueries,
+  useApiQuery,
+  usePaginatedApiQuery,
+} from "../hooks/useApiQuery";
 
 const toNumber = (value: unknown, fallback = 0) => {
   const numericValue = Number(value);
@@ -39,10 +46,14 @@ const toNumber = (value: unknown, fallback = 0) => {
 const toFixed = (value: unknown, digits = 2) => toNumber(value).toFixed(digits);
 
 export default function CarbonEmissionsModule() {
+  const invalidateQueries = useInvalidateQueries();
+  const pageSize = 20;
   const [activeTab, setActiveTab] = useState<
     "JOURNEYS" | "CALCULATOR" | "MARKETPLACE" | "CERTIFICATES"
   >("JOURNEYS");
   const [searchQuery, setSearchQuery] = useState("");
+  const [calculationPage, setCalculationPage] = useState(1);
+  const [certificatePage, setCertificatePage] = useState(1);
   const [selectedCalculation, setSelectedCalculation] = useState<any>(null);
 
   // Offset Purchase Modal State
@@ -57,7 +68,7 @@ export default function CarbonEmissionsModule() {
   );
   const [calcOriginCity, setCalcOriginCity] = useState("Barcelona");
   const [calcDestinationCity, setCalcDestinationCity] = useState("Rotterdam");
-  const [calcLegs, setCalcLegs] = useState<LegInput[]>([
+  const [calcLegs, setCalcLegs] = useState<CarbonLegCalculationInput[]>([
     {
       originName: "Barcelona Port (BEST Terminal)",
       destinationName: "Lyon Railhub",
@@ -83,11 +94,15 @@ export default function CarbonEmissionsModule() {
   );
 
   // 2. Fetch Calculations List
-  const { data: calculations = [], refetch: refetchCalculations } = useApiQuery<
-    any[]
-  >(
-    ["carbon-calculations", searchQuery],
-    `/carbon/calculations?q=${encodeURIComponent(searchQuery)}`,
+  const { data: calculationResult } = usePaginatedApiQuery<any>(
+    ["carbon-calculations", searchQuery, calculationPage],
+    `/carbon/calculations?q=${encodeURIComponent(searchQuery)}&page=${calculationPage}&pageSize=${pageSize}`,
+  );
+  const calculations = calculationResult?.items ?? [];
+  const calculationTotal = calculationResult?.total ?? 0;
+  const calculationPageCount = Math.max(
+    1,
+    Math.ceil(calculationTotal / pageSize),
   );
 
   // 3. Fetch Projects Catalog
@@ -97,9 +112,16 @@ export default function CarbonEmissionsModule() {
   );
 
   // 4. Fetch Certificates List
-  const { data: certificates = [], refetch: refetchCertificates } = useApiQuery<
-    any[]
-  >(["carbon-certificates"], "/carbon/certificates");
+  const { data: certificateResult } = usePaginatedApiQuery<any>(
+    ["carbon-certificates", certificatePage],
+    `/carbon/certificates?page=${certificatePage}&pageSize=${pageSize}`,
+  );
+  const certificates = certificateResult?.items ?? [];
+  const certificateTotal = certificateResult?.total ?? 0;
+  const certificatePageCount = Math.max(
+    1,
+    Math.ceil(certificateTotal / pageSize),
+  );
 
   // 5. Fetch Calculation Details
   const { data: calcDetails } = useApiQuery<any>(
@@ -121,34 +143,41 @@ export default function CarbonEmissionsModule() {
   const selectedCalculationTotal = toNumber(selectedCalculation?.totalTco2eWtw);
 
   // Mutations
-  const calculateMutation = useApiMutation<any, any>(
+  const calculateMutation = useApiMutation<any, CalculateCarbonInput>(
     "/carbon/calculate",
     "POST",
   );
-  const compareMutation = useApiMutation<any, any>(
+  const compareMutation = useApiMutation<any, CompareGreenRouteInput>(
     "/carbon/compare-green-route",
     "POST",
   );
-  const offsetMutation = useApiMutation<any, any>("/carbon/offset", "POST");
+  const offsetMutation = useApiMutation<any, CarbonOffsetInput>(
+    "/carbon/offset",
+    "POST",
+  );
 
   // Handle Calculate Journey in Simulator
   const handleRunCalculation = async () => {
     try {
-      const payload = {
+      const payload = calculateCarbonSchema.parse({
         referenceCode: calcRefCode,
         originCity: calcOriginCity,
         destinationCity: calcDestinationCity,
         legs: calcLegs,
-      };
+      });
       const res: any = await calculateMutation.mutateAsync(payload);
       setCalcResult(res.journey);
 
       // Also get green alternatives
-      const altRes: any = await compareMutation.mutateAsync({ legs: calcLegs });
+      const altPayload = compareGreenRouteSchema.parse({ legs: calcLegs });
+      const altRes: any = await compareMutation.mutateAsync(altPayload);
       setGreenAlternatives(altRes.alternatives || []);
 
-      refetchSummary();
-      refetchCalculations();
+      setCalculationPage(1);
+      await Promise.all([
+        refetchSummary(),
+        invalidateQueries(["carbon-calculations"]),
+      ]);
     } catch (err: any) {
       alert("Error al calcular huella: " + err.message);
     }
@@ -176,7 +205,7 @@ export default function CarbonEmissionsModule() {
 
   const handleLegChange = (
     index: number,
-    field: keyof LegInput,
+    field: keyof CarbonLegCalculationInput,
     value: any,
   ) => {
     const updated = [...calcLegs];
@@ -192,19 +221,44 @@ export default function CarbonEmissionsModule() {
     }
 
     try {
-      await offsetMutation.mutateAsync({
+      const payload = carbonOffsetSchema.parse({
         calculationId: selectedCalculation.id,
         projectId: offsetSelectedProjectId,
         beneficiaryName: beneficiaryInput || "Atlas Logistics Customer",
       });
+      await offsetMutation.mutateAsync(payload);
 
       setShowOffsetModal(false);
-      refetchSummary();
-      refetchCalculations();
-      refetchProjects();
-      refetchCertificates();
+      await Promise.all([
+        refetchSummary(),
+        refetchProjects(),
+        invalidateQueries(
+          ["carbon-calculations"],
+          ["carbon-calculation-details", selectedCalculation.id],
+          ["carbon-certificates"],
+        ),
+      ]);
     } catch (err: any) {
       alert("Error en la compensación: " + err.message);
+    }
+  };
+
+  const handleOpenCertificatePdf = async (certificate: any) => {
+    const pdfWindow = window.open("about:blank", "_blank");
+    try {
+      const blob = await apiFetchBlob(
+        `/carbon/certificates/${certificate.id}/pdf`,
+      );
+      const blobUrl = window.URL.createObjectURL(blob);
+      if (!pdfWindow) {
+        throw new Error("El navegador bloqueó la nueva pestaña");
+      }
+      pdfWindow.opener = null;
+      pdfWindow.location.href = blobUrl;
+      window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (err: any) {
+      pdfWindow?.close();
+      alert("Error al abrir el certificado: " + err.message);
     }
   };
 
@@ -369,7 +423,7 @@ export default function CarbonEmissionsModule() {
           }`}
         >
           <Layers size={15} />
-          Expediciones Auditadas ({calculations.length})
+          Expediciones Auditadas ({calculationTotal})
         </button>
 
         <button
@@ -405,7 +459,7 @@ export default function CarbonEmissionsModule() {
           }`}
         >
           <Award size={15} />
-          Certificados Emitidos ({certificates.length})
+          Certificados Emitidos ({certificateTotal})
         </button>
       </div>
 
@@ -420,7 +474,7 @@ export default function CarbonEmissionsModule() {
                 Expediciones Multimodales
               </h3>
               <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full font-bold">
-                {calculations.length} registradas
+                {calculationTotal} registradas
               </span>
             </div>
 
@@ -432,7 +486,10 @@ export default function CarbonEmissionsModule() {
               <Input
                 placeholder="Buscar por referencia o ciudad..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCalculationPage(1);
+                }}
                 className="pl-9 bg-slate-950/50 border-slate-700/60 text-xs text-white"
               />
             </div>
@@ -493,6 +550,27 @@ export default function CarbonEmissionsModule() {
                   </div>
                 );
               })}
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <button
+                type="button"
+                disabled={calculationPage === 1}
+                onClick={() => setCalculationPage((page) => page - 1)}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 disabled:opacity-40"
+              >
+                Anterior
+              </button>
+              <span>
+                Página {calculationPage} de {calculationPageCount}
+              </span>
+              <button
+                type="button"
+                disabled={calculationPage >= calculationPageCount}
+                onClick={() => setCalculationPage((page) => page + 1)}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 disabled:opacity-40"
+              >
+                Siguiente
+              </button>
             </div>
           </div>
 
@@ -1152,20 +1230,40 @@ export default function CarbonEmissionsModule() {
                       {new Date(cert.issuedAt).toLocaleDateString("es-ES")}
                     </td>
                     <td className="py-3 px-3 text-right">
-                      <a
-                        href={`/api/carbon/certificates/${cert.id}/pdf`}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCertificatePdf(cert)}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition"
                       >
                         <Download size={13} />
                         PDF
-                      </a>
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="flex items-center justify-end gap-4 text-xs text-slate-400">
+            <button
+              type="button"
+              disabled={certificatePage === 1}
+              onClick={() => setCertificatePage((page) => page - 1)}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 disabled:opacity-40"
+            >
+              Anterior
+            </button>
+            <span>
+              Página {certificatePage} de {certificatePageCount}
+            </span>
+            <button
+              type="button"
+              disabled={certificatePage >= certificatePageCount}
+              onClick={() => setCertificatePage((page) => page + 1)}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 disabled:opacity-40"
+            >
+              Siguiente
+            </button>
           </div>
         </div>
       )}

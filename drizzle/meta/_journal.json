@@ -148,6 +148,48 @@
       "when": 1788390300000,
       "tag": "0020_optimize_dashboard_queries",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1788397742174,
+      "tag": "0021_boring_excalibur",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1788401993468,
+      "tag": "0022_plain_killmonger",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1788402305555,
+      "tag": "0023_whole_firelord",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1788402600000,
+      "tag": "0024_normalize_carbon_certificate_dates",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1788403027893,
+      "tag": "0025_talented_cobalt_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1788403393232,
+      "tag": "0026_opposite_zombie",
+      "breakpoints": true
     }
   ]
 }
