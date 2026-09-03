@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { db } from "../../db/index.js";
 import {
   carbonCalculations,
@@ -37,8 +38,8 @@ export class CarbonOffsetService {
    */
   public static generateCertificateNumber(): string {
     const year = new Date().getFullYear();
-    const randomHex = Math.floor(1000 + Math.random() * 9000);
-    return `ATLAS-CARBON-${year}-${randomHex}`;
+    const randomSuffix = randomInt(1000, 10000);
+    return `ATLAS-CARBON-${year}-${randomSuffix}`;
   }
 
   /**
