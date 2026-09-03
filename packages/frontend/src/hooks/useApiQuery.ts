@@ -33,7 +33,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export function useApiQuery<T>(
-  key: any[],
+  key: readonly unknown[],
   path: string,
   options?: Omit<UseQueryOptions<T, Error>, "queryKey" | "queryFn">,
 ) {

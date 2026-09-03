@@ -34,30 +34,36 @@ export function DashboardModule() {
   const { dateRange } = useDashboardStore();
 
   useEffect(() => {
-    // Determine WS protocol
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    // Using import.meta.env.VITE_API_URL or fallback to relative
-    const wsBaseUrl = import.meta.env.VITE_API_URL
-      ? import.meta.env.VITE_API_URL.replace(/^http/, "ws")
-      : `${protocol}//${window.location.host}/api`;
+    const wsUrl = import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace(/^http/, "ws") + "/dashboard/live"
+      : `${protocol}//${window.location.host}/api/dashboard/live`;
 
-    const wsUrl = `${wsBaseUrl}/dashboard/live`;
     const ws = new WebSocket(wsUrl);
+    let isMounted = true;
 
     ws.onmessage = (event) => {
+      if (!isMounted) return;
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === "STATS_UPDATE") {
-          queryClient.setQueryData(["dashboard", dateRange], (oldData: any) => {
-            if (!oldData) return oldData;
-            return {
-              ...oldData,
-              stats: {
-                ...oldData.stats,
-                activeShipments: msg.data.activeShipments,
-              },
-            };
-          });
+          queryClient.setQueryData(
+            ["dashboard", dateRange],
+            (oldData: unknown) => {
+              if (!oldData || typeof oldData !== "object") return oldData;
+              const data = oldData as any;
+              return {
+                ...data,
+                data: {
+                  ...data.data,
+                  stats: {
+                    ...data.data.stats,
+                    activeShipments: msg.data.activeShipments,
+                  },
+                },
+              };
+            },
+          );
         }
       } catch (err) {
         console.error("Live update error", err);
@@ -65,6 +71,7 @@ export function DashboardModule() {
     };
 
     return () => {
+      isMounted = false;
       ws.close();
     };
   }, [queryClient, dateRange]);

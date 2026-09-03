@@ -14,7 +14,7 @@ export function useNotificationsWebSocket() {
       : `${protocol}//${window.location.host}/ws/notifications`;
 
     let ws: WebSocket;
-    let reconnectTimer: NodeJS.Timeout;
+    let reconnectTimer: ReturnType<typeof setTimeout>;
 
     const connect = () => {
       ws = new WebSocket(wsUrl);

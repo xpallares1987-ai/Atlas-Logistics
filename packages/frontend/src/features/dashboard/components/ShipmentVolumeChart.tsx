@@ -29,7 +29,7 @@ export function ShipmentVolumeChart() {
     `/dashboard${queryStr}`,
   );
 
-  const data = dashboardData?.volumeByStatus || [
+  const data = dashboardData?.data?.volumeByStatus || [
     { status: "In Transit", count: 0 },
     { status: "Completed", count: 0 },
   ];

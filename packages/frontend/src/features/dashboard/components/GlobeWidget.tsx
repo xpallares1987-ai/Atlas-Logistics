@@ -11,7 +11,7 @@ export function GlobeWidget() {
     ["dashboard", dateRange],
     `/dashboard${queryStr}`,
   );
-  const shipments = data?.activeList || [];
+  const shipments = data?.data?.activeList || [];
   const activeCount = shipments.length;
   // Make the UI look alive even if DB has few items by adding a baseline, or just use real length
   const displayCount = activeCount > 0 ? activeCount : 342;

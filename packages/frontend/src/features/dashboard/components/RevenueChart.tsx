@@ -22,7 +22,7 @@ export function RevenueChart() {
   );
 
   // Use backend data or fallback if not loaded
-  const data = dashboardData?.revenueChart || [{ name: "Jan", value: 0 }];
+  const data = dashboardData?.data?.revenueChart || [{ name: "Jan", value: 0 }];
 
   return (
     <div className="rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-6 shadow-xl h-full flex flex-col relative overflow-hidden group">
