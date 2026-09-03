@@ -27,6 +27,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: 'pnpm'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -34,12 +35,11 @@ jobs:
           version: 10
 
       - name: Install Dependencies
-        run: pnpm install --no-frozen-lockfile --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Security Audit
         run: pnpm audit --audit-level=high
 
-      # Cache Turborepo outputs
       - name: Cache Turborepo
         uses: actions/cache@v6
         with:
@@ -48,7 +48,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turbo-
 
-      # Turborepo automatically handles internal caching across the monorepo
       - name: Turbo Build
         run: pnpm run build
 
