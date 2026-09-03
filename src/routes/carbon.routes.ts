@@ -12,7 +12,7 @@ import {
   carbonOffsetProjects,
   carbonCertificates,
 } from "../db/schema/index.js";
-import { eq, desc, sql } from "drizzle-orm";
+import { and, count, desc, eq, like, or, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { GlecCalculatorService } from "../services/carbon/glec-calculator.service.js";
 import {
@@ -20,6 +20,19 @@ import {
   CarbonOffsetService,
 } from "../services/carbon/carbon-offset.service.js";
 import { CarbonPdfService } from "../services/carbon/carbon-pdf.service.js";
+
+const paginationSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(50),
+});
+
+const calculationListQuerySchema = paginationSchema.extend({
+  entityType: z.enum(["ALL", "SHIPMENT", "QUOTE", "SIMULATION"]).default("ALL"),
+  status: z
+    .enum(["ALL", "CALCULATED", "OFFSET_PENDING", "OFFSET_COMPLETED"])
+    .default("ALL"),
+  q: z.string().trim().max(100).optional(),
+});
 
 export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
   // Optional auth verification hook (allows unauthenticated in test if needed or verifies JWT)
@@ -36,56 +49,44 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/carbon/summary - KPI Dashboard Aggregates
   fastify.get("/summary", async (req, reply) => {
     try {
-      const calculations = await db.select().from(carbonCalculations);
-      const projects = await db.select().from(carbonOffsetProjects);
-      const certificates = await db.select().from(carbonCertificates);
+      const [metrics, activeProjects, issuedCertificates] = await Promise.all([
+        db
+          .select({
+            totalCalculations: count(),
+            totalTco2eWtw: sql<number>`coalesce(sum(${carbonCalculations.totalTco2eWtw}), 0)`,
+            totalTco2eTtw: sql<number>`coalesce(sum(${carbonCalculations.totalTco2eTtw}), 0)`,
+            totalTco2eWtt: sql<number>`coalesce(sum(${carbonCalculations.totalTco2eWtt}), 0)`,
+            totalDistanceKm: sql<number>`coalesce(sum(${carbonCalculations.totalDistanceKm}), 0)`,
+            totalTco2eOffset: sql<number>`coalesce(sum(case when ${carbonCalculations.status} = 'OFFSET_COMPLETED' then ${carbonCalculations.totalTco2eWtw} else 0 end), 0)`,
+            totalOffsetInvestmentEur: sql<number>`coalesce(sum(case when ${carbonCalculations.status} = 'OFFSET_COMPLETED' then ${carbonCalculations.offsetCostEur} else 0 end), 0)`,
+            avgCarbonIntensity: sql<number>`coalesce(avg(${carbonCalculations.carbonIntensityGco2ePerTkm}), 0)`,
+          })
+          .from(carbonCalculations)
+          .get(),
+        db
+          .select({ value: count() })
+          .from(carbonOffsetProjects)
+          .where(eq(carbonOffsetProjects.active, true))
+          .get(),
+        db.select({ value: count() }).from(carbonCertificates).get(),
+      ]);
 
-      const totalCalculations = calculations.length;
-      const totalTco2eWtw = calculations.reduce(
-        (sum, c) => sum + (c.totalTco2eWtw || 0),
-        0,
-      );
-      const totalTco2eTtw = calculations.reduce(
-        (sum, c) => sum + (c.totalTco2eTtw || 0),
-        0,
-      );
-      const totalTco2eWtt = calculations.reduce(
-        (sum, c) => sum + (c.totalTco2eWtt || 0),
-        0,
-      );
-      const totalDistanceKm = calculations.reduce(
-        (sum, c) => sum + (c.totalDistanceKm || 0),
-        0,
-      );
-
-      const offsetCalculations = calculations.filter(
-        (c) => c.status === "OFFSET_COMPLETED",
-      );
-      const totalTco2eOffset = offsetCalculations.reduce(
-        (sum, c) => sum + (c.totalTco2eWtw || 0),
-        0,
-      );
-      const totalOffsetInvestmentEur = offsetCalculations.reduce(
-        (sum, c) => sum + (c.offsetCostEur || 0),
-        0,
-      );
+      const totalCalculations = metrics?.totalCalculations ?? 0;
+      const totalTco2eWtw = metrics?.totalTco2eWtw ?? 0;
+      const totalTco2eTtw = metrics?.totalTco2eTtw ?? 0;
+      const totalTco2eWtt = metrics?.totalTco2eWtt ?? 0;
+      const totalDistanceKm = metrics?.totalDistanceKm ?? 0;
+      const totalTco2eOffset = metrics?.totalTco2eOffset ?? 0;
+      const totalOffsetInvestmentEur = metrics?.totalOffsetInvestmentEur ?? 0;
 
       const offsetPercentage =
         totalTco2eWtw > 0
           ? Number(((totalTco2eOffset / totalTco2eWtw) * 100).toFixed(1))
           : 0;
 
-      const avgCarbonIntensity =
-        totalCalculations > 0
-          ? Number(
-              (
-                calculations.reduce(
-                  (sum, c) => sum + (c.carbonIntensityGco2ePerTkm || 0),
-                  0,
-                ) / totalCalculations
-              ).toFixed(2),
-            )
-          : 0;
+      const avgCarbonIntensity = Number(
+        (metrics?.avgCarbonIntensity ?? 0).toFixed(2),
+      );
 
       return reply.send({
         totalCalculations,
@@ -97,8 +98,8 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         totalOffsetInvestmentEur: Number(totalOffsetInvestmentEur.toFixed(2)),
         offsetPercentage,
         avgCarbonIntensity,
-        activeProjectsCount: projects.filter((p) => p.active).length,
-        issuedCertificatesCount: certificates.length,
+        activeProjectsCount: activeProjects?.value ?? 0,
+        issuedCertificatesCount: issuedCertificates?.value ?? 0,
       });
     } catch (err: any) {
       req.log.error(err);
@@ -110,37 +111,48 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /api/carbon/calculations - List calculations with optional filters
   fastify.get("/calculations", async (req, reply) => {
-    const { entityType, status, q } = req.query as {
-      entityType?: string;
-      status?: string;
-      q?: string;
-    };
-
     try {
-      const list = await db
-        .select()
-        .from(carbonCalculations)
-        .orderBy(desc(carbonCalculations.createdAt));
+      const { entityType, status, q, page, pageSize } =
+        calculationListQuerySchema.parse(req.query);
+      const where = and(
+        entityType === "ALL"
+          ? undefined
+          : eq(carbonCalculations.entityType, entityType),
+        status === "ALL" ? undefined : eq(carbonCalculations.status, status),
+        q
+          ? or(
+              like(carbonCalculations.referenceCode, `%${q}%`),
+              like(carbonCalculations.originCity, `%${q}%`),
+              like(carbonCalculations.destinationCity, `%${q}%`),
+            )
+          : undefined,
+      );
+      const [items, total] = await Promise.all([
+        db
+          .select()
+          .from(carbonCalculations)
+          .where(where)
+          .orderBy(desc(carbonCalculations.createdAt))
+          .limit(pageSize)
+          .offset((page - 1) * pageSize),
+        db
+          .select({ value: count() })
+          .from(carbonCalculations)
+          .where(where)
+          .get(),
+      ]);
 
-      let filtered = list;
-      if (entityType && entityType !== "ALL") {
-        filtered = filtered.filter((c) => c.entityType === entityType);
-      }
-      if (status && status !== "ALL") {
-        filtered = filtered.filter((c) => c.status === status);
-      }
-      if (q) {
-        const query = q.toLowerCase();
-        filtered = filtered.filter(
-          (c) =>
-            c.referenceCode.toLowerCase().includes(query) ||
-            c.originCity.toLowerCase().includes(query) ||
-            c.destinationCity.toLowerCase().includes(query),
-        );
-      }
-
-      return reply.send(filtered);
+      return reply
+        .header("x-total-count", total?.value ?? 0)
+        .header("x-page", page)
+        .header("x-page-size", pageSize)
+        .send(items);
     } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return reply
+          .status(400)
+          .send({ error: "Validation error", details: err.issues });
+      }
       req.log.error(err);
       return reply
         .status(500)
@@ -188,6 +200,12 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const body = calculateCarbonSchema.parse(req.body);
       const journey = GlecCalculatorService.calculateJourney(body.legs);
+      if (journey.totalTco2eWtw <= 0) {
+        return reply.status(400).send({
+          error: "Validation error",
+          message: "Journey emissions are below the supported precision",
+        });
+      }
       const calculationId = uuidv4();
       const referenceCode =
         body.referenceCode || `CALC-${Date.now().toString().slice(-6)}`;
@@ -255,10 +273,16 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/compare-green-route", async (req, reply) => {
     try {
       const body = compareGreenRouteSchema.parse(req.body);
+      const base = GlecCalculatorService.calculateJourney(body.legs);
+      if (base.totalTco2eWtw <= 0) {
+        return reply.status(400).send({
+          error: "Validation error",
+          message: "Journey emissions are below the supported precision",
+        });
+      }
       const alternatives = GlecCalculatorService.generateGreenAlternatives(
         body.legs,
       );
-      const base = GlecCalculatorService.calculateJourney(body.legs);
 
       return reply.send({
         success: true,
@@ -326,12 +350,27 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/carbon/certificates - List all issued certificates
   fastify.get("/certificates", async (req, reply) => {
     try {
-      const certificates = await db
-        .select()
-        .from(carbonCertificates)
-        .orderBy(desc(carbonCertificates.issuedAt));
-      return reply.send(certificates);
+      const { page, pageSize } = paginationSchema.parse(req.query);
+      const [certificates, total] = await Promise.all([
+        db
+          .select()
+          .from(carbonCertificates)
+          .orderBy(desc(carbonCertificates.issuedAt))
+          .limit(pageSize)
+          .offset((page - 1) * pageSize),
+        db.select({ value: count() }).from(carbonCertificates).get(),
+      ]);
+      return reply
+        .header("x-total-count", total?.value ?? 0)
+        .header("x-page", page)
+        .header("x-page-size", pageSize)
+        .send(certificates);
     } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return reply
+          .status(400)
+          .send({ error: "Validation error", details: err.issues });
+      }
       req.log.error(err);
       return reply
         .status(500)

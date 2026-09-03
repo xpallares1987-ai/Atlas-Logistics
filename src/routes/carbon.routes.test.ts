@@ -72,6 +72,19 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
     expect(list.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("GET /api/carbon/calculations should enforce bounded pagination", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/carbon/calculations?page=1&pageSize=1",
+      headers: authHeader,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toHaveLength(1);
+    expect(Number(res.headers["x-total-count"])).toBeGreaterThanOrEqual(1);
+    expect(res.headers["x-page-size"]).toBe("1");
+  });
+
   it("POST /api/carbon/calculate should compute and save multimodal journey emissions", async () => {
     const payload = {
       referenceCode: "TEST-CALC-001",
@@ -230,6 +243,51 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
     expect(res.json().error).toBe("Validation error");
   });
 
+  it("POST /api/carbon/calculate should reject emissions below stored precision", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/carbon/calculate",
+      headers: authHeader,
+      payload: {
+        referenceCode: "TEST-ZERO-ROUNDED",
+        legs: [
+          {
+            originName: "A",
+            destinationName: "B",
+            mode: "ROAD_DIESEL",
+            distanceKm: 1,
+            weightKg: 1,
+          },
+        ],
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain("below the supported precision");
+  });
+
+  it("POST /api/carbon/compare-green-route should reject a zero-rounded base", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/carbon/compare-green-route",
+      headers: authHeader,
+      payload: {
+        legs: [
+          {
+            originName: "A",
+            destinationName: "B",
+            mode: "ROAD_DIESEL",
+            distanceKm: 1,
+            weightKg: 1,
+          },
+        ],
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain("below the supported precision");
+  });
+
   it("POST /api/carbon/offset should reject malformed identifiers", async () => {
     const res = await app.inject({
       method: "POST",
@@ -275,5 +333,18 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
 
     expect(res.statusCode).toBe(409);
     expect(res.json().message).toBe("This calculation has already been offset");
+  });
+
+  it("GET /api/carbon/certificates should enforce bounded pagination", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/carbon/certificates?page=1&pageSize=1",
+      headers: authHeader,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toHaveLength(1);
+    expect(Number(res.headers["x-total-count"])).toBeGreaterThanOrEqual(1);
+    expect(res.headers["x-page-size"]).toBe("1");
   });
 });

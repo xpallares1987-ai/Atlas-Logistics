@@ -33,7 +33,12 @@ describe("CarbonOffsetService", () => {
   beforeEach(async () => {
     await db
       .delete(carbonCertificates)
-      .where(eq(carbonCertificates.id, existingCertificateId));
+      .where(
+        inArray(carbonCertificates.calculationId, [
+          calculationId,
+          existingCalculationId,
+        ]),
+      );
     await db
       .delete(carbonCalculations)
       .where(
@@ -60,7 +65,12 @@ describe("CarbonOffsetService", () => {
     vi.restoreAllMocks();
     await db
       .delete(carbonCertificates)
-      .where(eq(carbonCertificates.id, existingCertificateId));
+      .where(
+        inArray(carbonCertificates.calculationId, [
+          calculationId,
+          existingCalculationId,
+        ]),
+      );
     await db
       .delete(carbonCalculations)
       .where(
@@ -109,6 +119,46 @@ describe("CarbonOffsetService", () => {
     expect(project?.availableCreditsTco2e).toBe(1);
     expect(calculation?.status).toBe("CALCULATED");
     expect(calculation?.certificateNumber).toBeNull();
+  });
+
+  it("commits the exact deduction, calculation state, and one certificate", async () => {
+    await insertCalculation(calculationId, 0.4);
+
+    const result = await CarbonOffsetService.processOffset({
+      calculationId,
+      projectId,
+      beneficiaryName: "Test Customer",
+    });
+
+    const project = await db
+      .select()
+      .from(carbonOffsetProjects)
+      .where(eq(carbonOffsetProjects.id, projectId))
+      .get();
+    const calculation = await db
+      .select()
+      .from(carbonCalculations)
+      .where(eq(carbonCalculations.id, calculationId))
+      .get();
+    const certificates = await db
+      .select()
+      .from(carbonCertificates)
+      .where(eq(carbonCertificates.calculationId, calculationId));
+
+    expect(project?.availableCreditsTco2e).toBeCloseTo(0.6);
+    expect(calculation).toMatchObject({
+      status: "OFFSET_COMPLETED",
+      offsetProjectId: projectId,
+      offsetCostEur: 8,
+      certificateNumber: result.certificateNumber,
+    });
+    expect(certificates).toHaveLength(1);
+    expect(certificates[0]).toMatchObject({
+      id: result.certificateId,
+      certificateNumber: result.certificateNumber,
+      offsetTco2e: 0.4,
+      amountPaidEur: 8,
+    });
   });
 
   it("rolls back inventory and calculation updates when certificate creation fails", async () => {
