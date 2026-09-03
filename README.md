@@ -279,7 +279,7 @@ Atlas-Logistics/
 ## 🚀 Inicio Rápido
 
 ### Requisitos Previos
-- **Node.js**: >= 22.0.0
+- **Node.js**: >= 22.22.1
 - **pnpm**: >= 10.0
 
 ### Instalación y Puesta en Marcha
