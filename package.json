@@ -63,7 +63,7 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "fast-xml-parser": "^5.11.0",
-    "fastify": "^5.11.3",
+    "fastify": "^5.12.1",
     "fastify-metrics": "^13.2.1",
     "framer-motion": "^13.1.0",
     "ioredis": "^5.11.1",
@@ -147,8 +147,10 @@
       "dompurify": ">=3.4.13",
       "undici@^6.0.0": "^6.28.0",
       "undici@^7.0.0": "^7.29.0",
-      "fast-uri@^3.0.0": "^3.1.5",
-      "fast-uri@^4.0.0": "^4.1.2"
+      "fast-uri@^3.0.0": "^3.1.6",
+      "fast-uri@^4.0.0": "^4.1.3",
+      "qs": ">=6.16.0",
+      "@xmldom/xmldom": ">=0.9.12"
     },
     "onlyBuiltDependencies": [
       "better-sqlite3"
