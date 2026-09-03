@@ -61,11 +61,46 @@ describe("seedCarbonModule", () => {
       amountPaidEur: 10,
       qrValidationUrl: "https://example.test/preserved",
     });
-
-    const fixtureLegsBefore = await db
-      .select()
-      .from(carbonCalculationLegs)
-      .where(eq(carbonCalculationLegs.calculationId, "calc-sh-2026-0891"));
+    await seedCarbonModule();
+    await db
+      .delete(carbonCalculationLegs)
+      .where(
+        eq(carbonCalculationLegs.calculationId, "calc-sh-2026-0891"),
+      );
+    await db.insert(carbonCalculationLegs).values([
+      {
+        id: "legacy-random-leg-1",
+        calculationId: "calc-sh-2026-0891",
+        legOrder: 1,
+        originName: "Legacy origin",
+        destinationName: "Legacy destination",
+        mode: "ROAD_DIESEL",
+        distanceKm: 1,
+        weightTonnes: 1,
+        emissionFactorWtw: 1,
+        emissionFactorTtw: 1,
+        emissionFactorWtt: 0,
+        legTco2eWtw: 1,
+        legTco2eTtw: 1,
+        legTco2eWtt: 0,
+      },
+      {
+        id: "legacy-random-leg-2",
+        calculationId: "calc-sh-2026-0891",
+        legOrder: 2,
+        originName: "Legacy origin",
+        destinationName: "Legacy destination",
+        mode: "ROAD_DIESEL",
+        distanceKm: 1,
+        weightTonnes: 1,
+        emissionFactorWtw: 1,
+        emissionFactorTtw: 1,
+        emissionFactorWtt: 0,
+        legTco2eWtw: 1,
+        legTco2eTtw: 1,
+        legTco2eWtt: 0,
+      },
+    ]);
 
     await seedCarbonModule();
     await seedCarbonModule();
@@ -83,6 +118,11 @@ describe("seedCarbonModule", () => {
     expect(preservedCertificate?.certificateNumber).toBe(
       "ATLAS-CARBON-PRESERVE-001",
     );
-    expect(fixtureLegs).toHaveLength(fixtureLegsBefore.length);
+    expect(fixtureLegs).toHaveLength(2);
+    expect(fixtureLegs.map((leg) => leg.legOrder).sort()).toEqual([1, 2]);
+    expect(fixtureLegs.map((leg) => leg.id).sort()).toEqual([
+      "calc-sh-2026-0891-leg-1",
+      "calc-sh-2026-0891-leg-2",
+    ]);
   });
 });

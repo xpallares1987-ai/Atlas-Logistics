@@ -8,6 +8,7 @@ import {
 import { GlecCalculatorService } from "../services/carbon/glec-calculator.service.js";
 import { fileURLToPath } from "url";
 import path from "path";
+import { and, eq, inArray, or } from "drizzle-orm";
 
 export async function seedCarbonModule() {
   console.log(
@@ -20,6 +21,9 @@ export async function seedCarbonModule() {
   const project3Id = "proj-finland-biochar-03";
   const project4Id = "proj-climeworks-dac-04";
   const project5Id = "proj-colombia-mangrove-05";
+  const calc1Id = "calc-sh-2026-0891";
+  const calc2Id = "calc-sh-2026-0904";
+  const calc3Id = "calc-sh-2026-0912";
 
   await db
     .insert(carbonOffsetProjects)
@@ -107,6 +111,25 @@ export async function seedCarbonModule() {
     ])
     .onConflictDoNothing();
 
+  await db
+    .delete(carbonCalculationLegs)
+    .where(
+      or(
+        and(
+          eq(carbonCalculationLegs.calculationId, calc1Id),
+          inArray(carbonCalculationLegs.legOrder, [1, 2]),
+        ),
+        and(
+          eq(carbonCalculationLegs.calculationId, calc2Id),
+          inArray(carbonCalculationLegs.legOrder, [1, 2]),
+        ),
+        and(
+          eq(carbonCalculationLegs.calculationId, calc3Id),
+          inArray(carbonCalculationLegs.legOrder, [1, 2]),
+        ),
+      ),
+    );
+
   // 2. Pre-calculated Journeys
   const journey1Legs = [
     {
@@ -126,7 +149,6 @@ export async function seedCarbonModule() {
   ];
 
   const j1 = GlecCalculatorService.calculateJourney(journey1Legs);
-  const calc1Id = "calc-sh-2026-0891";
 
   await db
     .insert(carbonCalculations)
@@ -209,7 +231,6 @@ export async function seedCarbonModule() {
   ];
 
   const j2 = GlecCalculatorService.calculateJourney(journey2Legs);
-  const calc2Id = "calc-sh-2026-0904";
 
   await db
     .insert(carbonCalculations)
@@ -271,7 +292,6 @@ export async function seedCarbonModule() {
   ];
 
   const j3 = GlecCalculatorService.calculateJourney(journey3Legs);
-  const calc3Id = "calc-sh-2026-0912";
 
   await db
     .insert(carbonCalculations)

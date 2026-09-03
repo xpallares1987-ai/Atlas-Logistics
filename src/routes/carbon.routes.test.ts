@@ -85,6 +85,17 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
     expect(res.headers["x-page-size"]).toBe("1");
   });
 
+  it("GET /api/carbon/calculations should treat LIKE metacharacters literally", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/carbon/calculations?q=%25",
+      headers: authHeader,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([]);
+  });
+
   it("POST /api/carbon/calculate should compute and save multimodal journey emissions", async () => {
     const payload = {
       referenceCode: "TEST-CALC-001",

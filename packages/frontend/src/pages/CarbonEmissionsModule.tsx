@@ -30,7 +30,11 @@ import {
   Truck,
 } from "lucide-react";
 import { useState } from "react";
-import { useApiMutation, useApiQuery } from "../hooks/useApiQuery";
+import {
+  useApiMutation,
+  useApiQuery,
+  usePaginatedApiQuery,
+} from "../hooks/useApiQuery";
 
 const toNumber = (value: unknown, fallback = 0) => {
   const numericValue = Number(value);
@@ -40,10 +44,13 @@ const toNumber = (value: unknown, fallback = 0) => {
 const toFixed = (value: unknown, digits = 2) => toNumber(value).toFixed(digits);
 
 export default function CarbonEmissionsModule() {
+  const pageSize = 20;
   const [activeTab, setActiveTab] = useState<
     "JOURNEYS" | "CALCULATOR" | "MARKETPLACE" | "CERTIFICATES"
   >("JOURNEYS");
   const [searchQuery, setSearchQuery] = useState("");
+  const [calculationPage, setCalculationPage] = useState(1);
+  const [certificatePage, setCertificatePage] = useState(1);
   const [selectedCalculation, setSelectedCalculation] = useState<any>(null);
 
   // Offset Purchase Modal State
@@ -84,11 +91,16 @@ export default function CarbonEmissionsModule() {
   );
 
   // 2. Fetch Calculations List
-  const { data: calculations = [], refetch: refetchCalculations } = useApiQuery<
-    any[]
-  >(
-    ["carbon-calculations", searchQuery],
-    `/carbon/calculations?q=${encodeURIComponent(searchQuery)}`,
+  const { data: calculationResult, refetch: refetchCalculations } =
+    usePaginatedApiQuery<any>(
+      ["carbon-calculations", searchQuery, calculationPage],
+      `/carbon/calculations?q=${encodeURIComponent(searchQuery)}&page=${calculationPage}&pageSize=${pageSize}`,
+    );
+  const calculations = calculationResult?.items ?? [];
+  const calculationTotal = calculationResult?.total ?? 0;
+  const calculationPageCount = Math.max(
+    1,
+    Math.ceil(calculationTotal / pageSize),
   );
 
   // 3. Fetch Projects Catalog
@@ -98,9 +110,17 @@ export default function CarbonEmissionsModule() {
   );
 
   // 4. Fetch Certificates List
-  const { data: certificates = [], refetch: refetchCertificates } = useApiQuery<
-    any[]
-  >(["carbon-certificates"], "/carbon/certificates");
+  const { data: certificateResult, refetch: refetchCertificates } =
+    usePaginatedApiQuery<any>(
+      ["carbon-certificates", certificatePage],
+      `/carbon/certificates?page=${certificatePage}&pageSize=${pageSize}`,
+    );
+  const certificates = certificateResult?.items ?? [];
+  const certificateTotal = certificateResult?.total ?? 0;
+  const certificatePageCount = Math.max(
+    1,
+    Math.ceil(certificateTotal / pageSize),
+  );
 
   // 5. Fetch Calculation Details
   const { data: calcDetails } = useApiQuery<any>(
@@ -375,7 +395,7 @@ export default function CarbonEmissionsModule() {
           }`}
         >
           <Layers size={15} />
-          Expediciones Auditadas ({calculations.length})
+          Expediciones Auditadas ({calculationTotal})
         </button>
 
         <button
@@ -411,7 +431,7 @@ export default function CarbonEmissionsModule() {
           }`}
         >
           <Award size={15} />
-          Certificados Emitidos ({certificates.length})
+          Certificados Emitidos ({certificateTotal})
         </button>
       </div>
 
@@ -426,7 +446,7 @@ export default function CarbonEmissionsModule() {
                 Expediciones Multimodales
               </h3>
               <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full font-bold">
-                {calculations.length} registradas
+                {calculationTotal} registradas
               </span>
             </div>
 
@@ -438,7 +458,10 @@ export default function CarbonEmissionsModule() {
               <Input
                 placeholder="Buscar por referencia o ciudad..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCalculationPage(1);
+                }}
                 className="pl-9 bg-slate-950/50 border-slate-700/60 text-xs text-white"
               />
             </div>
@@ -499,6 +522,27 @@ export default function CarbonEmissionsModule() {
                   </div>
                 );
               })}
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <button
+                type="button"
+                disabled={calculationPage === 1}
+                onClick={() => setCalculationPage((page) => page - 1)}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 disabled:opacity-40"
+              >
+                Anterior
+              </button>
+              <span>
+                Página {calculationPage} de {calculationPageCount}
+              </span>
+              <button
+                type="button"
+                disabled={calculationPage >= calculationPageCount}
+                onClick={() => setCalculationPage((page) => page + 1)}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 disabled:opacity-40"
+              >
+                Siguiente
+              </button>
             </div>
           </div>
 
@@ -1172,6 +1216,27 @@ export default function CarbonEmissionsModule() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="flex items-center justify-end gap-4 text-xs text-slate-400">
+            <button
+              type="button"
+              disabled={certificatePage === 1}
+              onClick={() => setCertificatePage((page) => page - 1)}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 disabled:opacity-40"
+            >
+              Anterior
+            </button>
+            <span>
+              Página {certificatePage} de {certificatePageCount}
+            </span>
+            <button
+              type="button"
+              disabled={certificatePage >= certificatePageCount}
+              onClick={() => setCertificatePage((page) => page + 1)}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 disabled:opacity-40"
+            >
+              Siguiente
+            </button>
           </div>
         </div>
       )}
