@@ -4,6 +4,7 @@ import {
   integer,
   real,
   check,
+  index,
 } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { commonAuditFields } from "./_common.js";
@@ -35,6 +36,10 @@ export const invoices = sqliteTable(
   (table) => ({
     amountCheck: check("invoices_amount_check", sql`${table.amount} >= 0`),
     taxCheck: check("invoices_tax_check", sql`${table.taxAmount} >= 0`),
+    typeCreatedAtIdx: index("idx_invoices_type_created_at").on(
+      table.type,
+      table.createdAt,
+    ),
   }),
 );
 

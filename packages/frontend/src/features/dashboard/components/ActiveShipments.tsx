@@ -21,7 +21,7 @@ export function ActiveShipments() {
     ["dashboard", dateRange],
     `/dashboard${queryStr}`,
   );
-  const shipments: any[] = data?.activeList || [];
+  const shipments: any[] = data?.data?.activeList || [];
 
   // Map backend shipments to UI format
   // If no shipments exist, we could provide some visual defaults, but let's just map real data.

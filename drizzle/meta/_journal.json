@@ -141,6 +141,13 @@
       "when": 1788330314296,
       "tag": "0019_flowery_salo",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1788390300000,
+      "tag": "0020_optimize_dashboard_queries",
+      "breakpoints": true
     }
   ]
 }
