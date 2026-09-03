@@ -28,11 +28,11 @@ export const calculateCarbonSchema = z.object({
   referenceCode: z.string().trim().min(1).optional(),
   originCity: z.string().trim().min(1).optional(),
   destinationCity: z.string().trim().min(1).optional(),
-  legs: z.array(carbonLegCalculationSchema).min(1),
+  legs: z.array(carbonLegCalculationSchema).min(1).max(20),
 });
 
 export const compareGreenRouteSchema = z.object({
-  legs: z.array(carbonLegCalculationSchema).min(1),
+  legs: z.array(carbonLegCalculationSchema).min(1).max(20),
 });
 
 export const carbonOffsetSchema = z.object({

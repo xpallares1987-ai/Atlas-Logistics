@@ -432,6 +432,34 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
     expect(res.json().error).toBe("Validation error");
   });
 
+  it("should reject journeys with more than 20 legs", async () => {
+    const legs = Array.from({ length: 21 }, (_, index) => ({
+      originName: `Stop ${index}`,
+      destinationName: `Stop ${index + 1}`,
+      mode: "ROAD_DIESEL",
+      distanceKm: 10,
+      weightKg: 1000,
+    }));
+
+    const [calculateResponse, compareResponse] = await Promise.all([
+      app.inject({
+        method: "POST",
+        url: "/api/carbon/calculate",
+        headers: authHeader,
+        payload: { legs },
+      }),
+      app.inject({
+        method: "POST",
+        url: "/api/carbon/compare-green-route",
+        headers: authHeader,
+        payload: { legs },
+      }),
+    ]);
+
+    expect(calculateResponse.statusCode).toBe(400);
+    expect(compareResponse.statusCode).toBe(400);
+  });
+
   it("POST /api/carbon/calculate should reject emissions below stored precision", async () => {
     const res = await app.inject({
       method: "POST",

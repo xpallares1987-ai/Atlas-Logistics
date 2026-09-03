@@ -1,40 +1,60 @@
-import { sqliteTable, text, real, integer } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  real,
+  sqliteTable,
+  text,
+} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 // Carbon Emissions Calculations for Shipments, Quotes, and Multimodal Simulations (ISO 14083 / GLEC v3)
-export const carbonCalculations = sqliteTable("carbon_calculations", {
-  id: text("id").primaryKey(),
-  entityType: text("entity_type", {
-    enum: ["SHIPMENT", "QUOTE", "SIMULATION"],
-  })
-    .notNull()
-    .default("SHIPMENT"),
-  entityId: text("entity_id"),
-  referenceCode: text("reference_code").notNull(), // e.g. "SH-2026-0891" or "QT-2026-0045"
-  originCity: text("origin_city").notNull(),
-  destinationCity: text("destination_city").notNull(),
-  searchTextNormalized: text("search_text_normalized").notNull().default(""),
-  totalWeightKg: real("total_weight_kg").notNull(),
-  totalDistanceKm: real("total_distance_km").notNull(),
-  totalTco2eWtw: real("total_tco2e_wtw").notNull(), // Well-to-Wheel Total
-  totalTco2eTtw: real("total_tco2e_ttw").notNull(), // Tank-to-Wheel (Direct operational combustion)
-  totalTco2eWtt: real("total_tco2e_wtt").notNull(), // Well-to-Tank (Upstream energy lifecycle)
-  carbonIntensityGco2ePerTkm: real("carbon_intensity_gco2e_per_tkm").notNull(),
-  status: text("status", {
-    enum: ["CALCULATED", "OFFSET_PENDING", "OFFSET_COMPLETED"],
-  })
-    .notNull()
-    .default("CALCULATED"),
-  offsetProjectId: text("offset_project_id"),
-  offsetCostEur: real("offset_cost_eur"),
-  certificateNumber: text("certificate_number"),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text("updated_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-});
+export const carbonCalculations = sqliteTable(
+  "carbon_calculations",
+  {
+    id: text("id").primaryKey(),
+    entityType: text("entity_type", {
+      enum: ["SHIPMENT", "QUOTE", "SIMULATION"],
+    })
+      .notNull()
+      .default("SHIPMENT"),
+    entityId: text("entity_id"),
+    referenceCode: text("reference_code").notNull(), // e.g. "SH-2026-0891" or "QT-2026-0045"
+    originCity: text("origin_city").notNull(),
+    destinationCity: text("destination_city").notNull(),
+    searchTextNormalized: text("search_text_normalized").notNull().default(""),
+    totalWeightKg: real("total_weight_kg").notNull(),
+    totalDistanceKm: real("total_distance_km").notNull(),
+    totalTco2eWtw: real("total_tco2e_wtw").notNull(), // Well-to-Wheel Total
+    totalTco2eTtw: real("total_tco2e_ttw").notNull(), // Tank-to-Wheel (Direct operational combustion)
+    totalTco2eWtt: real("total_tco2e_wtt").notNull(), // Well-to-Tank (Upstream energy lifecycle)
+    carbonIntensityGco2ePerTkm: real(
+      "carbon_intensity_gco2e_per_tkm",
+    ).notNull(),
+    status: text("status", {
+      enum: ["CALCULATED", "OFFSET_PENDING", "OFFSET_COMPLETED"],
+    })
+      .notNull()
+      .default("CALCULATED"),
+    offsetProjectId: text("offset_project_id"),
+    offsetCostEur: real("offset_cost_eur"),
+    certificateNumber: text("certificate_number"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    createdAtIdIdx: index("idx_carbon_calculations_created_at_id").on(
+      table.createdAt,
+      table.id,
+    ),
+    filtersCreatedAtIdIdx: index(
+      "idx_carbon_calculations_filters_created_at_id",
+    ).on(table.entityType, table.status, table.createdAt, table.id),
+  }),
+);
 
 // Itemized Leg-by-Leg Calculation Breakdown
 export const carbonCalculationLegs = sqliteTable("carbon_calculation_legs", {
@@ -100,22 +120,31 @@ export const carbonOffsetProjects = sqliteTable("carbon_offset_projects", {
 });
 
 // Official Offset Certificates with Validation Metadata
-export const carbonCertificates = sqliteTable("carbon_certificates", {
-  id: text("id").primaryKey(),
-  certificateNumber: text("certificate_number").notNull().unique(), // e.g. "ATLAS-CARBON-2026-0042"
-  calculationId: text("calculation_id")
-    .notNull()
-    .references(() => carbonCalculations.id),
-  beneficiaryName: text("beneficiary_name").notNull(),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => carbonOffsetProjects.id),
-  projectName: text("project_name").notNull(),
-  projectStandard: text("project_standard").notNull(),
-  offsetTco2e: real("offset_tco2e").notNull(),
-  amountPaidEur: real("amount_paid_eur").notNull(),
-  qrValidationUrl: text("qr_validation_url").notNull(),
-  issuedAt: text("issued_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-});
+export const carbonCertificates = sqliteTable(
+  "carbon_certificates",
+  {
+    id: text("id").primaryKey(),
+    certificateNumber: text("certificate_number").notNull().unique(), // e.g. "ATLAS-CARBON-2026-0042"
+    calculationId: text("calculation_id")
+      .notNull()
+      .references(() => carbonCalculations.id),
+    beneficiaryName: text("beneficiary_name").notNull(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => carbonOffsetProjects.id),
+    projectName: text("project_name").notNull(),
+    projectStandard: text("project_standard").notNull(),
+    offsetTco2e: real("offset_tco2e").notNull(),
+    amountPaidEur: real("amount_paid_eur").notNull(),
+    qrValidationUrl: text("qr_validation_url").notNull(),
+    issuedAt: text("issued_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    issuedAtIdIdx: index("idx_carbon_certificates_issued_at_id").on(
+      table.issuedAt,
+      table.id,
+    ),
+  }),
+);

@@ -40,16 +40,6 @@ function escapeLikePattern(value: string) {
 }
 
 export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.addHook("onRequest", async (req, reply) => {
-    try {
-      await req.jwtVerify();
-    } catch {
-      return reply
-        .status(401)
-        .send({ error: "Unauthorized", message: "Invalid or missing token" });
-    }
-  });
-
   // GET /api/carbon/summary - KPI Dashboard Aggregates
   fastify.get("/summary", async (req, reply) => {
     try {

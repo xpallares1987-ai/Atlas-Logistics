@@ -162,6 +162,13 @@
       "when": 1788401993468,
       "tag": "0022_plain_killmonger",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1788402305555,
+      "tag": "0023_whole_firelord",
+      "breakpoints": true
     }
   ]
 }
