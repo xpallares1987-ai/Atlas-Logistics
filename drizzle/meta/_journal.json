@@ -169,6 +169,13 @@
       "when": 1788402305555,
       "tag": "0023_whole_firelord",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1788402600000,
+      "tag": "0024_normalize_carbon_certificate_dates",
+      "breakpoints": true
     }
   ]
 }

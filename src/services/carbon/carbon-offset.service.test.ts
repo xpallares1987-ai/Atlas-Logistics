@@ -121,6 +121,34 @@ describe("CarbonOffsetService", () => {
     expect(calculation?.certificateNumber).toBeNull();
   });
 
+  it("rejects an inactive project without mutating offset state", async () => {
+    await insertCalculation(calculationId, 0.4);
+    await db
+      .update(carbonOffsetProjects)
+      .set({ active: false })
+      .where(eq(carbonOffsetProjects.id, projectId));
+
+    await expect(
+      CarbonOffsetService.processOffset({
+        calculationId,
+        projectId,
+        beneficiaryName: "Test Customer",
+      }),
+    ).rejects.toMatchObject({ statusCode: 409 });
+
+    const calculation = await db
+      .select()
+      .from(carbonCalculations)
+      .where(eq(carbonCalculations.id, calculationId))
+      .get();
+    const certificates = await db
+      .select()
+      .from(carbonCertificates)
+      .where(eq(carbonCertificates.calculationId, calculationId));
+    expect(calculation?.status).toBe("CALCULATED");
+    expect(certificates).toHaveLength(0);
+  });
+
   it("commits the exact deduction, calculation state, and one certificate", async () => {
     await insertCalculation(calculationId, 0.4);
 

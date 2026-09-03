@@ -113,7 +113,10 @@ export class CarbonOffsetService {
       );
       const certificateNumber = this.generateCertificateNumber();
       const certificateId = uuidv4();
-      const issuedAt = new Date().toISOString();
+      const issuedAt = new Date()
+        .toISOString()
+        .replace("T", " ")
+        .replace("Z", "");
       const qrValidationUrl = `https://verify.atlas-logistics.io/carbon/${certificateNumber}`;
 
       const deduction = await tx

@@ -37,3 +37,10 @@ SET `search_text_normalized` =
   'Ÿ', 'y'), 'ý', 'y'), 'ÿ', 'y'), 'Ž', 'z'), 'ž', 'z'),
   'Æ', 'ae'), 'æ', 'ae'), 'Œ', 'oe'), 'œ', 'oe'), 'ß', 'ss'),
   'Ł', 'l'), 'ł', 'l'), 'Ð', 'd');
+--> statement-breakpoint
+UPDATE `carbon_calculations`
+SET `search_text_normalized` =
+  replace(replace(replace(replace(replace(replace(replace(replace(
+  `search_text_normalized`,
+  'İ', 'i'), 'ı', 'i'), 'Č', 'c'), 'č', 'c'),
+  'Ć', 'c'), 'ć', 'c'), 'Đ', 'd'), 'đ', 'd');
