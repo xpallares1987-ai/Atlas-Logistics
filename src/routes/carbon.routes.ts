@@ -39,14 +39,13 @@ function escapeLikePattern(value: string) {
 }
 
 export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
-  // Optional auth verification hook (allows unauthenticated in test if needed or verifies JWT)
   fastify.addHook("onRequest", async (req, reply) => {
     try {
-      if (req.headers.authorization) {
-        await req.jwtVerify();
-      }
+      await req.jwtVerify();
     } catch {
-      // Allow gracefully for dev/test endpoints
+      return reply
+        .status(401)
+        .send({ error: "Unauthorized", message: "Invalid or missing token" });
     }
   });
 

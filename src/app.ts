@@ -119,6 +119,7 @@ app.register(fastifyCors, {
     cb(null, false);
   },
   credentials: true,
+  exposedHeaders: ["x-total-count", "x-page", "x-page-size"],
 });
 app.register(fastifyRateLimit, {
   max: 100,

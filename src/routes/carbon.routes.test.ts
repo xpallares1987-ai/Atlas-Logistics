@@ -80,13 +80,29 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
     const res = await app.inject({
       method: "GET",
       url: "/api/carbon/calculations?page=1&pageSize=1",
-      headers: authHeader,
+      headers: {
+        ...authHeader,
+        origin: "http://localhost:5173",
+      },
     });
 
     expect(res.statusCode).toBe(200);
     expect(res.json()).toHaveLength(1);
     expect(Number(res.headers["x-total-count"])).toBeGreaterThanOrEqual(1);
     expect(res.headers["x-page-size"]).toBe("1");
+    expect(res.headers["access-control-expose-headers"]).toBe(
+      "x-total-count, x-page, x-page-size",
+    );
+  });
+
+  it("POST /api/carbon/calculate should reject missing authentication", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/carbon/calculate",
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(401);
   });
 
   it("GET /api/carbon/calculations should treat % and _ as literal search characters", async () => {
