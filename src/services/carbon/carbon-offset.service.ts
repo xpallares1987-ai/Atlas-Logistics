@@ -4,7 +4,7 @@ import {
   carbonOffsetProjects,
   carbonCertificates,
 } from "../../db/schema/index.js";
-import { eq } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 export interface OffsetPurchaseInput {
@@ -47,84 +47,95 @@ export class CarbonOffsetService {
   public static async processOffset(
     input: OffsetPurchaseInput,
   ): Promise<OffsetPurchaseResult> {
-    const calculation = await db
-      .select()
-      .from(carbonCalculations)
-      .where(eq(carbonCalculations.id, input.calculationId))
-      .get();
+    return db.transaction(async (tx) => {
+      const calculation = await tx
+        .select()
+        .from(carbonCalculations)
+        .where(eq(carbonCalculations.id, input.calculationId))
+        .get();
 
-    if (!calculation) {
-      throw new Error(`Carbon calculation ${input.calculationId} not found`);
-    }
+      if (!calculation) {
+        throw new Error(`Carbon calculation ${input.calculationId} not found`);
+      }
 
-    const project = await db
-      .select()
-      .from(carbonOffsetProjects)
-      .where(eq(carbonOffsetProjects.id, input.projectId))
-      .get();
+      if (calculation.status === "OFFSET_COMPLETED") {
+        throw new Error("This calculation has already been offset");
+      }
 
-    if (!project) {
-      throw new Error(`Offset project ${input.projectId} not found`);
-    }
+      const project = await tx
+        .select()
+        .from(carbonOffsetProjects)
+        .where(eq(carbonOffsetProjects.id, input.projectId))
+        .get();
 
-    const totalTco2e = calculation.totalTco2eWtw;
-    const amountPaidEur = this.calculateCost(
-      totalTco2e,
-      project.pricePerTco2eEur,
-    );
-    const certificateNumber = this.generateCertificateNumber();
-    const certificateId = uuidv4();
-    const issuedAt = new Date().toISOString();
-    const qrValidationUrl = `https://verify.atlas-logistics.io/carbon/${certificateNumber}`;
+      if (!project || !project.active) {
+        throw new Error(
+          `Offset project ${input.projectId} not found or inactive`,
+        );
+      }
 
-    // Update calculation record
-    await db
-      .update(carbonCalculations)
-      .set({
-        status: "OFFSET_COMPLETED",
-        offsetProjectId: project.id,
-        offsetCostEur: amountPaidEur,
-        certificateNumber,
-        updatedAt: issuedAt,
-      })
-      .where(eq(carbonCalculations.id, input.calculationId));
+      const totalTco2e = calculation.totalTco2eWtw;
+      const amountPaidEur = this.calculateCost(
+        totalTco2e,
+        project.pricePerTco2eEur,
+      );
+      const certificateNumber = this.generateCertificateNumber();
+      const certificateId = uuidv4();
+      const issuedAt = new Date().toISOString();
+      const qrValidationUrl = `https://verify.atlas-logistics.io/carbon/${certificateNumber}`;
 
-    // Deduct available credits
-    if (project.availableCreditsTco2e >= totalTco2e) {
-      await db
+      const deduction = await tx
         .update(carbonOffsetProjects)
         .set({
-          availableCreditsTco2e: Number(
-            (project.availableCreditsTco2e - totalTco2e).toFixed(2),
-          ),
+          availableCreditsTco2e: sql`${carbonOffsetProjects.availableCreditsTco2e} - ${totalTco2e}`,
         })
-        .where(eq(carbonOffsetProjects.id, project.id));
-    }
+        .where(
+          and(
+            eq(carbonOffsetProjects.id, project.id),
+            eq(carbonOffsetProjects.active, true),
+            gte(carbonOffsetProjects.availableCreditsTco2e, totalTco2e),
+          ),
+        );
 
-    // Insert Certificate record
-    await db.insert(carbonCertificates).values({
-      id: certificateId,
-      certificateNumber,
-      calculationId: calculation.id,
-      beneficiaryName: input.beneficiaryName,
-      projectId: project.id,
-      projectName: project.name,
-      projectStandard: project.standard,
-      offsetTco2e: totalTco2e,
-      amountPaidEur,
-      qrValidationUrl,
-      issuedAt,
+      if (deduction.rowsAffected !== 1) {
+        throw new Error("Insufficient carbon credits available");
+      }
+
+      await tx
+        .update(carbonCalculations)
+        .set({
+          status: "OFFSET_COMPLETED",
+          offsetProjectId: project.id,
+          offsetCostEur: amountPaidEur,
+          certificateNumber,
+          updatedAt: issuedAt,
+        })
+        .where(eq(carbonCalculations.id, input.calculationId));
+
+      await tx.insert(carbonCertificates).values({
+        id: certificateId,
+        certificateNumber,
+        calculationId: calculation.id,
+        beneficiaryName: input.beneficiaryName,
+        projectId: project.id,
+        projectName: project.name,
+        projectStandard: project.standard,
+        offsetTco2e: totalTco2e,
+        amountPaidEur,
+        qrValidationUrl,
+        issuedAt,
+      });
+
+      return {
+        certificateId,
+        certificateNumber,
+        projectName: project.name,
+        projectStandard: project.standard,
+        offsetTco2e: totalTco2e,
+        amountPaidEur,
+        qrValidationUrl,
+        issuedAt,
+      };
     });
-
-    return {
-      certificateId,
-      certificateNumber,
-      projectName: project.name,
-      projectStandard: project.standard,
-      offsetTco2e: totalTco2e,
-      amountPaidEur,
-      qrValidationUrl,
-      issuedAt,
-    };
   }
 }

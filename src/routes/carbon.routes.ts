@@ -1,4 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
+import { z } from "zod";
 import { db } from "../db/index.js";
 import {
   carbonCalculations,
@@ -8,12 +9,48 @@ import {
 } from "../db/schema/index.js";
 import { eq, desc, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
-import {
-  GlecCalculatorService,
-  LegCalculationInput,
-} from "../services/carbon/glec-calculator.service.js";
+import { GlecCalculatorService } from "../services/carbon/glec-calculator.service.js";
 import { CarbonOffsetService } from "../services/carbon/carbon-offset.service.js";
 import { CarbonPdfService } from "../services/carbon/carbon-pdf.service.js";
+
+const transportModeSchema = z.enum([
+  "OCEAN_CONTAINER",
+  "OCEAN_BULK",
+  "AIR_FREIGHT",
+  "AIR_BELLY",
+  "ROAD_DIESEL",
+  "ROAD_HVO",
+  "ROAD_EV",
+  "RAIL_ELECTRIC",
+  "RAIL_DIESEL",
+]);
+
+const legCalculationSchema = z.object({
+  originName: z.string().trim().min(1),
+  destinationName: z.string().trim().min(1),
+  mode: transportModeSchema,
+  distanceKm: z.number().finite().positive(),
+  weightKg: z.number().finite().positive(),
+});
+
+const calculateSchema = z.object({
+  entityType: z.enum(["SHIPMENT", "QUOTE", "SIMULATION"]).optional(),
+  entityId: z.string().trim().min(1).optional(),
+  referenceCode: z.string().trim().min(1).optional(),
+  originCity: z.string().trim().min(1).optional(),
+  destinationCity: z.string().trim().min(1).optional(),
+  legs: z.array(legCalculationSchema).min(1),
+});
+
+const compareGreenRouteSchema = z.object({
+  legs: z.array(legCalculationSchema).min(1),
+});
+
+const offsetSchema = z.object({
+  calculationId: z.string().trim().min(1),
+  projectId: z.string().trim().min(1),
+  beneficiaryName: z.string().trim().min(1).default("Atlas Logistics Customer"),
+});
 
 export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
   // Optional auth verification hook (allows unauthenticated in test if needed or verifies JWT)
@@ -179,24 +216,8 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/carbon/calculate - Execute GLEC v3 calculation and save
   fastify.post("/calculate", async (req, reply) => {
-    const body = req.body as {
-      entityType?: "SHIPMENT" | "QUOTE" | "SIMULATION";
-      entityId?: string;
-      referenceCode?: string;
-      originCity: string;
-      destinationCity: string;
-      legs: LegCalculationInput[];
-    };
-
-    if (!body || !body.legs || body.legs.length === 0) {
-      return reply
-        .status(400)
-        .send({
-          error: "At least one journey leg is required for calculation",
-        });
-    }
-
     try {
+      const body = calculateSchema.parse(req.body);
       const journey = GlecCalculatorService.calculateJourney(body.legs);
       const calculationId = uuidv4();
       const referenceCode =
@@ -247,6 +268,11 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         journey,
       });
     } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return reply
+          .status(400)
+          .send({ error: "Validation error", details: err.issues });
+      }
       req.log.error(err);
       return reply
         .status(500)
@@ -256,15 +282,8 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/carbon/compare-green-route - Simulate sustainable alternative corridors
   fastify.post("/compare-green-route", async (req, reply) => {
-    const body = req.body as { legs: LegCalculationInput[] };
-
-    if (!body || !body.legs || body.legs.length === 0) {
-      return reply
-        .status(400)
-        .send({ error: "Legs are required to compare green alternatives" });
-    }
-
     try {
+      const body = compareGreenRouteSchema.parse(req.body);
       const alternatives = GlecCalculatorService.generateGreenAlternatives(
         body.legs,
       );
@@ -276,6 +295,11 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         alternatives,
       });
     } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return reply
+          .status(400)
+          .send({ error: "Validation error", details: err.issues });
+      }
       req.log.error(err);
       return reply
         .status(500)
@@ -301,30 +325,20 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/carbon/offset - Purchase carbon credits and issue certificate
   fastify.post("/offset", async (req, reply) => {
-    const body = req.body as {
-      calculationId: string;
-      projectId: string;
-      beneficiaryName: string;
-    };
-
-    if (!body || !body.calculationId || !body.projectId) {
-      return reply.status(400).send({
-        error: "calculationId and projectId are required",
-      });
-    }
-
     try {
-      const result = await CarbonOffsetService.processOffset({
-        calculationId: body.calculationId,
-        projectId: body.projectId,
-        beneficiaryName: body.beneficiaryName || "Atlas Logistics Customer",
-      });
+      const body = offsetSchema.parse(req.body);
+      const result = await CarbonOffsetService.processOffset(body);
 
       return reply.send({
         success: true,
         certificate: result,
       });
     } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return reply
+          .status(400)
+          .send({ error: "Validation error", details: err.issues });
+      }
       req.log.error(err);
       return reply
         .status(500)

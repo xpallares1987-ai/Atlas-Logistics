@@ -133,4 +133,63 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
     expect(data.alternatives.length).toBeGreaterThan(0);
     expect(data.alternatives[0].savedTco2e).toBeGreaterThan(0);
   });
+
+  it("POST /api/carbon/calculate should reject unsupported transport modes", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/carbon/calculate",
+      headers: authHeader,
+      payload: {
+        legs: [
+          {
+            originName: "Madrid",
+            destinationName: "Paris",
+            mode: "TELEPORT",
+            distanceKm: 1200,
+            weightKg: 20000,
+          },
+        ],
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe("Validation error");
+  });
+
+  it("POST /api/carbon/compare-green-route should reject non-positive measurements", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/carbon/compare-green-route",
+      headers: authHeader,
+      payload: {
+        legs: [
+          {
+            originName: "Madrid",
+            destinationName: "Paris",
+            mode: "ROAD_DIESEL",
+            distanceKm: 0,
+            weightKg: -1,
+          },
+        ],
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe("Validation error");
+  });
+
+  it("POST /api/carbon/offset should reject malformed identifiers", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/carbon/offset",
+      headers: authHeader,
+      payload: {
+        calculationId: "",
+        projectId: "",
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe("Validation error");
+  });
 });
