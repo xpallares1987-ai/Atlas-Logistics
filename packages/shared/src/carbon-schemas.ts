@@ -18,8 +18,8 @@ export const carbonLegCalculationSchema = z.object({
   originName: z.string().trim().min(1),
   destinationName: z.string().trim().min(1),
   mode: carbonTransportModeSchema,
-  distanceKm: z.number().finite().positive(),
-  weightKg: z.number().finite().positive(),
+  distanceKm: z.number().finite().positive().max(40_100),
+  weightKg: z.number().finite().positive().max(500_000_000),
 });
 
 export const calculateCarbonSchema = z.object({
