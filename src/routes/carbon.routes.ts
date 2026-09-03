@@ -15,7 +15,10 @@ import {
 import { eq, desc, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { GlecCalculatorService } from "../services/carbon/glec-calculator.service.js";
-import { CarbonOffsetService } from "../services/carbon/carbon-offset.service.js";
+import {
+  CarbonOffsetDomainError,
+  CarbonOffsetService,
+} from "../services/carbon/carbon-offset.service.js";
 import { CarbonPdfService } from "../services/carbon/carbon-pdf.service.js";
 
 export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
@@ -306,6 +309,12 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         return reply
           .status(400)
           .send({ error: "Validation error", details: err.issues });
+      }
+      if (err instanceof CarbonOffsetDomainError) {
+        return reply.status(err.statusCode).send({
+          error: "Offset Processing Error",
+          message: err.message,
+        });
       }
       req.log.error(err);
       return reply

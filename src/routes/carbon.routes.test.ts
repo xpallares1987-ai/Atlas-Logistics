@@ -244,4 +244,36 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toBe("Validation error");
   });
+
+  it("POST /api/carbon/offset should return 404 for a missing calculation", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/carbon/offset",
+      headers: authHeader,
+      payload: {
+        calculationId: "missing-carbon-calculation",
+        projectId: "proj-amazon-reforest-01",
+        beneficiaryName: "Test Customer",
+      },
+    });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.json().message).toContain("not found");
+  });
+
+  it("POST /api/carbon/offset should return 409 for an already-offset calculation", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/carbon/offset",
+      headers: authHeader,
+      payload: {
+        calculationId: "calc-sh-2026-0891",
+        projectId: "proj-amazon-reforest-01",
+        beneficiaryName: "Test Customer",
+      },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().message).toBe("This calculation has already been offset");
+  });
 });

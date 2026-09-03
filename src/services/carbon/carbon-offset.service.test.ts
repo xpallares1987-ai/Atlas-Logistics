@@ -88,7 +88,12 @@ describe("CarbonOffsetService", () => {
         projectId,
         beneficiaryName: "Test Customer",
       }),
-    ).rejects.toThrow("Insufficient carbon credits available");
+    ).rejects.toEqual(
+      expect.objectContaining({
+        message: "Insufficient carbon credits available",
+        statusCode: 409,
+      }),
+    );
 
     const project = await db
       .select()

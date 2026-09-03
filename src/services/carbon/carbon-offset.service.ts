@@ -25,6 +25,28 @@ export interface OffsetPurchaseResult {
   issuedAt: string;
 }
 
+export class CarbonOffsetDomainError extends Error {
+  public constructor(
+    message: string,
+    public readonly statusCode: 404 | 409,
+  ) {
+    super(message);
+    this.name = new.target.name;
+  }
+}
+
+export class CarbonOffsetNotFoundError extends CarbonOffsetDomainError {
+  public constructor(message: string) {
+    super(message, 404);
+  }
+}
+
+export class CarbonOffsetConflictError extends CarbonOffsetDomainError {
+  public constructor(message: string) {
+    super(message, 409);
+  }
+}
+
 export class CarbonOffsetService {
   /**
    * Calculates total investment required to offset an amount of emissions
@@ -55,11 +77,15 @@ export class CarbonOffsetService {
         .get();
 
       if (!calculation) {
-        throw new Error(`Carbon calculation ${input.calculationId} not found`);
+        throw new CarbonOffsetNotFoundError(
+          `Carbon calculation ${input.calculationId} not found`,
+        );
       }
 
       if (calculation.status === "OFFSET_COMPLETED") {
-        throw new Error("This calculation has already been offset");
+        throw new CarbonOffsetConflictError(
+          "This calculation has already been offset",
+        );
       }
 
       const project = await tx
@@ -68,9 +94,15 @@ export class CarbonOffsetService {
         .where(eq(carbonOffsetProjects.id, input.projectId))
         .get();
 
-      if (!project || !project.active) {
-        throw new Error(
-          `Offset project ${input.projectId} not found or inactive`,
+      if (!project) {
+        throw new CarbonOffsetNotFoundError(
+          `Offset project ${input.projectId} not found`,
+        );
+      }
+
+      if (!project.active) {
+        throw new CarbonOffsetConflictError(
+          `Offset project ${input.projectId} is inactive`,
         );
       }
 
@@ -98,7 +130,9 @@ export class CarbonOffsetService {
         );
 
       if (deduction.rowsAffected !== 1) {
-        throw new Error("Insufficient carbon credits available");
+        throw new CarbonOffsetConflictError(
+          "Insufficient carbon credits available",
+        );
       }
 
       await tx
