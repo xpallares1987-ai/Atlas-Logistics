@@ -57,39 +57,47 @@ export const carbonCalculations = sqliteTable(
 );
 
 // Itemized Leg-by-Leg Calculation Breakdown
-export const carbonCalculationLegs = sqliteTable("carbon_calculation_legs", {
-  id: text("id").primaryKey(),
-  calculationId: text("calculation_id")
-    .notNull()
-    .references(() => carbonCalculations.id, { onDelete: "cascade" }),
-  legOrder: integer("leg_order").notNull(),
-  originName: text("origin_name").notNull(),
-  destinationName: text("destination_name").notNull(),
-  mode: text("mode", {
-    enum: [
-      "OCEAN_CONTAINER",
-      "OCEAN_BULK",
-      "AIR_FREIGHT",
-      "AIR_BELLY",
-      "ROAD_DIESEL",
-      "ROAD_HVO",
-      "ROAD_EV",
-      "RAIL_ELECTRIC",
-      "RAIL_DIESEL",
-    ],
-  }).notNull(),
-  distanceKm: real("distance_km").notNull(),
-  weightTonnes: real("weight_tonnes").notNull(),
-  emissionFactorWtw: real("emission_factor_wtw").notNull(), // gCO2e / t-km
-  emissionFactorTtw: real("emission_factor_ttw").notNull(), // gCO2e / t-km
-  emissionFactorWtt: real("emission_factor_wtt").notNull(), // gCO2e / t-km
-  legTco2eWtw: real("leg_tco2e_wtw").notNull(),
-  legTco2eTtw: real("leg_tco2e_ttw").notNull(),
-  legTco2eWtt: real("leg_tco2e_wtt").notNull(),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-});
+export const carbonCalculationLegs = sqliteTable(
+  "carbon_calculation_legs",
+  {
+    id: text("id").primaryKey(),
+    calculationId: text("calculation_id")
+      .notNull()
+      .references(() => carbonCalculations.id, { onDelete: "cascade" }),
+    legOrder: integer("leg_order").notNull(),
+    originName: text("origin_name").notNull(),
+    destinationName: text("destination_name").notNull(),
+    mode: text("mode", {
+      enum: [
+        "OCEAN_CONTAINER",
+        "OCEAN_BULK",
+        "AIR_FREIGHT",
+        "AIR_BELLY",
+        "ROAD_DIESEL",
+        "ROAD_HVO",
+        "ROAD_EV",
+        "RAIL_ELECTRIC",
+        "RAIL_DIESEL",
+      ],
+    }).notNull(),
+    distanceKm: real("distance_km").notNull(),
+    weightTonnes: real("weight_tonnes").notNull(),
+    emissionFactorWtw: real("emission_factor_wtw").notNull(), // gCO2e / t-km
+    emissionFactorTtw: real("emission_factor_ttw").notNull(), // gCO2e / t-km
+    emissionFactorWtt: real("emission_factor_wtt").notNull(), // gCO2e / t-km
+    legTco2eWtw: real("leg_tco2e_wtw").notNull(),
+    legTco2eTtw: real("leg_tco2e_ttw").notNull(),
+    legTco2eWtt: real("leg_tco2e_wtt").notNull(),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    calculationLegOrderIdx: index(
+      "idx_carbon_calculation_legs_calculation_order",
+    ).on(table.calculationId, table.legOrder),
+  }),
+);
 
 // Verified Carbon Offset Projects Catalog (Gold Standard, Verra VCS, Puro.earth)
 export const carbonOffsetProjects = sqliteTable("carbon_offset_projects", {

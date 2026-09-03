@@ -1,0 +1,1 @@
+CREATE INDEX `idx_carbon_calculation_legs_calculation_order` ON `carbon_calculation_legs` (`calculation_id`,`leg_order`);

@@ -122,7 +122,7 @@ export class CarbonOffsetService {
       const deduction = await tx
         .update(carbonOffsetProjects)
         .set({
-          availableCreditsTco2e: sql`${carbonOffsetProjects.availableCreditsTco2e} - ${totalTco2e}`,
+          availableCreditsTco2e: sql`round(${carbonOffsetProjects.availableCreditsTco2e} - ${totalTco2e}, 4)`,
         })
         .where(
           and(

@@ -33,6 +33,7 @@ import { useState } from "react";
 import {
   apiFetchBlob,
   useApiMutation,
+  useInvalidateQueries,
   useApiQuery,
   usePaginatedApiQuery,
 } from "../hooks/useApiQuery";
@@ -45,6 +46,7 @@ const toNumber = (value: unknown, fallback = 0) => {
 const toFixed = (value: unknown, digits = 2) => toNumber(value).toFixed(digits);
 
 export default function CarbonEmissionsModule() {
+  const invalidateQueries = useInvalidateQueries();
   const pageSize = 20;
   const [activeTab, setActiveTab] = useState<
     "JOURNEYS" | "CALCULATOR" | "MARKETPLACE" | "CERTIFICATES"
@@ -92,11 +94,10 @@ export default function CarbonEmissionsModule() {
   );
 
   // 2. Fetch Calculations List
-  const { data: calculationResult, refetch: refetchCalculations } =
-    usePaginatedApiQuery<any>(
-      ["carbon-calculations", searchQuery, calculationPage],
-      `/carbon/calculations?q=${encodeURIComponent(searchQuery)}&page=${calculationPage}&pageSize=${pageSize}`,
-    );
+  const { data: calculationResult } = usePaginatedApiQuery<any>(
+    ["carbon-calculations", searchQuery, calculationPage],
+    `/carbon/calculations?q=${encodeURIComponent(searchQuery)}&page=${calculationPage}&pageSize=${pageSize}`,
+  );
   const calculations = calculationResult?.items ?? [];
   const calculationTotal = calculationResult?.total ?? 0;
   const calculationPageCount = Math.max(
@@ -111,11 +112,10 @@ export default function CarbonEmissionsModule() {
   );
 
   // 4. Fetch Certificates List
-  const { data: certificateResult, refetch: refetchCertificates } =
-    usePaginatedApiQuery<any>(
-      ["carbon-certificates", certificatePage],
-      `/carbon/certificates?page=${certificatePage}&pageSize=${pageSize}`,
-    );
+  const { data: certificateResult } = usePaginatedApiQuery<any>(
+    ["carbon-certificates", certificatePage],
+    `/carbon/certificates?page=${certificatePage}&pageSize=${pageSize}`,
+  );
   const certificates = certificateResult?.items ?? [];
   const certificateTotal = certificateResult?.total ?? 0;
   const certificatePageCount = Math.max(
@@ -173,8 +173,11 @@ export default function CarbonEmissionsModule() {
       const altRes: any = await compareMutation.mutateAsync(altPayload);
       setGreenAlternatives(altRes.alternatives || []);
 
-      refetchSummary();
-      refetchCalculations();
+      setCalculationPage(1);
+      await Promise.all([
+        refetchSummary(),
+        invalidateQueries(["carbon-calculations"]),
+      ]);
     } catch (err: any) {
       alert("Error al calcular huella: " + err.message);
     }
@@ -226,28 +229,35 @@ export default function CarbonEmissionsModule() {
       await offsetMutation.mutateAsync(payload);
 
       setShowOffsetModal(false);
-      refetchSummary();
-      refetchCalculations();
-      refetchProjects();
-      refetchCertificates();
+      await Promise.all([
+        refetchSummary(),
+        refetchProjects(),
+        invalidateQueries(
+          ["carbon-calculations"],
+          ["carbon-calculation-details", selectedCalculation.id],
+          ["carbon-certificates"],
+        ),
+      ]);
     } catch (err: any) {
       alert("Error en la compensación: " + err.message);
     }
   };
 
   const handleOpenCertificatePdf = async (certificate: any) => {
+    const pdfWindow = window.open("about:blank", "_blank");
     try {
       const blob = await apiFetchBlob(
         `/carbon/certificates/${certificate.id}/pdf`,
       );
       const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.target = "_blank";
-      link.rel = "noreferrer";
-      link.click();
+      if (!pdfWindow) {
+        throw new Error("El navegador bloqueó la nueva pestaña");
+      }
+      pdfWindow.opener = null;
+      pdfWindow.location.href = blobUrl;
       window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
     } catch (err: any) {
+      pdfWindow?.close();
       alert("Error al abrir el certificado: " + err.message);
     }
   };

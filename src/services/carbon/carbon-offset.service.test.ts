@@ -10,6 +10,7 @@ import { CarbonOffsetService } from "./carbon-offset.service.js";
 
 const projectId = "test-carbon-offset-project";
 const calculationId = "test-carbon-offset-calculation";
+const fractionalCalculationId = "test-fractional-offset-calculation";
 const existingCalculationId = "test-existing-certificate-calculation";
 const existingCertificateId = "test-existing-certificate";
 const duplicateCertificateNumber = "ATLAS-CARBON-TEST-DUPLICATE";
@@ -36,13 +37,18 @@ describe("CarbonOffsetService", () => {
       .where(
         inArray(carbonCertificates.calculationId, [
           calculationId,
+          fractionalCalculationId,
           existingCalculationId,
         ]),
       );
     await db
       .delete(carbonCalculations)
       .where(
-        inArray(carbonCalculations.id, [calculationId, existingCalculationId]),
+        inArray(carbonCalculations.id, [
+          calculationId,
+          fractionalCalculationId,
+          existingCalculationId,
+        ]),
       );
     await db
       .delete(carbonOffsetProjects)
@@ -68,13 +74,18 @@ describe("CarbonOffsetService", () => {
       .where(
         inArray(carbonCertificates.calculationId, [
           calculationId,
+          fractionalCalculationId,
           existingCalculationId,
         ]),
       );
     await db
       .delete(carbonCalculations)
       .where(
-        inArray(carbonCalculations.id, [calculationId, existingCalculationId]),
+        inArray(carbonCalculations.id, [
+          calculationId,
+          fractionalCalculationId,
+          existingCalculationId,
+        ]),
       );
     await db
       .delete(carbonOffsetProjects)
@@ -187,6 +198,34 @@ describe("CarbonOffsetService", () => {
       offsetTco2e: 0.4,
       amountPaidEur: 8,
     });
+  });
+
+  it("rounds sequential fractional deductions to inventory precision", async () => {
+    await db
+      .update(carbonOffsetProjects)
+      .set({ availableCreditsTco2e: 0.3 })
+      .where(eq(carbonOffsetProjects.id, projectId));
+    await insertCalculation(calculationId, 0.1);
+    await insertCalculation(fractionalCalculationId, 0.2);
+
+    await CarbonOffsetService.processOffset({
+      calculationId,
+      projectId,
+      beneficiaryName: "First Customer",
+    });
+    await CarbonOffsetService.processOffset({
+      calculationId: fractionalCalculationId,
+      projectId,
+      beneficiaryName: "Second Customer",
+    });
+
+    const project = await db
+      .select()
+      .from(carbonOffsetProjects)
+      .where(eq(carbonOffsetProjects.id, projectId))
+      .get();
+
+    expect(project?.availableCreditsTco2e).toBe(0);
   });
 
   it("rolls back inventory and calculation updates when certificate creation fails", async () => {
