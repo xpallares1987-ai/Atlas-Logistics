@@ -6,6 +6,7 @@ import * as schema from "./schema/index.js";
 import "dotenv/config";
 
 import { client, db, databaseUrl } from "./index.js";
+import { seedCarbonModule } from "./seed-carbon.js";
 
 async function main() {
   console.log(
@@ -6462,6 +6463,8 @@ CALLE ARAGÓN 220, BARCELONA, SPAIN
   console.log(
     "✅ Creadas Operaciones de Graneles Portuarios, Draft Surveys, Declaraciones IMSBC, Estabilidad Grain Code y Sondeos Ullage ASTM.",
   );
+
+  await seedCarbonModule();
 
   // Ensure admin user exists
   await import("../admin/adminService.js").then((m) => m.createAdmin());

@@ -7,6 +7,8 @@ import {
 } from "./schema/index.js";
 import { v4 as uuidv4 } from "uuid";
 import { GlecCalculatorService } from "../services/carbon/glec-calculator.service.js";
+import { fileURLToPath } from "url";
+import path from "path";
 
 export async function seedCarbonModule() {
   console.log(
@@ -399,8 +401,8 @@ export async function seedCarbonModule() {
 }
 
 const isMain =
-  import.meta.url.includes("seed-carbon.ts") ||
-  (process.argv[1] && process.argv[1].includes("seed-carbon.ts"));
+  process.argv[1] !== undefined &&
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 if (isMain) {
   seedCarbonModule()
     .then(() => process.exit(0))

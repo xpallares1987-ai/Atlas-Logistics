@@ -148,6 +148,13 @@
       "when": 1788390300000,
       "tag": "0020_optimize_dashboard_queries",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1788397742174,
+      "tag": "0021_boring_excalibur",
+      "breakpoints": true
     }
   ]
 }
