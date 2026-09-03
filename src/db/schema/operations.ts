@@ -143,7 +143,6 @@ export const tradeSanctions = sqliteTable("trade_sanctions", {
   countryName: text("country_name").notNull(),
   sanctionType: text("sanction_type").notNull(), // EMBARGO, RESTRICTED, DUAL_USE_ONLY
   description: text("description"),
-  isActive: integer("is_active").default(1),
   ...commonAuditFields,
 });
 

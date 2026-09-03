@@ -1,12 +1,24 @@
 import { FastifyPluginAsync } from "fastify";
 import { db } from "../db/index.js";
-import { shipments, locations, invoices } from "../db/schema/index.js";
+import { shipments, invoices } from "../db/schema/index.js";
 import { sql, eq, desc, and, gte, lte } from "drizzle-orm";
 
 const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/", async (request, reply) => {
     try {
       const { start, end } = request.query as { start?: string; end?: string };
+
+      // Validate date parameters
+      if (start && isNaN(new Date(start).getTime())) {
+        return reply
+          .code(400)
+          .send({ success: false, error: "Invalid start date format" });
+      }
+      if (end && isNaN(new Date(end).getTime())) {
+        return reply
+          .code(400)
+          .send({ success: false, error: "Invalid end date format" });
+      }
 
       const invoiceConditions = [eq(invoices.type, "AR")];
       const shipmentConditions = [];
@@ -28,34 +40,68 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         completedShipmentConditions.push(lte(shipments.createdAt, endDate));
       }
 
-      // 1. STATS
-      // Total Revenue
-      const revenueResult = await db
-        .select({ total: sql<number>`SUM(${invoices.amount})` })
-        .from(invoices)
-        .where(and(...invoiceConditions));
+      const monthExpression = sql<string>`strftime('%Y-%m', ${invoices.createdAt}, 'unixepoch')`;
+      const [
+        revenueResult,
+        activeShipmentsResult,
+        completedShipmentsResult,
+        monthlyRevenue,
+        volumeQuery,
+        activeList,
+      ] = await Promise.all([
+        db
+          .select({ total: sql<number>`COALESCE(SUM(${invoices.amount}), 0)` })
+          .from(invoices)
+          .where(and(...invoiceConditions)),
+        db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(shipments)
+          .where(and(...activeShipmentConditions)),
+        db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(shipments)
+          .where(and(...completedShipmentConditions)),
+        db
+          .select({
+            month: monthExpression,
+            total: sql<number>`COALESCE(SUM(${invoices.amount}), 0)`,
+          })
+          .from(invoices)
+          .where(and(...invoiceConditions))
+          .groupBy(monthExpression)
+          .orderBy(monthExpression),
+        db
+          .select({
+            status: shipments.status,
+            count: sql<number>`COUNT(*)`,
+          })
+          .from(shipments)
+          .where(
+            shipmentConditions.length > 0
+              ? and(...shipmentConditions)
+              : undefined,
+          )
+          .groupBy(shipments.status),
+        db
+          .select({
+            id: shipments.id,
+            referenceNumber: shipments.trackingNumber,
+            status: shipments.status,
+            origin: shipments.origin,
+            destination: shipments.destination,
+            vessel: shipments.vesselName,
+            type: shipments.serviceType,
+            createdAt: shipments.createdAt,
+          })
+          .from(shipments)
+          .where(and(...activeShipmentConditions))
+          .orderBy(desc(shipments.createdAt))
+          .limit(5),
+      ]);
 
       const totalRevenue = revenueResult[0]?.total || 0;
-
-      // Active Shipments Count
-      const activeShipmentsResult = await db
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(shipments)
-        .where(and(...activeShipmentConditions));
       const activeShipments = activeShipmentsResult[0]?.count || 0;
-
-      // Completed Shipments Count
-      const completedShipmentsResult = await db
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(shipments)
-        .where(and(...completedShipmentConditions));
       const completedShipments = completedShipmentsResult[0]?.count || 0;
-
-      // 2. REVENUE CHART (Real Monthly Aggregation)
-      const allInvoices = await db
-        .select({ amount: invoices.amount, createdAt: invoices.createdAt })
-        .from(invoices)
-        .where(and(...invoiceConditions));
 
       const monthlyBuckets = new Map<string, number>();
       const monthNames = [
@@ -73,11 +119,14 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         "Dec",
       ];
 
-      for (const inv of allInvoices) {
-        if (!inv.createdAt) continue;
-        const d = new Date(inv.createdAt);
-        const key = monthNames[d.getMonth()];
-        monthlyBuckets.set(key, (monthlyBuckets.get(key) || 0) + inv.amount);
+      for (const row of monthlyRevenue) {
+        if (!row.month) continue;
+        const [year, month] = row.month.split("-");
+        const monthIndex = Number(month) - 1;
+        if (monthIndex >= 0 && monthIndex < monthNames.length) {
+          const label = `${monthNames[monthIndex]} ${year}`;
+          monthlyBuckets.set(label, row.total);
+        }
       }
 
       const revenueChart = Array.from(monthlyBuckets.entries()).map(
@@ -94,56 +143,9 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      // 3. VOLUME BY STATUS
-      const volumeQuery = await db
-        .select({
-          status: shipments.status,
-          count: sql<number>`COUNT(*)`,
-        })
-        .from(shipments)
-        .where(
-          shipmentConditions.length > 0
-            ? and(...shipmentConditions)
-            : undefined,
-        )
-        .groupBy(shipments.status);
-
       const volumeByStatus = volumeQuery.map((row) => ({
         status: row.status.replace(/_/g, " "),
         count: row.count,
-      }));
-
-      // 4. ACTIVE SHIPMENTS LIST
-      const activeList = await db
-        .select({
-          id: shipments.id,
-          referenceNumber: shipments.referenceNumber,
-          status: shipments.status,
-          originId: shipments.originId,
-          destinationId: shipments.destinationId,
-          createdAt: shipments.createdAt,
-        })
-        .from(shipments)
-        .where(eq(shipments.status, "IN_TRANSIT"))
-        .orderBy(desc(shipments.createdAt))
-        .limit(5);
-
-      // Join with locations to get names
-      const locs = await db.select().from(locations);
-      const locMap = new Map(locs.map((l) => [l.id, l]));
-
-      const enrichedActiveList = activeList.map((s) => ({
-        ...s,
-        origin: locMap.get(s.originId)?.name || "Unknown",
-        destination: locMap.get(s.destinationId)?.name || "Unknown",
-        originCoords: [
-          locMap.get(s.originId)?.longitude || 0,
-          locMap.get(s.originId)?.latitude || 0,
-        ],
-        destinationCoords: [
-          locMap.get(s.destinationId)?.longitude || 0,
-          locMap.get(s.destinationId)?.latitude || 0,
-        ],
       }));
 
       return {
@@ -157,12 +159,13 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
           },
           revenueChart,
           volumeByStatus,
-          activeList: enrichedActiveList,
+          activeList,
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       request.log.error(error);
-      return reply.code(500).send({ success: false, error: error.message });
+      const message = error instanceof Error ? error.message : "Unknown error";
+      return reply.code(500).send({ success: false, error: message });
     }
   });
 
@@ -183,7 +186,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
           .where(eq(shipments.status, "IN_TRANSIT"));
         const activeShipments = activeShipmentsResult[0]?.count || 0;
 
-        connection.socket.send(
+        connection.send(
           JSON.stringify({
             type: "STATS_UPDATE",
             data: {
@@ -197,7 +200,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }, 5000);
 
-    connection.socket.on("close", () => {
+    connection.on("close", () => {
       active = false;
       clearInterval(interval);
       req.log.info("Client disconnected from dashboard live stream");
