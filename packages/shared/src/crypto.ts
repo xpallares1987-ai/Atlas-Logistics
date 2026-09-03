@@ -1,3 +1,6 @@
+/**
+ * Derives an AES-GCM key from a user PIN and random salt using PBKDF2.
+ */
 async function getEncryptionKey(pin: string, salt: Uint8Array) {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
@@ -23,6 +26,9 @@ async function getEncryptionKey(pin: string, salt: Uint8Array) {
   );
 }
 
+/**
+ * Encodes raw bytes as a base64 string for transport/storage.
+ */
 function uint8ArrayToBase64(arr: Uint8Array): string {
   let binary = "";
   const len = arr.byteLength;
@@ -34,6 +40,9 @@ function uint8ArrayToBase64(arr: Uint8Array): string {
   return btoa(binary);
 }
 
+/**
+ * Decodes a base64 payload back into raw bytes.
+ */
 function base64ToUint8Array(base64: string): Uint8Array {
   const binary = atob(base64);
   const len = binary.length;

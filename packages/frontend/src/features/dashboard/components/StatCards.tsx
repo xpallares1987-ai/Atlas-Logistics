@@ -12,7 +12,7 @@ export function StatCards() {
     ["dashboard", dateRange],
     `/dashboard${queryStr}`,
   );
-  const statsData = data?.stats;
+  const statsData = data?.data?.stats;
 
   const stats = [
     {

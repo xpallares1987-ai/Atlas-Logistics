@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  real,
+  index,
+} from "drizzle-orm/sqlite-core";
 import { commonAuditFields } from "./_common.js";
 import { lanes } from "./pricing.js";
 import { carriers, customsBrokers } from "./vendors.js";
@@ -52,33 +58,42 @@ export const schedules = sqliteTable("schedules", {
   ...commonAuditFields,
 });
 
-export const shipments = sqliteTable("shipments", {
-  id: text("id").primaryKey(),
-  status: text("status").notNull(),
-  incoterm: text("incoterm"), // FOB, CIF, EXW
-  serviceType: text("service_type"), // FCL, LCL, AIR, ROAD
-  laneId: text("lane_id").references(() => lanes.id),
-  scheduleId: text("schedule_id").references(() => schedules.id),
-  vesselName: text("vessel_name"),
-  voyageNumber: text("voyage_number"),
-  carbonFootprint: real("carbon_footprint"),
-  trackingNumber: text("tracking_number"),
-  origin: text("origin"),
-  destination: text("destination"),
-  distanceKm: real("distance_km"),
-  weight: real("weight"),
-  co2eTonnes: real("co2e_tonnes"),
-  portOfEntryId: text("port_of_entry_id").references(() => locations.id),
-  clearanceStatus: text("clearance_status"),
-  currentLat: real("currentLat"),
-  currentLng: real("currentLng"),
-  companyId: text("company_id")
-    .notNull()
-    .references(() => companies.id),
-  createdBy: text("created_by").references(() => users.id),
-  updatedBy: text("updated_by").references(() => users.id),
-  ...commonAuditFields,
-});
+export const shipments = sqliteTable(
+  "shipments",
+  {
+    id: text("id").primaryKey(),
+    status: text("status").notNull(),
+    incoterm: text("incoterm"), // FOB, CIF, EXW
+    serviceType: text("service_type"), // FCL, LCL, AIR, ROAD
+    laneId: text("lane_id").references(() => lanes.id),
+    scheduleId: text("schedule_id").references(() => schedules.id),
+    vesselName: text("vessel_name"),
+    voyageNumber: text("voyage_number"),
+    carbonFootprint: real("carbon_footprint"),
+    trackingNumber: text("tracking_number"),
+    origin: text("origin"),
+    destination: text("destination"),
+    distanceKm: real("distance_km"),
+    weight: real("weight"),
+    co2eTonnes: real("co2e_tonnes"),
+    portOfEntryId: text("port_of_entry_id").references(() => locations.id),
+    clearanceStatus: text("clearance_status"),
+    currentLat: real("currentLat"),
+    currentLng: real("currentLng"),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => companies.id),
+    createdBy: text("created_by").references(() => users.id),
+    updatedBy: text("updated_by").references(() => users.id),
+    ...commonAuditFields,
+  },
+  (table) => ({
+    statusCreatedAtIdx: index("idx_shipments_status_created_at").on(
+      table.status,
+      table.createdAt,
+    ),
+  }),
+);
 
 export const shipmentContainers = sqliteTable("shipment_containers", {
   id: text("id").primaryKey(),
@@ -128,7 +143,6 @@ export const tradeSanctions = sqliteTable("trade_sanctions", {
   countryName: text("country_name").notNull(),
   sanctionType: text("sanction_type").notNull(), // EMBARGO, RESTRICTED, DUAL_USE_ONLY
   description: text("description"),
-  isActive: integer("is_active").default(1),
   ...commonAuditFields,
 });
 

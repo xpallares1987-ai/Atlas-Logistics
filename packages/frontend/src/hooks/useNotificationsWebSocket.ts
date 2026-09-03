@@ -5,17 +5,16 @@ export function useNotificationsWebSocket() {
   const addNotification = useAppStore((state) => state.addNotification);
 
   useEffect(() => {
-    // Connect to WebSocket using the appropriate protocol
+    // Derive the websocket endpoint from the active deployment mode.
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    // If we're in dev using Vite proxy, this goes to the same host/port.
-    // However, fastify websocket might be on the backend port directly if vite proxy doesn't support WS.
-    // Vite proxy usually supports WS via ws: true. Assuming /ws is proxied.
+    // Prefer the configured API origin when present so the hook works with
+    // both local Vite proxying and direct backend deployments.
     const wsUrl = import.meta.env.VITE_API_URL
       ? import.meta.env.VITE_API_URL.replace("http", "ws") + "/ws/notifications"
       : `${protocol}//${window.location.host}/ws/notifications`;
 
     let ws: WebSocket;
-    let reconnectTimer: NodeJS.Timeout;
+    let reconnectTimer: ReturnType<typeof setTimeout>;
 
     const connect = () => {
       ws = new WebSocket(wsUrl);
@@ -32,7 +31,7 @@ export function useNotificationsWebSocket() {
             return; // Initial ping
           }
 
-          // Map backend event to frontend notification
+          // Normalize backend event payloads into the toast shape used by the UI.
           addNotification({
             id: crypto.randomUUID(),
             title:

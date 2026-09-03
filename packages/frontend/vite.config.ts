@@ -73,40 +73,4 @@ export default defineConfig({
       },
     },
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (id.includes("node_modules")) {
-            if (id.includes("three") || id.includes("@react-three")) {
-              return "vendor-three";
-            }
-            if (
-              id.includes("bpmn-js") ||
-              id.includes("diagram-js") ||
-              id.includes("bpmn-moddle")
-            ) {
-              return "vendor-bpmn";
-            }
-            if (
-              id.includes("recharts") ||
-              id.includes("chart.js") ||
-              id.includes("d3")
-            ) {
-              return "vendor-charts";
-            }
-            if (id.includes("lucide-react")) {
-              return "vendor-icons";
-            }
-            if (id.includes("@tanstack") || id.includes("trpc")) {
-              return "vendor-query";
-            }
-            if (id.includes("react-dom") || id.includes("react-router")) {
-              return "vendor-react";
-            }
-          }
-        },
-      },
-    },
-  },
 });
