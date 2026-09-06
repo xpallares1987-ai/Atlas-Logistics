@@ -12,7 +12,7 @@ import fastifyMultipart from "@fastify/multipart";
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
 import metrics from "fastify-metrics";
-import { redis } from "./config/redis.js";
+import { redis, USE_MOCK } from "./config/redis.js";
 import "./cron/backup-scheduler.js"; // start cron scheduler
 import { logger } from "./config/logger.js";
 import { authMiddleware } from "./middleware/auth.js";
@@ -41,10 +41,7 @@ app.register(fastifyHelmet, {
   crossOriginResourcePolicy: { policy: "cross-origin" },
 });
 
-// Configure Redis (Using shared client that can be mock)
-const USE_MOCK =
-  process.env.NODE_ENV !== "production" &&
-  process.env.USE_REDIS_MOCK !== "false";
+// Configure Redis (Using shared client when real Redis is active)
 if (!USE_MOCK) {
   app.register(fastifyRedis, {
     client: redis,
@@ -70,23 +67,26 @@ app.register(fastifyCors, {
     const allowed = process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(",").map((s) => s.trim())
       : ["http://localhost:3000", "http://localhost:5173"];
-    if (
-      allowed.includes(origin) ||
-      origin.endsWith(".google.com") ||
-      origin.endsWith(".web.app")
-    ) {
+    // Whitelist specific domains; avoid broad wildcard matches
+    const googleAllowed = [
+      "https://atlas-logistics.web.app",
+      "https://atlas-logistics.firebaseapp.com",
+    ];
+    if (allowed.includes(origin) || googleAllowed.includes(origin)) {
       return cb(null, true);
     }
     cb(null, false);
   },
   credentials: true,
 });
+
 app.register(fastifyRateLimit, {
-  max: process.env.CI || process.env.NODE_ENV === "test" ? 100000 : 5000,
+  max: process.env.CI || process.env.NODE_ENV === "test" ? 1000 : 5000,
   timeWindow: "15 minutes",
   allowList: ["127.0.0.1", "::1"],
   redis: redis, // Use shared Redis (or mock) for rate limiting
 });
+
 app.register(metrics, { endpoint: "/metrics" });
 app.register(swagger, {
   openapi: {
@@ -96,15 +96,20 @@ app.register(swagger, {
 });
 app.register(swaggerUI, { routePrefix: "/docs", exposeRoute: true });
 
+// REQUIRED: COOKIE_SECRET and JWT_SECRET must be provided via environment
 app.register(fastifyCookie, {
   secret:
-    process.env.COOKIE_SECRET || "atlas-logistics-super-secret-cookie-key-2026",
+    process.env.COOKIE_SECRET || (() => {
+      throw new Error("COOKIE_SECRET environment variable is required");
+    })(),
   parseOptions: {},
 });
 
 app.register(fastifyJwt, {
   secret:
-    process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure",
+    process.env.JWT_SECRET || (() => {
+      throw new Error("JWT_SECRET environment variable is required");
+    })(),
 });
 
 // Protect API routes with an onRequest hook

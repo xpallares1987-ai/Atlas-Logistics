@@ -3,8 +3,7 @@ import { logger } from "../config/logger.js";
 import { lucia } from "../lib/auth.js";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -21,7 +20,7 @@ export const authMiddleware = async (
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
       try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET || "");
         if (decoded) {
           request.user = decoded;
           return;
@@ -34,7 +33,7 @@ export const authMiddleware = async (
     const sessionId = request.cookies[lucia.sessionCookieName];
     if (!sessionId) {
       reply.code(401).send({ error: "Missing Authentication." });
-      throw new Error("Unauthorized");
+      return;
     }
 
     const { session, user } = await lucia.validateSession(sessionId);
@@ -47,7 +46,7 @@ export const authMiddleware = async (
         sessionCookie.attributes,
       );
       reply.code(401).send({ error: "Invalid Session Cookie" });
-      throw new Error("Unauthorized");
+      return;
     }
 
     if (session && session.fresh) {
@@ -62,12 +61,8 @@ export const authMiddleware = async (
     request.user = user;
     request.session = session;
   } catch (error) {
-    if (error instanceof Error && error.message === "Unauthorized") {
-      throw error;
-    }
     logger.error(error, "Error verificando sesión:");
     reply.code(401).send({ error: "Invalid Session" });
-    throw new Error("Unauthorized");
   }
 };
 
@@ -76,7 +71,7 @@ export const requireRole = (allowedRoles: string[]) => {
     const userRole = (request.user as any)?.role || "USER";
     if (!allowedRoles.includes(userRole)) {
       reply.code(403).send({ error: "Forbidden: Insufficient permissions" });
-      throw new Error("Forbidden");
+      return;
     }
   };
 };

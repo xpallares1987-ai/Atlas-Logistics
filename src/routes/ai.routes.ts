@@ -6,14 +6,11 @@ import { pendingAiReviews } from "../db/schema/index.js";
 import { generateId } from "lucia";
 import { eq } from "drizzle-orm";
 
-import { redis } from "../config/redis.js";
+import { redis, USE_MOCK } from "../config/redis.js";
 
 // Si usamos ioredis-mock, BullMQ dará problemas. En ese caso simulamos la Queue localmente o le pasamos el mock (aunque puede fallar).
 // Para un entorno $0 costo, si no hay redis real, no rompemos.
-const isMock =
-  process.env.NODE_ENV !== "production" &&
-  process.env.USE_REDIS_MOCK !== "false";
-const aiQueue = isMock ? null : new Queue("ai-tasks", { connection: redis });
+const aiQueue = USE_MOCK ? null : new Queue("ai-tasks", { connection: redis });
 
 const taskSchema = z.object({
   prompt: z.string().min(1),

@@ -15,7 +15,16 @@ export const getDatabaseUrl = (): string => {
   if (process.env.DATABASE_URL) {
     return process.env.DATABASE_URL;
   }
-  return isProduction ? "file:atlas-erp-prod.db" : "file:atlas-erp-v2.db";
+
+  // In production, DATABASE_URL is mandatory
+  if (isProduction) {
+    throw new Error(
+      "DATABASE_URL environment variable is required in production",
+    );
+  }
+
+  // In development, fall back to local SQLite
+  return "file:atlas-erp-v2.db";
 };
 
 export const databaseUrl = getDatabaseUrl();

@@ -12,22 +12,33 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.js
 COPY packages ./packages
 COPY src ./src
 
-# Prod-deps stage: only production dependencies (no devDependencies)
+# Prod-deps stage: production + dev dependencies needed for runtime
 FROM base AS prod-deps
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --ignore-scripts
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --ignore-scripts && pnpm store prune
 
 # Build stage: full dependencies to compile/build
 FROM base AS build
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install && pnpm store prune
 RUN pnpm run build
+RUN rm -rf .turbo
 
-# Production Stage (Chainguard Hardened) — only prod deps + source
+# Production Stage (Chainguard Hardened) — only prod deps + dist + source
 FROM cgr.dev/chainguard/node:latest AS production
+ENV NODE_ENV="production"
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 WORKDIR /app
 
+# Copy only production node_modules and necessary files
 COPY --chown=nonroot:nonroot --from=prod-deps /app/node_modules /app/node_modules
+COPY --chown=nonroot:nonroot --from=build /app/dist /app/dist
 COPY --chown=nonroot:nonroot --from=build /app/src /app/src
+COPY --chown=nonroot:nonroot --from=build /app/packages /app/packages
 COPY --chown=nonroot:nonroot --from=build /app/package.json /app/package.json
+COPY --chown=nonroot:nonroot --from=build /app/tsconfig.json /app/tsconfig.json
+COPY --chown=nonroot:nonroot --from=build /app/tsconfig.base.json /app/tsconfig.base.json
+COPY --chown=nonroot:nonroot --from=build /app/pnpm-lock.yaml /app/pnpm-lock.yaml
 
-EXPOSE 8080
+EXPOSE 3001
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 --start-period=30s CMD ["wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+
 CMD ["--import", "tsx/esm", "src/server.ts"]

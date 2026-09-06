@@ -1,4 +1,6 @@
 import dotenv from "dotenv";
+
+// Load environment-specific configs ONCE at startup, before any other imports
 const isProduction = process.env.NODE_ENV === "production";
 dotenv.config({
   path: isProduction ? ".env.production" : ".env.local",
@@ -12,6 +14,7 @@ import { initPubSub } from "./services/pubsub.service.js";
 import { loadSecrets } from "./config/secrets.js";
 import { logger } from "./config/logger.js";
 import { connectRedis } from "./config/redis.js";
+
 const PORT = parseInt(
   process.env.BACKEND_PORT || process.env.API_PORT || "3001",
   10,
@@ -46,4 +49,5 @@ async function bootstrap() {
 
 bootstrap().catch((err) => {
   logger.error("Error during bootstrap:", err);
+  process.exit(1);
 });

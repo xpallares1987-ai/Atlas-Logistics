@@ -372,11 +372,13 @@ export class PDFService {
    */
   public static async generateLaytimeCalculationSheetPdf(
     calc: any,
-    periods: any[],
+    charterOrPeriods: any,
+    breakdowns?: any[],
   ): Promise<Buffer> {
     return CharteringPdfGenerator.generateLaytimeCalculationSheetPdf(
       calc,
-      periods,
+      charterOrPeriods,
+      breakdowns || [],
     );
   }
 

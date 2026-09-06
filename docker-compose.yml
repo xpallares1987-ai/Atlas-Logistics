@@ -3,55 +3,76 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    pull_policy: always
+    pull_policy: if_not_present
     ports:
       - "3001:3001"
     restart: unless-stopped
     environment:
+      - NODE_ENV=production
       - REDIS_HOST=redis
-      - DATABASE_URL=postgresql://postgres:r79GzpkKocj4QpKWTIPC@db:5432/scm_db
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       - GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp/application_default_credentials.json
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - COOKIE_SECRET=${COOKIE_SECRET:?COOKIE_SECRET is required}
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ${APPDATA}/gcloud/application_default_credentials.json:/tmp/gcp/application_default_credentials.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    pull_policy: if_not_present
     ports:
-      - "3000:3000"
+      - "3000:8080"
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   worker:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    pull_policy: always
+    pull_policy: if_not_present
     command: ["--import", "tsx/esm", "src/worker-node.ts"]
     env_file:
       - .env.local
     environment:
+      - NODE_ENV=production
       - REDIS_HOST=redis
-      - DATABASE_URL=postgresql://postgres:r79GzpkKocj4QpKWTIPC@db:5432/scm_db
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       - GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp/application_default_credentials.json
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - COOKIE_SECRET=${COOKIE_SECRET:?COOKIE_SECRET is required}
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ${APPDATA}/gcloud/application_default_credentials.json:/tmp/gcp/application_default_credentials.json:ro
 
   db:
     image: postgres:16-alpine
-    pull_policy: always
+    pull_policy: if_not_present
     env_file:
       - .env.local
     ports:
@@ -59,18 +80,89 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d scm_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB:?POSTGRES_DB is required}"]
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   redis:
     image: redis:7.2-alpine
-    pull_policy: always
+    pull_policy: if_not_present
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    pull_policy: if_not_present
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./grafana/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./grafana/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  grafana:
+    image: grafana/grafana:latest
+    pull_policy: if_not_present
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3002
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    pull_policy: if_not_present
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     restart: unless-stopped
 
 volumes:
   pgdata:
+  prometheus_data:
+  grafana_data:

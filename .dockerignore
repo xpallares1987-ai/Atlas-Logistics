@@ -1,34 +1,73 @@
-# Include any files or directories that you don't want to be copied to your
-# container here (e.g., local build artifacts, temporary files, etc.).
-#
-# For more help, visit the .dockerignore file reference guide at
-# https://docs.docker.com/go/build-context-dockerignore/
-
-**/.classpath
-**/.dockerignore
-**/.env
-**/.git
-**/.gitignore
-**/.project
-**/.settings
-**/.toolstarget
-**/.vs
-**/.vscode
+# Build artifacts and temporary files
+**/node_modules
+**/dist
+**/build
+**/.turbo
 **/.next
 **/.cache
-**/*.*proj.user
-**/*.dbmdl
-**/*.jfm
-**/charts
+
+# Development files
+**/.env
+**/.env.local
+**/.env.*.local
+**/.vscode
+**/.vs
+**/.idea
+**/.devcontainer
+
+# Version control
+**/.git
+**/.gitignore
+
+# Docker and compose files
+**/.dockerignore
 **/docker-compose*
 **/compose.y*ml
 **/Dockerfile*
-**/node_modules
+
+# Package manager logs
 **/npm-debug.log
-**/obj
+**/pnpm-debug.log
+**/yarn-error.log
+
+# Testing and coverage
+**/coverage
+**/test-results
+**/.playwright
+**/e2e
+
+# IDE and project files
+**/.classpath
+**/.project
+**/.settings
+**/.toolstarget
+**/*.*proj.user
+**/*.dbmdl
+**/*.jfm
+**/.vscode
+
+# Configuration
 **/secrets.dev.yaml
 **/values.dev.yaml
-**/build
-**/dist
+
+# Documentation and license (not needed in runtime image)
 LICENSE
 README.md
+CHANGELOG.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+*.md
+
+# CI/CD
+**/.github
+**/.husky
+
+# Backup and temporary
+**/backups
+**/*.patch
+**/.impeccable
+
+# Lock files from other package managers
+**/yarn.lock
+**/package-lock.json
