@@ -3,21 +3,21 @@ name: Feature Pull Request
 about: Submit a new feature to Atlas-Logistics
 ---
 
-## Descripción
-Breve descripción de la nueva funcionalidad implementada en el monorepo.
+## Description
+Brief description of the new feature implemented in the monorepo.
 
-## Cambios Realizados
+## Changes Made
 - [ ] Frontend (Vite / TypeScript / UI)
-- [ ] Backend (Fastify / API / Lógica)
-- [ ] Base de Datos (Drizzle ORM schemas / Migrations en PostgreSQL)
-- [ ] Motor BPMN (ServiceWorkers)
+- [ ] Backend (Fastify / API / Logic)
+- [ ] Database (Drizzle ORM schemas / PostgreSQL Migrations)
+- [ ] BPMN Engine (ServiceWorkers)
 
-## Referencia a Issue
+## Related Issue
 Closes #[Issue_Number]
 
-## Checklist de Calidad
-- [ ] El código TypeScript ha sido tipado correctamente y no hay errores de linting.
-- [ ] No se incluyen librerías criptográficas en el cliente que rompan el renderizado.
-- [ ] Los flujos CI/CD pasan correctamente.
-- [ ] La UI principal se mantiene en inglés.
-- [ ] La estructura del monorepo se ha respetado.
+## Quality Checklist
+- [ ] TypeScript code is properly typed and has no linting errors.
+- [ ] No client-side cryptographic libraries that break rendering are included.
+- [ ] CI/CD pipelines pass successfully.
+- [ ] The main UI remains in English.
+- [ ] Monorepo structure has been respected.
