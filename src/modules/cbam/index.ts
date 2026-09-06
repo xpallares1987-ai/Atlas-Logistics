@@ -8,3 +8,5 @@ export * from "../../services/cbam/cbam-financial.service.js";
 export * from "../../services/cbam/cbam-xml.service.js";
 export * from "../../services/pdf/generators/cbam.pdf.js";
 export * from "../../routes/cbam.routes.js";
+export * from "../../db/schema/cbam.js";
+export * from "../../db/seeds/cbam.seed.js";

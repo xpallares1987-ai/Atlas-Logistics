@@ -24,12 +24,15 @@ The local environment orchestrates the following lightweight, secure containers 
 ## 🚀 Usage Instructions
 
 ### 1. Build and Start All Services
+
 ```bash
 docker compose up --build -d
 ```
-*The application will be accessible at [http://localhost:3000](http://localhost:3000) (or configured port).*
+
+_The application will be accessible at [http://localhost:3000](http://localhost:3000) (or configured port)._
 
 ### 2. Check Service Logs and Status
+
 ```bash
 # Check running containers
 docker compose ps
@@ -39,7 +42,9 @@ docker compose logs -f api
 ```
 
 ### 3. Database Initialization & Seeding Inside Containers
+
 When initializing a fresh Docker container or mounting a production database volume:
+
 ```bash
 # Execute migration on development database (atlas-erp-v2.db)
 docker compose exec api pnpm run db:migrate
@@ -54,6 +59,7 @@ docker compose exec api pnpm run db:seed
 > **Production Tip:** For production Docker deployments, pass `NODE_ENV=production` and map a persistent volume to `/app/atlas-erp-prod.db` or specify `DATABASE_URL=file:/data/production.db` (or a remote Turso cluster `libsql://...`).
 
 ### 4. Stop Services
+
 ```bash
 # Gracefully stop containers without data loss
 docker compose stop

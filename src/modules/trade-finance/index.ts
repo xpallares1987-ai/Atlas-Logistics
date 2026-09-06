@@ -8,3 +8,5 @@ export * from "../../services/trade-finance/trade-finance-fee.service.js";
 export * from "../../services/trade-finance/ucp-discrepancy-validator.service.js";
 export * from "../../services/pdf/generators/trade-finance.pdf.js";
 export * from "../../routes/trade-finance.routes.js";
+export * from "../../db/schema/trade_finance.js";
+export * from "../../db/seeds/trade-finance.seed.js";

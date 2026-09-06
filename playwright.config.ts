@@ -5,19 +5,19 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: 1,
-  reporter: "html",
-  timeout: 120000,
+  workers: process.env.CI ? 2 : 1,
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "html",
+  timeout: 45000,
   expect: {
-    timeout: 30000,
+    timeout: 15000,
   },
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || "http://localhost:3000",
+    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || "http://127.0.0.1:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
-    actionTimeout: 60000,
-    navigationTimeout: 60000,
+    actionTimeout: 15000,
+    navigationTimeout: 20000,
   },
 
   projects: [
@@ -30,11 +30,19 @@ export default defineConfig({
   ],
 
   webServer: process.env.CI
-    ? {
-        command: "pnpm run dev",
-        url: "http://localhost:3000",
-        reuseExistingServer: true,
-        timeout: 120000,
-      }
+    ? [
+        {
+          command: "npx tsx src/server.ts",
+          url: "http://127.0.0.1:3001/api/health",
+          reuseExistingServer: true,
+          timeout: 120000,
+        },
+        {
+          command: "turbo run dev",
+          url: "http://127.0.0.1:3000",
+          reuseExistingServer: true,
+          timeout: 120000,
+        },
+      ]
     : undefined,
 });

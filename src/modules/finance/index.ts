@@ -12,3 +12,5 @@ export type {
   AgentSettlementData,
 } from "../../services/pdf/generators/core-operations.pdf.js";
 export { default as financialRoutes } from "../../routes/financial.routes.js";
+export * from "../../db/schema/finance.js";
+export * from "../../db/seeds/finance.seed.js";

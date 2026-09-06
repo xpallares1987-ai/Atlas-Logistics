@@ -8,3 +8,5 @@ export * from "../../services/cargo-insurance/claim-adjustment-settlement.servic
 export * from "../../services/cargo-insurance/insured-value-calculator.service.js";
 export * from "../../services/pdf/generators/cargo-insurance.pdf.js";
 export * from "../../routes/cargo-insurance.routes.js";
+export * from "../../db/schema/cargo_insurance.js";
+export * from "../../db/seeds/cargo-insurance.seed.js";

@@ -36,12 +36,10 @@ export const dangerousGoodsRoutes: FastifyPluginAsync = async (
         .where(eq(schema.dgShipments.id, id));
 
       if (!shipment) {
-        return reply
-          .status(404)
-          .send({
-            success: false,
-            error: "Dangerous Goods Shipment not found",
-          });
+        return reply.status(404).send({
+          success: false,
+          error: "Dangerous Goods Shipment not found",
+        });
       }
 
       const items = await db

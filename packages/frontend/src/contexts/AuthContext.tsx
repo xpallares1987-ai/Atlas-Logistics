@@ -34,6 +34,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const storedToken = localStorage.getItem("atlas_token");
       if (storedToken) {
         try {
+          const base64Url = storedToken.split(".")[1];
+          if (base64Url) {
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+            const jsonPayload = decodeURIComponent(
+              atob(base64)
+                .split("")
+                .map(
+                  (c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2),
+                )
+                .join(""),
+            );
+            const parsed = JSON.parse(jsonPayload);
+            if (parsed?.id) {
+              setUser({
+                id: parsed.id,
+                email: parsed.email,
+                name: parsed.name || parsed.email,
+                role: parsed.role || "ADMIN",
+              });
+              setToken(storedToken);
+            }
+          }
+        } catch {
+          // Ignore parse errors
+        }
+
+        try {
           const res = await fetch(
             `${import.meta.env.VITE_API_URL || ""}/api/auth/me`,
             {
@@ -46,12 +73,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const data = await res.json();
             setToken(storedToken);
             setUser(data.user);
-          } else {
+          } else if (res.status === 401 || res.status === 403) {
             localStorage.removeItem("atlas_token");
+            setToken(null);
+            setUser(null);
           }
         } catch (error) {
           console.error("Auth check failed", error);
-          localStorage.removeItem("atlas_token");
         }
       }
       setIsLoading(false);

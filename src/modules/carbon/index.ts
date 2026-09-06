@@ -4,4 +4,7 @@
  */
 
 export * from "../../services/carbon/glec-calculator.service.js";
+export * from "../../services/carbon/carbon-offset.service.js";
 export * from "../../routes/carbon.routes.js";
+export * from "../../db/schema/carbon_emissions.js";
+export * from "../../db/seeds/carbon.seed.js";

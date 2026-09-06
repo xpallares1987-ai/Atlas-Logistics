@@ -4,3 +4,4 @@
  */
 
 export { default as quotesRoutes } from "../../routes/quotes.routes.js";
+export * from "../../db/schema/pricing.js";

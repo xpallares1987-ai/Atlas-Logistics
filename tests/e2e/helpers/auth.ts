@@ -7,7 +7,7 @@ const JWT_SECRET =
 export async function loginAsAdmin(page: Page) {
   try {
     const response = await page.request.post(
-      "http://localhost:3001/api/auth/login",
+      "http://127.0.0.1:3001/api/auth/login",
       {
         data: {
           email: "admin@atlas.com",
@@ -20,9 +20,15 @@ export async function loginAsAdmin(page: Page) {
       const json = await response.json();
       const token = json.token;
       if (token) {
-        await page.addInitScript((tok) => {
-          localStorage.setItem("atlas_token", tok);
-        }, token);
+        await page.addInitScript(
+          ({ tok, userObj }) => {
+            localStorage.setItem("atlas_token", tok);
+            if (userObj) {
+              localStorage.setItem("atlas_user", JSON.stringify(userObj));
+            }
+          },
+          { tok: token, userObj: json.user },
+        );
         return;
       }
     }
@@ -30,18 +36,22 @@ export async function loginAsAdmin(page: Page) {
     // Fallback to locally signed token
   }
 
-  const fallbackToken = jwt.sign(
-    {
-      id: "admin_user_id",
-      email: "admin@atlas.com",
-      role: "ADMIN",
-      name: "Admin User",
-    },
-    JWT_SECRET,
-    { expiresIn: "24h" },
-  );
+  const fallbackUser = {
+    id: "admin_user_id",
+    email: "admin@atlas.com",
+    role: "ADMIN",
+    name: "Admin User",
+  };
 
-  await page.addInitScript((tok) => {
-    localStorage.setItem("atlas_token", tok);
-  }, fallbackToken);
+  const fallbackToken = jwt.sign(fallbackUser, JWT_SECRET, {
+    expiresIn: "24h",
+  });
+
+  await page.addInitScript(
+    ({ tok, userObj }) => {
+      localStorage.setItem("atlas_token", tok);
+      localStorage.setItem("atlas_user", JSON.stringify(userObj));
+    },
+    { tok: fallbackToken, userObj: fallbackUser },
+  );
 }

@@ -9,3 +9,5 @@ export * from "../../services/dangerous-goods/dg-packaging-exemption.service.js"
 export * from "../../services/dangerous-goods/dg-transport-document.service.js";
 export * from "../../services/pdf/generators/dangerous-goods.pdf.js";
 export * from "../../routes/dangerous-goods.routes.js";
+export * from "../../db/schema/dangerous_goods.js";
+export * from "../../db/seeds/dangerous-goods.seed.js";

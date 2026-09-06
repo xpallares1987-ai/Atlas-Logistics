@@ -8,3 +8,5 @@ export * from "../../services/fueleu/ets-maritime.service.js";
 export * from "../../services/fueleu/thetis-mrv-xml.service.js";
 export * from "../../services/pdf/generators/fueleu.pdf.js";
 export * from "../../routes/fueleu.routes.js";
+export * from "../../db/schema/fueleu_maritime.js";
+export * from "../../db/seeds/fueleu.seed.js";
