@@ -1,4 +1,6 @@
 import Fastify from "fastify";
+import fs from "fs";
+import path from "path";
 import fastifyCors from "@fastify/cors";
 import fastifyHelmet from "@fastify/helmet";
 import fastifyRateLimit from "@fastify/rate-limit";
@@ -117,6 +119,8 @@ app.addHook("onRequest", async (request, reply) => {
     request.url === "/api/health" ||
     request.url === "/health" ||
     request.url === "/metrics" ||
+    request.url === "/favicon.ico" ||
+    request.url === "/favicon.png" ||
     request.url.startsWith("/docs")
   ) {
     return;
@@ -124,6 +128,25 @@ app.addHook("onRequest", async (request, reply) => {
   if (request.url.startsWith("/api/")) {
     await authMiddleware(request, reply);
   }
+});
+
+const faviconPath = path.resolve(
+  process.cwd(),
+  "packages/frontend/public/favicon.png",
+);
+
+app.get("/favicon.ico", async (_request, reply) => {
+  if (fs.existsSync(faviconPath)) {
+    return reply.type("image/png").send(fs.readFileSync(faviconPath));
+  }
+  return reply.status(204).send();
+});
+
+app.get("/favicon.png", async (_request, reply) => {
+  if (fs.existsSync(faviconPath)) {
+    return reply.type("image/png").send(fs.readFileSync(faviconPath));
+  }
+  return reply.status(204).send();
 });
 
 // Register all application routes
