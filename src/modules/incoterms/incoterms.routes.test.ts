@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import app from "../app.js";
+import app from "../../app.js";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET =

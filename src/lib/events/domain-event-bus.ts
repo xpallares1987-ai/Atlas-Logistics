@@ -82,6 +82,32 @@ export interface DangerousGoodsValidatedPayload {
   emergencyGuideNumber: string;
 }
 
+export interface ConsignmentDispatchedPayload {
+  consignmentId: string;
+  trackingNumber: string;
+  origin: string;
+  destination: string;
+  transportMode: "ROAD" | "RAIL" | "AIR" | "MARITIME";
+  adrPoints?: number;
+}
+
+export interface ColdChainExcursionPayload {
+  shipmentId: string;
+  sensorId: string;
+  temperatureCelsius: number;
+  thresholdMaxCelsius: number;
+  durationMinutes: number;
+  meanKineticTempCelsius: number;
+}
+
+export interface LaytimeCalculatedPayload {
+  fixtureId: string;
+  vesselName: string;
+  demurrageDueEur: number;
+  despatchDueEur: number;
+  netSettlementEur: number;
+}
+
 export interface DomainEventRegistry {
   "treasury:invoice-reconciled": BaseDomainEvent<
     "treasury:invoice-reconciled",
@@ -111,6 +137,18 @@ export interface DomainEventRegistry {
   "dangerous-goods:declaration-validated": BaseDomainEvent<
     "dangerous-goods:declaration-validated",
     DangerousGoodsValidatedPayload
+  >;
+  "freight:consignment-dispatched": BaseDomainEvent<
+    "freight:consignment-dispatched",
+    ConsignmentDispatchedPayload
+  >;
+  "cold-chain:excursion-detected": BaseDomainEvent<
+    "cold-chain:excursion-detected",
+    ColdChainExcursionPayload
+  >;
+  "chartering:laytime-calculated": BaseDomainEvent<
+    "chartering:laytime-calculated",
+    LaytimeCalculatedPayload
   >;
 }
 
