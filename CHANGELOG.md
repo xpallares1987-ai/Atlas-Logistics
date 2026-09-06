@@ -1,3 +1,56 @@
+# [1.1.0](https://github.com/xpallares1987-ai/Atlas-Logistics/compare/v1.0.0...v1.1.0) (2026-09-06)
+
+
+### Bug Fixes
+
+* **auth,ratelimit:** harmonize route auth hooks and allowlist localhost to prevent 429 in E2E tests ([095bcd0](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/095bcd0155b6e049476aea9a37d694918ad371ba))
+* **db:** add idempotent migration 0021 for carbon and telemetry schemas and harmonize CI with db:migrate ([f6c00ec](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/f6c00ec586d6ab85d25dabb58aa005d5c6fb82a2))
+* **devcontainer:** repair invalid YAML in docker-compose DATABASE_URL, unblocking Codespaces prebuild ([f8b4def](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/f8b4def21f8874cddd4d1fe60afe547d4ca76b34))
+* **e2e:** scope ADR & tachograph modal assertions to avoid strict mode ambiguity in road freight test ([4d5a7c0](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/4d5a7c003732d1014841862897b2a5a0c57d8a0f))
+* **pdf:** import and export CustomsData as type to fix ESM SyntaxError on backend bootstrap ([af9f233](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/af9f2335ba669fc3845c80416e34903403cceaa7))
+* replace failing postgresql devcontainer feature with docker-compose service ([#66](https://github.com/xpallares1987-ai/Atlas-Logistics/issues/66)) ([5ec66f1](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/5ec66f17c592ad4ea268861c4ea1d007a58825f4))
+* resolve adminRoutes import error and finally add dev script ([89b6e93](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/89b6e936f0b93941197ace55c836b2528ad737e8))
+* resolve date-fns missing module and add dev script for e2e tests ([ffc2e27](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/ffc2e27d794480488d4534d6a2a0be4b6861ae14))
+* resolve E2E timeouts and CI db migration failures ([78e117f](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/78e117f1e0fd38d8e288a6e6ad19ddb4d84cb02e))
+* **security:** resolve CodeQL alerts [#196](https://github.com/xpallares1987-ai/Atlas-Logistics/issues/196) (insecure randomness) and [#207](https://github.com/xpallares1987-ai/Atlas-Logistics/issues/207) (path traversal in backup test) ([e68d212](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/e68d21207a0e04149fe51c454c82cf5a225b25a2))
+* **security:** resolve CodeQL SAST alerts [#188](https://github.com/xpallares1987-ai/Atlas-Logistics/issues/188)-[#195](https://github.com/xpallares1987-ai/Atlas-Logistics/issues/195) (path-injection & regex-injection) ([96d5bc0](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/96d5bc0a41c65cb1a3baf88297595769f88cb8ec))
+* **security:** sanitize isWithinDirectory with resolved startsWith and replace test stat with readdir ([172c854](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/172c8546003534336f65e1c372317645fefb0524))
+* **seeds:** modularize and include carbon and telemetry domain seeds in master seeder runner, unblocking CI ([4927a6b](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/4927a6b0ae4a0af348a3c8d959ab8dbb89c02062))
+* **test:** correct Playwright baseURL port to 3000 to match Vite dev server ([e969d3e](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/e969d3e70d9ccedf1daaf35c56750c3ea3c2698d))
+* **ui:** integrate favicon.png across frontend html, public assets, and backend server ([b01882f](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/b01882f6a86f5d4d38ebeb9c1aa0bd82b0fcea1e))
+
+
+### Features
+
+* **aeo-security:** implement Authorized Economic Operator (AEO / OEA) & Supply Chain Security Engine (UCC Art. 38-39 / C-TPAT / ISO 28000 / ISO 17712) ([cd1aaf2](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/cd1aaf29792fa2f1c671c587045aff15fd041f97))
+* **air-cargo:** implement IATA e-Freight and Air Cargo (e-AWB) engine with Modulo-7, DGR screening, and Cargo-XML/IMP ([4534d58](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/4534d5870989810130231056ae85aadd32a4e32c))
+* **bulk-operations:** implement Bulk Cargo & Port Terminal Operations Engine (IMSBC Code / BLU Code / IMO Grain Code / Draft Survey / Ullage Survey ASTM) ([beae543](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/beae543437f173184096cedfc99febdeeb70889d))
+* **cargo-insurance:** implement Cargo Insurance & Open Cover Engine (Institute Cargo Clauses ICC A/B/C 2009 / LMA / UCP 600) ([fccb484](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/fccb48490b2ef352a4916e7d9e335394306576cf))
+* **cbam:** implement Carbon Border Adjustment Mechanism & Scope 3 Decarbonization Engine (EU Reg. 2023/956) ([c1bdbb5](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/c1bdbb5ddab578d5378fe38aff3f45272c490bc9))
+* **chartering:** implement Maritime Chartering & Laytime / Demurrage Engine (BIMCO Gencon 2022 / NYPE 2015 / ASBATANKVO) ([9d4107e](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/9d4107e82ca0f47af16446c153e0e857f884aceb))
+* **claims:** implement automated cargo claims and insurance subrogation engine with international SDR conventions, notice deadlines, and legal PDF exports ([f0660f0](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/f0660f08ffd0e8afe3464c24a7d7438d18268268))
+* **cold-chain:** implement Cold Chain & Temperature-Controlled Pharma/Reefer Monitoring Engine (EU GDP & EN 12830) ([adc910d](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/adc910d48ba75b4f7c606709abbd07846309d29f))
+* **config:** add dynamic production database environment support, migrations, seed and start scripts ([ac5cc58](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/ac5cc581d0795de5608aaffa2de9fe30434bcf22))
+* **customs-warehouse:** implement Customs Warehouse, Free Zone & Special Regimes Engine (CAU & AEAT) ([b6d0fe4](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/b6d0fe4caeec173b8421ae9e27d9451335990a8c))
+* **customs:** implement automated customs clearance and deterministic tariff engine ([e90a086](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/e90a08645858ba782502c5d4bb2e397b3d2103f7))
+* **dangerous-goods:** implement Multimodal Dangerous Goods Engine (IMO IMDG 41-22 / IATA DGR 66th / UNECE ADR 2025 / RID 2025) ([7880cf8](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/7880cf84f9761197d07ec26034c0a2cf5b535377))
+* enterprise evolution ([#65](https://github.com/xpallares1987-ai/Atlas-Logistics/issues/65)) ([577199b](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/577199bfcaebfb5b7d37185fa92936ea21f78d5d))
+* **fueleu:** implement FuelEU Maritime & EU ETS Fleet Decarbonization Engine (Reg. UE 2023/1805 & Dir. 2023/959) ([7ccf909](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/7ccf9096b9a519729cd5c08ef9475a3dea2a4a75))
+* **general-average:** implement Maritime General Average & Salvage Engine (York-Antwerp Rules 2016 / LOF 2024 / SCOPIC) ([d491fa2](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/d491fa25cab3a59ad4c9efd83ffc9ef4603b2ff6))
+* implement Multi-Currency Treasury, FX Risk & IATA CASS / Carrier 3-Way Match engine ([4c7f178](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/4c7f178fe98b1dc6c32ec0eb84fb5681ae83a73d))
+* **incoterms:** implement Incoterms 2020 matrix and commercial contracting engine with customs valuation normalizer and bilingual PDF export ([39b6239](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/39b6239d9e21c1176b8ad4201d17df7d3d44af3d))
+* **modules:** register finance, telemetry, and warehouse vertical slice modules ([ee9c7ac](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/ee9c7ace08ab7549da0945c1343b61560b9bcd98))
+* **modules:** register quotes, shipments, documents, and bpmn vertical slices ([3ad3fac](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/3ad3facdbb739adbdea1764fa893213df17fc868))
+* **rail:** implement Rail Intermodal Freight & Corridors Engine (COTIF / CIM & TEN-T 750m) ([bc2db9b](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/bc2db9b79181c2aca4698035521f911ece124174))
+* **road-freight:** implement automated road freight and e-CMR dispatch engine with ADR 1.1.3.6 points calculation, trailer capacity, and tachograph scheduling ([1a6e727](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/1a6e7278ca1908e31f345e36e2db1caa03997b49))
+* **trade-finance:** implement International Trade Finance & Documentary Credit Engine (UCP 600 / URDG 758 / URC 522 / SWIFT MT700) ([9693f2f](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/9693f2fb3dd4521ab5a0c4bdade2af5dd753238e))
+* **warehouse:** finalize enterprise evolution, warehouse MFE, health metrics and backup cron ([618d87d](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/618d87d35909655d87510289985e6b9e49e11394))
+
+
+### Performance Improvements
+
+* optimize dashboard queries, bundle splitting, and database indexes ([dd555b2](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/dd555b2577e808ce0c86a9a5f4489c302860c1b5))
+
 # Changelog
 
 All notable changes to the Atlas Logistics monorepo are documented in this file.
