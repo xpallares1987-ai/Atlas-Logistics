@@ -18,7 +18,7 @@ import { IncotermsPdfGenerator } from "./pdf/generators/incoterms.pdf.js";
 import { AirCargoPdfGenerator } from "./pdf/generators/air-cargo.pdf.js";
 import {
   CustomsPdfGenerator,
-  CustomsData,
+  type CustomsData,
 } from "./pdf/generators/customs.pdf.js";
 import {
   CoreOperationsPdfGenerator,
@@ -33,8 +33,8 @@ export type {
   InvoiceData,
   AgentSettlementData,
   BookingConfirmationData,
+  CustomsData,
 };
-export { CustomsData };
 
 export class PDFService {
   /**
