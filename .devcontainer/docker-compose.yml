@@ -10,7 +10,7 @@ services:
       DATABASE_USER: postgres
       DATABASE_PASSWORD: postgres
       DATABASE_NAME: appdb
-      DATABASE_URL: ******db:5432/appdb
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/appdb"
       NODE_ENV: development
       PORT: "3000"
     depends_on:
