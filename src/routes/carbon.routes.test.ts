@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import app from "../app.js";
 import jwt from "jsonwebtoken";
+import { seedCarbon } from "../db/seeds/carbon.seed.js";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure";
@@ -10,6 +11,7 @@ describe("Scope 3 Carbon & Decarbonization API Routes (/api/carbon)", () => {
 
   beforeAll(async () => {
     await app.ready();
+    await seedCarbon();
     const token = jwt.sign(
       {
         id: "admin_user_id",

@@ -25,6 +25,8 @@ export * from "./general-average.seed.js";
 export * from "./dangerous-goods.seed.js";
 export * from "./cargo-insurance.seed.js";
 export * from "./bulk-operations.seed.js";
+export * from "./carbon.seed.js";
+export * from "./telemetry.seed.js";
 
 import { seedTriggers } from "./triggers.seed.js";
 import { seedCore } from "./core.seed.js";
@@ -48,6 +50,8 @@ import { seedGeneralAverage } from "./general-average.seed.js";
 import { seedDangerousGoods } from "./dangerous-goods.seed.js";
 import { seedCargoInsurance } from "./cargo-insurance.seed.js";
 import { seedBulkOperations } from "./bulk-operations.seed.js";
+import { seedCarbon } from "./carbon.seed.js";
+import { seedTelemetry } from "./telemetry.seed.js";
 
 export async function runAllSeeds(): Promise<void> {
   await seedTriggers();
@@ -74,4 +78,6 @@ export async function runAllSeeds(): Promise<void> {
   await seedDangerousGoods();
   await seedCargoInsurance();
   await seedBulkOperations();
+  await seedCarbon();
+  await seedTelemetry();
 }
