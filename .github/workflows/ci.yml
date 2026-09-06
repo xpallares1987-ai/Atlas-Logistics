@@ -55,8 +55,11 @@ jobs:
       - name: Turbo Lint
         run: pnpm run lint
 
-      - name: Setup Test Database Schema
-        run: pnpm exec drizzle-kit push
+      - name: Setup Test Database Schema & Seed
+        run: |
+          touch .env.local
+          pnpm exec drizzle-kit push
+          pnpm run db:seed
 
       - name: Run test
         run: pnpm run test
