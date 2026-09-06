@@ -26,3 +26,7 @@ export * as OperationsModule from "./operations/index.js";
 export * as FinanceModule from "./finance/index.js";
 export * as TelemetryModule from "./telemetry/index.js";
 export * as WarehouseModule from "./warehouse/index.js";
+export * as QuotesModule from "./quotes/index.js";
+export * as ShipmentsModule from "./shipments/index.js";
+export * as DocumentsModule from "./documents/index.js";
+export * as BpmnModule from "./bpmn/index.js";
