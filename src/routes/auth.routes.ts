@@ -42,6 +42,7 @@ const authRoutes: FastifyPluginAsync = async (fastify, opts) => {
         const user = userResult[0];
 
         const validPassword =
+          typeof password === "string" &&
           !!user.hashedPassword &&
           (await new Argon2id().verify(user.hashedPassword, password));
         const validDevelopmentPassword =
