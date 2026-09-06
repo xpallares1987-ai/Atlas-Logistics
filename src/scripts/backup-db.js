@@ -9,11 +9,13 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(SCRIPT_DIR, "../..");
 
 function isWithinDirectory(parentDir, candidatePath) {
-  const relative = path.relative(parentDir, candidatePath);
-  return (
+  const resolvedParent = path.resolve(parentDir);
+  const resolvedCandidate = path.resolve(candidatePath);
+  const relative = path.relative(resolvedParent, resolvedCandidate);
+  const isRelativeSafe =
     relative === "" ||
-    (!relative.startsWith("..") && !path.isAbsolute(relative))
-  );
+    (!relative.startsWith("..") && !path.isAbsolute(relative));
+  return isRelativeSafe && resolvedCandidate.startsWith(resolvedParent);
 }
 
 function resolveWithinRoot(inputPath, label) {
