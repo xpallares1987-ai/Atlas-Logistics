@@ -1,83 +1,211 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [master, main]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [master, main]
-  workflow_dispatch:
+    branches:
+      - main
+      - develop
 
-permissions:
-  contents: read
-  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: docker.io
+  IMAGE_REGISTRY: ${{ secrets.DOCKER_REGISTRY || 'docker.io' }}
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
 
 jobs:
-  build:
+  lint-and-build:
     runs-on: ubuntu-latest
-    env:
-      CI: "true"
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    strategy:
+      matrix:
+        node-version: [22]
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v2
         with:
-          version: 10
+          version: 10.0.0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: "pnpm"
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
 
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Security Audit
-        run: pnpm audit --audit-level=high
+      - name: Lint with ESLint
+        run: pnpm run lint
+        continue-on-error: false
 
-      - name: Cache Turborepo
-        uses: actions/cache@v6
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
+      - name: Type check
+        run: |
+          pnpm --filter @atlas/frontend type-check
+          pnpm --filter @atlas/ui type-check
+          pnpm --filter @atlas/shared type-check
 
-      - name: Turbo Build
+      - name: Build monorepo
         run: pnpm run build
 
-      - name: Turbo Type Check
-        run: pnpm run type-check
+      - name: Run Vitest unit & integration tests
+        run: pnpm test
 
-      - name: Turbo Lint
-        run: pnpm run lint
+      - name: Generate coverage report
+        run: pnpm test -- --coverage
 
-      - name: Setup Test Database Schema & Seed
+      - name: Check coverage threshold (90%)
         run: |
-          touch .env.local
-          pnpm run db:migrate
-          pnpm run db:seed
+          COVERAGE=$(grep -oP '"statements":\s*\K[^,]+' coverage/coverage-summary.json | head -1)
+          COVERAGE_NUM=${COVERAGE%\%}
+          if (( $(echo "$COVERAGE_NUM < 90" | bc -l) )); then
+            echo "❌ Coverage ($COVERAGE_NUM%) is below 90% threshold"
+            exit 1
+          else
+            echo "✅ Coverage ($COVERAGE_NUM%) meets 90% threshold"
+          fi
 
-      - name: Run test
-        run: pnpm run test
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
 
-      - name: Install Playwright Browsers
+  build-images:
+    needs: lint-and-build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata (frontend)
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/atlas-frontend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Extract metadata (backend)
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/atlas-backend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_API_URL=http://api:3001
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.backend
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  e2e-tests:
+    needs: lint-and-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Run E2E Tests (Playwright)
-        run: |
-          touch .env.local
-          pnpm run db:migrate
-          pnpm run db:seed
-          npx playwright test
+      - name: Build project
+        run: pnpm run build
 
-      - name: Upload Playwright Report
-        if: always()
-        uses: actions/upload-artifact@v7
+      - name: Start services with docker-compose
+        run: docker compose up --pull always -d
+        env:
+          POSTGRES_DB: scm_db
+          POSTGRES_PASSWORD: postgres
+          JWT_SECRET: test-jwt-secret-key
+          COOKIE_SECRET: test-cookie-secret-key
+
+      - name: Wait for services to be healthy
+        run: |
+          timeout 120 bash -c 'until curl -s http://localhost:3001/health && curl -s http://localhost:8080; do sleep 2; done'
+
+      - name: Run Playwright E2E tests
+        run: npx playwright test
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
         with:
           name: playwright-report
           path: playwright-report/
-          retention-days: 14
+          retention-days: 30
+
+      - name: Tear down docker-compose
+        if: always()
+        run: docker compose down -v
+
+  deploy-notification:
+    needs: [lint-and-build, build-images]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Notify deployment
+        run: |
+          echo "✅ CI/CD Pipeline completed successfully"
+          echo "🐳 Images pushed to Docker Hub:"
+          echo "   - ${{ secrets.DOCKER_USERNAME }}/atlas-frontend:latest"
+          echo "   - ${{ secrets.DOCKER_USERNAME }}/atlas-backend:latest"

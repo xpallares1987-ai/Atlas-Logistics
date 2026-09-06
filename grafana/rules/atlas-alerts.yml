@@ -1,0 +1,90 @@
+groups:
+  - name: atlas_alerts
+    interval: 30s
+    rules:
+      # Service availability
+      - alert: APIServiceDown
+        expr: up{job="fastify-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "Atlas API is down"
+          description: "Atlas Logistics API has been unreachable for more than 1 minute"
+
+      # Database issues
+      - alert: DatabaseDown
+        expr: db_query_errors_total > 100
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database connectivity issue"
+          description: "Database query error rate is high (>100 errors in 2min)"
+
+      - alert: DatabaseLatencyHigh
+        expr: histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Database query latency is high"
+          description: "P95 database query latency exceeds 1 second"
+
+      # Redis issues
+      - alert: RedisDown
+        expr: redis_connections_active == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has no active connections"
+
+      # HTTP errors
+      - alert: HTTPErrorRateHigh
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High HTTP error rate"
+          description: "HTTP 5xx error rate exceeds 5% over last 5 minutes"
+
+      # Queue issues
+      - alert: QueueJobsFailing
+        expr: rate(queue_jobs_failed_total[5m]) > rate(queue_jobs_completed_total[5m]) * 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: queue
+        annotations:
+          summary: "Queue job failure rate is high"
+          description: "More than 10% of queue jobs are failing"
+
+      # Memory pressure
+      - alert: HighMemoryUsage
+        expr: (nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Memory usage is high"
+          description: "Heap memory usage exceeds 85% for more than 5 minutes"
+
+      # Application errors
+      - alert: HighApplicationErrorRate
+        expr: rate(application_errors_total{severity="critical"}[5m]) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High critical application error rate"
+          description: "Critical application errors occurring at high rate (>0.01/sec)"

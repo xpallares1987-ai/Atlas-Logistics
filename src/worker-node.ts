@@ -32,6 +32,21 @@ async function startWorkerNode() {
         await redis.quit();
         logger.info("Redis connection closed.");
       }
+
+      // Close database connection
+      if (db) {
+        try {
+          // If using Drizzle with libsql, close the client
+          const client = (db as any).client || (db as any)._client;
+          if (client && typeof client.close === "function") {
+            await client.close();
+            logger.info("Database connection closed.");
+          }
+        } catch (closeError) {
+          logger.warn({ err: closeError }, "Error closing database connection:");
+        }
+      }
+
       process.exit(0);
     } catch (error) {
       logger.error(error, "Error during graceful shutdown:");

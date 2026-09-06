@@ -1,0 +1,225 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "atlas-overview",
+    "title": "Atlas Logistics: System Overview",
+    "tags": ["atlas", "overview", "system"],
+    "timezone": "UTC",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "type": "stat",
+        "title": "System Status",
+        "targets": [
+          {
+            "expr": "up{job=\"fastify-api\"}",
+            "legendFormat": "API Status",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "type": "stat",
+        "title": "HTTP Requests/sec",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[1m])",
+            "legendFormat": "{{method}} {{route}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "type": "stat",
+        "title": "Database Latency",
+        "targets": [
+          {
+            "expr": "rate(db_query_duration_seconds_sum[5m]) / rate(db_query_duration_seconds_count[5m]) * 1000",
+            "legendFormat": "{{operation}} {{table}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "type": "stat",
+        "title": "Redis Connections",
+        "targets": [
+          {
+            "expr": "redis_connections_active",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "type": "graph",
+        "title": "HTTP Request Duration (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{method}} {{route}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Duration (s)",
+            "format": "s"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "type": "graph",
+        "title": "Memory Usage",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024",
+            "legendFormat": "RSS Memory",
+            "refId": "A"
+          },
+          {
+            "expr": "nodejs_heap_size_used_bytes / 1024 / 1024",
+            "legendFormat": "Heap Used",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Memory (MB)",
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "type": "graph",
+        "title": "Database Query Errors",
+        "targets": [
+          {
+            "expr": "rate(db_query_errors_total[5m])",
+            "legendFormat": "{{operation}} {{table}} {{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Errors/sec",
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "type": "graph",
+        "title": "Queue Jobs (Active, Completed, Failed)",
+        "targets": [
+          {
+            "expr": "queue_jobs_active",
+            "legendFormat": "Active: {{queue_name}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(queue_jobs_completed_total[5m])",
+            "legendFormat": "Completed: {{queue_name}}",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(queue_jobs_failed_total[5m])",
+            "legendFormat": "Failed: {{queue_name}}",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "type": "graph",
+        "title": "Shipments Created (by mode)",
+        "targets": [
+          {
+            "expr": "rate(shipments_created_total[5m])",
+            "legendFormat": "{{mode}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "type": "graph",
+        "title": "Customs Declarations Processed",
+        "targets": [
+          {
+            "expr": "rate(customs_declarations_processed_total[5m])",
+            "legendFormat": "{{direction}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+        "type": "graph",
+        "title": "Invoice Reconciliation Status",
+        "targets": [
+          {
+            "expr": "rate(invoices_reconciled_total[5m])",
+            "legendFormat": "{{status}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+        "type": "graph",
+        "title": "Application Errors by Type",
+        "targets": [
+          {
+            "expr": "rate(application_errors_total[5m])",
+            "legendFormat": "{{error_type}} ({{severity}})",
+            "refId": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}

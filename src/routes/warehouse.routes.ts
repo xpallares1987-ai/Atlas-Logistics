@@ -59,18 +59,19 @@ export function broadcastWarehouseEvent(event: {
 
 const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   // WebSocket live feed for tasks, traffic, and inventory
-  fastify.get("/ws", { websocket: true }, (connection, req) => {
+  fastify.get("/ws", { websocket: true }, (connection: any, req) => {
     req.log.info("Warehouse WebSocket connected");
+    const ws = connection.socket || connection;
 
     const onWarehouseEvent = (data: any) => {
       try {
-        connection.socket.send(JSON.stringify(data));
+        ws.send(JSON.stringify(data));
       } catch {}
     };
 
     warehouseEmitter.on("warehouseEvent", onWarehouseEvent);
 
-    connection.socket.on("close", () => {
+    ws.on("close", () => {
       req.log.info("Warehouse WebSocket disconnected");
       warehouseEmitter.off("warehouseEvent", onWarehouseEvent);
     });

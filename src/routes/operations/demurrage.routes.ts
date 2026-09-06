@@ -29,7 +29,7 @@ export const demurrageOperationsRoutes: FastifyPluginAsync = async (
         .limit(50);
 
       const existingAlerts = await db.select().from(demurrageAlerts);
-      const alertMap = new Map(
+      const alertMap = new Map<string, any>(
         existingAlerts.map((a) => [a.containerNumber, a]),
       );
 
