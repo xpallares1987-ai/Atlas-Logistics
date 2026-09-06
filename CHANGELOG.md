@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/xpallares1987-ai/Atlas-Logistics/compare/v1.1.0...v1.1.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **scripts:** resolve python syntax error in replace_booking header script ([f62afc3](https://github.com/xpallares1987-ai/Atlas-Logistics/commit/f62afc3851c6a063d3ed54a6906b798428f5b365))
+
 # [1.1.0](https://github.com/xpallares1987-ai/Atlas-Logistics/compare/v1.0.0...v1.1.0) (2026-09-06)
 
 
