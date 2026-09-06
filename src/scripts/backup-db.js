@@ -12,9 +12,7 @@ function isWithinDirectory(parentDir, candidatePath) {
   const relative = path.relative(parentDir, candidatePath);
   return (
     relative === "" ||
-    (relative !== ".." &&
-      !relative.startsWith(`..${path.sep}`) &&
-      !path.isAbsolute(relative))
+    (!relative.startsWith("..") && !path.isAbsolute(relative))
   );
 }
 
