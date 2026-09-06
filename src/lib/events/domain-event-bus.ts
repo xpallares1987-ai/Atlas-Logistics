@@ -49,6 +49,39 @@ export interface CustomsClearedPayload {
   totalDutyPayable: number;
 }
 
+export interface CustomsWarehouseStockDischargedPayload {
+  declarationId: string;
+  facilityId: string;
+  dischargeType: "DEFINITIVE_IMPORT" | "RE_EXPORT" | "TRANSIT_T1" | "INTERNAL_PROCESSING";
+  packagesCount: number;
+  grossMassKg: number;
+}
+
+export interface CbamDeclarationSubmittedPayload {
+  declarationId: string;
+  reportingPeriod: string;
+  importerEori: string;
+  totalDirectEmissionsTco2: number;
+  totalIndirectEmissionsTco2: number;
+  totalCertificatesRequired: number;
+}
+
+export interface FuelEuComplianceAssessedPayload {
+  shipId: string;
+  reportingYear: number;
+  cbBalanceGco2eq: number;
+  complianceState: "COMPLIANT" | "DEFICIT";
+  penaltyAmountEur: number;
+}
+
+export interface DangerousGoodsValidatedPayload {
+  documentId: string;
+  unNumber: string;
+  hazardClass: string;
+  isCompliant: boolean;
+  emergencyGuideNumber: string;
+}
+
 export interface DomainEventRegistry {
   "treasury:invoice-reconciled": BaseDomainEvent<
     "treasury:invoice-reconciled",
@@ -63,6 +96,22 @@ export interface DomainEventRegistry {
     CargoClaimFiledPayload
   >;
   "customs:cleared": BaseDomainEvent<"customs:cleared", CustomsClearedPayload>;
+  "customs-warehouse:stock-discharged": BaseDomainEvent<
+    "customs-warehouse:stock-discharged",
+    CustomsWarehouseStockDischargedPayload
+  >;
+  "cbam:declaration-submitted": BaseDomainEvent<
+    "cbam:declaration-submitted",
+    CbamDeclarationSubmittedPayload
+  >;
+  "fueleu:compliance-assessed": BaseDomainEvent<
+    "fueleu:compliance-assessed",
+    FuelEuComplianceAssessedPayload
+  >;
+  "dangerous-goods:declaration-validated": BaseDomainEvent<
+    "dangerous-goods:declaration-validated",
+    DangerousGoodsValidatedPayload
+  >;
 }
 
 export type EventKey = keyof DomainEventRegistry;
