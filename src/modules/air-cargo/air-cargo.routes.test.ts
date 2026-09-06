@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 
 // Mock auth middleware for integration tests
-vi.mock("../middleware/auth.js", () => ({
+vi.mock("../../middleware/auth.js", () => ({
   authMiddleware: vi.fn(async () => {}),
   requireRole: vi.fn(() => async () => {}),
 }));
 
-import app from "../app.js";
+import app from "../../app.js";
 
 describe("Air Cargo & e-AWB Routes Integration Tests", () => {
   beforeAll(async () => {
