@@ -81,8 +81,9 @@ app.register(fastifyCors, {
   credentials: true,
 });
 app.register(fastifyRateLimit, {
-  max: 100,
+  max: process.env.CI || process.env.NODE_ENV === "test" ? 100000 : 5000,
   timeWindow: "15 minutes",
+  allowList: ["127.0.0.1", "::1"],
   redis: redis, // Use shared Redis (or mock) for rate limiting
 });
 app.register(metrics, { endpoint: "/metrics" });

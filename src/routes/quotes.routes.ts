@@ -18,7 +18,15 @@ import { redis } from "../config/redis.js";
 const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get(
     "/",
-    { config: { rateLimit: { max: 100, timeWindow: "1 minute" } } },
+    {
+      config: {
+        rateLimit: {
+          max: process.env.CI ? 10000 : 100,
+          timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
+        },
+      },
+    },
     async (request, reply) => {
       try {
         if (request.url.includes("/api/rates")) {
@@ -160,7 +168,15 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
   fastify.get(
     "/analytics",
-    { config: { rateLimit: { max: 100, timeWindow: "1 minute" } } },
+    {
+      config: {
+        rateLimit: {
+          max: process.env.CI ? 10000 : 100,
+          timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
+        },
+      },
+    },
     async (request, reply) => {
       // Mock realistic 6-month data for RouteAnalyticsChart
       const { origin, destination } = request.query as any;
@@ -189,7 +205,15 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
   fastify.post(
     "/compare",
-    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    {
+      config: {
+        rateLimit: {
+          max: process.env.CI ? 10000 : 10,
+          timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { origin, destination, containerType } = request.body as any;
@@ -250,7 +274,13 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     "/",
     {
       preHandler: [validate(CreateQuoteSchema)],
-      config: { rateLimit: { max: 50, timeWindow: "1 minute" } },
+      config: {
+        rateLimit: {
+          max: process.env.CI ? 10000 : 50,
+          timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
+        },
+      },
     },
     async (request, reply) => {
       try {
@@ -282,7 +312,15 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
   fastify.put(
     "/:id",
-    { config: { rateLimit: { max: 50, timeWindow: "1 minute" } } },
+    {
+      config: {
+        rateLimit: {
+          max: process.env.CI ? 10000 : 50,
+          timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params as any;
