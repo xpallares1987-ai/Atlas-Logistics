@@ -23,3 +23,6 @@ export * as AirCargoModule from "./air-cargo/index.js";
 export * as CarbonModule from "./carbon/index.js";
 export * as CustomsModule from "./customs/index.js";
 export * as OperationsModule from "./operations/index.js";
+export * as FinanceModule from "./finance/index.js";
+export * as TelemetryModule from "./telemetry/index.js";
+export * as WarehouseModule from "./warehouse/index.js";
