@@ -1,6 +1,7 @@
 import { db } from "../../db/index.js";
 import { hsCodes } from "../../db/schema/operations.js";
 import { eq, like, or } from "drizzle-orm";
+import { multiTierCache } from "../../lib/cache/index.js";
 
 export interface TariffCalculationInput {
   hsCode: string;
@@ -58,29 +59,41 @@ export class TariffService {
     const customsValueCif =
       Math.round((input.fobValue + freight + insurance) * 100) / 100;
 
-    // 2. Resolve HS Code from DB
+    // 2. Resolve HS Code from DB (accelerated via Multi-Tier Cache)
     const cleanCode = input.hsCode.replace(/[\.\s]/g, "");
-    const hsRecords = await db
-      .select()
-      .from(hsCodes)
-      .where(
-        or(
-          eq(hsCodes.code, input.hsCode),
-          like(hsCodes.code, `${cleanCode.substring(0, 4)}%`),
-        ),
-      )
-      .limit(1);
+    const hsItem = await multiTierCache.getOrSet(
+      `taric:${cleanCode}`,
+      async () => {
+        const hsRecords = await db
+          .select()
+          .from(hsCodes)
+          .where(
+            or(
+              eq(hsCodes.code, input.hsCode),
+              like(hsCodes.code, `${cleanCode.substring(0, 4)}%`),
+            ),
+          )
+          .limit(1);
 
-    const hsItem = hsRecords[0] || {
-      id: "hs_default",
-      code: input.hsCode,
-      description: "General Commercial Merchandise",
-      chapter: "General Tariff",
-      adValoremDuty: 0.045, // 4.5% standard fallback
-      specificDutyPerKg: 0,
-      vatRate: 0.21,
-      isDualUse: 0,
-    };
+        return (
+          hsRecords[0] || {
+            id: "hs_default",
+            code: input.hsCode,
+            description: "General Commercial Merchandise",
+            chapter: "General Tariff",
+            adValoremDuty: 0.045, // 4.5% standard fallback
+            specificDutyPerKg: 0,
+            vatRate: 0.21,
+            isDualUse: 0,
+          }
+        );
+      },
+      {
+        ttlSeconds: 86400, // 24 hours
+        tier: "hybrid",
+        tags: ["taric", "customs"],
+      },
+    );
 
     // 3. Determine Duty Rate
     let dutyRate = hsItem.adValoremDuty ?? 0.045;
