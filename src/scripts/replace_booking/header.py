@@ -28,29 +28,3 @@ def inject_header(content: str) -> str:
         </button>
       </div>"""
     return content.replace(header_old, header_new)
-    header_old = """<button
-        onClick={handleNewBooking}
-        className=\"px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm\"
-      >
-        + New Booking
-      </button>"""
-    header_new = """<div className=\"flex items-center gap-4\">
-        <div className=\"bg-slate-100 p-1 rounded-lg flex gap-1 shadow-inner\">
-          <button 
-            onClick={() => setViewMode(\"list\")} 
-            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${viewMode === \"list\" ? \"bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200\" : \"text-slate-500 hover:text-slate-700 hover:bg-slate-200/50\"}`}
-          >
-            List View
-          </button>
-          <button 
-            onClick={() => setViewMode(\"board\")} 
-            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${viewMode === \"board\" ? \"bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200\" : \"text-slate-500 hover:text-slate-700 hover:bg-slate-200/50\"}`}
-          >
-            Kanban Board
-          </button>
-        </div>
-        <button
-              </button>
-              <button 
-                onClick={() => setViewMode(\"board\")} 
-                className={\`px-4 py-1.5 text-sm font-semibold rounded-md transition-all \${viewMode === \"board\" ? \"bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200\" : \"text-slate-5..."
