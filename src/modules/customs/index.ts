@@ -3,7 +3,9 @@
  * EU DUA / SAD 54-box declarations, TARIC classification, VAT/duty calculation and trade sanctions compliance.
  */
 
-export * from "../../services/customs/compliance.service.js";
-export * from "../../services/customs/tariff.service.js";
-export * from "../../services/pdf/generators/customs.pdf.js";
-export * from "../../routes/customs.routes.js";
+export * from "./compliance.service.js";
+export * from "./tariff.service.js";
+export * from "./dua-xml.service.js";
+export * from "./customs.pdf.js";
+export * from "./customs.routes.js";
+export { default as customsRoutes } from "./customs.routes.js";
