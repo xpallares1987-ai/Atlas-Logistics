@@ -58,7 +58,7 @@ jobs:
       - name: Setup Test Database Schema & Seed
         run: |
           touch .env.local
-          pnpm exec drizzle-kit push
+          pnpm run db:migrate
           pnpm run db:seed
 
       - name: Run test
