@@ -78,25 +78,28 @@ test.describe("Automated Road Freight (FTL/LTL) & e-CMR Dispatch Engine", () => 
     await expect(plannerBtn).toBeVisible({ timeout: 10000 });
     await plannerBtn.click();
 
-    // Modal Header
+    // Modal Header and Container
+    const modal = page.locator("div.fixed.inset-0");
     await expect(
-      page.locator(
+      modal.locator(
         "h3:has-text('Planificador de Ruta, Tacógrafo y ADR 1.1.3.6')",
       ),
     ).toBeVisible({ timeout: 10000 });
 
     // Run Simulation
-    const runBtn = page.locator(
+    const runBtn = modal.locator(
       "button:has-text('Planificar Ruta y Evaluar Exención 1.1.3.6')",
     );
     await expect(runBtn).toBeVisible();
     await runBtn.click();
 
-    // Verify Output
-    await expect(page.locator("span:has-text('Conducción:')")).toBeVisible({
+    // Verify Output within modal
+    await expect(modal.locator("span:has-text('Conducción:')")).toBeVisible({
       timeout: 10000,
     });
-    await expect(page.locator("span:has-text('Pausas 45 min:')")).toBeVisible();
-    await expect(page.locator("span:has-text('Puntos ADR:')")).toBeVisible();
+    await expect(
+      modal.locator("span:has-text('Pausas 45 min:')"),
+    ).toBeVisible();
+    await expect(modal.locator("span:has-text('Puntos ADR:')")).toBeVisible();
   });
 });
