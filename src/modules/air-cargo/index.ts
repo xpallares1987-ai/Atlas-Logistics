@@ -8,3 +8,5 @@ export * from "../../services/air-cargo/compliance.service.js";
 export * from "../../services/air-cargo/rating.service.js";
 export * from "../../services/pdf/generators/air-cargo.pdf.js";
 export * from "../../routes/air-cargo.routes.js";
+export * from "../../db/schema/air_cargo.js";
+export * from "../../db/seeds/air-cargo.seed.js";

@@ -189,11 +189,9 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     if (!body || !body.legs || body.legs.length === 0) {
-      return reply
-        .status(400)
-        .send({
-          error: "At least one journey leg is required for calculation",
-        });
+      return reply.status(400).send({
+        error: "At least one journey leg is required for calculation",
+      });
     }
 
     try {

@@ -6,3 +6,5 @@
 export * from "../../services/claims/carrier-liability.service.js";
 export * from "../../services/pdf/generators/claims.pdf.js";
 export * from "../../routes/claims.routes.js";
+export * from "../../db/schema/claims.js";
+export * from "../../db/seeds/claims.seed.js";

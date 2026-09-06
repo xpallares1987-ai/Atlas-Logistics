@@ -8,12 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.15.0] - 2026-09-02
 
 ### 🌟 Added
+
 - **Bulk Cargo & Port Terminal Operations Engine (IMSBC Code / BLU Code / IMO Grain Code / ASTM-IP 54 Draft & Ullage Surveys)**:
   - **Relational Data Model (`src/db/schema/bulk_operations.ts`)**:
     - 5 specialized tables bringing database total to **121 tables**: `bulkVesselOperations`, `bulkDraftSurveys`, `bulkImsbcDeclarations`, `bulkGrainStabilityPlans`, `bulkUllageSurveys`.
     - Migration `0019_flowery_salo.sql` applied cleanly to both dev and production SQLite databases.
   - **Hydrostatic Draft Survey Engine (`DraftSurveyCalculatorService`)**:
-    - 6-point drafts to mean drafts ($F_m, A_m, M_m$), apparent trim, deflection (*hogging/sagging*), and Quarter Mean Draft ($DQM$).
+    - 6-point drafts to mean drafts ($F_m, A_m, M_m$), apparent trim, deflection (_hogging/sagging_), and Quarter Mean Draft ($DQM$).
     - 1st and 2nd trim corrections ($C_1, C_2$), water density factor ($\rho / 1.025$), deductible accounting (ballast, fuel, diesel, fresh water, sludge), and net cargo tonnage certified.
   - **IMSBC Code Liquefaction & Safety Evaluator (`ImsbcLiquefactionEvaluatorService`)**:
     - Transportable Moisture Limit calculation ($\text{TML} = \text{FMP} \times 0.90$) and mandatory loading rejection rule if moisture $> \text{TML}$ under IMSBC Section 7.
@@ -37,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.14.0] - 2026-09-01
 
 ### 🌟 Added
+
 - **Cargo Insurance & Marine Open Cover Policy Engine (Institute Cargo Clauses ICC A/B/C 2009 / LMA/IUA / UCP 600 Art. 28 / Incoterms® CIF & CIP)**:
   - **Relational Data Model (`src/db/schema/cargo_insurance.ts`)**:
     - 5 specialized tables bringing database total to **116 tables**: `insuranceOpenPolicies`, `insuranceCertificates`, `insuranceBordereaux`, `insuranceBordereauLines`, `insuranceClaimsSettlements`.
@@ -65,6 +67,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.13.0] - 2026-09-01
 
 ### 🌟 Added
+
 - **Multimodal Dangerous Goods & Hazardous Materials Engine (IMO IMDG Code Amdt 41-22 / ICAO-IATA DGR 66th Ed. / UNECE ADR 2025 / RID 2025)**:
   - **Relational Data Model (`src/db/schema/dangerous_goods.ts`)**:
     - 5 specialized tables bringing database total to **111 tables**: `dgShipments`, `dgConsignmentItems`, `dgSegregationAudits`, `dgEmergencyCards`, `dgPackingCertificates`.
@@ -96,6 +99,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.12.0] - 2026-08-31
 
 ### 🌟 Added
+
 - **Maritime General Average & Salvage Engine (York-Antwerp Rules 2016 / Lloyd's Open Form LOF 2024 / SCOPIC 2020 / Lloyd's Average Bond LAB 77 & Underwriter Guarantees)**:
   - **Relational Data Model (`src/db/schema/general_average.ts`)**:
     - 5 specialized tables bringing database total to **106 tables**: `gaCases`, `gaAllowances`, `gaContributoryInterests`, `gaSecurities`, `gaAdjustments`.
@@ -125,6 +129,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.11.0] - 2026-08-31
 
 ### 🌟 Added
+
 - **Maritime Chartering & Laytime / Demurrage Engine (BIMCO Gencon 2022 / NYPE 2015 / ASBATANKVO)**:
   - **Charter Party & Fixture Management (Voyage & Time Charter)**:
     - Support for standard forms: **BIMCO Gencon 2022**, **NYPE 2015**, and **ASBATANKVO**.
@@ -132,12 +137,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - **Notice of Readiness (NOR) & Turn Time Calculation Service (`NorTurnTimeService`)**:
     - Business hours checking and weekend rollover (Saturday afternoon / Sunday to Monday 08:00 UTC).
     - Turn-time expiry calculation (e.g., 12 hours) and early commencement if operations start before expiry.
-    - Contractual clauses verification: **WIPON** (*Whether In Port Or Not*), **WIBON** (*Whether In Berth Or Not*), **WIFPON** (*Whether In Free Pratique Or Not*), and **WCCON** (*Whether Customs Cleared Or Not*).
+    - Contractual clauses verification: **WIPON** (_Whether In Port Or Not_), **WIBON** (_Whether In Berth Or Not_), **WIFPON** (_Whether In Free Pratique Or Not_), and **WCCON** (_Whether Customs Cleared Or Not_).
   - **Deterministic Laytime, Demurrage & Despatch Calculator (`LaytimeCalculationService`)**:
     - Allowed laytime computation ($MT / \text{Rate}$).
     - Chronological SOF event evaluation with automatic deductions for weather/rain (**WWD**), Sundays/holidays (**SHEX** EIU / UU, **FHEX**), and ship-side breakdowns.
-    - Enforcement of universal maritime rule: *"Once on demurrage, always on demurrage"*.
-    - Demurrage vs Despatch financial settlement under **ATS** (*All Time Saved*) and **WTS** (*Working Time Saved*).
+    - Enforcement of universal maritime rule: _"Once on demurrage, always on demurrage"_.
+    - Demurrage vs Despatch financial settlement under **ATS** (_All Time Saved_) and **WTS** (_Working Time Saved_).
   - **Time Charter Hire & Off-Hire Audit Service (`TimeCharterHireService`)**:
     - Period gross hire, off-hire days deductions, bunker compensation (VLSFO / MGO), address commission, and brokerage commissions.
   - **Official Maritime Documentation in PDF (`PDFService`)**:
@@ -150,6 +155,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.10.0] - 2026-08-29
 
 ### 🌟 Added
+
 - **Authorized Economic Operator (AEO / OEA) & Supply Chain Security Engine (UCC Arts. 38-39 / C-TPAT / ISO 28000 / ISO 17712)**:
   - **EU UCC AEO & Self-Assessment Questionnaire (CAE AEAT / DG TAXUD)**:
     - Modality coverage: **OEAF** (Full Combined Customs & Security), **OEAC** (Customs Simplifications), and **OEAS** (Security & Safety).
@@ -157,11 +163,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     - Disqualifying deficiency checks on critical customs infringements (Art. 39.a).
   - **C-TPAT / OEAS 7-Point Container & Vehicle Physical Security Protocol**:
     - Mandatory 7-point structural inspection verification: Front wall, Left side, Right side, Floor, Roof/ceiling, Doors/locks, and Undercarriage.
-    - Contraband, false compartment, and agricultural contamination (*WDO check*) detection.
+    - Contraband, false compartment, and agricultural contamination (_WDO check_) detection.
   - **ISO 17712 High-Security Mechanical Seals Ledger (Class 'H')**:
     - Immutable tracking of bolt and cable seals, manufacturer test certifications, equipment linkage, affixation timestamps, port of entry verification, and tamper incident logging.
   - **Supply Chain Business Partner Security Risk & Screening (ISO 28000)**:
-    - Multi-criteria risk scoring of hauliers, customs brokers, warehouse keepers, and packers based on AEO/C-TPAT credentials and security questionnaire audits (*Low, Medium, High Risk*).
+    - Multi-criteria risk scoring of hauliers, customs brokers, warehouse keepers, and packers based on AEO/C-TPAT credentials and security questionnaire audits (_Low, Medium, High Risk_).
   - **Official Regulatory Documentation in PDF**:
     - Official **AEO Self-Assessment Audit Report (CAE DG TAXUD / AEAT) in PDF**.
     - Official **7-Point Container/Vehicle Security Inspection Certificate (C-TPAT / OEAS) in PDF**.
@@ -172,6 +178,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.9.0] - 2026-08-29
 
 ### 🌟 Added
+
 - **International Trade Finance & Documentary Credit Engine (UCP 600 / URDG 758 / URC 522 / SWIFT MT700)**:
   - **ICC Uniform Customs & Practice (UCP 600 & eUCP v2.1)**: Commercial Letters of Credit (Sight, Deferred, Acceptance Usance, Negotiation) with issuing/confirming bank workflows and presentation deadlines.
   - **Demand Guarantees & Standby Letters of Credit (URDG 758 / ISP98)**: International performance bonds, advance payment guarantees, and tender bonds with independent payment undertakings.
@@ -180,7 +187,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     - **Presentation Deadline (Art. 14c & ISBP A19)**: 21-calendar-day strict limit after shipped-on-board date.
     - **Tolerance Rules (Art. 30)**: Standard $+/-5\%$ tolerance monitoring on amount and drawings.
     - **Commercial Invoice (Art. 18)**: Strict currency matching and literal goods description verification against Field 45A.
-    - **Transport Documents (Arts. 19–27)**: Mandatory *Clean on Board* verification and rejection of claused bills of lading.
+    - **Transport Documents (Arts. 19–27)**: Mandatory _Clean on Board_ verification and rejection of claused bills of lading.
     - **Insurance Coverage (Art. 28)**: Statutory minimum $110\%$ CIF/CIP invoice value verification and inception date audit.
   - **Bank Fee & Commission Engine**: Quarterly opening fee calculation ($\ge 90\text{ days}$), confirmation risk spread, discrepancy penalties, and amendment charges.
   - **SWIFT Telematics & Official PDF Output**:
@@ -193,6 +200,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.8.0] - 2026-08-29
 
 ### 🌟 Added
+
 - **FuelEU Maritime, EU ETS & Fleet Decarbonization Engine (Regulation (EU) 2023/1805 & Directive (EU) 2023/959)**:
   - **Well-to-Wake (WtW) GHG Intensity Accounting**: Multi-fuel consumption accounting ($g\text{CO}_2\text{eq/MJ}$) including LCV and WtW factors for VLSFO, MGO, HFO, LNG (with methane slip), Bio-MGO (HVO), Bio-LNG, E-Methanol (RFNBO), and Onshore Power Supply (OPS).
   - **Statutory Reduction Trajectory & Compliance Balance (CB)**: Reduction targets from $91.16\text{ }g/\text{MJ}$ baseline ($-2\%$ 2025–2029: $89.34\text{ }g/\text{MJ}$, $-6\%$ 2030, down to $-80\%$ in 2050).
@@ -208,6 +216,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.7.0] - 2026-08-28
 
 ### 🌟 Added
+
 - **Customs Warehouse, Free Zone & Special Regimes Engine (CAU Arts. 210–242 & AEAT)**:
   - **Union Customs Code (UCC / CAU) Special Regimes**:
     - **Bonded Customs Warehouse (DA - Regime 7100)**: Indefinite customs duty and import VAT suspension for non-Union goods.
@@ -228,18 +237,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.6.0] - 2026-08-28
 
 ### 🌟 Added
+
 - **Rail Intermodal Freight & Trans-European Corridors Engine (COTIF / CIM & TEN-T 750m)**:
   - **COTIF / CIM Regulatory Framework**: Uniform Rules governing international carriage of goods by rail, 17 SDR/kg statutory carrier liability limitation, and official **CIM Consignment Note PDF (UIC 992)**.
   - **Train Consist Dynamics & Braking Physics Engine**: Deterministic calculation of total convoy length vs 750m TEN-T corridor limits, train gross tonnage, total braked weight, and statutory brake percentage verification ($\ge 65\%$).
   - **UIC Line Category & Axle Load Auditor (EN 15528)**: Axle load distribution verification against infrastructure classes: Category A (16.0 t/axle), Category B (18.0 t/axle), Category C (20.0 t/axle), Category D (22.5 t/axle).
   - **P400 Rolling Motorway & Intermodal Compatibility**: Dedicated pocket wagons (Sdggmrss T3000e / Sggmrss 90') and gauge clearance checks for P400 semitrailers.
   - **European Union Railway Agency (ERA) TAF-TSI Telematic Messaging**: Standardized **TAF-TSI XML** generator for train composition data interchange with Infrastructure Managers (Adif, SNCF Réseau, DB Netze).
-  - **Official Train Composition & Brake Sheet PDF**: Bilingual *Boletín Oficial de Composición de Tren y Frenado* with driver sign-off.
+  - **Official Train Composition & Brake Sheet PDF**: Bilingual _Boletín Oficial de Composición de Tren y Frenado_ with driver sign-off.
   - **Dedicated Rail Freight Workbench (`/rail-freight`)**: 3-tabbed interactive interface for CIM tracking across Mediterranean (RFC6) & Atlantic (RFC4) corridors, train formation simulator, and rolling stock audit.
 
 ## [1.5.0] - 2026-08-28
 
 ### 🌟 Added
+
 - **Carbon Border Adjustment Mechanism (CBAM) & Scope 3 Decarbonization Engine (EU Reg. 2023/956)**:
   - **Comprehensive 6-Sector CBAM Catalog**: Mapped CN/TARIC codes and default emission benchmarks for Iron & Steel, Aluminium, Cement, Fertilizers, Hydrogen, and Electricity.
   - **Embedded Emissions Calculation Engine**: 100% deterministic calculation of Direct (Scope 1 process), Indirect (Scope 2 electricity), and complex precursor emissions ($SE_{\text{total}} = SE_{\text{direct}} + SE_{\text{indirect}} + SE_{\text{precursor}}$).
@@ -255,6 +266,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.4.0] - 2026-08-28
 
 ### 🌟 Added
+
 - **Cold Chain & Temperature-Controlled Pharma/Reefer Monitoring Engine (EU GDP & EN 12830)**:
   - **Regulated Cold Chain Profiles**: Built-in coverage for Ultra-Cold ($-80^\circ\text{C}$ to $-60^\circ\text{C}$ Dry Ice UN 1845), Frozen ($-25^\circ\text{C}$ to $-15^\circ\text{C}$), Refrigerated Pharma ($+2^\circ\text{C}$ to $+8^\circ\text{C}$), Controlled Room Temperature CRT ($+15^\circ\text{C}$ to $+25^\circ\text{C}$), and Fresh Perishables ($+0^\circ\text{C}$ to $+4^\circ\text{C}$).
   - **Arrhenius Mean Kinetic Temperature (MKT) Calculator**: 100% deterministic MKT engine implementing standard activation energy ($\Delta H = 83.144\text{ kJ/mol}$) and thermal excursion duration/severity analysis.
@@ -269,18 +281,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.3.0] - 2026-08-27
 
 ### 🌟 Added
+
 - **Multi-Currency Treasury, Hedging & IATA CASS / Ocean Carrier Auto-Reconciliation Engine**:
   - **Automated 3-Way Match Algorithm**: Deterministic reconciliation between Carrier Invoices (Airlines/CASS, Ocean Navieras, Road Carriers), Internal Bookings/Quotes, and issued Transport Manifests (B/L, AWB, CMR) with configurable variance tolerance ($\pm 1\%$ or $\pm 5\text{ EUR/USD}$).
   - **Demurrage & Surcharge Audit Engine**: Automatic detection and flagging of unauthorized detention/demurrage charges, double-billed fuel (BAF), and terminal handling (THC) discrepancies.
   - **Multi-Currency Treasury & FX Risk Monitor**: Real-time reference rate matrix (EUR base vs USD, GBP, CNY, JPY, CHF, AED), realized/unrealized FX gains & losses, unhedged exposure risk grading, and 30/60/90-day cash flow liquidity forecasting.
   - **Formal Legal Dispute & Settlement PDFs**:
-    - **Carrier Freight Dispute / Debit Note PDF (*Nota de Cargo y Carta de Discrepancia*)** itemizing unauthorized surcharges with formal 14-day credit note requisition.
-    - **Official Carrier Settlement Statement PDF (*Estado de Liquidación y Orden de Pago*)** detailing approved net payable amounts, IATA CASS withholdings/commissions, and official treasury sign-off.
+    - **Carrier Freight Dispute / Debit Note PDF (_Nota de Cargo y Carta de Discrepancia_)** itemizing unauthorized surcharges with formal 14-day credit note requisition.
+    - **Official Carrier Settlement Statement PDF (_Estado de Liquidación y Orden de Pago_)** detailing approved net payable amounts, IATA CASS withholdings/commissions, and official treasury sign-off.
   - **Dedicated Treasury Workbench (`/treasury`)**: 3-tabbed interactive UI (3-Way Match Conciliator, FX Treasury Monitor, and Disputes Center) with live 3-way match simulator modal.
 
 ## [1.2.0] - 2026-08-27
 
 ### 🌟 Added
+
 - **Customs Clearance & TARIC Engine**:
   - Implemented full 54-box **DUA / SAD (Single Administrative Document)** customs declaration workflow.
   - TARIC tariff calculator computing customs duty, VAT basis (DUA Box 46), and anti-dumping rates based on HS / Combined Nomenclature codes.
@@ -312,6 +326,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.1.0] - 2026-08-08
 
 ### Added
+
 - **Security & RBAC**: Implemented JWT Authentication and Role-Based Access Control (`@fastify/jwt`).
 - **Real-Time WebSockets**: Fastify WebSocket integration for instant system event dispatching.
 - **Micro-Frontends (MFE)**: Extracted Warehouse Operations into a federated MFE using Vite Module Federation.
@@ -324,5 +339,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.0.0] - 2026-06-01
 
 ### Added
+
 - Initial stable release of Atlas Logistics Monorepo (Turborepo + pnpm).
 - Basic sailing schedules, ocean freight rate comparison, and BPMN 2.0 visual modeler.

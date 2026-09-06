@@ -14,8 +14,8 @@ export default defineConfig({
     federation({
       name: "host",
       remotes: {
-        dashboard: "http://localhost:5174/assets/remoteEntry.js",
-        warehouse: "http://localhost:5175/assets/remoteEntry.js",
+        dashboard: "http://127.0.0.1:5174/assets/remoteEntry.js",
+        warehouse: "http://127.0.0.1:5175/assets/remoteEntry.js",
       },
       shared: [
         "react",
@@ -68,7 +68,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       "/api": {
-        target: "http://localhost:3001",
+        target: "http://127.0.0.1:3001",
         changeOrigin: true,
       },
     },

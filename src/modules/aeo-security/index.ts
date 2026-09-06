@@ -9,3 +9,5 @@ export * from "../../services/aeo-security/partner-security-risk.service.js";
 export * from "../../services/aeo-security/seven-point-inspection.service.js";
 export * from "../../services/pdf/generators/aeo-security.pdf.js";
 export * from "../../routes/aeo-security.routes.js";
+export * from "../../db/schema/aeo_security.js";
+export * from "../../db/seeds/aeo-security.seed.js";

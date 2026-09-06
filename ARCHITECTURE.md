@@ -11,7 +11,7 @@ Atlas Logistics employs a **Hybrid Micro-Frontend and Fastify Backend** architec
 ```mermaid
 graph TD
     User["Logistics Operator / Forwarder / Customs Broker"] --> Host["@atlas/frontend (Vite + React 19 + TailwindCSS)"]
-    
+
     subgraph Monorepo Workspaces
         Host --> MFE1["@atlas/warehouse-ops (Vite Module Federation)"]
         Host --> MFE2["@atlas/rate-comparer (Dynamic Pricing & Surcharges)"]
@@ -19,9 +19,9 @@ graph TD
         Host --> UI["@atlas/ui (Dark Glassmorphism Design System)"]
         Host --> Shared["@atlas/shared (Zod Schemas, Types, Cryptography)"]
     end
-    
+
     Host -->|REST / JSON + WebSockets| API["Fastify 5 Backend Server (:3001)"]
-    
+
     subgraph Deterministic Core Services
         API --> CustomsEng["Customs & TARIC Engine (54-Box DUA, HS Codes, Sanctions)"]
         API --> AirCargoEng["IATA e-Freight Engine (Modulo-7 Checksum, DGR, Cargo-XML)"]
@@ -30,7 +30,7 @@ graph TD
         API --> RoadEng["Road Freight & e-CMR Engine (ADR 1.1.3.6, 33-Pallet Capacity, Tachograph)"]
         API --> PDFEng["PDFKit Vector Generator (e-CMR, Carta de Porte, AWB, DUA, Claims)"]
     end
-    
+
     subgraph Data & Queue Layer
         API --> DB["Local SQLite Database (atlas.db via @libsql/client + Drizzle ORM)"]
         API --> Redis["Redis Queue Broker (BullMQ Background Workers)"]
@@ -43,15 +43,15 @@ graph TD
 
 The codebase is organized into modular packages using `pnpm` workspaces:
 
-| Package | Role | Key Technologies |
-|---|---|---|
-| **`packages/frontend`** | Main Host Super-App | React 19, Vite 8, React Router 7, TanStack Query, TailwindCSS |
-| **`packages/dashboard`** | Operational analytics & KPIs | React 19, Lucide, Recharts |
-| **`packages/rate-comparer`** | Multi-carrier ocean/air freight rating | Dynamic rate matrices, BAF/CAF surcharges |
-| **`packages/bpmn-modeler`** | Business process modeler & versioning | BPMN 2.0 XML parser, canvas designer |
-| **`packages/warehouse-ops`** | Warehouse digital twin & dock traffic | 3D & 2.5D visual rack & pallet management |
-| **`packages/ui`** | Reusable design system | Glassmorphism styling tokens, buttons, modal wrappers |
-| **`packages/shared`** | Shared utilities and cryptographic security | Zod schemas, DOMPurify, timingSafeEqual |
+| Package                      | Role                                        | Key Technologies                                              |
+| ---------------------------- | ------------------------------------------- | ------------------------------------------------------------- |
+| **`packages/frontend`**      | Main Host Super-App                         | React 19, Vite 8, React Router 7, TanStack Query, TailwindCSS |
+| **`packages/dashboard`**     | Operational analytics & KPIs                | React 19, Lucide, Recharts                                    |
+| **`packages/rate-comparer`** | Multi-carrier ocean/air freight rating      | Dynamic rate matrices, BAF/CAF surcharges                     |
+| **`packages/bpmn-modeler`**  | Business process modeler & versioning       | BPMN 2.0 XML parser, canvas designer                          |
+| **`packages/warehouse-ops`** | Warehouse digital twin & dock traffic       | 3D & 2.5D visual rack & pallet management                     |
+| **`packages/ui`**            | Reusable design system                      | Glassmorphism styling tokens, buttons, modal wrappers         |
+| **`packages/shared`**        | Shared utilities and cryptographic security | Zod schemas, DOMPurify, timingSafeEqual                       |
 
 ---
 
@@ -149,6 +149,7 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
 ## 5. Persistence & Database Design (Drizzle ORM & SQLite)
 
 The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
+
 - **Environment Isolation & Resolution**:
   - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
   - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.

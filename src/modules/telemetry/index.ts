@@ -8,3 +8,5 @@ export * from "../../services/telemetry/anomaly-detector.service.js";
 export * from "../../services/telemetry/eta-predictor.service.js";
 export * from "../../services/telemetry/geofence-engine.service.js";
 export * from "../../routes/telemetry.routes.js";
+export * from "../../db/schema/iot_telemetry.js";
+export * from "../../db/seeds/telemetry.seed.js";
