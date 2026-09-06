@@ -75,18 +75,12 @@ describe("Database Backup & Pruning Utility", () => {
     const backupFilePath = await backup();
     expect(backupFilePath).toBeDefined();
 
-    const safeFileName = path.basename(backupFilePath);
-    const safeBackupPath = path.resolve(testBackupDir, safeFileName);
-    if (!isWithinDirectory(testBackupDir, safeBackupPath)) {
-      throw new Error("Potential path traversal in backup test");
-    }
-    expect(isWithinDirectory(testBackupDir, safeBackupPath)).toBe(true);
-
-    const exists = await fs
-      .stat(safeBackupPath)
-      .then(() => true)
-      .catch(() => false);
-    expect(exists).toBe(true);
+    const files = await fs.readdir(testBackupDir);
+    const fileName = path.basename(backupFilePath);
+    expect(files).toContain(fileName);
+    expect(
+      files.some((f) => f.startsWith("atlas-erp-v2-") && f.endsWith(".db")),
+    ).toBe(true);
   });
 });
 
