@@ -77,6 +77,10 @@ describe("Database Backup & Pruning Utility", () => {
 
     const safeFileName = path.basename(backupFilePath);
     const safeBackupPath = path.resolve(testBackupDir, safeFileName);
+    if (!isWithinDirectory(testBackupDir, safeBackupPath)) {
+      throw new Error("Potential path traversal in backup test");
+    }
+    expect(isWithinDirectory(testBackupDir, safeBackupPath)).toBe(true);
 
     const exists = await fs
       .stat(safeBackupPath)
