@@ -17,6 +17,7 @@ import "./cron/backup-scheduler.js"; // start cron scheduler
 import { logger } from "./config/logger.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { registerAllRoutes } from "./routes/index.js";
+import { tenancyPlugin } from "./lib/tenancy/index.js";
 
 const app = Fastify({ loggerInstance: logger });
 
@@ -149,6 +150,9 @@ app.get("/favicon.png", async (_request, reply) => {
   }
   return reply.status(204).send();
 });
+
+// Multi-Tenancy Scoping Plugin
+app.register(tenancyPlugin);
 
 // Register all application routes
 app.register(registerAllRoutes);
