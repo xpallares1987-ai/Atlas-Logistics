@@ -30,8 +30,9 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
     {
       config: {
         rateLimit: {
-          max: 10,
+          max: process.env.CI ? 10000 : 10,
           timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
         },
       },
     },
@@ -62,8 +63,9 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
     {
       config: {
         rateLimit: {
-          max: 5,
+          max: process.env.CI ? 10000 : 5,
           timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
         },
       },
     },
@@ -121,8 +123,9 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
     {
       config: {
         rateLimit: {
-          max: 10,
+          max: process.env.CI ? 10000 : 10,
           timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
         },
       },
     },

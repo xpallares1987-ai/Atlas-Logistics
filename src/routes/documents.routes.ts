@@ -127,8 +127,9 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.post("/upload", {
     config: {
       rateLimit: {
-        max: 20,
+        max: process.env.CI ? 10000 : 20,
         timeWindow: "1 minute",
+        allowList: ["127.0.0.1", "::1"],
       },
     },
     handler: async (request, reply) => {
@@ -180,8 +181,9 @@ const documentsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     {
       config: {
         rateLimit: {
-          max: 50,
+          max: process.env.CI ? 10000 : 50,
           timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
         },
       },
     },

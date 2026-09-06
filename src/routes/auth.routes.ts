@@ -13,8 +13,9 @@ const authRoutes: FastifyPluginAsync = async (fastify, opts) => {
     {
       config: {
         rateLimit: {
-          max: process.env.NODE_ENV === "test" || process.env.CI ? 1000 : 20,
+          max: process.env.NODE_ENV === "test" || process.env.CI ? 10000 : 20,
           timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
         },
       },
     },
@@ -79,8 +80,9 @@ const authRoutes: FastifyPluginAsync = async (fastify, opts) => {
     {
       config: {
         rateLimit: {
-          max: 100,
+          max: process.env.NODE_ENV === "test" || process.env.CI ? 10000 : 500,
           timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
         },
       },
     },
