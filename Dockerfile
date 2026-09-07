@@ -13,8 +13,8 @@ WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json tsconfig.json ./
 COPY packages ./packages
 
-# Install dependencies with build cache mount, prune store to reduce size
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install && pnpm store prune
+# Install dependencies with build cache mount
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install
 
 # Copy remaining source code
 COPY src ./src
