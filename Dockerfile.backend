@@ -13,12 +13,12 @@ COPY packages ./packages
 
 # Prod-deps stage: production + dev dependencies needed for runtime
 FROM base AS prod-deps
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --ignore-scripts && pnpm store prune
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --ignore-scripts
 
 # Build stage: full dependencies to compile/build
 FROM base AS build
 COPY src ./src
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install && pnpm store prune
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install
 RUN pnpm run build
 RUN rm -rf .turbo
 
