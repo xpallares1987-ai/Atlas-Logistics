@@ -20,6 +20,7 @@ declare -A SERVICES=(
     [redis]="Redis"
     [api]="API (Fastify)"
     [app]="Frontend"
+    [worker]="Worker"
 )
 
 check_service_health() {
@@ -44,10 +45,10 @@ while [ $ELAPSED -lt $TIMEOUT ]; do
         
         if [[ "$status" == *"healthy"* ]]; then
             echo "✅ ${SERVICES[$service]} ($service): $status"
-            ((HEALTHY++))
+            HEALTHY=$((HEALTHY + 1))
         elif [[ "$status" == *"running"* ]] || [[ "$status" == *"Up"* ]]; then
             echo "🔄 ${SERVICES[$service]} ($service): $status (checking...)"
-            ((RUNNING++))
+            RUNNING=$((RUNNING + 1))
         else
             echo "❌ ${SERVICES[$service]} ($service): $status"
         fi
