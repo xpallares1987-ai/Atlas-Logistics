@@ -71,3 +71,16 @@ SECURITY.md
 # Lock files from other package managers
 **/yarn.lock
 **/package-lock.json
+
+# Local pnpm cache store (prevents transferring 73k files / 1.3GB into context)
+**/.pnpm-store
+
+# Local database files & WAL journals
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+**/backups-test
+scout-spdx*.json
+audit.json
