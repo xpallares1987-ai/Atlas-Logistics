@@ -1,4 +1,12 @@
 services:
+  init-db:
+    image: alpine:latest
+    pull_policy: if_not_present
+    command: ["chown", "-R", "65532:65532", "/app/data"]
+    volumes:
+      - app_data:/app/data
+    restart: "no"
+
   api:
     build:
       context: .
@@ -15,6 +23,8 @@ services:
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - COOKIE_SECRET=${COOKIE_SECRET:?COOKIE_SECRET is required}
     depends_on:
+      init-db:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:
@@ -53,8 +63,6 @@ services:
       dockerfile: Dockerfile.backend
     pull_policy: if_not_present
     command: ["--import", "tsx/esm", "src/worker-node.ts"]
-    env_file:
-      - .env.local
     environment:
       - NODE_ENV=production
       - REDIS_HOST=redis
@@ -64,6 +72,8 @@ services:
       - COOKIE_SECRET=${COOKIE_SECRET:?COOKIE_SECRET is required}
     restart: unless-stopped
     depends_on:
+      init-db:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:

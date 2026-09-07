@@ -14,9 +14,12 @@ export async function runMigrations() {
   }
 }
 
-const isMain =
-  import.meta.url.includes("migrate.ts") ||
-  process.argv[1].includes("migrate.ts");
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+
+const currentFile = fileURLToPath(import.meta.url);
+const isMain = process.argv[1] ? path.resolve(process.argv[1]) === path.resolve(currentFile) : false;
+
 if (isMain) {
   runMigrations()
     .then(() => {
