@@ -33,7 +33,7 @@ app.register(fastifyHelmet, {
           objectSrc: ["'none'"],
           baseUri: ["'self'"],
           frameAncestors: ["'none'"],
-          upgradeInsecureRequests: true,
+          upgradeInsecureRequests: [],
         },
       }
     : false,
