@@ -109,6 +109,7 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(bpmnRoutes, { prefix: "/api" });
   await fastify.register(dashboardRoutes, { prefix: "/api/dashboard" });
   await fastify.register(healthRoutes, { prefix: "/api" });
+  await fastify.register(healthRoutes);
 
   // Specialized Logistics & Regulatory Domain Routes
   await fastify.register(customsRoutes, { prefix: "/api" });
