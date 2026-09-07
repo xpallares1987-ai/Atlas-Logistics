@@ -59,6 +59,6 @@ async function startWorkerNode() {
 }
 
 startWorkerNode().catch((err) => {
-  logger.error("Failed to start Worker Node", err);
+  logger.error({ err }, "Failed to start Worker Node");
   process.exit(1);
 });

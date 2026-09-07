@@ -78,19 +78,60 @@ export const connectRedis = async () => {
       );
       return;
     }
+
+    if (redis.status === "ready") {
+      isRedisAvailable = true;
+      logger.info(`Conectado a Redis en ${REDIS_HOST}:${REDIS_PORT}`);
+      return;
+    }
+
+    if (redis.status === "connecting" || redis.status === "connect") {
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          cleanup();
+          resolve();
+        }, 5000);
+        const onReady = () => {
+          cleanup();
+          resolve();
+        };
+        const onError = (err: any) => {
+          cleanup();
+          reject(err);
+        };
+        const cleanup = () => {
+          clearTimeout(timeout);
+          redis.off("ready", onReady);
+          redis.off("error", onError);
+        };
+        redis.once("ready", onReady);
+        redis.once("error", onError);
+      });
+      isRedisAvailable = true;
+      logger.info(`Conectado a Redis en ${REDIS_HOST}:${REDIS_PORT}`);
+      return;
+    }
+
     await redis.connect();
     isRedisAvailable = true;
     logger.info(`Conectado a Redis en ${REDIS_HOST}:${REDIS_PORT}`);
-  } catch (error) {
+  } catch (error: any) {
+    if (
+      error?.message?.includes("already connecting") ||
+      error?.message?.includes("already connected")
+    ) {
+      isRedisAvailable = true;
+      return;
+    }
     isRedisAvailable = false;
     const message =
       "No se pudo conectar a Redis. El sistema funcionará degradado (sin caché y simulando BullMQ en memoria local).";
-    logger.warn(message);
+    logger.warn({ err: error }, message);
 
     // In production, require Redis to be available
     if (process.env.NODE_ENV === "production") {
       throw new Error(
-        "Redis connection failed in production. Redis is required.",
+        `Redis connection failed in production: ${error?.message || error}`,
       );
     }
   }
