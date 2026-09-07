@@ -18,6 +18,7 @@ import { Loader2 } from "lucide-react";
 import RfqGeneratorModal from "./RfqGeneratorModal";
 import BookingDrawer from "./BookingDrawer";
 import { useAppStore } from "../shared/store";
+import { drizzleRateService } from "../services/drizzleRateService";
 
 interface RateTableProps {
   rates: any[];
@@ -53,8 +54,6 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
     if (bookedRates.find((r) => r.id === rateId)) return;
     setIsBooking(rateId);
     try {
-      const { drizzleRateService } =
-        await import("../services/drizzleRateService");
       const customerId = "11111111-1111-1111-1111-111111111111"; // Mock UUID
 
       await drizzleRateService.saveBooking(bookingData, customerId);
