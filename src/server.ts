@@ -56,6 +56,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch((err) => {
-  logger.error("Error during bootstrap:", err);
+  logger.error({ err }, "Error during bootstrap:");
   process.exit(1);
 });
