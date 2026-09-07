@@ -10,6 +10,8 @@ dotenv.config({ path: ".env", override: false });
 
 import app from "./app.js";
 import { db, databaseUrl } from "./db/index.js";
+import { runMigrations } from "./db/migrate.js";
+import { createAdmin } from "./admin/adminService.js";
 import { initPubSub } from "./services/pubsub.service.js";
 import { loadSecrets } from "./config/secrets.js";
 import { logger } from "./config/logger.js";
@@ -31,6 +33,12 @@ async function bootstrap() {
 
   if (db) {
     logger.info(`Database connection initialized: ${databaseUrl}`);
+    try {
+      await runMigrations();
+      await createAdmin();
+    } catch (migErr) {
+      logger.warn({ err: migErr }, "Database auto-migration/admin setup warning:");
+    }
   }
 
   await connectRedis();

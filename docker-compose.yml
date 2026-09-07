@@ -10,7 +10,7 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_HOST=redis
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      - DATABASE_URL=${DATABASE_URL:-file:/app/data/atlas-erp-prod.db}
       - GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp/application_default_credentials.json
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - COOKIE_SECRET=${COOKIE_SECRET:?COOKIE_SECRET is required}
@@ -20,9 +20,10 @@ services:
       redis:
         condition: service_healthy
     volumes:
+      - app_data:/app/data
       - ${APPDATA}/gcloud/application_default_credentials.json:/tmp/gcp/application_default_credentials.json:ro
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      test: ["CMD", "/usr/bin/node", "-e", "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -40,7 +41,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      test: ["CMD", "/usr/bin/wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -57,7 +58,7 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_HOST=redis
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      - DATABASE_URL=${DATABASE_URL:-file:/app/data/atlas-erp-prod.db}
       - GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp/application_default_credentials.json
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - COOKIE_SECRET=${COOKIE_SECRET:?COOKIE_SECRET is required}
@@ -68,7 +69,14 @@ services:
       redis:
         condition: service_healthy
     volumes:
+      - app_data:/app/data
       - ${APPDATA}/gcloud/application_default_credentials.json:/tmp/gcp/application_default_credentials.json:ro
+    healthcheck:
+      test: ["CMD", "/usr/bin/node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   db:
     image: postgres:16-alpine
@@ -163,6 +171,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  app_data:
   pgdata:
   prometheus_data:
   grafana_data:

@@ -2,7 +2,7 @@ import { FastifyInstance } from "fastify";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { client } from "../db/index.js";
+import { client, databaseUrl } from "../db/index.js";
 import { redis } from "../config/redis.js";
 import { logger } from "../config/logger.js";
 
@@ -19,30 +19,34 @@ export default async function healthRoutes(app: FastifyInstance) {
     const uptime = process.uptime();
 
     // Database check
-    const dbPath = path.resolve(process.cwd(), "atlas-erp-v2.db");
-    const dbExists = fs.existsSync(dbPath);
+    let resolvedDbPath: string | null = null;
+    if (databaseUrl.startsWith("file:")) {
+      const rawPath = databaseUrl.slice(5);
+      resolvedDbPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(process.cwd(), rawPath);
+    }
+    const dbExists = resolvedDbPath ? fs.existsSync(resolvedDbPath) : true;
     let dbSize = null;
     let dbLatency = null;
     let dbHealthy = false;
     let dbError: string | null = null;
 
-    if (dbExists) {
+    if (resolvedDbPath && fs.existsSync(resolvedDbPath)) {
       try {
-        const stats = fs.statSync(dbPath);
+        const stats = fs.statSync(resolvedDbPath);
         dbSize = Math.round(stats.size / (1024 * 1024)); // MB
       } catch (err) {
         dbError = `Failed to stat database: ${err instanceof Error ? err.message : 'unknown error'}`;
       }
+    }
 
-      try {
-        const dbStart = Date.now();
-        await client.execute("SELECT 1");
-        dbLatency = Date.now() - dbStart;
-        dbHealthy = true;
-      } catch (err) {
-        dbError = err instanceof Error ? err.message : "Unknown database error";
-        logger.warn({ err }, "Database health check failed:");
-      }
+    try {
+      const dbStart = Date.now();
+      await client.execute("SELECT 1");
+      dbLatency = Date.now() - dbStart;
+      dbHealthy = true;
+    } catch (err) {
+      dbError = err instanceof Error ? err.message : "Unknown database error";
+      logger.warn({ err }, "Database health check failed:");
     }
 
     // Redis check

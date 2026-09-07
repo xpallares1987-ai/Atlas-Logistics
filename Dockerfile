@@ -29,9 +29,9 @@ RUN rm -rf .turbo
 # Generate Nginx config in builder (Chainguard has no shell)
 RUN printf 'server {\n    listen 8080;\n    server_name localhost;\n    root /usr/share/nginx/html;\n    index index.html;\n    include /etc/nginx/mime.types;\n    location / {\n        try_files $uri $uri/ /index.html;\n    }\n    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|webmanifest|wasm)$ {\n        try_files $uri =404;\n        expires 1y;\n        access_log off;\n        add_header Cache-Control "public";\n    }\n}\n' > /app/default.conf
 
-# 2. Production Stage (Chainguard Hardened)
-FROM cgr.dev/chainguard/nginx:latest AS production
+# 2. Production Stage (Chainguard Hardened with healthcheck utilities)
+FROM cgr.dev/chainguard/nginx:latest-dev AS production
 COPY --from=builder --chown=root:root /app/packages/frontend/dist /usr/share/nginx/html
 COPY --from=builder --chown=root:root /app/default.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8080
-HEALTHCHECK --interval=10s --timeout=5s --retries=3 --start-period=10s CMD ["wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 --start-period=10s CMD ["/usr/bin/wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
