@@ -10,6 +10,7 @@ import RateTable from "./components/RateTable";
 import LocationAutocomplete from "./components/LocationAutocomplete";
 import AdvancedFiltersDrawer from "./components/AdvancedFiltersDrawer";
 import RouteAnalyticsChart from "./components/RouteAnalyticsChart";
+import { drizzleRateService } from "./services/drizzleRateService";
 import {
   Search,
   Ship,
@@ -85,10 +86,6 @@ export default function RatesContent() {
     setMaxTransitTime(null);
 
     try {
-      // Import the service dynamically or rely on top-level import
-      const { drizzleRateService } =
-        await import("./services/drizzleRateService");
-
       const rates = await drizzleRateService.fetchRates(
         origin.locode || origin.name,
         destination.locode || destination.name,
