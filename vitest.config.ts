@@ -15,5 +15,13 @@ export default defineConfig({
       "**/tests/e2e/**",
       "**/.{idea,git,cache,output,temp}/**",
     ],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      lines: 70,
+      functions: 70,
+      branches: 60,
+      statements: 70,
+    },
   },
 });
