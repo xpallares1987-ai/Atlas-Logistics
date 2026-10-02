@@ -1,5 +1,4 @@
 packages:
   - "packages/*"
-  - "src/*"
 
 managePackageManagerVersions: false
