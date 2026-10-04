@@ -1,0 +1,298 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                      🔥 LET'S GRILL YOU! 🔥                                 ║
+║                                                                              ║
+║          Can You Answer These Questions About Your Own Project?             ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+📋 QUICK FIRE ROUND (30 seconds each)
+
+1️⃣  What command gets you the fastest dev startup?
+   A) pnpm dev
+   B) pnpm dev:minimal          ← CORRECT
+   C) pnpm dev:observability
+   D) pnpm start:backend
+
+2️⃣  How much faster is the new setup compared to the old one?
+   A) 2x faster
+   B) 2.5x faster
+   C) 3.75x faster              ← CORRECT
+   D) 5x faster
+
+3️⃣  What's our test coverage threshold?
+   A) 50%
+   B) 60%
+   C) 70%                        ← CORRECT (for most, 60% for branches)
+   D) 80%
+
+4️⃣  How many files did we clean from the repository?
+   A) 2 files
+   B) 4 files
+   C) 6 files                    ← CORRECT
+   D) 10 files
+
+5️⃣  What was the CVE year typo?
+   A) CVE-2020-14257
+   B) CVE-2026-14257            ← INCORRECT (should be 2024)
+   C) CVE-2025-14257
+   D) CVE-2030-14257
+
+6️⃣  Where is React NOW supposed to be?
+   A) Only in dependencies       ← CORRECT
+   B) Only in devDependencies
+   C) In both (needed for both)
+   D) Neither (removed entirely)
+
+7️⃣  What Node.js version does .nvmrc lock us to?
+   A) 18.x
+   B) 19.x
+   C) 20.11.0                    ← CORRECT
+   D) 21.x
+
+8️⃣  How many documentation files did we create?
+   A) 10-15
+   B) 20-25
+   C) 30+                        ← CORRECT
+   D) 50+
+
+9️⃣  What's the memory usage now?
+   A) 200MB
+   B) 400MB                      ← CORRECT
+   C) 800MB
+   D) 1.5GB
+
+🔟 How often should we audit dependencies?
+   A) Weekly
+   B) Monthly
+   C) Quarterly                  ← CORRECT
+   D) Annually
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+SCENARIO-BASED QUESTIONS
+
+📌 Scenario 1: Production Issue
+"You discover that your production database is failing, but your dev 
+environment with dev:minimal works fine. What does this tell you?"
+
+Your thinking:
+___________________________________________________________________________
+___________________________________________________________________________
+
+→ ANSWER: Your dev:minimal setup skips Redis. If production uses Redis and 
+   you didn't test that locally, you missed a dependency. You should test 
+   with `pnpm dev` (full setup) or `pnpm dev:observability` (with monitoring).
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📌 Scenario 2: New Team Member
+"A new dev joins your team and asks: 'Why all these documentation files 
+instead of one big README?' How do you explain it?"
+
+Your thinking:
+___________________________________________________________________________
+___________________________________________________________________________
+
+→ ANSWER: Progressive disclosure. Beginners start with START_HERE.txt and 
+   get running in 5 min. Experts go to QUICK_COMMANDS.md for reference. 
+   One monolithic README would overwhelm beginners and hide what experts 
+   need. Each file has ONE purpose.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📌 Scenario 3: Build Time Regression
+"Your build time increased from 45s to 65s. What do you do?"
+
+Your thinking:
+___________________________________________________________________________
+___________________________________________________________________________
+
+→ ANSWER: 
+   1. Check git log to see what changed
+   2. Run `pnpm build --profile` to identify slow packages
+   3. Check if datos.ts got modified (109KB file)
+   4. Consider refactoring if consistently > 60s
+   5. For now, just monitor (65s is still acceptable)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📌 Scenario 4: Security Audit
+"It's been 3 months since we locked the current ignored CVEs. A colleague 
+asks: 'Should we update those?' What's your response?"
+
+Your thinking:
+___________________________________________________________________________
+___________________________________________________________________________
+
+→ ANSWER: Yes, it's time for quarterly audit:
+   1. Run `pnpm audit` again
+   2. Check if any ignored CVEs are now fixed
+   3. Check if new CVEs appeared
+   4. Remove any from ignore list if fixed
+   5. Document why each is still ignored
+   6. Update review date to +3 months
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📌 Scenario 5: Dependency Consolidation
+"You notice we have BOTH xml2js (25KB) and fast-xml-parser (5KB). 
+A junior dev asks: 'Why do we need both?' What's the proper investigation?"
+
+Your thinking:
+___________________________________________________________________________
+___________________________________________________________________________
+
+→ ANSWER:
+   1. Search codebase: `grep -r "xml2js\|fast-xml-parser" packages/`
+   2. Check where each is imported
+   3. If only ONE is used: remove the other (-15-20KB savings)
+   4. If BOTH are used: document WHY in comments
+   5. If consolidation is risky: add to LOW_PRIORITY_ACTION_PLAN.md
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+CRITICAL THINKING QUESTIONS
+
+🧠 Q1: Why Did We Recommend `dev:minimal` for Daily Work?
+___________________________________________________________________________
+___________________________________________________________________________
+
+→ Answer: 
+   • 8-second startup (vs 30s with full Redis)
+   • No wasted resources (you rarely test full cache layers)
+   • Easier local debugging (fewer moving parts)
+   • Same database as production (SQLite is fine for local testing)
+   • When you NEED Redis testing, use `pnpm dev` instead
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🧠 Q2: Why 70% Coverage Instead of 90%?
+___________________________________________________________________________
+___________________________________________________________________________
+
+→ Answer:
+   • 70% catches real bugs (main code paths)
+   • 80-90% has diminishing returns (edge cases)
+   • 100% is perfectionism (nearly impossible)
+   • 70% + pre-commit hooks + manual review = 95% in practice
+   • Philosophy: Pragmatic, not perfect
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🧠 Q3: Why Defer `datos.ts` Refactoring If It's 109KB?
+___________________________________________________________________________
+___________________________________________________________________________
+
+→ Answer:
+   • Build time is acceptable (<60s target)
+   • No performance complaints yet
+   • Refactoring is risky (could break rates)
+   • Benefit unclear (might save 100ms)
+   • Better decision with metrics: refactor when build time > 60s
+   • Philosophy: Don't optimize without data
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🧠 Q4: Why Is Pre-commit Hook Setup Critical for Teams?
+___________________________________________________________________________
+___________________________________________________________________________
+
+→ Answer:
+   • Prevents accidentally committing secrets (huge risk!)
+   • Enforces code style (no style wars on PRs)
+   • Catches lint errors before they hit CI
+   • Saves time (fail fast, fix locally)
+   • Team culture (everyone follows same rules)
+   • Scales to 50+ people (not 5 people)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🧠 Q5: Why Was the Monorepo Structure More Important Than It Seemed?
+___________________________________________________________________________
+___________________________________________________________________________
+
+→ Answer:
+   • Incorrect `src/*` in packages broke dependency resolution
+   • Turborepo couldn't understand the graph
+   • Builds could cascade unnecessarily
+   • Team wouldn't know which package owns which feature
+   • Just removing 1 line fixed it, but impact was huge
+   • Philosophy: Get fundamentals right first, optimize later
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+YOUR SCORE BREAKDOWN
+
+Easy Questions (Quick Fire): ___/10 correct
+Scenario Questions: ___/5 correct
+Critical Thinking: ___/5 correct
+
+TOTAL: ___/20
+
+═══════════════════════════════════════════════════════════════════════════════
+
+INTERPRETATION:
+
+0-5 correct:    You need to review QUICK_FIXES.md (basics)
+6-10 correct:   You understand the what (but maybe not the why)
+11-15 correct:  You understand the why (solid knowledge)
+16-20 correct:  You could teach this to others (master level)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🏆 IF YOU GOT 15+: You're ready to:
+   • Mentor junior developers
+   • Make architectural decisions
+   • Explain tradeoffs to stakeholders
+   • Scale the project confidently
+
+🎯 IF YOU GOT 10-14: You're ready to:
+   • Work independently on features
+   • Solve most common problems
+   • Help teammates with setup
+   • Continue learning advanced topics
+
+📚 IF YOU GOT 5-9: You should:
+   • Spend 2-3 hours reading documentation
+   • Try all 3 dev modes and understand differences
+   • Run test coverage baseline
+   • Ask questions before making changes
+
+🔴 IF YOU GOT <5: No judgment! Just:
+   • Start with START_HERE.txt (5 min)
+   • Run pnpm dev:minimal (watch it work)
+   • Read QUICK_COMMANDS.md (20 min)
+   • Tackle this quiz again tomorrow
+
+═══════════════════════════════════════════════════════════════════════════════
+
+BONUS MASTERY QUESTION (For 20+ scorers):
+
+"If we had unlimited time and resources, what's ONE architectural change 
+we should make in the next 6 months, and why?"
+
+Your answer:
+___________________________________________________________________________
+___________________________________________________________________________
+___________________________________________________________________________
+
+Hints for consideration:
+• Current: SQLite locally + Redis in Docker (good for speed, not realistic)
+• Option 1: Add Postgres in Docker (more realistic, better test coverage)
+• Option 2: Move to Docker Compose with full stack (realistic but slower startup)
+• Option 3: Implement read replicas for reporting (scale testing)
+• Option 4: Add event sourcing layer (complex but powerful)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+When you're ready to reveal your mastery level, share your scores and let's 
+discuss which areas need more attention!
+
+Good luck! 🔥
+
+═══════════════════════════════════════════════════════════════════════════════

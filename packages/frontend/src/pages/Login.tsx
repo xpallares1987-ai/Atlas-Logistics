@@ -136,16 +136,106 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-8 text-center relative z-10">
-            <p className="text-xs text-slate-500 font-medium">
-              Demo Credentials:
-              <br />
-              <span className="text-slate-400">admin@atlas.com / admin</span>
-              <br />
-              <span className="text-slate-400">
-                finance@atlas.com / password123
-              </span>
+          {/* Quick Demo Switcher */}
+          <div className="mt-6 pt-5 border-t border-white/10 relative z-10">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center mb-3">
+              Acceso Rápido Demo (1-Click)
             </p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("admin@atlas.com");
+                  setPassword("admin");
+                }}
+                className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                  email === "admin@atlas.com"
+                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                    : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                <span className="text-base">👑</span>
+                <div>
+                  <div className="font-bold">Admin</div>
+                  <div className="text-[10px] text-slate-500">Acceso Total</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("operator@atlas.com");
+                  setPassword("password123");
+                }}
+                className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                  email === "operator@atlas.com"
+                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                    : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                <span className="text-base">📦</span>
+                <div>
+                  <div className="font-bold">Operador</div>
+                  <div className="text-[10px] text-slate-500">Tráfico & Almacén</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("customs@atlas.com");
+                  setPassword("password123");
+                }}
+                className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                  email === "customs@atlas.com"
+                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                    : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                <span className="text-base">🛡️</span>
+                <div>
+                  <div className="font-bold">Aduanas</div>
+                  <div className="text-[10px] text-slate-500">DUA & OEA</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("treasury@atlas.com");
+                  setPassword("password123");
+                }}
+                className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                  email === "treasury@atlas.com"
+                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                    : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                <span className="text-base">💰</span>
+                <div>
+                  <div className="font-bold">Tesorería</div>
+                  <div className="text-[10px] text-slate-500">CASS & Fletes</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("customer@atlas.com");
+                  setPassword("password123");
+                }}
+                className={`col-span-2 flex items-center justify-center gap-2 p-2 rounded-xl border text-center transition-all ${
+                  email === "customer@atlas.com"
+                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                    : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                <span className="text-base">🚢</span>
+                <div>
+                  <span className="font-bold">Cliente Shipper</span> — <span className="text-[10px] text-slate-500">Portal de Seguimiento & Cotizador</span>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
