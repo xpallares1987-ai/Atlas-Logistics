@@ -387,11 +387,11 @@ export class PDFService {
    */
   public static async generateTimeCharterHireStatementPdf(
     hire: any,
-    offHires: any[],
+    hireCalc: any,
   ): Promise<Buffer> {
     return CharteringPdfGenerator.generateTimeCharterHireStatementPdf(
       hire,
-      offHires,
+      hireCalc,
     );
   }
 

@@ -17,7 +17,7 @@ import {
 import { Loader2 } from "lucide-react";
 import RfqGeneratorModal from "./RfqGeneratorModal";
 import BookingDrawer from "./BookingDrawer";
-import { useAppStore } from "../shared/store";
+import { useAppStore } from "../store";
 import { drizzleRateService } from "../services/drizzleRateService";
 
 interface RateTableProps {

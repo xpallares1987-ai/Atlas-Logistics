@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { z, AnyZodObject } from "zod";
+import { z } from "zod";
 
-export const validate = (schema: AnyZodObject) => {
+export const validate = (schema: z.ZodTypeAny) => {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const shape = (schema as any).shape;

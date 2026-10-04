@@ -1,109 +1,22 @@
+# ==============================================================================
+# ATLAS LOGISTICS — DOCKER COMPOSE FOR LOCAL DEVELOPMENT
+# ==============================================================================
+# Optimized for personal development. Uses SQLite locally, Redis for queues.
+# PostgreSQL, Prometheus, Grafana, and Node Exporter are optional/production-only.
+#
+# Usage:
+#   pnpm dev              # Starts Redis only (recommended)
+#   pnpm dev:observability # Starts Redis + Prometheus + Grafana
+#   pnpm dev:stop         # Stops all containers
+#
+# ==============================================================================
+
+version: '3.8'
+
 services:
-  init-db:
-    image: alpine:latest
-    pull_policy: if_not_present
-    command: ["chown", "-R", "65532:65532", "/app/data"]
-    volumes:
-      - app_data:/app/data
-    restart: "no"
-
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-    pull_policy: if_not_present
-    ports:
-      - "3001:3001"
-    restart: unless-stopped
-    environment:
-      - NODE_ENV=production
-      - REDIS_HOST=redis
-      - DATABASE_URL=${DATABASE_URL:-file:/app/data/atlas-erp-prod.db}
-      - GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp/application_default_credentials.json
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
-      - COOKIE_SECRET=${COOKIE_SECRET:?COOKIE_SECRET is required}
-    depends_on:
-      init-db:
-        condition: service_completed_successfully
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - app_data:/app/data
-      - ${APPDATA}/gcloud/application_default_credentials.json:/tmp/gcp/application_default_credentials.json:ro
-    healthcheck:
-      test: ["CMD", "/usr/bin/node", "-e", "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    pull_policy: if_not_present
-    ports:
-      - "3000:8080"
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "/usr/bin/wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-    pull_policy: if_not_present
-    command: ["--import", "tsx/esm", "src/worker-node.ts"]
-    environment:
-      - NODE_ENV=production
-      - REDIS_HOST=redis
-      - DATABASE_URL=${DATABASE_URL:-file:/app/data/atlas-erp-prod.db}
-      - GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp/application_default_credentials.json
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
-      - COOKIE_SECRET=${COOKIE_SECRET:?COOKIE_SECRET is required}
-    restart: unless-stopped
-    depends_on:
-      init-db:
-        condition: service_completed_successfully
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - app_data:/app/data
-      - ${APPDATA}/gcloud/application_default_credentials.json:/tmp/gcp/application_default_credentials.json:ro
-    healthcheck:
-      test: ["CMD", "/usr/bin/node", "-e", "process.exit(0)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  db:
-    image: postgres:16-alpine
-    pull_policy: if_not_present
-    env_file:
-      - .env.local
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB:?POSTGRES_DB is required}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
+  # ============================================================================
+  # ESSENTIAL FOR DEVELOPMENT
+  # ============================================================================
 
   redis:
     image: redis:7.2-alpine
@@ -117,6 +30,11 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+    container_name: atlas-redis-dev
+
+  # ============================================================================
+  # OPTIONAL: OBSERVABILITY (Uncomment to enable)
+  # ============================================================================
 
   prometheus:
     image: prom/prometheus:latest
@@ -140,6 +58,9 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    container_name: atlas-prometheus-dev
+    profiles:
+      - observability
 
   grafana:
     image: grafana/grafana:latest
@@ -151,7 +72,7 @@ services:
       - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
       - grafana_data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-atlas2024}
       - GF_SECURITY_ADMIN_USER=admin
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://localhost:3002
@@ -164,6 +85,9 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    container_name: atlas-grafana-dev
+    profiles:
+      - observability
 
   node-exporter:
     image: prom/node-exporter:latest
@@ -179,9 +103,24 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     restart: unless-stopped
+    container_name: atlas-node-exporter-dev
+    profiles:
+      - observability
+
+  # ============================================================================
+  # REMOVED FOR PERSONAL DEVELOPMENT (Kept for reference)
+  # ============================================================================
+  # The following services are production-only or unnecessary for local dev:
+  #
+  # - db (PostgreSQL)           → Use SQLite locally (atlas-erp-v2.db)
+  # - init-db                   → Not needed with SQLite
+  # - api (Fastify backend)     → Run `pnpm run start:backend` locally
+  # - app (Nginx frontend)      → Run `turbo run dev` locally
+  # - worker (BullMQ processor) → Run `pnpm run start:worker` locally
+  #
+  # To deploy to production, use docker-compose.prod.yml or Kubernetes.
+  # ============================================================================
 
 volumes:
-  app_data:
-  pgdata:
   prometheus_data:
   grafana_data:

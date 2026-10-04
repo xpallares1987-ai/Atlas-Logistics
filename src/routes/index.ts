@@ -96,6 +96,7 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(quotesRoutes, { prefix: "/api/rates" });
   await fastify.register(financialRoutes, { prefix: "/api" });
   await fastify.register(eventsRoutes, { prefix: "/api" });
+  await fastify.register(eventsRoutes);
   await fastify.register(documentsRoutes, { prefix: "/api/documents" });
   await fastify.register(authRoutes, { prefix: "/api/auth" });
   await fastify.register(adminRoutes);

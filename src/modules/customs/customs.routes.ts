@@ -140,7 +140,7 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         if (error instanceof z.ZodError) {
           return reply
             .code(400)
-            .send({ error: "Validation error", details: error.errors });
+            .send({ error: "Validation error", details: error.issues });
         }
         reply.code(500).send({ error: error.message });
       }
@@ -159,7 +159,7 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         if (error instanceof z.ZodError) {
           return reply
             .code(400)
-            .send({ error: "Validation error", details: error.errors });
+            .send({ error: "Validation error", details: error.issues });
         }
         reply.code(500).send({ error: error.message });
       }
@@ -316,7 +316,7 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
       if (error instanceof z.ZodError) {
         return reply
           .code(400)
-          .send({ error: "Validation error", details: error.errors });
+          .send({ error: "Validation error", details: error.issues });
       }
       reply.code(500).send({ error: error.message });
     }

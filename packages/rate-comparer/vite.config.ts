@@ -6,12 +6,16 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
+  },
+  server: {
+    port: 5176,
+    cors: true,
   },
   build: {
     lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
+      entry: path.resolve(import.meta.dirname, "src/index.ts"),
       name: "AtlasRateComparer",
       fileName: (format) => `index.${format}.js`,
     },

@@ -110,12 +110,25 @@ export const treasuryRoutes: FastifyPluginAsync = async (fastify) => {
 
     const summary = CarrierReconciliationService.reconcileInvoice(lines);
 
+    let discrepancyStatus:
+      | "EXACT_MATCH"
+      | "UNDER_BILLED"
+      | "OVER_BILLED"
+      | "TOLERANCE_ACCEPTED" = "EXACT_MATCH";
+    if (summary.totalVarianceAmount > 0) {
+      discrepancyStatus = "OVER_BILLED";
+    } else if (summary.totalVarianceAmount < 0) {
+      discrepancyStatus = "UNDER_BILLED";
+    } else if (summary.reconciliationStatus === "DISCREPANCY_FLAGGED") {
+      discrepancyStatus = "TOLERANCE_ACCEPTED";
+    }
+
     // Asynchronously dispatch Domain Event for decoupled downstream listeners
     domainEventBus.publish("treasury:invoice-reconciled", "recon_batch", {
       invoiceId: "recon_batch",
       carrierId: "carrier_unknown",
-      discrepancyStatus: summary.discrepancyStatus as any,
-      amountEur: summary.totalBilledEur,
+      discrepancyStatus,
+      amountEur: summary.totalBilledAmount,
     });
 
     return reply.send({

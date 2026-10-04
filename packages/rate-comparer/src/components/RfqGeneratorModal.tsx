@@ -14,11 +14,10 @@ import { motion, AnimatePresence } from "motion/react";
 import { Switch, Checkbox } from "@atlas/ui";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import { FreightRateMock } from "../data/mockRates";
-import { useAppStore } from "../shared/store";
+import { useAppStore } from "../store";
 
 interface RfqGeneratorModalProps {
-  rate: FreightRateMock | null;
+  rate: any | null;
   onClose: () => void;
 }
 

@@ -12,88 +12,65 @@ out/
 .cache/
 
 # pnpm
-# (Keep lockfile if not using workspace, but GEMINI.md says standard structure)
-# Actually, GEMINI.md says "Debe excluir estrictamente .env, node_modules, dist/out"
-# I will keep pnpm-lock.yaml as it is an independent repo.
+# Keep pnpm-lock.yaml for reproducible builds
 
-# Env
+# Env - DO NOT COMMIT SECRETS
 .env
 .env.*
 !.env.example
 !.env.production.example
+!.env.local.example
 
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
 # OS
 .DS_Store
 Thumbs.db
+.~lock*
 
 # Build
 *.tsbuildinfo
-
-# Testing
-coverage/
-# Node
-node_modules/
-dist/
-build/
-out/
-.next/
-**/.next/
-**/dist/
-**/build/
-**/playwright-report/
-*.log
-.cache/
-
-# pnpm
-# (Keep lockfile if not using workspace, but GEMINI.md says standard structure)
-# Actually, GEMINI.md says "Debe excluir estrictamente .env, node_modules, dist/out"
-# I will keep pnpm-lock.yaml as it is an independent repo.
-
-# Env
-.env
-.env.*
-!.env.example
-!.env.production.example
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Build
-*.tsbuildinfo
+*.tgz
 
 # Testing
 coverage/
 test-results/
+playwright-report/
+.nyc_output/
 
-# Antigravity CLI cache
-.antigravity/
-*.pbtxt
+# IDE
+.vscode/launch.json.bak
+.idea/
+*.swp
+*.swo
+*~
 
 # Turbo
 .turbo/
 sa-key.json
 
-# Local Guides
+# Local Development
+.tmp.driveupload/
 *_local_guide.md
+*_custom_setup.txt
+CUSTOM_SETUP.txt
 packages/shared/node_modules_prod/
 
 *storybook.log
 storybook-static
 
 # Databases
+atlas-erp-v2.db
+atlas-erp-v2.db-shm
+atlas-erp-v2.db-wal
+atlas-erp-prod.db
+atlas-erp-prod.db-shm
+atlas-erp-prod.db-wal
 *.db
 *.db-shm
 *.db-wal
@@ -103,7 +80,7 @@ storybook-static
 # pnpm store
 .pnpm-store/
 
-# Release stray artifacts
+# Release artifacts
 1.1.0
 
 # Python
@@ -111,3 +88,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Debug
+.debug/
+*.heapsnapshot
+*.cpuprofile
