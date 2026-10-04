@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
 import { commonAuditFields } from "./_common.js";
 import { users, locations } from "./core.js";
 import { shipments } from "./operations.js";
@@ -79,12 +79,28 @@ export const pendingAiReviews = sqliteTable("pending_ai_reviews", {
   ...commonAuditFields,
 });
 
-export const documents = sqliteTable("documents", {
-  id: text("id").primaryKey(),
-  shipmentId: text("shipment_id").references(() => shipments.id),
-  name: text("name").notNull(),
-  type: text("type").notNull(), // e.g., 'HBL', 'Commercial Invoice', 'Packing List'
-  url: text("url").notNull(), // mocked storage path
-  uploadedBy: text("uploaded_by").references(() => users.id),
-  ...commonAuditFields,
-});
+export const documents = sqliteTable(
+  "documents",
+  {
+    id: text("id").primaryKey(),
+    shipmentId: text("shipment_id").references(() => shipments.id),
+    name: text("name").notNull(),
+    type: text("type").notNull(), // e.g., 'HBL', 'DUA', 'ECMR', 'AWB', 'CIM', 'GDP_CERT'
+    documentReference: text("document_reference"), // e.g., 'HBL-2026-001'
+    sha256Hash: text("sha256_hash"), // cryptographic integrity proof
+    status: text("status").notNull().default("EMITTED"), // 'DRAFT' | 'EMITTED' | 'SIGNED' | 'REVOKED'
+    signedBy: text("signed_by"),
+    signerTitle: text("signer_title"),
+    signerCertificate: text("signer_certificate"),
+    signedAt: integer("signed_at", { mode: "timestamp" }),
+    payloadData: text("payload_data", { mode: "json" }),
+    fileSize: integer("file_size"),
+    url: text("url").notNull(), // storage path or virtual endpoint
+    uploadedBy: text("uploaded_by").references(() => users.id),
+    ...commonAuditFields,
+  },
+  (table) => ({
+    sha256Idx: index("documents_sha256_idx").on(table.sha256Hash),
+    refIdx: index("documents_ref_idx").on(table.documentReference),
+  }),
+);
