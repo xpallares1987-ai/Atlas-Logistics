@@ -122,6 +122,7 @@ app.addHook("onRequest", async (request, reply) => {
     request.url.startsWith("/api/auth/") ||
     request.url.startsWith("/admin/") ||
     request.url.startsWith("/api/warehouse/ws") ||
+    request.url.startsWith("/api/edi/inbound") ||
     request.url === "/api/health" ||
     request.url === "/health" ||
     request.url === "/metrics" ||

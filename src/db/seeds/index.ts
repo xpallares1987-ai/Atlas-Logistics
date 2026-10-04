@@ -27,6 +27,7 @@ export * from "./cargo-insurance.seed.js";
 export * from "./bulk-operations.seed.js";
 export * from "./carbon.seed.js";
 export * from "./telemetry.seed.js";
+export * from "./edi.seed.js";
 
 import { seedTriggers } from "./triggers.seed.js";
 import { seedCore } from "./core.seed.js";
@@ -52,6 +53,7 @@ import { seedCargoInsurance } from "./cargo-insurance.seed.js";
 import { seedBulkOperations } from "./bulk-operations.seed.js";
 import { seedCarbon } from "./carbon.seed.js";
 import { seedTelemetry } from "./telemetry.seed.js";
+import { seedEdi } from "./edi.seed.js";
 
 export async function runAllSeeds(): Promise<void> {
   await seedTriggers();
@@ -80,4 +82,5 @@ export async function runAllSeeds(): Promise<void> {
   await seedBulkOperations();
   await seedCarbon();
   await seedTelemetry();
+  await seedEdi();
 }

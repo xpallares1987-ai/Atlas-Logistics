@@ -108,6 +108,38 @@ export interface LaytimeCalculatedPayload {
   netSettlementEur: number;
 }
 
+export interface EdiInterchangeProcessedPayload {
+  interchangeId: string;
+  controlNumber: string;
+  standard: "EDIFACT" | "ANSI_X12";
+  direction: "INBOUND" | "OUTBOUND";
+  senderId: string;
+  receiverId: string;
+  status: "APPLIED" | "ACKNOWLEDGED" | "FAILED";
+  messagesCount: number;
+}
+
+export interface EdiMilestoneUpdatedPayload {
+  shipmentId?: string;
+  bookingReference?: string;
+  carrier: string;
+  milestone: string;
+  statusCode: string;
+  location?: string;
+  isException: boolean;
+  exceptionReason?: string;
+  eventTimestamp: string;
+}
+
+export interface EdiExceptionDetectedPayload {
+  shipmentId?: string;
+  bookingReference?: string;
+  carrier: string;
+  exceptionCode: string;
+  reason: string;
+  occurredAt: string;
+}
+
 export interface DomainEventRegistry {
   "treasury:invoice-reconciled": BaseDomainEvent<
     "treasury:invoice-reconciled",
@@ -149,6 +181,18 @@ export interface DomainEventRegistry {
   "chartering:laytime-calculated": BaseDomainEvent<
     "chartering:laytime-calculated",
     LaytimeCalculatedPayload
+  >;
+  "edi:interchange-processed": BaseDomainEvent<
+    "edi:interchange-processed",
+    EdiInterchangeProcessedPayload
+  >;
+  "edi:milestone-updated": BaseDomainEvent<
+    "edi:milestone-updated",
+    EdiMilestoneUpdatedPayload
+  >;
+  "edi:exception-detected": BaseDomainEvent<
+    "edi:exception-detected",
+    EdiExceptionDetectedPayload
   >;
 }
 

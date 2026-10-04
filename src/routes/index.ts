@@ -37,6 +37,7 @@ import { cargoInsuranceRoutes } from "./cargo-insurance.routes.js";
 import { bulkOperationsRoutes } from "./bulk-operations.routes.js";
 import { carbonRoutes } from "./carbon.routes.js";
 import { telemetryRoutes } from "./telemetry.routes.js";
+import { ediRoutes } from "./edi.routes.js";
 import bpmnRoutes from "./bpmn.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
 
@@ -78,6 +79,7 @@ export {
   bulkOperationsRoutes,
   carbonRoutes,
   telemetryRoutes,
+  ediRoutes,
   bpmnRoutes,
   dashboardRoutes,
 };
@@ -146,6 +148,7 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(carbonRoutes, { prefix: "/api/carbon" });
   await fastify.register(telemetryRoutes, { prefix: "/api/telemetry" });
+  await fastify.register(ediRoutes, { prefix: "/api/edi" });
 };
 
 export default registerAllRoutes;

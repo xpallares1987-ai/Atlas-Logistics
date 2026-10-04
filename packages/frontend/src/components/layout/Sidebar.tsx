@@ -31,6 +31,7 @@ import {
   Anchor,
   Flame,
   Zap,
+  ArrowLeftRight,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -344,6 +345,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Anchor}
               >
                 Bulk Operations (IMSBC/Draft)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/edi"
+                icon={ArrowLeftRight}
+              >
+                B2B EDI Hub (UN/X12)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
