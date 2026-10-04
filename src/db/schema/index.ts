@@ -26,3 +26,4 @@ export * from "./cargo_insurance.js";
 export * from "./bulk_operations.js";
 export * from "./carbon_emissions.js";
 export * from "./iot_telemetry.js";
+export * from "./edi.js";
