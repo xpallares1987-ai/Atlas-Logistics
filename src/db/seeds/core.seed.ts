@@ -29,32 +29,91 @@ export async function seedCore(): Promise<CoreSeedContext> {
   }
   console.log(`✅ Creadas ${companyIds.length} compañías.`);
 
-  // 2. USERS & CONTACTS
-  const userIds = ["admin_user_id"];
-  await db
-    .insert(schema.users)
-    .values({
+  // 2. USERS & CONTACTS (Deterministic Demo Roles + Realistic Team)
+  const demoUsers = [
+    {
       id: "admin_user_id",
-      companyId: companyIds[0],
       email: "admin@atlas.com",
       role: "ADMIN",
-    })
-    .onConflictDoNothing();
+      firstName: "Carlos",
+      lastName: "Mendoza",
+      companyId: companyIds[0],
+    },
+    {
+      id: "operator_user_id",
+      email: "operator@atlas.com",
+      role: "OPERATIONS",
+      firstName: "Elena",
+      lastName: "Vega",
+      companyId: companyIds[0],
+    },
+    {
+      id: "customs_user_id",
+      email: "customs@atlas.com",
+      role: "OPERATIONS",
+      firstName: "Mateo",
+      lastName: "Ortiz",
+      companyId: companyIds[1],
+    },
+    {
+      id: "treasury_user_id",
+      email: "treasury@atlas.com",
+      role: "MANAGER",
+      firstName: "Lucía",
+      lastName: "Domínguez",
+      companyId: companyIds[0],
+    },
+    {
+      id: "customer_user_id",
+      email: "customer@atlas.com",
+      role: "CUSTOMER",
+      firstName: "Alejandro",
+      lastName: "Iberia",
+      companyId: companyIds[2],
+    },
+  ];
+
+  const userIds: string[] = [];
+
+  for (const u of demoUsers) {
+    userIds.push(u.id);
+    await db
+      .insert(schema.users)
+      .values({
+        id: u.id,
+        companyId: u.companyId,
+        email: u.email,
+        role: u.role,
+      })
+      .onConflictDoNothing();
+
+    await db
+      .insert(schema.contacts)
+      .values({
+        id: `contact_${u.id}`,
+        companyId: u.companyId,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        email: u.email,
+        phone: "+34 912 345 678",
+      })
+      .onConflictDoNothing();
+  }
 
   for (const companyId of companyIds) {
-    // Users
-    for (let i = 0; i < 3; i++) {
+    // Additional Users
+    for (let i = 0; i < 2; i++) {
       const id = faker.string.uuid();
       userIds.push(id);
       await db.insert(schema.users).values({
         id,
         companyId,
         email: faker.internet.email(),
-        role: i === 0 ? "ADMIN" : "OPERATOR",
+        role: i === 0 ? "OPERATIONS" : "CUSTOMER",
       });
     }
 
-    // Contacts
+    // Additional Contacts
     for (let i = 0; i < 2; i++) {
       await db.insert(schema.contacts).values({
         id: faker.string.uuid(),
@@ -66,7 +125,7 @@ export async function seedCore(): Promise<CoreSeedContext> {
       });
     }
   }
-  console.log(`✅ Creados ${userIds.length} usuarios y contactos.`);
+  console.log(`✅ Creados ${userIds.length} usuarios y contactos (5 perfiles demo + equipo).`);
 
   // 3. LOCATIONS (Ports, Warehouses)
   const locationIds = [];
