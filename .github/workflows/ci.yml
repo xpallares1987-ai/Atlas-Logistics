@@ -172,16 +172,14 @@ jobs:
         run: pnpm run build
 
       - name: Start services with docker-compose
-        run: docker compose up --pull always -d
+        run: docker compose -f docker-compose.prod.yml up -d --build
         env:
-          POSTGRES_DB: scm_db
-          POSTGRES_PASSWORD: postgres
-          JWT_SECRET: test-jwt-secret-key
-          COOKIE_SECRET: test-cookie-secret-key
+          JWT_SECRET: test-jwt-secret-key-super-secure-32chars
+          COOKIE_SECRET: test-cookie-secret-key-super-secure-32chars
 
       - name: Wait for services to be healthy
         run: |
-          timeout 120 bash -c 'until curl -s http://localhost:3001/health && curl -s http://localhost:8080; do sleep 2; done'
+          timeout 120 bash -c 'until curl -s http://localhost:8080/api/health && curl -s http://localhost:8080; do sleep 2; done'
 
       - name: Run Playwright E2E tests
         run: npx playwright test
@@ -196,7 +194,7 @@ jobs:
 
       - name: Tear down docker-compose
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.prod.yml down -v
 
   deploy-notification:
     needs: [lint-and-build, build-images]
