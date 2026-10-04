@@ -96,3 +96,7 @@ docker-compose.override.yml
 .debug/
 *.heapsnapshot
 *.cpuprofile
+
+# Generated Document storage
+data/documents/*.pdf
+data/documents/

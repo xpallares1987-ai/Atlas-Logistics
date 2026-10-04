@@ -123,6 +123,8 @@ app.addHook("onRequest", async (request, reply) => {
     request.url.startsWith("/admin/") ||
     request.url.startsWith("/api/warehouse/ws") ||
     request.url.startsWith("/api/edi/inbound") ||
+    request.url.startsWith("/api/documents/verify/") ||
+    (request.url.startsWith("/api/documents/") && request.url.endsWith("/pdf")) ||
     request.url === "/api/health" ||
     request.url === "/health" ||
     request.url === "/metrics" ||

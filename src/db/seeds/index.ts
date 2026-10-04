@@ -28,6 +28,7 @@ export * from "./bulk-operations.seed.js";
 export * from "./carbon.seed.js";
 export * from "./telemetry.seed.js";
 export * from "./edi.seed.js";
+export * from "./documents.seed.js";
 
 import { seedTriggers } from "./triggers.seed.js";
 import { seedCore } from "./core.seed.js";
@@ -54,6 +55,7 @@ import { seedBulkOperations } from "./bulk-operations.seed.js";
 import { seedCarbon } from "./carbon.seed.js";
 import { seedTelemetry } from "./telemetry.seed.js";
 import { seedEdi } from "./edi.seed.js";
+import { seedDocuments } from "./documents.seed.js";
 
 export async function runAllSeeds(): Promise<void> {
   await seedTriggers();
@@ -83,4 +85,5 @@ export async function runAllSeeds(): Promise<void> {
   await seedCarbon();
   await seedTelemetry();
   await seedEdi();
+  await seedDocuments();
 }
