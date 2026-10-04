@@ -108,17 +108,12 @@ services:
       - observability
 
   # ============================================================================
-  # REMOVED FOR PERSONAL DEVELOPMENT (Kept for reference)
+  # PRODUCTION SERVICES (Orchestrated in docker-compose.prod.yml)
   # ============================================================================
-  # The following services are production-only or unnecessary for local dev:
+  # For production deployment with zero-CVE Chainguard containers, persistent
+  # storage and Nginx ingress reverse proxy, run:
   #
-  # - db (PostgreSQL)           → Use SQLite locally (atlas-erp-v2.db)
-  # - init-db                   → Not needed with SQLite
-  # - api (Fastify backend)     → Run `pnpm run start:backend` locally
-  # - app (Nginx frontend)      → Run `turbo run dev` locally
-  # - worker (BullMQ processor) → Run `pnpm run start:worker` locally
-  #
-  # To deploy to production, use docker-compose.prod.yml or Kubernetes.
+  #   docker compose -f docker-compose.prod.yml up -d --build
   # ============================================================================
 
 volumes:

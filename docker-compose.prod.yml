@@ -1,0 +1,200 @@
+# ==============================================================================
+# ATLAS LOGISTICS — PRODUCTION DOCKER COMPOSE ORCHESTRATION
+# ==============================================================================
+# Self-contained enterprise production stack:
+# - Frontend: Chainguard Nginx Ingress Reverse Proxy (Port 8080 / 80)
+# - API: Chainguard Node.js Fastify API (Zero CVEs, Auto-Migrate, LibSQL/SQLite)
+# - Worker: BullMQ Background Async Task Processor
+# - Redis: High-performance Queue Broker and Distributed Cache
+# - Volume-Init: Automated UID 65532 ownership assignment for rootless storage
+# - Optional: Prometheus + Grafana Observability (--profile observability)
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml --profile observability up -d
+#   docker compose -f docker-compose.prod.yml down
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 0. VOLUME PERMISSIONS INITIALIZER (Ensures nonroot UID 65532 owns /app/data)
+  # ----------------------------------------------------------------------------
+  volume-init:
+    image: alpine:latest
+    container_name: atlas-volume-init-prod
+    command: ["chown", "-R", "65532:65532", "/data"]
+    volumes:
+      - atlas_prod_data:/data
+    restart: "no"
+
+  # ----------------------------------------------------------------------------
+  # 1. FRONTEND INGRESS (Chainguard Nginx Reverse Proxy)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        NODE_VERSION: 22
+        PNPM_VERSION: 10.0.0
+    image: atlas-frontend:latest
+    container_name: atlas-frontend-prod
+    ports:
+      - "${PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - atlas-prod-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/bin/wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ----------------------------------------------------------------------------
+  # 2. BACKEND API (Fastify 5 + LibSQL/SQLite Persistent Engine)
+  # ----------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      target: production
+      args:
+        NODE_VERSION: 22
+        PNPM_VERSION: 10.0.0
+    image: atlas-backend:latest
+    container_name: atlas-api-prod
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: file:/app/data/atlas-erp-prod.db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      USE_REDIS_MOCK: "false"
+      COOKIE_SECRET: ${COOKIE_SECRET:-atlas_prod_cookie_secret_key_32_characters_minimum}
+      JWT_SECRET: ${JWT_SECRET:-atlas_prod_jwt_secret_key_32_characters_minimum}
+    volumes:
+      - atlas_prod_data:/app/data
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-prod-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/bin/node", "-e", "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+  # ----------------------------------------------------------------------------
+  # 3. BACKGROUND WORKER (BullMQ Processor + Camunda Zeebe Workers)
+  # ----------------------------------------------------------------------------
+  worker:
+    image: atlas-backend:latest
+    container_name: atlas-worker-prod
+    command: ["--import", "tsx/esm", "src/worker-node.ts"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: file:/app/data/atlas-erp-prod.db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      USE_REDIS_MOCK: "false"
+      COOKIE_SECRET: ${COOKIE_SECRET:-atlas_prod_cookie_secret_key_32_characters_minimum}
+      JWT_SECRET: ${JWT_SECRET:-atlas_prod_jwt_secret_key_32_characters_minimum}
+    volumes:
+      - atlas_prod_data:/app/data
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-prod-net
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+
+  # ----------------------------------------------------------------------------
+  # 4. REDIS (Cache & Distributed Queue Broker)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7.2-alpine
+    container_name: atlas-redis-prod
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy noeviction
+    volumes:
+      - redis_prod_data:/data
+    networks:
+      - atlas-prod-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # ----------------------------------------------------------------------------
+  # 5. OPTIONAL OBSERVABILITY: PROMETHEUS
+  # ----------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: atlas-prometheus-prod
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./grafana/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./grafana/rules:/etc/prometheus/rules:ro
+      - prometheus_prod_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - atlas-prod-net
+    profiles:
+      - observability
+
+  # ----------------------------------------------------------------------------
+  # 6. OPTIONAL OBSERVABILITY: GRAFANA
+  # ----------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: atlas-grafana-prod
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_prod_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-atlas2024}
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - atlas-prod-net
+    profiles:
+      - observability
+
+networks:
+  atlas-prod-net:
+    driver: bridge
+
+volumes:
+  atlas_prod_data:
+  redis_prod_data:
+  prometheus_prod_data:
+  grafana_prod_data:
