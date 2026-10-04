@@ -32,6 +32,7 @@ import {
   Flame,
   Zap,
   ArrowLeftRight,
+  Radio,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -129,6 +130,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
               icon={Globe2}
             >
               {t("sidebar.globeTracker")}
+            </NavLink>
+          )}
+          {(isAdminOrFF || isCustomsBroker) && (
+            <NavLink
+              onClick={() => setMobileMenuOpen(false)}
+              to="/control-tower"
+              icon={Radio}
+            >
+              Torre de Control Ops
             </NavLink>
           )}
           {isAdminOrFF && (

@@ -194,6 +194,35 @@ export interface DomainEventRegistry {
     "edi:exception-detected",
     EdiExceptionDetectedPayload
   >;
+  "control-tower:incident-detected": BaseDomainEvent<
+    "control-tower:incident-detected",
+    {
+      incidentId: string;
+      incidentNumber: string;
+      severity: string;
+      incidentType: string;
+      shipmentId?: string;
+    }
+  >;
+  "control-tower:reroute-executed": BaseDomainEvent<
+    "control-tower:reroute-executed",
+    {
+      incidentId: string;
+      selectedOptionId: string;
+      newCorridor: string;
+      etaDeltaHours: number;
+    }
+  >;
+  "control-tower:dispute-filed": BaseDomainEvent<
+    "control-tower:dispute-filed",
+    {
+      disputeId: string;
+      disputeCode: string;
+      carrierInvoiceId?: string;
+      disputedAmount: number;
+      reason: string;
+    }
+  >;
 }
 
 export type EventKey = keyof DomainEventRegistry;
