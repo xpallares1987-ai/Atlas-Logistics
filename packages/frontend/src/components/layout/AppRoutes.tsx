@@ -98,6 +98,9 @@ const BulkOperationsModule = React.lazy(
 const EdiIntegrationModule = React.lazy(
   () => import("../../pages/EdiIntegrationModule"),
 );
+const ControlTowerModule = React.lazy(
+  () => import("../../pages/ControlTowerModule"),
+);
 const InvoicingModule = React.lazy(() => import("../../pages/InvoicingModule"));
 const AgentSettlementsModule = React.lazy(
   () => import("../../pages/AgentSettlementsModule"),
@@ -186,6 +189,22 @@ export const AppRoutes = () => {
               ]}
             >
               <GlobeTrackerModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/control-tower"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "ADMIN",
+                "EXECUTIVE",
+                "MANAGER",
+                "SALES",
+                "OPERATIONS",
+              ]}
+            >
+              <ControlTowerModule />
             </ProtectedRoute>
           }
         />

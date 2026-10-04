@@ -38,6 +38,7 @@ import { bulkOperationsRoutes } from "./bulk-operations.routes.js";
 import { carbonRoutes } from "./carbon.routes.js";
 import { telemetryRoutes } from "./telemetry.routes.js";
 import { ediRoutes } from "./edi.routes.js";
+import controlTowerRoutes from "./control-tower.routes.js";
 import bpmnRoutes from "./bpmn.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
 
@@ -149,6 +150,7 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(carbonRoutes, { prefix: "/api/carbon" });
   await fastify.register(telemetryRoutes, { prefix: "/api/telemetry" });
   await fastify.register(ediRoutes, { prefix: "/api/edi" });
+  await fastify.register(controlTowerRoutes, { prefix: "/api/control-tower" });
 };
 
 export default registerAllRoutes;
