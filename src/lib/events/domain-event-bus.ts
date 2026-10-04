@@ -228,7 +228,7 @@ export class DomainEventBus {
       this.emitter.emit(eventName, event);
     });
 
-    return event as DomainEventRegistry[K];
+    return event as unknown as DomainEventRegistry[K];
   }
 
   /**

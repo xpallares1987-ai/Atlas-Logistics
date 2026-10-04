@@ -1,5 +1,5 @@
 // src/admin/cli.ts
-import { createAdmin } from "./adminService";
+import { createAdmin } from "./adminService.js";
 
 (async () => {
   try {

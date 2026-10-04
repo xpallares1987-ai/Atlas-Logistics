@@ -20,7 +20,7 @@ import {
   Activity,
   Loader2,
 } from "lucide-react";
-import { useAppStore } from "../shared/store";
+import { useAppStore } from "../store";
 import { drizzleRateService } from "../services/drizzleRateService";
 
 ChartJS.register(

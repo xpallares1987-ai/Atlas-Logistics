@@ -135,13 +135,13 @@ export const coldChainRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const evaluation = MktCalculatorService.evaluateShipment(input);
-    if (evaluation.hasExcursion) {
+    if (!evaluation.isCompliant || evaluation.excursionCount > 0) {
       void domainEventBus.publish("cold-chain:excursion-detected", "cold_chain_eval", {
         shipmentId: "direct_evaluation",
         sensorId: "temp_probe_eval",
         temperatureCelsius: evaluation.maxRecordedCelsius,
         thresholdMaxCelsius: input.maxAllowedCelsius,
-        durationMinutes: evaluation.excursions[0]?.durationMinutes || 0,
+        durationMinutes: evaluation.totalExcursionMinutes || 0,
         meanKineticTempCelsius: evaluation.mktCelsius,
       });
     }

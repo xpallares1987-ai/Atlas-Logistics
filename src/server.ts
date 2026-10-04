@@ -18,7 +18,7 @@ import { logger } from "./config/logger.js";
 import { connectRedis } from "./config/redis.js";
 
 const PORT = parseInt(
-  process.env.BACKEND_PORT || process.env.API_PORT || "3001",
+  process.env.PORT || process.env.BACKEND_PORT || process.env.API_PORT || "3001",
   10,
 );
 

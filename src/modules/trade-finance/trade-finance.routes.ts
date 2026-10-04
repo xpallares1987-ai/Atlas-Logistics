@@ -163,7 +163,7 @@ export const tradeFinanceRoutes: FastifyPluginAsync = async (
     domainEventBus.publish("trade-finance:instrument-issued", id, {
       instrumentId: id,
       instrumentType: "LETTER_OF_CREDIT",
-      amount: Number(instrumentData.amount),
+      amount: Number(instrumentData.creditAmount),
       currency: instrumentData.currency,
       applicantCompanyId:
         instrumentData.applicantCompanyId || "applicant_unknown",

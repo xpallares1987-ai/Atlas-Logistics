@@ -196,7 +196,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
           }),
         );
       } catch (err) {
-        req.log.error("WebSocket broadcast error", err);
+        req.log.error(err, "WebSocket broadcast error");
       }
     }, 5000);
 

@@ -20,7 +20,6 @@ export default defineConfig({
       shared: [
         "react",
         "react-dom",
-        "react-router",
         "react-router-dom",
         "@tanstack/react-query",
         "lucide-react",
@@ -30,7 +29,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       devOptions: {
-        enabled: true,
+        enabled: false,
       },
       manifest: {
         name: "Atlas Logistics ERP",
@@ -58,18 +57,24 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@atlas/mfe-warehouse": path.resolve(__dirname, "../mfe-warehouse"),
-      "@atlas/rate-comparer": path.resolve(__dirname, "../rate-comparer"),
+      "@": path.resolve(import.meta.dirname, "./src"),
+      "@atlas/mfe-warehouse": path.resolve(import.meta.dirname, "../mfe-warehouse"),
+      "@atlas/rate-comparer": path.resolve(import.meta.dirname, "../rate-comparer"),
     },
   },
   server: {
     host: "0.0.0.0",
-    port: 3000,
+    port: 4000,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:3001",
+        target: "http://127.0.0.1:4001",
         changeOrigin: true,
+        ws: true,
+      },
+      "/ws": {
+        target: "http://127.0.0.1:4001",
+        changeOrigin: true,
+        ws: true,
       },
     },
   },

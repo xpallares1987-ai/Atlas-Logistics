@@ -5,7 +5,7 @@
  * (e.g. @atlas/frontend AppLayout). App.tsx retains the full-page standalone version.
  */
 import React, { useState } from "react";
-import { useAppStore } from "./shared/store";
+import { useAppStore } from "./store";
 import RateTable from "./components/RateTable";
 import LocationAutocomplete from "./components/LocationAutocomplete";
 import AdvancedFiltersDrawer from "./components/AdvancedFiltersDrawer";

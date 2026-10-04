@@ -103,7 +103,7 @@ export class ComplianceService {
         ),
       );
 
-    const activeSanction = sanctionsList.find((s) => s.isActive !== 0);
+    const activeSanction = sanctionsList.find((s) => Boolean(s.isActive));
     if (activeSanction) {
       if (activeSanction.sanctionType === "EMBARGO") {
         totalRiskPoints += 85;
@@ -295,10 +295,7 @@ export class ComplianceService {
       recommendedActions.push(
         "Emitir carta de pago para liquidación de derechos e IVA.",
       );
-    } else if (
-      channel === "Canal Naranja (Documental)" ||
-      channel === "Orange Channel"
-    ) {
+    } else if (channel === "Orange Channel") {
       recommendedActions.push(
         "Aportar factura comercial y justificantes de transporte en la sede electrónica.",
       );

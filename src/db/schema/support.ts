@@ -39,7 +39,6 @@ export const warehouseInventory = sqliteTable("warehouse_inventory", {
   weight: real("weight"),
   volume: real("volume"),
   zone: text("zone").notNull().default("DRY"), // DRY, COLD, HAZMAT, CROSS_DOCK
-  metadata: text("metadata", { mode: "json" }),
   status: text("status").notNull().default("IN_STOCK"), // IN_STOCK, RESERVED, DISPATCHED
   ...commonAuditFields,
 });

@@ -87,14 +87,13 @@ app.register(fastifyRateLimit, {
   redis: redis, // Use shared Redis (or mock) for rate limiting
 });
 
-app.register(metrics, { endpoint: "/metrics" });
+app.register(metrics as any, { endpoint: "/metrics" });
 app.register(swagger, {
   openapi: {
     info: { title: "Atlas Logistics API", version: "1.0.0" },
   },
-  exposeRoute: true,
 });
-app.register(swaggerUI, { routePrefix: "/docs", exposeRoute: true });
+app.register(swaggerUI, { routePrefix: "/docs" });
 
 // REQUIRED: COOKIE_SECRET and JWT_SECRET must be provided via environment
 app.register(fastifyCookie, {
