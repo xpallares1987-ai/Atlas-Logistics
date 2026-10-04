@@ -220,7 +220,7 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     async (request, reply) => {
       try {
         const body = request.body as any;
-        const id = `TRK-${Math.floor(100 + Math.random() * 900)}`;
+        const id = `TRK-${crypto.randomUUID().substring(0, 8)}`;
 
         await db.insert(warehouseTraffic).values({
           id,
