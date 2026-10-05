@@ -362,7 +362,6 @@ export function calculateAxleWeightDistribution(
   // Container placement on chassis:
   // Kingpin is positioned approximately 0.9m behind the front bulkhead of the container
   const kingpinToFrontM = 0.90;
-  const distanceFrontToBogieM = kingpinToFrontM + roadConfig.kingpinToTridemDistanceM;
 
   // Moment about Kingpin to find load on Trailer Bogie:
   // Weight * (cogYFromFront - kingpinToFrontM) = BogieReaction * kingpinToTridemDistanceM
@@ -581,8 +580,6 @@ export function optimizeStowage3D(
   // Potential Anchor / Placement points in 3D:
   // We initialize with origin (0, 0, 0)
   const candidatePoints: Array<{ x: number; y: number; z: number }> = [{ x: 0, y: 0, z: 0 }];
-
-  const STEP = 0.05; // 5 cm precision grid
 
   for (const item of itemsToPack) {
     if (currentPayloadKg + item.weightKg > maxPayload) {

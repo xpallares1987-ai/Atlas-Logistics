@@ -42,6 +42,7 @@ import controlTowerRoutes from "./control-tower.routes.js";
 import bpmnRoutes from "./bpmn.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
 import stowageRoutes from "../modules/stowage/stowage.routes.js";
+import smartContractsRoutes from "../modules/smart-contracts/smart-contracts.routes.js";
 
 export {
   shipmentsRoutes,
@@ -85,6 +86,7 @@ export {
   bpmnRoutes,
   dashboardRoutes,
   stowageRoutes,
+  smartContractsRoutes,
 };
 
 /**
@@ -154,6 +156,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(ediRoutes, { prefix: "/api/edi" });
   await fastify.register(controlTowerRoutes, { prefix: "/api/control-tower" });
   await fastify.register(stowageRoutes, { prefix: "/api/stowage" });
+  await fastify.register(smartContractsRoutes, {
+    prefix: "/api/smart-contracts",
+  });
 };
 
 export default registerAllRoutes;

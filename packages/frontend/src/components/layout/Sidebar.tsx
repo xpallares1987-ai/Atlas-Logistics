@@ -33,6 +33,7 @@ import {
   Zap,
   ArrowLeftRight,
   Radio,
+  FileCode2,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -313,6 +314,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Landmark}
               >
                 Trade Finance (UCP 600)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/smart-contracts"
+                icon={FileCode2}
+              >
+                Smart Contracts & e-BL (MLETR)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
