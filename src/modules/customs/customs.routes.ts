@@ -15,6 +15,13 @@ import {
   DuaXmlPayload,
 } from "./dua-xml.service.js";
 import { domainEventBus } from "../../lib/events/index.js";
+import {
+  extractCommercialInvoice,
+  extractPackingList,
+  extractTransportDocument,
+  extractCustomsDeclaration,
+  performTripartiteCrossCheck,
+} from "@atlas/shared";
 
 const CalculateTariffSchema = z.object({
   hsCode: z.string().min(2),
@@ -55,6 +62,23 @@ const CreateDeclarationSchema = z.object({
   grossWeightKg: z.number().nonnegative().optional(),
   hasPreferentialOriginCert: z.boolean().optional(),
   attachedDocumentTypes: z.array(z.string()).optional(),
+});
+
+const OcrExtractSchema = z.object({
+  documentType: z.enum([
+    "COMMERCIAL_INVOICE",
+    "PACKING_LIST",
+    "TRANSPORT_DOCUMENT",
+    "CUSTOMS_DECLARATION",
+  ]),
+  text: z.string().min(5),
+});
+
+const OcrCrossCheckSchema = z.object({
+  invoice: z.any(),
+  packingList: z.any(),
+  declaration: z.any(),
+  transport: z.any().optional(),
 });
 
 const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
@@ -484,6 +508,54 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
       reply.code(500).send({ error: "Failed to generate DUA XML" });
     }
   });
+
+  // 7. OCR Extraction Endpoint
+  const handleOcrExtract = async (request: any, reply: any) => {
+    try {
+      const { documentType, text } = OcrExtractSchema.parse(request.body);
+      let result;
+      switch (documentType) {
+        case "COMMERCIAL_INVOICE":
+          result = extractCommercialInvoice(text);
+          break;
+        case "PACKING_LIST":
+          result = extractPackingList(text);
+          break;
+        case "TRANSPORT_DOCUMENT":
+          result = extractTransportDocument(text);
+          break;
+        case "CUSTOMS_DECLARATION":
+          result = extractCustomsDeclaration(text);
+          break;
+      }
+      return reply.send({ success: true, data: result });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, error: error.message });
+    }
+  };
+
+  fastify.post("/ocr/extract", handleOcrExtract);
+  fastify.post("/customs/ocr/extract", handleOcrExtract);
+
+  // 8. Tripartite Cross-Check Endpoint
+  const handleOcrCrossCheck = async (request: any, reply: any) => {
+    try {
+      const { invoice, packingList, declaration, transport } =
+        OcrCrossCheckSchema.parse(request.body);
+      const result = performTripartiteCrossCheck(
+        invoice,
+        packingList,
+        declaration,
+        transport,
+      );
+      return reply.send({ success: true, data: result });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, error: error.message });
+    }
+  };
+
+  fastify.post("/ocr/cross-check", handleOcrCrossCheck);
+  fastify.post("/customs/ocr/cross-check", handleOcrCrossCheck);
 };
 
 export default customsRoutes;

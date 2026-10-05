@@ -5,14 +5,19 @@ import { SyncManager } from "./syncManager.js";
 export const db = new SharedDatabase();
 
 // Determine API URL for SyncManager
+let envApiUrl: string | undefined;
+try {
+  if (typeof process !== "undefined" && process?.env?.VITE_API_URL) {
+    envApiUrl = process.env.VITE_API_URL;
+  }
+} catch {
+  // ignore
+}
+
 const apiUrl =
-  typeof process !== "undefined" && process.env.VITE_API_URL
-    ? process.env.VITE_API_URL
-    : typeof import.meta !== "undefined" &&
-        (import.meta as any).env?.VITE_API_URL
-      ? (import.meta as any).env.VITE_API_URL
-      : typeof window !== "undefined"
-        ? `${window.location.origin}/api`
-        : "http://localhost:3001/api";
+  envApiUrl ||
+  (typeof window !== "undefined"
+    ? `${window.location.origin}/api`
+    : "http://localhost:3001/api");
 
 export const syncManager = new SyncManager(db, apiUrl);

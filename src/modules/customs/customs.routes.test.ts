@@ -123,4 +123,57 @@ describe("Customs Routes Integration Tests", () => {
     expect(xmlRes.payload).toContain("<DeclaracionAduaneraDUA");
     expect(xmlRes.payload).toContain("<Casilla33_CodigoTARIC>");
   });
+
+  it("POST /api/ocr/extract should extract structured data from commercial invoice text", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/ocr/extract",
+      payload: {
+        documentType: "COMMERCIAL_INVOICE",
+        text: "COMMERCIAL INVOICE NO: INV-2026-X991\nDATE: 2026-10-05\nTOTAL CIF: $148,000.00 USD\nHS CODE: 8542.31.00",
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const json = JSON.parse(response.payload);
+    expect(json.success).toBe(true);
+    expect(json.data.extractedFields.invoiceNumber).toBe("INV-2026-X991");
+    expect(json.data.extractedFields.totalCifUsd).toBe(148000);
+  });
+
+  it("POST /api/ocr/cross-check should reconcile invoice, packing list and declaration", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/ocr/cross-check",
+      payload: {
+        invoice: {
+          invoiceNumber: "INV-1",
+          totalCifUsd: 100000,
+          lineItems: [{ hsCode: "8542.31.00" }],
+        },
+        packingList: {
+          packingListNumber: "PL-1",
+          grossWeightKg: 10000,
+          containerNumber: "MSKU1234567",
+        },
+        declaration: {
+          declarationNumber: "DEC-1",
+          declaredCustomsValueUsd: 100000,
+          primaryHsCode: "8542.31.00",
+        },
+        transport: {
+          documentNumber: "BL-1",
+          declaredGrossWeightKg: 10000,
+          containerNumber: "MSKU1234567",
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const json = JSON.parse(response.payload);
+    expect(json.success).toBe(true);
+    expect(json.data.overallStatus).toBe("MATCH_CLEARED");
+    expect(json.data.complianceScore).toBe(100);
+    expect(json.data.releaseCertificateId).toBeDefined();
+  });
 });
