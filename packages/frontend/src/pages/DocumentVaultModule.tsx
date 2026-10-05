@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import {
   FileText,
@@ -364,6 +365,13 @@ export default function DocumentVaultModule() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Link
+              to="/security-risk"
+              className="flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 px-3.5 py-2 rounded-2xl text-indigo-300 text-xs font-semibold transition-all"
+            >
+              <ShieldAlert size={14} />
+              Security & Resilience Center
+            </Link>
             <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-2 rounded-2xl text-emerald-400 text-xs font-semibold">
               <Lock size={14} />
               Bóveda Criptográfica Activa

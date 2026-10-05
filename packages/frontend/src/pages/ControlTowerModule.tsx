@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   ShieldAlert,
   Radio,
@@ -436,6 +437,14 @@ export default function ControlTowerModule() {
           <Sparkles size={14} />
           Calculadora Spot Multimodal
         </button>
+
+        <Link
+          to="/security-risk"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-semibold border border-indigo-500/30 ml-auto self-center transition-all"
+        >
+          <ShieldAlert size={14} className="text-indigo-400" />
+          Radar de Riesgo & Seguridad Criptográfica
+        </Link>
       </div>
 
       {/* TAB 1: RADAR DE INCIDENTES & RE-ENRUTAMIENTO */}
