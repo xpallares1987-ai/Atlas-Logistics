@@ -27,8 +27,6 @@ import {
   Layers,
   Sparkles,
   Scan,
-  Check,
-  ArrowRight,
 } from "lucide-react";
 import { Input, Button } from "@atlas/ui";
 import {

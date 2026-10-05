@@ -20,15 +20,10 @@ import {
   RefreshCw,
   Plus,
   Trash2,
-  Ship,
   Truck,
   RotateCw,
   Eye,
   Info,
-  ShieldAlert,
-  ShieldCheck,
-  ChevronRight,
-  Maximize2,
 } from "lucide-react";
 import { Button, Input } from "@atlas/ui";
 import {
@@ -39,9 +34,6 @@ import {
   PlacedCargoItem,
   STOWAGE_DEMO_PRESETS,
   optimizeStowage3D,
-  calculateCenterOfGravity,
-  calculateAxleWeightDistribution,
-  checkImoSegregationInContainer,
   StowageOptimizationResult,
 } from "@atlas/shared";
 

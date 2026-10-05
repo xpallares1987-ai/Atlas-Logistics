@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck,
@@ -12,7 +12,6 @@ import {
   Search,
   CheckCircle2,
   XCircle,
-  Copy,
   Zap,
   Globe2,
   Trash2,
@@ -54,7 +53,7 @@ export default function SecurityRiskResilienceModule() {
   const [deviceModel, setDeviceModel] = useState("YubiKey 5 NFC / TouchID Biometric");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [passkeyResult, setPasskeyResult] = useState<any>(null);
-  const [registeredKeys, setRegisteredKeys] = useState<any[]>([
+  const [registeredKeys] = useState<any[]>([
     {
       id: "fido2-cred-7a9b1c2d",
       device: "YubiKey 5 NFC (Series FIPS)",
@@ -123,7 +122,7 @@ export default function SecurityRiskResilienceModule() {
     "PEDIMENTO" | "BILL_OF_LADING" | "E_CMR" | "CUSTOMS_DECLARATION"
   >("PEDIMENTO");
   const [docId, setDocId] = useState("PED-2026-SAT-480-1289");
-  const [issuerId, setIssuerId] = useState("AGENCIA-ADUANAL-3001");
+  const [issuerId] = useState("AGENCIA-ADUANAL-3001");
   const [issuerOrg, setIssuerOrg] = useState("Atlas Cross-Border Customs Brokerage S.A.");
   const [docPayload, setDocPayload] = useState(
     JSON.stringify(

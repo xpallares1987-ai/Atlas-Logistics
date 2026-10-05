@@ -17,7 +17,6 @@ import {
   Plus,
   TableProperties,
   Fingerprint,
-  CheckCircle2,
 } from "lucide-react";
 import { useAppStore } from "../store/useAppStore";
 import { useTranslation } from "react-i18next";

@@ -6,6 +6,13 @@ vi.mock("../../middleware/auth.js", () => ({
   requireRole: vi.fn(() => async () => {}),
 }));
 
+vi.mock("oslo/password", () => ({
+  Argon2id: vi.fn().mockImplementation(() => ({
+    hash: vi.fn(async () => "mocked-hash"),
+    verify: vi.fn(async () => true),
+  })),
+}));
+
 import app from "../../app.js";
 
 describe("Stowage 3D & Axle Weight Routes Integration Tests", () => {
