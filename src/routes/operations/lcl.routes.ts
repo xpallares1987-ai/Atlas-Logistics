@@ -8,6 +8,11 @@ import {
 import { eq, isNull, inArray } from "drizzle-orm";
 import { PDFService } from "../../services/pdf.service.js";
 import { ensureOperationsSeedData } from "./seed-data.js";
+import {
+  EQUIPMENT_CATALOG,
+  optimizeStowage3D,
+  CargoItemInput,
+} from "@atlas/shared";
 
 export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
   // Container Planner Endpoints
@@ -89,7 +94,7 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
         .from(cargoItems)
         .where(eq(cargoItems.containerId, id));
 
-      const itemsToPack =
+      const rawItems =
         cargo.length > 0
           ? cargo
           : [
@@ -101,9 +106,6 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
                 height: 1.5,
                 depth: 1.0,
                 weight: 450,
-                x: 0,
-                y: 0,
-                z: 0,
               },
               {
                 id: "c2",
@@ -113,9 +115,6 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
                 height: 1.2,
                 depth: 1.5,
                 weight: 800,
-                x: 0,
-                y: 0,
-                z: 0,
               },
               {
                 id: "c3",
@@ -125,9 +124,6 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
                 height: 2.0,
                 depth: 1.0,
                 weight: 300,
-                x: 0,
-                y: 0,
-                z: 0,
               },
               {
                 id: "c4",
@@ -137,37 +133,52 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
                 height: 1.8,
                 depth: 2.0,
                 weight: 1200,
-                x: 0,
-                y: 0,
-                z: 0,
               },
             ];
 
-      itemsToPack.sort((a, b) => {
-        const volA = a.width * a.height * a.depth;
-        const volB = b.width * b.height * b.depth;
-        return volB - volA;
+      const container = EQUIPMENT_CATALOG["40ft_hc"];
+
+      // Map to 3D Bin Packing Inputs
+      const itemsToPack: CargoItemInput[] = rawItems.map((item: any) => ({
+        id: item.id,
+        name: item.label || item.name || "Cargo Item",
+        widthM: Number(item.width),
+        lengthM: Number(item.depth || item.lengthM || 1.2),
+        heightM: Number(item.height),
+        weightKg: Number(item.weight || item.weightKg || 500),
+        stackable: item.stackable !== false,
+        color: item.color || "#3b82f6",
+      }));
+
+      const result = optimizeStowage3D(container, itemsToPack, {
+        centerPayload: true,
       });
 
-      let currentZ = -5.5;
-      const packedItems = itemsToPack.map((item) => {
-        const zPos = currentZ + item.depth / 2;
-        const yPos = item.height / 2;
-        const xPos = 0;
-
-        currentZ += item.depth + 0.1;
-        return {
-          ...item,
-          x: xPos,
-          y: yPos,
-          z: zPos,
-        };
-      });
+      // Transform from corner origin (0, 0, 0) to centered Three.js coordinates
+      const threeJsItems = result.packedItems.map((p) => ({
+        id: p.id,
+        label: p.name,
+        color: p.color || "#3b82f6",
+        width: p.effectiveWidthM,
+        height: p.effectiveHeightM,
+        depth: p.effectiveLengthM,
+        weight: p.weightKg,
+        x: Math.round((p.x + p.effectiveWidthM / 2 - container.internalWidthM / 2) * 100) / 100,
+        y: Math.round((p.z + p.effectiveHeightM / 2) * 100) / 100,
+        z: Math.round((p.y + p.effectiveLengthM / 2 - container.internalLengthM / 2) * 100) / 100,
+      }));
 
       return reply.send({
-        items: packedItems,
-        suggestion:
-          "Heuristic packer ran successfully: Sorted by volume (descending) and placed back-to-front along the center axis.",
+        items: threeJsItems,
+        metrics: {
+          volumeUtilizationPercent: result.volumeUtilizationPercent,
+          weightUtilizationPercent: result.weightUtilizationPercent,
+          totalCargoWeightKg: result.totalCargoWeightKg,
+          centerOfGravity: result.centerOfGravity,
+          axleDistribution: result.axleDistribution,
+          imoSegregation: result.imoSegregation,
+        },
+        suggestion: `Estiba 3D Optimizada: ${result.packedItems.length}/${itemsToPack.length} bultos estibados. CoG Score: ${result.centerOfGravity.stabilityScore}/100. ${result.axleDistribution.legalComplianceSummary}`,
       });
     } catch (error: any) {
       return reply.code(500).send({ error: error.message });
