@@ -510,6 +510,14 @@ export const AppRoutes = () => {
           }
         />
         <Route
+          path="/stowage-3d"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
+              <ContainerPlannerModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/lcl"
           element={
             <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>

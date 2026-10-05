@@ -41,6 +41,7 @@ import { ediRoutes } from "./edi.routes.js";
 import controlTowerRoutes from "./control-tower.routes.js";
 import bpmnRoutes from "./bpmn.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
+import stowageRoutes from "../modules/stowage/stowage.routes.js";
 
 export {
   shipmentsRoutes,
@@ -83,6 +84,7 @@ export {
   ediRoutes,
   bpmnRoutes,
   dashboardRoutes,
+  stowageRoutes,
 };
 
 /**
@@ -151,6 +153,7 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(telemetryRoutes, { prefix: "/api/telemetry" });
   await fastify.register(ediRoutes, { prefix: "/api/edi" });
   await fastify.register(controlTowerRoutes, { prefix: "/api/control-tower" });
+  await fastify.register(stowageRoutes, { prefix: "/api/stowage" });
 };
 
 export default registerAllRoutes;
