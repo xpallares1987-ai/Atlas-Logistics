@@ -98,6 +98,9 @@ const BulkOperationsModule = React.lazy(
 const EdiIntegrationModule = React.lazy(
   () => import("../../pages/EdiIntegrationModule"),
 );
+const SecurityRiskResilienceModule = React.lazy(
+  () => import("../../pages/SecurityRiskResilienceModule"),
+);
 const ControlTowerModule = React.lazy(
   () => import("../../pages/ControlTowerModule"),
 );
@@ -395,6 +398,16 @@ export const AppRoutes = () => {
               allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
             >
               <AeoSecurityModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/security-risk"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES", "CUSTOMER"]}
+            >
+              <SecurityRiskResilienceModule />
             </ProtectedRoute>
           }
         />

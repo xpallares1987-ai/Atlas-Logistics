@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   User,
   Building2,
@@ -15,6 +16,8 @@ import {
   Database,
   Plus,
   TableProperties,
+  Fingerprint,
+  CheckCircle2,
 } from "lucide-react";
 import { useAppStore } from "../store/useAppStore";
 import { useTranslation } from "react-i18next";
@@ -1000,14 +1003,39 @@ function SecuritySettings() {
           {loading ? "Updating..." : "Change Password"}
         </Button>
       </form>
-      <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
-        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-          Two-Factor Authentication (2FA)
-        </h3>
-        <p className="text-sm text-slate-500 mb-4">
-          Add an extra layer of security to your account.
-        </p>
-        <Button className="px-4 py-2 rounded-lg text-sm">Enable 2FA</Button>
+      <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+        <div>
+          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            Autenticación de Dos Factores (TOTP) y Llaves Passkeys (FIDO2)
+          </h3>
+          <p className="text-xs text-slate-500">
+            Protección avanzada contra accesos no autorizados mediante biometría y códigos de 6 dígitos.
+          </p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
+              <Fingerprint size={24} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-slate-900 dark:text-white">WebAuthn / Passkeys Activo</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
+                  2 Llaves Vinculadas
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                YubiKey 5 NFC y Windows Hello registrados para confirmación de manifiestos y despacho.
+              </p>
+            </div>
+          </div>
+          <Link to="/security-risk">
+            <Button className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white shrink-0">
+              Gestionar en Security Center
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

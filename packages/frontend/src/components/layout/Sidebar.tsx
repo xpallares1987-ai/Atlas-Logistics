@@ -323,6 +323,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
+                to="/security-risk"
+                icon={ShieldAlert}
+              >
+                Security, Risk & Resilience
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
                 to="/chartering-laytime"
                 icon={Anchor}
               >
