@@ -20,6 +20,8 @@ import {
   DollarSign,
   AlertCircle,
   Package,
+  Plus,
+  X,
 } from "lucide-react";
 import { Button } from "@atlas/ui";
 import {
@@ -44,6 +46,7 @@ export default function BookingManagementModule() {
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedEdi, setCopiedEdi] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(882); // ~14m 42s
+  const [showNewBookingModal, setShowNewBookingModal] = useState(false);
 
   // Live countdown timer for rate lock
   useEffect(() => {
@@ -331,8 +334,9 @@ export default function BookingManagementModule() {
                 <Ship className="w-7 h-7" />
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-                  Ocean Booking & Equipment Control Tower
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white flex flex-wrap items-center gap-2">
+                  <span>Ocean Booking & Equipment Control Tower</span>
+                  <span className="text-slate-400 font-normal text-base">| Booking & B/L Management</span>
                   <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono font-medium">
                     DCSA v2.0 / EDI 301 & 304
                   </span>
@@ -344,8 +348,15 @@ export default function BookingManagementModule() {
             </div>
           </div>
 
-          {/* Scenario Presets Selector */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Actions & Scenario Presets Selector */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Button
+              onClick={() => setShowNewBookingModal(true)}
+              className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 py-1.5 px-3"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New Booking
+            </Button>
             <span className="text-xs text-slate-400 font-medium mr-1">Corredores Activos:</span>
             {OCEAN_BOOKING_PRESETS.map((p) => (
               <button
@@ -364,6 +375,34 @@ export default function BookingManagementModule() {
                   : "🇪🇸 SAICA Corredor (BCN -> NYC Book 012)"}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Kanban Board Columns Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-3">
+            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> Pending
+            </h3>
+            <div className="text-sm font-semibold text-white mt-1">1 En Asignación</div>
+          </div>
+          <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-3">
+            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed
+            </h3>
+            <div className="text-sm font-semibold text-white mt-1">3 Reservas DCSA</div>
+          </div>
+          <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-3">
+            <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Ship className="w-3.5 h-3.5" /> In Transit
+            </h3>
+            <div className="text-sm font-semibold text-white mt-1">2 Buques en Navegación</div>
+          </div>
+          <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-3">
+            <h3 className="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" /> Delivered
+            </h3>
+            <div className="text-sm font-semibold text-white mt-1">Completadas</div>
           </div>
         </div>
 
@@ -1033,6 +1072,77 @@ export default function BookingManagementModule() {
 
               <div className="text-slate-400 text-[11px] leading-relaxed">
                 Escanee en la barrera OCR del depósito de contenedores para apertura automática de barrera y pesaje en báscula.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* House Bill of Lading Draft Modal */}
+        {showNewBookingModal && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-400" />
+                  House Bill of Lading Draft
+                </h3>
+                <button
+                  onClick={() => setShowNewBookingModal(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="text-slate-400 block mb-1">Shipper</label>
+                  <input
+                    type="text"
+                    defaultValue="Atlas Logistics Enterprise Group"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1">Consignee</label>
+                  <input
+                    type="text"
+                    defaultValue="Apex High-Tech Logistics Inc"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1">Port of Loading</label>
+                  <input
+                    type="text"
+                    defaultValue="CNSHA"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1">Port of Discharge</label>
+                  <input
+                    type="text"
+                    defaultValue="USLAX"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowNewBookingModal(false)}
+                  className="text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => setShowNewBookingModal(false)}
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
+                >
+                  Save Booking
+                </Button>
               </div>
             </div>
           </div>
