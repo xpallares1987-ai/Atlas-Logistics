@@ -89,6 +89,9 @@ const CrossBorderUsmcaModule = React.lazy(
 const EFirmaHubModule = React.lazy(
   () => import("../../pages/EFirmaHubModule"),
 );
+const ErpIntegrationsModule = React.lazy(
+  () => import("../../pages/ErpIntegrationsModule"),
+);
 const AeoSecurityModule = React.lazy(
   () => import("../../pages/AeoSecurityModule"),
 );
@@ -440,6 +443,16 @@ export const AppRoutes = () => {
               allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
             >
               <EFirmaHubModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/erp-integrations"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+            >
+              <ErpIntegrationsModule />
             </ProtectedRoute>
           }
         />
