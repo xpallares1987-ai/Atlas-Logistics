@@ -46,6 +46,7 @@ import smartContractsRoutes from "../modules/smart-contracts/smart-contracts.rou
 import notificationsRoutes from "../modules/notifications/notifications.routes.js";
 import crossBorderRoutes from "../modules/cross-border/cross-border.routes.js";
 import efirmaRoutes from "../modules/efirma/efirma.routes.js";
+import passkeysRoutes from "../modules/passkeys/passkeys.routes.js";
 
 export {
   shipmentsRoutes,
@@ -93,6 +94,7 @@ export {
   notificationsRoutes,
   crossBorderRoutes,
   efirmaRoutes,
+  passkeysRoutes,
 };
 
 /**
@@ -173,6 +175,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(efirmaRoutes, {
     prefix: "/api/efirma",
+  });
+  await fastify.register(passkeysRoutes, {
+    prefix: "/api/passkeys",
   });
 };
 

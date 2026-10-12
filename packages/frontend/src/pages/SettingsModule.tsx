@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import {
   User,
   Building2,
@@ -17,7 +16,31 @@ import {
   Plus,
   TableProperties,
   Fingerprint,
+  ShieldCheck,
+  KeyRound,
+  Copy,
+  Check,
+  RefreshCw,
+  CheckCircle2,
+  Trash2,
+  Sparkles,
+  Clock,
 } from "lucide-react";
+import type {
+  RegisteredPasskeyDevice,
+  PasskeyDeviceType,
+  StepUpSecurityPolicy,
+} from "@atlas/shared";
+import {
+  generateBase32Secret,
+  generateTOTP,
+  verifyTOTP,
+  generateBackupCodes,
+  authenticateWithHardwareToken,
+  verifyHardwareSignature,
+  SAMPLE_REGISTERED_PASSKEYS,
+  DEFAULT_STEP_UP_POLICY,
+} from "@atlas/shared";
 import { useAppStore } from "../store/useAppStore";
 import { useTranslation } from "react-i18next";
 import {
@@ -903,19 +926,76 @@ function CompanySettings() {
 }
 
 function SecuritySettings() {
-  const { addNotification } = useAppStore();
+  const { addNotification, user } = useAppStore();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingPassword, setLoadingPassword] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Passkeys FIDO2 State
+  const [passkeys, setPasskeys] = useState<RegisteredPasskeyDevice[]>(SAMPLE_REGISTERED_PASSKEYS);
+  const [isAddingPasskey, setIsAddingPasskey] = useState(false);
+  const [newDeviceName, setNewDeviceName] = useState("YubiKey 5 NFC (Personal)");
+  const [newDeviceType, setNewDeviceType] = useState<PasskeyDeviceType>("YUBIKEY_FIPS");
+  const [handshakeTesting, setHandshakeTesting] = useState(false);
+  const [handshakeResult, setHandshakeResult] = useState<{ success: boolean; deviceModel: string; timestamp: string } | null>(null);
+
+  // TOTP State
+  const [is2FaEnabled, setIs2FaEnabled] = useState(true);
+  const [totpSecret, setTotpSecret] = useState(() => generateBase32Secret(16));
+  const [currentTotpCode, setCurrentTotpCode] = useState(() => generateTOTP(totpSecret));
+  const [totpSecondsRemaining, setTotpSecondsRemaining] = useState(30);
+  const [totpInputCode, setTotpInputCode] = useState("");
+  const [totpVerifiedStatus, setTotpVerifiedStatus] = useState<boolean | null>(null);
+  const [backupCodes] = useState<string[]>(() => generateBackupCodes(5));
+  const [copiedSecret, setCopiedSecret] = useState(false);
+  const [copiedBackupCodes, setCopiedBackupCodes] = useState(false);
+
+  // Step-Up Policy State
+  const [stepUpPolicy, setStepUpPolicy] = useState<StepUpSecurityPolicy>(DEFAULT_STEP_UP_POLICY);
+  const [savingPolicy, setSavingPolicy] = useState(false);
+
+  // Timer for live TOTP code
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const remaining = 30 - (nowSeconds % 30);
+      setTotpSecondsRemaining(remaining);
+      if (remaining === 30 || remaining === 1) {
+        setCurrentTotpCode(generateTOTP(totpSecret));
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [totpSecret]);
+
+  // Fetch credentials and policy from backend on mount
+  useEffect(() => {
+    fetch("/api/passkeys/credentials")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.devices) {
+          setPasskeys(data.devices);
+        }
+      })
+      .catch(() => {});
+
+    fetch("/api/passkeys/policy")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.policy) {
+          setStepUpPolicy(data.policy);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       alert("New passwords do not match!");
       return;
     }
-    setLoading(true);
+    setLoadingPassword(true);
     try {
       const res = await fetch("/api/settings/password", {
         method: "PUT",
@@ -926,14 +1006,12 @@ function SecuritySettings() {
       if (data.success) {
         addNotification({
           id: Date.now().toString(),
-          title: "Security Updated",
+          title: "Password Updated",
           message: data.message,
           type: "success",
           timestamp: new Date().toISOString(),
           read: false,
         });
-
-        // Use App Store logout since session was invalidated on the backend
         setTimeout(() => {
           useAppStore.getState().logout();
         }, 2000);
@@ -943,20 +1021,156 @@ function SecuritySettings() {
     } catch (err: any) {
       alert("Failed to update password: " + err.message);
     } finally {
-      setLoading(false);
+      setLoadingPassword(false);
+    }
+  };
+
+  const handleAddPasskey = async () => {
+    try {
+      const credId = `fido2-cred-${Math.random().toString(36).substring(2, 10)}`;
+      const res = await fetch("/api/passkeys/register/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deviceName: newDeviceName,
+          deviceType: newDeviceType,
+          credentialId: credId,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.device) {
+        setPasskeys([data.device, ...passkeys]);
+        setIsAddingPasskey(false);
+        addNotification({
+          id: Date.now().toString(),
+          title: "Passkey Vinculada",
+          message: `Dispositivo '${newDeviceName}' registrado con éxito.`,
+          type: "success",
+          timestamp: new Date().toISOString(),
+          read: false,
+        });
+      }
+    } catch (err: any) {
+      alert("Error al vincular Passkey: " + err.message);
+    }
+  };
+
+  const handleRevokePasskey = async (id: string) => {
+    try {
+      const res = await fetch(`/api/passkeys/credentials/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPasskeys(passkeys.filter((d) => d.id !== id));
+        addNotification({
+          id: Date.now().toString(),
+          title: "Passkey Revocada",
+          message: data.message,
+          type: "info",
+          timestamp: new Date().toISOString(),
+          read: false,
+        });
+      }
+    } catch (err: any) {
+      alert("Error al revocar: " + err.message);
+    }
+  };
+
+  const handleTestHandshake = async () => {
+    setHandshakeTesting(true);
+    try {
+      const result = await authenticateWithHardwareToken(
+        "TEST-MANIFEST-884",
+        user?.email || "admin@atlas-logistics.com",
+        { simulatedDelayMs: 600, deviceModel: "YubiKey 5 NFC / Windows Hello" }
+      );
+      const isValid = verifyHardwareSignature(result, "TEST-MANIFEST-884");
+      if (isValid) {
+        setHandshakeResult({
+          success: true,
+          deviceModel: result.deviceModel,
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      }
+    } finally {
+      setHandshakeTesting(false);
+    }
+  };
+
+  const handleVerifyTotp = async () => {
+    const isValid = verifyTOTP(totpSecret, totpInputCode);
+    setTotpVerifiedStatus(isValid);
+    if (isValid) {
+      await fetch("/api/passkeys/totp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret: totpSecret, token: totpInputCode }),
+      });
+      addNotification({
+        id: Date.now().toString(),
+        title: "2FA TOTP Activado",
+        message: "Autenticación de dos factores configurada exitosamente.",
+        type: "success",
+        timestamp: new Date().toISOString(),
+        read: false,
+      });
+    }
+  };
+
+  const handleCopySecret = () => {
+    navigator.clipboard.writeText(totpSecret);
+    setCopiedSecret(true);
+    setTimeout(() => setCopiedSecret(false), 2000);
+  };
+
+  const handleCopyBackupCodes = () => {
+    navigator.clipboard.writeText(backupCodes.join("\n"));
+    setCopiedBackupCodes(true);
+    setTimeout(() => setCopiedBackupCodes(false), 2000);
+  };
+
+  const handleSavePolicy = async () => {
+    setSavingPolicy(true);
+    try {
+      const res = await fetch("/api/passkeys/policy", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(stepUpPolicy),
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification({
+          id: Date.now().toString(),
+          title: "Políticas Actualizadas",
+          message: data.message,
+          type: "success",
+          timestamp: new Date().toISOString(),
+          read: false,
+        });
+      }
+    } finally {
+      setSavingPolicy(false);
     }
   };
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <form onSubmit={handleSubmit}>
-        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
-          Password
-        </h3>
-        <div className="space-y-4">
+    <div className="max-w-3xl space-y-8">
+      {/* 1. SECCIÓN CONTRASEÑA */}
+      <form onSubmit={handlePasswordSubmit} className="space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+            Contraseña de Acceso
+          </h3>
+          <p className="text-xs text-slate-500">
+            Actualice su contraseña periódicamente para asegurar su cuenta.
+          </p>
+        </div>
+
+        <div className="space-y-3">
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-              Current Password
+              Contraseña Actual
             </label>
             <Input
               required
@@ -969,7 +1183,7 @@ function SecuritySettings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                New Password
+                Nueva Contraseña
               </label>
               <Input
                 required
@@ -981,7 +1195,7 @@ function SecuritySettings() {
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                Confirm New Password
+                Confirmar Nueva Contraseña
               </label>
               <Input
                 required
@@ -993,47 +1207,375 @@ function SecuritySettings() {
             </div>
           </div>
         </div>
+
         <Button
           type="submit"
-          disabled={loading}
+          disabled={loadingPassword}
           variant="secondary"
-          className="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium rounded-lg transition-colors text-sm"
+          className="px-4 py-2 text-xs font-medium rounded-lg"
         >
-          {loading ? "Updating..." : "Change Password"}
+          {loadingPassword ? "Actualizando..." : "Actualizar Contraseña"}
         </Button>
       </form>
-      <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+
+      {/* 2. SECCIÓN PASSKEYS (FIDO2 / WEBAUTHN) */}
+      <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Fingerprint className="w-4 h-4 text-indigo-500" />
+              Centro de Llaves Passkeys & Tokens de Seguridad (FIDO2)
+            </h3>
+            <p className="text-xs text-slate-500">
+              Inicio de sesión y autorización resistente a phishing mediante YubiKey, TouchID o Windows Hello.
+            </p>
+          </div>
+          <Button
+            onClick={() => setIsAddingPasskey(!isAddingPasskey)}
+            className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            Vincular Nueva Llave
+          </Button>
+        </div>
+
+        {/* Formulario de Nueva Llave */}
+        {isAddingPasskey && (
+          <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40 space-y-3">
+            <span className="text-xs font-bold text-indigo-900 dark:text-indigo-300 block">
+              Registrar Nuevo Dispositivo FIDO2 / WebAuthn
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block text-slate-500 mb-1 font-medium">Nombre de la Llave:</label>
+                <Input
+                  value={newDeviceName}
+                  onChange={(e) => setNewDeviceName(e.target.value)}
+                  placeholder="ej. YubiKey 5 NFC Oficina"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-500 mb-1 font-medium">Tipo de Autenticador:</label>
+                <Select
+                  value={newDeviceType}
+                  onChange={(e) => setNewDeviceType(e.target.value as PasskeyDeviceType)}
+                >
+                  <option value="YUBIKEY_FIPS">YubiKey 5 Series (Hardware FIPS)</option>
+                  <option value="TOUCH_ID">Apple TouchID / FaceID (Secure Enclave)</option>
+                  <option value="WINDOWS_HELLO">Windows Hello (TPM 2.0)</option>
+                  <option value="TITAN_KEY">Google Titan Security Key</option>
+                  <option value="SECURITY_KEY_GENERIC">Llave de Seguridad Genérica FIDO2</option>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                variant="ghost"
+                onClick={() => setIsAddingPasskey(false)}
+                className="text-xs text-slate-500"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleAddPasskey}
+                className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                Completar Registro FIDO2
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Lista de Dispositivos Registrados */}
+        <div className="space-y-2">
+          {passkeys.map((dev) => (
+            <div
+              key={dev.id}
+              className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 flex items-center justify-between gap-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                  {dev.deviceType.includes("TOUCH") || dev.deviceType.includes("WINDOWS") ? (
+                    <Fingerprint className="w-5 h-5" />
+                  ) : (
+                    <KeyRound className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-xs text-slate-900 dark:text-slate-100">
+                      {dev.deviceName}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
+                      {dev.status}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 block font-mono">
+                    Registrado: {new Date(dev.registeredAt).toLocaleDateString()} • Credential: {dev.credentialId.slice(0, 20)}...
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                variant="ghost"
+                onClick={() => handleRevokePasskey(dev.id)}
+                className="text-xs text-rose-500 hover:text-rose-600 flex items-center gap-1"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Revocar
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        {/* Botón de Prueba de Handshake */}
+        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div>
+            <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+              Prueba de Handshake Biométrico (Simulación Local)
+            </span>
+            <span className="text-slate-500 text-[11px]">
+              Verifique el sensor y el certificado de hardware sin iniciar una transacción real.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleTestHandshake}
+              disabled={handshakeTesting}
+              variant="outline"
+              className="text-xs flex items-center gap-1.5"
+            >
+              {handshakeTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-indigo-500" />}
+              Probar Handshake
+            </Button>
+          </div>
+        </div>
+
+        {handshakeResult && (
+          <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 text-xs flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+            <span>
+              ¡Handshake exitoso! Dispositivo: <b>{handshakeResult.deviceModel}</b> a las {handshakeResult.timestamp}.
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* 3. SECCIÓN AUTENTICACIÓN EN DOS PASOS TOTP (RFC 6238) */}
+      <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-cyan-500" />
+              Autenticación en Dos Pasos (TOTP RFC 6238)
+            </h3>
+            <p className="text-xs text-slate-500">
+              Generación de códigos de un solo uso compatibles con Google Authenticator y Microsoft Authenticator.
+            </p>
+          </div>
+          <Switch
+            checked={is2FaEnabled}
+            onChange={(e) => setIs2FaEnabled(e.target.checked)}
+          />
+        </div>
+
+        {is2FaEnabled && (
+          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              {/* Clave Secreta y Cuenta Regresiva */}
+              <div className="space-y-3">
+                <div>
+                  <span className="text-slate-500 text-[11px] block font-medium">Clave Secreta Base32:</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="font-mono text-sm font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex-1">
+                      {totpSecret}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const newSecret = generateBase32Secret(16);
+                        setTotpSecret(newSecret);
+                        setCurrentTotpCode(generateTOTP(newSecret));
+                      }}
+                      title="Generar Nueva Clave Secreta"
+                      className="text-xs flex items-center gap-1"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCopySecret}
+                      className="text-xs flex items-center gap-1"
+                    >
+                      {copiedSecret ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Código En Vivo y Reloj */}
+                <div className="p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Código de Prueba en Vivo</span>
+                    <span className="font-mono text-xl font-black text-indigo-600 dark:text-indigo-400 tracking-wider">
+                      {currentTotpCode.slice(0, 3)} {currentTotpCode.slice(3)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block font-semibold">Expiración</span>
+                    <span className="font-mono text-xs font-bold text-amber-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {totpSecondsRemaining}s
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verificación de Entrada */}
+              <div className="space-y-2">
+                <span className="text-slate-500 text-[11px] block font-medium">
+                  Comprobar Token de 6 Dígitos:
+                </span>
+                <div className="flex items-center gap-2">
+                  <Input
+                    maxLength={6}
+                    value={totpInputCode}
+                    onChange={(e) => setTotpInputCode(e.target.value.replace(/[^0-9]/g, ""))}
+                    placeholder="123456"
+                    className="font-mono text-sm tracking-widest text-center"
+                  />
+                  <Button
+                    onClick={handleVerifyTotp}
+                    className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
+                  >
+                    Verificar
+                  </Button>
+                </div>
+                {totpVerifiedStatus !== null && (
+                  <p className={`text-xs font-medium ${totpVerifiedStatus ? "text-emerald-500" : "text-rose-500"}`}>
+                    {totpVerifiedStatus ? "✓ Código verificado correctamente." : "✕ Código incorrecto o desfasado."}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Códigos de Recuperación */}
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                  Códigos de Recuperación de Emergencia (5 Códigos de Un Solo Uso)
+                </span>
+                <Button
+                  variant="ghost"
+                  onClick={handleCopyBackupCodes}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1 h-auto p-0"
+                >
+                  {copiedBackupCodes ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} Copiar Todos
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {backupCodes.map((code, idx) => (
+                  <div
+                    key={idx}
+                    className="p-1.5 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-[11px] text-center text-slate-700 dark:text-slate-300 font-bold"
+                  >
+                    {code}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 4. SECCIÓN POLÍTICAS STEP-UP DE SEGURIDAD REFORZADA */}
+      <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
         <div>
-          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-            Autenticación de Dos Factores (TOTP) y Llaves Passkeys (FIDO2)
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            Políticas de Autorización Biométrica Reforzada (Step-Up)
           </h3>
           <p className="text-xs text-slate-500">
-            Protección avanzada contra accesos no autorizados mediante biometría y códigos de 6 dígitos.
+            Exigir confirmación obligatoria mediante Passkey / FIDO2 para operaciones de alto riesgo aduanal o financiero.
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
-              <Fingerprint size={24} />
-            </div>
+        <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 space-y-4 text-xs">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-slate-900 dark:text-white">WebAuthn / Passkeys Activo</span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
-                  2 Llaves Vinculadas
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                YubiKey 5 NFC y Windows Hello registrados para confirmación de manifiestos y despacho.
+              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                Despacho y Pedimentos Aduanales (SAT / VUCEM)
+              </p>
+              <p className="text-slate-500 text-[11px]">
+                Requerir huella o token YubiKey antes de certificar el desaduanamiento de contenedores.
               </p>
             </div>
+            <Switch
+              checked={stepUpPolicy.requirePasskeyForCustomsClearance}
+              onChange={(e) =>
+                setStepUpPolicy({ ...stepUpPolicy, requirePasskeyForCustomsClearance: e.target.checked })
+              }
+            />
           </div>
-          <Link to="/security-risk">
-            <Button className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white shrink-0">
-              Gestionar en Security Center
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                Endoso y Transferencia de Conocimientos de Embarque (e-BL MLETR)
+              </p>
+              <p className="text-slate-500 text-[11px]">
+                Requerir clave criptográfica hardware antes de ceder la titularidad legal de la carga.
+              </p>
+            </div>
+            <Switch
+              checked={stepUpPolicy.requirePasskeyForEblRelease}
+              onChange={(e) =>
+                setStepUpPolicy({ ...stepUpPolicy, requirePasskeyForEblRelease: e.target.checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                Liquidaciones y Pagos de Tesorería Superiores a Umbral
+              </p>
+              <p className="text-slate-500 text-[11px]">
+                Exigir token de seguridad para autorizar desembolsos de fletes o pagos a navieras.
+              </p>
+            </div>
+            <Switch
+              checked={stepUpPolicy.requirePasskeyForHighValuePayouts}
+              onChange={(e) =>
+                setStepUpPolicy({ ...stepUpPolicy, requirePasskeyForHighValuePayouts: e.target.checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+            <span className="text-slate-500">Umbral de Liquidación en Euros (€):</span>
+            <div className="w-32">
+              <Input
+                type="number"
+                value={stepUpPolicy.payoutThresholdEur}
+                onChange={(e) =>
+                  setStepUpPolicy({
+                    ...stepUpPolicy,
+                    payoutThresholdEur: parseFloat(e.target.value) || 10000,
+                  })
+                }
+                className="text-right font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              onClick={handleSavePolicy}
+              disabled={savingPolicy}
+              className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5"
+            >
+              {savingPolicy ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              Guardar Políticas de Seguridad
             </Button>
-          </Link>
+          </div>
         </div>
       </div>
     </div>
