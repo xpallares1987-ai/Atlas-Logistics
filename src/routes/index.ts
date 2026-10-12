@@ -44,6 +44,7 @@ import dashboardRoutes from "./dashboard.routes.js";
 import stowageRoutes from "../modules/stowage/stowage.routes.js";
 import smartContractsRoutes from "../modules/smart-contracts/smart-contracts.routes.js";
 import notificationsRoutes from "../modules/notifications/notifications.routes.js";
+import crossBorderRoutes from "../modules/cross-border/cross-border.routes.js";
 
 export {
   shipmentsRoutes,
@@ -89,6 +90,7 @@ export {
   stowageRoutes,
   smartContractsRoutes,
   notificationsRoutes,
+  crossBorderRoutes,
 };
 
 /**
@@ -163,6 +165,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(notificationsRoutes, {
     prefix: "/api/notifications",
+  });
+  await fastify.register(crossBorderRoutes, {
+    prefix: "/api/cross-border",
   });
 };
 

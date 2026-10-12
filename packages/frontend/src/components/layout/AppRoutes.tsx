@@ -83,6 +83,9 @@ const SmartContractsModule = React.lazy(
 const OmnichannelNotificationsModule = React.lazy(
   () => import("../../pages/OmnichannelNotificationsModule"),
 );
+const CrossBorderUsmcaModule = React.lazy(
+  () => import("../../pages/CrossBorderUsmcaModule"),
+);
 const AeoSecurityModule = React.lazy(
   () => import("../../pages/AeoSecurityModule"),
 );
@@ -414,6 +417,16 @@ export const AppRoutes = () => {
               allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
             >
               <OmnichannelNotificationsModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cross-border-usmca"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+            >
+              <CrossBorderUsmcaModule />
             </ProtectedRoute>
           }
         />
