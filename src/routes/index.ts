@@ -49,6 +49,7 @@ import efirmaRoutes from "../modules/efirma/efirma.routes.js";
 import passkeysRoutes from "../modules/passkeys/passkeys.routes.js";
 import erpIntegrationsRoutes from "../modules/erp-integrations/erp-integrations.routes.js";
 import demurrageDisputeRoutes from "../modules/demurrage-dispute/demurrage-dispute.routes.js";
+import oceanBookingRoutes from "../modules/ocean-booking/ocean-booking.routes.js";
 
 export {
   shipmentsRoutes,
@@ -99,6 +100,7 @@ export {
   passkeysRoutes,
   erpIntegrationsRoutes,
   demurrageDisputeRoutes,
+  oceanBookingRoutes,
 };
 
 /**
@@ -188,6 +190,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(demurrageDisputeRoutes, {
     prefix: "/api/demurrage-dispute",
+  });
+  await fastify.register(oceanBookingRoutes, {
+    prefix: "/api/ocean-booking",
   });
 };
 

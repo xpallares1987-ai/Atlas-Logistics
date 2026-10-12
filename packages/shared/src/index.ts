@@ -33,3 +33,4 @@ export * from "./efirma-crypto.js";
 export * from "./erp-integrations.js";
 export * from "./erp-offline-sync.js";
 export * from "./demurrage-dispute.js";
+export * from "./ocean-booking.js";
