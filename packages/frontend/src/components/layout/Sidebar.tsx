@@ -34,6 +34,7 @@ import {
   ArrowLeftRight,
   Radio,
   FileCode2,
+  BellRing,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -321,6 +322,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={FileCode2}
               >
                 Smart Contracts & e-BL (MLETR)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/notifications"
+                icon={BellRing}
+              >
+                Omnichannel Alerts (Teams / TG)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}

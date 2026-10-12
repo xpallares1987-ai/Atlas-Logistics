@@ -80,6 +80,9 @@ const TradeFinanceModule = React.lazy(
 const SmartContractsModule = React.lazy(
   () => import("../../pages/SmartContractsModule"),
 );
+const OmnichannelNotificationsModule = React.lazy(
+  () => import("../../pages/OmnichannelNotificationsModule"),
+);
 const AeoSecurityModule = React.lazy(
   () => import("../../pages/AeoSecurityModule"),
 );
@@ -401,6 +404,16 @@ export const AppRoutes = () => {
               allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
             >
               <SmartContractsModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+            >
+              <OmnichannelNotificationsModule />
             </ProtectedRoute>
           }
         />
