@@ -86,6 +86,9 @@ const OmnichannelNotificationsModule = React.lazy(
 const CrossBorderUsmcaModule = React.lazy(
   () => import("../../pages/CrossBorderUsmcaModule"),
 );
+const EFirmaHubModule = React.lazy(
+  () => import("../../pages/EFirmaHubModule"),
+);
 const AeoSecurityModule = React.lazy(
   () => import("../../pages/AeoSecurityModule"),
 );
@@ -427,6 +430,16 @@ export const AppRoutes = () => {
               allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
             >
               <CrossBorderUsmcaModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/efirma-hub"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+            >
+              <EFirmaHubModule />
             </ProtectedRoute>
           }
         />
