@@ -30,3 +30,5 @@ export * from "./smart-contracts.js";
 export * from "./omnichannel-notifications.js";
 export * from "./cross-border-usmca.js";
 export * from "./efirma-crypto.js";
+export * from "./erp-integrations.js";
+export * from "./erp-offline-sync.js";

@@ -36,6 +36,7 @@ import {
   FileCode2,
   BellRing,
   Key,
+  Network,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -344,6 +345,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Key}
               >
                 e.firma Hub (WebCrypto)
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/erp-integrations"
+                icon={Network}
+              >
+                ERP Connectors (SAP / NetSuite)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
