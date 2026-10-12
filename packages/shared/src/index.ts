@@ -27,3 +27,4 @@ export * from "./offline-queue.js";
 export * from "./customs-ocr.js";
 export * from "./stowage-3d.js";
 export * from "./smart-contracts.js";
+export * from "./omnichannel-notifications.js";
