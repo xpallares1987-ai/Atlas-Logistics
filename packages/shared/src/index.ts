@@ -29,3 +29,4 @@ export * from "./stowage-3d.js";
 export * from "./smart-contracts.js";
 export * from "./omnichannel-notifications.js";
 export * from "./cross-border-usmca.js";
+export * from "./efirma-crypto.js";

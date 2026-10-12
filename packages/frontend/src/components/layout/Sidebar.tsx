@@ -35,6 +35,7 @@ import {
   Radio,
   FileCode2,
   BellRing,
+  Key,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
@@ -336,6 +337,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Truck}
               >
                 T-MEC & Carta Porte 3.1
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/efirma-hub"
+                icon={Key}
+              >
+                e.firma Hub (WebCrypto)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
