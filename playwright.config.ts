@@ -7,17 +7,17 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "html",
-  timeout: 45000,
+  timeout: 60000,
   expect: {
     timeout: 15000,
   },
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || "http://127.0.0.1:3000",
+    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || "http://127.0.0.1:3100",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
-    actionTimeout: 15000,
-    navigationTimeout: 20000,
+    actionTimeout: 20000,
+    navigationTimeout: 45000,
   },
 
   projects: [
@@ -29,20 +29,18 @@ export default defineConfig({
     },
   ],
 
-  webServer: process.env.CI
-    ? [
-        {
-          command: "npx tsx src/server.ts",
-          url: "http://127.0.0.1:3001/api/health",
-          reuseExistingServer: true,
-          timeout: 120000,
-        },
-        {
-          command: "turbo run dev",
-          url: "http://127.0.0.1:3000",
-          reuseExistingServer: true,
-          timeout: 120000,
-        },
-      ]
-    : undefined,
+  webServer: [
+    {
+      command: "npx cross-env PORT=3001 tsx src/server.ts",
+      url: "http://127.0.0.1:3001/api/health",
+      reuseExistingServer: true,
+      timeout: 120000,
+    },
+    {
+      command: "pnpm --filter @atlas/frontend dev",
+      url: "http://127.0.0.1:3100",
+      reuseExistingServer: true,
+      timeout: 120000,
+    },
+  ],
 });

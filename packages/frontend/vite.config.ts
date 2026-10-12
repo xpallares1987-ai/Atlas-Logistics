@@ -64,15 +64,15 @@ export default defineConfig({
   },
   server: {
     host: "0.0.0.0",
-    port: 4000,
+    port: parseInt(process.env.VITE_PORT || "3100", 10),
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:4001",
+        target: process.env.VITE_API_URL || "http://127.0.0.1:3001",
         changeOrigin: true,
         ws: true,
       },
       "/ws": {
-        target: "http://127.0.0.1:4001",
+        target: process.env.VITE_API_URL || "http://127.0.0.1:3001",
         changeOrigin: true,
         ws: true,
       },
