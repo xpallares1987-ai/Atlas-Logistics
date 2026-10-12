@@ -28,3 +28,4 @@ export * from "./customs-ocr.js";
 export * from "./stowage-3d.js";
 export * from "./smart-contracts.js";
 export * from "./omnichannel-notifications.js";
+export * from "./cross-border-usmca.js";
