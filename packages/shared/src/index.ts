@@ -36,4 +36,5 @@ export * from "./demurrage-dispute.js";
 export * from "./ocean-booking.js";
 export * from "./port-congestion.js";
 export * from "./carbon-insetting.js";
+export * from "./iata-one-record.js";
 

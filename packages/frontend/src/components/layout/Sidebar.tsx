@@ -386,6 +386,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
+                to="/iata-one-record"
+                icon={Plane}
+              >
+                IATA ONE Record Hub
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
                 to="/chartering-laytime"
                 icon={Anchor}
               >
