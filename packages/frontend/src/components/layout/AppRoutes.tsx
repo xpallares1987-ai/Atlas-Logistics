@@ -129,6 +129,9 @@ const CustomerPortalModule = React.lazy(
 const PortCongestionControlModule = React.lazy(
   () => import("../../pages/PortCongestionControlModule"),
 );
+const CarbonInsettingModule = React.lazy(
+  () => import("../../pages/CarbonInsettingModule"),
+);
 const WorkflowManagerModule = React.lazy(
 
   () => import("../../pages/WorkflowManagerModule"),
@@ -497,6 +500,16 @@ export const AppRoutes = () => {
               allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES"]}
             >
               <PortCongestionControlModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/carbon-insetting"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES", "CUSTOMER"]}
+            >
+              <CarbonInsettingModule />
             </ProtectedRoute>
           }
         />
