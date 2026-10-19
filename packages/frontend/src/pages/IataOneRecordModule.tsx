@@ -1,0 +1,888 @@
+import { useState, useMemo } from 'react';
+import {
+  Plane,
+  ShieldCheck,
+  AlertTriangle,
+  FileText,
+  CheckCircle2,
+  Clock,
+  Download,
+  Copy,
+  Check,
+  Sparkles,
+  Box,
+  Info
+} from 'lucide-react';
+import { Button } from '@atlas/ui';
+import {
+  SEED_ONE_RECORD_WAYBILLS,
+  SEED_CARGO_IQ_TIMELINE,
+  SEED_DANGEROUS_GOODS,
+  validateDangerousGoodsDeclaration,
+  evaluateMilestoneSla,
+  type OneRecordWaybill,
+  type CargoIqMilestone,
+  type DangerousGoodsItem,
+  type CargoIqMilestoneCode,
+  type EDgdValidationResult
+} from '@atlas/shared';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+type TabKey = 'JSON_LD_EXPLORER' | 'CARGO_IQ_TIMELINE' | 'EDGD_STUDIO' | 'EAWB_DIGITAL_POUCH';
+
+export default function IataOneRecordModule() {
+  const [activeTab, setActiveTab] = useState<TabKey>('JSON_LD_EXPLORER');
+  const [waybills] = useState<OneRecordWaybill[]>(SEED_ONE_RECORD_WAYBILLS);
+  const [selectedWaybillId, setSelectedWaybillId] = useState<string>(SEED_ONE_RECORD_WAYBILLS[0].waybillId);
+  const [milestones, setMilestones] = useState<CargoIqMilestone[]>(SEED_CARGO_IQ_TIMELINE);
+  const [copiedJson, setCopiedJson] = useState<boolean>(false);
+
+  // Milestone event recording state
+  const [eventCode, setEventCode] = useState<CargoIqMilestoneCode>('DEP');
+  const [eventRemarks, setEventRemarks] = useState<string>('Embarque completado en bodega Airbus A350 en BCN');
+  const [milestoneFeedback, setMilestoneFeedback] = useState<string>('');
+
+  // e-DGD Compliance Studio state
+  const [dgItem, setDgItem] = useState<DangerousGoodsItem>(SEED_DANGEROUS_GOODS[0]);
+  const [dgdFeedback, setDgdFeedback] = useState<string>('');
+
+  const selectedWaybill = useMemo(() => {
+    return waybills.find((w) => w.waybillId === selectedWaybillId) || waybills[0];
+  }, [waybills, selectedWaybillId]);
+
+  const liveDgValidation: EDgdValidationResult = useMemo(() => {
+    return validateDangerousGoodsDeclaration(dgItem);
+  }, [dgItem]);
+
+  const copyJsonLd = () => {
+    navigator.clipboard?.writeText(JSON.stringify(selectedWaybill, null, 2));
+    setCopiedJson(true);
+    setTimeout(() => setCopiedJson(false), 2500);
+  };
+
+  const handleRecordMilestoneEvent = () => {
+    const updated = milestones.map((m) => {
+      if (m.milestoneCode === eventCode) {
+        const item: CargoIqMilestone = {
+          ...m,
+          actualTimestamp: new Date().toISOString(),
+          eventRemarks: eventRemarks || 'Registrado manualmente en Control Tower'
+        };
+        return evaluateMilestoneSla(item);
+      }
+      return m;
+    });
+    setMilestones(updated);
+    setMilestoneFeedback(`Hito ${eventCode} actualizado exitosamente con marca de tiempo actual.`);
+    setTimeout(() => setMilestoneFeedback(''), 4000);
+  };
+
+  const handleDownloadEawbPDF = (wbl: OneRecordWaybill) => {
+    const doc = new jsPDF();
+
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('IATA RESOLUTION 600b · ELECTRONIC AIR WAYBILL (e-AWB)', 14, 15);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('IATA ONE Record Digital Cargo Hub · Atlas Logistics Platform', 14, 22);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`AWB NUMBER: ${wbl.fullAwbNumber}`, 14, 40);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(`Origin: ${wbl.originAirport}  |  Destination: ${wbl.destinationAirport}  |  Flight: ${wbl.transportMovement.flightNumber}`, 14, 46);
+    doc.text(`Carrier: ${wbl.carrier.name} (${wbl.carrier.iataCode})  |  Issuing Agent: ${wbl.issuingAgent.name}`, 14, 52);
+    doc.text(`Shipper: ${wbl.shipper.name} (${wbl.shipper.address})`, 14, 58);
+    doc.text(`Consignee: ${wbl.consignee.name} (${wbl.consignee.address})`, 14, 64);
+    doc.text(`Nature and Quantity of Goods: ${wbl.natureAndQuantityOfGoods}`, 14, 70);
+
+    const pieceRows = wbl.pieces.map((p) => [
+      p.pieceId,
+      p.sequenceNumber.toString(),
+      `${p.dimensionsCm.length}x${p.dimensionsCm.width}x${p.dimensionsCm.height} cm`,
+      `${p.grossWeightKg} kg`,
+      `${p.volumeCbm} m³`,
+      p.specialHandlingCodes.join(', ')
+    ]);
+
+    autoTable(doc, {
+      startY: 76,
+      head: [['Piece ID', 'Seq', 'Dimensions (LxWxH)', 'Gross Wt', 'Volume', 'Special Handling']],
+      body: pieceRows,
+      theme: 'grid',
+      headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 8 }
+    });
+
+    // @ts-ignore
+    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 12 : 160;
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`W3C JSON-LD Context: ${wbl['@context']}`, 14, finalY);
+    doc.text(`Digital Seal SHA-256: ${wbl.digitalSealHash}`, 14, finalY + 6);
+    doc.text(`Generated by Atlas Logistics Platform · Corredor SAICA BCN.FE.FE01.012`, 14, finalY + 12);
+
+    doc.save(`e-AWB-${wbl.fullAwbNumber}.pdf`);
+  };
+
+  const handleDownloadEdgdPDF = (item: DangerousGoodsItem, val: EDgdValidationResult) => {
+    const doc = new jsPDF();
+
+    doc.setFillColor(185, 28, 28); // red-700
+    doc.rect(0, 0, 210, 32, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text("SHIPPER'S DECLARATION FOR DANGEROUS GOODS (e-DGD)", 14, 16);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('IATA DGR 65th Edition Certified Digital Compliance · W3C Linked Data Protocol', 14, 24);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`STATUS: ${val.isCompliant ? 'COMPLIANT / CARRIAGE APPROVED' : 'NON-COMPLIANT / FLIGHT REJECTED'}`, 14, 44);
+
+    const dgRows = [
+      ['UN Number', item.unNumber],
+      ['Proper Shipping Name', item.properShippingName],
+      ['Class / Division', item.hazardClass],
+      ['Packing Instruction', item.packingInstruction],
+      ['Aircraft Restriction', item.aircraftRestriction],
+      ['Total Net Quantity', `${item.totalNetQuantityKg} kg (${item.packageQuantity} packages)`],
+      ['Digital Seal Hash', val.validationSealHash]
+    ];
+
+    autoTable(doc, {
+      startY: 50,
+      head: [['Attribute', 'Declared Value']],
+      body: dgRows,
+      theme: 'grid',
+      headStyles: { fillColor: [185, 28, 28], textColor: 255 },
+      styles: { fontSize: 9 }
+    });
+
+    // @ts-ignore
+    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 130;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('IATA DGR Handling Advisories:', 14, finalY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    let lineY = finalY + 6;
+    val.handlingAdvisories.forEach((adv) => {
+      doc.text(`• ${adv}`, 16, lineY);
+      lineY += 5;
+    });
+
+    if (val.violations.length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(220, 38, 38);
+      doc.text('Compliance Violations:', 14, lineY + 4);
+      doc.setFont('helvetica', 'normal');
+      lineY += 10;
+      val.violations.forEach((vio) => {
+        doc.text(`• ${vio}`, 16, lineY);
+        lineY += 5;
+      });
+    }
+
+    doc.save(`e-DGD-${item.unNumber}.pdf`);
+    setDgdFeedback('Certificado e-DGD generado y descargado.');
+    setTimeout(() => setDgdFeedback(''), 3000);
+  };
+
+  return (
+    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-600/20 text-blue-400 rounded-xl border border-blue-500/30">
+              <Plane className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                IATA ONE Record Hub & Cargo iQ e-AWB
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  W3C JSON-LD
+                </span>
+              </h1>
+              <p className="text-sm text-slate-400">
+                Linked Data Ontology para Carga Aérea · Cargo iQ SLA Milestones · IATA DGR e-DGD Validation Studio
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <select
+            id="waybillSelect"
+            value={selectedWaybillId}
+            onChange={(e) => setSelectedWaybillId(e.target.value)}
+            className="bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {waybills.map((w) => (
+              <option key={w.waybillId} value={w.waybillId}>
+                {w.fullAwbNumber} ({w.originAirport} → {w.destinationAirport})
+              </option>
+            ))}
+          </select>
+          <Button
+            id="btnDownloadAwbTop"
+            onClick={() => handleDownloadEawbPDF(selectedWaybill)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm"
+          >
+            <Download className="w-4 h-4" />
+            Descargar e-AWB
+          </Button>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+        <button
+          id="tabJsonLdExplorer"
+          onClick={() => setActiveTab('JSON_LD_EXPLORER')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            activeTab === 'JSON_LD_EXPLORER'
+              ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/10'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          JSON-LD Linked Data Explorer
+        </button>
+
+        <button
+          id="tabCargoIqTimeline"
+          onClick={() => setActiveTab('CARGO_IQ_TIMELINE')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            activeTab === 'CARGO_IQ_TIMELINE'
+              ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          Cargo iQ Milestone Control Tower
+        </button>
+
+        <button
+          id="tabEdgdStudio"
+          onClick={() => setActiveTab('EDGD_STUDIO')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            activeTab === 'EDGD_STUDIO'
+              ? 'bg-amber-600/20 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          e-DGD Dangerous Goods Studio
+        </button>
+
+        <button
+          id="tabEawbPouch"
+          onClick={() => setActiveTab('EAWB_DIGITAL_POUCH')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            activeTab === 'EAWB_DIGITAL_POUCH'
+              ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30 shadow-lg shadow-purple-500/10'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          e-AWB Digital Pouch & Resolution 600b
+        </button>
+      </div>
+
+      {/* TAB 1: JSON-LD LINKED DATA EXPLORER */}
+      {activeTab === 'JSON_LD_EXPLORER' && (
+        <div className="space-y-6">
+          {/* Key Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+              <span className="text-xs text-slate-400 font-medium">e-AWB Reference</span>
+              <p className="text-xl font-bold text-white mt-1">{selectedWaybill.fullAwbNumber}</p>
+              <div className="flex items-center gap-2 mt-2 text-xs text-blue-400">
+                <Box className="w-3.5 h-3.5" />
+                <span>{selectedWaybill.piecesCount} Bultos ({selectedWaybill.totalGrossWeightKg} kg)</span>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+              <span className="text-xs text-slate-400 font-medium">Ruta Aérea & Vuelo</span>
+              <p className="text-xl font-bold text-white mt-1">
+                {selectedWaybill.originAirport} → {selectedWaybill.destinationAirport}
+              </p>
+              <div className="flex items-center gap-2 mt-2 text-xs text-emerald-400">
+                <Plane className="w-3.5 h-3.5" />
+                <span>{selectedWaybill.transportMovement.flightNumber} ({selectedWaybill.transportMovement.aircraftType})</span>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+              <span className="text-xs text-slate-400 font-medium">Handling Especial</span>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {selectedWaybill.specialHandlingCodes.map((c) => (
+                  <span
+                    key={c}
+                    className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-2 truncate">
+                {selectedWaybill.natureAndQuantityOfGoods}
+              </p>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+              <span className="text-xs text-slate-400 font-medium">Sello Criptográfico SHA-256</span>
+              <p className="text-xs font-mono text-cyan-400 mt-2 break-all bg-slate-950 p-2 rounded border border-slate-800">
+                {selectedWaybill.digitalSealHash}
+              </p>
+              <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Certificado e-AWB Conforme</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Linked Pieces Table */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                <Box className="w-4 h-4 text-blue-400" />
+                Desglose de Bultos Físicos (ONE Record Pieces)
+              </h3>
+              <span className="text-xs text-slate-400">
+                Total: {selectedWaybill.pieces.length} bultos declarados
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-300">
+                <thead className="bg-slate-950/70 text-xs uppercase text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th className="p-3">Piece ID</th>
+                    <th className="p-3">Secuencia</th>
+                    <th className="p-3">Dimensiones (LxWxH)</th>
+                    <th className="p-3">Peso Bruto</th>
+                    <th className="p-3">Volumen</th>
+                    <th className="p-3">Códigos de Manipulación</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {selectedWaybill.pieces.map((p) => (
+                    <tr key={p.pieceId} className="hover:bg-slate-800/40">
+                      <td className="p-3 font-mono text-blue-400 font-medium">{p.pieceId}</td>
+                      <td className="p-3">{p.sequenceNumber}</td>
+                      <td className="p-3 text-slate-400">
+                        {p.dimensionsCm.length} x {p.dimensionsCm.width} x {p.dimensionsCm.height} cm
+                      </td>
+                      <td className="p-3 font-medium text-white">{p.grossWeightKg} kg</td>
+                      <td className="p-3 text-slate-400">{p.volumeCbm} m³</td>
+                      <td className="p-3">
+                        <div className="flex gap-1.5">
+                          {p.specialHandlingCodes.map((code) => (
+                            <span
+                              key={code}
+                              className="px-2 py-0.5 rounded text-xs font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20"
+                            >
+                              {code}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* W3C JSON-LD Code Block */}
+          <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+            <div className="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-400" />
+                <h4 className="text-sm font-semibold text-white">
+                  Ontología W3C JSON-LD (https://onerecord.iata.org/ns/cargo#)
+                </h4>
+              </div>
+              <button
+                id="btnCopyJsonLd"
+                onClick={copyJsonLd}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 transition-all"
+              >
+                {copiedJson ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400">Copiado!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copiar JSON-LD</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <pre className="p-4 text-xs font-mono text-emerald-400 overflow-x-auto max-h-96">
+              {JSON.stringify(selectedWaybill, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: CARGO IQ MILESTONE CONTROL TOWER */}
+      {activeTab === 'CARGO_IQ_TIMELINE' && (
+        <div className="space-y-6">
+          {/* Milestone Operational Update Action */}
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg">
+            <h3 className="text-base font-semibold text-white flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4 text-emerald-400" />
+              Registrar Actualización Operativa Cargo iQ
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Código de Hito Cargo iQ
+                </label>
+                <select
+                  id="milestoneCodeSelect"
+                  value={eventCode}
+                  onChange={(e) => setEventCode(e.target.value as CargoIqMilestoneCode)}
+                  className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="FWB">FWB · e-AWB Capturado</option>
+                  <option value="FHL">FHL · Manifiesto House Procesado</option>
+                  <option value="RCS">RCS · Carga Recibida (Ready for Carriage)</option>
+                  <option value="DEP">DEP · Salida de Vuelo</option>
+                  <option value="ARR">ARR · Llegada de Vuelo</option>
+                  <option value="RCF">RCF · Check-in Almacén Destino</option>
+                  <option value="NFD">NFD · Aviso de Llegada Emitido</option>
+                  <option value="DLV">DLV · Entrega Final Realizada</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Observaciones Operativas
+                </label>
+                <input
+                  id="milestoneRemarksInput"
+                  type="text"
+                  value={eventRemarks}
+                  onChange={(e) => setEventRemarks(e.target.value)}
+                  className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Detalle de rampa, ULD o pesaje..."
+                />
+              </div>
+
+              <div>
+                <Button
+                  id="btnUpdateMilestone"
+                  onClick={handleRecordMilestoneEvent}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Registrar Evento de Hito
+                </Button>
+              </div>
+            </div>
+
+            {milestoneFeedback && (
+              <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-xs text-emerald-400 flex items-center gap-2">
+                <Check className="w-4 h-4" />
+                <span>{milestoneFeedback}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Cargo iQ Pipeline Timeline */}
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                <Plane className="w-4 h-4 text-blue-400" />
+                Matriz de Cumplimiento Cargo iQ SLA (Vuelo {selectedWaybill.transportMovement.flightNumber})
+              </h3>
+              <span className="text-xs text-slate-400 font-mono">
+                AWB {selectedWaybill.fullAwbNumber}
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {milestones.map((m, idx) => {
+                const isCompleted = m.status === 'COMPLETED';
+                const isBreached = m.status === 'SLA_BREACHED';
+                const isWarning = m.status === 'WARNING_AT_RISK';
+
+                return (
+                  <div
+                    key={m.milestoneCode}
+                    className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-800/40 border border-slate-800 rounded-xl hover:border-slate-700 transition-all gap-3"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-center w-9 h-9 rounded-full font-bold text-xs bg-slate-800 text-slate-300 border border-slate-700">
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-blue-400 text-sm">
+                            {m.milestoneCode}
+                          </span>
+                          <span className="text-sm font-semibold text-white">{m.name}</span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+                            {m.locationAirport}
+                          </span>
+                        </div>
+                        {m.eventRemarks && (
+                          <p className="text-xs text-slate-400 mt-1 italic">
+                            «{m.eventRemarks}»
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-xs">
+                      <div>
+                        <span className="text-slate-500 block">Planificado</span>
+                        <span className="text-slate-300 font-mono">
+                          {new Date(m.plannedTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-slate-500 block">Límite SLA</span>
+                        <span className="text-slate-300 font-mono">
+                          {new Date(m.slaLimitTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+
+                      {m.actualTimestamp && (
+                        <div>
+                          <span className="text-slate-500 block">Real</span>
+                          <span className="text-emerald-400 font-mono font-bold">
+                            {new Date(m.actualTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      )}
+
+                      <div>
+                        {isCompleted && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <Check className="w-3 h-3" />
+                            Completado ({m.deltaMinutes !== undefined && m.deltaMinutes >= 0 ? `+${m.deltaMinutes}m` : `${m.deltaMinutes}m`})
+                          </span>
+                        )}
+                        {isBreached && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
+                            <AlertTriangle className="w-3 h-3" />
+                            SLA Breached
+                          </span>
+                        )}
+                        {isWarning && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <Clock className="w-3 h-3" />
+                            En Riesgo
+                          </span>
+                        )}
+                        {!isCompleted && !isBreached && !isWarning && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            <Clock className="w-3 h-3" />
+                            En Tiempo
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: e-DGD DANGEROUS GOODS STUDIO */}
+      {activeTab === 'EDGD_STUDIO' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Declaration Input Form */}
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  Declaración e-DGD de Mercancías Peligrosas
+                </h3>
+                <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-mono">
+                  IATA DGR 65th
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      UN Number (IATA DGR)
+                    </label>
+                    <input
+                      id="inputDgUnNumber"
+                      type="text"
+                      value={dgItem.unNumber}
+                      onChange={(e) => setDgItem({ ...dgItem, unNumber: e.target.value.toUpperCase() })}
+                      className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      Clase de Peligro
+                    </label>
+                    <input
+                      id="inputDgClass"
+                      type="text"
+                      value={dgItem.hazardClass}
+                      onChange={(e) => setDgItem({ ...dgItem, hazardClass: e.target.value })}
+                      className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                    Proper Shipping Name
+                  </label>
+                  <input
+                    id="inputDgShippingName"
+                    type="text"
+                    value={dgItem.properShippingName}
+                    onChange={(e) => setDgItem({ ...dgItem, properShippingName: e.target.value })}
+                    className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      Instrucción de Embalaje (PI)
+                    </label>
+                    <input
+                      id="inputDgPackingInstruction"
+                      type="text"
+                      value={dgItem.packingInstruction}
+                      onChange={(e) => setDgItem({ ...dgItem, packingInstruction: e.target.value })}
+                      className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      placeholder="e.g. PI 954, PI 967"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      Restricción de Aeronave
+                    </label>
+                    <select
+                      id="selectDgAircraftRestriction"
+                      value={dgItem.aircraftRestriction}
+                      onChange={(e) =>
+                        setDgItem({
+                          ...dgItem,
+                          aircraftRestriction: e.target.value as 'PAX_AND_CARGO' | 'CARGO_AIRCRAFT_ONLY'
+                        })
+                      }
+                      className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    >
+                      <option value="PAX_AND_CARGO">Passenger & Cargo Aircraft (PAX)</option>
+                      <option value="CARGO_AIRCRAFT_ONLY">Cargo Aircraft Only (CAO)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      Cantidad de Bultos
+                    </label>
+                    <input
+                      id="inputDgPackages"
+                      type="number"
+                      value={dgItem.packageQuantity}
+                      onChange={(e) => setDgItem({ ...dgItem, packageQuantity: Number(e.target.value) || 1 })}
+                      className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      Peso Neto Total (kg)
+                    </label>
+                    <input
+                      id="inputDgTotalKg"
+                      type="number"
+                      value={dgItem.totalNetQuantityKg}
+                      onChange={(e) => setDgItem({ ...dgItem, totalNetQuantityKg: Number(e.target.value) || 0 })}
+                      className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    id="btnExportEdgdPdf"
+                    onClick={() => handleDownloadEdgdPDF(dgItem, liveDgValidation)}
+                    className="w-full bg-amber-600 hover:bg-amber-500 text-white text-sm flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Certificar y Descargar e-DGD (PDF)
+                  </Button>
+                </div>
+
+                {dgdFeedback && (
+                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-xs text-amber-300 flex items-center gap-2">
+                    <Check className="w-4 h-4" />
+                    <span>{dgdFeedback}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Live Compliance Result */}
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                  Veredicto de Cumplimiento IATA DGR
+                </h3>
+                {liveDgValidation.isCompliant ? (
+                  <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                    <CheckCircle2 className="w-4 h-4" />
+                    CONFORME / APTO PARA VUELO
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/30">
+                    <AlertTriangle className="w-4 h-4" />
+                    RECHAZADO / INFRACCIÓN DGR
+                  </span>
+                )}
+              </div>
+
+              {/* Violations Box */}
+              {liveDgValidation.violations.length > 0 && (
+                <div className="p-4 bg-red-950/40 border border-red-800/60 rounded-xl space-y-2">
+                  <h4 className="text-xs font-bold uppercase text-red-400 flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-red-400" />
+                    Infracciones Detectadas ({liveDgValidation.violations.length})
+                  </h4>
+                  <ul className="text-xs text-red-300 space-y-1 list-disc list-inside">
+                    {liveDgValidation.violations.map((vio, i) => (
+                      <li key={i}>{vio}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Advisories Box */}
+              <div className="p-4 bg-blue-950/40 border border-blue-800/50 rounded-xl space-y-2">
+                <h4 className="text-xs font-bold uppercase text-blue-400 flex items-center gap-1.5">
+                  <Info className="w-4 h-4 text-blue-400" />
+                  Instrucciones de Manipulación y Etiquetado (IATA DGR)
+                </h4>
+                <ul className="text-xs text-blue-300 space-y-1 list-disc list-inside">
+                  {liveDgValidation.handlingAdvisories.map((adv, i) => (
+                    <li key={i}>{adv}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Digital Seal */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-xs text-slate-400 font-medium block mb-1">
+                  Sello Criptográfico e-DGD SHA-256
+                </span>
+                <p className="text-xs font-mono text-cyan-400 break-all">
+                  {liveDgValidation.validationSealHash}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: e-AWB DIGITAL POUCH & RESOLUTION 600b */}
+      {activeTab === 'EAWB_DIGITAL_POUCH' && (
+        <div className="space-y-6">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-xl space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-4 gap-4">
+              <div>
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-purple-400" />
+                  Valija Digital e-AWB (Digital Cargo Pouch)
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Documentación electrónica asociada al máster aéreo bajo estándares IATA Resolution 600b
+                </p>
+              </div>
+              <Button
+                id="btnDownloadPouchPdf"
+                onClick={() => handleDownloadEawbPDF(selectedWaybill)}
+                className="bg-purple-600 hover:bg-purple-500 text-white text-sm flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Descargar Documento Oficial e-AWB (PDF)
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-slate-800/40 border border-slate-800 rounded-xl space-y-2">
+                <span className="text-xs font-bold text-slate-400 uppercase">Expedidor (Shipper)</span>
+                <p className="text-sm font-semibold text-white">{selectedWaybill.shipper.name}</p>
+                <p className="text-xs text-slate-400">{selectedWaybill.shipper.address}</p>
+                <p className="text-xs text-blue-400 font-mono">{selectedWaybill.shipper.contactEmail}</p>
+              </div>
+
+              <div className="p-4 bg-slate-800/40 border border-slate-800 rounded-xl space-y-2">
+                <span className="text-xs font-bold text-slate-400 uppercase">Destinatario (Consignee)</span>
+                <p className="text-sm font-semibold text-white">{selectedWaybill.consignee.name}</p>
+                <p className="text-xs text-slate-400">{selectedWaybill.consignee.address}</p>
+                <p className="text-xs text-blue-400 font-mono">{selectedWaybill.consignee.contactEmail}</p>
+              </div>
+
+              <div className="p-4 bg-slate-800/40 border border-slate-800 rounded-xl space-y-2">
+                <span className="text-xs font-bold text-slate-400 uppercase">Aerolínea y Agente Emisor</span>
+                <p className="text-sm font-semibold text-white">
+                  {selectedWaybill.carrier.name} ({selectedWaybill.carrier.iataCode})
+                </p>
+                <p className="text-xs text-slate-400">
+                  Agente IATA: {selectedWaybill.issuingAgent.name} ({selectedWaybill.issuingAgent.iataCode})
+                </p>
+                <p className="text-xs text-emerald-400 font-mono">
+                  Vuelo: {selectedWaybill.transportMovement.flightNumber}
+                </p>
+              </div>
+            </div>
+
+            {/* Cargo Security Declaration (e-CSD) */}
+            <div className="p-5 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase text-emerald-400 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  Declaración de Seguridad de Carga Aérea (e-CSD)
+                </h4>
+                <span className="text-xs font-mono text-slate-400">Regulated Agent ES/RA/0018-01</span>
+              </div>
+              <p className="text-xs text-slate-300">
+                Certificación de inspección de seguridad conforme a normativa ICAO Anexo 17 y Reglamento (UE) 2015/1998.
+                Método de inspección aplicado: Equipo de Rayos X (X-RAY) dual-view + Control de Trazas de Explosivos (ETD).
+                Carga protegida contra interferencias ilícitas hasta el momento del embarque.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -52,6 +52,7 @@ import demurrageDisputeRoutes from "../modules/demurrage-dispute/demurrage-dispu
 import oceanBookingRoutes from "../modules/ocean-booking/ocean-booking.routes.js";
 import portCongestionRoutes from "../modules/port-congestion/port-congestion.routes.js";
 import carbonInsettingRoutes from "../modules/carbon-insetting/carbon-insetting.routes.js";
+import iataOneRecordRoutes from "../modules/iata-one-record/iata-one-record.routes.js";
 
 export {
 
@@ -106,6 +107,7 @@ export {
   oceanBookingRoutes,
   portCongestionRoutes,
   carbonInsettingRoutes,
+  iataOneRecordRoutes,
 };
 
 
@@ -205,6 +207,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(carbonInsettingRoutes, {
     prefix: "/api/carbon-insetting",
+  });
+  await fastify.register(iataOneRecordRoutes, {
+    prefix: "/api/one-record",
   });
 };
 
