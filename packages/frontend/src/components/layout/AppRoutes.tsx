@@ -126,7 +126,11 @@ const AgentSettlementsModule = React.lazy(
 const CustomerPortalModule = React.lazy(
   () => import("../../pages/CustomerPortalModule"),
 );
+const PortCongestionControlModule = React.lazy(
+  () => import("../../pages/PortCongestionControlModule"),
+);
 const WorkflowManagerModule = React.lazy(
+
   () => import("../../pages/WorkflowManagerModule"),
 );
 const SettingsModule = React.lazy(() => import("../../pages/SettingsModule"));
@@ -487,7 +491,18 @@ export const AppRoutes = () => {
           }
         />
         <Route
+          path="/port-congestion"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES"]}
+            >
+              <PortCongestionControlModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/general-average"
+
           element={
             <ProtectedRoute
               allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
