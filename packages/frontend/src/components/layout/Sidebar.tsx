@@ -38,6 +38,7 @@ import {
   Key,
   Network,
   Compass,
+  Coins,
 } from "lucide-react";
 
 import { useAuth } from "../../contexts/AuthContext";
@@ -375,6 +376,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 icon={Compass}
               >
                 Port Congestion & AIS Radar
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
+                to="/carbon-insetting"
+                icon={Coins}
+              >
+                Carbon Insetting & Digital Twin
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}

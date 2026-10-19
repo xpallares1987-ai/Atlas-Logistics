@@ -51,6 +51,7 @@ import erpIntegrationsRoutes from "../modules/erp-integrations/erp-integrations.
 import demurrageDisputeRoutes from "../modules/demurrage-dispute/demurrage-dispute.routes.js";
 import oceanBookingRoutes from "../modules/ocean-booking/ocean-booking.routes.js";
 import portCongestionRoutes from "../modules/port-congestion/port-congestion.routes.js";
+import carbonInsettingRoutes from "../modules/carbon-insetting/carbon-insetting.routes.js";
 
 export {
 
@@ -104,6 +105,7 @@ export {
   demurrageDisputeRoutes,
   oceanBookingRoutes,
   portCongestionRoutes,
+  carbonInsettingRoutes,
 };
 
 
@@ -200,6 +202,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(portCongestionRoutes, {
     prefix: "/api/port-congestion",
+  });
+  await fastify.register(carbonInsettingRoutes, {
+    prefix: "/api/carbon-insetting",
   });
 };
 
