@@ -37,7 +37,9 @@ import {
   BellRing,
   Key,
   Network,
+  Compass,
 } from "lucide-react";
+
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
 import { Button } from "@atlas/ui";
@@ -369,11 +371,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
+                to="/port-congestion"
+                icon={Compass}
+              >
+                Port Congestion & AIS Radar
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
                 to="/chartering-laytime"
                 icon={Anchor}
               >
                 Chartering & Laytime (BIMCO)
               </NavLink>
+
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
                 to="/general-average"

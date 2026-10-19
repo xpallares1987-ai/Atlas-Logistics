@@ -50,8 +50,10 @@ import passkeysRoutes from "../modules/passkeys/passkeys.routes.js";
 import erpIntegrationsRoutes from "../modules/erp-integrations/erp-integrations.routes.js";
 import demurrageDisputeRoutes from "../modules/demurrage-dispute/demurrage-dispute.routes.js";
 import oceanBookingRoutes from "../modules/ocean-booking/ocean-booking.routes.js";
+import portCongestionRoutes from "../modules/port-congestion/port-congestion.routes.js";
 
 export {
+
   shipmentsRoutes,
   quotesRoutes,
   financialRoutes,
@@ -101,7 +103,9 @@ export {
   erpIntegrationsRoutes,
   demurrageDisputeRoutes,
   oceanBookingRoutes,
+  portCongestionRoutes,
 };
+
 
 /**
  * Unified Fastify route registrar plugin.
@@ -194,6 +198,10 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(oceanBookingRoutes, {
     prefix: "/api/ocean-booking",
   });
+  await fastify.register(portCongestionRoutes, {
+    prefix: "/api/port-congestion",
+  });
 };
+
 
 export default registerAllRoutes;
