@@ -16,6 +16,7 @@ export default defineConfig({
       remotes: {
         dashboard: "http://127.0.0.1:5174/assets/remoteEntry.js",
         warehouse: "http://127.0.0.1:5175/assets/remoteEntry.js",
+        rates: "http://127.0.0.1:5176/assets/remoteEntry.js",
       },
       shared: [
         "react",

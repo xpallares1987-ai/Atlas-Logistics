@@ -2,11 +2,21 @@ import React, { Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "../ProtectedRoute";
 import { SkeletonLoader } from "../SkeletonLoader";
+import { SafeRemoteLoader } from "../mfe/SafeRemoteLoader";
+import { getMfeRemoteUrl } from "../../lib/mfe/mfe-config";
 
 const Login = React.lazy(() => import("../../pages/Login"));
 const DashboardModule = React.lazy(() => import("../../pages/DashboardModule"));
-// @ts-ignore
-const RateComparerModule = React.lazy(() => import("@atlas/rate-comparer"));
+
+const RateComparerContainer = () => (
+  <SafeRemoteLoader
+    moduleName="Rate Comparer"
+    remoteUrl={getMfeRemoteUrl("rates")}
+    remoteLoader={() => import("rates/RateComparer")}
+    fallbackLoader={() => import("@atlas/rate-comparer")}
+  />
+);
+
 const ESGCarbonTrackerModule = React.lazy(
   () => import("../../pages/ESGCarbonTrackerModule"),
 );
@@ -34,12 +44,18 @@ const DynamicPricingModule = React.lazy(
 const DocumentVaultModule = React.lazy(
   () => import("../../pages/DocumentVaultModule"),
 );
-// @ts-ignore
-const WarehouseOpsModule = React.lazy(() =>
-  // @ts-ignore
-  import("@atlas/mfe-warehouse/src/WarehouseOps").then((m) => ({
-    default: m.default,
-  })),
+const WarehouseOpsContainer = () => (
+  <SafeRemoteLoader
+    moduleName="Warehouse Operations"
+    remoteUrl={getMfeRemoteUrl("warehouse")}
+    remoteLoader={() => import("warehouse/WarehouseOps")}
+    fallbackLoader={() =>
+      // @ts-ignore
+      import("@atlas/mfe-warehouse/src/WarehouseOps").then((m) => ({
+        default: m.default,
+      }))
+    }
+  />
 );
 const SailingSchedulesModule = React.lazy(
   () => import("../../pages/SailingSchedulesModule"),
@@ -193,7 +209,7 @@ export const AppRoutes = () => {
                 "OPERATIONS",
               ]}
             >
-              <RateComparerModule />
+              <RateComparerContainer />
             </ProtectedRoute>
           }
         />
@@ -648,7 +664,7 @@ export const AppRoutes = () => {
           path="/warehouse"
           element={
             <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
-              <WarehouseOpsModule />
+              <WarehouseOpsContainer />
             </ProtectedRoute>
           }
         />
