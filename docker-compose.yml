@@ -1,13 +1,14 @@
 # ==============================================================================
 # ATLAS LOGISTICS — DOCKER COMPOSE FOR LOCAL DEVELOPMENT
 # ==============================================================================
-# Optimized for personal development. Uses SQLite locally, Redis for queues.
-# PostgreSQL, Prometheus, Grafana, and Node Exporter are optional/production-only.
+# Optimized for personal development with hot-reload support.
+# Uses SQLite locally, Redis for queues.
 #
 # Usage:
-#   pnpm dev              # Starts Redis only (recommended)
-#   pnpm dev:observability # Starts Redis + Prometheus + Grafana
-#   pnpm dev:stop         # Stops all containers
+#   docker compose up -d                  # Backend + Redis
+#   docker compose --profile observability up -d  # + Prometheus + Grafana
+#   docker compose down                   # Stop all services
+#   docker compose logs -f backend        # Follow backend logs
 #
 # ==============================================================================
 
@@ -15,30 +16,98 @@ version: '3.8'
 
 services:
   # ============================================================================
-  # ESSENTIAL FOR DEVELOPMENT
+  # BACKEND SERVICE (Node.js + Express/Fastify)
   # ============================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      target: development
+      args:
+        NODE_VERSION: 22
+        PNPM_VERSION: 10.0.0
+    container_name: atlas-backend-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:./data/dev.db
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=debug
+    volumes:
+      # Source code for hot-reload
+      - ./src:/app/src:cached
+      - ./packages:/app/packages:cached
+      # Data persistence
+      - ./data:/app/data:cached
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      default:
+        aliases:
+          - api
+          - backend
 
+  # ============================================================================
+  # FRONTEND SERVICE (Nginx reverse proxy)
+  # ============================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        NODE_VERSION: 22
+        PNPM_VERSION: 10.0.0
+        VITE_API_URL: http://localhost:3001
+    container_name: atlas-frontend-dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================================
+  # REDIS (Message Queue & Cache)
+  # ============================================================================
   redis:
     image: redis:7.2-alpine
     pull_policy: if_not_present
+    container_name: atlas-redis-dev
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
       start_period: 10s
-    restart: unless-stopped
-    container_name: atlas-redis-dev
 
   # ============================================================================
-  # OPTIONAL: OBSERVABILITY (Uncomment to enable)
+  # PROMETHEUS (Metrics Collection) — Optional
   # ============================================================================
-
   prometheus:
     image: prom/prometheus:latest
     pull_policy: if_not_present
+    container_name: atlas-prometheus-dev
     ports:
       - "9090:9090"
     volumes:
@@ -58,13 +127,16 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
-    container_name: atlas-prometheus-dev
     profiles:
       - observability
 
+  # ============================================================================
+  # GRAFANA (Visualization) — Optional
+  # ============================================================================
   grafana:
     image: grafana/grafana:latest
     pull_policy: if_not_present
+    container_name: atlas-grafana-dev
     ports:
       - "3002:3000"
     volumes:
@@ -85,13 +157,16 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
-    container_name: atlas-grafana-dev
     profiles:
       - observability
 
+  # ============================================================================
+  # NODE EXPORTER (System Metrics) — Optional
+  # ============================================================================
   node-exporter:
     image: prom/node-exporter:latest
     pull_policy: if_not_present
+    container_name: atlas-node-exporter-dev
     ports:
       - "9100:9100"
     volumes:
@@ -103,19 +178,15 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     restart: unless-stopped
-    container_name: atlas-node-exporter-dev
     profiles:
       - observability
 
-  # ============================================================================
-  # PRODUCTION SERVICES (Orchestrated in docker-compose.prod.yml)
-  # ============================================================================
-  # For production deployment with zero-CVE Chainguard containers, persistent
-  # storage and Nginx ingress reverse proxy, run:
-  #
-  #   docker compose -f docker-compose.prod.yml up -d --build
-  # ============================================================================
-
 volumes:
+  redis_data:
   prometheus_data:
   grafana_data:
+
+networks:
+  default:
+    name: atlas-network
+    driver: bridge
