@@ -536,7 +536,7 @@ export const OCEAN_BOOKING_PRESETS: OceanBooking[] = [
     destinationPort: "USNYC",
     vesselName: "AL ZUBARA",
     voyageNumber: "2611W",
-    commodityDescription: "Customer01 Kraft Paper Coils & Recycled Fluting Corrugated (Book TEST01 Can Tunis Corredor)",
+    commodityDescription: "Customer01 Kraft Paper Coils & Recycled Fluting Corrugated (Corridor Test 01 Can Tunis)",
     requestedEquipment: {
       isoType: "40HC",
       quantity: 2,
@@ -570,7 +570,7 @@ export const OCEAN_BOOKING_PRESETS: OceanBooking[] = [
     shippingInstructions: {
       bookingReference: "HLC-48291030",
       carrierScac: "HLCU",
-      shipperName: "Customer01 Paper España S.A. (Corredor DEPT-TEST01)",
+      shipperName: "Customer01 Paper S.A. (Corredor DEPT-TEST01)",
       shipperAddress: "Polígono Industrial El Espartal, Zaragoza / Can Tunis BCN",
       consigneeName: "Atlantic Packaging & Container Corporation (New York)",
       consigneeAddress: "Port Newark Container Terminal (PNCT), Newark, NJ 07114",

@@ -128,7 +128,9 @@ export class PortCongestionService {
     containerNo: string;
     reason: 'PORT_CONGESTION_ANCHORAGE_DWELL' | 'BERTH_COLLISION_DELAY' | 'TERMINAL_GATE_APPOINTMENT_UNAVAILABLE';
     dwellOrDelayHours: number;
-    issuer?: 'ADMIN (SuperAdmin / Systems Lead)' | 'TEST01 (Team Leader Customer01)';
+    issuer?:
+      | 'ADMIN (SuperAdmin / Systems Lead)'
+      | 'TEST01 (Team Leader Customer01)';
   }): DDSuspensionCertificate {
     const cert = generateDDSuspensionCertificate(params);
     this.certificates.unshift(cert);

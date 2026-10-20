@@ -393,10 +393,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
-                to="/saica-operations"
+                to="/customer01-operations"
                 icon={TrainTrack}
               >
-                Customer01 Logistics & FMS
+                Customer01 Logistics
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}

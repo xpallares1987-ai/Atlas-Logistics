@@ -113,7 +113,7 @@ describe("Demurrage Dispute Module: Fastify API Routes", () => {
         shipperOrConsignee: {
           companyName: "Customer01 Paper Book TEST01",
           contactName: "System Admin",
-          email: "ops@saica.internal",
+          email: "ops@customer01.internal",
           accountReference: "DEPT-TEST01",
         },
       },

@@ -42,8 +42,8 @@ export default function CarbonInsettingModule() {
     bunkerLocation: 'Port de Barcelona - Muelle de la Energía',
     bdnReference: 'BDN-BCN-2026-8812',
     sustainabilityCertificateNumber: 'ISCC-EU-Cert-DE105-829104',
-    allocatedShipmentRef: 'SHP-BCN-Customer01-BOOK012',
-    beneficiaryCompany: 'Customer01 Paper España (Corredor DEPT-TEST01)',
+    allocatedShipmentRef: 'SHP-BCN-CUST01-BOOK01',
+    beneficiaryCompany: 'Customer01 Paper (Corredor DEPT-TEST01)',
     transportMode: 'MARITIME_OCEAN' as TransportMode
   });
 

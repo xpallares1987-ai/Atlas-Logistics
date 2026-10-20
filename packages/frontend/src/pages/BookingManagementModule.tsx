@@ -929,7 +929,7 @@ export default function BookingManagementModule() {
                 onClick={() => {
                   siMutation.mutate({
                     bookingId: activeBooking.id,
-                    shipperName: "Customer01 Paper España S.A. (Corredor Book TEST01)",
+                    shipperName: "Customer01 Paper S.A. (Corredor Book TEST01)",
                     shipperAddress: "Can Tunis Ferroviaria, Barcelona",
                     consigneeName: "Atlantic Container Corp (New York)",
                     consigneeAddress: "Port Newark Container Terminal (PNCT)",

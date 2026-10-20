@@ -154,7 +154,7 @@ describe("Ocean Booking Engine (@atlas/shared)", () => {
       const bcn = OCEAN_BOOKING_PRESETS.find((p) => p.originPort === "ESBCN");
       expect(bcn).toBeDefined();
       expect(bcn?.carrier).toBe("HAPAG_LLOYD");
-      expect(bcn?.commodityDescription).toContain("Book TEST01 Can Tunis Corredor");
+      expect(bcn?.commodityDescription).toContain("Corridor Test 01 Can Tunis");
     });
   });
 });

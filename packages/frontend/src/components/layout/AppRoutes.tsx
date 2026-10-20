@@ -151,8 +151,8 @@ const CarbonInsettingModule = React.lazy(
 const IataOneRecordModule = React.lazy(
   () => import("../../pages/IataOneRecordModule"),
 );
-const SaicaOperationsModule = React.lazy(
-  () => import("../../pages/SaicaOperationsModule"),
+const Customer01OperationsModule = React.lazy(
+  () => import("../../pages/Customer01OperationsModule"),
 );
 const WorkflowManagerModule = React.lazy(
 
@@ -546,12 +546,22 @@ export const AppRoutes = () => {
           }
         />
         <Route
+          path="/customer01-operations"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES"]}
+            >
+              <Customer01OperationsModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/saica-operations"
           element={
             <ProtectedRoute
               allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES"]}
             >
-              <SaicaOperationsModule />
+              <Customer01OperationsModule />
             </ProtectedRoute>
           }
         />
