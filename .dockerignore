@@ -1,86 +1,73 @@
-# Build artifacts and temporary files
-**/node_modules
-**/dist
-**/build
-**/.turbo
-**/.next
-**/.cache
+# Git
+.git
+.gitignore
+.gitattributes
 
-# Development files
-**/.env
-**/.env.local
-**/.env.*.local
-**/.vscode
-**/.vs
-**/.idea
-**/.devcontainer
+# Node/Package managers
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-error.log
+.pnpm-store
 
-# Version control
-**/.git
-**/.gitignore
+# Build artifacts
+dist
+build
+.turbo
+.next
+.nuxt
+out
+.cache
 
-# Docker and compose files
-**/.dockerignore
-**/docker-compose*
-**/compose.y*ml
-**/Dockerfile*
+# Dependencies
+*.tgz
 
-# Package manager logs
-**/npm-debug.log
-**/pnpm-debug.log
-**/yarn-error.log
+# Deployment
+.dockerignore
+Dockerfile*
+docker-compose*.yml
 
-# Testing and coverage
-**/coverage
-**/test-results
-**/.playwright
-**/e2e
-
-# IDE and project files
-**/.classpath
-**/.project
-**/.settings
-**/.toolstarget
-**/*.*proj.user
-**/*.dbmdl
-**/*.jfm
-**/.vscode
-
-# Configuration
-**/secrets.dev.yaml
-**/values.dev.yaml
-
-# Documentation and license (not needed in runtime image)
-LICENSE
-README.md
-CHANGELOG.md
-CONTRIBUTING.md
-CODE_OF_CONDUCT.md
-SECURITY.md
-*.md
+# Development tools
+.vscode
+.vs
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
 
 # CI/CD
-**/.github
-**/.husky
+.github
+.gitlab-ci.yml
+.circleci
 
-# Backup and temporary
-**/backups
-**/*.patch
-**/.impeccable
+# Documentation & configs (optional, can be removed if needed in container)
+*.md
+CHANGELOG.md
+LICENSE
+*.txt
 
-# Lock files from other package managers
-**/yarn.lock
-**/package-lock.json
+# Testing
+tests
+vitest.config.ts
+playwright.config.ts
+coverage
 
-# Local pnpm cache store (prevents transferring 73k files / 1.3GB into context)
-**/.pnpm-store
+# Linting/formatting
+.eslintrc*
+.prettierrc*
+eslint.config.js
+.husky
+.lint-staged*
 
-# Local database files & WAL journals
-*.db
-*.db-shm
-*.db-wal
-*.sqlite
-*.sqlite3
-**/backups-test
-scout-spdx*.json
+# Misc
+.env*
+.devcontainer
+scripts
 audit.json
+scout-spdx*.json
+backups
+data
+knip.json
+commitlint.config.cjs
