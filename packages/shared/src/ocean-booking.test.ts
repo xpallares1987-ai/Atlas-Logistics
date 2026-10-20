@@ -149,12 +149,12 @@ describe("Ocean Booking Engine (@atlas/shared)", () => {
       expect(CARRIER_METADATA.EVERGREEN.scac).toBe("EGLV");
     });
 
-    it("should load 3 demonstration presets across Transpacific, Europe, and Spain Corredor Book 012", () => {
+    it("should load 3 demonstration presets across Transpacific, Europe, and Spain Corredor Book TEST01", () => {
       expect(OCEAN_BOOKING_PRESETS).toHaveLength(3);
       const bcn = OCEAN_BOOKING_PRESETS.find((p) => p.originPort === "ESBCN");
       expect(bcn).toBeDefined();
       expect(bcn?.carrier).toBe("HAPAG_LLOYD");
-      expect(bcn?.commodityDescription).toContain("Book 012 Can Tunis Corredor");
+      expect(bcn?.commodityDescription).toContain("Corridor Test 01 Can Tunis");
     });
   });
 });

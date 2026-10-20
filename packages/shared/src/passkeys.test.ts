@@ -62,7 +62,7 @@ describe("WebAuthn / Passkeys & Hardware Token Suite", () => {
   it("should build compliant WebAuthn registration options", () => {
     const options = createWebAuthnRegistrationOptions(
       "admin@atlas-logistics.com",
-      "Xavier Pallarès",
+      "System Admin",
       "atlas-logistics.internal"
     );
 
@@ -70,7 +70,7 @@ describe("WebAuthn / Passkeys & Hardware Token Suite", () => {
     expect(options.rp.name).toContain("Atlas-Logistics");
     expect(options.rp.id).toBe("atlas-logistics.internal");
     expect(options.user.name).toBe("admin@atlas-logistics.com");
-    expect(options.user.displayName).toBe("Xavier Pallarès");
+    expect(options.user.displayName).toBe("System Admin");
     expect(options.pubKeyCredParams).toHaveLength(2);
     expect(options.authenticatorSelection.userVerification).toBe("preferred");
   });

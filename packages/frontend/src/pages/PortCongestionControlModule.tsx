@@ -58,7 +58,7 @@ export default function PortCongestionControlModule() {
       containerNo: 'MSCU7821903',
       reason: 'PORT_CONGESTION_ANCHORAGE_DWELL',
       dwellOrDelayHours: 52.0,
-      issuer: 'ESXPA (SuperAdmin / Systems Lead)'
+      issuer: 'ADMIN (SuperAdmin / Systems Lead)'
     })
   ]);
 
@@ -70,7 +70,7 @@ export default function PortCongestionControlModule() {
     containerNo: 'TCLU9283710',
     reason: 'PORT_CONGESTION_ANCHORAGE_DWELL' as const,
     dwellOrDelayHours: 36.5,
-    issuer: 'ESXPA (SuperAdmin / Systems Lead)' as const
+    issuer: 'ADMIN (SuperAdmin / Systems Lead)' as const
   });
 
   const activeHub = useMemo(
@@ -603,7 +603,7 @@ export default function PortCongestionControlModule() {
                         containerNo: 'MSCU7821903',
                         reason: 'PORT_CONGESTION_ANCHORAGE_DWELL',
                         dwellOrDelayHours: selectedVessel.dwellHours,
-                        issuer: 'ESXPA (SuperAdmin / Systems Lead)'
+                        issuer: 'ADMIN (SuperAdmin / Systems Lead)'
                       });
                       setActiveTab('DD_SUSPENSION');
                     }}

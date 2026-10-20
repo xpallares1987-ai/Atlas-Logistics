@@ -111,10 +111,10 @@ describe("Demurrage Dispute Module: Fastify API Routes", () => {
       payload: {
         auditResult,
         shipperOrConsignee: {
-          companyName: "SAICA Paper Book 012",
-          contactName: "Xavier Pallarès",
-          email: "ops@saica.internal",
-          accountReference: "BCN.FE.FE01.012",
+          companyName: "Customer01 Paper Book TEST01",
+          contactName: "System Admin",
+          email: "ops@customer01.internal",
+          accountReference: "DEPT-TEST01",
         },
       },
     });

@@ -157,7 +157,7 @@ describe("Demurrage & Detention Dispute Engine (@atlas/shared)", () => {
         auditResult: audit,
         shipperOrConsignee: {
           companyName: "Atlas Logistics BCN",
-          contactName: "Xavier Pallarès",
+          contactName: "System Admin",
           email: "ops@atlaslogistics.es",
           accountReference: "ATL-BCN-012",
         },

@@ -117,7 +117,7 @@ describe('Port Congestion Module: Fastify API Routes', () => {
         containerNo: 'TCLU9283710',
         reason: 'PORT_CONGESTION_ANCHORAGE_DWELL',
         dwellOrDelayHours: 36.5,
-        issuer: 'ESXPA (SuperAdmin / Systems Lead)'
+        issuer: 'ADMIN (SuperAdmin / Systems Lead)'
       }
     });
 

@@ -64,7 +64,7 @@ export default function OmnichannelNotificationsModule() {
   const [orderChatId, setOrderChatId] = useState("@driver_juan_scm");
   const [orderTruckId, setOrderTruckId] = useState("TRK-4821-LXZ");
   const [orderPickup, setOrderPickup] = useState("Can Tunis Logistainer (Barcelona)");
-  const [orderDelivery, setOrderDelivery] = useState("Saica Paper El Prat (TLSA)");
+  const [orderDelivery, setOrderDelivery] = useState("Customer01 Paper El Prat (TLSA)");
   const [orderCargo, setOrderCargo] = useState("1x 40ft HC Bobinas Papel Kraft (24,800 kg)");
   const [orderContainer, setOrderContainer] = useState("MSKU7729104");
 

@@ -385,7 +385,7 @@ export function generateDisputePack(params: {
 
   const shipper = params.shipperOrConsignee || {
     companyName: "Atlas Logistics Enterprise Group",
-    contactName: "Xavier Pallarès (Global Logistics Lead)",
+    contactName: "System Admin (Global Logistics Lead)",
     email: "ops-disputes@atlaslogistics.internal",
     accountReference: "ATL-ACC-012-BCN",
   };

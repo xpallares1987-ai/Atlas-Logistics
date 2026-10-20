@@ -38,7 +38,7 @@ export class PortCongestionService {
         containerNo: 'MSCU7821903',
         reason: 'PORT_CONGESTION_ANCHORAGE_DWELL',
         dwellOrDelayHours: 52.0,
-        issuer: 'ESXPA (SuperAdmin / Systems Lead)'
+        issuer: 'ADMIN (SuperAdmin / Systems Lead)'
       })
     );
   }
@@ -128,7 +128,9 @@ export class PortCongestionService {
     containerNo: string;
     reason: 'PORT_CONGESTION_ANCHORAGE_DWELL' | 'BERTH_COLLISION_DELAY' | 'TERMINAL_GATE_APPOINTMENT_UNAVAILABLE';
     dwellOrDelayHours: number;
-    issuer?: 'ESXPA (SuperAdmin / Systems Lead)' | 'ESACA (Team Leader SAICA)';
+    issuer?:
+      | 'ADMIN (SuperAdmin / Systems Lead)'
+      | 'TEST01 (Team Leader Customer01)';
   }): DDSuspensionCertificate {
     const cert = generateDDSuspensionCertificate(params);
     this.certificates.unshift(cert);

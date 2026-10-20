@@ -82,7 +82,7 @@ export default function DemurrageAlertsModule() {
       auditResult,
       shipperOrConsignee: {
         companyName: "Atlas Logistics Enterprise Group",
-        contactName: "Xavier Pallarès (Global Systems & Logistics Lead)",
+        contactName: "System Admin (Global Systems & Logistics Lead)",
         email: "x.pallares@atlas-logistics.corp",
         accountReference: "ATL-CORP-012-BCN",
       },

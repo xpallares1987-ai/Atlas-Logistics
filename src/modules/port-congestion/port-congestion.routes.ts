@@ -88,7 +88,9 @@ export default async function portCongestionRoutes(fastify: FastifyInstance) {
           containerNo: string;
           reason: 'PORT_CONGESTION_ANCHORAGE_DWELL' | 'BERTH_COLLISION_DELAY' | 'TERMINAL_GATE_APPOINTMENT_UNAVAILABLE';
           dwellOrDelayHours: number;
-          issuer?: 'ESXPA (SuperAdmin / Systems Lead)' | 'ESACA (Team Leader SAICA)';
+          issuer?:
+            | 'ADMIN (SuperAdmin / Systems Lead)'
+            | 'TEST01 (Team Leader Customer01)';
         };
       }>,
       reply: FastifyReply

@@ -372,7 +372,7 @@ export default function BookingManagementModule() {
                   ? "🇺🇸 Transpacífico (Shanghai -> LA)"
                   : p.id === "bkg-asiaeu-02"
                   ? "🇪🇺 Asia-Europa (Singapur -> RTM)"
-                  : "🇪🇸 SAICA Corredor (BCN -> NYC Book 012)"}
+                  : "🇪🇸 Customer01 Corredor (BCN -> NYC Book TEST01)"}
               </button>
             ))}
           </div>
@@ -929,11 +929,11 @@ export default function BookingManagementModule() {
                 onClick={() => {
                   siMutation.mutate({
                     bookingId: activeBooking.id,
-                    shipperName: "SAICA Paper España S.A. (Corredor Book 012)",
+                    shipperName: "Customer01 Paper S.A. (Corredor Book TEST01)",
                     shipperAddress: "Can Tunis Ferroviaria, Barcelona",
                     consigneeName: "Atlantic Container Corp (New York)",
                     consigneeAddress: "Port Newark Container Terminal (PNCT)",
-                    notifyPartyName: "Atlas Logistics Lead (Xavier Pallarès)",
+                    notifyPartyName: "Atlas Logistics Lead (System Admin)",
                     blType: "ORIGINAL",
                     freightPaymentTerm: "PREPAID",
                     placeOfIssue: "Barcelona",

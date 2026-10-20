@@ -124,7 +124,9 @@ export interface DDSuspensionCertificate {
   regulatoryBasis: 'FMC 46 CFR Part 541 / OSRA 2022' | 'EU Port Services Regulation 2017/352';
   freeTimeClockStatus: 'TOLLED_SUSPENDED';
   dwellOrDelayHours: number;
-  issuer: 'ESXPA (SuperAdmin / Systems Lead)' | 'ESACA (Team Leader SAICA)';
+  issuer:
+    | 'ADMIN (SuperAdmin / Systems Lead)'
+    | 'TEST01 (Team Leader Customer01)';
   digitalSignatureHash: string; // SHA-256 hex digest
   qrCodeDigest: string;
   legalNoticeText: string;
@@ -403,7 +405,9 @@ export function generateDDSuspensionCertificate(params: {
   containerNo: string;
   reason: 'PORT_CONGESTION_ANCHORAGE_DWELL' | 'BERTH_COLLISION_DELAY' | 'TERMINAL_GATE_APPOINTMENT_UNAVAILABLE';
   dwellOrDelayHours: number;
-  issuer?: 'ESXPA (SuperAdmin / Systems Lead)' | 'ESACA (Team Leader SAICA)';
+  issuer?:
+    | 'ADMIN (SuperAdmin / Systems Lead)'
+    | 'TEST01 (Team Leader Customer01)';
 }): DDSuspensionCertificate {
   const timestamp = new Date().toISOString();
   const certId = `CERT-FMC-SUSP-${params.portCode}-${Date.now().toString().slice(-6)}`;
@@ -415,7 +419,7 @@ export function generateDDSuspensionCertificate(params: {
   };
 
   const portName = portNames[params.portCode] || params.portCode;
-  const issuer = params.issuer || 'ESXPA (SuperAdmin / Systems Lead)';
+  const issuer = params.issuer || 'ADMIN (SuperAdmin / Systems Lead)';
 
   const payloadToSign = `${certId}|${timestamp}|${params.portCode}|${params.terminalName}|${params.vesselName}|${params.containerNo}|${params.dwellOrDelayHours}|${issuer}`;
   const digitalSignatureHash = computeCertificateDigest(payloadToSign);
