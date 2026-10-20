@@ -34,6 +34,7 @@ services:
       - DATABASE_URL=file:./data/dev.db
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
+      - JWT_SECRET=dev-secret-key-change-in-production
     volumes:
       # Source code for hot-reload
       - ./src:/app/src:cached
