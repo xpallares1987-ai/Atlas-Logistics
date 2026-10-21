@@ -625,12 +625,18 @@ importers:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.2.18)(immer@11.1.15)(react@19.2.8)(use-sync-external-store@1.7.0(react@19.2.8))
     devDependencies:
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
       '@types/sax':
         specifier: ^1.2.7
         version: 1.2.7
       '@types/xml2js':
         specifier: ^0.4.14
         version: 0.4.14
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
       vite-plugin-node-polyfills:
         specifier: ^0.28.0
         version: 0.28.0(rollup@4.64.12)(vite@8.2.4(@types/node@26.4.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
