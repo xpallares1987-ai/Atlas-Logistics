@@ -75,7 +75,7 @@ export interface Customer01Exception {
   affectedCoilId?: string;
   affectedVehicleId?: string;
   description: string;
-  reportedByRole: 'ADMIN' | 'TEST01' | 'ESXPA' | 'ESACA';
+  reportedByRole: 'ADMIN' | 'TEST01';
   reportedByName: string;
   resolved: boolean;
   resolutionRemarks?: string;
@@ -129,28 +129,6 @@ export const CUSTOMER01_OFFICIAL_ROLES: Record<string, Customer01GovernanceUser>
     superAdminPrivileges: false,
   },
   TEST02: {
-    roleCode: 'TEST02',
-    fullName: 'Operations Manager',
-    title: 'Department Manager (Supervisión Ejecutiva)',
-    operationalAssignmentsAllowed: false,
-    superAdminPrivileges: false,
-  },
-  // Backwards compatibility aliases
-  ESXPA: {
-    roleCode: 'ADMIN',
-    fullName: 'System Admin',
-    title: 'SuperAdmin & Systems/Multiplier Lead',
-    operationalAssignmentsAllowed: true,
-    superAdminPrivileges: true,
-  },
-  ESACA: {
-    roleCode: 'TEST01',
-    fullName: 'Operator Lead',
-    title: 'Department Team Leader (Customer01 Barcelona)',
-    operationalAssignmentsAllowed: true,
-    superAdminPrivileges: false,
-  },
-  ESRSE: {
     roleCode: 'TEST02',
     fullName: 'Operations Manager',
     title: 'Department Manager (Supervisión Ejecutiva)',
@@ -397,8 +375,8 @@ export function validateCustomer01RoleAssignment(
   if (
     normName.includes('restricted_operator') ||
     normName.includes('blocked user') ||
-    normName.includes('jose miguel gomez') ||
-    normName.includes('josé miguel gómez')
+    normName.includes('restricted user') ||
+    roleCode === 'RESTRICTED_OPERATOR'
   ) {
     return {
       allowed: false,
@@ -407,13 +385,11 @@ export function validateCustomer01RoleAssignment(
     };
   }
 
-  // TEST02 / ESRSE Manager exclusion from daily dock/coil tactical assignments
+  // TEST02 Manager exclusion from daily dock/coil tactical assignments
   if (
     roleCode === 'TEST02' ||
-    roleCode === 'ESRSE' ||
     normName.includes('operations manager') ||
-    normName.includes('raquel serrano') ||
-    normName.includes('serrano raquel')
+    normName.includes('test02')
   ) {
     return {
       allowed: false,

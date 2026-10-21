@@ -118,23 +118,17 @@ describe('Customer01 Logistics Platform (Book TEST01 · DEPT-TEST01)', () => {
   });
 
   describe('Rule 5: Governance, Role Hierarchy & Operational Integrity', () => {
-    it('should authorize SuperAdmin ADMIN / ESXPA (System Admin)', () => {
+    it('should authorize SuperAdmin ADMIN (System Admin)', () => {
       const res = validateCustomer01RoleAssignment('ADMIN', 'System Admin');
       expect(res.allowed).toBe(true);
-
-      const legacyRes = validateSaicaRoleAssignment('ESXPA', 'System Admin');
-      expect(legacyRes.allowed).toBe(true);
     });
 
-    it('should authorize Department Team Leader TEST01 / ESACA (Operator Lead)', () => {
+    it('should authorize Department Team Leader TEST01 (Operator Lead)', () => {
       const res = validateCustomer01RoleAssignment('TEST01', 'Operator Lead');
       expect(res.allowed).toBe(true);
-
-      const legacyRes = validateSaicaRoleAssignment('ESACA', 'Operator Lead');
-      expect(legacyRes.allowed).toBe(true);
     });
 
-    it('should strictly exclude TEST02 / ESRSE (Operations Manager) from tactical operational assignments', () => {
+    it('should strictly exclude TEST02 (Operations Manager) from tactical operational assignments', () => {
       const res = validateCustomer01RoleAssignment('TEST02', 'Operations Manager');
       expect(res.allowed).toBe(false);
       expect(res.reason).toContain('Operations Manager');

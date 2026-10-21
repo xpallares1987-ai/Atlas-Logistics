@@ -120,7 +120,7 @@ describe("Ocean Booking Engine (@atlas/shared)", () => {
 
   describe("generateEquipmentReleaseOrder", () => {
     it("should issue an Empty Equipment Release Order with PIN and QR digest", () => {
-      const preset = OCEAN_BOOKING_PRESETS[2]; // Hapag-Lloyd Can Tunis Book 012
+      const preset = OCEAN_BOOKING_PRESETS[2]; // Hapag-Lloyd Can Tunis Book TEST01
       const release = generateEquipmentReleaseOrder(preset, {
         depotCode: "ESBCN-CANTUNIS",
         depotName: "Can Tunis Logistainer Intermodal",

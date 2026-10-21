@@ -117,7 +117,7 @@ export function SafeRemoteLoader({
         name: user.name || 'User',
         email: user.email || 'user@atlas.local',
         role: user.role || 'OPERATIONS',
-        company: 'Atlas Logistics Corredor Book 012',
+        company: 'Atlas Logistics Corredor Book TEST01',
         tenantId: 'tenant-atlas-bcn'
       }
     : null;

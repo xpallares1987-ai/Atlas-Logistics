@@ -84,7 +84,7 @@ const dispatchOrders: TelegramDispatchOrder[] = [
     telegramChatId: "@driver_juan_scm",
     truckId: "TRK-4821-LXZ",
     pickupLocation: "Can Tunis Logistainer (Barcelona)",
-    deliveryLocation: "Saica Paper El Prat (TLSA)",
+    deliveryLocation: "Customer01 Paper El Prat (TLSA)",
     cargoDescription: "1x 40ft HC Bobinas Papel Kraft (24,800 kg)",
     containerNumber: "MSKU7729104",
     scheduledPickupTime: new Date(Date.now() + 3600000).toISOString(),

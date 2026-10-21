@@ -21,7 +21,7 @@ test.describe("Automated Demurrage & Detention Dispute Resolver (/demurrage)", (
     // Preset Buttons
     await expect(page.locator("button:has-text('US West Coast (FMC § 541)')")).toBeVisible();
     await expect(page.locator("button:has-text('Rotterdam ECT (Huelga)')")).toBeVisible();
-    await expect(page.locator("button:has-text('Barcelona Can Tunis (Book 012)')")).toBeVisible();
+    await expect(page.locator("button:has-text('Barcelona Can Tunis (Book TEST01)')")).toBeVisible();
 
     // Default tab: Radar table with container data
     await expect(page.locator("text=Radar de Relojes de Demurrage en Tiempo Real")).toBeVisible();
@@ -75,7 +75,7 @@ test.describe("Automated Demurrage & Detention Dispute Resolver (/demurrage)", (
     await expect(page.locator("text=Despacho Telemático de Disputa")).toBeVisible();
   });
 
-  test("should toggle Barcelona Can Tunis Book 012 preset and dispatch dispute email", async ({
+  test("should toggle Barcelona Can Tunis Book TEST01 preset and dispatch dispute email", async ({
     page,
   }) => {
     await page.goto("/demurrage", { waitUntil: "domcontentloaded" });
@@ -85,7 +85,7 @@ test.describe("Automated Demurrage & Detention Dispute Resolver (/demurrage)", (
     ).toBeVisible({ timeout: 15000 });
 
     // Select Spain Corredor preset
-    const bcnBtn = page.locator("button:has-text('Barcelona Can Tunis (Book 012)')");
+    const bcnBtn = page.locator("button:has-text('Barcelona Can Tunis (Book TEST01)')");
     await bcnBtn.click();
 
     // Verify container updated

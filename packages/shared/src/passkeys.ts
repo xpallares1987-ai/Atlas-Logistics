@@ -165,7 +165,7 @@ export function createWebAuthnRegistrationOptions(
   return {
     challenge: challengeObj.challenge,
     rp: {
-      name: "Atlas-Logistics ERP & Global FMS",
+      name: "Atlas-Logistics ERP & Global SCM",
       id: rpId,
     },
     user: {

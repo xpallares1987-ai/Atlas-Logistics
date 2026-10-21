@@ -282,7 +282,7 @@ export default function DemurrageAlertsModule() {
                   ? "🇺🇸 US West Coast (FMC § 541)"
                   : preset.id === "eu_rotterdam_ect"
                   ? "🇪🇺 Rotterdam ECT (Huelga)"
-                  : "🇪🇸 Barcelona Can Tunis (Book 012)"}
+                  : "🇪🇸 Barcelona Can Tunis (Book TEST01)"}
               </button>
             ))}
           </div>

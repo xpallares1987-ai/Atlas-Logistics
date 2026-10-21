@@ -87,7 +87,7 @@ export default async function customer01Routes(fastify: FastifyInstance) {
           affectedCoilId?: string;
           affectedVehicleId?: string;
           description: string;
-          reportedByRole: 'ADMIN' | 'TEST01' | 'ESXPA' | 'ESACA';
+          reportedByRole: 'ADMIN' | 'TEST01';
           reportedByName: string;
         };
       }>,

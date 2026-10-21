@@ -57,8 +57,8 @@ describe('Scope 3 Carbon Insetting & FuelEU Maritime Pooling Engine', () => {
         bunkerLocation: 'Port de Barcelona - Muelle de la Energía',
         bdnReference: 'BDN-BCN-2026-9921',
         sustainabilityCertificateNumber: 'ISCC-EU-Cert-DE105-829104',
-        allocatedShipmentRef: 'SHP-BCN-SAICA-BOOK012',
-        beneficiaryCompany: 'SAICA Paper España',
+        allocatedShipmentRef: 'SHP-BCN-CUST01-BOOKTEST01',
+        beneficiaryCompany: 'Customer01 Paper España',
         transportMode: 'MARITIME_OCEAN'
       });
 
@@ -72,10 +72,10 @@ describe('Scope 3 Carbon Insetting & FuelEU Maritime Pooling Engine', () => {
 
     it('should verify seed insetting tokens integrity', () => {
       expect(SEED_INSETTING_TOKENS.length).toBe(3);
-      const saicaToken = SEED_INSETTING_TOKENS.find((t) => t.allocatedShipmentRef === 'SHP-BCN-SAICA-BOOK012');
-      expect(saicaToken).toBeDefined();
-      expect(saicaToken?.beneficiaryCompany).toContain('SAICA Paper');
-      expect(saicaToken?.bunkerLocation).toContain('Port de Barcelona');
+      const cust01Token = SEED_INSETTING_TOKENS.find((t) => t.allocatedShipmentRef === 'SHP-BCN-CUST01-BOOKTEST01');
+      expect(cust01Token).toBeDefined();
+      expect(cust01Token?.beneficiaryCompany).toContain('Customer01 Paper');
+      expect(cust01Token?.bunkerLocation).toContain('Port de Barcelona');
     });
   });
 

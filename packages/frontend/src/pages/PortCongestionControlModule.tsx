@@ -185,7 +185,7 @@ export default function PortCongestionControlModule() {
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184);
     doc.text(`Código de Verificación QR: ${cert.qrCodeDigest}`, 14, finalY + 35);
-    doc.text('Atlas-Logistics Autonomous Maritime Control Platform · Book 012 Corredor Barcelona', 14, finalY + 42);
+    doc.text('Atlas-Logistics Autonomous Maritime Control Platform · Book TEST01 Corredor Barcelona', 14, finalY + 42);
 
     doc.save(`Certificado_DD_${cert.containerNo}_${cert.portCode}.pdf`);
   };

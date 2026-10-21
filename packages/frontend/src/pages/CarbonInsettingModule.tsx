@@ -149,7 +149,7 @@ export default function CarbonInsettingModule() {
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184);
     doc.text(`Código QR de Validación: ${token.qrCodeDigest}`, 14, finalY + 28);
-    doc.text('Atlas-Logistics Scope 3 Digital Twin Registry · Corredor Oficial Book 012 Barcelona', 14, finalY + 34);
+    doc.text('Atlas-Logistics Scope 3 Digital Twin Registry · Corredor Oficial Book TEST01 Barcelona', 14, finalY + 34);
 
     doc.save(`Certificado_Insetting_${token.tokenId}.pdf`);
   };

@@ -70,7 +70,7 @@ export class Customer01Service {
     affectedCoilId?: string;
     affectedVehicleId?: string;
     description: string;
-    reportedByRole: 'ADMIN' | 'TEST01' | 'ESXPA' | 'ESACA';
+    reportedByRole: 'ADMIN' | 'TEST01';
     reportedByName: string;
   }): Customer01Exception {
     // Validate role governance

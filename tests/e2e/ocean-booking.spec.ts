@@ -21,7 +21,7 @@ test.describe("Autonomous Ocean Booking Engine & Equipment Control (/bookings)",
     // Corridor Presets
     await expect(page.locator("button:has-text('Transpacífico (Shanghai -> LA)')")).toBeVisible();
     await expect(page.locator("button:has-text('Asia-Europa (Singapur -> RTM)')")).toBeVisible();
-    await expect(page.locator("button:has-text('SAICA Corredor (BCN -> NYC Book 012)')")).toBeVisible();
+    await expect(page.locator("button:has-text('Customer01 Corredor (BCN -> NYC Book TEST01)')")).toBeVisible();
 
     // Default tab: Rate Lock Cards
     await expect(page.locator("text=Comparador de Tarifas Spot en Tiempo Real")).toBeVisible();
@@ -68,7 +68,7 @@ test.describe("Autonomous Ocean Booking Engine & Equipment Control (/bookings)",
     await expect(page.locator("text=PIN de Acceso de Transportista")).toBeVisible();
   });
 
-  test("should toggle SAICA Corredor Book 012 preset and execute booking with rate lock", async ({
+  test("should toggle Customer01 Corredor Book TEST01 preset and execute booking with rate lock", async ({
     page,
   }) => {
     await page.goto("/bookings", { waitUntil: "domcontentloaded" });
@@ -77,8 +77,8 @@ test.describe("Autonomous Ocean Booking Engine & Equipment Control (/bookings)",
       page.locator("h1:has-text('Ocean Booking & Equipment Control Tower')")
     ).toBeVisible({ timeout: 15000 });
 
-    // Toggle Book 012 preset
-    const bcnBtn = page.locator("button:has-text('SAICA Corredor (BCN -> NYC Book 012)')");
+    // Toggle Book TEST01 preset
+    const bcnBtn = page.locator("button:has-text('Customer01 Corredor (BCN -> NYC Book TEST01)')");
     await bcnBtn.click();
 
     await expect(page.locator("text=ESBCN").first()).toBeVisible({ timeout: 5000 });

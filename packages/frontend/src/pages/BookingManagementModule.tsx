@@ -945,7 +945,7 @@ export default function BookingManagementModule() {
                         verifiedGrossMassKg: 26500,
                         packagesCount: 22,
                         packageType: "Coils / Reels",
-                        cargoDescription: "Paper Reels for Corrugated Packaging (Book 012)",
+                        cargoDescription: "Paper Reels for Corrugated Packaging (Book TEST01)",
                         hsCode: "48051100",
                       },
                     ],

@@ -50,8 +50,8 @@ describe('Carbon Insetting Module: Fastify API Routes', () => {
         bunkerLocation: 'Port de Barcelona - Muelle Adosado',
         bdnReference: 'BDN-BCN-2026-TEST',
         sustainabilityCertificateNumber: 'ISCC-EU-Cert-TEST-999',
-        allocatedShipmentRef: 'SHP-BCN-SAICA-TEST',
-        beneficiaryCompany: 'SAICA Paper España',
+        allocatedShipmentRef: 'SHP-BCN-CUST01-TEST',
+        beneficiaryCompany: 'Customer01 Paper España',
         transportMode: 'MARITIME_OCEAN'
       }
     });

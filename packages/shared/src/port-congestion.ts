@@ -996,7 +996,7 @@ export const SEED_DRAYAGE_APPOINTMENTS: DrayageAppointment[] = [
     adjustedSlotEnd: new Date(Date.now() + 5 * 3600 * 1000).toISOString(),
     status: 'SCHEDULED',
     terminalGateWaitMinutesEstimate: 10,
-    intermodalAlertNote: 'Vía UIC Can Tunis preparada para carga de bobinas Book 012.'
+    intermodalAlertNote: 'Vía UIC Can Tunis preparada para carga de bobinas Book TEST01.'
   },
   {
     appointmentId: 'APT-BCN-003',

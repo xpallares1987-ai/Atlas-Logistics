@@ -4,7 +4,7 @@
  * Supports regulatory frameworks:
  * - US FMC 46 CFR Part 541 / OSRA 2022 (Ocean Shipping Reform Act)
  * - European Port Standard Commercial Terms (Rotterdam, Antwerp, Hamburg rules)
- * - Spanish Puertos del Estado (RD 2/2011 / Book 012 Barcelona Can Tunis)
+ * - Spanish Puertos del Estado (RD 2/2011 / Book TEST01 Barcelona Can Tunis)
  */
 
 export type JurisdictionRule =
@@ -403,7 +403,7 @@ export function generateDisputePack(params: {
   if (auditResult.jurisdiction === "US_FMC_OSRA_2022") {
     legalAuthority = "United States Federal Maritime Commission (FMC) 46 CFR Part 541 (Demurrage and Detention Billing Requirements; OSRA 2022 § 7(b))";
   } else if (auditResult.jurisdiction === "ES_PUERTOS_ESTADO") {
-    legalAuthority = "Real Decreto Legislativo 2/2011 (Texto Refundido de la Ley de Puertos del Estado y de la Marina Mercante) & Book 012 Barcelona Corredor Operativo";
+    legalAuthority = "Real Decreto Legislativo 2/2011 (Texto Refundido de la Ley de Puertos del Estado y de la Marina Mercante) & Book TEST01 Barcelona Corredor Operativo";
   } else {
     legalAuthority = "European Port Standard Commercial Rules & ICC Incoterms 2020 Maritime Force Majeure clauses";
   }
@@ -612,7 +612,7 @@ export const DEMURRAGE_DISPUTE_PRESETS: {
   },
   {
     id: "es_barcelona_cantunis",
-    name: "Spain Corredor: Barcelona Can Tunis (Book 012 Rail Siding Hold)",
+    name: "Spain Corredor: Barcelona Can Tunis (Book TEST01 Rail Siding Hold)",
     jurisdiction: "ES_PUERTOS_ESTADO",
     description: "Hapag-Lloyd billed 8 days demurrage (€1,280) for Can Tunis rail connection container. AEAT DUA Circuito Rojo scanner and Adif switch delay paused clock for 4 days.",
     invoice: {
@@ -660,7 +660,7 @@ export const DEMURRAGE_DISPUTE_PRESETS: {
       {
         id: "susp-bcn-02",
         code: "RAIL_EMBARGO",
-        reason: "Adif Can Tunis Morrot rail yard catenary maintenance & track switch outage (Book 012)",
+        reason: "Adif Can Tunis Morrot rail yard catenary maintenance & track switch outage (Book TEST01)",
         startDate: "2026-10-06",
         endDate: "2026-10-06",
         suspendedDays: 1,
@@ -673,7 +673,7 @@ export const DEMURRAGE_DISPUTE_PRESETS: {
       { id: "m301", code: "VD", eventDescription: "Discharged at Terminal BEST Port de Barcelona", timestamp: "2026-09-26T12:00:00Z", locationCode: "ESBCN", locationName: "Terminal BEST", verified: true },
       { id: "m302", code: "AL", eventDescription: "Container Available for Rail Shuttle Dispatch", timestamp: "2026-09-27T08:30:00Z", locationCode: "ESBCN", locationName: "Terminal BEST", verified: true },
       { id: "m303", code: "CO", eventDescription: "AEAT Circuito Rojo Inspection Cleared", timestamp: "2026-10-05T17:00:00Z", locationCode: "ESBCN", locationName: "Recinto Aduanero BCN", verified: true },
-      { id: "m304", code: "OA", eventDescription: "Ingate to Can Tunis Rail Siding (Book 012)", timestamp: "2026-10-10T15:30:00Z", locationCode: "ESBCN", locationName: "Can Tunis Logistainer", verified: true },
+      { id: "m304", code: "OA", eventDescription: "Ingate to Can Tunis Rail Siding (Book TEST01)", timestamp: "2026-10-10T15:30:00Z", locationCode: "ESBCN", locationName: "Can Tunis Logistainer", verified: true },
     ],
   },
 ];

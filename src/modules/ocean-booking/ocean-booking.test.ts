@@ -78,7 +78,7 @@ describe("Ocean Booking Module: Fastify API Routes", () => {
         carrier: "HAPAG_LLOYD",
         originPort: "ESBCN",
         destinationPort: "USNYC",
-        commodityDescription: "SAICA Paper Book 012 Coils",
+        commodityDescription: "Customer01 Paper Book TEST01 Coils",
         isoType: "40HC",
         quantity: 2,
       },
