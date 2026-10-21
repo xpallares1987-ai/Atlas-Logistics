@@ -22,12 +22,14 @@ test.describe("In-App Wiki & Knowledge Hub (/wiki)", () => {
 
     // Default article title
     await expect(
-      page.getByRole("heading", { name: /Corredor Oficial Book TEST01/i }),
+      page
+        .getByRole("heading", { name: /Corredor Oficial Book TEST01/i })
+        .first(),
     ).toBeVisible();
 
     // Summary and legal baseline
-    await expect(page.getByText("26.500 kg netos")).toBeVisible();
-    await expect(page.getByText("CANTUNIS")).toBeVisible();
+    await expect(page.getByText("26.500 kg netos").first()).toBeVisible();
+    await expect(page.getByText("CANTUNIS").first()).toBeVisible();
   });
 
   test("should filter articles by search query", async ({ page }) => {
@@ -56,10 +58,10 @@ test.describe("In-App Wiki & Knowledge Hub (/wiki)", () => {
     await page.getByRole("button", { name: /Glosario A-Z/i }).click();
 
     // Check international terms
-    await expect(page.getByText("DEG / SDR")).toBeVisible();
-    await expect(page.getByText("TEU")).toBeVisible();
-    await expect(page.getByText("DUA / SAD")).toBeVisible();
-    await expect(page.getByText("VGM")).toBeVisible();
+    await expect(page.getByText("DEG / SDR").first()).toBeVisible();
+    await expect(page.getByText("TEU").first()).toBeVisible();
+    await expect(page.getByText("DUA / SAD").first()).toBeVisible();
+    await expect(page.getByText("VGM").first()).toBeVisible();
   });
 
   test("should switch articles on clicking a related or list article", async ({
@@ -68,18 +70,20 @@ test.describe("In-App Wiki & Knowledge Hub (/wiki)", () => {
     await page.goto("/wiki", { waitUntil: "domcontentloaded" });
 
     // Click on Incoterms article in sidebar list
-    const incotermsCard = page.locator(
-      "h4:has-text('Matriz Oficial Incoterms')",
-    );
+    const incotermsCard = page
+      .locator("h4:has-text('Matriz Oficial Incoterms')")
+      .first();
     await expect(incotermsCard).toBeVisible();
     await incotermsCard.click();
 
     // Active reader should show Incoterms title
     await expect(
-      page.getByRole("heading", { name: /Matriz Oficial Incoterms® 2020/i }),
+      page
+        .getByRole("heading", { name: /Matriz Oficial Incoterms® 2020/i })
+        .first(),
     ).toBeVisible();
     await expect(
-      page.getByText("¡No usar FOB / CIF en Contenedores!"),
+      page.getByText("¡No usar FOB / CIF en Contenedores!").first(),
     ).toBeVisible();
   });
 });
