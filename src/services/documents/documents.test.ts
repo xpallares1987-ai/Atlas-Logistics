@@ -15,12 +15,7 @@ describe("Multimodal Official Document Center & Digital Signature", () => {
         portOfLoading: "Valencia (ESVLC)",
         portOfDischarge: "New York (USNYC)",
         commodities: [
-          {
-            description: "General Cargo",
-            pieces: 10,
-            grossWeightKg: 5000,
-            volumeCbm: 15,
-          },
+          { description: "General Cargo", pieces: 10, grossWeightKg: 5000, volumeCbm: 15 },
         ],
       });
 
@@ -88,14 +83,7 @@ describe("Multimodal Official Document Center & Digital Signature", () => {
           consignee: "Test Consignee Inc",
           portOfLoading: "Valencia",
           portOfDischarge: "Miami",
-          commodities: [
-            {
-              description: "Electronics",
-              pieces: 5,
-              grossWeightKg: 1200,
-              volumeCbm: 4,
-            },
-          ],
+          commodities: [{ description: "Electronics", pieces: 5, grossWeightKg: 1200, volumeCbm: 4 }],
         },
       });
 
@@ -255,12 +243,8 @@ describe("Multimodal Official Document Center & Digital Signature", () => {
     });
 
     it("should return authentic: false when hash is invalid or tampered", async () => {
-      const fakeHash = crypto
-        .createHash("sha256")
-        .update("FAKE_TAMPERED")
-        .digest("hex");
-      const verification =
-        await DocumentSignerService.verifyAuthenticity(fakeHash);
+      const fakeHash = crypto.createHash("sha256").update("FAKE_TAMPERED").digest("hex");
+      const verification = await DocumentSignerService.verifyAuthenticity(fakeHash);
 
       expect(verification.authentic).toBe(false);
       expect(verification.message).toContain("Verificación fallida");
