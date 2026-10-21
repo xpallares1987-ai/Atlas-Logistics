@@ -271,6 +271,20 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
 
 - **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
 
+### 21. 📚 Enciclopedia Logística & Wiki PWA Nativa (/wiki)
+
+- **Manuales Operativos & Normativas Multimodales**:
+  - **Corredor Oficial Customer01 (Book TEST01 · DEPT-TEST01)**: Flujos ferroviarios exclusivos en CANTUNIS (-76,9% CO2e), camión-lona en TLSA/BERRIO, prohibición de TMZa, estiba 40' HC (RD 2822/1998 26.500 kg netos) y algoritmo 2-opt de rebalanceo de centro de gravedad ($|\Delta x| \le 0,60\text{ m}$).
+  - **Guía Oficial DUA/SAD 54 Casillas**: Casilla 46 (Valor Estadístico) bajo CAU Arts. 70-74, Casilla 47 (liquidación de aranceles TARIC, IVA y antidumping) y regímenes aduaneros H1/H2/I1/A1.
+  - **Matriz Incoterms® 2020**: Asignación de costes y riesgos, y sustitución obligatoria de FOB/CIF por FCA/CIP en transporte marítimo de contenedores.
+  - **Demurrage, Detention & Storage**: Días libres, escalones tarifarios diarios de navieras y protocolos FMC de arbitraje de costes.
+  - **IATA e-Freight**: Algoritmo de verificación Modulo-7 para MAWB, relación volumétrica 1:6000 ($1\text{ m}^3 = 167\text{ kg}$) y mercancías peligrosas DGR para baterías de ion-litio (UN 3480 / UN 3481).
+  - **Carretera CMR & EN 12195**: Límite de indemnización legal de $8,33\text{ DEG/kg}$ y fuerzas de inercia longitudinales y transversales.
+- **Buscador Fuzzy Instantáneo & Atajo Global (`Ctrl+K`)**:
+  - Búsqueda en tiempo real indexada por títulos, acrónimos, casillas aduaneras y etiquetas.
+  - **Glosario Internacional A-Z**: Diccionario enciclopédico de acrónimos regulados (DEG/SDR, TEU, FEU, BAF, THC, T3, DUA, TARIC, VGM, DGR, AWB, CMR, BL, OEA, CBAM, GLEC).
+  - **Exportador a PDF Imprimible**: Generación vectorial de manuales operativos y certificados normativos en PDF.
+
 ---
 
 ## 🏗️ Estructura del Monorepo
@@ -389,7 +403,7 @@ pnpm start
 ## 🧪 Pruebas Automatizadas
 
 ```bash
-# Suite completa Vitest (128 archivos, 754 tests unitarios e integrados)
+# Suite completa Vitest (129 archivos, 762 tests unitarios e integrados)
 pnpm test
 
 # Pruebas End-to-End con Playwright

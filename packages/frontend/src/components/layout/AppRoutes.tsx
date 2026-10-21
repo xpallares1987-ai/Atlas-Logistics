@@ -99,12 +99,11 @@ const SmartContractsModule = React.lazy(
 const OmnichannelNotificationsModule = React.lazy(
   () => import("../../pages/OmnichannelNotificationsModule"),
 );
+const WikiHubModule = React.lazy(() => import("../../pages/WikiHubModule"));
 const CrossBorderUsmcaModule = React.lazy(
   () => import("../../pages/CrossBorderUsmcaModule"),
 );
-const EFirmaHubModule = React.lazy(
-  () => import("../../pages/EFirmaHubModule"),
-);
+const EFirmaHubModule = React.lazy(() => import("../../pages/EFirmaHubModule"));
 const ErpIntegrationsModule = React.lazy(
   () => import("../../pages/ErpIntegrationsModule"),
 );
@@ -155,7 +154,6 @@ const Customer01OperationsModule = React.lazy(
   () => import("../../pages/Customer01OperationsModule"),
 );
 const WorkflowManagerModule = React.lazy(
-
   () => import("../../pages/WorkflowManagerModule"),
 );
 const SettingsModule = React.lazy(() => import("../../pages/SettingsModule"));
@@ -499,7 +497,14 @@ export const AppRoutes = () => {
           path="/security-risk"
           element={
             <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES", "CUSTOMER"]}
+              allowedRoles={[
+                "ADMIN",
+                "MANAGER",
+                "OPERATIONS",
+                "EXECUTIVE",
+                "SALES",
+                "CUSTOMER",
+              ]}
             >
               <SecurityRiskResilienceModule />
             </ProtectedRoute>
@@ -519,7 +524,13 @@ export const AppRoutes = () => {
           path="/port-congestion"
           element={
             <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES"]}
+              allowedRoles={[
+                "ADMIN",
+                "MANAGER",
+                "OPERATIONS",
+                "EXECUTIVE",
+                "SALES",
+              ]}
             >
               <PortCongestionControlModule />
             </ProtectedRoute>
@@ -529,7 +540,14 @@ export const AppRoutes = () => {
           path="/carbon-insetting"
           element={
             <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES", "CUSTOMER"]}
+              allowedRoles={[
+                "ADMIN",
+                "MANAGER",
+                "OPERATIONS",
+                "EXECUTIVE",
+                "SALES",
+                "CUSTOMER",
+              ]}
             >
               <CarbonInsettingModule />
             </ProtectedRoute>
@@ -539,7 +557,14 @@ export const AppRoutes = () => {
           path="/iata-one-record"
           element={
             <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES", "CUSTOMER"]}
+              allowedRoles={[
+                "ADMIN",
+                "MANAGER",
+                "OPERATIONS",
+                "EXECUTIVE",
+                "SALES",
+                "CUSTOMER",
+              ]}
             >
               <IataOneRecordModule />
             </ProtectedRoute>
@@ -549,7 +574,13 @@ export const AppRoutes = () => {
           path="/customer01-operations"
           element={
             <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES"]}
+              allowedRoles={[
+                "ADMIN",
+                "MANAGER",
+                "OPERATIONS",
+                "EXECUTIVE",
+                "SALES",
+              ]}
             >
               <Customer01OperationsModule />
             </ProtectedRoute>
@@ -559,7 +590,13 @@ export const AppRoutes = () => {
           path="/saica-operations"
           element={
             <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE", "SALES"]}
+              allowedRoles={[
+                "ADMIN",
+                "MANAGER",
+                "OPERATIONS",
+                "EXECUTIVE",
+                "SALES",
+              ]}
             >
               <Customer01OperationsModule />
             </ProtectedRoute>
@@ -731,7 +768,9 @@ export const AppRoutes = () => {
         />
         <Route path="/track/:referenceNumber?" element={<PublicTracking />} />
 
-        {/* Global Settings */}
+        {/* Global Settings & Wiki Knowledge Hub */}
+        <Route path="/wiki" element={<WikiHubModule />} />
+        <Route path="/knowledge" element={<WikiHubModule />} />
         <Route path="/settings" element={<SettingsModule />} />
 
         {/* Legal Pages */}

@@ -15,6 +15,7 @@ import {
   Boxes,
   Calendar,
   Book,
+  BookOpen,
   Briefcase,
   ShieldAlert,
   Landmark,
@@ -494,6 +495,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               EDI/XML Parser
             </NavLink>
           )}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">
+            Knowledge & Standards
+          </span>
+          <NavLink
+            onClick={() => setMobileMenuOpen(false)}
+            to="/wiki"
+            icon={BookOpen}
+          >
+            Wiki & Knowledge Hub
+          </NavLink>
         </div>
 
         <div className="flex flex-col gap-2">
