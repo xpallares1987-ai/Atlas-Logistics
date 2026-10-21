@@ -5,6 +5,22 @@ managePackageManagerVersions: false
 confirmModulesPurge: false
 minimumReleaseAge: 0
 
+allowBuilds:
+  "@google/genai": true
+  better-sqlite3: true
+  core-js: true
+  esbuild: true
+  msgpackr-extract: true
+  protobufjs: true
+
+onlyBuiltDependencies:
+  - "@google/genai"
+  - better-sqlite3
+  - core-js
+  - esbuild
+  - msgpackr-extract
+  - protobufjs
+
 overrides:
   brace-expansion: ">=5.0.12"
   react-router: "^8.3.0"
@@ -27,11 +43,3 @@ overrides:
   shell-quote: ">=1.11.0"
   source-map-js: ">=1.2.2"
   ip-address: ">=10.7.1"
-
-onlyBuiltDependencies:
-  - "@google/genai"
-  - better-sqlite3
-  - core-js
-  - esbuild
-  - msgpackr-extract
-  - protobufjs
