@@ -146,6 +146,15 @@ const DispatchOrderSchema = z.object({
   scheduledPickupTime: z.string().optional(),
 });
 
+const isExampleWebhookUrl = (url: string) => {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase().replace(/\.$/, "");
+    return hostname === "example.com" || hostname.endsWith(".example.com");
+  } catch {
+    return url.toLowerCase() === "example.com";
+  }
+};
+
 export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/notifications/teams/templates
   fastify.get("/teams/templates", async () => {
@@ -185,7 +194,7 @@ export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
       const signature = generateHmacSignature(jsonString);
 
       const targetUrl = targetWebhookUrl?.trim() || "";
-      const isSimulated = !targetUrl || targetUrl.includes("example.com") || targetUrl.toLowerCase() === "simulated";
+      const isSimulated = !targetUrl || isExampleWebhookUrl(targetUrl) || targetUrl.toLowerCase() === "simulated";
 
       const logEntry: WebhookAuditLog = {
         id: `wh-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
