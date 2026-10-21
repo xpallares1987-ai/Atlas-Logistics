@@ -35,6 +35,10 @@ export async function probeRemoteEndpoint(
   url: string,
   timeoutMs: number = 2000,
 ): Promise<boolean> {
+  if (!url || typeof url !== "string" || !url.startsWith("https://")) {
+    return false;
+  }
+
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== "https:") {

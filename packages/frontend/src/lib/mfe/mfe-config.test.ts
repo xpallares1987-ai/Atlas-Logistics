@@ -73,7 +73,7 @@ describe("MFE Federation Configuration & Dynamic Resolver", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     const result = await probeRemoteEndpoint(
-      "http://127.0.0.1:5176/assets/remoteEntry.js",
+      "http://127.0.0.1:5176/test-endpoint",
       1000,
     );
     expect(result).toBe(false);
