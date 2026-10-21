@@ -24,7 +24,10 @@ const auditHistory: WebhookAuditLog[] = [
     status: "DELIVERED",
     httpStatus: 200,
     hmacSignature: "hmac_8a91b2c3d4e5f67890123456789abcdef",
-    payloadPreview: generateAdaptiveCardPayload("COLD_CHAIN_TEMP_BREACH", getSampleAnomalyContext("COLD_CHAIN_TEMP_BREACH")),
+    payloadPreview: generateAdaptiveCardPayload(
+      "COLD_CHAIN_TEMP_BREACH",
+      getSampleAnomalyContext("COLD_CHAIN_TEMP_BREACH"),
+    ),
   },
   {
     id: "wh-init-002",
@@ -35,7 +38,10 @@ const auditHistory: WebhookAuditLog[] = [
     status: "DELIVERED",
     httpStatus: 200,
     hmacSignature: "hmac_7b82a1c4d5e6f7890123456789abcdef",
-    payloadPreview: generateAdaptiveCardPayload("CUSTOMS_CANAL_ROJO", getSampleAnomalyContext("CUSTOMS_CANAL_ROJO")),
+    payloadPreview: generateAdaptiveCardPayload(
+      "CUSTOMS_CANAL_ROJO",
+      getSampleAnomalyContext("CUSTOMS_CANAL_ROJO"),
+    ),
   },
 ];
 
@@ -46,7 +52,8 @@ const driverMessages: TelegramDriverMessage[] = [
     telegramChatId: "@driver_juan_scm",
     truckId: "TRK-4821-LXZ",
     reportType: "GATE_OUT_TIMESTAMP",
-    details: "Salida de terminal Can Tunis / Morrot confirmada con precinto verificado.",
+    details:
+      "Salida de terminal Can Tunis / Morrot confirmada con precinto verificado.",
     location: "Can Tunis (BCN)",
     timestamp: new Date(Date.now() - 5400000).toISOString(),
     status: "PROCESSED_SCM",
@@ -57,7 +64,8 @@ const driverMessages: TelegramDriverMessage[] = [
     telegramChatId: "@driver_marc_vlc",
     truckId: "TRK-9012-KZX",
     reportType: "YARD_DELAY",
-    details: "Espera de 35 minutos en muelle 4 por mantenimiento de grúa reach stacker.",
+    details:
+      "Espera de 35 minutos en muelle 4 por mantenimiento de grúa reach stacker.",
     amountOrMinutes: 35,
     location: "Noatum Terminal Valencia",
     timestamp: new Date(Date.now() - 2700000).toISOString(),
@@ -69,7 +77,8 @@ const driverMessages: TelegramDriverMessage[] = [
     telegramChatId: "@driver_alex_bio",
     truckId: "TRK-3341-MMP",
     reportType: "FUEL_RECEIPT",
-    details: "Repostaje en estación de servicio AP-7 Sant Celoni (420 L Diésel B7).",
+    details:
+      "Repostaje en estación de servicio AP-7 Sant Celoni (420 L Diésel B7).",
     amountOrMinutes: 685.5,
     location: "AP-7 Sant Celoni",
     timestamp: new Date(Date.now() - 900000).toISOString(),
@@ -115,7 +124,9 @@ const DispatchWebhookSchema = z.object({
     detectedAt: z.string().optional(),
     location: z.string().optional(),
     transportMode: z.string().optional(),
-    metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
+    metadata: z
+      .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+      .optional(),
   }) as z.ZodType<AnomalyPayloadContext>,
   targetWebhookUrl: z.string().optional(),
 });
@@ -145,6 +156,15 @@ const DispatchOrderSchema = z.object({
   containerNumber: z.string().optional(),
   scheduledPickupTime: z.string().optional(),
 });
+
+const isExampleWebhookUrl = (url: string) => {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase().replace(/\.$/, "");
+    return hostname === "example.com" || hostname.endsWith(".example.com");
+  } catch {
+    return url.toLowerCase() === "example.com";
+  }
+};
 
 export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/notifications/teams/templates
@@ -179,20 +199,28 @@ export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/notifications/teams/dispatch
   fastify.post("/teams/dispatch", async (request, reply) => {
     try {
-      const { anomalyType, context, targetWebhookUrl } = DispatchWebhookSchema.parse(request.body);
+      const { anomalyType, context, targetWebhookUrl } =
+        DispatchWebhookSchema.parse(request.body);
       const cardPayload = generateAdaptiveCardPayload(anomalyType, context);
       const jsonString = JSON.stringify(cardPayload);
       const signature = generateHmacSignature(jsonString);
 
       const targetUrl = targetWebhookUrl?.trim() || "";
-      const isSimulated = !targetUrl || targetUrl.includes("example.com") || targetUrl.toLowerCase() === "simulated";
+      const isSimulated =
+        !targetUrl ||
+        isExampleWebhookUrl(targetUrl) ||
+        targetUrl.toLowerCase() === "simulated";
 
       const logEntry: WebhookAuditLog = {
         id: `wh-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         anomalyType,
         gsid: context.gsid,
         dispatchedAt: new Date().toISOString(),
-        targetUrl: targetUrl ? (targetUrl.length > 35 ? `${targetUrl.substring(0, 32)}...` : targetUrl) : "SIMULATED_LOCAL",
+        targetUrl: targetUrl
+          ? targetUrl.length > 35
+            ? `${targetUrl.substring(0, 32)}...`
+            : targetUrl
+          : "SIMULATED_LOCAL",
         status: isSimulated ? "SIMULATED" : "DELIVERED",
         httpStatus: 200,
         payloadPreview: cardPayload,
@@ -218,7 +246,8 @@ export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
           }
         } catch (err: any) {
           logEntry.status = "FAILED";
-          logEntry.errorMessage = err.message || "Network error dispatching webhook";
+          logEntry.errorMessage =
+            err.message || "Network error dispatching webhook";
         }
       }
 
@@ -256,7 +285,7 @@ export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
         parsed.reportType,
         parsed.details,
         parsed.amountOrMinutes,
-        parsed.location
+        parsed.location,
       );
 
       driverMessages.unshift(newReport);
@@ -296,7 +325,7 @@ export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
         "GATE_OUT_TIMESTAMP",
         `Orden de transporte ${order.orderId} despachada hacia ${parsed.deliveryLocation}.`,
         undefined,
-        parsed.pickupLocation
+        parsed.pickupLocation,
       );
       driverMessages.unshift(autoMsg);
 

@@ -35,7 +35,9 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
     expect(json.success).toBe(true);
     expect(json.templates).toHaveLength(8);
 
-    const coldChain = json.templates.find((t: any) => t.anomalyType === "COLD_CHAIN_TEMP_BREACH");
+    const coldChain = json.templates.find(
+      (t: any) => t.anomalyType === "COLD_CHAIN_TEMP_BREACH",
+    );
     expect(coldChain).toBeDefined();
     expect(coldChain.cardPayload.attachments[0].content.version).toBe("1.5");
   });
@@ -71,6 +73,41 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
     expect(json.data.cardPayload.type).toBe("message");
   });
 
+  it("POST /api/notifications/teams/dispatch should only simulate example.com hosts", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ status: 200, ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      for (const [targetWebhookUrl, expectedStatus, expectedFetchCalls] of [
+        ["https://example.com/webhook", "SIMULATED", 0],
+        ["https://hooks.example.com/webhook", "SIMULATED", 0],
+        ["https://evil.test/example.com/webhook", "DELIVERED", 1],
+      ] as const) {
+        fetchMock.mockClear();
+        const response = await app.inject({
+          method: "POST",
+          url: "/api/notifications/teams/dispatch",
+          payload: {
+            anomalyType: "HAZMAT_VIOLATION",
+            context: {
+              gsid: "GS-2026-ALG-55012",
+              severity: "CRITICAL",
+            },
+            targetWebhookUrl,
+          },
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(JSON.parse(response.payload).data.log.status).toBe(
+          expectedStatus,
+        );
+        expect(fetchMock).toHaveBeenCalledTimes(expectedFetchCalls);
+      }
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("GET /api/notifications/teams/audit-log should return audit history list", async () => {
     const response = await app.inject({
       method: "GET",
@@ -93,7 +130,8 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
         telegramChatId: "@driver_enrique",
         truckId: "TRK-5521-BCN",
         reportType: "YARD_DELAY",
-        details: "Espera de 50 minutos en acceso sur por verificación de escáner aduanero.",
+        details:
+          "Espera de 50 minutos en acceso sur por verificación de escáner aduanero.",
         amountOrMinutes: 50,
         location: "ZAL Port Barcelona",
       },
@@ -117,7 +155,9 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
     const json = JSON.parse(response.payload);
     expect(json.success).toBe(true);
     expect(Array.isArray(json.messages)).toBe(true);
-    const found = json.messages.find((m: any) => m.driverName === "Enrique Morales");
+    const found = json.messages.find(
+      (m: any) => m.driverName === "Enrique Morales",
+    );
     expect(found).toBeDefined();
   });
 
