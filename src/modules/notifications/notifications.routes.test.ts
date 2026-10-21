@@ -35,9 +35,7 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
     expect(json.success).toBe(true);
     expect(json.templates).toHaveLength(8);
 
-    const coldChain = json.templates.find(
-      (t: any) => t.anomalyType === "COLD_CHAIN_TEMP_BREACH",
-    );
+    const coldChain = json.templates.find((t: any) => t.anomalyType === "COLD_CHAIN_TEMP_BREACH");
     expect(coldChain).toBeDefined();
     expect(coldChain.cardPayload.attachments[0].content.version).toBe("1.5");
   });
@@ -98,9 +96,7 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
         });
 
         expect(response.statusCode).toBe(200);
-        expect(JSON.parse(response.payload).data.log.status).toBe(
-          expectedStatus,
-        );
+        expect(JSON.parse(response.payload).data.log.status).toBe(expectedStatus);
         expect(fetchMock).toHaveBeenCalledTimes(expectedFetchCalls);
       }
     } finally {
@@ -130,8 +126,7 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
         telegramChatId: "@driver_enrique",
         truckId: "TRK-5521-BCN",
         reportType: "YARD_DELAY",
-        details:
-          "Espera de 50 minutos en acceso sur por verificación de escáner aduanero.",
+        details: "Espera de 50 minutos en acceso sur por verificación de escáner aduanero.",
         amountOrMinutes: 50,
         location: "ZAL Port Barcelona",
       },
@@ -155,9 +150,7 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
     const json = JSON.parse(response.payload);
     expect(json.success).toBe(true);
     expect(Array.isArray(json.messages)).toBe(true);
-    const found = json.messages.find(
-      (m: any) => m.driverName === "Enrique Morales",
-    );
+    const found = json.messages.find((m: any) => m.driverName === "Enrique Morales");
     expect(found).toBeDefined();
   });
 
