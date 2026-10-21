@@ -1,0 +1,75 @@
+# .github/labeler.yml
+# Configuration for actions/labeler v5
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/frontend/**'
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/**'
+
+shared:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/shared/**'
+
+ui:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/ui/**'
+
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/db/**'
+          - 'drizzle/**'
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'tests/**'
+          - '**/*.test.ts'
+          - '**/*.spec.ts'
+
+wiki:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/shared/src/wiki/**'
+          - 'packages/frontend/src/pages/WikiHubModule.tsx'
+
+logistics:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/shared/src/logistics/**'
+          - 'src/modules/customer01/**'
+          - 'src/modules/workload/**'
+          - 'src/modules/saica/**'
+          - 'packages/frontend/src/pages/Customer01OperationsModule.tsx'
+          - 'packages/frontend/src/pages/WorkloadPortfolioModule.tsx'
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '**/*.md'
+
+ci/cd:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package.json'
+          - 'pnpm-lock.yaml'
+          - '**/package.json'
+
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/njsscan.yml'
+          - '.github/workflows/dependabot.yml'
