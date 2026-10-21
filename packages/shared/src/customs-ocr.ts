@@ -118,7 +118,7 @@ export function extractCommercialInvoice(text: string): OcrExtractionResult<Comm
   let confidence = 0.95;
 
   const invMatch =
-    text.match(/(?:INVOICE\s*(?:NO|NUMBER|#)|FACTURA\s*(?:NO|NUMERO|#)|INV\s*(?:NO|#))\s*[:#]?\s*([A-Z0-9-]{4,30})/i) ||
+    text.match(/(?:INVOICE\s*(?:NO|NUMBER|#)|FACTURA\s*(?:NO|NUMERO|#)|INV\s*(?:NO|#))(?:\s*[:#]\s*|\s+|(?=[A-Z0-9-]))([A-Z0-9-]{4,30})/i) ||
     text.match(/(?:INVOICE|FACTURA|INV)\s*[:#]\s*([A-Z0-9-]{4,30})/i);
   const invoiceNumber = invMatch ? invMatch[1].trim() : "INV-2026-X001";
 
