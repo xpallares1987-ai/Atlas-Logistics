@@ -6,17 +6,17 @@
 export const MFE_CONFIG = {
   warehouse: {
     name: "warehouse",
-    defaultUrl: "http://127.0.0.1:5175/assets/remoteEntry.js",
+    defaultUrl: "https://127.0.0.1:5175/assets/remoteEntry.js",
     envKey: "VITE_MFE_WAREHOUSE_URL",
   },
   rates: {
     name: "rates",
-    defaultUrl: "http://127.0.0.1:5176/assets/remoteEntry.js",
+    defaultUrl: "https://127.0.0.1:5176/assets/remoteEntry.js",
     envKey: "VITE_MFE_RATES_URL",
   },
   dashboard: {
     name: "dashboard",
-    defaultUrl: "http://127.0.0.1:5174/assets/remoteEntry.js",
+    defaultUrl: "https://127.0.0.1:5174/assets/remoteEntry.js",
     envKey: "VITE_MFE_DASHBOARD_URL",
   },
 };
@@ -29,6 +29,7 @@ export function getMfeRemoteUrl(mfeKey: keyof typeof MFE_CONFIG): string {
 
 /**
  * Checks if a remoteEntry endpoint is reachable within the specified timeout.
+ * Strictly requires HTTPS to prevent insecure script loading (CWE-829).
  */
 export async function probeRemoteEndpoint(
   url: string,
@@ -36,12 +37,7 @@ export async function probeRemoteEndpoint(
 ): Promise<boolean> {
   try {
     const parsed = new URL(url);
-    const isLocal =
-      parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
-    if (
-      parsed.protocol !== "https:" &&
-      !(parsed.protocol === "http:" && isLocal)
-    ) {
+    if (parsed.protocol !== "https:") {
       return false;
     }
   } catch {

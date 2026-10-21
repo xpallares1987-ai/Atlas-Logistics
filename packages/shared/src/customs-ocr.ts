@@ -224,9 +224,13 @@ export function extractPackingList(
   const warnings: string[] = [];
   let confidence = 0.92;
 
-  const plMatch = text.match(
-    /\b(?:PACKING\s+LIST|LISTA\s+DE\s+EMPAQUE|PL)\s*(?:NO|NUMBER|#)?[:#\s]+([A-Z0-9-]{4,30})/i,
-  );
+  const plMatch =
+    text.match(
+      /\b(?:PACKING\s+LIST|LISTA\s+DE\s+EMPAQUE|PL)\s+(?:NO|NUMBER|#)[:#\s]+([A-Z0-9-]{4,30})/i,
+    ) ||
+    text.match(
+      /\b(?:PACKING\s+LIST|LISTA\s+DE\s+EMPAQUE|PL)[:#\s]+([A-Z0-9-]{4,30})/i,
+    );
   const packingListNumber = plMatch ? plMatch[1].trim() : "PL-2026-9041";
 
   const invRefMatch = text.match(
@@ -258,16 +262,16 @@ export function extractPackingList(
     : 42.5;
 
   const containerMatch =
-    text.match(
-      /\b(?:CONTAINER|CONTENEDOR)\s*(?:NO)?[:#\s]*([A-Z]{4}[0-9]{7})\b/i,
-    ) || text.match(/\b([A-Z]{4}[0-9]{7})\b/i);
+    text.match(/\b(?:CONTAINER|CONTENEDOR)\s+NO[:#\s]+([A-Z]{4}[0-9]{7})\b/i) ||
+    text.match(/\b(?:CONTAINER|CONTENEDOR)[:#\s]+([A-Z]{4}[0-9]{7})\b/i) ||
+    text.match(/\b([A-Z]{4}[0-9]{7})\b/i);
   const containerNumber = containerMatch
     ? containerMatch[1].toUpperCase()
     : "MSKU7829103";
 
-  const sealMatch = text.match(
-    /\b(?:SEAL|PRECINTO|SELLO)\s*(?:NO)?[:#\s]*([A-Z0-9-]{5,20})\b/i,
-  );
+  const sealMatch =
+    text.match(/\b(?:SEAL|PRECINTO|SELLO)\s+NO[:#\s]+([A-Z0-9-]{5,20})\b/i) ||
+    text.match(/\b(?:SEAL|PRECINTO|SELLO)[:#\s]+([A-Z0-9-]{5,20})\b/i);
   const sealNumber = sealMatch ? sealMatch[1].toUpperCase() : "ML-ES26-88129";
 
   return {
@@ -295,9 +299,13 @@ export function extractTransportDocument(
   const warnings: string[] = [];
   const confidence = 0.94;
 
-  const docMatch = text.match(
-    /\b(?:B\/L|BOL|WAYBILL|CMR|CARTA\s+PORTE)\s*(?:NO|NUMBER|#)?[:#\s]+([A-Z0-9-]{4,30})/i,
-  );
+  const docMatch =
+    text.match(
+      /\b(?:B\/L|BOL|WAYBILL|CMR|CARTA\s+PORTE)\s+(?:NO|NUMBER|#)[:#\s]+([A-Z0-9-]{4,30})/i,
+    ) ||
+    text.match(
+      /\b(?:B\/L|BOL|WAYBILL|CMR|CARTA\s+PORTE)[:#\s]+([A-Z0-9-]{4,30})/i,
+    );
   const documentNumber = docMatch ? docMatch[1].trim() : "BL-MAERSK-2026-X88";
 
   const weightMatch = text.match(
@@ -308,9 +316,9 @@ export function extractTransportDocument(
     : 18500;
 
   const containerMatch =
-    text.match(
-      /\b(?:CONTAINER|CONTENEDOR)\s*(?:NO)?[:#\s]*([A-Z]{4}[0-9]{7})\b/i,
-    ) || text.match(/\b([A-Z]{4}[0-9]{7})\b/i);
+    text.match(/\b(?:CONTAINER|CONTENEDOR)\s+NO[:#\s]+([A-Z]{4}[0-9]{7})\b/i) ||
+    text.match(/\b(?:CONTAINER|CONTENEDOR)[:#\s]+([A-Z]{4}[0-9]{7})\b/i) ||
+    text.match(/\b([A-Z]{4}[0-9]{7})\b/i);
   const containerNumber = containerMatch
     ? containerMatch[1].toUpperCase()
     : "MSKU7829103";
