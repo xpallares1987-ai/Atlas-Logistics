@@ -40,3 +40,6 @@ export * from "./iata-one-record.js";
 export * from "./customer01.js";
 export * from "./saica.js";
 export * from "./wiki/index.js";
+export * from "./logistics/workload.js";
+export * from "./logistics/axle-heatmap.js";
+export * from "./logistics/charge-audit.js";

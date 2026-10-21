@@ -7,7 +7,6 @@
   "engines": {
     "node": ">=20.0.0"
   },
-
   "scripts": {
     "dev": "concurrently -k -p \"[{name}]\" -n \"REDIS,BACKEND,MFE\" -c \"red,cyan,magenta\" \"docker compose up redis --remove-orphans\" \"pnpm run start:backend\" \"wait-on http://127.0.0.1:3001/health -t 30000 && turbo run dev\"",
     "dev:minimal": "concurrently -k -p \"[{name}]\" -n \"BACKEND,MFE\" -c \"cyan,magenta\" \"pnpm run start:backend\" \"wait-on http://127.0.0.1:3001/health -t 30000 && turbo run dev\"",
@@ -149,7 +148,8 @@
       "fast-uri@^3.0.0": "^3.1.6",
       "fast-uri@^4.0.0": "^4.1.3",
       "qs": ">=6.16.0",
-      "@xmldom/xmldom": ">=0.9.12"
+      "@xmldom/xmldom": ">=0.9.12",
+      "handlebars": "^4.7.10"
     },
     "onlyBuiltDependencies": [
       "better-sqlite3"

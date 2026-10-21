@@ -55,9 +55,9 @@ import carbonInsettingRoutes from "../modules/carbon-insetting/carbon-insetting.
 import iataOneRecordRoutes from "../modules/iata-one-record/iata-one-record.routes.js";
 import customer01Routes from "../modules/customer01/customer01.routes.js";
 import saicaRoutes from "../modules/saica/saica.routes.js";
+import workloadRoutes from "../modules/workload/workload.routes.js";
 
 export {
-
   shipmentsRoutes,
   quotesRoutes,
   financialRoutes,
@@ -112,7 +112,6 @@ export {
   iataOneRecordRoutes,
   saicaRoutes,
 };
-
 
 /**
  * Unified Fastify route registrar plugin.
@@ -220,7 +219,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(saicaRoutes, {
     prefix: "/api/saica",
   });
+  await fastify.register(workloadRoutes, {
+    prefix: "/api/workload",
+  });
 };
-
 
 export default registerAllRoutes;
