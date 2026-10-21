@@ -3,6 +3,7 @@ packages:
 
 managePackageManagerVersions: false
 confirmModulesPurge: false
+minimumReleaseAge: 0
 
 overrides:
   brace-expansion: ">=5.0.12"
