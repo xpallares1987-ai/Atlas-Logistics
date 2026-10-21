@@ -100,6 +100,9 @@ const OmnichannelNotificationsModule = React.lazy(
   () => import("../../pages/OmnichannelNotificationsModule"),
 );
 const WikiHubModule = React.lazy(() => import("../../pages/WikiHubModule"));
+const WorkloadPortfolioModule = React.lazy(
+  () => import("../../pages/WorkloadPortfolioModule"),
+);
 const CrossBorderUsmcaModule = React.lazy(
   () => import("../../pages/CrossBorderUsmcaModule"),
 );
@@ -655,6 +658,16 @@ export const AppRoutes = () => {
         />
 
         {/* Analytics */}
+        <Route
+          path="/workload"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER", "OPERATIONS"]}
+            >
+              <WorkloadPortfolioModule />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/profitability"
           element={
