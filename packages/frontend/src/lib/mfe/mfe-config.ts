@@ -46,7 +46,7 @@ export async function probeRemoteEndpoint(url: string, timeoutMs: number = 2000)
     }
 
     const response = await fetch(url, {
-      method: 'GET',
+      method: 'HEAD',
       signal: controller.signal,
       redirect: 'error'
     });

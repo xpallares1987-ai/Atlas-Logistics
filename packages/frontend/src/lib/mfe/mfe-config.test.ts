@@ -42,7 +42,7 @@ describe("MFE Federation Configuration & Dynamic Resolver", () => {
     const result = await probeRemoteEndpoint("http://127.0.0.1:5176/assets/remoteEntry.js", 1000);
     expect(result).toBe(true);
     expect(mockFetch).toHaveBeenCalledWith("http://127.0.0.1:5176/assets/remoteEntry.js", expect.objectContaining({
-      method: "GET",
+      method: "HEAD",
     }));
   });
 
