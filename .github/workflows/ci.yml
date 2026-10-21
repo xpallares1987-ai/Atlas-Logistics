@@ -20,6 +20,9 @@ env:
   IMAGE_REGISTRY: ${{ secrets.DOCKER_REGISTRY || 'docker.io' }}
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
 
+permissions:
+  contents: read
+
 jobs:
   lint-and-build:
     name: Lint, Type Check, Build & Test
