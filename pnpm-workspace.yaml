@@ -29,4 +29,9 @@ overrides:
   ip-address: ">=10.7.1"
 
 onlyBuiltDependencies:
+  - "@google/genai"
   - better-sqlite3
+  - core-js
+  - esbuild
+  - msgpackr-extract
+  - protobufjs
