@@ -389,7 +389,7 @@ pnpm start
 ## 🧪 Pruebas Automatizadas
 
 ```bash
-# Suite completa Vitest (33 archivos, 151 tests unitarios e integrados)
+# Suite completa Vitest (128 archivos, 754 tests unitarios e integrados)
 pnpm test
 
 # Pruebas End-to-End con Playwright
