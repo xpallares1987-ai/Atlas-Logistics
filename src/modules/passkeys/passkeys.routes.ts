@@ -17,7 +17,9 @@ import {
 } from "@atlas/shared";
 
 // In-memory state for user passkeys and step-up policy
-let registeredDevices: RegisteredPasskeyDevice[] = [...SAMPLE_REGISTERED_PASSKEYS];
+const registeredDevices: RegisteredPasskeyDevice[] = [
+  ...SAMPLE_REGISTERED_PASSKEYS,
+];
 let currentPolicy: StepUpSecurityPolicy = { ...DEFAULT_STEP_UP_POLICY };
 let activeTotpSecret = "JBSWY3DPEHPK3PXP"; // Demo active secret
 
@@ -54,17 +56,19 @@ const TotpVerifySchema = z.object({
 const StepUpVerifySchema = z.object({
   actionType: z.enum(["CUSTOMS_CLEARANCE", "EBL_RELEASE", "TREASURY_PAYOUT"]),
   manifestOrTransactionId: z.string().min(1),
-  hardwareSignature: z.object({
-    credentialId: z.string(),
-    signature: z.string(),
-    clientDataJSON: z.string(),
-    authenticatorData: z.string(),
-    timestamp: z.string(),
-    success: z.boolean(),
-    deviceModel: z.string(),
-    userEmail: z.string(),
-    manifestId: z.string(),
-  }).optional() as z.ZodType<HardwareSignatureResult | undefined>,
+  hardwareSignature: z
+    .object({
+      credentialId: z.string(),
+      signature: z.string(),
+      clientDataJSON: z.string(),
+      authenticatorData: z.string(),
+      timestamp: z.string(),
+      success: z.boolean(),
+      deviceModel: z.string(),
+      userEmail: z.string(),
+      manifestId: z.string(),
+    })
+    .optional() as z.ZodType<HardwareSignatureResult | undefined>,
   totpToken: z.string().optional(),
   totpSecret: z.string().optional(),
 });
@@ -97,7 +101,11 @@ export const passkeysRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const { userEmail, userName, rpId } = parse.data;
-    const options = createWebAuthnRegistrationOptions(userEmail, userName, rpId);
+    const options = createWebAuthnRegistrationOptions(
+      userEmail,
+      userName,
+      rpId,
+    );
 
     return reply.status(200).send({
       success: true,
@@ -115,7 +123,8 @@ export const passkeysRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    const { deviceName, deviceType, credentialId, publicKey, aaguid } = parse.data;
+    const { deviceName, deviceType, credentialId, publicKey, aaguid } =
+      parse.data;
 
     const newDevice: RegisteredPasskeyDevice = {
       id: `passkey-dev-${Date.now().toString(36)}`,
@@ -198,7 +207,8 @@ export const passkeysRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({
         success: false,
         verified: false,
-        error: "Código de 6 dígitos inválido o expirado. Verifique la hora de su dispositivo.",
+        error:
+          "Código de 6 dígitos inválido o expirado. Verifique la hora de su dispositivo.",
       });
     }
 
@@ -207,7 +217,8 @@ export const passkeysRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.status(200).send({
       success: true,
       verified: true,
-      message: "Doble factor de autenticación TOTP verificado y activado exitosamente.",
+      message:
+        "Doble factor de autenticación TOTP verificado y activado exitosamente.",
     });
   });
 
@@ -231,13 +242,22 @@ export const passkeysRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    const { actionType, manifestOrTransactionId, hardwareSignature, totpToken, totpSecret } = parse.data;
+    const {
+      actionType,
+      manifestOrTransactionId,
+      hardwareSignature,
+      totpToken,
+      totpSecret,
+    } = parse.data;
 
     let authorized = false;
     let authMethod = "NONE";
 
     if (hardwareSignature) {
-      authorized = verifyHardwareSignature(hardwareSignature, manifestOrTransactionId);
+      authorized = verifyHardwareSignature(
+        hardwareSignature,
+        manifestOrTransactionId,
+      );
       authMethod = `WEBAUTHN_HARDWARE (${hardwareSignature.deviceModel})`;
     } else if (totpToken) {
       const secretToUse = totpSecret || activeTotpSecret;
@@ -249,7 +269,8 @@ export const passkeysRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(401).send({
         success: false,
         authorized: false,
-        error: "Fallo de autorización biométrica o código TOTP no válido para operación crítica.",
+        error:
+          "Fallo de autorización biométrica o código TOTP no válido para operación crítica.",
       });
     }
 
