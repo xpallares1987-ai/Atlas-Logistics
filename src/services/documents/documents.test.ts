@@ -172,6 +172,14 @@ describe("Multimodal Official Document Center & Digital Signature", () => {
     });
   });
 
+  describe("getDocumentPdf", () => {
+    it("should reject document IDs that escape the storage directory", async () => {
+      await expect(
+        DocumentSignerService.getDocumentPdf("../../outside"),
+      ).rejects.toThrow("Invalid document ID");
+    });
+  });
+
   describe("verifyAuthenticity", () => {
     it("should return authentic: true when verifying with valid SHA-256 hash", async () => {
       const emitRes = await DocumentSignerService.emitDocument({
