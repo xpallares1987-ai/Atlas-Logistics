@@ -55,6 +55,12 @@ jobs:
       - name: Build monorepo
         run: pnpm run build
 
+      - name: Prepare database for tests
+        run: |
+          touch .env.local
+          pnpm run db:migrate
+          pnpm run db:seed
+
       - name: Run Vitest unit & integration tests
         run: pnpm test
 
