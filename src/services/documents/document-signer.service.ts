@@ -88,16 +88,17 @@ export class DocumentSignerService {
           vessel: d.vessel || "MSC Vessel",
           voyage: d.voyage || "001A",
           containers: Array.isArray(d.containers) ? d.containers : [],
-          commodities: Array.isArray(d.commodities) && d.commodities.length > 0
-            ? d.commodities
-            : [
-                {
-                  description: "General Multimodal Cargo",
-                  pieces: 10,
-                  grossWeightKg: 5000,
-                  volumeCbm: 15,
-                },
-              ],
+          commodities:
+            Array.isArray(d.commodities) && d.commodities.length > 0
+              ? d.commodities
+              : [
+                  {
+                    description: "General Multimodal Cargo",
+                    pieces: 10,
+                    grossWeightKg: 5000,
+                    volumeCbm: 15,
+                  },
+                ],
         };
         return PDFService.generateHBL(hblData);
       }
@@ -297,7 +298,7 @@ export class DocumentSignerService {
     const now = new Date();
     const certificate =
       signerInfo.signerCertificate ||
-      `CERT-ATLAS-PKI-${Math.floor(100000 + Math.random() * 900000)}`;
+      `CERT-ATLAS-PKI-${crypto.randomInt(100000, 1_000_000)}`;
 
     await db
       .update(documents)
@@ -430,7 +431,10 @@ export class DocumentSignerService {
    * List documents from vault
    */
   public static async listDocuments(type?: string, status?: string) {
-    const query = db.select().from(documents).orderBy(desc(documents.createdAt));
+    const query = db
+      .select()
+      .from(documents)
+      .orderBy(desc(documents.createdAt));
     const all = await query;
     return all.filter((d) => {
       if (type && type !== "ALL" && d.type !== type) return false;
