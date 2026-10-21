@@ -39,4 +39,4 @@ export * from "./carbon-insetting.js";
 export * from "./iata-one-record.js";
 export * from "./customer01.js";
 export * from "./saica.js";
-
+export * from "./wiki/index.js";
