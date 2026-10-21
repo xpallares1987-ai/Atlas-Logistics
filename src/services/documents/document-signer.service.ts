@@ -389,7 +389,10 @@ export class DocumentSignerService {
    * Retrieve PDF binary buffer (from disk or on-the-fly regeneration)
    */
   public static async getDocumentPdf(documentId: string): Promise<Buffer> {
-    const filePath = path.join(STORAGE_DIR, `${documentId}.pdf`);
+    const filePath = path.resolve(STORAGE_DIR, `${documentId}.pdf`);
+    if (path.dirname(filePath) !== STORAGE_DIR) {
+      throw new Error("Invalid document ID");
+    }
     if (fs.existsSync(filePath)) {
       return fs.readFileSync(filePath);
     }
