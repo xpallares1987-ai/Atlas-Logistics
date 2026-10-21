@@ -4,7 +4,6 @@ import {
   analyzeWorkloadPortfolio,
   generateRebalancingRecommendations,
   isExcludedOperative,
-  DEFAULT_WORKLOAD_SETTINGS,
   calculateAxleLoadsAndHeatmap,
   auditChargeItem,
 } from "../index.js";

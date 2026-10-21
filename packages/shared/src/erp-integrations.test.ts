@@ -20,30 +20,34 @@ describe("ERP Integrations: Landed Cost Allocation Engine", () => {
       itemRefName: "Turbocompresor Industrial",
       quantity: 10,
       unitValue: 1500, // Total Value: $15,000
-      weightKg: 200,   // Total Weight: 200kg
-      volumeCbm: 1.5,  // Total Volume: 1.5 CBM
+      weightKg: 200, // Total Weight: 200kg
+      volumeCbm: 1.5, // Total Volume: 1.5 CBM
     },
     {
       line: 2,
       itemRefName: "Válvulas Hidráulicas de Presión",
       quantity: 50,
-      unitValue: 300,  // Total Value: $15,000
-      weightKg: 300,   // Total Weight: 300kg
-      volumeCbm: 0.5,  // Total Volume: 0.5 CBM
+      unitValue: 300, // Total Value: $15,000
+      weightKg: 300, // Total Weight: 300kg
+      volumeCbm: 0.5, // Total Volume: 0.5 CBM
     },
     {
       line: 3,
       itemRefName: "Sensores Telemétricos CAN-Bus",
       quantity: 100,
-      unitValue: 100,  // Total Value: $10,000
-      weightKg: 100,   // Total Weight: 100kg
-      volumeCbm: 0.2,  // Total Volume: 0.2 CBM
+      unitValue: 100, // Total Value: $10,000
+      weightKg: 100, // Total Weight: 100kg
+      volumeCbm: 0.2, // Total Volume: 0.2 CBM
     },
   ];
 
   it("should accurately distribute landed freight by VALUE and reconcile total to the penny", () => {
     const totalFreight = 5000.0;
-    const result = calculateNetSuiteLandedCost(totalFreight, "VALUE", sampleItems);
+    const result = calculateNetSuiteLandedCost(
+      totalFreight,
+      "VALUE",
+      sampleItems,
+    );
 
     expect(result.allocationMethod).toBe("VALUE");
     expect(result.items.length).toBe(3);
@@ -56,13 +60,20 @@ describe("ERP Integrations: Landed Cost Allocation Engine", () => {
     expect(result.items[1].allocatedLandedCost).toBe(1875.0);
     expect(result.items[2].allocatedLandedCost).toBe(1250.0);
 
-    const sumAllocated = result.items.reduce((acc, it) => acc + it.allocatedLandedCost, 0);
+    const sumAllocated = result.items.reduce(
+      (acc, it) => acc + it.allocatedLandedCost,
+      0,
+    );
     expect(sumAllocated).toBe(totalFreight);
   });
 
   it("should distribute landed freight by GROSS WEIGHT accurately", () => {
     const totalFreight = 6000.0;
-    const result = calculateNetSuiteLandedCost(totalFreight, "WEIGHT", sampleItems);
+    const result = calculateNetSuiteLandedCost(
+      totalFreight,
+      "WEIGHT",
+      sampleItems,
+    );
 
     expect(result.allocationMethod).toBe("WEIGHT");
     // Total Weight = 200 + 300 + 100 = 600kg
@@ -76,7 +87,11 @@ describe("ERP Integrations: Landed Cost Allocation Engine", () => {
 
   it("should distribute landed freight by VOLUME and compute effective unit costs", () => {
     const totalFreight = 4400.0;
-    const result = calculateNetSuiteLandedCost(totalFreight, "VOLUME", sampleItems);
+    const result = calculateNetSuiteLandedCost(
+      totalFreight,
+      "VOLUME",
+      sampleItems,
+    );
 
     expect(result.allocationMethod).toBe("VOLUME");
     // Total Volume = 1.5 + 0.5 + 0.2 = 2.2 CBM
@@ -108,10 +123,18 @@ describe("ERP Integrations: NetSuite SuiteTalk TBA Authentication", () => {
       tokenSecret: "ts_token_secret_654",
     });
 
-    expect(headerResult.authorizationHeader).toContain('OAuth realm="TSTDRV123456"');
-    expect(headerResult.authorizationHeader).toContain('oauth_consumer_key="ck_abc1234567890"');
-    expect(headerResult.authorizationHeader).toContain('oauth_token="tk_user_token_456"');
-    expect(headerResult.authorizationHeader).toContain('oauth_signature_method="HMAC-SHA256"');
+    expect(headerResult.authorizationHeader).toContain(
+      'OAuth realm="TSTDRV123456"',
+    );
+    expect(headerResult.authorizationHeader).toContain(
+      'oauth_consumer_key="ck_abc1234567890"',
+    );
+    expect(headerResult.authorizationHeader).toContain(
+      'oauth_token="tk_user_token_456"',
+    );
+    expect(headerResult.authorizationHeader).toContain(
+      'oauth_signature_method="HMAC-SHA256"',
+    );
     expect(headerResult.authorizationHeader).toContain("oauth_signature=");
     expect(headerResult.nonce).toBeTruthy();
     expect(headerResult.timestamp).toBeTruthy();
@@ -136,7 +159,9 @@ describe("ERP Integrations: BAPI Translations & Code Maps", () => {
   it("should provide well-structured demo presets for sandbox testing", () => {
     expect(ERP_DEMO_PRESETS.sap_automotive_tier1).toBeDefined();
     expect(ERP_DEMO_PRESETS.netsuite_retail_hightech).toBeDefined();
-    expect(ERP_DEMO_PRESETS.sap_automotive_tier1.sampleInput.items.length).toBeGreaterThan(0);
+    expect(
+      ERP_DEMO_PRESETS.sap_automotive_tier1.sampleInput.items.length,
+    ).toBeGreaterThan(0);
   });
 });
 
@@ -152,7 +177,11 @@ describe("ERP Integrations: Offline-First Dexie Queue Manager", () => {
       erpSystem: "SAP_S4HANA",
       operation: "POST_INBOUND_DELIVERY",
       payloadJson: JSON.stringify({ deliveryNumber: "DLV-998811" }),
-      idempotencyKey: queue.generateIdempotencyKey("SAP", "DELIVERY", "DLV-998811"),
+      idempotencyKey: queue.generateIdempotencyKey(
+        "SAP",
+        "DELIVERY",
+        "DLV-998811",
+      ),
     });
 
     expect(item.id).toMatch(/^erp-tx-/);
@@ -172,7 +201,11 @@ describe("ERP Integrations: Offline-First Dexie Queue Manager", () => {
       idempotencyKey: "IDEMP-123",
     });
 
-    await queue.updateStatus(item.id, "FAILED", "429 Too Many Requests (Rate limit)");
+    await queue.updateStatus(
+      item.id,
+      "FAILED",
+      "429 Too Many Requests (Rate limit)",
+    );
 
     const all = await queue.getAll();
     const updated = all.find((i) => i.id === item.id);
@@ -199,7 +232,7 @@ describe("ERP Integrations: Offline-First Dexie Queue Manager", () => {
       idempotencyKey: "K1",
     });
 
-    const item2 = await queue.enqueue({
+    await queue.enqueue({
       erpSystem: "ORACLE_NETSUITE",
       operation: "POST_VENDOR_BILL",
       payloadJson: "{}",

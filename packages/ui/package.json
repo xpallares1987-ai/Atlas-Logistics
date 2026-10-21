@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "preview": "vite preview",
+    "type-check": "tsc --noEmit",
     "build": "tsc",
     "dev": "vite",
     "storybook": "storybook dev -p 6006",

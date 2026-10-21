@@ -7,7 +7,6 @@ import {
   generateDisputePack,
   DEMURRAGE_DISPUTE_PRESETS,
   CarrierInvoiceData,
-  ClockSuspension,
 } from "./demurrage-dispute.js";
 
 describe("Demurrage & Detention Dispute Engine (@atlas/shared)", () => {
@@ -86,7 +85,7 @@ describe("Demurrage & Detention Dispute Engine (@atlas/shared)", () => {
       const tiers = [
         { fromDay: 1, toDay: 3, dailyRate: 100, currency: "USD" }, // 3 days * 100 = 300
         { fromDay: 4, toDay: 6, dailyRate: 150, currency: "USD" }, // 3 days * 150 = 450
-        { fromDay: 7, dailyRate: 250, currency: "USD" },           // remaining days * 250
+        { fromDay: 7, dailyRate: 250, currency: "USD" }, // remaining days * 250
       ];
 
       // 8 days: (3 * 100) + (3 * 150) + (2 * 250) = 300 + 450 + 500 = 1250
@@ -138,7 +137,9 @@ describe("Demurrage & Detention Dispute Engine (@atlas/shared)", () => {
 
       expect(audit.jurisdiction).toBe("ES_PUERTOS_ESTADO");
       expect(audit.totalSuspendedDays).toBe(4); // 3 customs + 1 rail
-      expect(audit.auditedLegalBillableDays).toBeLessThan(audit.carrierBilledDays);
+      expect(audit.auditedLegalBillableDays).toBeLessThan(
+        audit.carrierBilledDays,
+      );
       expect(audit.disputedWaiverAmount).toBeGreaterThan(0);
       expect(audit.auditStatus).toBe("PARTIAL_REDUCTION_JUSTIFIED");
     });
@@ -168,7 +169,9 @@ describe("Demurrage & Detention Dispute Engine (@atlas/shared)", () => {
       expect(pack.formalLetterBody).toContain("Maersk Line");
       expect(pack.formalLetterBody).toContain("46 CFR Part 541");
       expect(pack.formalLetterBody).toContain("APM Terminals Pier 400");
-      expect(pack.evidenceAttachments).toContain("EDI_315_Milestone_Audit_MSKU9284712.json");
+      expect(pack.evidenceAttachments).toContain(
+        "EDI_315_Milestone_Audit_MSKU9284712.json",
+      );
     });
   });
 });
