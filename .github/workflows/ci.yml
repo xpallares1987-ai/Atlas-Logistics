@@ -181,23 +181,23 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
       - name: Build project
         run: pnpm run build
 
-      - name: Start services with docker-compose
-        run: docker compose -f docker-compose.prod.yml up -d --build
+      - name: Prepare database for E2E
+        run: |
+          touch .env.local
+          pnpm run db:migrate
+          pnpm run db:seed
+
+      - name: Run Playwright E2E tests
+        run: pnpm run test:e2e
         env:
           JWT_SECRET: test-jwt-secret-key-super-secure-32chars
           COOKIE_SECRET: test-cookie-secret-key-super-secure-32chars
-
-      - name: Wait for services to be healthy
-        run: |
-          timeout 120 bash -c 'until curl -s http://localhost:8080/api/health && curl -s http://localhost:8080; do sleep 2; done'
-
-      - name: Run Playwright E2E tests
-        run: npx playwright test
+          USE_REDIS_MOCK: "true"
 
       - name: Upload Playwright report on failure
         if: failure()
@@ -207,13 +207,9 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      - name: Tear down docker-compose
-        if: always()
-        run: docker compose -f docker-compose.prod.yml down -v
-
   deploy-notification:
     name: Deployment Notification
-    needs: [lint-and-build, build-images]
+    needs: [lint-and-build, build-images, e2e-tests]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
