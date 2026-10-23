@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "SCM Freight Forwarding MVP",
   "type": "module",
-  "packageManager": "pnpm@10.0.0",
+  "packageManager": "pnpm@11.5.1",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -64,7 +64,7 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "fast-xml-parser": "^5.11.1",
-    "fastify": "^5.12.5",
+    "fastify": "^5.12.6",
     "fastify-metrics": "^13.2.1",
     "ioredis": "^6.0.0",
     "ioredis-mock": "^8.13.1",
@@ -133,45 +133,26 @@
     "vitest": "^4.1.11",
     "wait-on": "^9.1.0"
   },
-  "pnpm": {
-    "overrides": {
-      "brace-expansion": "^5.0.9",
-      "react-router": "^8.3.0",
-      "valibot": "^1.4.2",
-      "uuid": "^14.0.2",
-      "esbuild": "^0.25.0",
-      "nanoid": ">=3.3.17",
-      "js-yaml": ">=4.3.1",
-      "dompurify": ">=3.4.13",
-      "undici@^6.0.0": "^6.28.0",
-      "undici@^7.0.0": "^7.29.0",
-      "fast-uri@^3.0.0": "^3.1.6",
-      "fast-uri@^4.0.0": "^4.1.3",
-      "qs": ">=6.16.0",
-      "@xmldom/xmldom": ">=0.9.12",
-      "handlebars": "^4.7.10"
-    },
-    "onlyBuiltDependencies": [
-      "better-sqlite3"
-    ],
-    "auditConfig": {
-      "ignoreCves": [
-        "CVE-2024-14257",
-        "GHSA-mh99-v99m-4gvg",
-        "GHSA-qwww-vcr4-c8h2",
-        "GHSA-5p4m-2wfm-xmqj",
-        "GHSA-2v37-7h3g-55p8",
-        "GHSA-4cwx-7wf7-3272",
-        "GHSA-7p8r-x3mc-p8w7",
-        "CVE-2024-59870",
-        "GHSA-8xcm-r25x-g524",
-        "GHSA-m8rv-5g2x-5cg5",
-        "GHSA-jr45-8vmc-qm54",
-        "GHSA-v3r7-h72x-cjcm",
-        "GHSA-55q2-fjhq-7xh7",
-        "GHSA-848j-6mx2-7j84"
-      ]
-    }
+  "overrides": {
+    "brace-expansion": ">=5.0.12",
+    "react-router": "^8.3.0",
+    "valibot": "^1.4.2",
+    "uuid": "^14.0.2",
+    "esbuild": "^0.25.0",
+    "nanoid": ">=3.3.17",
+    "js-yaml": ">=5.4.1",
+    "dompurify": ">=3.4.16",
+    "undici": ">=7.29.1",
+    "fast-uri": "^3.1.6",
+    "qs": ">=6.16.0",
+    "@xmldom/xmldom": ">=0.9.12",
+    "handlebars": "^4.7.10",
+    "@vitest/mocker": ">=4.1.12",
+    "follow-redirects": ">=1.16.1",
+    "fast-jwt": ">=6.3.4",
+    "shell-quote": ">=1.11.0",
+    "source-map-js": ">=1.2.2",
+    "ip-address": ">=10.7.1"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
