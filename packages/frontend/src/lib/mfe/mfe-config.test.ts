@@ -11,13 +11,25 @@ describe("MFE Federation Configuration & Dynamic Resolver", () => {
   });
 
   it("should return default URLs for standard remote endpoints", () => {
-    expect(MFE_CONFIG.warehouse.defaultUrl).toBe("http://127.0.0.1:5175/assets/remoteEntry.js");
-    expect(MFE_CONFIG.rates.defaultUrl).toBe("http://127.0.0.1:5176/assets/remoteEntry.js");
-    expect(MFE_CONFIG.dashboard.defaultUrl).toBe("http://127.0.0.1:5174/assets/remoteEntry.js");
+    expect(MFE_CONFIG.warehouse.defaultUrl).toBe(
+      "https://127.0.0.1:5175/assets/remoteEntry.js",
+    );
+    expect(MFE_CONFIG.rates.defaultUrl).toBe(
+      "https://127.0.0.1:5176/assets/remoteEntry.js",
+    );
+    expect(MFE_CONFIG.dashboard.defaultUrl).toBe(
+      "https://127.0.0.1:5174/assets/remoteEntry.js",
+    );
 
-    expect(getMfeRemoteUrl("warehouse")).toBe("http://127.0.0.1:5175/assets/remoteEntry.js");
-    expect(getMfeRemoteUrl("rates")).toBe("http://127.0.0.1:5176/assets/remoteEntry.js");
-    expect(getMfeRemoteUrl("dashboard")).toBe("http://127.0.0.1:5174/assets/remoteEntry.js");
+    expect(getMfeRemoteUrl("warehouse")).toBe(
+      "https://127.0.0.1:5175/assets/remoteEntry.js",
+    );
+    expect(getMfeRemoteUrl("rates")).toBe(
+      "https://127.0.0.1:5176/assets/remoteEntry.js",
+    );
+    expect(getMfeRemoteUrl("dashboard")).toBe(
+      "https://127.0.0.1:5174/assets/remoteEntry.js",
+    );
   });
 
   it("should return empty string for non-existent MFE key", () => {
@@ -26,9 +38,13 @@ describe("MFE Federation Configuration & Dynamic Resolver", () => {
   });
 
   it("should resolve overridden remote URLs when environment variables are set", () => {
-    vi.stubEnv("VITE_MFE_RATES_URL", "https://edge.atlas.local/rates/remoteEntry.js");
-    // Since import.meta.env might be read dynamically or mock
-    const customUrl = (import.meta.env && import.meta.env["VITE_MFE_RATES_URL"]) || MFE_CONFIG.rates.defaultUrl;
+    vi.stubEnv(
+      "VITE_MFE_RATES_URL",
+      "https://edge.atlas.local/rates/remoteEntry.js",
+    );
+    const customUrl =
+      (import.meta.env && import.meta.env["VITE_MFE_RATES_URL"]) ||
+      MFE_CONFIG.rates.defaultUrl;
     expect(customUrl).toBe("https://edge.atlas.local/rates/remoteEntry.js");
   });
 
@@ -39,11 +55,29 @@ describe("MFE Federation Configuration & Dynamic Resolver", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await probeRemoteEndpoint("http://127.0.0.1:5176/assets/remoteEntry.js", 1000);
+    const result = await probeRemoteEndpoint(
+      "https://127.0.0.1:5176/assets/remoteEntry.js",
+      1000,
+    );
     expect(result).toBe(true);
-    expect(mockFetch).toHaveBeenCalledWith("http://127.0.0.1:5176/assets/remoteEntry.js", expect.objectContaining({
-      method: "HEAD",
-    }));
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://127.0.0.1:5176/assets/remoteEntry.js",
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
+  });
+
+  it("probeRemoteEndpoint should reject non-HTTPS URLs for security", async () => {
+    const mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await probeRemoteEndpoint(
+      "http://127.0.0.1:5176/test-endpoint",
+      1000,
+    );
+    expect(result).toBe(false);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("probeRemoteEndpoint should reject insecure non-local endpoints", async () => {
@@ -79,15 +113,23 @@ describe("MFE Federation Configuration & Dynamic Resolver", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await probeRemoteEndpoint("http://127.0.0.1:5176/assets/remoteEntry.js", 1000);
+    const result = await probeRemoteEndpoint(
+      "https://127.0.0.1:5176/assets/remoteEntry.js",
+      1000,
+    );
     expect(result).toBe(false);
   });
 
   it("probeRemoteEndpoint should return false and handle network exceptions gracefully", async () => {
-    const mockFetch = vi.fn().mockRejectedValue(new Error("Connection refused (ECONNREFUSED)"));
+    const mockFetch = vi
+      .fn()
+      .mockRejectedValue(new Error("Connection refused (ECONNREFUSED)"));
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await probeRemoteEndpoint("http://127.0.0.1:5176/assets/remoteEntry.js", 1000);
+    const result = await probeRemoteEndpoint(
+      "https://127.0.0.1:5176/assets/remoteEntry.js",
+      1000,
+    );
     expect(result).toBe(false);
   });
 });

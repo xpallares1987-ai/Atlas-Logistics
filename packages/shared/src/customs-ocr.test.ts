@@ -12,6 +12,13 @@ import {
 } from "./customs-ocr";
 
 describe("Customs OCR & Tripartite Cross-Check Engine", () => {
+  it("handles long whitespace after an invoice label", () => {
+    const text = `INV#${" ".repeat(10_000)}!`;
+    const res = extractCommercialInvoice(text);
+
+    expect(res.extractedFields.invoiceNumber).toBe("INV-2026-X001");
+  });
+
   it("should extract Commercial Invoice fields accurately", () => {
     const res = extractCommercialInvoice(SAMPLE_INVOICE_TEXT);
     expect(res.documentType).toBe("COMMERCIAL_INVOICE");

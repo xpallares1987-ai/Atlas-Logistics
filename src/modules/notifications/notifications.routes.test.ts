@@ -71,6 +71,39 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
     expect(json.data.cardPayload.type).toBe("message");
   });
 
+  it("POST /api/notifications/teams/dispatch should only simulate example.com hosts", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ status: 200, ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      for (const [targetWebhookUrl, expectedStatus, expectedFetchCalls] of [
+        ["https://example.com/webhook", "SIMULATED", 0],
+        ["https://hooks.example.com/webhook", "SIMULATED", 0],
+        ["https://evil.test/example.com/webhook", "DELIVERED", 1],
+      ] as const) {
+        fetchMock.mockClear();
+        const response = await app.inject({
+          method: "POST",
+          url: "/api/notifications/teams/dispatch",
+          payload: {
+            anomalyType: "HAZMAT_VIOLATION",
+            context: {
+              gsid: "GS-2026-ALG-55012",
+              severity: "CRITICAL",
+            },
+            targetWebhookUrl,
+          },
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(JSON.parse(response.payload).data.log.status).toBe(expectedStatus);
+        expect(fetchMock).toHaveBeenCalledTimes(expectedFetchCalls);
+      }
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("GET /api/notifications/teams/audit-log should return audit history list", async () => {
     const response = await app.inject({
       method: "GET",

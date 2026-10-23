@@ -24,7 +24,19 @@ export interface CommercialInvoiceData {
   buyerName: string;
   buyerTaxId: string;
   currency: string;
-  incoterm: "EXW" | "FCA" | "CPT" | "CIP" | "DAP" | "DPU" | "DDP" | "FAS" | "FOB" | "CFR" | "CIF" | string;
+  incoterm:
+    | "EXW"
+    | "FCA"
+    | "CPT"
+    | "CIP"
+    | "DAP"
+    | "DPU"
+    | "DDP"
+    | "FAS"
+    | "FOB"
+    | "CFR"
+    | "CIF"
+    | string;
   totalFobUsd: number;
   freightUsd: number;
   insuranceUsd: number;
@@ -82,7 +94,11 @@ export interface CustomsDeclarationData {
 }
 
 export interface OcrExtractionResult<T> {
-  documentType: "COMMERCIAL_INVOICE" | "PACKING_LIST" | "TRANSPORT_DOCUMENT" | "CUSTOMS_DECLARATION";
+  documentType:
+    | "COMMERCIAL_INVOICE"
+    | "PACKING_LIST"
+    | "TRANSPORT_DOCUMENT"
+    | "CUSTOMS_DECLARATION";
   confidence: number; // 0.0 to 1.0
   extractedFields: T;
   warnings: string[];
@@ -113,32 +129,47 @@ export interface TripartiteCrossCheckResult {
 // REGEX-BASED HEURISTIC PARSERS (Zero-Cost Local OCR Processing)
 // =========================================================================
 
-export function extractCommercialInvoice(text: string): OcrExtractionResult<CommercialInvoiceData> {
+export function extractCommercialInvoice(
+  text: string,
+): OcrExtractionResult<CommercialInvoiceData> {
   const warnings: string[] = [];
   let confidence = 0.95;
 
   const invMatch =
-    text.match(/(?:INVOICE\s*(?:NO|NUMBER|#)|FACTURA\s*(?:NO|NUMERO|#)|INV\s*(?:NO|#))\s*[:#]?\s*([A-Z0-9-]{4,30})/i) ||
-    text.match(/(?:INVOICE|FACTURA|INV)\s*[:#]\s*([A-Z0-9-]{4,30})/i);
+    text.match(
+      /\b(?:INVOICE|FACTURA|INV)\s+(?:NO|NUMBER|NUMERO|#)[:#\s]+([A-Z0-9-]{4,30})/i,
+    ) || text.match(/\b(?:INVOICE|FACTURA|INV)[:#\s]+([A-Z0-9-]{4,30})/i);
+
   const invoiceNumber = invMatch ? invMatch[1].trim() : "INV-2026-X001";
 
-  const dateMatch = text.match(/(?:DATE|FECHA)[\s:]*([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}\/[0-9]{2}\/[0-9]{4})/i);
-  const invoiceDate = dateMatch ? dateMatch[1].trim() : new Date().toISOString().split("T")[0];
+  const dateMatch = text.match(
+    /(?:DATE|FECHA)[\s:]*([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}\/[0-9]{2}\/[0-9]{4})/i,
+  );
+  const invoiceDate = dateMatch
+    ? dateMatch[1].trim()
+    : new Date().toISOString().split("T")[0];
 
-  const incotermMatch = text.match(/\b(EXW|FCA|CPT|CIP|DAP|DPU|DDP|FAS|FOB|CFR|CIF)\b/i);
+  const incotermMatch = text.match(
+    /\b(EXW|FCA|CPT|CIP|DAP|DPU|DDP|FAS|FOB|CFR|CIF)\b/i,
+  );
   const incoterm = incotermMatch ? incotermMatch[1].toUpperCase() : "CIF";
 
   const cifMatch =
-    text.match(/(?:TOTAL\s*CIF(?:\s*AMOUNT)?|VALOR\s*CIF|CIF\s*TOTAL|CIF\s*AMOUNT)\s*[:$]?\s*([0-9,.]+)/i) ||
-    text.match(/(?:TOTAL\s*INVOICE(?:\s*AMOUNT)?|TOTAL\s*AMOUNT)\s*[:$]?\s*([0-9,.]+)/i);
+    text.match(
+      /\b(?:TOTAL\s+CIF|VALOR\s+CIF|CIF\s+TOTAL|CIF\s+AMOUNT)\b[:$\s]+([0-9,.]+)/i,
+    ) || text.match(/\b(?:TOTAL\s+INVOICE|TOTAL\s+AMOUNT)\b[:$\s]+([0-9,.]+)/i);
   let totalCifUsd = 148000;
   if (cifMatch) {
     const parsed = parseFloat(cifMatch[1].replace(/,/g, ""));
     if (!isNaN(parsed) && parsed > 0) totalCifUsd = parsed;
   }
 
-  const fobMatch = text.match(/(?:TOTAL\s*FOB|VALOR\s*FOB|SUBTOTAL(?:\s*FOB)?)[\s:$]*([0-9,.]+)/i);
-  const totalFobUsd = fobMatch ? parseFloat(fobMatch[1].replace(/,/g, "")) || totalCifUsd * 0.94 : totalCifUsd * 0.94;
+  const fobMatch = text.match(
+    /(?:TOTAL\s*FOB|VALOR\s*FOB|SUBTOTAL(?:\s*FOB)?)[\s:$]*([0-9,.]+)/i,
+  );
+  const totalFobUsd = fobMatch
+    ? parseFloat(fobMatch[1].replace(/,/g, "")) || totalCifUsd * 0.94
+    : totalCifUsd * 0.94;
 
   const freightUsd = Math.round(totalCifUsd * 0.05);
   const insuranceUsd = Math.round(totalCifUsd * 0.01);
@@ -147,7 +178,9 @@ export function extractCommercialInvoice(text: string): OcrExtractionResult<Comm
   const detectedHs = hsMatch ? hsMatch[1] : "8542.31.00";
 
   if (!invMatch) {
-    warnings.push("No se detectó un número de factura explícito; usando identificador por defecto.");
+    warnings.push(
+      "No se detectó un número de factura explícito; usando identificador por defecto.",
+    );
     confidence -= 0.1;
   }
 
@@ -171,7 +204,8 @@ export function extractCommercialInvoice(text: string): OcrExtractionResult<Comm
         {
           itemNumber: 1,
           hsCode: detectedHs,
-          description: "Microprocesadores Monolíticos Digitales en Wafers de Silicio",
+          description:
+            "Microprocesadores Monolíticos Digitales en Wafers de Silicio",
           quantity: 25000,
           unit: "PZA",
           unitPrice: Math.round((totalFobUsd / 25000) * 100) / 100,
@@ -184,39 +218,60 @@ export function extractCommercialInvoice(text: string): OcrExtractionResult<Comm
   };
 }
 
-export function extractPackingList(text: string): OcrExtractionResult<PackingListData> {
+export function extractPackingList(
+  text: string,
+): OcrExtractionResult<PackingListData> {
   const warnings: string[] = [];
   let confidence = 0.92;
 
   const plMatch =
-    text.match(/(?:PACKING\s*LIST\s*(?:NO|NUMBER|#)|LISTA\s*DE\s*EMPAQUE\s*(?:NO|#)|PL\s*(?:NO|#))\s*[:#]?\s*([A-Z0-9-]{4,30})/i) ||
-    text.match(/(?:PACKING\s*LIST|LISTA\s*DE\s*EMPAQUE|PL)\s*[:#]\s*([A-Z0-9-]{4,30})/i);
+    text.match(
+      /\b(?:PACKING\s+LIST|LISTA\s+DE\s+EMPAQUE|PL)\s+(?:NO|NUMBER|#)[:#\s]+([A-Z0-9-]{4,30})/i,
+    ) ||
+    text.match(
+      /\b(?:PACKING\s+LIST|LISTA\s+DE\s+EMPAQUE|PL)[:#\s]+([A-Z0-9-]{4,30})/i,
+    );
   const packingListNumber = plMatch ? plMatch[1].trim() : "PL-2026-9041";
 
-  const invRefMatch =
-    text.match(/(?:INVOICE\s*(?:REF|REFERENCE|NO)|FACTURA\s*REF)[\s#:]*([A-Z0-9-]{4,30})/i);
-  const invoiceReference = invRefMatch ? invRefMatch[1].trim() : "INV-2026-X001";
+  const invRefMatch = text.match(
+    /(?:INVOICE\s*(?:REF|REFERENCE|NO)|FACTURA\s*REF)[\s#:]*([A-Z0-9-]{4,30})/i,
+  );
+  const invoiceReference = invRefMatch
+    ? invRefMatch[1].trim()
+    : "INV-2026-X001";
 
-  const grossWeightMatch = text.match(/(?:GROSS\s*WEIGHT|PESO\s*BRUTO|GW|BRUTO)[\s:]*([0-9,.]+)\s*(?:KG|KGS)?/i);
+  const grossWeightMatch = text.match(
+    /(?:GROSS\s*WEIGHT|PESO\s*BRUTO|GW|BRUTO)[\s:]*([0-9,.]+)\s*(?:KG|KGS)?/i,
+  );
   let grossWeightKg = 18500;
   if (grossWeightMatch) {
     const parsed = parseFloat(grossWeightMatch[1].replace(/,/g, ""));
     if (!isNaN(parsed) && parsed > 0) grossWeightKg = parsed;
   }
 
-  const netWeightMatch = text.match(/(?:NET\s*WEIGHT|PESO\s*NETO|NW|NETO)[\s:]*([0-9,.]+)\s*(?:KG|KGS)?/i);
-  const netWeightKg = netWeightMatch ? parseFloat(netWeightMatch[1].replace(/,/g, "")) || grossWeightKg * 0.91 : grossWeightKg * 0.91;
+  const netWeightMatch = text.match(
+    /(?:NET\s*WEIGHT|PESO\s*NETO|NW|NETO)[\s:]*([0-9,.]+)\s*(?:KG|KGS)?/i,
+  );
+  const netWeightKg = netWeightMatch
+    ? parseFloat(netWeightMatch[1].replace(/,/g, "")) || grossWeightKg * 0.91
+    : grossWeightKg * 0.91;
 
   const cbmMatch = text.match(/(?:VOLUME|VOLUMEN|CBM|M3)[\s:]*([0-9,.]+)/i);
-  const totalCbm = cbmMatch ? parseFloat(cbmMatch[1].replace(/,/g, "")) || 42.5 : 42.5;
+  const totalCbm = cbmMatch
+    ? parseFloat(cbmMatch[1].replace(/,/g, "")) || 42.5
+    : 42.5;
 
   const containerMatch =
-    text.match(/(?:CONTAINER(?:\s*NO)?|CONTENEDOR)\s*[:#]?\s*([A-Z]{4}[0-9]{7})/i) ||
+    text.match(/\b(?:CONTAINER|CONTENEDOR)\s+NO[:#\s]+([A-Z]{4}[0-9]{7})\b/i) ||
+    text.match(/\b(?:CONTAINER|CONTENEDOR)[:#\s]+([A-Z]{4}[0-9]{7})\b/i) ||
     text.match(/\b([A-Z]{4}[0-9]{7})\b/i);
-  const containerNumber = containerMatch ? containerMatch[1].toUpperCase() : "MSKU7829103";
+  const containerNumber = containerMatch
+    ? containerMatch[1].toUpperCase()
+    : "MSKU7829103";
 
   const sealMatch =
-    text.match(/(?:SEAL(?:\s*NO)?|PRECINTO|SELLO)\s*[:#]?\s*([A-Z0-9-]{5,20})/i);
+    text.match(/\b(?:SEAL|PRECINTO|SELLO)\s+NO[:#\s]+([A-Z0-9-]{5,20})\b/i) ||
+    text.match(/\b(?:SEAL|PRECINTO|SELLO)[:#\s]+([A-Z0-9-]{5,20})\b/i);
   const sealNumber = sealMatch ? sealMatch[1].toUpperCase() : "ML-ES26-88129";
 
   return {
@@ -238,22 +293,35 @@ export function extractPackingList(text: string): OcrExtractionResult<PackingLis
   };
 }
 
-export function extractTransportDocument(text: string): OcrExtractionResult<TransportDocumentData> {
+export function extractTransportDocument(
+  text: string,
+): OcrExtractionResult<TransportDocumentData> {
   const warnings: string[] = [];
   const confidence = 0.94;
 
   const docMatch =
-    text.match(/(?:B\/L\s*(?:NO|NUMBER|#)|BOL\s*(?:NO|NUMBER|#)|WAYBILL\s*(?:NO|NUMBER|#)|CMR\s*(?:NO|NUMBER|#)|CARTA\s*PORTE\s*(?:NO|NUMBER|#))\s*[:#]?\s*([A-Z0-9-]{4,30})/i) ||
-    text.match(/(?:B\/L|BOL|WAYBILL|CMR|CARTA\s*PORTE)\s*[:#]\s*([A-Z0-9-]{4,30})/i);
+    text.match(
+      /\b(?:B\/L|BOL|WAYBILL|CMR|CARTA\s+PORTE)\s+(?:NO|NUMBER|#)[:#\s]+([A-Z0-9-]{4,30})/i,
+    ) ||
+    text.match(
+      /\b(?:B\/L|BOL|WAYBILL|CMR|CARTA\s+PORTE)[:#\s]+([A-Z0-9-]{4,30})/i,
+    );
   const documentNumber = docMatch ? docMatch[1].trim() : "BL-MAERSK-2026-X88";
 
-  const weightMatch = text.match(/(?:DECLARED\s*GROSS\s*WEIGHT|WEIGHT|PESO|GW)[\s:]*([0-9,.]+)\s*(?:KG|KGS)?/i);
-  const declaredGrossWeightKg = weightMatch ? parseFloat(weightMatch[1].replace(/,/g, "")) || 18500 : 18500;
+  const weightMatch = text.match(
+    /(?:DECLARED\s*GROSS\s*WEIGHT|WEIGHT|PESO|GW)[\s:]*([0-9,.]+)\s*(?:KG|KGS)?/i,
+  );
+  const declaredGrossWeightKg = weightMatch
+    ? parseFloat(weightMatch[1].replace(/,/g, "")) || 18500
+    : 18500;
 
   const containerMatch =
-    text.match(/(?:CONTAINER(?:\s*NO)?|CONTENEDOR)\s*[:#]?\s*([A-Z]{4}[0-9]{7})/i) ||
+    text.match(/\b(?:CONTAINER|CONTENEDOR)\s+NO[:#\s]+([A-Z]{4}[0-9]{7})\b/i) ||
+    text.match(/\b(?:CONTAINER|CONTENEDOR)[:#\s]+([A-Z]{4}[0-9]{7})\b/i) ||
     text.match(/\b([A-Z]{4}[0-9]{7})\b/i);
-  const containerNumber = containerMatch ? containerMatch[1].toUpperCase() : "MSKU7829103";
+  const containerNumber = containerMatch
+    ? containerMatch[1].toUpperCase()
+    : "MSKU7829103";
 
   return {
     documentType: "TRANSPORT_DOCUMENT",
@@ -276,14 +344,22 @@ export function extractTransportDocument(text: string): OcrExtractionResult<Tran
   };
 }
 
-export function extractCustomsDeclaration(text: string): OcrExtractionResult<CustomsDeclarationData> {
+export function extractCustomsDeclaration(
+  text: string,
+): OcrExtractionResult<CustomsDeclarationData> {
   const warnings: string[] = [];
   const confidence = 0.97;
 
-  const pedMatch = text.match(/(?:PEDIMENTO|DUA|DECLARATION)[\s#:]*([0-9\s]{12,25}|[A-Z0-9-]{10,25})/i);
-  const declarationNumber = pedMatch ? pedMatch[1].trim() : "26 48 3001 6001889";
+  const pedMatch = text.match(
+    /(?:PEDIMENTO|DUA|DECLARATION)[\s#:]*([0-9\s]{12,25}|[A-Z0-9-]{10,25})/i,
+  );
+  const declarationNumber = pedMatch
+    ? pedMatch[1].trim()
+    : "26 48 3001 6001889";
 
-  const valMatch = text.match(/(?:VALOR ADUANA|CUSTOMS VALUE|VALOR COMERCIAL)[\s:$]*([0-9,.]+)/i);
+  const valMatch = text.match(
+    /(?:VALOR ADUANA|CUSTOMS VALUE|VALOR COMERCIAL)[\s:$]*([0-9,.]+)/i,
+  );
   let declaredCustomsValueUsd = 148000;
   if (valMatch) {
     const parsed = parseFloat(valMatch[1].replace(/,/g, ""));
@@ -317,7 +393,8 @@ export function extractCustomsDeclaration(text: string): OcrExtractionResult<Cus
         totalTaxesUsd: totalTaxes,
       },
       electronicSignature: {
-        sha256Seal: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        sha256Seal:
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         certificateSerial: "00000100000504128931",
         isValid: true,
         verificationTimestamp: new Date().toISOString(),
@@ -342,8 +419,11 @@ export function performTripartiteCrossCheck(
   let score = 100;
 
   // 1. Valuation Consistency: Invoice CIF vs Customs Declared Value
-  const valDiff = Math.abs(invoice.totalCifUsd - declaration.declaredCustomsValueUsd);
-  const valDiffPct = invoice.totalCifUsd > 0 ? (valDiff / invoice.totalCifUsd) * 100 : 0;
+  const valDiff = Math.abs(
+    invoice.totalCifUsd - declaration.declaredCustomsValueUsd,
+  );
+  const valDiffPct =
+    invoice.totalCifUsd > 0 ? (valDiff / invoice.totalCifUsd) * 100 : 0;
   if (valDiffPct === 0) {
     checks.push({
       parameter: "Valoración Aduanera (CIF vs Declarado)",
@@ -351,7 +431,8 @@ export function performTripartiteCrossCheck(
       declarationValue: `$${declaration.declaredCustomsValueUsd.toLocaleString()} USD`,
       isMatch: true,
       severity: "INFO",
-      message: "Coincidencia exacta de base gravable entre factura y pedimento/DUA.",
+      message:
+        "Coincidencia exacta de base gravable entre factura y pedimento/DUA.",
     });
   } else if (valDiffPct <= 2.0) {
     score -= 10;
@@ -377,7 +458,9 @@ export function performTripartiteCrossCheck(
 
   // 2. Weight Consistency: Packing List Gross Weight vs Transport Document
   if (transport) {
-    const weightDiff = Math.abs(packingList.grossWeightKg - transport.declaredGrossWeightKg);
+    const weightDiff = Math.abs(
+      packingList.grossWeightKg - transport.declaredGrossWeightKg,
+    );
     if (weightDiff === 0) {
       checks.push({
         parameter: "Peso Bruto (Packing List vs B/L / Carta Porte)",
@@ -413,7 +496,9 @@ export function performTripartiteCrossCheck(
   // 3. Tariff Classification (HS Code) Match
   const invHs = invoice.lineItems[0]?.hsCode || "";
   const declHs = declaration.primaryHsCode;
-  const hsMatch = invHs.replace(/\./g, "").slice(0, 6) === declHs.replace(/\./g, "").slice(0, 6);
+  const hsMatch =
+    invHs.replace(/\./g, "").slice(0, 6) ===
+    declHs.replace(/\./g, "").slice(0, 6);
   if (hsMatch) {
     checks.push({
       parameter: "Clasificación Arancelaria (Fracción HS)",
@@ -453,13 +538,24 @@ export function performTripartiteCrossCheck(
 
   score = Math.max(0, Math.min(100, score));
 
-  let overallStatus: "MATCH_CLEARED" | "DISCREPANCY_WARNING" | "CRITICAL_MISMATCH" = "MATCH_CLEARED";
+  let overallStatus:
+    "MATCH_CLEARED" | "DISCREPANCY_WARNING" | "CRITICAL_MISMATCH" =
+    "MATCH_CLEARED";
   if (score < 70) overallStatus = "CRITICAL_MISMATCH";
   else if (score < 90) overallStatus = "DISCREPANCY_WARNING";
 
-  const code = Math.floor(1000 + Math.random() * 9000);
+  let code = 1000;
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    code = 1000 + (buf[0] % 9000);
+  } else {
+    code = 1000 + Math.floor(Math.random() * 9000);
+  }
   const releaseCertificateId =
-    overallStatus === "MATCH_CLEARED" ? `CERT-PRE-RELEASE-2026-X${code}` : undefined;
+    overallStatus === "MATCH_CLEARED"
+      ? `CERT-PRE-RELEASE-2026-X${code}`
+      : undefined;
 
   const summaryMessage =
     overallStatus === "MATCH_CLEARED"

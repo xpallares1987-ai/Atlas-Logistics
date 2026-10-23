@@ -26,7 +26,7 @@ test.describe("Workload Portfolio & Axle Heatmap (/workload)", () => {
 
     // Excluded Role Check (Governance)
     await expect(page.getByText("TEST02 (Operations Manager)")).toBeVisible();
-    await expect(page.getByText("EXCLUIDO")).toBeVisible();
+    await expect(page.getByText("EXCLUIDO").first()).toBeVisible();
     await expect(
       page.getByText("Excluido por Gobernanza").first(),
     ).toBeVisible();

@@ -170,6 +170,32 @@ describe("Multimodal Official Document Center & Digital Signature", () => {
       expect(updated[0].status).toBe("SIGNED");
       expect(updated[0].signedBy).toBe("Elena Vega");
     });
+
+    it("should generate a certificate when no signer certificate is provided", async () => {
+      const emitRes = await DocumentSignerService.emitDocument({
+        type: "ECMR",
+        payloadData: {
+          consignmentNumber: `CMR-TEST-${Date.now()}`,
+          sender: "ACME Corp",
+          consignee: "Globex Corp",
+        },
+      });
+
+      const signedRes = await DocumentSignerService.signDocument(emitRes.id, {
+        signedBy: "Elena Vega",
+        signerTitle: "Transport Manager",
+      });
+
+      expect(signedRes.signerCertificate).toMatch(/^CERT-ATLAS-PKI-\d{6}$/);
+    });
+  });
+
+  describe("getDocumentPdf", () => {
+    it("should reject document IDs that escape the storage directory", async () => {
+      await expect(
+        DocumentSignerService.getDocumentPdf("../../outside"),
+      ).rejects.toThrow("Invalid document ID");
+    });
   });
 
   describe("verifyAuthenticity", () => {

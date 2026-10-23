@@ -11,8 +11,8 @@ export type VehicleConfigurationSct =
   | "T3S2" // Tractocamión articulado (5 ejes, semirremolque)
   | "T3S3" // Tractocamión articulado (6 ejes)
   | "T3S1" // Tractocamión articulado (4 ejes)
-  | "C2"   // Camión unitario 2 ejes
-  | "C3";  // Camión unitario 3 ejes
+  | "C2" // Camión unitario 2 ejes
+  | "C3"; // Camión unitario 3 ejes
 
 export interface CartaPorteLocation {
   tipoUbicacion: "Origen" | "Destino";
@@ -92,14 +92,32 @@ export interface CartaPorteStampingResult {
 export function generateIdCCP(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let randomPart = "";
-  for (let i = 0; i < 33; i++) {
-    randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    const bytes = new Uint8Array(33);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < 33; i++) {
+      randomPart += chars.charAt(bytes[i] % chars.length);
+    }
+  } else {
+    for (let i = 0; i < 33; i++) {
+      randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
   }
   return `CCC${randomPart}`;
 }
 
-export function buildAndStampCartaPorte31(input: CartaPorteInput): CartaPorteStampingResult {
-  const uuid = `SAT-${Math.floor(10000000 + Math.random() * 90000000)}-4041-8892-A81920`;
+export function buildAndStampCartaPorte31(
+  input: CartaPorteInput,
+): CartaPorteStampingResult {
+  let randNum = 50000000;
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    randNum = 10000000 + (buf[0] % 90000000);
+  } else {
+    randNum = Math.floor(10000000 + Math.random() * 90000000);
+  }
+  const uuid = `SAT-${randNum}-4041-8892-A81920`;
   const idCCP = generateIdCCP();
   const timestamp = new Date().toISOString();
   const totalWeightKg = input.mercancias.reduce((acc, m) => acc + m.pesoKg, 0);
@@ -121,7 +139,8 @@ export function buildAndStampCartaPorte31(input: CartaPorteInput): CartaPorteSta
       <cartaporte31:Mercancias PesoBrutoTotal="${totalWeightKg.toFixed(2)}" UnidadPeso="KGM" NumTotalMercancias="${input.mercancias.length}">
         ${input.mercancias
           .map(
-            (m) => `<cartaporte31:Mercancia ClaveProdServCP="${m.claveProdServ}" Descripcion="${m.descripcion}" Cantidad="${m.cantidad}" ClaveUnidad="${m.claveUnidad}" PesoEnKg="${m.pesoKg.toFixed(2)}"${m.fraccionArancelaria ? ` FraccionArancelaria="${m.fraccionArancelaria}"` : ""}${m.materialPeligroso ? ` MaterialPeligroso="Sí" CveMaterialPeligroso="${m.claveMaterialPeligroso || "UN1993"}" Embalaje="${m.tipoEmbalaje || "4G"}"` : ""}/>`
+            (m) =>
+              `<cartaporte31:Mercancia ClaveProdServCP="${m.claveProdServ}" Descripcion="${m.descripcion}" Cantidad="${m.cantidad}" ClaveUnidad="${m.claveUnidad}" PesoEnKg="${m.pesoKg.toFixed(2)}"${m.fraccionArancelaria ? ` FraccionArancelaria="${m.fraccionArancelaria}"` : ""}${m.materialPeligroso ? ` MaterialPeligroso="Sí" CveMaterialPeligroso="${m.claveMaterialPeligroso || "UN1993"}" Embalaje="${m.tipoEmbalaje || "4G"}"` : ""}/>`,
           )
           .join("\n        ")}
         <cartaporte31:Autotransporte PermSCT="${input.autotransporte.permisoSct}" NumPermisoSCT="${input.autotransporte.numPermisoSct}">
@@ -196,21 +215,24 @@ export interface UsmcaRvcResult {
  * - Método de Valor de Transacción: VCR = ((VT - VMO) / VT) * 100
  * - Método de Costo Neto: VCR = ((CN - VMO) / CN) * 100
  */
-export function calculateUsmcaRegionalValueContent(input: UsmcaRvcInput): UsmcaRvcResult {
-  const isAutomotive = input.hsCode.startsWith("8708") || input.hsCode.startsWith("8703");
-  const defaultThreshold = input.targetRvcThresholdPercent ?? (
-    isAutomotive ? 75.0 : input.method === "TRANSACTION_VALUE" ? 60.0 : 50.0
-  );
+export function calculateUsmcaRegionalValueContent(
+  input: UsmcaRvcInput,
+): UsmcaRvcResult {
+  const isAutomotive =
+    input.hsCode.startsWith("8708") || input.hsCode.startsWith("8703");
+  const defaultThreshold =
+    input.targetRvcThresholdPercent ??
+    (isAutomotive ? 75.0 : input.method === "TRANSACTION_VALUE" ? 60.0 : 50.0);
 
   let baseValue = 0;
   if (input.method === "TRANSACTION_VALUE") {
     baseValue = input.transactionValueUsd || 100000;
   } else {
-    baseValue = input.netCostUsd || (
+    baseValue =
+      input.netCostUsd ||
       (input.originatingMaterialsCostUsd || 50000) +
-      input.nonOriginatingMaterialsCostUsd +
-      (input.laborAndOverheadUsd || 25000)
-    );
+        input.nonOriginatingMaterialsCostUsd +
+        (input.laborAndOverheadUsd || 25000);
   }
 
   const vmo = Math.min(input.nonOriginatingMaterialsCostUsd, baseValue);
@@ -218,9 +240,10 @@ export function calculateUsmcaRegionalValueContent(input: UsmcaRvcInput): UsmcaR
   const rvc = baseValue > 0 ? (regionalContentValue / baseValue) * 100 : 0;
   const qualifies = rvc >= defaultThreshold;
 
-  const ruleDescription = input.method === "TRANSACTION_VALUE"
-    ? `Método de Valor de Transacción: VCR = ((VT - VMO) / VT) * 100. Umbral requerido: ${defaultThreshold.toFixed(1)}%.`
-    : `Método de Costo Neto: VCR = ((CN - VMO) / CN) * 100. Umbral requerido: ${defaultThreshold.toFixed(1)}%.`;
+  const ruleDescription =
+    input.method === "TRANSACTION_VALUE"
+      ? `Método de Valor de Transacción: VCR = ((VT - VMO) / VT) * 100. Umbral requerido: ${defaultThreshold.toFixed(1)}%.`
+      : `Método de Costo Neto: VCR = ((CN - VMO) / CN) * 100. Umbral requerido: ${defaultThreshold.toFixed(1)}%.`;
 
   return {
     hsCode: input.hsCode,
@@ -270,26 +293,31 @@ export interface ImmexTariffOptimizationResult {
 }
 
 export function calculateImmexTariffOptimization(
-  input: ImmexTariffOptimizationInput
+  input: ImmexTariffOptimizationInput,
 ): ImmexTariffOptimizationResult {
-  const isUsmcaCountry = input.originCountry === "MX" || input.originCountry === "US" || input.originCountry === "CA";
+  const isUsmcaCountry =
+    input.originCountry === "MX" ||
+    input.originCountry === "US" ||
+    input.originCountry === "CA";
   const usmcaQualifies = input.usmcaEligible ?? isUsmcaCountry;
 
   // Determine standard MFN Duty rate
   let stdRate = 10.0;
   if (input.hsCode.startsWith("85")) stdRate = 15.0; // Electrónica
   if (input.hsCode.startsWith("87")) stdRate = 20.0; // Automotriz
-  if (input.hsCode.startsWith("72") || input.hsCode.startsWith("73")) stdRate = 25.0; // Acero / Metales
+  if (input.hsCode.startsWith("72") || input.hsCode.startsWith("73"))
+    stdRate = 25.0; // Acero / Metales
 
   const standardDutyAmount = (input.declaredValueUsd * stdRate) / 100;
 
   // Under IMMEX: 100% duty exemption for temporary importation of inputs
   const immexExemption = input.isImmexProgramActive !== false;
-  const immexDutyRate = immexExemption ? 0.0 : (usmcaQualifies ? 0.0 : stdRate);
+  const immexDutyRate = immexExemption ? 0.0 : usmcaQualifies ? 0.0 : stdRate;
   const immexDutyPayable = (input.declaredValueUsd * immexDutyRate) / 100;
   const savings = standardDutyAmount - immexDutyPayable;
 
-  let recommendedPedimento: "AF_IMMEX" | "T1_USMCA" | "A1_GENERAL" = "A1_GENERAL";
+  let recommendedPedimento: "AF_IMMEX" | "T1_USMCA" | "A1_GENERAL" =
+    "A1_GENERAL";
   if (immexExemption) {
     recommendedPedimento = "AF_IMMEX";
   } else if (usmcaQualifies) {
@@ -323,7 +351,8 @@ export type CustomsPortKey = "MXNLD" | "MXZLO" | "MXVER" | "MXATM" | "MXMEX";
 export interface CustomsDwellPredictionInput {
   pedimentoNumber: string;
   customsPortCode: CustomsPortKey;
-  trafficLightOutcome: "GREEN_CLEARANCE" | "RED_INSPECTION" | "PENDING_SELECTION";
+  trafficLightOutcome:
+    "GREEN_CLEARANCE" | "RED_INSPECTION" | "PENDING_SELECTION";
   fraccionArancelaria: string;
   importerRfc: string;
   hasReeferCargo: boolean;
@@ -346,7 +375,9 @@ export interface CustomsDwellPredictionResult {
   recommendedActions: string[];
 }
 
-export function predictCustomsDwellTime(input: CustomsDwellPredictionInput): CustomsDwellPredictionResult {
+export function predictCustomsDwellTime(
+  input: CustomsDwellPredictionInput,
+): CustomsDwellPredictionResult {
   const portNames: Record<CustomsPortKey, string> = {
     MXNLD: "Aduana de Nuevo Laredo (Puente del Comercio Mundial)",
     MXZLO: "Aduana de Manzanillo (Terminal SSA / Contecon)",
@@ -379,29 +410,41 @@ export function predictCustomsDwellTime(input: CustomsDwellPredictionInput): Cus
   const gateOutDate = new Date();
   gateOutDate.setHours(gateOutDate.getHours() + totalDwell);
 
-  const redChannelProb = input.trafficLightOutcome === "RED_INSPECTION"
-    ? 100
-    : input.fraccionArancelaria.startsWith("85")
-    ? 18
-    : input.fraccionArancelaria.startsWith("87")
-    ? 22
-    : 30;
+  const redChannelProb =
+    input.trafficLightOutcome === "RED_INSPECTION"
+      ? 100
+      : input.fraccionArancelaria.startsWith("85")
+        ? 18
+        : input.fraccionArancelaria.startsWith("87")
+          ? 22
+          : 30;
 
   const riskCat: "LOW_RISK" | "MEDIUM_RISK" | "HIGH_RISK" =
-    totalDwell > 40 ? "HIGH_RISK" : totalDwell > 22 ? "MEDIUM_RISK" : "LOW_RISK";
+    totalDwell > 40
+      ? "HIGH_RISK"
+      : totalDwell > 22
+        ? "MEDIUM_RISK"
+        : "LOW_RISK";
 
   const keyPredictors: CustomsDwellPredictionResult["keyPredictors"] = [
     {
       feature: "Aduana de Despacho",
-      impact: input.customsPortCode === "MXNLD" ? "FASTER_CLEARANCE" : "INCREMENTAL_DELAY",
+      impact:
+        input.customsPortCode === "MXNLD"
+          ? "FASTER_CLEARANCE"
+          : "INCREMENTAL_DELAY",
       description: `${portNames[input.customsPortCode]}: Tiempo base de patio de ${baseHours}h.`,
     },
     {
       feature: "Mecanismo de Selección Automatizada (Semáforo)",
-      impact: input.trafficLightOutcome === "RED_INSPECTION" ? "INCREMENTAL_DELAY" : "FASTER_CLEARANCE",
-      description: input.trafficLightOutcome === "RED_INSPECTION"
-        ? "Aforo Rojo activo: +36h por revisión no intrusiva y vaciado de contenedor."
-        : "Canal Verde concedido o selección estándar.",
+      impact:
+        input.trafficLightOutcome === "RED_INSPECTION"
+          ? "INCREMENTAL_DELAY"
+          : "FASTER_CLEARANCE",
+      description:
+        input.trafficLightOutcome === "RED_INSPECTION"
+          ? "Aforo Rojo activo: +36h por revisión no intrusiva y vaciado de contenedor."
+          : "Canal Verde concedido o selección estándar.",
     },
   ];
 
@@ -409,16 +452,23 @@ export function predictCustomsDwellTime(input: CustomsDwellPredictionInput): Cus
     keyPredictors.push({
       feature: "Carga Perecedera / Reefer",
       impact: "FASTER_CLEARANCE",
-      description: "Protocolo de prioridad para cadena de frío activado (-15% de tiempo de espera).",
+      description:
+        "Protocolo de prioridad para cadena de frío activado (-15% de tiempo de espera).",
     });
   }
 
   const recommendedActions: string[] = [];
   if (riskCat === "HIGH_RISK") {
-    recommendedActions.push("Notificar a transportista para reprogramar cita de carga en patio.");
-    recommendedActions.push("Asegurar disponibilidad de expediente digital con CSD para agilizar aforo.");
+    recommendedActions.push(
+      "Notificar a transportista para reprogramar cita de carga en patio.",
+    );
+    recommendedActions.push(
+      "Asegurar disponibilidad de expediente digital con CSD para agilizar aforo.",
+    );
   } else {
-    recommendedActions.push("Confirmar pre-asignación de tractocamión para despacho expedito.");
+    recommendedActions.push(
+      "Confirmar pre-asignación de tractocamión para despacho expedito.",
+    );
   }
 
   return {
@@ -442,7 +492,8 @@ export const USMCA_DEMO_PRESETS = {
   laredo_automotive_immex: {
     presetId: "laredo_automotive_immex",
     title: "1. Laredo Cross-Border Autopartes (T-MEC / IMMEX)",
-    description: "Cruce Nuevo Laredo (MXNLD). 1x 40ft HC Autopartes T3S2, pedimento AF IMMEX, VCR 76.8% calificado T-MEC, exención 100% IGI ($36,250 USD ahorro).",
+    description:
+      "Cruce Nuevo Laredo (MXNLD). 1x 40ft HC Autopartes T3S2, pedimento AF IMMEX, VCR 76.8% calificado T-MEC, exención 100% IGI ($36,250 USD ahorro).",
     cartaPorteInput: {
       shipmentRef: "EXP-2026-NLD-4401",
       rfcEmisor: "ATR991012AB1",
@@ -470,7 +521,8 @@ export const USMCA_DEMO_PRESETS = {
       mercancias: [
         {
           claveProdServ: "25171000",
-          descripcion: "Módulos de Dirección Asistida Electrónica para Automóvil",
+          descripcion:
+            "Módulos de Dirección Asistida Electrónica para Automóvil",
           cantidad: 1200,
           claveUnidad: "H87",
           pesoKg: 18400,
@@ -525,7 +577,8 @@ export const USMCA_DEMO_PRESETS = {
   manzanillo_electronics_inbound: {
     presetId: "manzanillo_electronics_inbound",
     title: "2. Manzanillo Inbound Componentes IoT (Aforo Rojo Previsto)",
-    description: "Importación Marítima Manzanillo (MXZLO). Componentes de Telecomunicaciones 8517.62.01, T3S3, VCR 68.2%, aforo rojo estimado (+36h inspección).",
+    description:
+      "Importación Marítima Manzanillo (MXZLO). Componentes de Telecomunicaciones 8517.62.01, T3S3, VCR 68.2%, aforo rojo estimado (+36h inspección).",
     cartaPorteInput: {
       shipmentRef: "IMP-2026-ZLO-8812",
       rfcEmisor: "ATR991012AB1",
@@ -607,7 +660,8 @@ export const USMCA_DEMO_PRESETS = {
   veracruz_reefer_perishable: {
     presetId: "veracruz_reefer_perishable",
     title: "3. Veracruz Reefer Cadena de Frío (Despacho Prioritario)",
-    description: "Puerto de Veracruz (MXVER). Carga farmacéutica refrigerada (+4°C), prioridad perecedera, pedimento T1 USMCA, tiempo estimado reducido (-15%).",
+    description:
+      "Puerto de Veracruz (MXVER). Carga farmacéutica refrigerada (+4°C), prioridad perecedera, pedimento T1 USMCA, tiempo estimado reducido (-15%).",
     cartaPorteInput: {
       shipmentRef: "EXP-2026-VER-1190",
       rfcEmisor: "ATR991012AB1",
@@ -634,7 +688,8 @@ export const USMCA_DEMO_PRESETS = {
       mercancias: [
         {
           claveProdServ: "51101800",
-          descripcion: "Vacunas y Reactivos Biológicos Sensibles a Temperatura (+2°C a +8°C)",
+          descripcion:
+            "Vacunas y Reactivos Biológicos Sensibles a Temperatura (+2°C a +8°C)",
           cantidad: 800,
           claveUnidad: "H87",
           pesoKg: 14200,

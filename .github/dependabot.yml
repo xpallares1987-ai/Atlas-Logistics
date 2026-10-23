@@ -44,14 +44,18 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
-      day: "first sunday"
-      time: "06:00"
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
       timezone: "Europe/Madrid"
     open-pull-requests-limit: 5
     labels:
       - "ci"
       - "github-actions"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
     commit-message:
       prefix: "chore(ci)"
 
@@ -59,13 +63,17 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "monthly"
-      day: "first sunday"
-      time: "06:00"
+      interval: "weekly"
+      day: "monday"
+      time: "07:30"
       timezone: "Europe/Madrid"
     open-pull-requests-limit: 5
     labels:
       - "docker"
       - "dependencies"
+    groups:
+      docker-images:
+        patterns:
+          - "*"
     commit-message:
       prefix: "chore(docker)"
