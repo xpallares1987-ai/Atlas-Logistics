@@ -39,7 +39,8 @@
     "test:e2e": "playwright test",
     "admin:create": "tsx src/admin/cli.ts",
     "clean:cache": "rm -rf .turbo .njsscan",
-    "backup-db": "node src/scripts/backup-db.js"
+    "backup-db": "node src/scripts/backup-db.js",
+    "verify:env": "node scripts/verify-env.js"
   },
   "dependencies": {
     "@atlas/shared": "workspace:^",

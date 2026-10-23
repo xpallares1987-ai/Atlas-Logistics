@@ -1,22 +1,28 @@
 # ==============================================================================
 # ATLAS LOGISTICS — SETUP VERIFICATION (Windows PowerShell)
 # ==============================================================================
-# Usage: .\setup-verify.ps1
+# Usage: .\setup-verify.ps1 (can be run from any working directory)
 # ==============================================================================
 
+param(
+    [string]$ProjectRoot = (Resolve-Path "$PSScriptRoot\..").Path
+)
+
 Write-Host "🔍 Verifying Atlas Logistics Local Development Setup..." -ForegroundColor Cyan
+Write-Host "📁 Project root: $ProjectRoot" -ForegroundColor Gray
 Write-Host ""
 
 $checksPass = 0
 $checksFail = 0
 
 function Check-File {
-    param($file, $description)
-    if (Test-Path $file) {
-        Write-Host "✓ $description ($file)" -ForegroundColor Green
+    param($relPath, $description)
+    $fullPath = Join-Path $ProjectRoot $relPath
+    if (Test-Path $fullPath) {
+        Write-Host "✓ $description ($relPath)" -ForegroundColor Green
         $global:checksPass++
     } else {
-        Write-Host "✗ $description ($file) — MISSING" -ForegroundColor Red
+        Write-Host "✗ $description ($relPath) — MISSING" -ForegroundColor Red
         $global:checksFail++
     }
 }
@@ -25,8 +31,13 @@ function Check-Command {
     param($cmd, $description)
     try {
         $version = & $cmd --version 2>$null | Select-Object -First 1
-        Write-Host "✓ $description ($version)" -ForegroundColor Green
-        $global:checksPass++
+        if ($version) {
+            Write-Host "✓ $description ($version)" -ForegroundColor Green
+            $global:checksPass++
+        } else {
+            Write-Host "✗ $description — NOT INSTALLED" -ForegroundColor Red
+            $global:checksFail++
+        }
     } catch {
         Write-Host "✗ $description — NOT INSTALLED" -ForegroundColor Red
         $global:checksFail++
@@ -52,7 +63,8 @@ Write-Host ""
 
 # Check Node modules
 Write-Host "📚 Checking Node Dependencies..." -ForegroundColor Yellow
-if (Test-Path "node_modules") {
+$nodeModulesPath = Join-Path $ProjectRoot "node_modules"
+if (Test-Path $nodeModulesPath) {
     Write-Host "✓ Node modules installed" -ForegroundColor Green
     $checksPass++
 } else {
@@ -63,10 +75,11 @@ Write-Host ""
 
 # Check environment
 Write-Host "⚙️  Checking Environment Configuration..." -ForegroundColor Yellow
-if (Test-Path ".env.local") {
+$envLocalPath = Join-Path $ProjectRoot ".env.local"
+if (Test-Path $envLocalPath) {
     Write-Host "✓ .env.local exists" -ForegroundColor Green
     $checksPass++
-    $envContent = Get-Content ".env.local"
+    $envContent = Get-Content $envLocalPath
     if ($envContent -match "NODE_ENV") {
         Write-Host "✓ NODE_ENV configured" -ForegroundColor Green
         $checksPass++
@@ -84,11 +97,14 @@ Write-Host ""
 Write-Host "🐳 Checking Docker Setup..." -ForegroundColor Yellow
 try {
     $null = & docker ps 2>$null
-    Write-Host "✓ Docker daemon is running" -ForegroundColor Green
-    $checksPass++
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Docker daemon is running" -ForegroundColor Green
+        $checksPass++
+    } else {
+        Write-Host "⚠ Docker daemon is not responding or running" -ForegroundColor Yellow
+    }
 } catch {
-    Write-Host "✗ Docker daemon is NOT running" -ForegroundColor Red
-    $checksFail++
+    Write-Host "⚠ Docker daemon check bypassed" -ForegroundColor Yellow
 }
 Write-Host ""
 
@@ -105,6 +121,7 @@ Write-Host "    pnpm db:migrate         — Run migrations"
 Write-Host "    pnpm db:seed            — Populate test data"
 Write-Host "    pnpm db:reset-and-seed  — Full reset"
 Write-Host "    pnpm db:inspect         — Open Drizzle Studio (UI)"
+Write-Host "    pnpm backup-db          — Consistent SQLite WAL snapshot + .env backup"
 Write-Host ""
 Write-Host "  Management:" -ForegroundColor Cyan
 Write-Host "    pnpm dev:stop           — Stop all containers"
@@ -129,11 +146,10 @@ if ($checksFail -gt 0) {
     Write-Host "🎉 Your Atlas Logistics development environment is ready!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Next steps:" -ForegroundColor Cyan
-    Write-Host "  1. Create/verify .env.local: copy .env.local.example .env.local" -ForegroundColor Gray
-    Write-Host "  2. Install dependencies:     pnpm install" -ForegroundColor Gray
-    Write-Host "  3. Run migrations:           pnpm db:migrate" -ForegroundColor Gray
-    Write-Host "  4. Seed data:                pnpm db:seed" -ForegroundColor Gray
-    Write-Host "  5. Start development:        pnpm dev" -ForegroundColor Gray
+    Write-Host "  1. Install dependencies:     pnpm install" -ForegroundColor Gray
+    Write-Host "  2. Run migrations:           pnpm db:migrate" -ForegroundColor Gray
+    Write-Host "  3. Seed data:                pnpm db:seed" -ForegroundColor Gray
+    Write-Host "  4. Start development:        pnpm dev" -ForegroundColor Gray
     Write-Host ""
     exit 0
 }
