@@ -64,7 +64,7 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "fast-xml-parser": "^5.11.1",
-    "fastify": "^5.12.5",
+    "fastify": "^5.12.6",
     "fastify-metrics": "^13.2.1",
     "ioredis": "^6.0.0",
     "ioredis-mock": "^8.13.1",
