@@ -2,21 +2,33 @@
 # ATLAS LOGISTICS — DOCKER COMPOSE FOR LOCAL DEVELOPMENT
 # ==============================================================================
 # Optimized for personal development with hot-reload support.
-# Uses SQLite locally, Redis for queues.
+# Uses SQLite locally, Redis for queues, optional observability stack.
 #
 # Usage:
-#   docker compose up -d                  # Backend + Redis
-#   docker compose --profile observability up -d  # + Prometheus + Grafana
-#   docker compose down                   # Stop all services
-#   docker compose logs -f backend        # Follow backend logs
+#   docker compose up -d                           # Backend + Redis
+#   docker compose up --pull always                # Force pull latest images
+#   docker compose --profile observability up -d   # + Prometheus + Grafana
+#   docker compose down                            # Stop all services
+#   docker compose logs -f backend                 # Follow backend logs
 #
 # ==============================================================================
 
 version: '3.8'
 
+x-common-variables: &common_env
+  - NODE_ENV=development
+  - LOG_LEVEL=debug
+  - JWT_SECRET=dev-secret-key-change-in-production
+
+x-health-check: &default_healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 3
+  start_period: 15s
+
 services:
   # ============================================================================
-  # BACKEND SERVICE (Node.js + Express/Fastify)
+  # BACKEND SERVICE (Node.js + Fastify)
   # ============================================================================
   backend:
     build:
@@ -27,16 +39,15 @@ services:
         NODE_VERSION: 22
         PNPM_VERSION: 10.0.0
     container_name: atlas-backend-dev
+    image: atlas-logistics:backend-dev
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=development
       - DATABASE_URL=file:./data/dev.db
       - REDIS_URL=redis://redis:6379
-      - LOG_LEVEL=debug
-      - JWT_SECRET=dev-secret-key-change-in-production
+      - <<: *common_env
     volumes:
-      # Source code for hot-reload
+      # Source code for hot-reload (cached mount for performance)
       - ./src:/app/src:cached
       - ./packages:/app/packages:cached
       # Data persistence
@@ -47,15 +58,21 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
+      <<: *default_healthcheck
     networks:
       default:
         aliases:
           - api
           - backend
+    # Resource limits to prevent runaway processes
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
 
   # ============================================================================
   # FRONTEND SERVICE (Nginx reverse proxy)
@@ -70,17 +87,26 @@ services:
         PNPM_VERSION: 10.0.0
         VITE_API_URL: http://localhost:3001
     container_name: atlas-frontend-dev
+    image: atlas-logistics:frontend-dev
     ports:
       - "8080:8080"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      <<: *default_healthcheck
+    networks:
+      - default
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
 
   # ============================================================================
   # REDIS (Message Queue & Cache)
@@ -101,9 +127,19 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+    networks:
+      - default
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   # ============================================================================
-  # PROMETHEUS (Metrics Collection) — Optional
+  # PROMETHEUS (Metrics Collection) — Optional [observability profile]
   # ============================================================================
   prometheus:
     image: prom/prometheus:latest
@@ -118,21 +154,26 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
+      <<: *default_healthcheck
+    networks:
+      - default
     profiles:
       - observability
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   # ============================================================================
-  # GRAFANA (Visualization) — Optional
+  # GRAFANA (Visualization) — Optional [observability profile]
   # ============================================================================
   grafana:
     image: grafana/grafana:latest
@@ -150,19 +191,27 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://localhost:3002
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
+      <<: *default_healthcheck
+    networks:
+      - default
     profiles:
       - observability
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   # ============================================================================
-  # NODE EXPORTER (System Metrics) — Optional
+  # NODE EXPORTER (System Metrics) — Optional [observability profile]
   # ============================================================================
   node-exporter:
     image: prom/node-exporter:latest
@@ -179,13 +228,23 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     restart: unless-stopped
+    networks:
+      - default
     profiles:
       - observability
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
 
 volumes:
   redis_data:
+    driver: local
   prometheus_data:
+    driver: local
   grafana_data:
+    driver: local
 
 networks:
   default:

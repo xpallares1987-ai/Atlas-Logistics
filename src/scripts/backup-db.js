@@ -1,159 +1,218 @@
 // backup-db.js
-// Backup script for Atlas Logistics SQLite database with auto‑prune (keep last 7 backups)
+// Backup script for Atlas Logistics SQLite database and environment secrets
+// Ensures ACID transactional consistency using WAL checkpointing (PRAGMA wal_checkpoint(TRUNCATE))
+// Retention: 14 latest backups, destination configurable via ATLAS_BACKUP_DIR (default G:\Backups\Atlas-Logistics or ./backups)
 
-import { promises as fs } from "fs";
+import { promises as fs, existsSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createClient } from "@libsql/client";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(SCRIPT_DIR, "../..");
 
-function isWithinDirectory(parentDir, candidatePath) {
-  const resolvedParent = path.resolve(parentDir);
-  const resolvedCandidate = path.resolve(candidatePath);
-  const relative = path.relative(resolvedParent, resolvedCandidate);
-  const isRelativeSafe =
-    relative === "" ||
-    (!relative.startsWith("..") && !path.isAbsolute(relative));
-  return isRelativeSafe && resolvedCandidate.startsWith(resolvedParent);
-}
-
-function resolveWithinRoot(inputPath, label) {
-  const resolved = path.resolve(ROOT_DIR, inputPath);
-
-  if (!isWithinDirectory(ROOT_DIR, resolved)) {
-    throw new Error(`Invalid ${label} traversal attempt: ${inputPath}`);
+export function getSafeDbPath() {
+  if (process.env.LOCAL_DB_PATH) {
+    return path.resolve(ROOT_DIR, process.env.LOCAL_DB_PATH);
   }
-
-  return resolved;
-}
-
-function getSafeDbPath() {
-  const envPath = process.env.LOCAL_DB_PATH;
-  if (!envPath) {
-    return path.resolve(ROOT_DIR, "atlas-erp-v2.db");
+  if (
+    process.env.DATABASE_URL &&
+    process.env.DATABASE_URL.startsWith("file:")
+  ) {
+    const rawPath = process.env.DATABASE_URL.replace(/^file:/, "");
+    return path.resolve(ROOT_DIR, rawPath);
   }
-  return resolveWithinRoot(envPath, "DB_PATH");
+  // Default to development or production database
+  const v2Db = path.resolve(ROOT_DIR, "atlas-erp-v2.db");
+  const prodDb = path.resolve(ROOT_DIR, "atlas-erp-prod.db");
+  if (existsSync(v2Db)) return v2Db;
+  if (existsSync(prodDb)) return prodDb;
+  return v2Db;
 }
 
-function getSafeBackupDir() {
-  const envDir = process.env.BACKUP_DIR || "backups";
-  return resolveWithinRoot(envDir, "BACKUP_DIR");
+export function getSafeBackupDir() {
+  if (process.env.ATLAS_BACKUP_DIR) {
+    return path.resolve(process.env.ATLAS_BACKUP_DIR);
+  }
+  if (process.env.BACKUP_DIR) {
+    return path.resolve(ROOT_DIR, process.env.BACKUP_DIR);
+  }
+  // Check for Google Drive virtual drive on G:
+  if (existsSync("G:\\Mi unidad")) {
+    return path.resolve("G:\\Mi unidad\\Backups\\Atlas-Logistics");
+  }
+  if (existsSync("G:\\My Drive")) {
+    return path.resolve("G:\\My Drive\\Backups\\Atlas-Logistics");
+  }
+  return path.resolve(ROOT_DIR, "backups");
 }
 
-const DB_PATH = getSafeDbPath();
-const BACKUP_DIR = getSafeBackupDir();
-const MAX_BACKUPS = Math.max(
+export const DB_PATH = getSafeDbPath();
+export const BACKUP_DIR = getSafeBackupDir();
+export const MAX_BACKUPS = Math.max(
   1,
-  parseInt(process.env.MAX_LOCAL_BACKUPS || "30", 10),
+  parseInt(process.env.MAX_LOCAL_BACKUPS || "14", 10),
 );
 
-async function ensureBackupDir() {
-  const safeDir = getSafeBackupDir();
+export async function ensureBackupDir(targetDir = getSafeBackupDir()) {
   try {
-    await fs.mkdir(safeDir, { recursive: true });
+    await fs.mkdir(targetDir, { recursive: true });
   } catch (err) {
-    console.error("Failed to create backup directory:", err);
-    process.exit(1);
-  }
-}
-
-function timestamp() {
-  const now = new Date();
-  return now
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace(/[^a-zA-Z0-9_-]/g, ""); // e.g., 2026-08-19T09-13-45-000Z
-}
-
-async function pruneOldBackups() {
-  const safeDir = getSafeBackupDir();
-  try {
-    const files = await fs.readdir(safeDir);
-    const dbFiles = [];
-
-    for (const f of files) {
-      const safeFileName = path.basename(f);
-      if (
-        safeFileName.endsWith(".db") &&
-        !safeFileName.includes("..") &&
-        !safeFileName.includes("/") &&
-        !safeFileName.includes("\\")
-      ) {
-        const fullPath = path.resolve(safeDir, safeFileName);
-        if (isWithinDirectory(safeDir, fullPath)) {
-          const stats = await fs.stat(fullPath);
-          dbFiles.push({ name: safeFileName, fullPath, mtime: stats.mtimeMs });
-        }
-      }
-    }
-
-    dbFiles.sort((a, b) => b.mtime - a.mtime); // newest first
-    const toDelete = dbFiles.slice(MAX_BACKUPS);
-    for (const file of toDelete) {
-      if (isWithinDirectory(safeDir, file.fullPath)) {
-        await fs.unlink(file.fullPath);
-        console.log(`🗑️ Deleted old backup: ${file.fullPath}`);
-      }
-    }
-  } catch (err) {
-    console.error("Failed to prune old backups:", err);
-  }
-}
-
-async function backup() {
-  await ensureBackupDir();
-  const safeDir = getSafeBackupDir();
-  const safeDbSource = getSafeDbPath();
-  const safeTimestamp = timestamp();
-  const backupFileName = `atlas-erp-v2-${safeTimestamp}.db`;
-  const backupFile = path.resolve(safeDir, backupFileName);
-
-  if (!isWithinDirectory(safeDir, backupFile)) {
-    throw new Error("Invalid backup target path");
-  }
-
-  try {
-    await fs.copyFile(safeDbSource, backupFile);
-    console.log(`✅ Backup created: ${backupFile}`);
-
-    // Upload to GCS if bucket is configured
-    if (process.env.GCS_BACKUP_BUCKET) {
-      const { Storage } = await import("@google-cloud/storage");
-      const storage = new Storage();
-      const bucket = storage.bucket(process.env.GCS_BACKUP_BUCKET);
-      await bucket.upload(backupFile);
-      console.log(
-        `🔼 Uploaded backup to GCS bucket ${process.env.GCS_BACKUP_BUCKET}`,
-      );
-    }
-    await pruneOldBackups();
-    return backupFile;
-  } catch (err) {
-    console.error("❌ Backup failed:", err);
+    console.error("❌ Failed to create backup directory:", err);
     throw err;
   }
 }
 
-export {
-  backup,
-  BACKUP_DIR,
-  DB_PATH,
-  ensureBackupDir,
-  getSafeBackupDir,
-  getSafeDbPath,
-  isWithinDirectory,
-  MAX_BACKUPS,
-  pruneOldBackups,
-  resolveWithinRoot,
-  ROOT_DIR,
-};
+export function timestamp() {
+  const now = new Date();
+  return now
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .replace(/[^a-zA-Z0-9_-]/g, ""); // e.g. 2026-10-23T06-00-00-000Z
+}
 
-// Run backup if executed directly via node CLI
+export async function checkpointDatabase(dbFilePath) {
+  if (!existsSync(dbFilePath)) {
+    return false;
+  }
+  try {
+    console.log(
+      `🔄 Checkpointing SQLite WAL for: ${path.basename(dbFilePath)}...`,
+    );
+    const client = createClient({ url: `file:${dbFilePath}` });
+    await client.execute("PRAGMA wal_checkpoint(TRUNCATE);");
+    await client.close();
+    console.log(
+      "✓ WAL checkpoint completed (all transactions flushed into main DB).",
+    );
+    return true;
+  } catch (err) {
+    console.warn(
+      `⚠ WAL checkpoint warning: ${err.message}. Proceeding with file copy.`,
+    );
+    return false;
+  }
+}
+
+export async function pruneOldBackups(
+  targetDir = getSafeBackupDir(),
+  maxToKeep = MAX_BACKUPS,
+) {
+  try {
+    const entries = await fs.readdir(targetDir, { withFileTypes: true });
+    const backupItems = [];
+
+    for (const entry of entries) {
+      const fullPath = path.resolve(targetDir, entry.name);
+      const isBackupFolder =
+        entry.isDirectory() && entry.name.startsWith("atlas-backup-");
+      const isLegacyDbFile =
+        entry.isFile() &&
+        entry.name.startsWith("atlas-erp-v2-") &&
+        entry.name.endsWith(".db");
+
+      if (isBackupFolder || isLegacyDbFile) {
+        const stats = await fs.stat(fullPath);
+        backupItems.push({
+          name: entry.name,
+          fullPath,
+          mtime: stats.mtimeMs,
+          isDirectory: entry.isDirectory(),
+        });
+      }
+    }
+
+    backupItems.sort((a, b) => b.mtime - a.mtime); // Newest first
+
+    if (backupItems.length > maxToKeep) {
+      const toDelete = backupItems.slice(maxToKeep);
+      for (const item of toDelete) {
+        await fs.rm(item.fullPath, { recursive: true, force: true });
+        console.log(
+          `🗑️ Pruned old backup (${maxToKeep} retention limit): ${item.name}`,
+        );
+      }
+    }
+  } catch (err) {
+    console.error("⚠ Failed to prune old backups:", err.message);
+  }
+}
+
+export async function backup() {
+  const targetDir = getSafeBackupDir();
+  await ensureBackupDir(targetDir);
+
+  const dbSource = getSafeDbPath();
+  const currentTimestamp = timestamp();
+  const backupFolder = path.resolve(
+    targetDir,
+    `atlas-backup-${currentTimestamp}`,
+  );
+  await fs.mkdir(backupFolder, { recursive: true });
+
+  const summary = {
+    timestamp: new Date().toISOString(),
+    sourceDatabase: dbSource,
+    backupFolder,
+    files: [],
+  };
+
+  // 1. Consistent SQLite snapshot
+  if (existsSync(dbSource)) {
+    await checkpointDatabase(dbSource);
+    const dbBackupTarget = path.resolve(backupFolder, path.basename(dbSource));
+    await fs.copyFile(dbSource, dbBackupTarget);
+    const dbStat = await fs.stat(dbBackupTarget);
+    summary.files.push({
+      file: path.basename(dbSource),
+      sizeBytes: dbStat.size,
+      sizeMB: (dbStat.size / (1024 * 1024)).toFixed(2),
+    });
+    console.log(
+      `✅ Database snapshot created: ${dbBackupTarget} (${(dbStat.size / (1024 * 1024)).toFixed(2)} MB)`,
+    );
+  } else {
+    console.warn(`⚠ Database file not found at: ${dbSource}`);
+  }
+
+  // 2. Backup environment files (.env, .env.local, .env.production)
+  const envFiles = [".env", ".env.local", ".env.production"];
+  for (const envName of envFiles) {
+    const envSource = path.resolve(ROOT_DIR, envName);
+    if (existsSync(envSource)) {
+      const envTarget = path.resolve(backupFolder, envName);
+      await fs.copyFile(envSource, envTarget);
+      const envStat = await fs.stat(envTarget);
+      summary.files.push({
+        file: envName,
+        sizeBytes: envStat.size,
+      });
+      console.log(`🔒 Secret environment backed up: ${envName}`);
+    }
+  }
+
+  // 3. Write manifest.json
+  const manifestPath = path.resolve(backupFolder, "manifest.json");
+  await fs.writeFile(manifestPath, JSON.stringify(summary, null, 2), "utf8");
+
+  // 4. Prune old backups
+  await pruneOldBackups(targetDir, MAX_BACKUPS);
+
+  console.log(`\n🎉 Backup completed successfully in: ${backupFolder}`);
+  return backupFolder;
+}
+
+// Run backup if executed directly
 if (
   process.argv[1] &&
   (process.argv[1].endsWith("backup-db.js") ||
+    process.argv[1].endsWith("backup-db.ts") ||
     process.argv[1].endsWith("backup-db"))
 ) {
-  backup().catch(() => process.exit(1));
+  backup()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error("❌ Backup failed:", err);
+      process.exit(1);
+    });
 }
