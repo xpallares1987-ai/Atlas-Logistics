@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { db } from "../../db/index.js";
 import {
   controlTowerIncidents,
@@ -84,8 +85,12 @@ export class ControlTowerService {
       );
 
       const ics2List = await db.select().from(customsIcs2Declarations);
-      const greenCircuit = ics2List.filter((d) => d.riskCircuit === "GREEN").length;
-      const orangeCircuit = ics2List.filter((d) => d.riskCircuit === "ORANGE").length;
+      const greenCircuit = ics2List.filter(
+        (d) => d.riskCircuit === "GREEN",
+      ).length;
+      const orangeCircuit = ics2List.filter(
+        (d) => d.riskCircuit === "ORANGE",
+      ).length;
       const redCircuit = ics2List.filter((d) => d.riskCircuit === "RED").length;
 
       const autoResolvedPct =
@@ -188,7 +193,8 @@ export class ControlTowerService {
    */
   public static async createIncident(input: CreateIncidentInput) {
     const id = "inc_" + Math.random().toString(36).slice(2, 10);
-    const incidentNumber = "INC-2026-" + Math.floor(1000 + Math.random() * 9000);
+    const incidentNumber =
+      "INC-2026-" + Math.floor(1000 + Math.random() * 9000);
     const impactEur = Number(input.impactAmountEur || 0);
     const delayHrs = Number(input.delayHours || 0);
 
@@ -207,8 +213,7 @@ export class ControlTowerService {
 
     const now = new Date().toISOString();
     const slaDeadline =
-      input.slaDeadline ||
-      new Date(Date.now() + 6 * 3600 * 1000).toISOString();
+      input.slaDeadline || new Date(Date.now() + 6 * 3600 * 1000).toISOString();
 
     await db.insert(controlTowerIncidents).values({
       id,
@@ -236,7 +241,10 @@ export class ControlTowerService {
     });
 
     // If not auto-resolved and severity is HIGH or CRITICAL, generate alternative reroute options
-    if (!isAutoResolvable && (input.severity === "CRITICAL" || input.severity === "HIGH")) {
+    if (
+      !isAutoResolvable &&
+      (input.severity === "CRITICAL" || input.severity === "HIGH")
+    ) {
       await this.generateRerouteOptions(id, input.title);
     }
 
@@ -255,7 +263,10 @@ export class ControlTowerService {
   /**
    * Generates algorithmic alternative multimodal corridors for an incident
    */
-  public static async generateRerouteOptions(incidentId: string, contextTitle: string) {
+  public static async generateRerouteOptions(
+    incidentId: string,
+    contextTitle: string,
+  ) {
     const opt1Id = "ro_" + Math.random().toString(36).slice(2, 9);
     const opt2Id = "ro_" + Math.random().toString(36).slice(2, 9);
 
@@ -263,7 +274,8 @@ export class ControlTowerService {
     await db.insert(incidentRerouteOptions).values({
       id: opt1Id,
       incidentId,
-      optionName: "Desvío Corredor Intermodal Ferroviario (Bypass de Congestión)",
+      optionName:
+        "Desvío Corredor Intermodal Ferroviario (Bypass de Congestión)",
       transportMode: "RAIL_INTERMODAL",
       corridorDescription: `Desvío a nodo ferroviario cercano para evitar ${contextTitle}. Transbordo directo a tren lanzadera bloque con tracción eléctrica y enlace de última milla.`,
       etaDeltaHours: -14.0, // Saves 14 hours
@@ -342,12 +354,16 @@ export class ControlTowerService {
         .where(eq(incidentRerouteOptions.id, selectedOptionId));
       const chosen = opts[0];
 
-      await domainEventBus.publish("control-tower:reroute-executed", incidentId, {
+      await domainEventBus.publish(
+        "control-tower:reroute-executed",
         incidentId,
-        selectedOptionId,
-        newCorridor: chosen ? chosen.optionName : action,
-        etaDeltaHours: chosen ? chosen.etaDeltaHours : 0,
-      });
+        {
+          incidentId,
+          selectedOptionId,
+          newCorridor: chosen ? chosen.optionName : action,
+          etaDeltaHours: chosen ? chosen.etaDeltaHours : 0,
+        },
+      );
     }
 
     return this.getIncidentById(incidentId);
@@ -365,7 +381,8 @@ export class ControlTowerService {
       const inv = invoices.find((i) => i.id === line.carrierInvoiceId);
       const dispute = disputes.find((d) => d.invoiceLineId === line.id);
 
-      const variance = line.varianceAmount || line.billedAmount - line.expectedAmount;
+      const variance =
+        line.varianceAmount || line.billedAmount - line.expectedAmount;
       const isDiscrepant = Math.abs(variance) > 25.0; // Variance tolerance threshold
 
       return {
@@ -397,9 +414,9 @@ export class ControlTowerService {
     reason: string;
     resolutionNote?: string;
   }) {
-    const id = "dsp_" + Math.random().toString(36).slice(2, 9);
-    const disputeCode = "DSP-2026-" + Math.floor(1000 + Math.random() * 9000);
-    const debitNoteNumber = "DN-2026-" + Math.floor(100 + Math.random() * 900);
+    const id = "dsp_" + crypto.randomUUID().slice(0, 8);
+    const disputeCode = "DSP-2026-" + crypto.randomInt(1000, 10000);
+    const debitNoteNumber = "DN-2026-" + crypto.randomInt(100, 1000);
 
     // Look up line details if available
     const lines = await db
@@ -418,7 +435,8 @@ export class ControlTowerService {
       id,
       disputeCode,
       invoiceLineId: input.invoiceLineId,
-      carrierInvoiceId: input.carrierInvoiceId || (line ? line.carrierInvoiceId : null),
+      carrierInvoiceId:
+        input.carrierInvoiceId || (line ? line.carrierInvoiceId : null),
       shipmentId: input.shipmentId || (line ? line.shipmentId : null),
       claimedAmount: claimed,
       expectedAmount: expected,
@@ -550,7 +568,8 @@ export class ControlTowerService {
 
     switch (mode) {
       case "OCEAN_FCL": {
-        baseFreight = equipment === "20FT" ? 1450 : equipment === "40FT" ? 2300 : 2650;
+        baseFreight =
+          equipment === "20FT" ? 1450 : equipment === "40FT" ? 2300 : 2650;
         baf = 380;
         ets = 65; // EU ETS Maritime Carbon Surcharge
         originThc = 175;
@@ -608,8 +627,10 @@ export class ControlTowerService {
       drayageAndTolls +
       customsFee;
 
-    const profitMarginAmount = Math.round((buyRateTotal * (targetMargin / 100)) * 100) / 100;
-    const sellRateTotal = Math.round((buyRateTotal + profitMarginAmount) * 100) / 100;
+    const profitMarginAmount =
+      Math.round(buyRateTotal * (targetMargin / 100) * 100) / 100;
+    const sellRateTotal =
+      Math.round((buyRateTotal + profitMarginAmount) * 100) / 100;
 
     return {
       origin: params.origin,
