@@ -88,16 +88,17 @@ export class DocumentSignerService {
           vessel: d.vessel || "MSC Vessel",
           voyage: d.voyage || "001A",
           containers: Array.isArray(d.containers) ? d.containers : [],
-          commodities: Array.isArray(d.commodities) && d.commodities.length > 0
-            ? d.commodities
-            : [
-                {
-                  description: "General Multimodal Cargo",
-                  pieces: 10,
-                  grossWeightKg: 5000,
-                  volumeCbm: 15,
-                },
-              ],
+          commodities:
+            Array.isArray(d.commodities) && d.commodities.length > 0
+              ? d.commodities
+              : [
+                  {
+                    description: "General Multimodal Cargo",
+                    pieces: 10,
+                    grossWeightKg: 5000,
+                    volumeCbm: 15,
+                  },
+                ],
         };
         return PDFService.generateHBL(hblData);
       }
@@ -205,7 +206,7 @@ export class DocumentSignerService {
     const docId = `doc_${params.type.toLowerCase()}_${crypto.randomUUID().substring(0, 8)}`;
     const ref =
       params.documentReference ||
-      `${params.type}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      `${params.type}-${new Date().getFullYear()}-${crypto.randomInt(1000, 10000)}`;
 
     // 1. Render binary PDF using PDFService
     const pdfBuffer = await this.renderPdf(params.type, params.payloadData);
@@ -389,9 +390,23 @@ export class DocumentSignerService {
    * Retrieve PDF binary buffer (from disk or on-the-fly regeneration)
    */
   public static async getDocumentPdf(documentId: string): Promise<Buffer> {
-    const filePath = path.resolve(STORAGE_DIR, `${documentId}.pdf`);
-    if (path.dirname(filePath) !== STORAGE_DIR) {
+    if (
+      !documentId ||
+      typeof documentId !== "string" ||
+      !/^[a-zA-Z0-9_-]+$/.test(documentId)
+    ) {
+      throw new Error("Invalid document ID format");
+    }
+    const safeId = path.basename(documentId);
+    if (safeId !== documentId) {
       throw new Error("Invalid document ID");
+    }
+    const filePath = path.resolve(STORAGE_DIR, `${safeId}.pdf`);
+    const rootWithSep = STORAGE_DIR.endsWith(path.sep)
+      ? STORAGE_DIR
+      : `${STORAGE_DIR}${path.sep}`;
+    if (!filePath.startsWith(rootWithSep)) {
+      throw new Error("Invalid document path");
     }
     if (fs.existsSync(filePath)) {
       return fs.readFileSync(filePath);
@@ -401,11 +416,11 @@ export class DocumentSignerService {
     const found = await db
       .select()
       .from(documents)
-      .where(eq(documents.id, documentId))
+      .where(eq(documents.id, safeId))
       .limit(1);
 
     if (found.length === 0) {
-      throw new Error(`Document ${documentId} not found`);
+      throw new Error(`Document ${safeId} not found`);
     }
 
     const doc = found[0];
@@ -430,7 +445,10 @@ export class DocumentSignerService {
    * List documents from vault
    */
   public static async listDocuments(type?: string, status?: string) {
-    const query = db.select().from(documents).orderBy(desc(documents.createdAt));
+    const query = db
+      .select()
+      .from(documents)
+      .orderBy(desc(documents.createdAt));
     const all = await query;
     return all.filter((d) => {
       if (type && type !== "ALL" && d.type !== type) return false;

@@ -76,9 +76,14 @@ export interface EFirmaAuditStamp {
 /**
  * Genera la Cadena Original canónica con el estándar oficial de delimitadores SAT (||campo1|campo2|...||)
  */
-export function generateCanonicalCadenaOriginal(payload: EFirmaSigningPayload): string {
+export function generateCanonicalCadenaOriginal(
+  payload: EFirmaSigningPayload,
+): string {
   const timestamp = payload.customTimestamp || new Date().toISOString();
-  const rawString = typeof payload.rawContent === "string" ? payload.rawContent : JSON.stringify(payload.rawContent);
+  const rawString =
+    typeof payload.rawContent === "string"
+      ? payload.rawContent
+      : JSON.stringify(payload.rawContent);
 
   // Computes simple deterministic content representation
   const contentSnippet = rawString
@@ -86,11 +91,12 @@ export function generateCanonicalCadenaOriginal(payload: EFirmaSigningPayload): 
     .trim()
     .slice(0, 120);
 
-  const amountStr = payload.declaredAmountMxn != null
-    ? payload.declaredAmountMxn.toFixed(2)
-    : payload.declaredAmountUsd != null
-    ? payload.declaredAmountUsd.toFixed(2)
-    : "0.00";
+  const amountStr =
+    payload.declaredAmountMxn != null
+      ? payload.declaredAmountMxn.toFixed(2)
+      : payload.declaredAmountUsd != null
+        ? payload.declaredAmountUsd.toFixed(2)
+        : "0.00";
 
   return `||4.0|${payload.documentType}|${payload.documentId}|${timestamp}|${payload.rfcEmisor}|${payload.rfcReceptor}|${amountStr}|${contentSnippet}||`;
 }
@@ -103,7 +109,10 @@ export async function computeSha256Hex(data: string): Promise<string> {
   const dataBuffer = encoder.encode(data);
 
   if (globalThis.crypto?.subtle) {
-    const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", dataBuffer);
+    const hashBuffer = await globalThis.crypto.subtle.digest(
+      "SHA-256",
+      dataBuffer,
+    );
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
@@ -127,7 +136,7 @@ export async function computeSha256Hex(data: string): Promise<string> {
 export async function signCadenaOriginalWebCrypto(
   cadenaOriginal: string,
   privateKey: CryptoKey,
-  metadata: EFirmaCertificateMetadata
+  metadata: EFirmaCertificateMetadata,
 ): Promise<EFirmaDigitalSealResult> {
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(cadenaOriginal);
@@ -135,7 +144,7 @@ export async function signCadenaOriginalWebCrypto(
   const signatureBuffer = await globalThis.crypto.subtle.sign(
     { name: "RSASSA-PKCS1-v1_5" },
     privateKey,
-    dataBuffer
+    dataBuffer,
   );
 
   const signatureBytes = new Uint8Array(signatureBuffer);
@@ -166,7 +175,7 @@ export async function signCadenaOriginalWebCrypto(
 export async function verifyDigitalSealWebCrypto(
   cadenaOriginal: string,
   selloDigitalBase64: string,
-  publicKey: CryptoKey
+  publicKey: CryptoKey,
 ): Promise<boolean> {
   try {
     const encoder = new TextEncoder();
@@ -182,7 +191,7 @@ export async function verifyDigitalSealWebCrypto(
       { name: "RSASSA-PKCS1-v1_5" },
       publicKey,
       signatureBytes,
-      dataBuffer
+      dataBuffer,
     );
   } catch {
     return false;
@@ -195,7 +204,7 @@ export async function verifyDigitalSealWebCrypto(
 export async function createEFirmaAuditStamp(
   documentId: string,
   documentType: EFirmaDocumentType,
-  sealResult: EFirmaDigitalSealResult
+  sealResult: EFirmaDigitalSealResult,
 ): Promise<EFirmaAuditStamp> {
   const timestampToken = `TSA-RFC3161-${Date.now()}-${sealResult.certificateSerial.slice(-8)}`;
   const textToTamperSeal = `${sealResult.cadenaOriginalSha256}:${sealResult.selloDigitalBase64}:${timestampToken}:${sealResult.certificateSerial}`;
@@ -227,13 +236,22 @@ export async function createEFirmaAuditStamp(
 export function extractCertificateMetadata(
   rawInput: ArrayBuffer | string,
   hintRfc = "AAN940112XX1",
-  hintRazon = "AGENCIA ADUANAL TRANSFRONTERIZA DEL NORTE S.C."
+  hintRazon = "AGENCIA ADUANAL TRANSFRONTERIZA DEL NORTE S.C.",
 ): EFirmaCertificateMetadata {
-  const serialNumber = `300010000005${Math.floor(10000000 + Math.random() * 90000000)}`;
+  let randSerial = 50000000;
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    const u32 = new Uint32Array(1);
+    crypto.getRandomValues(u32);
+    randSerial = 10000000 + (u32[0] % 90000000);
+  } else {
+    randSerial = Math.floor(10000000 + Math.random() * 90000000);
+  }
+  const serialNumber = `300010000005${randSerial}`;
   const now = new Date();
   const validUntil = new Date(now.getTime() + 4 * 365 * 24 * 60 * 60 * 1000); // 4 años vigencia SAT
 
-  let fingerprint = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+  let fingerprint =
+    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
   if (typeof rawInput === "string") {
     fingerprint = rawInput.slice(0, 64).padEnd(64, "a");
   } else if (rawInput instanceof ArrayBuffer) {
@@ -278,7 +296,7 @@ export async function generateSandboxRsaKeyPair(): Promise<{
       hash: "SHA-256",
     },
     true,
-    ["sign", "verify"]
+    ["sign", "verify"],
   );
 
   const metadata: EFirmaCertificateMetadata = {
@@ -290,7 +308,8 @@ export async function generateSandboxRsaKeyPair(): Promise<{
     validUntil: "2028-12-31T23:59:59Z",
     issuer: "Servicio de Administración Tributaria (AC UAR SAT 5819)",
     isExpired: false,
-    certificateSha256Fingerprint: "8f7a6c5b4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a",
+    certificateSha256Fingerprint:
+      "8f7a6c5b4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a",
   };
 
   return {

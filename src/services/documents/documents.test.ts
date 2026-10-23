@@ -171,7 +171,7 @@ describe("Multimodal Official Document Center & Digital Signature", () => {
       expect(updated[0].signedBy).toBe("Elena Vega");
     });
 
-    it("should generate a certificate when one is not provided", async () => {
+    it("should generate a certificate when no signer certificate is provided", async () => {
       const emitRes = await DocumentSignerService.emitDocument({
         type: "ECMR",
         payloadData: {

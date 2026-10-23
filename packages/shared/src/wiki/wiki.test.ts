@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { WikiService } from "./wiki.service.js";
-import { WIKI_ARTICLES, GLOSSARY_TERMS } from "./wiki.data.js";
+import { GLOSSARY_TERMS } from "./wiki.data.js";
 
 describe("WikiService & In-App Knowledge Base", () => {
   it("should return all articles with valid properties", () => {

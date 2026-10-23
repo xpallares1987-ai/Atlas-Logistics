@@ -12,6 +12,9 @@
     "@atlas/bpmn-modeler#build": {
       "outputs": []
     },
+    "@atlas/shared#build": {
+      "outputs": []
+    },
     "lint": {
       "dependsOn": ["^lint"],
       "outputs": []
