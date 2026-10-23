@@ -6,7 +6,13 @@
 
 export interface DigitalSignaturePayload {
   documentId: string;
-  documentType: "CUSTOMS_DECLARATION" | "BILL_OF_LADING" | "E_CMR" | "PEDIMENTO" | "CARTA_PORTE" | "GENERAL_AVERAGE_SECURITY";
+  documentType:
+    | "CUSTOMS_DECLARATION"
+    | "BILL_OF_LADING"
+    | "E_CMR"
+    | "PEDIMENTO"
+    | "CARTA_PORTE"
+    | "GENERAL_AVERAGE_SECURITY";
   issuerId: string;
   issuerOrg: string;
   content: string | Record<string, any>;
@@ -42,9 +48,15 @@ export class DigitalSignatureService {
         : JSON.stringify(payload.content);
 
     const timestamp = payload.timestamp ?? Date.now();
-    const certSerial =
-      options.certificateSerial ||
-      `CERT-ATLAS-${Math.floor(10000000 + Math.random() * 90000000)}`;
+    let randSerial = 50000000;
+    if (globalThis.crypto?.getRandomValues) {
+      const u32 = new Uint32Array(1);
+      globalThis.crypto.getRandomValues(u32);
+      randSerial = 10000000 + (u32[0] % 90000000);
+    } else {
+      randSerial = Math.floor(10000000 + Math.random() * 90000000);
+    }
+    const certSerial = options.certificateSerial || `CERT-ATLAS-${randSerial}`;
 
     const textToDigest = `${payload.documentId}:${payload.documentType}:${payload.issuerId}:${payload.issuerOrg}:${rawContent}:${timestamp}:${options.customSalt || "atlas-logistics-subtle-salt"}`;
 
@@ -112,7 +124,9 @@ export class DigitalSignatureService {
     if (subtle) {
       const hashBuffer = await subtle.digest("SHA-256", dataBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      expectedHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+      expectedHash = hashArray
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
     } else {
       expectedHash = await this.fallbackSha256(dataBuffer);
     }
