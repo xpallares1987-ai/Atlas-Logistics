@@ -80,6 +80,32 @@ describe("MFE Federation Configuration & Dynamic Resolver", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it("probeRemoteEndpoint should reject insecure non-local endpoints", async () => {
+    const mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await probeRemoteEndpoint("http://edge.atlas.local/rates/remoteEntry.js");
+
+    expect(result).toBe(false);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("probeRemoteEndpoint should allow secure remote endpoints", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await probeRemoteEndpoint("https://edge.atlas.local/rates/remoteEntry.js");
+
+    expect(result).toBe(true);
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://edge.atlas.local/rates/remoteEntry.js",
+      expect.objectContaining({ redirect: "error" }),
+    );
+  });
+
   it("probeRemoteEndpoint should return false when endpoint returns 500 error", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: false,

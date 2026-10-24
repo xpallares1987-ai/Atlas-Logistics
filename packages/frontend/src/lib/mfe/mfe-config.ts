@@ -52,6 +52,16 @@ export async function probeRemoteEndpoint(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const endpoint = new URL(url);
+    const isLocalHttpEndpoint =
+      import.meta.env.DEV &&
+      endpoint.protocol === 'http:' &&
+      ['localhost', '127.0.0.1', '[::1]'].includes(endpoint.hostname);
+    if (endpoint.protocol !== 'https:' && !isLocalHttpEndpoint) {
+      clearTimeout(timeoutId);
+      return false;
+    }
+
     const response = await fetch(url, {
       method: "GET",
       signal: controller.signal,
