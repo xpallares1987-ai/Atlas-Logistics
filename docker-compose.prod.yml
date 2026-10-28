@@ -19,6 +19,10 @@
 
 version: '3.8'
 
+# Production: Load from .env.production
+env_file:
+  - .env.production
+
 x-common-security: &common_security
   security_opt:
     - no-new-privileges:true

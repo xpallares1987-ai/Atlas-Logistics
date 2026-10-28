@@ -4,21 +4,25 @@
 # Optimized for personal development with hot-reload support.
 # Uses SQLite locally, Redis for queues, optional observability stack.
 #
+# Environment: Loads .env.local automatically (or create from .env.local.example)
+#
 # Usage:
-#   docker compose up -d                           # Backend + Redis
-#   docker compose up --pull always                # Force pull latest images
-#   docker compose --profile observability up -d   # + Prometheus + Grafana
-#   docker compose down                            # Stop all services
-#   docker compose logs -f backend                 # Follow backend logs
+#   docker compose up --pull always                 # Build & run with hot-reload
+#   docker compose --profile observability up -d    # + Prometheus + Grafana
+#   docker compose down                             # Stop all services
+#   docker compose logs -f backend                  # Follow backend logs
 #
 # ==============================================================================
 
 version: '3.8'
 
+# Auto-load environment from .env.local
+env_file:
+  - .env.local
+
 x-common-variables: &common_env
-  - NODE_ENV=development
-  - LOG_LEVEL=debug
-  - JWT_SECRET=dev-secret-key-change-in-production
+  NODE_ENV: development
+  LOG_LEVEL: debug
 
 x-health-check: &default_healthcheck
   interval: 10s
@@ -43,9 +47,10 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - DATABASE_URL=file:./data/dev.db
-      - REDIS_URL=redis://redis:6379
-      - <<: *common_env
+      <<: *common_env
+      DATABASE_URL: ${DATABASE_URL:-file:./data/dev.db}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
     volumes:
       # Source code for hot-reload (cached mount for performance)
       - ./src:/app/src:cached
@@ -85,7 +90,7 @@ services:
       args:
         NODE_VERSION: 22
         PNPM_VERSION: 10.0.0
-        VITE_API_URL: http://localhost:3001
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
     container_name: atlas-frontend-dev
     image: atlas-logistics:frontend-dev
     ports:
@@ -186,10 +191,10 @@ services:
       - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
       - grafana_data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-atlas2024}
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=http://localhost:3002
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-atlas2024}
+      GF_SECURITY_ADMIN_USER: admin
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_SERVER_ROOT_URL: http://localhost:3002
     depends_on:
       prometheus:
         condition: service_healthy
