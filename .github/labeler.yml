@@ -46,7 +46,6 @@ logistics:
           - 'packages/shared/src/logistics/**'
           - 'src/modules/customer01/**'
           - 'src/modules/workload/**'
-          - 'src/modules/saica/**'
           - 'packages/frontend/src/pages/Customer01OperationsModule.tsx'
           - 'packages/frontend/src/pages/WorkloadPortfolioModule.tsx'
 

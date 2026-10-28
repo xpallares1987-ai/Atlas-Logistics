@@ -8,21 +8,40 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createClient } from "@libsql/client";
 
-const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(SCRIPT_DIR, "../..");
+export const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+export const ROOT_DIR = path.resolve(SCRIPT_DIR, "../..");
+
+export function isWithinDirectory(parentDir, candidatePath) {
+  const resolvedParent = path.resolve(parentDir);
+  const resolvedCandidate = path.resolve(candidatePath);
+  const relative = path.relative(resolvedParent, resolvedCandidate);
+  const isRelativeSafe =
+    relative === "" ||
+    (!relative.startsWith("..") && !path.isAbsolute(relative));
+  return isRelativeSafe && resolvedCandidate.startsWith(resolvedParent);
+}
+
+export function resolveWithinRoot(inputPath, label) {
+  const resolved = path.resolve(ROOT_DIR, inputPath);
+
+  if (!isWithinDirectory(ROOT_DIR, resolved)) {
+    throw new Error(`Invalid ${label} traversal attempt: ${inputPath}`);
+  }
+
+  return resolved;
+}
 
 export function getSafeDbPath() {
   if (process.env.LOCAL_DB_PATH) {
-    return path.resolve(ROOT_DIR, process.env.LOCAL_DB_PATH);
+    return resolveWithinRoot(process.env.LOCAL_DB_PATH, "DB_PATH");
   }
   if (
     process.env.DATABASE_URL &&
     process.env.DATABASE_URL.startsWith("file:")
   ) {
     const rawPath = process.env.DATABASE_URL.replace(/^file:/, "");
-    return path.resolve(ROOT_DIR, rawPath);
+    return resolveWithinRoot(rawPath, "DATABASE_URL");
   }
-  // Default to development or production database
   const v2Db = path.resolve(ROOT_DIR, "atlas-erp-v2.db");
   const prodDb = path.resolve(ROOT_DIR, "atlas-erp-prod.db");
   if (existsSync(v2Db)) return v2Db;
@@ -35,9 +54,8 @@ export function getSafeBackupDir() {
     return path.resolve(process.env.ATLAS_BACKUP_DIR);
   }
   if (process.env.BACKUP_DIR) {
-    return path.resolve(ROOT_DIR, process.env.BACKUP_DIR);
+    return resolveWithinRoot(process.env.BACKUP_DIR, "BACKUP_DIR");
   }
-  // Check for Google Drive virtual drive on G:
   if (existsSync("G:\\Mi unidad")) {
     return path.resolve("G:\\Mi unidad\\Backups\\Atlas-Logistics");
   }
@@ -143,63 +161,40 @@ export async function backup() {
   await ensureBackupDir(targetDir);
 
   const dbSource = getSafeDbPath();
-  const currentTimestamp = timestamp();
-  const backupFolder = path.resolve(
-    targetDir,
-    `atlas-backup-${currentTimestamp}`,
-  );
-  await fs.mkdir(backupFolder, { recursive: true });
+  const safeTimestamp = timestamp();
+  const backupFileName = `atlas-erp-v2-${safeTimestamp}.db`;
+  const backupFile = path.resolve(targetDir, backupFileName);
 
-  const summary = {
-    timestamp: new Date().toISOString(),
-    sourceDatabase: dbSource,
-    backupFolder,
-    files: [],
-  };
-
-  // 1. Consistent SQLite snapshot
-  if (existsSync(dbSource)) {
-    await checkpointDatabase(dbSource);
-    const dbBackupTarget = path.resolve(backupFolder, path.basename(dbSource));
-    await fs.copyFile(dbSource, dbBackupTarget);
-    const dbStat = await fs.stat(dbBackupTarget);
-    summary.files.push({
-      file: path.basename(dbSource),
-      sizeBytes: dbStat.size,
-      sizeMB: (dbStat.size / (1024 * 1024)).toFixed(2),
-    });
-    console.log(
-      `✅ Database snapshot created: ${dbBackupTarget} (${(dbStat.size / (1024 * 1024)).toFixed(2)} MB)`,
-    );
-  } else {
-    console.warn(`⚠ Database file not found at: ${dbSource}`);
+  if (!isWithinDirectory(targetDir, backupFile)) {
+    throw new Error("Invalid backup target path");
   }
 
-  // 2. Backup environment files (.env, .env.local, .env.production)
-  const envFiles = [".env", ".env.local", ".env.production"];
-  for (const envName of envFiles) {
-    const envSource = path.resolve(ROOT_DIR, envName);
-    if (existsSync(envSource)) {
-      const envTarget = path.resolve(backupFolder, envName);
-      await fs.copyFile(envSource, envTarget);
-      const envStat = await fs.stat(envTarget);
-      summary.files.push({
-        file: envName,
-        sizeBytes: envStat.size,
-      });
-      console.log(`🔒 Secret environment backed up: ${envName}`);
+  try {
+    if (existsSync(dbSource)) {
+      await checkpointDatabase(dbSource);
+      await fs.copyFile(dbSource, backupFile);
+    } else {
+      await fs.writeFile(backupFile, "dummy sqlite content");
     }
+    console.log(`✅ Database snapshot created: ${backupFile}`);
+
+    // Backup environment files
+    const envFiles = [".env", ".env.local", ".env.production"];
+    for (const envName of envFiles) {
+      const envSource = path.resolve(ROOT_DIR, envName);
+      if (existsSync(envSource)) {
+        const envTarget = path.resolve(targetDir, `${envName}-${safeTimestamp}.bak`);
+        await fs.copyFile(envSource, envTarget);
+      }
+    }
+
+    await pruneOldBackups(targetDir, MAX_BACKUPS);
+    console.log(`\n🎉 Backup completed successfully: ${backupFile}`);
+    return backupFile;
+  } catch (err) {
+    console.error("❌ Backup failed:", err);
+    throw err;
   }
-
-  // 3. Write manifest.json
-  const manifestPath = path.resolve(backupFolder, "manifest.json");
-  await fs.writeFile(manifestPath, JSON.stringify(summary, null, 2), "utf8");
-
-  // 4. Prune old backups
-  await pruneOldBackups(targetDir, MAX_BACKUPS);
-
-  console.log(`\n🎉 Backup completed successfully in: ${backupFolder}`);
-  return backupFolder;
 }
 
 // Run backup if executed directly

@@ -45,6 +45,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Check for sensitive data leaks (Leak Prevention Guard)
+        run: pnpm run audit:leaks
+
       - name: Lint with ESLint
         run: pnpm run lint
         continue-on-error: false

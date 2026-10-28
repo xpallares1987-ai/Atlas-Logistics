@@ -105,5 +105,3 @@ export class Customer01Service {
     return validateCustomer01RoleAssignment(roleCode, personName);
   }
 }
-
-export const SaicaService = Customer01Service;

@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 10,
+  "exporter": {
+    "name": "Atlas Logistics — Sea Modeler (Customer01 Suite)",
+    "version": "5.0"
+  },
+  "type": "default",
+  "id": "Customer01_booking_40hc_form",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.2.0",
+  "components": [
+    {
+      "text": "## 🚢 Registro de Booking FCL 40' HC Naviera\n**Operativa:** Atlas Logistics Barcelona (Book TEST01) — Customer01 Paper Export\n*Registro de reserva de espacio, naviera asignada y cut-offs contractuales.*",
+      "type": "text",
+      "id": "Header_Booking"
+    },
+    {
+      "label": "Nº Albarán / Pedido Customer01",
+      "type": "textfield",
+      "id": "numero_albaran_Customer01",
+      "key": "numero_albaran_Customer01",
+      "description": "Número de orden emitido por el ERP de Customer01",
+      "validate": { "required": true }
+    },
+    {
+      "label": "Referencia de Booking Naviera",
+      "type": "textfield",
+      "id": "referencia_booking_naviera",
+      "key": "referencia_booking_naviera",
+      "description": "Código de reserva confirmado por la naviera (ej. MSCU1928381)",
+      "validate": { "required": true }
+    },
+    {
+      "label": "Línea Naviera",
+      "type": "select",
+      "id": "naviera_carrier",
+      "key": "naviera_carrier",
+      "values": [
+        { "label": "MSC (Mediterranean Shipping Company)", "value": "MSC" },
+        { "label": "Maersk Line", "value": "MAERSK" },
+        { "label": "CMA CGM Group", "value": "CMA_CGM" },
+        { "label": "Hapag-Lloyd", "value": "HAPAG" }
+      ],
+      "validate": { "required": true }
+    },
+    {
+      "label": "Puerto y Terminal de Embarque",
+      "type": "select",
+      "id": "puerto_terminal",
+      "key": "puerto_terminal",
+      "values": [
+        { "label": "Barcelona — Hutchison Ports BEST", "value": "ESBCN_BEST" },
+        { "label": "Barcelona — APM Terminals Barcelona", "value": "ESBCN_APM" },
+        { "label": "Valencia — MSCTV / CSP Valencia", "value": "ESVLC_CSP" }
+      ],
+      "validate": { "required": true }
+    },
+    {
+      "label": "Buque / Escala y Nº de Viaje",
+      "type": "textfield",
+      "id": "buque_viaje",
+      "key": "buque_viaje",
+      "validate": { "required": true }
+    },
+    {
+      "label": "Cantidad de Bobinas Programadas",
+      "type": "number",
+      "id": "cantidad_bobinas",
+      "key": "cantidad_bobinas",
+      "validate": { "required": true }
+    },
+    {
+      "label": "Peso Neto Estimado (kg)",
+      "type": "number",
+      "id": "peso_neto_total_kg",
+      "key": "peso_neto_total_kg",
+      "description": "Máximo recomendado para 40' HC: 28.500 kg",
+      "validate": { "required": true }
+    },
+    {
+      "label": "Plazo Límite Cargo Cut-Off (Cierre Terminal)",
+      "type": "textfield",
+      "id": "fecha_cargo_cutoff",
+      "key": "fecha_cargo_cutoff",
+      "description": "Fecha y hora límite de entrada de la unidad en terminal"
+    },
+    {
+      "label": "Plazo Límite VGM Cut-Off (Transmisión Peso)",
+      "type": "textfield",
+      "id": "fecha_vgm_cutoff",
+      "key": "fecha_vgm_cutoff",
+      "description": "Fecha y hora límite de envío telemático SOLAS VGM"
+    },
+    {
+      "label": "Gestor Operativo Atlas Logistics Responsable",
+      "type": "textfield",
+      "id": "operador_Atlas Logistics",
+      "key": "operador_Atlas Logistics",
+      "defaultValue": "System Admin (ADMIN)",
+      "validate": { "required": true }
+    }
+  ]
+}
+

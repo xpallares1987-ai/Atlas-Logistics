@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:sys="http://sys"
+                  id="Definitions_Customer01_InspeccionCalidad"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Atlas Logistics — Sea Modeler (Customer01 Suite)"
+                  exporterVersion="5.0">
+  <bpmn:collaboration id="Collaboration_Customer01_Inspeccion">
+    <bpmn:participant id="Participant_Customer01_Inspeccion" name="Atlas Logistics &amp; Customer01 — Protocolo: Inspección y Control de Calidad Contenedor 40' HC" processRef="Process_Customer01_Inspeccion" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_Customer01_Inspeccion" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_Inspeccion">
+      <bpmn:lane id="Lane_Muelle_Customer01" name="Muelle de Carga (Customer01 Paper El Burgo de Ebro)">
+        <bpmn:flowNodeRef>StartEvent_LlegadaCamion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InspeccionTecnica</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_AptoCalidad</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CargaAutorizada</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Apto</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Atlas Logistics_Trafico" name="Atlas Logistics Tráfico y Depósito de Vacíos (Barcelona Book TEST01)">
+        <bpmn:flowNodeRef>Task_ReclamacionDeposito</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AsignacionNuevoContenedor</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Sustituido</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="StartEvent_LlegadaCamion" name="Llegada 40' HC Vacío en Muelle">
+      <bpmn:outgoing>Flow_Insp_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_InspeccionTecnica" name="Inspección Checklist: Estanqueidad luz, suelo seco, sin clavos" sys:formKey="Customer01_checklist_inspeccion_40hc" sys:status="normal" sys:time="15m">
+      <bpmn:incoming>Flow_Insp_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Insp_2</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_AptoCalidad" name="¿Supera Criterios Customer01?" default="Flow_Insp_Apto">
+      <bpmn:incoming>Flow_Insp_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Insp_Apto</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Insp_Rechazo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:manualTask id="Task_CargaAutorizada" name="Aprobación y Carga Mecanizada con Pinza Especial" sys:status="completed" sys:time="60m">
+      <bpmn:incoming>Flow_Insp_Apto</bpmn:incoming>
+      <bpmn:outgoing>Flow_Insp_3</bpmn:outgoing>
+    </bpmn:manualTask>
+
+    <bpmn:endEvent id="EndEvent_Apto" name="Contenedor 40' HC Apto para Carga">
+      <bpmn:incoming>Flow_Insp_3</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:serviceTask id="Task_ReclamacionDeposito" name="Reclamación Fotográfica a Depósito y Bloqueo Facturación Demoras" sys:status="warning" sys:time="20m">
+      <bpmn:incoming>Flow_Insp_Rechazo</bpmn:incoming>
+      <bpmn:outgoing>Flow_Insp_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_AsignacionNuevoContenedor" name="Gestión Urgente de Retirada de Unidad Sustituta (Púa 012)" sys:status="normal" sys:time="30m">
+      <bpmn:incoming>Flow_Insp_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_Insp_5</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:endEvent id="EndEvent_Sustituido" name="Nueva Unidad Posicionada">
+      <bpmn:incoming>Flow_Insp_5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_Insp_1" sourceRef="StartEvent_LlegadaCamion" targetRef="Task_InspeccionTecnica" />
+    <bpmn:sequenceFlow id="Flow_Insp_2" sourceRef="Task_InspeccionTecnica" targetRef="Gateway_AptoCalidad" />
+    <bpmn:sequenceFlow id="Flow_Insp_Apto" name="Apto" sourceRef="Gateway_AptoCalidad" targetRef="Task_CargaAutorizada" />
+    <bpmn:sequenceFlow id="Flow_Insp_Rechazo" name="Rechazado" sourceRef="Gateway_AptoCalidad" targetRef="Task_ReclamacionDeposito" />
+    <bpmn:sequenceFlow id="Flow_Insp_3" sourceRef="Task_CargaAutorizada" targetRef="EndEvent_Apto" />
+    <bpmn:sequenceFlow id="Flow_Insp_4" sourceRef="Task_ReclamacionDeposito" targetRef="Task_AsignacionNuevoContenedor" />
+    <bpmn:sequenceFlow id="Flow_Insp_5" sourceRef="Task_AsignacionNuevoContenedor" targetRef="EndEvent_Sustituido" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Customer01_Inspeccion">
+    <bpmndi:BPMNPlane id="BPMNPlane_Customer01_Inspeccion" bpmnElement="Collaboration_Customer01_Inspeccion">
+      <bpmndi:BPMNShape id="Participant_Customer01_Inspeccion_di" bpmnElement="Participant_Customer01_Inspeccion" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1050" height="420" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Muelle_Customer01_di" bpmnElement="Lane_Muelle_Customer01" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="1020" height="210" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Atlas Logistics_Trafico_di" bpmnElement="Lane_Atlas Logistics_Trafico" isHorizontal="true">
+        <dc:Bounds x="190" y="290" width="1020" height="210" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_LlegadaCamion_di" bpmnElement="StartEvent_LlegadaCamion">
+        <dc:Bounds x="240" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="220" y="195" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_InspeccionTecnica_di" bpmnElement="Task_InspeccionTecnica">
+        <dc:Bounds x="330" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_AptoCalidad_di" bpmnElement="Gateway_AptoCalidad" isMarkerVisible="true">
+        <dc:Bounds x="540" y="145" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="525" y="115" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CargaAutorizada_di" bpmnElement="Task_CargaAutorizada">
+        <dc:Bounds x="650" y="130" width="140" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Apto_di" bpmnElement="EndEvent_Apto">
+        <dc:Bounds x="850" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="830" y="195" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReclamacionDeposito_di" bpmnElement="Task_ReclamacionDeposito">
+        <dc:Bounds x="590" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AsignacionNuevoContenedor_di" bpmnElement="Task_AsignacionNuevoContenedor">
+        <dc:Bounds x="800" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Sustituido_di" bpmnElement="EndEvent_Sustituido">
+        <dc:Bounds x="1010" y="372" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="990" y="415" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_Insp_1_di" bpmnElement="Flow_Insp_1">
+        <di:waypoint x="276" y="170" />
+        <di:waypoint x="330" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Insp_2_di" bpmnElement="Flow_Insp_2">
+        <di:waypoint x="480" y="170" />
+        <di:waypoint x="540" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Insp_Apto_di" bpmnElement="Flow_Insp_Apto">
+        <di:waypoint x="590" y="170" />
+        <di:waypoint x="650" y="170" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="600" y="152" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Insp_Rechazo_di" bpmnElement="Flow_Insp_Rechazo">
+        <di:waypoint x="565" y="195" />
+        <di:waypoint x="565" y="390" />
+        <di:waypoint x="590" y="390" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="570" y="275" width="45" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Insp_3_di" bpmnElement="Flow_Insp_3">
+        <di:waypoint x="790" y="170" />
+        <di:waypoint x="850" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Insp_4_di" bpmnElement="Flow_Insp_4">
+        <di:waypoint x="740" y="390" />
+        <di:waypoint x="800" y="390" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Insp_5_di" bpmnElement="Flow_Insp_5">
+        <di:waypoint x="950" y="390" />
+        <di:waypoint x="1010" y="390" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+

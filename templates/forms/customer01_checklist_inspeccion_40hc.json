@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 10,
+  "exporter": {
+    "name": "Atlas Logistics — Sea Modeler (Customer01 Suite)",
+    "version": "5.0"
+  },
+  "type": "default",
+  "id": "Customer01_checklist_inspeccion_40hc",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.2.0",
+  "components": [
+    {
+      "text": "## 📦 Checklist de Inspección Técnica de Vacío (40' HC)\n**Operativa:** Customer01 Paper — Bobinas Containerboard / Kraftliner para Exportación Marítima\n*Requisito de Calidad:* Todo contenedor debe ser inspeccionado en muelle antes de autorizar la carga mecanizada con pinza.",
+      "type": "text",
+      "id": "Header_Inspeccion"
+    },
+    {
+      "label": "Matrícula del Contenedor (40' HC)",
+      "type": "textfield",
+      "id": "matricula_contenedor",
+      "key": "matricula_contenedor",
+      "description": "Formato: 4 letras + 7 dígitos (ej. MSCU1234567)",
+      "validate": { "required": true }
+    },
+    {
+      "label": "Línea Naviera",
+      "type": "select",
+      "id": "linea_naviera",
+      "key": "linea_naviera",
+      "values": [
+        { "label": "MSC (Mediterranean Shipping Company)", "value": "MSC" },
+        { "label": "Maersk Line", "value": "MAERSK" },
+        { "label": "CMA CGM Group", "value": "CMA_CGM" },
+        { "label": "Hapag-Lloyd", "value": "HAPAG" }
+      ],
+      "validate": { "required": true }
+    },
+    {
+      "label": "Depósito de Vacíos de Procedencia",
+      "type": "textfield",
+      "id": "deposito_origen",
+      "key": "deposito_origen",
+      "description": "Depósito portuario de donde procede la unidad vacía"
+    },
+    {
+      "text": "### 🔍 Puntos Críticos de Inspección de Idoneidad para Papel",
+      "type": "text",
+      "id": "Section_Criterios"
+    },
+    {
+      "label": "Estanqueidad de Luz: Cero orificios o grietas en techo y paneles (prueba desde el interior a oscuras)",
+      "type": "checkbox",
+      "id": "check_estanqueidad_luz",
+      "key": "check_estanqueidad_luz",
+      "validate": { "required": true }
+    },
+    {
+      "label": "Suelo Seco: Madera sin humedad residual (<14%), sin moho ni manchas de hidrocarburos",
+      "type": "checkbox",
+      "id": "check_suelo_seco",
+      "key": "check_suelo_seco",
+      "validate": { "required": true }
+    },
+    {
+      "label": "Suelo Limpio: Ausencia total de clavos, tornillos o astillas salientes que puedan rajar bobinas",
+      "type": "checkbox",
+      "id": "check_sin_clavos",
+      "key": "check_sin_clavos",
+      "validate": { "required": true }
+    },
+    {
+      "label": "Inodoro: Sin olores químicos, residuales o a humedad que impregnen el papel",
+      "type": "checkbox",
+      "id": "check_sin_olores",
+      "key": "check_sin_olores",
+      "validate": { "required": true }
+    },
+    {
+      "label": "Juntas de Puertas: Gomas de estanqueidad íntegras y palancas de cierre sin holgura",
+      "type": "checkbox",
+      "id": "check_gomas_puertas",
+      "key": "check_gomas_puertas",
+      "validate": { "required": true }
+    },
+    {
+      "label": "Dictamen de Inspección",
+      "type": "select",
+      "id": "resultado_inspeccion",
+      "key": "resultado_inspeccion",
+      "values": [
+        { "label": "✅ APTO: Autorizar carga mecanizada con pinza de bobinas", "value": "APTO" },
+        { "label": "❌ RECHAZADO: No apto para papel. Solicitar sustitución urgente a depósito", "value": "RECHAZADO" }
+      ],
+      "validate": { "required": true }
+    },
+    {
+      "label": "Motivo de Rechazo / Observaciones Técnicas",
+      "type": "textarea",
+      "id": "observaciones_inspector",
+      "key": "observaciones_inspector",
+      "description": "Detallar desperfectos si la unidad fue rechazada"
+    },
+    {
+      "label": "Inspector Responsable en Muelle Customer01",
+      "type": "textfield",
+      "id": "inspector_Customer01",
+      "key": "inspector_Customer01",
+      "validate": { "required": true }
+    }
+  ]
+}
+

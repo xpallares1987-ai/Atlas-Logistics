@@ -1,0 +1,17 @@
+# .leakignore - Files and directories ignored by Leak Prevention Guard
+.git/
+node_modules/
+dist/
+dev-dist/
+coverage/
+.turbo/
+.cache/
+backups/
+backups-test/
+.pnpm-store/
+pnpm-lock.yaml
+package-lock.json
+
+# Internal audit reports and verification scripts
+audit-results.json
+scratch/

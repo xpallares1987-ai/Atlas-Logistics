@@ -40,7 +40,9 @@
     "admin:create": "tsx src/admin/cli.ts",
     "clean:cache": "rm -rf .turbo .njsscan",
     "backup-db": "node src/scripts/backup-db.js",
-    "verify:env": "node scripts/verify-env.js"
+    "verify:env": "node scripts/verify-env.js",
+    "audit:leaks": "node scripts/check-sensitive-leaks.cjs --all",
+    "audit:leaks:staged": "node scripts/check-sensitive-leaks.cjs --staged"
   },
   "dependencies": {
     "@atlas/shared": "workspace:^",
@@ -114,7 +116,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-storybook": "^10.6.2",
     "eslint-plugin-workspaces": "^0.12.1",
-    "fast-uri": "^4.2.2",
+    "fast-uri": "^4.2.3",
     "husky": "^9.1.7",
     "i18next": "^26.4.1",
     "lint-staged": "^17.4.1",
@@ -144,7 +146,7 @@
     "js-yaml": ">=5.4.1",
     "dompurify": ">=3.4.16",
     "undici": ">=7.29.1",
-    "fast-uri": "^3.1.6",
+    "fast-uri": ">=4.2.3",
     "qs": ">=6.16.0",
     "@xmldom/xmldom": ">=0.9.12",
     "handlebars": "^4.7.10",

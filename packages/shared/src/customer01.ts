@@ -5,16 +5,12 @@
  */
 
 export const CUSTOMER01_CORRIDOR_CODE = 'DEPT-TEST01';
-export const Customer01_CORRIDOR_CODE = CUSTOMER01_CORRIDOR_CODE; // Backwards-compatible alias
 
 export type Customer01Warehouse = 'CANTUNIS' | 'TLSA' | 'BERRIO';
-export type SaicaWarehouse = Customer01Warehouse;
 
 export type Customer01TransportMode = 'TREN_VAGONES' | 'CAMION_LONA';
-export type SaicaTransportMode = Customer01TransportMode;
 
 export type Customer01ExceptionSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type SaicaExceptionSeverity = Customer01ExceptionSeverity;
 
 export type Customer01ExceptionType =
   | 'BOBINA_DANADA'
@@ -23,7 +19,6 @@ export type Customer01ExceptionType =
   | 'ROTURA_FLEJE'
   | 'HUMEDAD_DETECTADA'
   | 'INCIDENCIA_ACCESO_MUELLE';
-export type SaicaExceptionType = Customer01ExceptionType;
 
 export interface Customer01Coil {
   coilId: string;
@@ -38,7 +33,6 @@ export interface Customer01Coil {
   xPositionM?: number;
   yPositionM?: number;
 }
-export type SaicaCoil = Customer01Coil;
 
 export interface Customer01VehicleDetection {
   warehouse: Customer01Warehouse;
@@ -49,7 +43,6 @@ export interface Customer01VehicleDetection {
   co2eSavingsPercent: number; // 76.9% savings for Electric Train
   description: string;
 }
-export type SaicaVehicleDetection = Customer01VehicleDetection;
 
 export interface Customer01Albaran {
   albaranId: string;
@@ -64,7 +57,6 @@ export interface Customer01Albaran {
   targetContainerNumber?: string;
   status: 'PENDING_UNLOAD' | 'UNLOADED_IN_STOCK' | 'STUFFED_IN_CONTAINER';
 }
-export type SaicaAlbaran = Customer01Albaran;
 
 export interface Customer01Exception {
   exceptionId: string;
@@ -80,7 +72,6 @@ export interface Customer01Exception {
   resolved: boolean;
   resolutionRemarks?: string;
 }
-export type SaicaException = Customer01Exception;
 
 export interface Customer01StowageResult {
   containerPayloadLimitKg: number; // Baseline: 26,500 kg
@@ -102,7 +93,6 @@ export interface Customer01StowageResult {
     weightKg: number;
   }>;
 }
-export type SaicaStowageResult = Customer01StowageResult;
 
 export interface Customer01GovernanceUser {
   roleCode: string;
@@ -111,7 +101,6 @@ export interface Customer01GovernanceUser {
   operationalAssignmentsAllowed: boolean;
   superAdminPrivileges: boolean;
 }
-export type SaicaGovernanceUser = Customer01GovernanceUser;
 
 export const CUSTOMER01_OFFICIAL_ROLES: Record<string, Customer01GovernanceUser> = {
   ADMIN: {
@@ -136,7 +125,6 @@ export const CUSTOMER01_OFFICIAL_ROLES: Record<string, Customer01GovernanceUser>
     superAdminPrivileges: false,
   },
 };
-export const Customer01_OFFICIAL_ROLES = CUSTOMER01_OFFICIAL_ROLES;
 
 // ============================================================================
 // VEHICLE DETECTION & CO2e CALCULATION (Rule 1 & 2)
@@ -203,7 +191,6 @@ export function detectCustomer01Vehicle(
     description: 'Tren de Mercancías Eléctrico (Vagones UIC) en CANTUNIS · 76.9% Ahorro CO2e',
   };
 }
-export const detectSaicaVehicle = detectCustomer01Vehicle;
 
 // ============================================================================
 // 40' HC PHYSICAL STOWAGE & 2-OPT CoG BALANCING (Rule 3)
@@ -359,7 +346,6 @@ export function verifyCustomer01ContainerStowage(
     recommendedComplementaryCoils,
   };
 }
-export const verifySaicaContainerStowage = verifyCustomer01ContainerStowage;
 
 // ============================================================================
 // GOVERNANCE & ROLE POLICIES (Rule 5)
@@ -408,7 +394,6 @@ export function validateCustomer01RoleAssignment(
 
   return { allowed: true };
 }
-export const validateSaicaRoleAssignment = validateCustomer01RoleAssignment;
 
 // ============================================================================
 // SEED PRESETS
@@ -471,7 +456,6 @@ export const SEED_CUSTOMER01_COILS: Customer01Coil[] = [
     yPositionM: 1.15,
   },
 ];
-export const SEED_Customer01_COILS = SEED_CUSTOMER01_COILS;
 
 export const SEED_CUSTOMER01_ALBARANES: Customer01Albaran[] = [
   {
@@ -536,7 +520,6 @@ export const SEED_CUSTOMER01_ALBARANES: Customer01Albaran[] = [
     status: 'PENDING_UNLOAD',
   },
 ];
-export const SEED_Customer01_ALBARANES = SEED_CUSTOMER01_ALBARANES;
 
 export const SEED_CUSTOMER01_EXCEPTIONS: Customer01Exception[] = [
   {
@@ -552,4 +535,3 @@ export const SEED_CUSTOMER01_EXCEPTIONS: Customer01Exception[] = [
     resolved: false,
   },
 ];
-export const SEED_Customer01_EXCEPTIONS = SEED_CUSTOMER01_EXCEPTIONS;

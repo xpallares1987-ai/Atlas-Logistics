@@ -1,0 +1,5 @@
+{
+  "name": "Gantt Muelle - Operativa Diaria de Recepción Customer01 B2B",
+  "tag": "GANTT",
+  "code": "gantt\n    title Ventana de Turnos y Recepción de Muelle - Customer01 B2B\n    dateFormat  HH:mm\n    axisFormat  %H:%M\n    \n    section Turno Mañana (06:00 - 14:00)\n    Apertura de Muelle y Calibración Báscula :done, m1, 06:00, 30m\n    Recepción Camiones Turno 1 (TLSA / BERRIO) :active, m2, 06:30, 4h\n    Transmisión WebServices Cargas Mañana    :crit, m3, 10:30, 1h\n    Control de Discrepancias Turno Mañana    :m4, 12:00, 1h\n    \n    section Turno Tarde (14:00 - 22:00)\n    Relevo de Muelle y Reconciliación        :t1, 14:00, 30m\n    Recepción Cargas Turno 2 (CANTUNIS)      :t2, 14:30, 4h\n    Extracción MAPI y Cierre Horario         :t3, 17:00, 30m\n    Generación de Resumen Diario (17:05)     :milestone, m_digest, 17:05, 0m\n    Regularización de Albaranes Pendientes   :t4, 18:00, 2h"
+}

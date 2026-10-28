@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC/"
+             id="Definitions_Customer01_Intermodal"
+             name="Reglas de Enrutamiento y Aprovisionamiento — Customer01 (Fábricas a Almacenes Externos y Puertos)"
+             namespace="http://camunda.org/schema/1.0/dmn"
+             exporter="Atlas Logistics — Sea Modeler (Customer01 Suite)"
+             exporterVersion="5.0">
+  <decision id="Customer01_intermodal_cutoff_rules" name="Reglas de Enrutamiento y Aprovisionamiento (Fábricas a Almacenes Externos)">
+    <decisionTable id="DecisionTable_Customer01_Intermodal" hitPolicy="FIRST">
+      <input id="Input_PuertoEmbarque" label="Puerto de Embarque (POL)">
+        <inputExpression id="InputExpr_PuertoEmbarque" typeRef="string">
+          <text>puerto_embarque</text>
+        </inputExpression>
+      </input>
+      <input id="Input_SlotTren" label="Ranura Tren Cantunis Disponible">
+        <inputExpression id="InputExpr_SlotTren" typeRef="boolean">
+          <text>ranura_tren_cantunis_disponible</text>
+        </inputExpression>
+      </input>
+      <input id="Input_HorasCutOff" label="Margen Horas hasta Cargo Cut-Off">
+        <inputExpression id="InputExpr_HorasCutOff" typeRef="integer">
+          <text>horas_hasta_cargo_cutoff</text>
+        </inputExpression>
+      </input>
+      <input id="Input_PesoTotalT" label="Peso Neto Carga (Toneladas)">
+        <inputExpression id="InputExpr_PesoTotalT" typeRef="number">
+          <text>peso_total_carga_t</text>
+        </inputExpression>
+      </input>
+
+      <output id="Output_Almacen" label="Almacén Destino Recomendado" name="almacen_destino_recomendado" typeRef="string" />
+      <output id="Output_Modo" label="Modo de Aprovisionamiento" name="modo_aprovisionamiento" typeRef="string" />
+      <output id="Output_Acarreo" label="Acarreo Portuario Destino" name="acarreo_portuario_destino" typeRef="string" />
+      <output id="Output_CO2" label="Impacto Sostenibilidad / CO2" name="impacto_huella_carbono" typeRef="string" />
+      <output id="Output_Accion" label="Acción de Tráfico" name="accion_inmediata" typeRef="string" />
+
+      <!-- Regla 1: Exceso de peso > 28.5 t -->
+      <rule id="Rule_Inter_Overload">
+        <inputEntry id="In_1_1"><text></text></inputEntry>
+        <inputEntry id="In_1_2"><text></text></inputEntry>
+        <inputEntry id="In_1_3"><text></text></inputEntry>
+        <inputEntry id="In_1_4"><text>&gt; 28.5</text></inputEntry>
+        <outputEntry id="Out_1_1"><text>"NO AUTORIZADO - Exceso MMA"</text></outputEntry>
+        <outputEntry id="Out_1_2"><text>"N/A"</text></outputEntry>
+        <outputEntry id="Out_1_3"><text>"N/A"</text></outputEntry>
+        <outputEntry id="Out_1_4"><text>"Riesgo Sanción Vial / Terminal"</text></outputEntry>
+        <outputEntry id="Out_1_5"><text>"Rechazar orden de carga y exigir desestiba en fábrica"</text></outputEntry>
+      </rule>
+
+      <!-- Regla 2: Embarque por Valencia -> Almacén BERRIO (Massanassa) en Camión-Lona -->
+      <rule id="Rule_Inter_Valencia">
+        <inputEntry id="In_2_1"><text>"ESVLC", "Valencia"</text></inputEntry>
+        <inputEntry id="In_2_2"><text></text></inputEntry>
+        <inputEntry id="In_2_3"><text></text></inputEntry>
+        <inputEntry id="In_2_4"><text>&lt;= 28.5</text></inputEntry>
+        <outputEntry id="Out_2_1"><text>"BERRIO (Massanassa)"</text></outputEntry>
+        <outputEntry id="Out_2_2"><text>"Camión-Lona (Remolque)"</text></outputEntry>
+        <outputEntry id="Out_2_3"><text>"Acarreo local Massanassa -&gt; CSP/MSC Valencia (15 km)"</text></outputEntry>
+        <outputEntry id="Out_2_4"><text>"Emisiones Estándar Carretera"</text></outputEntry>
+        <outputEntry id="Out_2_5"><text>"Contratar flota de camión-lona a BERRIO (Massanassa) y sincronizar muelle"</text></outputEntry>
+      </rule>
+
+      <!-- Regla 3: Embarque Barcelona con ranura tren hacia Can Tunis y margen suficiente (>= 24h) -->
+      <rule id="Rule_Inter_Tren_Cantunis">
+        <inputEntry id="In_3_1"><text>"ESBCN", "Barcelona"</text></inputEntry>
+        <inputEntry id="In_3_2"><text>true</text></inputEntry>
+        <inputEntry id="In_3_3"><text>&gt;= 24</text></inputEntry>
+        <inputEntry id="In_3_4"><text>&lt;= 28.5</text></inputEntry>
+        <outputEntry id="Out_3_1"><text>"CANTUNIS (Logistainer BCN)"</text></outputEntry>
+        <outputEntry id="Out_3_2"><text>"Tren (Vagones)"</text></outputEntry>
+        <outputEntry id="Out_3_3"><text>"Acarreo local Can Tunis -&gt; BEST/APM Barcelona (6 km)"</text></outputEntry>
+        <outputEntry id="Out_3_4"><text>"Reducción 77% CO2e (Tracción Ferroviaria Verde)"</text></outputEntry>
+        <outputEntry id="Out_3_5"><text>"Asignar composición ferroviaria en vía de fábrica y despachar a Logistainer BCN"</text></outputEntry>
+      </rule>
+
+      <!-- Regla 4: Embarque Barcelona con urgencia (< 24h) o sin tren -> Almacén TLSA en Camión-Lona -->
+      <rule id="Rule_Inter_Urgente_TLSA">
+        <inputEntry id="In_4_1"><text>"ESBCN", "Barcelona"</text></inputEntry>
+        <inputEntry id="In_4_2"><text></text></inputEntry>
+        <inputEntry id="In_4_3"><text>&lt; 24</text></inputEntry>
+        <inputEntry id="In_4_4"><text>&lt;= 28.5</text></inputEntry>
+        <outputEntry id="Out_4_1"><text>"TLSA (El Prat de Llobregat)"</text></outputEntry>
+        <outputEntry id="Out_4_2"><text>"Camión-Lona (Remolque)"</text></outputEntry>
+        <outputEntry id="Out_4_3"><text>"Acarreo local El Prat -&gt; BEST/APM Barcelona (12 km)"</text></outputEntry>
+        <outputEntry id="Out_4_4"><text>"Emisiones Estándar Carretera"</text></outputEntry>
+        <outputEntry id="Out_4_5"><text>"Activar camión-lona directo urgente a TLSA (El Prat) para asegurar cut-off"</text></outputEntry>
+      </rule>
+
+      <!-- Regla 5: Fallback general Barcelona -> Almacén TLSA en Camión-Lona -->
+      <rule id="Rule_Inter_Fallback_TLSA">
+        <inputEntry id="In_5_1"><text>"ESBCN", "Barcelona"</text></inputEntry>
+        <inputEntry id="In_5_2"><text></text></inputEntry>
+        <inputEntry id="In_5_3"><text></text></inputEntry>
+        <inputEntry id="In_5_4"><text>&lt;= 28.5</text></inputEntry>
+        <outputEntry id="Out_5_1"><text>"TLSA (El Prat de Llobregat)"</text></outputEntry>
+        <outputEntry id="Out_5_2"><text>"Camión-Lona (Remolque)"</text></outputEntry>
+        <outputEntry id="Out_5_3"><text>"Acarreo local El Prat -&gt; BEST/APM Barcelona (12 km)"</text></outputEntry>
+        <outputEntry id="Out_5_4"><text>"Emisiones Estándar Carretera"</text></outputEntry>
+        <outputEntry id="Out_5_5"><text>"Programar camión-lona a TLSA (El Prat) coordinado con slot de muelle"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="DMNDiagram_Customer01_Intermodal">
+      <dmndi:DMNShape id="DMNShape_Customer01_Intermodal" dmnElementRef="Customer01_intermodal_cutoff_rules">
+        <dc:Bounds x="160" y="80" width="240" height="80" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>
+

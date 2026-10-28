@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC/"
+             id="Definitions_Customer01_LashingMatrix"
+             name="Matriz de Estiba, Trincaje y Carga Máxima 40' HC — Customer01 Containerboard"
+             namespace="http://camunda.org/schema/1.0/dmn"
+             exporter="Atlas Logistics — Sea Modeler (Customer01 Suite)"
+             exporterVersion="5.0">
+  <decision id="Customer01_lashing_payload_matrix" name="Matriz de Estiba, Trincaje y Carga 40' HC (Customer01 Containerboard)">
+    <decisionTable id="DecisionTable_Customer01_Lashing" hitPolicy="FIRST">
+      <input id="Input_PesoNeto" label="Peso Neto Bobinas (kg)">
+        <inputExpression id="InputExpr_PesoNeto" typeRef="integer">
+          <text>peso_neto_bobinas_kg</text>
+        </inputExpression>
+      </input>
+      <input id="Input_Diametro" label="Diámetro Bobina (m)">
+        <inputExpression id="InputExpr_Diametro" typeRef="number">
+          <text>diametro_bobina_m</text>
+        </inputExpression>
+      </input>
+      <input id="Input_Transito" label="Tránsito Marítimo Estimado (Días)">
+        <inputExpression id="InputExpr_Transito" typeRef="integer">
+          <text>transito_maritimo_dias</text>
+        </inputExpression>
+      </input>
+
+      <output id="Output_Esquema" label="Esquema de Estiba Recomendado" name="esquema_estiba" typeRef="string" />
+      <output id="Output_Cunas" label="Cuñas Madera NIMF-15 Requeridas" name="cunas_madera_nimf15" typeRef="integer" />
+      <output id="Output_Cinchas" label="Cinchas de Trincaje (daN)" name="cinchas_amarre_dan" typeRef="string" />
+      <output id="Output_Desecantes" label="Bolsas Desecantes Antihumedad (kg)" name="desecantes_kg" typeRef="number" />
+      <output id="Output_Estado" label="Estado Validación Payload" name="estado_payload" typeRef="string" />
+      <output id="Output_Accion" label="Acción Operativa Recomendada" name="accion_operativa" typeRef="string" />
+
+      <!-- Regla 1: Sobrecarga crítica > 28.500 kg -->
+      <rule id="Rule_Sobrecarga">
+        <inputEntry id="In_1_1">
+          <text>&gt; 28500</text>
+        </inputEntry>
+        <inputEntry id="In_1_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="In_1_3">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Out_1_1">
+          <text>"NO AUTORIZADO - Exceso Payload 40' HC"</text>
+        </outputEntry>
+        <outputEntry id="Out_1_2">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="Out_1_3">
+          <text>"N/A"</text>
+        </outputEntry>
+        <outputEntry id="Out_1_4">
+          <text>0.0</text>
+        </outputEntry>
+        <outputEntry id="Out_1_5">
+          <text>"RECHAZADO - Exceso Payload"</text>
+        </outputEntry>
+        <outputEntry id="Out_1_6">
+          <text>"Desestibar 1 bobina en fábrica y reajustar albarán Customer01"</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Regla 2: Carga Pesada (27.001 - 28.500 kg) en Tránsito Deepsea (> 15 días) -->
+      <rule id="Rule_Pesada_Deepsea">
+        <inputEntry id="In_2_1">
+          <text>[27001..28500]</text>
+        </inputEntry>
+        <inputEntry id="In_2_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="In_2_3">
+          <text>&gt; 15</text>
+        </inputEntry>
+        <outputEntry id="Out_2_1">
+          <text>"2 Filas Verticales (Ojos al Cielo) Trincaje Reforzado"</text>
+        </outputEntry>
+        <outputEntry id="Out_2_2">
+          <text>16</text>
+        </outputEntry>
+        <outputEntry id="Out_2_3">
+          <text>"8x Cinchas 7500 daN"</text>
+        </outputEntry>
+        <outputEntry id="Out_2_4">
+          <text>3.0</text>
+        </outputEntry>
+        <outputEntry id="Out_2_5">
+          <text>"Límite Aceptable (Pesaje Báscula Obligatorio)"</text>
+        </outputEntry>
+        <outputEntry id="Out_2_6">
+          <text>"Verificar tara tractora para no exceder 44t intermodal y transmitir VGM"</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Regla 3: Carga Pesada (27.001 - 28.500 kg) en Tránsito Shortsea (<= 15 días) -->
+      <rule id="Rule_Pesada_Shortsea">
+        <inputEntry id="In_3_1">
+          <text>[27001..28500]</text>
+        </inputEntry>
+        <inputEntry id="In_3_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="In_3_3">
+          <text>&lt;= 15</text>
+        </inputEntry>
+        <outputEntry id="Out_3_1">
+          <text>"2 Filas Verticales (Ojos al Cielo) Trincaje Reforzado"</text>
+        </outputEntry>
+        <outputEntry id="Out_3_2">
+          <text>12</text>
+        </outputEntry>
+        <outputEntry id="Out_3_3">
+          <text>"6x Cinchas 5000 daN"</text>
+        </outputEntry>
+        <outputEntry id="Out_3_4">
+          <text>2.0</text>
+        </outputEntry>
+        <outputEntry id="Out_3_5">
+          <text>"Límite Aceptable"</text>
+        </outputEntry>
+        <outputEntry id="Out_3_6">
+          <text>"Asegurar precinto ISO 17712 y coordinar entrada en slot TMZa / BEST"</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Regla 4: Carga Estándar (25.000 - 27.000 kg) con Gran Diámetro (>= 1.25 m) -->
+      <rule id="Rule_Estandar_GranDiametro">
+        <inputEntry id="In_4_1">
+          <text>[25000..27000]</text>
+        </inputEntry>
+        <inputEntry id="In_4_2">
+          <text>&gt;= 1.25</text>
+        </inputEntry>
+        <inputEntry id="In_4_3">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Out_4_1">
+          <text>"Fila Escalonada Central Equilibrada"</text>
+        </outputEntry>
+        <outputEntry id="Out_4_2">
+          <text>12</text>
+        </outputEntry>
+        <outputEntry id="Out_4_3">
+          <text>"6x Cinchas 5000 daN"</text>
+        </outputEntry>
+        <outputEntry id="Out_4_4">
+          <text>2.0</text>
+        </outputEntry>
+        <outputEntry id="Out_4_5">
+          <text>"Óptimo"</text>
+        </outputEntry>
+        <outputEntry id="Out_4_6">
+          <text>"Carga autorizada con pinza de bobinas Customer01 y calzado lateral"</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Regla 5: Carga Estándar (< 27.000 kg) con Diámetro Estándar (< 1.25 m) -->
+      <rule id="Rule_Estandar_Normal">
+        <inputEntry id="In_5_1">
+          <text>[25000..27000]</text>
+        </inputEntry>
+        <inputEntry id="In_5_2">
+          <text>&lt; 1.25</text>
+        </inputEntry>
+        <inputEntry id="In_5_3">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Out_5_1">
+          <text>"2 Filas Verticales (Ojos al Cielo)"</text>
+        </outputEntry>
+        <outputEntry id="Out_5_2">
+          <text>8</text>
+        </outputEntry>
+        <outputEntry id="Out_5_3">
+          <text>"4x Cinchas 5000 daN"</text>
+        </outputEntry>
+        <outputEntry id="Out_5_4">
+          <text>2.0</text>
+        </outputEntry>
+        <outputEntry id="Out_5_5">
+          <text>"Óptimo"</text>
+        </outputEntry>
+        <outputEntry id="Out_5_6">
+          <text>"Carga estándar autorizada con precintado en muelle"</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Regla 6: Fallback Carga Moderada (< 25.000 kg) -->
+      <rule id="Rule_Fallback_Moderada">
+        <inputEntry id="In_6_1">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="In_6_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="In_6_3">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Out_6_1">
+          <text>"Distribución Equilibrada en Piso"</text>
+        </outputEntry>
+        <outputEntry id="Out_6_2">
+          <text>8</text>
+        </outputEntry>
+        <outputEntry id="Out_6_3">
+          <text>"4x Cinchas 5000 daN"</text>
+        </outputEntry>
+        <outputEntry id="Out_6_4">
+          <text>1.5</text>
+        </outputEntry>
+        <outputEntry id="Out_6_5">
+          <text>"Óptimo"</text>
+        </outputEntry>
+        <outputEntry id="Out_6_6">
+          <text>"Carga moderada autorizada con margen holgado de payload"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="DMNDiagram_Customer01_Lashing">
+      <dmndi:DMNShape id="DMNShape_Customer01_Lashing" dmnElementRef="Customer01_lashing_payload_matrix">
+        <dc:Bounds x="160" y="80" width="240" height="80" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>
+

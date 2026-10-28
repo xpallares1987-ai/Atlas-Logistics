@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:sys="http://sys"
+                  id="Definitions_Customer01_Containerboard_Export_40HC"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Atlas Logistics — Sea Modeler (Customer01 Suite)"
+                  exporterVersion="5.0">
+  <bpmn:collaboration id="Collaboration_Customer01_Export">
+    <bpmn:participant id="Participant_Customer01_Export" name="Atlas Logistics &amp; Customer01 — SOP Maestro: Exportación FCL Containerboard en 40' HC (Barcelona / TMZa)" processRef="Process_Customer01_Containerboard_Export" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_Customer01_Containerboard_Export" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_Customer01">
+      <bpmn:lane id="Lane_Customer01_Mills" name="Customer01 Mills (Planta El Burgo de Ebro / Zaragoza - Expediciones)">
+        <bpmn:flowNodeRef>StartEvent_OrdenCargaCustomer01</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InspeccionVacio</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ContenedorApto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RechazoSustitucion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Rechazado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CargaBobinas</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TrincajeCunas</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PrecintadoBascula</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_Atlas Logistics_Ops" name="Atlas Logistics Forwarding Operations (Customer Service Barcelona - Book TEST01)">
+        <bpmn:flowNodeRef>Task_Booking40HC</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ReconciliacionB2B</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TransmisionVGM</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PresentacionDUA</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EnvioSI</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EmisionBL</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Completado</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_Intermodal" name="Transporte Terrestre e Intermodal (Carretera / TMZa Corredor Ferroviario)">
+        <bpmn:flowNodeRef>Task_AcarreoTMZa</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AdmisionStacking</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_AEAT" name="Aduana AEAT (Despacho Aduanero de Exportación)">
+        <bpmn:flowNodeRef>Gateway_CanalDUA</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_LevanteLVE</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InspeccionAduanera</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_Terminal_Port" name="Terminal Portuaria (Hutchison Ports BEST / APM Barcelona)">
+        <bpmn:flowNodeRef>Task_GateInPort</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CargaBuque</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- Customer01 Mills Flow -->
+    <bpmn:startEvent id="StartEvent_OrdenCargaCustomer01" name="Recepción Orden Carga &amp; Albarán Customer01">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Atlas Logistics Ops: Booking 40HC -->
+    <bpmn:userTask id="Task_Booking40HC" name="Confirmar Booking 40' HC Naviera (MSC/Maersk/CMA/Hapag)" sys:formKey="Customer01_booking_40hc_form" sys:pol="ESBCN" sys:commodity="CONTAINERBOARD" sys:containerType="40HC" sys:carrier="MSC" sys:status="completed" sys:time="15m" sys:costHR="25">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Customer01 Mills: Inspección Rigurosa 40' HC -->
+    <bpmn:userTask id="Task_InspeccionVacio" name="Inspección Idoneidad 40' HC (Estanqueidad luz, suelo seco, sin clavos)" sys:formKey="Customer01_checklist_inspeccion_40hc" sys:status="normal" sys:time="15m">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ContenedorApto" name="¿Contenedor 40' HC Apto?" default="Flow_Apto">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Apto</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rechazo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_RechazoSustitucion" name="Rechazo y Solicitud Inmediata Sustitución en Depósito" sys:status="warning" sys:time="30m">
+      <bpmn:incoming>Flow_Rechazo</bpmn:incoming>
+      <bpmn:outgoing>Flow_FinRechazo</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_Rechazado" name="Contenedor 40' HC Rechazado">
+      <bpmn:incoming>Flow_FinRechazo</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Carga Mecanizada con Pinza de Bobinas -->
+    <bpmn:manualTask id="Task_CargaBobinas" name="Carga Mecanizada con Pinza Especial (Bobinas Ojos al Cielo)" sys:commodity="CONTAINERBOARD" sys:containerType="40HC" sys:status="normal" sys:time="60m">
+      <bpmn:incoming>Flow_Apto</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:manualTask>
+
+    <!-- Trincaje Certificado NIMF-15: Conectado a DMN -->
+    <bpmn:businessRuleTask id="Task_TrincajeCunas" name="Trincaje Certificado NIMF-15, Cinchas 5000 daN y Bolsas Desecantes" sys:decisionRef="Customer01_lashing_payload_matrix" sys:status="normal" sys:time="45m">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+
+    <!-- Precintado ISO 17712 y Pesaje Fábrica -->
+    <bpmn:serviceTask id="Task_PrecintadoBascula" name="Precintado ISO 17712 y Pesaje en Báscula de Fábrica (Método 2 SOLAS)" sys:cutOffType="VGM_CutOff" sys:status="normal" sys:time="20m">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Atlas Logistics Ops: Reconciliación B2B -->
+    <bpmn:serviceTask id="Task_ReconciliacionB2B" name="Reconciliación B2B Albarán Customer01 vs Booking (Control Matrículas)" sys:status="completed" sys:time="5m">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Atlas Logistics Ops: Transmisión SOLAS VGM -->
+    <bpmn:serviceTask id="Task_TransmisionVGM" name="Transmisión Electrónica SOLAS VGM a Naviera / Terminal" sys:cutOffType="VGM_CutOff" sys:status="completed" sys:time="5m">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Intermodal: Acarreo TMZa / Carretera: Conectado a DMN -->
+    <bpmn:businessRuleTask id="Task_AcarreoTMZa" name="Acarreo Portuario / Tránsito Ferroviario TMZa hacia Barcelona" sys:decisionRef="Customer01_intermodal_cutoff_rules" sys:pol="ESBCN" sys:status="normal" sys:time="240m">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+
+    <!-- Intermodal: Entrada en Stacking Period -->
+    <bpmn:serviceTask id="Task_AdmisionStacking" name="Control de Slot y Entrada en Stacking Period de Terminal" sys:cutOffType="Cargo_CutOff" sys:status="normal" sys:time="15m">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Atlas Logistics Ops: DUA Exportación Papel: Conectado a DMN -->
+    <bpmn:businessRuleTask id="Task_PresentacionDUA" name="Presentación Telemática DUA Exportación (TARIC Papel 4805/4804)" sys:decisionRef="Customer01_reglas_despacho_dua" sys:customsChannel="Verde" sys:cutOffType="Customs_CutOff" sys:status="normal" sys:time="20m" sys:costHR="45">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+
+    <!-- AEAT: Gateway Canal Aduana -->
+    <bpmn:exclusiveGateway id="Gateway_CanalDUA" name="Canal DUA AEAT" default="Flow_Verde">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_Verde</bpmn:outgoing>
+      <bpmn:outgoing>Flow_RojoNaranja</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_LevanteLVE" name="Concesión de Levante de Exportación (LVE Automático)" sys:customsChannel="Verde" sys:status="completed" sys:time="5m">
+      <bpmn:incoming>Flow_Verde</bpmn:incoming>
+      <bpmn:outgoing>Flow_LevanteOk</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:manualTask id="Task_InspeccionAduanera" name="Inspección Documental / Escáner Portuario (Canal Naranja/Rojo)" sys:customsChannel="Rojo" sys:status="warning" sys:time="24h">
+      <bpmn:incoming>Flow_RojoNaranja</bpmn:incoming>
+      <bpmn:outgoing>Flow_InspeccionOk</bpmn:outgoing>
+    </bpmn:manualTask>
+
+    <!-- Terminal Portuaria: Gate-In -->
+    <bpmn:serviceTask id="Task_GateInPort" name="Gate-In 40' HC en Terminal BEST/APM y Verificación Precinto" sys:pol="ESBCN" sys:status="normal" sys:time="10m">
+      <bpmn:incoming>Flow_LevanteOk</bpmn:incoming>
+      <bpmn:incoming>Flow_InspeccionOk</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Atlas Logistics Ops: Shipping Instructions -->
+    <bpmn:userTask id="Task_EnvioSI" name="Envío Shipping Instructions (SI) con Detalle Bobinas y Pesos" sys:formKey="Customer01_instruccion_embarque_form" sys:cutOffType="SI_CutOff" sys:status="normal" sys:time="30m">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Terminal: Estiba y Carga Buque -->
+    <bpmn:manualTask id="Task_CargaBuque" name="Estiba a Bordo del Portacontenedores y Confirmación de Zarpe" sys:status="normal">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:manualTask>
+
+    <!-- Atlas Logistics Ops: Emisión B/L -->
+    <bpmn:serviceTask id="Task_EmisionBL" name="Emisión y Custodia de Bill of Lading (Sea Waybill / OBL)" sys:blType="SeaWaybill" sys:status="completed" sys:time="15m">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_Completado" name="Exportación Containerboard 40' HC Completada">
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_OrdenCargaCustomer01" targetRef="Task_Booking40HC" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Booking40HC" targetRef="Task_InspeccionVacio" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_InspeccionVacio" targetRef="Gateway_ContenedorApto" />
+    <bpmn:sequenceFlow id="Flow_Apto" name="Apto" sourceRef="Gateway_ContenedorApto" targetRef="Task_CargaBobinas" />
+    <bpmn:sequenceFlow id="Flow_Rechazo" name="No Apto" sourceRef="Gateway_ContenedorApto" targetRef="Task_RechazoSustitucion" />
+    <bpmn:sequenceFlow id="Flow_FinRechazo" sourceRef="Task_RechazoSustitucion" targetRef="EndEvent_Rechazado" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_CargaBobinas" targetRef="Task_TrincajeCunas" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_TrincajeCunas" targetRef="Task_PrecintadoBascula" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_PrecintadoBascula" targetRef="Task_ReconciliacionB2B" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_ReconciliacionB2B" targetRef="Task_TransmisionVGM" />
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_TransmisionVGM" targetRef="Task_AcarreoTMZa" />
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_AcarreoTMZa" targetRef="Task_AdmisionStacking" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_AdmisionStacking" targetRef="Task_PresentacionDUA" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_PresentacionDUA" targetRef="Gateway_CanalDUA" />
+    <bpmn:sequenceFlow id="Flow_Verde" name="Canal Verde" sourceRef="Gateway_CanalDUA" targetRef="Task_LevanteLVE" />
+    <bpmn:sequenceFlow id="Flow_RojoNaranja" name="Canal Naranja / Rojo" sourceRef="Gateway_CanalDUA" targetRef="Task_InspeccionAduanera" />
+    <bpmn:sequenceFlow id="Flow_LevanteOk" sourceRef="Task_LevanteLVE" targetRef="Task_GateInPort" />
+    <bpmn:sequenceFlow id="Flow_InspeccionOk" sourceRef="Task_InspeccionAduanera" targetRef="Task_GateInPort" />
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_GateInPort" targetRef="Task_EnvioSI" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_EnvioSI" targetRef="Task_CargaBuque" />
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="Task_CargaBuque" targetRef="Task_EmisionBL" />
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="Task_EmisionBL" targetRef="EndEvent_Completado" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Customer01_Export">
+    <bpmndi:BPMNPlane id="BPMNPlane_Customer01_Export" bpmnElement="Collaboration_Customer01_Export">
+      <bpmndi:BPMNShape id="Participant_Customer01_Export_di" bpmnElement="Participant_Customer01_Export" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="2220" height="920" />
+      </bpmndi:BPMNShape>
+
+      <!-- Lanes -->
+      <bpmndi:BPMNShape id="Lane_Customer01_Mills_di" bpmnElement="Lane_Customer01_Mills" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="2190" height="200" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Atlas Logistics_Ops_di" bpmnElement="Lane_Atlas Logistics_Ops" isHorizontal="true">
+        <dc:Bounds x="190" y="280" width="2190" height="200" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Intermodal_di" bpmnElement="Lane_Intermodal" isHorizontal="true">
+        <dc:Bounds x="190" y="480" width="2190" height="170" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_AEAT_di" bpmnElement="Lane_AEAT" isHorizontal="true">
+        <dc:Bounds x="190" y="650" width="2190" height="170" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Terminal_Port_di" bpmnElement="Lane_Terminal_Port" isHorizontal="true">
+        <dc:Bounds x="190" y="820" width="2190" height="180" />
+      </bpmndi:BPMNShape>
+
+      <!-- Customer01 Mills Nodes -->
+      <bpmndi:BPMNShape id="StartEvent_OrdenCargaCustomer01_di" bpmnElement="StartEvent_OrdenCargaCustomer01">
+        <dc:Bounds x="240" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="215" y="195" width="86" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Booking40HC_di" bpmnElement="Task_Booking40HC">
+        <dc:Bounds x="320" y="340" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_InspeccionVacio_di" bpmnElement="Task_InspeccionVacio">
+        <dc:Bounds x="480" y="130" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ContenedorApto_di" bpmnElement="Gateway_ContenedorApto" isMarkerVisible="true">
+        <dc:Bounds x="640" y="145" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="625" y="115" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RechazoSustitucion_di" bpmnElement="Task_RechazoSustitucion">
+        <dc:Bounds x="600" y="215" width="130" height="55" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Rechazado_di" bpmnElement="EndEvent_Rechazado">
+        <dc:Bounds x="760" y="225" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="740" y="265" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CargaBobinas_di" bpmnElement="Task_CargaBobinas">
+        <dc:Bounds x="730" y="130" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_TrincajeCunas_di" bpmnElement="Task_TrincajeCunas">
+        <dc:Bounds x="890" y="130" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PrecintadoBascula_di" bpmnElement="Task_PrecintadoBascula">
+        <dc:Bounds x="1050" y="130" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Atlas Logistics Ops Nodes -->
+      <bpmndi:BPMNShape id="Task_ReconciliacionB2B_di" bpmnElement="Task_ReconciliacionB2B">
+        <dc:Bounds x="1050" y="340" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_TransmisionVGM_di" bpmnElement="Task_TransmisionVGM">
+        <dc:Bounds x="1210" y="340" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Intermodal Nodes -->
+      <bpmndi:BPMNShape id="Task_AcarreoTMZa_di" bpmnElement="Task_AcarreoTMZa">
+        <dc:Bounds x="1210" y="525" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AdmisionStacking_di" bpmnElement="Task_AdmisionStacking">
+        <dc:Bounds x="1370" y="525" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- DUA & Customs Nodes -->
+      <bpmndi:BPMNShape id="Task_PresentacionDUA_di" bpmnElement="Task_PresentacionDUA">
+        <dc:Bounds x="1370" y="340" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_CanalDUA_di" bpmnElement="Gateway_CanalDUA" isMarkerVisible="true">
+        <dc:Bounds x="1410" y="705" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1335" y="720" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_LevanteLVE_di" bpmnElement="Task_LevanteLVE">
+        <dc:Bounds x="1510" y="665" width="130" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_InspeccionAduanera_di" bpmnElement="Task_InspeccionAduanera">
+        <dc:Bounds x="1510" y="740" width="130" height="65" />
+      </bpmndi:BPMNShape>
+
+      <!-- Terminal Gate In & SI Nodes -->
+      <bpmndi:BPMNShape id="Task_GateInPort_di" bpmnElement="Task_GateInPort">
+        <dc:Bounds x="1690" y="865" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_EnvioSI_di" bpmnElement="Task_EnvioSI">
+        <dc:Bounds x="1690" y="340" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CargaBuque_di" bpmnElement="Task_CargaBuque">
+        <dc:Bounds x="1870" y="865" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_EmisionBL_di" bpmnElement="Task_EmisionBL">
+        <dc:Bounds x="1870" y="340" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Completado_di" bpmnElement="EndEvent_Completado">
+        <dc:Bounds x="2060" y="362" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2035" y="405" width="86" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="276" y="170" />
+        <di:waypoint x="298" y="170" />
+        <di:waypoint x="298" y="380" />
+        <di:waypoint x="320" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="450" y="380" />
+        <di:waypoint x="465" y="380" />
+        <di:waypoint x="465" y="170" />
+        <di:waypoint x="480" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="610" y="170" />
+        <di:waypoint x="640" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Apto_di" bpmnElement="Flow_Apto">
+        <di:waypoint x="690" y="170" />
+        <di:waypoint x="730" y="170" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="695" y="152" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Rechazo_di" bpmnElement="Flow_Rechazo">
+        <di:waypoint x="665" y="195" />
+        <di:waypoint x="665" y="215" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="670" y="195" width="16" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FinRechazo_di" bpmnElement="Flow_FinRechazo">
+        <di:waypoint x="730" y="242" />
+        <di:waypoint x="760" y="242" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="860" y="170" />
+        <di:waypoint x="890" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="1020" y="170" />
+        <di:waypoint x="1050" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1115" y="210" />
+        <di:waypoint x="1115" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1180" y="380" />
+        <di:waypoint x="1210" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1275" y="420" />
+        <di:waypoint x="1275" y="525" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1340" y="565" />
+        <di:waypoint x="1370" y="565" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1435" y="525" />
+        <di:waypoint x="1435" y="420" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1435" y="420" />
+        <di:waypoint x="1435" y="705" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Verde_di" bpmnElement="Flow_Verde">
+        <di:waypoint x="1460" y="730" />
+        <di:waypoint x="1485" y="730" />
+        <di:waypoint x="1485" y="695" />
+        <di:waypoint x="1510" y="695" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1462" y="705" width="28" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_RojoNaranja_di" bpmnElement="Flow_RojoNaranja">
+        <di:waypoint x="1435" y="755" />
+        <di:waypoint x="1435" y="772" />
+        <di:waypoint x="1510" y="772" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1440" y="755" width="65" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_LevanteOk_di" bpmnElement="Flow_LevanteOk">
+        <di:waypoint x="1640" y="695" />
+        <di:waypoint x="1665" y="695" />
+        <di:waypoint x="1665" y="905" />
+        <di:waypoint x="1690" y="905" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_InspeccionOk_di" bpmnElement="Flow_InspeccionOk">
+        <di:waypoint x="1640" y="772" />
+        <di:waypoint x="1665" y="772" />
+        <di:waypoint x="1665" y="905" />
+        <di:waypoint x="1690" y="905" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1755" y="865" />
+        <di:waypoint x="1755" y="420" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1820" y="380" />
+        <di:waypoint x="1845" y="380" />
+        <di:waypoint x="1845" y="905" />
+        <di:waypoint x="1870" y="905" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1935" y="865" />
+        <di:waypoint x="1935" y="420" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="2000" y="380" />
+        <di:waypoint x="2060" y="380" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+

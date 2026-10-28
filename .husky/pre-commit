@@ -1,1 +1,2 @@
+node scripts/check-sensitive-leaks.cjs --staged
 npx lint-staged

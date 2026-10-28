@@ -100,3 +100,7 @@ docker-compose.override.yml
 # Generated Document storage
 data/documents/*.pdf
 data/documents/
+
+# Backups
+backups/
+backups-test/

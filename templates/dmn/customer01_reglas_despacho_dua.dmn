@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC/"
+             id="Definitions_Customer01_ReglasDespachoDUA"
+             name="Reglas de Despacho DUA AEAT — Customer01 Containerboard (TARIC 4804/4805)"
+             namespace="http://camunda.org/schema/1.0/dmn"
+             exporter="Atlas Logistics — Sea Modeler (Customer01 Suite)"
+             exporterVersion="5.0">
+  <decision id="Customer01_reglas_despacho_dua" name="Reglas de Despacho DUA AEAT (Customer01 Containerboard)">
+    <decisionTable id="DecisionTable_Customer01_DUA" hitPolicy="FIRST">
+      <input id="Input_PaisDestino" label="País / Región de Destino">
+        <inputExpression id="InputExpr_PaisDestino" typeRef="string">
+          <text>pais_destino</text>
+        </inputExpression>
+        <inputValues id="InputValues_PaisDestino">
+          <text>"UK", "Turquia", "USA", "LatAm", "Asia", "Otro"</text>
+        </inputValues>
+      </input>
+      <input id="Input_ValorFactura" label="Valor Estadístico Factura (€)">
+        <inputExpression id="InputExpr_ValorFactura" typeRef="integer">
+          <text>valor_factura_eur</text>
+        </inputExpression>
+      </input>
+      <input id="Input_CertificadoFSC" label="Certificación FSC / Sostenibilidad">
+        <inputExpression id="InputExpr_CertificadoFSC" typeRef="boolean">
+          <text>origen_cert_fsc</text>
+        </inputExpression>
+      </input>
+
+      <output id="Output_CanalAduana" label="Canal Aduana Esperado" name="canal_aduana_esperado" typeRef="string" />
+      <output id="Output_DocsAdicionales" label="Documentación Requerida" name="documentacion_adicional" typeRef="string" />
+      <output id="Output_TiempoDespacho" label="Tiempo Estimado Levante (Horas)" name="tiempo_despacho_horas" typeRef="integer" />
+      <output id="Output_Prioridad" label="Prioridad de Despacho" name="prioridad_despacho" typeRef="string" />
+
+      <!-- Regla 1: Destino Reino Unido (REX / Declaración en factura) -->
+      <rule id="Rule_UK">
+        <inputEntry id="In_1_1">
+          <text>"UK"</text>
+        </inputEntry>
+        <inputEntry id="In_1_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="In_1_3">
+          <text>true</text>
+        </inputEntry>
+        <outputEntry id="Out_1_1">
+          <text>"Verde (Levante Inmediato LVE)"</text>
+        </outputEntry>
+        <outputEntry id="Out_1_2">
+          <text>"Declaración de Origen REX en Factura Comercial + Certificado FSC"</text>
+        </outputEntry>
+        <outputEntry id="Out_1_3">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="Out_1_4">
+          <text>"Estándar"</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Regla 2: Turquía (EUR.1 / ATR) -->
+      <rule id="Rule_Turquia">
+        <inputEntry id="In_2_1">
+          <text>"Turquia"</text>
+        </inputEntry>
+        <inputEntry id="In_2_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="In_2_3">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Out_2_1">
+          <text>"Naranja (Visado Documental ATR/EUR.1)"</text>
+        </outputEntry>
+        <outputEntry id="Out_2_2">
+          <text>"Certificado de Circulación A.TR Telemático + Packing List con Bobinas"</text>
+        </outputEntry>
+        <outputEntry id="Out_2_3">
+          <text>4</text>
+        </outputEntry>
+        <outputEntry id="Out_2_4">
+          <text>"Urgente (Presentar pre-levante antes de Cut-Off)"</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Regla 3: USA / América del Norte (FMC / AMS) -->
+      <rule id="Rule_USA">
+        <inputEntry id="In_3_1">
+          <text>"USA"</text>
+        </inputEntry>
+        <inputEntry id="In_3_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="In_3_3">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Out_3_1">
+          <text>"Verde (Levante Inmediato LVE)"</text>
+        </outputEntry>
+        <outputEntry id="Out_3_2">
+          <text>"AMS Filing 24h previas + ISF 10+2 + DUA Exportación AEAT"</text>
+        </outputEntry>
+        <outputEntry id="Out_3_3">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="Out_3_4">
+          <text>"Crítico (Respetar AMS Cut-Off estricto)"</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Regla 4: Factura de Alto Valor (> 50.000 €) -->
+      <rule id="Rule_AltoValor">
+        <inputEntry id="In_4_1">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="In_4_2">
+          <text>&gt; 50000</text>
+        </inputEntry>
+        <inputEntry id="In_4_3">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Out_4_1">
+          <text>"Naranja (Revisión de Valor Estadístico)"</text>
+        </outputEntry>
+        <outputEntry id="Out_4_2">
+          <text>"Copia de Factura Proforma/Comercial + Justificante Bancario si requerido"</text>
+        </outputEntry>
+        <outputEntry id="Out_4_3">
+          <text>4</text>
+        </outputEntry>
+        <outputEntry id="Out_4_4">
+          <text>"Urgente"</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Regla 5: General / Fallback para Containerboard -->
+      <rule id="Rule_General">
+        <inputEntry id="In_5_1">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="In_5_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="In_5_3">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Out_5_1">
+          <text>"Verde (Levante Inmediato LVE)"</text>
+        </outputEntry>
+        <outputEntry id="Out_5_2">
+          <text>"Factura Comercial Customer01 + Packing List Detallado de Bobinas"</text>
+        </outputEntry>
+        <outputEntry id="Out_5_3">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="Out_5_4">
+          <text>"Estándar"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="DMNDiagram_Customer01_DUA">
+      <dmndi:DMNShape id="DMNShape_Customer01_DUA" dmnElementRef="Customer01_reglas_despacho_dua">
+        <dc:Bounds x="160" y="80" width="240" height="80" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>
+

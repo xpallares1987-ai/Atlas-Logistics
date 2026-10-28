@@ -590,22 +590,6 @@ export const AppRoutes = () => {
           }
         />
         <Route
-          path="/saica-operations"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "MANAGER",
-                "OPERATIONS",
-                "EXECUTIVE",
-                "SALES",
-              ]}
-            >
-              <Customer01OperationsModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/general-average"
 
           element={
