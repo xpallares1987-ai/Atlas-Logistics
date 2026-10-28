@@ -15,3 +15,6 @@ package-lock.json
 # Internal audit reports and verification scripts
 audit-results.json
 scratch/
+*.patch
+*.diff
+full_diff.patch

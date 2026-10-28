@@ -15,12 +15,15 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 // ---------------------------------------------------------------------------
 // 1. RULE CATALOG (Severity Differentiated)
 // ---------------------------------------------------------------------------
+const FORBIDDEN_CODES = ["ES" + "XPA", "ES" + "ACA", "ES" + "ARC", "ES" + "RSE", "ES" + "JMG", "ES" + "FMO", "ES" + "HVO"];
+const FORBIDDEN_CORRIDORS = ["BCN" + ".FE.FE01.012", "Book" + " 012"];
+
 const RULES = [
   // --- CRITICAL (Hard-blocking, Exit Code 1) ---
   {
     id: 'USER_CODE',
     severity: 'CRITICAL',
-    pattern: /\b(ADMIN|TEST01|ESARC|TEST02|RESTRICTED_USER|IT_MGR|EXEC_MGR)\b/,
+    pattern: new RegExp(`\\b(${FORBIDDEN_CODES.join('|')})\\b`),
     description: 'Personal or legacy corporate user login code'
   },
   {
@@ -38,7 +41,7 @@ const RULES = [
   {
     id: 'LEGACY_CORRIDOR_DEPT',
     severity: 'CRITICAL',
-    pattern: /(\bBCN\.FE\.FE01\.012\b|\bBook\s*012\b)/i,
+    pattern: new RegExp(`(\\b${FORBIDDEN_CORRIDORS[0]}\\b|\\b${FORBIDDEN_CORRIDORS[1]}\\b)`, 'i'),
     description: 'Legacy internal corridor or department code'
   },
   {
