@@ -28,3 +28,4 @@ export * from "./carbon_emissions.js";
 export * from "./iot_telemetry.js";
 export * from "./edi.js";
 export * from "./control_tower.js";
+export * from "./scm_foundation.js";
