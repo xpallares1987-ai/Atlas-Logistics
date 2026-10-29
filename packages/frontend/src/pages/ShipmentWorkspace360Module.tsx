@@ -254,6 +254,47 @@ interface Shipment360ReadModel {
     }>;
   };
 
+  workflowState?: {
+    processInstanceId: string;
+    processKey: string;
+    versionNumber: number;
+    state:
+      | "RUNNING"
+      | "SUSPENDED"
+      | "BLOCKED_AT_GATEWAY"
+      | "COMPLETED"
+      | "TERMINATED";
+    currentNodeId: string;
+    currentNodeLabel: string;
+    blockingReason?: string | null;
+    nodes: Array<{
+      nodeId: string;
+      sequenceOrder: number;
+      nodeType: string;
+      label: string;
+      description: string;
+      decisionKey?: string;
+      status: "COMPLETED" | "ACTIVE" | "BLOCKED" | "PENDING";
+    }>;
+    availableUserCommands: string[];
+    variablesSnapshot: Record<string, any>;
+    updatedAt: string;
+  } | null;
+
+  decisionExplainability?: Array<{
+    evaluationId: string;
+    decisionKey: string;
+    versionNumber: number;
+    shipmentId: string;
+    inputsSnapshot: Record<string, any>;
+    matchedRowIds: string[];
+    ruleAnnotations: string[];
+    outputSnapshot: Record<string, any>;
+    callerContext: string;
+    correlationId: string;
+    evaluatedAt: string;
+  }>;
+
   activityTrail: Array<{
     eventId: string;
     eventType: string;
@@ -262,7 +303,13 @@ interface Shipment360ReadModel {
   }>;
 }
 
-type WorkspaceTab = "OVERVIEW" | "ROUTING" | "CARGO_EQUIPMENT" | "CONTROL_GATE";
+type WorkspaceTab =
+  | "OVERVIEW"
+  | "ROUTING"
+  | "CARGO_EQUIPMENT"
+  | "CONTROL_GATE"
+  | "WORKFLOW_DECISIONS";
+type DrawerTab = "EXPLAINABILITY" | "OUTBOX_TRAIL";
 
 export const ShipmentWorkspace360Module: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -274,6 +321,7 @@ export const ShipmentWorkspace360Module: React.FC = () => {
   const [activeShipment, setActiveShipment] =
     useState<Shipment360ReadModel | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("OVERVIEW");
+  const [drawerTab, setDrawerTab] = useState<DrawerTab>("EXPLAINABILITY");
   const [loading, setLoading] = useState<boolean>(true);
   const [actionBusy, setActionBusy] = useState<boolean>(false);
   const [bannerFeedback, setBannerFeedback] = useState<string | null>(null);
@@ -547,6 +595,70 @@ export const ShipmentWorkspace360Module: React.FC = () => {
         const inc = await res.json();
         setBannerFeedback(
           `✓ Macro Incident ${inc.incidentNumber} creado y vinculado a ${openExceptions.length} excepción(es).`,
+        );
+        await loadWorkspaceData(activeShipment.shipmentId);
+      }
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleAdvanceWorkflow = async () => {
+    if (!activeShipment || actionBusy) return;
+    setActionBusy(true);
+    setBannerFeedback(null);
+    try {
+      const res = await fetch(
+        `/api/scm/v1/shipments/${activeShipment.shipmentId}/workflow/advance`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            triggerReason: "ui.ShipmentWorkspace360.AdvanceWorkflowGateway",
+            strictGateAssertion: true,
+          }),
+        },
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setBannerFeedback(
+          `✓ Workflow Runtime evaluado: nodo actual '${data.workflowState?.currentNodeLabel}' (${data.workflowState?.state}).`,
+        );
+      } else {
+        setBannerFeedback(
+          `⚠️ Invariante de Gateway / Workflow (${data.code}): ${data.message}`,
+        );
+      }
+      await loadWorkspaceData(activeShipment.shipmentId);
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleToggleWorkflowState = async (action: "SUSPEND" | "RESUME") => {
+    if (!activeShipment || actionBusy) return;
+    setActionBusy(true);
+    setBannerFeedback(null);
+    try {
+      const res = await fetch(
+        `/api/scm/v1/shipments/${activeShipment.shipmentId}/workflow/state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action,
+            reason:
+              action === "SUSPEND"
+                ? "Suspensión operativa solicitada desde Shipment Workspace 360°"
+                : "Reanudación operativa autorizada",
+          }),
+        },
+      );
+      if (res.ok) {
+        setBannerFeedback(
+          action === "SUSPEND"
+            ? "✓ ProcessInstance puesta en estado SUSPENDED (tokens congelados)."
+            : "✓ ProcessInstance reanudada a estado RUNNING.",
         );
         await loadWorkspaceData(activeShipment.shipmentId);
       }
@@ -1073,6 +1185,18 @@ export const ShipmentWorkspace360Module: React.FC = () => {
             >
               <FileCheck2 className="w-3.5 h-3.5" />
               4. SLA Stop-Clock, DQ Gate &amp; Exceptions ({exceptions.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("WORKFLOW_DECISIONS")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+                activeTab === "WORKFLOW_DECISIONS"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800"
+              }`}
+            >
+              <GitBranch className="w-3.5 h-3.5" />
+              5. Workflow Runtime &amp; Decision Tables (
+              {activeShipment.decisionExplainability?.length || 0})
             </button>
           </div>
 
@@ -1631,52 +1755,306 @@ export const ShipmentWorkspace360Module: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* TAB 5: WORKFLOW RUNTIME (BPMN-LIKE) & DECISION TABLES WITH EXPLAINABILITY */}
+          {activeTab === "WORKFLOW_DECISIONS" && (
+            <div className="space-y-6">
+              {activeShipment.workflowState ? (
+                <>
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">
+                          20. Workflow Runtime ·{" "}
+                          {activeShipment.workflowState.processKey} (v
+                          {activeShipment.workflowState.versionNumber})
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                            activeShipment.workflowState.state === "RUNNING"
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                              : activeShipment.workflowState.state ===
+                                  "BLOCKED_AT_GATEWAY"
+                                ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                : activeShipment.workflowState.state ===
+                                    "SUSPENDED"
+                                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                  : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                          }`}
+                        >
+                          {activeShipment.workflowState.state}
+                        </span>
+                      </div>
+                      <div className="text-sm font-bold text-white mt-1.5">
+                        Token Activo:{" "}
+                        <span className="text-indigo-300 font-mono">
+                          {activeShipment.workflowState.currentNodeLabel}
+                        </span>
+                      </div>
+                      {activeShipment.workflowState.blockingReason && (
+                        <div className="text-xs text-rose-300 mt-1 font-medium">
+                          ⛔ Motivo Bloqueo Gateway:{" "}
+                          {activeShipment.workflowState.blockingReason}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <button
+                        onClick={handleAdvanceWorkflow}
+                        disabled={actionBusy}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                      >
+                        <PlayCircle className="w-3.5 h-3.5" />
+                        Evaluar Gateway &amp; Avanzar Token
+                      </button>
+
+                      {activeShipment.workflowState.state === "SUSPENDED" ? (
+                        <button
+                          onClick={() => handleToggleWorkflowState("RESUME")}
+                          disabled={actionBusy}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center gap-1.5 transition"
+                        >
+                          <PlayCircle className="w-3.5 h-3.5" />
+                          Reanudar Proceso
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleToggleWorkflowState("SUSPEND")}
+                          disabled={actionBusy}
+                          className="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-200 text-xs font-semibold flex items-center gap-1.5 transition"
+                        >
+                          <PauseCircle className="w-3.5 h-3.5" />
+                          Suspender Proceso
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 7-Node BPMN-like Directed Graph Pipeline */}
+                  <div className="space-y-2.5">
+                    <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Grafo Dirigido de Actividades y Gateways (Agnóstico del
+                      Dominio)
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                      {activeShipment.workflowState.nodes.map((node) => (
+                        <div
+                          key={node.nodeId}
+                          className={`p-3.5 rounded-xl border flex flex-col justify-between gap-2 ${
+                            node.status === "COMPLETED"
+                              ? "bg-emerald-500/10 border-emerald-500/30"
+                              : node.status === "BLOCKED"
+                                ? "bg-rose-500/10 border-rose-500/40"
+                                : node.status === "ACTIVE"
+                                  ? "bg-indigo-500/15 border-indigo-500/40"
+                                  : "bg-slate-950 border-slate-800"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-mono font-bold text-indigo-300">
+                              {node.nodeType}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                                node.status === "COMPLETED"
+                                  ? "bg-emerald-500/20 text-emerald-300"
+                                  : node.status === "BLOCKED"
+                                    ? "bg-rose-500/20 text-rose-300"
+                                    : node.status === "ACTIVE"
+                                      ? "bg-indigo-500/20 text-indigo-200"
+                                      : "bg-slate-800 text-slate-400"
+                              }`}
+                            >
+                              {node.status}
+                            </span>
+                          </div>
+                          <div className="text-xs font-bold text-white">
+                            {node.label}
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            {node.description}
+                          </div>
+                          {node.decisionKey && (
+                            <div className="text-[10px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded px-2 py-1">
+                              Decision Table: {node.decisionKey}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Variables Snapshot */}
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">
+                    <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Variables de Correlación del Proceso (Snapshot)
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
+                      <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                        <span className="text-slate-400 block text-[10px]">
+                          Equipo Asignado (Regla)
+                        </span>
+                        <span className="text-emerald-300 font-bold">
+                          {activeShipment.workflowState.variablesSnapshot
+                            ?.assignedTeamId ||
+                            activeShipment.header.ownership.teamId}
+                        </span>
+                      </div>
+                      <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                        <span className="text-slate-400 block text-[10px]">
+                          Rol Especialista
+                        </span>
+                        <span className="text-indigo-300 font-bold">
+                          {activeShipment.workflowState.variablesSnapshot
+                            ?.assignedRole || "OPERATIONS_COORDINATOR"}
+                        </span>
+                      </div>
+                      <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                        <span className="text-slate-400 block text-[10px]">
+                          Checklist Obligatorio
+                        </span>
+                        <span className="text-amber-300 font-bold">
+                          {activeShipment.workflowState.variablesSnapshot
+                            ?.mandatoryChecklistCode || "CHK_GENERAL"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-slate-400">
+                  No hay ProcessInstance activa para este expediente.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* ZONA 5: Contextual 360° Inspector Side-Drawer (4 cols) */}
+        {/* ZONA 5: Contextual 360° Inspector Side-Drawer (4 cols) — Explainability & Outbox Trail */}
         <aside className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-indigo-400" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                Zona 5 · Transactional Outbox Activity Trail
-              </h2>
-            </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-              {activeShipment.activityTrail.length} eventos
-            </span>
-          </div>
-
-          <p className="text-xs text-slate-400">
-            Secuencia inmutable de Domain Events que hidrataron esta proyección{" "}
-            <code className="text-indigo-300">Shipment360ReadModel</code> (v
-            {activeShipment.projectionVersion}):
-          </p>
-
-          <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
-            {activeShipment.activityTrail.map((ev) => (
-              <div
-                key={ev.eventId}
-                className="bg-slate-950 border border-slate-800/90 rounded-xl p-3 flex flex-col gap-1"
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3 gap-2">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setDrawerTab("EXPLAINABILITY")}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 ${
+                  drawerTab === "EXPLAINABILITY"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+                }`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-mono font-bold text-indigo-300 break-all">
-                    {ev.eventType}
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-900 text-slate-300 border border-slate-700 shrink-0">
-                    {ev.producerContext}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mt-1">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {new Date(ev.occurredAt).toLocaleTimeString()}
-                  </span>
-                  <span>ID: {ev.eventId.slice(0, 12)}…</span>
-                </div>
-              </div>
-            ))}
+                <Sparkles className="w-3.5 h-3.5" />
+                Explainability (
+                {activeShipment.decisionExplainability?.length || 0})
+              </button>
+              <button
+                onClick={() => setDrawerTab("OUTBOX_TRAIL")}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 ${
+                  drawerTab === "OUTBOX_TRAIL"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                Outbox ({activeShipment.activityTrail.length})
+              </button>
+            </div>
           </div>
+
+          {drawerTab === "EXPLAINABILITY" ? (
+            <>
+              <p className="text-xs text-slate-400">
+                Registro de auditoría inmutable (
+                <code className="text-indigo-300">
+                  DecisionEvaluationRecord
+                </code>
+                ) que explica qué fila de cada{" "}
+                <strong className="text-slate-200">Decision Table</strong> se
+                aplicó y por qué:
+              </p>
+
+              <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+                {(activeShipment.decisionExplainability || []).map((rec) => (
+                  <div
+                    key={rec.evaluationId}
+                    className="bg-slate-950 border border-slate-800/90 rounded-xl p-3.5 flex flex-col gap-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-mono font-bold text-amber-300 break-all">
+                        {rec.decisionKey} (v{rec.versionNumber})
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shrink-0">
+                        {rec.matchedRowIds.join(", ")}
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-slate-200 space-y-1">
+                      {rec.ruleAnnotations.map((ann, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-slate-900/90 border border-slate-800 rounded px-2.5 py-1.5 text-[11px] text-emerald-300"
+                        >
+                          💡 {ann}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="text-[10px] font-mono text-slate-400 bg-slate-900/60 rounded p-2 border border-slate-800/80 space-y-1">
+                      <div>
+                        <strong className="text-slate-300">Inputs:</strong>{" "}
+                        {JSON.stringify(rec.inputsSnapshot)}
+                      </div>
+                      <div>
+                        <strong className="text-indigo-300">Output:</strong>{" "}
+                        {JSON.stringify(rec.outputSnapshot)}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                      <span>Caller: {rec.callerContext}</span>
+                      <span>
+                        {new Date(rec.evaluatedAt).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-slate-400">
+                Secuencia inmutable de Domain Events que hidrataron esta
+                proyección{" "}
+                <code className="text-indigo-300">Shipment360ReadModel</code> (v
+                {activeShipment.projectionVersion}):
+              </p>
+
+              <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
+                {activeShipment.activityTrail.map((ev) => (
+                  <div
+                    key={ev.eventId}
+                    className="bg-slate-950 border border-slate-800/90 rounded-xl p-3 flex flex-col gap-1"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-mono font-bold text-indigo-300 break-all">
+                        {ev.eventType}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-900 text-slate-300 border border-slate-700 shrink-0">
+                        {ev.producerContext}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mt-1">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(ev.occurredAt).toLocaleTimeString()}
+                      </span>
+                      <span>ID: {ev.eventId.slice(0, 12)}…</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           <div className="border-t border-slate-800 pt-3 flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5">

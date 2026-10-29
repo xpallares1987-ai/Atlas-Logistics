@@ -320,6 +320,92 @@ export const scmQualityAssessments = sqliteTable("data_quality_assessments", {
 });
 
 // ============================================================================
+// 20. WORKFLOW RUNTIME BOUNDED CONTEXT SCHEMA (workflow_rt_*)
+// Domain-Agnostic BPMN-like Process Definitions, Instances & Active Tokens
+// ============================================================================
+
+export const scmWorkflowDefinitions = sqliteTable(
+  "workflow_rt_process_definitions",
+  {
+    id: text("id").primaryKey(),
+    processKey: text("process_key").notNull(),
+    versionNumber: integer("version_number").notNull().default(1),
+    name: text("name").notNull(),
+    status: text("status").notNull().default("ACTIVE"), // DRAFT | ACTIVE | SUPERSEDED
+    nodesJson: text("nodes_json").notNull(), // ActivityNodeDef[]
+    sequenceFlowsJson: text("sequence_flows_json").notNull(), // SequenceFlowDef[]
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+);
+
+export const scmWorkflowInstances = sqliteTable(
+  "workflow_rt_process_instances",
+  {
+    id: text("id").primaryKey(),
+    processDefinitionId: text("process_definition_id").notNull(),
+    processKey: text("process_key").notNull(),
+    versionNumber: integer("version_number").notNull().default(1),
+    shipmentId: text("shipment_id").notNull().unique(),
+    referenceNumber: text("reference_number").notNull(),
+    state: text("state").notNull().default("RUNNING"), // RUNNING | SUSPENDED | BLOCKED_AT_GATEWAY | COMPLETED | TERMINATED
+    currentNodeId: text("current_node_id").notNull(),
+    activeTokensJson: text("active_tokens_json").notNull().default("[]"),
+    completedNodeIdsJson: text("completed_node_ids_json")
+      .notNull()
+      .default("[]"),
+    variablesSnapshotJson: text("variables_snapshot_json")
+      .notNull()
+      .default("{}"),
+    blockingReason: text("blocking_reason"),
+    organizationId: text("organization_id").notNull(),
+    branchId: text("branch_id").notNull(),
+    version: integer("version").notNull().default(1),
+    startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+  },
+);
+
+// ============================================================================
+// 21. RULES & DECISIONS BOUNDED CONTEXT SCHEMA (rules_decisions_*)
+// Versioned Decision Tables + Immutable Audit Explainability Records
+// ============================================================================
+
+export const scmDecisionDefinitions = sqliteTable(
+  "rules_decisions_definitions",
+  {
+    id: text("id").primaryKey(),
+    decisionKey: text("decision_key").notNull().unique(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    versionNumber: integer("version_number").notNull().default(1),
+    status: text("status").notNull().default("ACTIVE"), // DRAFT | ACTIVE | RETIRED
+    hitPolicy: text("hit_policy").notNull().default("FIRST"), // UNIQUE | FIRST | PRIORITY | COLLECT
+    inputColumnsJson: text("input_columns_json").notNull(),
+    outputColumnsJson: text("output_columns_json").notNull(),
+    rulesRowsJson: text("rules_rows_json").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+);
+
+export const scmDecisionEvaluationLogs = sqliteTable(
+  "rules_decisions_evaluation_logs",
+  {
+    evaluationId: text("evaluation_id").primaryKey(),
+    decisionKey: text("decision_key").notNull(),
+    versionNumber: integer("version_number").notNull(),
+    shipmentId: text("shipment_id").notNull(),
+    inputsSnapshotJson: text("inputs_snapshot_json").notNull(),
+    matchedRowIdsJson: text("matched_row_ids_json").notNull(),
+    ruleAnnotationsJson: text("rule_annotations_json").notNull(),
+    outputSnapshotJson: text("output_snapshot_json").notNull(),
+    callerContext: text("caller_context").notNull(),
+    correlationId: text("correlation_id").notNull(),
+    evaluatedAt: text("evaluated_at").notNull(),
+  },
+);
+
+// ============================================================================
 // 24. OPERATIONAL INTELLIGENCE BOUNDED CONTEXT SCHEMA (op_intelligence_*)
 // Read Models / Projections (Shipment360ReadModel)
 // ============================================================================

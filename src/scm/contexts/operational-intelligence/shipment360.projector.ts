@@ -29,6 +29,13 @@ import {
   initializeSlaClocksForShipment,
   registerControlEnginesSubscribers,
 } from "../control-engines/control-engines.context.js";
+import {
+  WorkflowStateReadModel,
+  DecisionEvaluationRecord,
+  registerAutomationSubscribers,
+  getWorkflowStateForShipment,
+  getDecisionEvaluationsForShipment,
+} from "../automation/workflow-rules.context.js";
 
 export interface Shipment360ReadModel {
   shipmentId: string;
@@ -171,6 +178,9 @@ export interface Shipment360ReadModel {
     }>;
   };
 
+  workflowState?: WorkflowStateReadModel | null;
+  decisionExplainability?: DecisionEvaluationRecord[];
+
   activityTrail: Array<{
     eventId: string;
     eventType: string;
@@ -226,6 +236,7 @@ export function registerShipment360Projectors(): void {
   if (projectorsRegistered) return;
 
   registerControlEnginesSubscribers();
+  registerAutomationSubscribers();
 
   // 1. On ShipmentCreated -> Initialize the Shipment360ReadModel projection
   outboxBus.subscribe(
@@ -578,6 +589,50 @@ export function registerShipment360Projectors(): void {
     },
   );
 
+  // 9. Slice 4 Projectors: Decision Table Explainability & Workflow Runtime State
+  outboxBus.subscribe(
+    "rules_decisions.DecisionEvaluated.v1",
+    "op_intelligence.Shipment360Projector.OnDecisionEvaluated",
+    async (event) => {
+      const p = event.payload as DecisionEvaluationRecord;
+      if (!p.shipmentId) return;
+      await updateProjectionForShipment(p.shipmentId, event, (model) => {
+        if (
+          p.decisionKey === "DECISION_OPERATIONAL_ASSIGNMENT" &&
+          p.outputSnapshot?.assignedTeamId
+        ) {
+          model.header.ownership.teamId = p.outputSnapshot.assignedTeamId;
+        }
+      });
+    },
+  );
+
+  outboxBus.subscribe(
+    "workflow_runtime.WorkflowTokenAdvanced.v1",
+    "op_intelligence.Shipment360Projector.OnWorkflowTokenAdvanced",
+    async (event) => {
+      const p = event.payload;
+      if (!p.shipmentId) return;
+      await updateProjectionForShipment(p.shipmentId, event, (model) => {
+        if (p.state === "BLOCKED_AT_GATEWAY") {
+          model.controlSummary.health.status = "BLOCKED";
+        }
+      });
+    },
+  );
+
+  outboxBus.subscribe(
+    "workflow_runtime.ProcessStateChanged.v1",
+    "op_intelligence.Shipment360Projector.OnProcessStateChanged",
+    async (event) => {
+      const p = event.payload;
+      if (!p.shipmentId) return;
+      await updateProjectionForShipment(p.shipmentId, event, () => {
+        // Records event in activityTrail and increments projectionVersion
+      });
+    },
+  );
+
   projectorsRegistered = true;
 }
 
@@ -596,6 +651,8 @@ export async function enrichShipment360Model(
     dqRows,
     exceptionRows,
     incidentRows,
+    workflowState,
+    decisionExplainability,
   ] = await Promise.all([
     db
       .select()
@@ -622,6 +679,8 @@ export async function enrichShipment360Model(
       .from(scmOperationalExceptions)
       .where(eq(scmOperationalExceptions.shipmentId, shipmentId)),
     db.select().from(scmOperationalIncidents),
+    getWorkflowStateForShipment(shipmentId),
+    getDecisionEvaluationsForShipment(shipmentId),
   ]);
 
   const milestones: MilestoneItem[] =
@@ -702,6 +761,13 @@ export async function enrichShipment360Model(
       summary: inc.summary,
     })),
   };
+
+  model.workflowState = workflowState;
+  model.decisionExplainability = decisionExplainability;
+  if (workflowState?.variablesSnapshot?.assignedTeamId) {
+    model.header.ownership.teamId =
+      workflowState.variablesSnapshot.assignedTeamId;
+  }
 
   return model;
 }

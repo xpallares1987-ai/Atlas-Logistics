@@ -11,7 +11,19 @@ import {
   SecurityActorContext,
   DEFAULT_OPERATOR_ACTOR,
 } from "../scm/kernel/primitives.js";
-import { ensureScmFoundationTables } from "../scm/kernel/outbox-bus.js";
+import {
+  ensureScmFoundationTables,
+  outboxBus,
+} from "../scm/kernel/outbox-bus.js";
+import {
+  listDecisionDefinitions,
+  publishDecisionTableVersion,
+  evaluateDecisionTable,
+  getWorkflowStateForShipment,
+  getDecisionEvaluationsForShipment,
+  advanceWorkflowTokenForShipment,
+  toggleWorkflowInstanceState,
+} from "../scm/contexts/automation/workflow-rules.context.js";
 import {
   createCustomerOrder,
   confirmCustomerOrder,
@@ -326,6 +338,103 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       const body = (request.body as any) || {};
       const result = await promoteExceptionsToMacroIncident(body, actor);
       return reply.code(201).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  // ==========================================================================
+  // 20 & 21. SLICE 4 ENDPOINTS — WORKFLOW RUNTIME & DECISION TABLES
+  // ==========================================================================
+  fastify.get("/decisions", async (_request, reply) => {
+    try {
+      const list = await listDecisionDefinitions();
+      return reply.send(list);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/decisions", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const body = (request.body as any) || {};
+      const result = await publishDecisionTableVersion(body, actor);
+      return reply.code(201).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/decisions/:decisionKey/evaluate", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { decisionKey } = request.params as { decisionKey: string };
+      const body = (request.body as any) || {};
+      const record = await evaluateDecisionTable(
+        {
+          decisionKey,
+          shipmentId: body.shipmentId || "shp_ad_hoc",
+          inputs: body.inputs || {},
+          callerContext: body.callerContext || "api.DirectDecisionEvaluation",
+        },
+        actor,
+      );
+      await outboxBus.relayPendingEvents();
+      return reply.send(record);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.get("/shipments/:id/workflow", async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const [workflowState, decisionExplainability] = await Promise.all([
+        getWorkflowStateForShipment(id),
+        getDecisionEvaluationsForShipment(id),
+      ]);
+      return reply.send({ workflowState, decisionExplainability });
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/shipments/:id/workflow/advance", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const result = await advanceWorkflowTokenForShipment(
+        {
+          shipmentId: id,
+          triggerReason:
+            body.triggerReason || "api.ManualOperatorWorkflowAdvance",
+          strictGateAssertion: body.strictGateAssertion ?? true,
+        },
+        actor,
+      );
+      await outboxBus.relayPendingEvents();
+      return reply.send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/shipments/:id/workflow/state", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const result = await toggleWorkflowInstanceState(
+        {
+          shipmentId: id,
+          action: body.action || "SUSPEND",
+          reason: body.reason,
+        },
+        actor,
+      );
+      return reply.send(result);
     } catch (err) {
       return handleDomainError(err, reply);
     }

@@ -4,7 +4,7 @@ import scmV1Routes from "../src/routes/scm-v1.routes.js";
 import { outboxBus } from "../src/scm/kernel/outbox-bus.js";
 import { DEFAULT_OPERATOR_ACTOR } from "../src/scm/kernel/primitives.js";
 
-describe("SCM Architecture Blueprint v1 — Vertical Slices 0, 1, 2 & 3", () => {
+describe("SCM Architecture Blueprint v1 — Vertical Slices 0, 1, 2, 3 & 4", () => {
   let app: FastifyInstance;
   let orderId: string;
   let orderNumber: string;
@@ -794,5 +794,137 @@ describe("SCM Architecture Blueprint v1 — Vertical Slices 0, 1, 2 & 3", () => 
     const list360 = list360Res.json();
     expect(Array.isArray(list360)).toBe(true);
     expect(list360.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("Slice 4 (Rules & Decisions with Explainability): evaluates versioned Decision Tables, assigns HazMat specialist team on DG cargo, and enforces rule invariants", async () => {
+    // 1. List canonical Decision Tables
+    const defsRes = await app.inject({
+      method: "GET",
+      url: "/api/scm/v1/decisions",
+    });
+    expect(defsRes.statusCode).toBe(200);
+    const defs = defsRes.json();
+    expect(defs.length).toBeGreaterThanOrEqual(2);
+    expect(
+      defs.some(
+        (d: any) => d.decisionKey === "DECISION_OPERATIONAL_ASSIGNMENT",
+      ),
+    ).toBe(true);
+    expect(
+      defs.some((d: any) => d.decisionKey === "DECISION_EXPORT_RELEASE_GATE"),
+    ).toBe(true);
+
+    // 2. Attempting to publish a Decision Table with empty rulesRows must fail with 422
+    const invalidDefRes = await app.inject({
+      method: "POST",
+      url: "/api/scm/v1/decisions",
+      payload: {
+        decisionKey: "DECISION_CUSTOM_TEST",
+        title: "Invalid Empty Table",
+        hitPolicy: "FIRST",
+        rulesRows: [],
+      },
+    });
+    expect(invalidDefRes.statusCode).toBe(422);
+    expect(invalidDefRes.json().code).toBe("DECISION_EMPTY_RULES_ROWS");
+
+    // 3. Inspect Shipment #1's 360 ReadModel to verify automatic DG HazMat assignment & immutable Explainability records
+    const res360 = await app.inject({
+      method: "GET",
+      url: `/api/scm/v1/shipments/${shipment1Id}/360`,
+    });
+    expect(res360.statusCode).toBe(200);
+    const view = res360.json();
+
+    // Since Shipment #1 had Dangerous Goods (UN3480 IMO 9) declared, R-ASSIGN-01 matched and assigned team_dg_hazmat_desk
+    expect(view.header.ownership.teamId).toBe("team_dg_hazmat_desk");
+    expect(view.workflowState.variablesSnapshot.mandatoryChecklistCode).toBe(
+      "CHK_IMDG_IATA_DGR",
+    );
+
+    // Verify immutable DecisionEvaluationRecords (Explainability) exist
+    expect(Array.isArray(view.decisionExplainability)).toBe(true);
+    expect(view.decisionExplainability.length).toBeGreaterThanOrEqual(2);
+    const dgEval = view.decisionExplainability.find(
+      (r: any) =>
+        r.decisionKey === "DECISION_OPERATIONAL_ASSIGNMENT" &&
+        r.matchedRowIds.includes("R-ASSIGN-01"),
+    );
+    expect(dgEval).toBeTruthy();
+    expect(dgEval.outputSnapshot.assignedTeamId).toBe("team_dg_hazmat_desk");
+    expect(dgEval.ruleAnnotations[0]).toContain("HazMat");
+  });
+
+  it("Slice 4 (Workflow Runtime BPMN-like Engine): orchestrates token progression, enforces SUSPENDED freeze invariant, and blocks gateways on failed rules/DQ", async () => {
+    // 1. Inspect Shipment #1's Workflow state (completed all 7 nodes after Route, Cargo, VGM, DQ Passed, Customs Released & Closure)
+    const wf1Res = await app.inject({
+      method: "GET",
+      url: `/api/scm/v1/shipments/${shipment1Id}/workflow`,
+    });
+    expect(wf1Res.statusCode).toBe(200);
+    const wf1 = wf1Res.json().workflowState;
+    expect(wf1.processKey).toBe("PROCESS_FREIGHT_EXECUTION");
+    expect(wf1.nodes.length).toBe(7);
+    expect(
+      wf1.nodes.find((n: any) => n.nodeId === "NODE_GATEWAY_DQ_EXPORT").status,
+    ).toBe("COMPLETED");
+
+    // 2. Suspend Shipment #2's Workflow Instance -> attempting to advance while SUSPENDED must fail with 422 WORKFLOW_INSTANCE_SUSPENDED
+    const suspendRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment2Id}/workflow/state`,
+      payload: {
+        action: "SUSPEND",
+        reason: "Compliance audit freeze on Shipment #2",
+      },
+    });
+    expect(suspendRes.statusCode).toBe(200);
+    expect(suspendRes.json().state).toBe("SUSPENDED");
+
+    const blockedWhileSuspended = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment2Id}/workflow/advance`,
+      payload: {
+        strictGateAssertion: true,
+      },
+    });
+    expect(blockedWhileSuspended.statusCode).toBe(422);
+    expect(blockedWhileSuspended.json().code).toBe(
+      "WORKFLOW_INSTANCE_SUSPENDED",
+    );
+
+    // 3. Resume Shipment #2's Workflow Instance
+    const resumeRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment2Id}/workflow/state`,
+      payload: {
+        action: "RESUME",
+      },
+    });
+    expect(resumeRes.statusCode).toBe(200);
+    expect(resumeRes.json().state).toBe("RUNNING");
+
+    // 4. Attempting to force-advance Shipment #2 (which lacks SOLAS VGM certification) across NODE_GATEWAY_DQ_EXPORT must fail with 422 WORKFLOW_GATEWAY_BLOCKED_BY_DQ_OR_RULE
+    const gatewayBlockedRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment2Id}/workflow/advance`,
+      payload: {
+        strictGateAssertion: true,
+      },
+    });
+    expect(gatewayBlockedRes.statusCode).toBe(422);
+    expect(gatewayBlockedRes.json().code).toBe(
+      "WORKFLOW_GATEWAY_BLOCKED_BY_DQ_OR_RULE",
+    );
+
+    // Verify Shipment #2's workflow state is now BLOCKED_AT_GATEWAY at NODE_GATEWAY_DQ_EXPORT
+    const wf2AfterBlock = await app.inject({
+      method: "GET",
+      url: `/api/scm/v1/shipments/${shipment2Id}/workflow`,
+    });
+    expect(wf2AfterBlock.json().workflowState.state).toBe("BLOCKED_AT_GATEWAY");
+    expect(wf2AfterBlock.json().workflowState.currentNodeId).toBe(
+      "NODE_GATEWAY_DQ_EXPORT",
+    );
   });
 });
