@@ -14,7 +14,7 @@
     "@bpmn-io/properties-panel": "^3.57.1",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
-    "@types/three": "^0.185.4",
+    "@types/three": "^0.186.0",
     "@xmldom/xmldom": "^0.9.11",
     "bpmn-js": "^18.31.0",
     "bpmn-js-bpmnlint": "^0.25.0",
