@@ -23,8 +23,10 @@ import {
   ChevronDown,
   Check,
   SlidersHorizontal,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useAuth } from "./components";
+import { RateIngestionModal } from "@atlas/ui/src/components/RateIngestionModal";
 
 export default function RatesContent() {
   const { currency, setCurrency } = useAppStore();
@@ -38,6 +40,7 @@ export default function RatesContent() {
   const [destination, setDestination] = useState<any>(null);
   const [date, setDate] = useState<string>("");
   const [equipment, setEquipment] = useState<string>("40HC");
+  const [ingestionOpen, setIngestionOpen] = useState(false);
 
   // Camunda Backend API State
   const [quotes, setQuotes] = useState<any[]>([]);
@@ -188,6 +191,14 @@ export default function RatesContent() {
               >
                 <Plane className="w-4 h-4" />
                 Air Freight
+              </button>
+
+              <button
+                onClick={() => setIngestionOpen(true)}
+                className="ml-auto flex items-center gap-2 px-4 py-2 bg-indigo-950/70 hover:bg-indigo-900 text-indigo-300 hover:text-white rounded-full text-xs font-bold border border-indigo-500/30 transition-all shadow-sm"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-400" />
+                Importar Tarifario Excel
               </button>
             </div>
 
@@ -365,6 +376,14 @@ export default function RatesContent() {
           setRequireDirect(filters.requireDirect);
           setMaxPrice(filters.maxPrice);
         }}
+      />
+
+      <RateIngestionModal
+        isOpen={ingestionOpen}
+        onClose={() => setIngestionOpen(false)}
+        onSuccess={() => handleSearch()}
+        defaultCarrier="Maersk"
+        apiUrl="/api/rates"
       />
     </div>
   );

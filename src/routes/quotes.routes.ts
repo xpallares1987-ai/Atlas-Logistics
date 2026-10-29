@@ -14,6 +14,12 @@ import { validate } from "../middleware/validate.js";
 import { CreateQuoteSchema } from "@atlas/shared/src/logistics-schemas.js";
 import { startWorkflow } from "../bpm/workflow-engine.service.js";
 import { redis } from "../config/redis.js";
+import {
+  previewRates,
+  bulkImportRates,
+  getImportBatches,
+  resolvePort,
+} from "../services/rate-ingestion.service.js";
 
 const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get(
@@ -332,6 +338,108 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         return updatedQuote[0];
       } catch (error: any) {
         reply.code(500).send({ error: error.message });
+      }
+    },
+  );
+
+  // Rate Ingestion & UN/LOCODE Management Endpoints
+  fastify.post(
+    "/preview",
+    {
+      config: {
+        rateLimit: {
+          max: process.env.CI ? 10000 : 50,
+          timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { rows, defaultCarrier } = (request.body as any) || {};
+        if (!rows || !Array.isArray(rows)) {
+          return reply
+            .code(400)
+            .send({ error: "Campo 'rows' requerido como array." });
+        }
+        const preview = await previewRates(rows, defaultCarrier);
+        return preview;
+      } catch (error: any) {
+        fastify.log.error(error, "Error previewing rates");
+        return reply.code(500).send({ error: error.message });
+      }
+    },
+  );
+
+  fastify.post(
+    "/bulk-import",
+    {
+      config: {
+        rateLimit: {
+          max: process.env.CI ? 10000 : 50,
+          timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const payload = (request.body as any) || {};
+        if (!payload.rates || !Array.isArray(payload.rates)) {
+          return reply
+            .code(400)
+            .send({ error: "Campo 'rates' requerido como array." });
+        }
+        const result = await bulkImportRates(payload);
+        return result;
+      } catch (error: any) {
+        fastify.log.error(error, "Error executing bulk rate import");
+        return reply.code(500).send({ error: error.message });
+      }
+    },
+  );
+
+  fastify.get(
+    "/import-batches",
+    {
+      config: {
+        rateLimit: {
+          max: process.env.CI ? 10000 : 100,
+          timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const limit = parseInt((request.query as any)?.limit || "20", 10);
+        const batches = await getImportBatches(limit);
+        return batches;
+      } catch (error: any) {
+        fastify.log.error(error, "Error retrieving import batches");
+        return reply.code(500).send({ error: error.message });
+      }
+    },
+  );
+
+  fastify.get(
+    "/unlocode-lookup",
+    {
+      config: {
+        rateLimit: {
+          max: process.env.CI ? 10000 : 100,
+          timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const query = ((request.query as any)?.q || "").trim();
+        const resolved = await resolvePort(query);
+        return resolved;
+      } catch (error: any) {
+        return reply.code(500).send({ error: error.message });
       }
     },
   );

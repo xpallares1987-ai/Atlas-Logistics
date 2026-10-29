@@ -13,3 +13,4 @@ export * from "./Switch";
 export * from "./Checkbox";
 export * from "./Select";
 export * from "./Table";
+export * from "./RateIngestionModal";

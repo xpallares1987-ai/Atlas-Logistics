@@ -12,9 +12,11 @@ import {
   ChevronRight,
   Globe,
   SlidersHorizontal,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useOpenExchangeRates } from "./hooks/useOpenExchangeRates";
 import { motion, AnimatePresence } from "framer-motion";
+import { RateIngestionModal } from "./RateIngestionModal";
 
 export interface DynamicRateItem {
   id: string;
@@ -34,6 +36,7 @@ const API_URL = import.meta.env.VITE_API_URL || "/api";
 export function DynamicRateEngine() {
   const [ratesData, setRatesData] = useState<DynamicRateItem[]>([]);
   const [_loading, setLoading] = useState(true);
+  const [ingestionModalOpen, setIngestionModalOpen] = useState(false);
 
   const [origin, setOrigin] = useState("CNSHA (Shanghai)");
   const [destination, setDestination] = useState("NLRTM (Rotterdam)");
@@ -327,6 +330,13 @@ export function DynamicRateEngine() {
                 </span>
               </p>
             </div>
+            <button
+              onClick={() => setIngestionModalOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg hover:shadow-indigo-500/30 transition-all cursor-pointer"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-indigo-200" />
+              Importar Tarifario Excel
+            </button>
           </motion.div>
 
           <div className="glass-card overflow-hidden mt-6">
@@ -491,6 +501,14 @@ export function DynamicRateEngine() {
           </div>
         </div>
       </div>
+
+      <RateIngestionModal
+        isOpen={ingestionModalOpen}
+        onClose={() => setIngestionModalOpen(false)}
+        onSuccess={() => fetchRates()}
+        defaultCarrier="Maersk"
+        apiUrl={API_URL + "/rates"}
+      />
     </motion.div>
   );
 }

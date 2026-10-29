@@ -55,13 +55,40 @@ export const rates = sqliteTable(
   }),
 );
 
+export const locationAliases = sqliteTable("location_aliases", {
+  id: text("id").primaryKey(),
+  alias: text("alias").notNull().unique(),
+  locationId: text("location_id")
+    .notNull()
+    .references(() => locations.id),
+  learnedFrom: text("learned_from").default("EXCEL_IMPORT"),
+  confidence: real("confidence").notNull().default(1.0),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+export const rateImportBatches = sqliteTable("rate_import_batches", {
+  id: text("id").primaryKey(),
+  fileName: text("file_name").notNull(),
+  carrierId: text("carrier_id").references(() => carriers.id),
+  totalRows: integer("total_rows").notNull(),
+  insertedCount: integer("inserted_count").notNull().default(0),
+  updatedCount: integer("updated_count").notNull().default(0),
+  failedCount: integer("failed_count").notNull().default(0),
+  status: text("status").notNull().default("COMPLETED"), // COMPLETED, PARTIAL, FAILED
+  errorsJson: text("errors_json"),
+  importedBy: text("imported_by").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 export const surcharges = sqliteTable("surcharges", {
   id: text("id").primaryKey(),
   rateId: text("rate_id")
     .notNull()
     .references(() => rates.id),
-  name: text("name").notNull(), // BAF, CAF, THC
+  name: text("name").notNull(), // BAF, CAF, THC, ETS, ISPS, DOC
   amount: real("amount").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  calcBasis: text("calc_basis").notNull().default("PER_CONTAINER"), // PER_CONTAINER, PER_BL, PERCENTAGE
   ...commonAuditFields,
 });
 
