@@ -25,6 +25,20 @@ import {
   toggleWorkflowInstanceState,
 } from "../scm/contexts/automation/workflow-rules.context.js";
 import {
+  createConsolidation,
+  addShipmentToConsolidation,
+  lockOrCloseConsolidation,
+  listConsolidations,
+  generateOrUploadDocumentVersion,
+  reviewAndApproveDocument,
+  issueDocument,
+  getDocumentsForShipment,
+  createAndSubmitCustomsCase,
+  placeCustomsInspectionHold,
+  clearCustomsHoldAndRelease,
+  getCustomsCasesForShipment,
+} from "../scm/contexts/trade-consolidation/trade-consolidation.context.js";
+import {
   createCustomerOrder,
   confirmCustomerOrder,
   loadOrderAggregate,
@@ -435,6 +449,192 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
         actor,
       );
       return reply.send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  // ==========================================================================
+  // 09, 14 & 15. SLICE 5 ENDPOINTS — CONSOLIDATION, DOCUMENTS & CUSTOMS
+  // ==========================================================================
+  fastify.get("/consolidations", async (_request, reply) => {
+    try {
+      const list = await listConsolidations();
+      return reply.send(list);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/consolidations", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const body = (request.body as any) || {};
+      const cns = await createConsolidation(body, actor);
+      return reply.code(201).send(cns);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/consolidations/:id/members", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const cns = await addShipmentToConsolidation(
+        {
+          ...body,
+          consolidationId: id,
+        },
+        actor,
+      );
+      return reply.send(cns);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/consolidations/:id/lock", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const cns = await lockOrCloseConsolidation(
+        {
+          consolidationId: id,
+          targetStatus: body.targetStatus || "LOCKED_MANIFEST",
+        },
+        actor,
+      );
+      return reply.send(cns);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.get("/shipments/:id/documents", async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const docs = await getDocumentsForShipment(id);
+      return reply.send(docs);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/shipments/:id/documents", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const doc = await generateOrUploadDocumentVersion(
+        {
+          ...body,
+          shipmentId: id,
+        },
+        actor,
+      );
+      return reply.code(201).send(doc);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/documents/:documentId/approve", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { documentId } = request.params as { documentId: string };
+      const body = (request.body as any) || {};
+      const doc = await reviewAndApproveDocument(
+        {
+          documentId,
+          decision: body.decision || "APPROVED",
+          comments: body.comments,
+        },
+        actor,
+      );
+      return reply.send(doc);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/documents/:documentId/issue", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { documentId } = request.params as { documentId: string };
+      const doc = await issueDocument(documentId, actor);
+      return reply.send(doc);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.get("/shipments/:id/customs", async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const cases = await getCustomsCasesForShipment(id);
+      return reply.send(cases);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/shipments/:id/customs", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const ccase = await createAndSubmitCustomsCase(
+        {
+          ...body,
+          shipmentId: id,
+        },
+        actor,
+      );
+      return reply.code(201).send(ccase);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/customs/:customsCaseId/hold", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { customsCaseId } = request.params as { customsCaseId: string };
+      const body = (request.body as any) || {};
+      const ccase = await placeCustomsInspectionHold(
+        {
+          customsCaseId,
+          channel: body.channel || "ORANGE",
+          reasonCode: body.reasonCode || "DOC_INSPECTION",
+          authorityNotes:
+            body.authorityNotes ||
+            "Requerimiento documental de origen y factura comercial",
+        },
+        actor,
+      );
+      return reply.send(ccase);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/customs/:customsCaseId/release", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { customsCaseId } = request.params as { customsCaseId: string };
+      const body = (request.body as any) || {};
+      const ccase = await clearCustomsHoldAndRelease(
+        {
+          customsCaseId,
+          clearOpenHolds: body.clearOpenHolds ?? true,
+          resolutionNotes: body.resolutionNotes,
+        },
+        actor,
+      );
+      return reply.send(ccase);
     } catch (err) {
       return handleDomainError(err, reply);
     }

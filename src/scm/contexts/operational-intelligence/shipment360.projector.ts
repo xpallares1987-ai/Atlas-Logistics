@@ -36,6 +36,14 @@ import {
   getWorkflowStateForShipment,
   getDecisionEvaluationsForShipment,
 } from "../automation/workflow-rules.context.js";
+import {
+  ConsolidationReadModel,
+  DocumentReadModel,
+  CustomsCaseReadModel,
+  getConsolidationsForShipment,
+  getDocumentsForShipment,
+  getCustomsCasesForShipment,
+} from "../trade-consolidation/trade-consolidation.context.js";
 
 export interface Shipment360ReadModel {
   shipmentId: string;
@@ -180,6 +188,12 @@ export interface Shipment360ReadModel {
 
   workflowState?: WorkflowStateReadModel | null;
   decisionExplainability?: DecisionEvaluationRecord[];
+
+  tradeAndConsolidation?: {
+    consolidations: ConsolidationReadModel[];
+    documents: DocumentReadModel[];
+    customsCases: CustomsCaseReadModel[];
+  };
 
   activityTrail: Array<{
     eventId: string;
@@ -633,6 +647,69 @@ export function registerShipment360Projectors(): void {
     },
   );
 
+  // 10. Slice 5 Projectors: Consolidation (House/Master), Versioned Documents & Multi-Procedure Customs
+  outboxBus.subscribe(
+    "consolidation.ShipmentAddedToConsolidation.v1",
+    "op_intelligence.Shipment360Projector.OnShipmentAddedToConsolidation",
+    async (event) => {
+      const p = event.payload;
+      if (!p.shipmentId) return;
+      await updateProjectionForShipment(p.shipmentId, event, (model) => {
+        const targetLeg = model.routing.legs.find(
+          (l: any) => l.sequenceNo === p.transportLegSequenceNo,
+        );
+        if (targetLeg) {
+          targetLeg.consolidation = {
+            consolidationId: p.consolidationId,
+            consolidationReference: p.consolidationReference,
+            masterDocumentNumber: p.masterDocumentNumber,
+            houseDocumentNumber: p.houseDocumentNumber,
+            consolidationType: p.consolidationType,
+          };
+        }
+      });
+    },
+  );
+
+  const handleSlice5ShipmentEvent = async (event: DomainEventEnvelope) => {
+    const p = event.payload;
+    if (!p?.shipmentId) return;
+    await updateProjectionForShipment(p.shipmentId, event, () => {
+      // Appends event to activityTrail and bumps projectionVersion
+    });
+  };
+
+  outboxBus.subscribe(
+    "document_mgmt.DocumentGenerated.v1",
+    "op_intelligence.Shipment360Projector.OnDocumentGenerated",
+    handleSlice5ShipmentEvent,
+  );
+  outboxBus.subscribe(
+    "document_mgmt.DocumentApproved.v1",
+    "op_intelligence.Shipment360Projector.OnDocumentApproved",
+    handleSlice5ShipmentEvent,
+  );
+  outboxBus.subscribe(
+    "document_mgmt.DocumentIssued.v1",
+    "op_intelligence.Shipment360Projector.OnDocumentIssued",
+    handleSlice5ShipmentEvent,
+  );
+  outboxBus.subscribe(
+    "customs.CustomsCaseCreated.v1",
+    "op_intelligence.Shipment360Projector.OnCustomsCaseCreated",
+    handleSlice5ShipmentEvent,
+  );
+  outboxBus.subscribe(
+    "customs.CustomsBlocked.v1",
+    "op_intelligence.Shipment360Projector.OnCustomsBlocked",
+    handleSlice5ShipmentEvent,
+  );
+  outboxBus.subscribe(
+    "customs.CustomsReleased.v1",
+    "op_intelligence.Shipment360Projector.OnCustomsReleased",
+    handleSlice5ShipmentEvent,
+  );
+
   projectorsRegistered = true;
 }
 
@@ -653,6 +730,9 @@ export async function enrichShipment360Model(
     incidentRows,
     workflowState,
     decisionExplainability,
+    consolidations,
+    documents,
+    customsCases,
   ] = await Promise.all([
     db
       .select()
@@ -681,6 +761,9 @@ export async function enrichShipment360Model(
     db.select().from(scmOperationalIncidents),
     getWorkflowStateForShipment(shipmentId),
     getDecisionEvaluationsForShipment(shipmentId),
+    getConsolidationsForShipment(shipmentId),
+    getDocumentsForShipment(shipmentId),
+    getCustomsCasesForShipment(shipmentId),
   ]);
 
   const milestones: MilestoneItem[] =
@@ -768,6 +851,12 @@ export async function enrichShipment360Model(
     model.header.ownership.teamId =
       workflowState.variablesSnapshot.assignedTeamId;
   }
+
+  model.tradeAndConsolidation = {
+    consolidations,
+    documents,
+    customsCases,
+  };
 
   return model;
 }

@@ -295,6 +295,82 @@ interface Shipment360ReadModel {
     evaluatedAt: string;
   }>;
 
+  tradeAndConsolidation?: {
+    consolidations: Array<{
+      consolidationId: string;
+      consolidationReference: string;
+      consolidationType: string;
+      mode: string;
+      originLocode: string;
+      destinationLocode: string;
+      carrierName: string;
+      masterDocumentNumber: string;
+      maxCapacityWeightKg: number;
+      maxCapacityVolumeCbm: number;
+      allocatedWeightKg: number;
+      allocatedVolumeCbm: number;
+      weightUtilizationPercent: number;
+      volumeUtilizationPercent: number;
+      status: string;
+      members: Array<{
+        membershipId: string;
+        shipmentId: string;
+        shipmentReference: string;
+        transportLegSequenceNo: number;
+        houseDocumentNumber: string;
+        allocatedPackages: number;
+        allocatedWeightKg: number;
+        allocatedVolumeCbm: number;
+      }>;
+    }>;
+    documents: Array<{
+      documentId: string;
+      shipmentId: string;
+      documentType: string;
+      documentReference: string;
+      title: string;
+      requiresApproval: boolean;
+      currentVersionNo: number;
+      lifecycleState: string;
+      latestSha256Hash: string;
+      versions: Array<{
+        versionNumber: number;
+        fileName: string;
+        sha256Hash: string;
+        changeNotes: string;
+        createdAt: string;
+      }>;
+      approvals: Array<{
+        versionNumber: number;
+        decision: string;
+        reviewerUserId: string;
+        comments: string;
+      }>;
+    }>;
+    customsCases: Array<{
+      customsCaseId: string;
+      caseNumber: string;
+      procedureType: string;
+      jurisdictionCountry: string;
+      customsOfficeLocode: string;
+      declarantEoriOrTaxId: string;
+      mrnNumber?: string | null;
+      channelAssigned?: string | null;
+      state: string;
+      openHoldsCount: number;
+      totalCalculatedDutyEur: number;
+      totalCalculatedVatEur: number;
+      tariffItems: Array<{
+        itemNo: number;
+        hsCode: string;
+        goodsDescription: string;
+        statisticalValueEur: number;
+        calculatedDutyEur: number;
+        calculatedVatEur: number;
+      }>;
+    }>;
+  };
+
   activityTrail: Array<{
     eventId: string;
     eventType: string;
@@ -308,7 +384,8 @@ type WorkspaceTab =
   | "ROUTING"
   | "CARGO_EQUIPMENT"
   | "CONTROL_GATE"
-  | "WORKFLOW_DECISIONS";
+  | "WORKFLOW_DECISIONS"
+  | "TRADE_CONSOLIDATION";
 type DrawerTab = "EXPLAINABILITY" | "OUTBOX_TRAIL";
 
 export const ShipmentWorkspace360Module: React.FC = () => {
@@ -659,6 +736,200 @@ export const ShipmentWorkspace360Module: React.FC = () => {
           action === "SUSPEND"
             ? "✓ ProcessInstance puesta en estado SUSPENDED (tokens congelados)."
             : "✓ ProcessInstance reanudada a estado RUNNING.",
+        );
+        await loadWorkspaceData(activeShipment.shipmentId);
+      }
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleCreateAndLinkConsolidation = async () => {
+    if (!activeShipment || actionBusy) return;
+    setActionBusy(true);
+    setBannerFeedback(null);
+    try {
+      const firstLeg = activeShipment.routing.legs[0];
+      const mode = firstLeg?.mode || activeShipment.header.serviceProduct.mode;
+      const originLocode = firstLeg?.originLocode || "CNSHA";
+      const destinationLocode = firstLeg?.destinationLocode || "ESBCN";
+
+      const createRes = await fetch("/api/scm/v1/consolidations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          consolidationType:
+            mode === "AIR"
+              ? "AIR_CONSOLE"
+              : mode === "ROAD"
+                ? "ROAD_GROUPAGE"
+                : "LCL_CONSOLE",
+          mode,
+          originLocode,
+          destinationLocode,
+          carrierName: firstLeg?.carrierName || "Maersk Line",
+          vesselOrFlight: firstLeg?.vesselOrFlight || "MAERSK TITAN",
+          voyageNumber: firstLeg?.voyageNumber || "415W",
+          masterDocumentNumber: `MBL-${Date.now().toString().slice(-6)}`,
+          maxCapacityWeightKg: 26000,
+          maxCapacityVolumeCbm: 68,
+        }),
+      });
+
+      if (createRes.ok) {
+        const cns = await createRes.json();
+        await fetch(
+          `/api/scm/v1/consolidations/${cns.consolidationId}/members`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              shipmentId: activeShipment.shipmentId,
+              transportLegSequenceNo: firstLeg?.sequenceNo || 1,
+              legMode: mode,
+              legOriginLocode: originLocode,
+              legDestinationLocode: destinationLocode,
+              houseDocumentNumber: `HBL-${activeShipment.referenceNumber}`,
+              allocatedPackages:
+                activeShipment.cargoAndEquipment.totals.packagesCount || 20,
+              allocatedWeightKg:
+                activeShipment.cargoAndEquipment.totals.grossWeightKg || 5000,
+              allocatedVolumeCbm:
+                activeShipment.cargoAndEquipment.totals.volumeCbm || 18,
+            }),
+          },
+        );
+        setBannerFeedback(
+          `✓ Consolidación Master ${cns.consolidationReference} creada y vinculada al House ${activeShipment.referenceNumber}.`,
+        );
+        await loadWorkspaceData(activeShipment.shipmentId);
+      }
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleGenerateDocument = async () => {
+    if (!activeShipment || actionBusy) return;
+    setActionBusy(true);
+    setBannerFeedback(null);
+    try {
+      const res = await fetch(
+        `/api/scm/v1/shipments/${activeShipment.shipmentId}/documents`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            documentType: "HOUSE_BL",
+            documentReference: `HBL-${activeShipment.referenceNumber}`,
+            title: `House Bill of Lading · ${activeShipment.referenceNumber}`,
+            requiresApproval: true,
+            changeNotes:
+              "Generación automática de borrador HBL desde Workspace",
+          }),
+        },
+      );
+      if (res.ok) {
+        setBannerFeedback(
+          "✓ Documento HBL (v1) generado con hash SHA-256 en estado UNDER_REVIEW.",
+        );
+        await loadWorkspaceData(activeShipment.shipmentId);
+      }
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleApproveAndIssueDocument = async (documentId: string) => {
+    if (!activeShipment || actionBusy) return;
+    setActionBusy(true);
+    setBannerFeedback(null);
+    try {
+      await fetch(`/api/scm/v1/documents/${documentId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          decision: "APPROVED",
+          comments: "Revisión documental conforme con manifiesto y SOLAS VGM",
+        }),
+      });
+      const issueRes = await fetch(
+        `/api/scm/v1/documents/${documentId}/issue`,
+        {
+          method: "POST",
+        },
+      );
+      if (issueRes.ok) {
+        setBannerFeedback(
+          "✓ Documento revisado (APPROVED) y emitido como versión inmutable (ISSUED).",
+        );
+        await loadWorkspaceData(activeShipment.shipmentId);
+      }
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleCreateCustomsCase = async () => {
+    if (!activeShipment || actionBusy) return;
+    setActionBusy(true);
+    setBannerFeedback(null);
+    try {
+      const destLocode =
+        activeShipment.routing.legs[activeShipment.routing.legs.length - 1]
+          ?.destinationLocode || "ESBCN";
+      const res = await fetch(
+        `/api/scm/v1/shipments/${activeShipment.shipmentId}/customs`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            procedureType: "IMPORT_CLEARANCE",
+            jurisdictionCountry: destLocode.slice(0, 2),
+            customsOfficeLocode: destLocode,
+            declarantEoriOrTaxId: "ESB61928374",
+            tariffItems: [
+              {
+                hsCode: "8507.60.00",
+                goodsDescription:
+                  "Módulos Industriales y Componentes Electrónicos",
+                countryOfOrigin: "CN",
+                statisticalValueEur: 48500,
+                dutyRatePercent: 4.5,
+                vatRatePercent: 21.0,
+              },
+            ],
+          }),
+        },
+      );
+      if (res.ok) {
+        const ccase = await res.json();
+        setBannerFeedback(
+          `✓ Expediente Aduanero ${ccase.caseNumber} (MRN ${ccase.mrnNumber}) presentado con cálculo de Arancel e IVA.`,
+        );
+        await loadWorkspaceData(activeShipment.shipmentId);
+      }
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleReleaseCustomsCase = async (customsCaseId: string) => {
+    if (!activeShipment || actionBusy) return;
+    setActionBusy(true);
+    setBannerFeedback(null);
+    try {
+      const res = await fetch(`/api/scm/v1/customs/${customsCaseId}/release`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clearOpenHolds: true,
+          resolutionNotes: "Inspección superada y Levante Aduanero concedido",
+        }),
+      });
+      if (res.ok) {
+        setBannerFeedback(
+          "✓ Levante Aduanero (RELEASED) confirmado — Reloj SLA reanudado y Workflow actualizado.",
         );
         await loadWorkspaceData(activeShipment.shipmentId);
       }
@@ -1197,6 +1468,23 @@ export const ShipmentWorkspace360Module: React.FC = () => {
               <GitBranch className="w-3.5 h-3.5" />
               5. Workflow Runtime &amp; Decision Tables (
               {activeShipment.decisionExplainability?.length || 0})
+            </button>
+            <button
+              onClick={() => setActiveTab("TRADE_CONSOLIDATION")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+                activeTab === "TRADE_CONSOLIDATION"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800"
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              6. Consolidation, Docs &amp; Customs (
+              {(activeShipment.tradeAndConsolidation?.consolidations.length ||
+                0) +
+                (activeShipment.tradeAndConsolidation?.documents.length || 0) +
+                (activeShipment.tradeAndConsolidation?.customsCases.length ||
+                  0)}
+              )
             </button>
           </div>
 
@@ -1927,6 +2215,258 @@ export const ShipmentWorkspace360Module: React.FC = () => {
                   No hay ProcessInstance activa para este expediente.
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB 6: CONSOLIDATION (HOUSE/MASTER), VERSIONED DOCUMENTS & MULTI-PROCEDURE CUSTOMS */}
+          {activeTab === "TRADE_CONSOLIDATION" && (
+            <div className="space-y-6">
+              {/* 1. 09. Consolidation (House <-> Master Shared Transport) */}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      09. Consolidation · Transporte Compartido House ↔ Master
+                      (N:M)
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Agrupa múltiples Houses bajo un Master (LCL / Grupaje /
+                      Air Console) validando corredor, modo y capacidad.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCreateAndLinkConsolidation}
+                    disabled={actionBusy}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    Vincular a Master Consolidation
+                  </button>
+                </div>
+
+                {(activeShipment.tradeAndConsolidation?.consolidations || [])
+                  .length === 0 ? (
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
+                    Este expediente no participa aún en una consolidación
+                    compartida.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {activeShipment.tradeAndConsolidation?.consolidations.map(
+                      (cns) => (
+                        <div
+                          key={cns.consolidationId}
+                          className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-sm text-indigo-300">
+                                {cns.consolidationReference}
+                              </span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                                {cns.consolidationType}
+                              </span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                Master: {cns.masterDocumentNumber}
+                              </span>
+                            </div>
+                            <span className="text-xs font-mono text-slate-300">
+                              {cns.originLocode} → {cns.destinationLocode} ·{" "}
+                              {cns.status}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-between text-xs font-mono text-slate-400">
+                            <span>
+                              Ocupación Peso:{" "}
+                              <strong className="text-white">
+                                {cns.allocatedWeightKg.toLocaleString()} /{" "}
+                                {cns.maxCapacityWeightKg.toLocaleString()} kg (
+                                {cns.weightUtilizationPercent}%)
+                              </strong>
+                            </span>
+                            <span>
+                              Ocupación Volumen:{" "}
+                              <strong className="text-white">
+                                {cns.allocatedVolumeCbm} /{" "}
+                                {cns.maxCapacityVolumeCbm} m³ (
+                                {cns.volumeUtilizationPercent}%)
+                              </strong>
+                            </span>
+                            <span>Houses: {cns.members.length}</span>
+                          </div>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 2. 14. Document Management (Immutable Versions, SHA-256 & Approval Gates) */}
+              <div className="space-y-3 border-t border-slate-800 pt-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      14. Document Management · Versionado Inmutable, SHA-256
+                      &amp; Aprobaciones
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Ciclo: UNDER_REVIEW → APPROVED → ISSUED (Inmutable;
+                      cualquier cambio posterior genera v+1).
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleGenerateDocument}
+                    disabled={actionBusy}
+                    className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                  >
+                    <FileCheck2 className="w-3.5 h-3.5" />
+                    Generar HBL / Documento (v1)
+                  </button>
+                </div>
+
+                {(activeShipment.tradeAndConsolidation?.documents || [])
+                  .length === 0 ? (
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
+                    No hay documentos emitidos para este expediente.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {activeShipment.tradeAndConsolidation?.documents.map(
+                      (doc) => (
+                        <div
+                          key={doc.documentId}
+                          className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-mono font-bold text-xs text-sky-300">
+                                {doc.documentType} · {doc.documentReference} (v
+                                {doc.currentVersionNo})
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                                  doc.lifecycleState === "ISSUED"
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                    : doc.lifecycleState === "APPROVED"
+                                      ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                                      : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                }`}
+                              >
+                                {doc.lifecycleState}
+                              </span>
+                            </div>
+                            <div className="text-xs text-white font-semibold">
+                              {doc.title}
+                            </div>
+                            <div className="text-[10px] font-mono text-slate-400">
+                              SHA-256: {doc.latestSha256Hash.slice(0, 24)}… ·{" "}
+                              {doc.versions.length} versión(es)
+                            </div>
+                          </div>
+
+                          {doc.lifecycleState !== "ISSUED" && (
+                            <button
+                              onClick={() =>
+                                handleApproveAndIssueDocument(doc.documentId)
+                              }
+                              disabled={actionBusy}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shrink-0 transition"
+                            >
+                              Aprobar &amp; Emitir (ISSUED)
+                            </button>
+                          )}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 3. 15. Customs (Multi-Procedure Cases, HS Tariff Items & Holds) */}
+              <div className="space-y-3 border-t border-slate-800 pt-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      15. Customs · Expedientes Aduaneros Multi-Procedimiento
+                      (Export / T1 / Import DUA)
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Valida EORI + partidas HS Code, calcula Arancel/IVA y
+                      sincroniza Holds con el Stop-Clock de SLA.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCreateCustomsCase}
+                    disabled={actionBusy}
+                    className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Presentar Despacho DUA / MRN
+                  </button>
+                </div>
+
+                {(activeShipment.tradeAndConsolidation?.customsCases || [])
+                  .length === 0 ? (
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
+                    No hay expedientes aduaneros registrados para este
+                    expediente.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {activeShipment.tradeAndConsolidation?.customsCases.map(
+                      (cc) => (
+                        <div
+                          key={cc.customsCaseId}
+                          className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-mono font-bold text-xs text-amber-300">
+                                {cc.caseNumber} · {cc.procedureType} (
+                                {cc.customsOfficeLocode})
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                                  cc.state === "RELEASED"
+                                    ? "bg-emerald-500/20 text-emerald-300"
+                                    : cc.state === "UNDER_INSPECTION_HOLD"
+                                      ? "bg-rose-500/20 text-rose-300"
+                                      : "bg-sky-500/20 text-sky-300"
+                                }`}
+                              >
+                                {cc.state} · Canal {cc.channelAssigned}
+                              </span>
+                            </div>
+                            <div className="text-xs font-mono text-slate-300">
+                              MRN: <strong>{cc.mrnNumber}</strong> · EORI:{" "}
+                              {cc.declarantEoriOrTaxId}
+                            </div>
+                            <div className="text-[11px] font-mono text-slate-400">
+                              Arancel: €
+                              {cc.totalCalculatedDutyEur.toLocaleString()} · IVA
+                              Importación: €
+                              {cc.totalCalculatedVatEur.toLocaleString()} ·
+                              Partidas HS: {cc.tariffItems.length}
+                            </div>
+                          </div>
+
+                          {cc.state !== "RELEASED" && (
+                            <button
+                              onClick={() =>
+                                handleReleaseCustomsCase(cc.customsCaseId)
+                              }
+                              disabled={actionBusy}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shrink-0 transition"
+                            >
+                              Confirmar Levante (RELEASED)
+                            </button>
+                          )}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

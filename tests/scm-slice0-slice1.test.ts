@@ -927,4 +927,343 @@ describe("SCM Architecture Blueprint v1 — Vertical Slices 0, 1, 2, 3 & 4", () 
       "NODE_GATEWAY_DQ_EXPORT",
     );
   });
+
+  it("Slice 5 (09. Consolidation — House/Master N:M): groups multiple House shipments under a Master Consolidation and enforces corridor, capacity, and manifest lock invariants", async () => {
+    // 1. Create a Master Consolidation on SEA leg CNSHA -> MAPTM (26,000 kg / 68 m³ capacity)
+    const createCnsRes = await app.inject({
+      method: "POST",
+      url: "/api/scm/v1/consolidations",
+      payload: {
+        consolidationType: "BUYERS_CONSOLIDATION",
+        mode: "SEA",
+        originLocode: "CNSHA",
+        destinationLocode: "MAPTM",
+        carrierName: "Maersk",
+        vesselOrFlight: "MAERSK MC-KINNEY",
+        voyageNumber: "501W",
+        masterDocumentNumber: "MAEU990182731",
+        maxCapacityWeightKg: 26000,
+        maxCapacityVolumeCbm: 68,
+      },
+    });
+    expect(createCnsRes.statusCode).toBe(201);
+    const cns = createCnsRes.json();
+    const consolidationId = cns.consolidationId;
+    expect(consolidationId).toBeTruthy();
+
+    // 2. Add Shipment #1 (12,000 kg / 33 m³) on Leg #1 (CNSHA -> MAPTM)
+    const addShp1Res = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/consolidations/${consolidationId}/members`,
+      payload: {
+        shipmentId: shipment1Id,
+        transportLegSequenceNo: 1,
+        legMode: "SEA",
+        legOriginLocode: "CNSHA",
+        legDestinationLocode: "MAPTM",
+        houseDocumentNumber: "HBL-ATLS-SHP1",
+        allocatedPackages: 60,
+        allocatedWeightKg: 12000,
+        allocatedVolumeCbm: 33,
+      },
+    });
+    expect(addShp1Res.statusCode).toBe(200);
+    expect(addShp1Res.json().allocatedWeightKg).toBe(12000);
+    expect(addShp1Res.json().members.length).toBe(1);
+
+    // 3. Corridor/Mode Mismatch Invariant: attempting to add a House with destination NLRTM instead of MAPTM must fail with 422
+    const mismatchRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/consolidations/${consolidationId}/members`,
+      payload: {
+        shipmentId: shipment2Id,
+        transportLegSequenceNo: 1,
+        legMode: "SEA",
+        legOriginLocode: "CNSHA",
+        legDestinationLocode: "NLRTM",
+        houseDocumentNumber: "HBL-ATLS-SHP2",
+        allocatedPackages: 40,
+        allocatedWeightKg: 8000,
+        allocatedVolumeCbm: 22,
+      },
+    });
+    expect(mismatchRes.statusCode).toBe(422);
+    expect(mismatchRes.json().code).toBe(
+      "CONSOLIDATION_CORRIDOR_OR_MODE_MISMATCH",
+    );
+
+    // 4. Capacity Guard Invariant: attempting to add 18,000 kg (12,000 + 18,000 = 30,000 > 26,000) must fail with 422
+    const overCapRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/consolidations/${consolidationId}/members`,
+      payload: {
+        shipmentId: shipment2Id,
+        transportLegSequenceNo: 1,
+        legMode: "SEA",
+        legOriginLocode: "CNSHA",
+        legDestinationLocode: "MAPTM",
+        houseDocumentNumber: "HBL-ATLS-SHP2",
+        allocatedPackages: 40,
+        allocatedWeightKg: 18000,
+        allocatedVolumeCbm: 22,
+      },
+    });
+    expect(overCapRes.statusCode).toBe(422);
+    expect(overCapRes.json().code).toBe("CONSOLIDATION_CAPACITY_EXCEEDED");
+
+    // 5. Add Shipment #2 with valid 8,000 kg / 22 m³ -> succeeds (total 20,000 kg / 55 m³ across 2 Houses)
+    const addShp2Res = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/consolidations/${consolidationId}/members`,
+      payload: {
+        shipmentId: shipment2Id,
+        transportLegSequenceNo: 1,
+        legMode: "SEA",
+        legOriginLocode: "CNSHA",
+        legDestinationLocode: "MAPTM",
+        houseDocumentNumber: "HBL-ATLS-SHP2",
+        allocatedPackages: 40,
+        allocatedWeightKg: 8000,
+        allocatedVolumeCbm: 22,
+      },
+    });
+    expect(addShp2Res.statusCode).toBe(200);
+    expect(addShp2Res.json().allocatedWeightKg).toBe(20000);
+    expect(addShp2Res.json().members.length).toBe(2);
+
+    // 6. Lock Consolidation Manifest -> any subsequent attempt to add/modify members fails with 422 CONSOLIDATION_LOCKED_FOR_CHANGES
+    const lockRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/consolidations/${consolidationId}/lock`,
+      payload: { targetStatus: "LOCKED_MANIFEST" },
+    });
+    expect(lockRes.statusCode).toBe(200);
+    expect(lockRes.json().status).toBe("LOCKED_MANIFEST");
+
+    const afterLockRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/consolidations/${consolidationId}/members`,
+      payload: {
+        shipmentId: shipment1Id,
+        transportLegSequenceNo: 1,
+        legMode: "SEA",
+        legOriginLocode: "CNSHA",
+        legDestinationLocode: "MAPTM",
+        houseDocumentNumber: "HBL-ATLS-SHP1-MOD",
+        allocatedPackages: 60,
+        allocatedWeightKg: 12000,
+        allocatedVolumeCbm: 33,
+      },
+    });
+    expect(afterLockRes.statusCode).toBe(422);
+    expect(afterLockRes.json().code).toBe("CONSOLIDATION_LOCKED_FOR_CHANGES");
+  });
+
+  it("Slice 5 (14. Document Management): enforces SHA-256 immutable versioning, mandatory approval before ISSUED, and post-issue amendment versioning (v2)", async () => {
+    // 1. Generate v1 of HOUSE_BL (requiresApproval = true)
+    const genRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/documents`,
+      payload: {
+        documentType: "HOUSE_BL",
+        documentReference: "HBL-BCN-2026-0091",
+        title: "House Bill of Lading · Iberian Motors FCL",
+        requiresApproval: true,
+        contentPayload: "HBL-V1-INITIAL-MANIFEST-60-PKGS-12000KG",
+      },
+    });
+    expect(genRes.statusCode).toBe(201);
+    const docV1 = genRes.json();
+    const documentId = docV1.documentId;
+    expect(docV1.currentVersionNo).toBe(1);
+    expect(docV1.lifecycleState).toBe("UNDER_REVIEW");
+    expect(docV1.latestSha256Hash).toHaveLength(64);
+
+    // 2. Attempting to ISSUE v1 before approval must fail with 422 DOCUMENT_ISSUE_REQUIRES_APPROVAL
+    const prematureIssueRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/documents/${documentId}/issue`,
+    });
+    expect(prematureIssueRes.statusCode).toBe(422);
+    expect(prematureIssueRes.json().code).toBe(
+      "DOCUMENT_ISSUE_REQUIRES_APPROVAL",
+    );
+
+    // 3. Approve v1 and then Issue -> transitions to ISSUED
+    const approveV1Res = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/documents/${documentId}/approve`,
+      payload: {
+        decision: "APPROVED",
+        comments: "Consignee and notify party verified against L/C",
+      },
+    });
+    expect(approveV1Res.statusCode).toBe(200);
+    expect(approveV1Res.json().lifecycleState).toBe("APPROVED");
+
+    const issueV1Res = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/documents/${documentId}/issue`,
+    });
+    expect(issueV1Res.statusCode).toBe(200);
+    expect(issueV1Res.json().lifecycleState).toBe("ISSUED");
+
+    // 4. Upload Post-Issue Amendment (Manifest Corrector) -> preserves v1, creates v2 with new SHA-256, resets state to UNDER_REVIEW, and requires v2 approval before re-issuing!
+    const amendV2Res = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/documents`,
+      payload: {
+        documentId,
+        documentType: "HOUSE_BL",
+        documentReference: "HBL-BCN-2026-0091",
+        title: "House Bill of Lading · Iberian Motors FCL (Amended)",
+        contentPayload: "HBL-V2-AMENDED-CONSIGNEE-TAX-ID",
+        changeNotes: "Manifest Corrector: updated consignee EORI number",
+      },
+    });
+    expect(amendV2Res.statusCode).toBe(201);
+    const docV2 = amendV2Res.json();
+    expect(docV2.currentVersionNo).toBe(2);
+    expect(docV2.versions.length).toBe(2);
+    expect(docV2.versions[0].sha256Hash).not.toBe(docV2.versions[1].sha256Hash);
+    expect(docV2.lifecycleState).toBe("UNDER_REVIEW");
+
+    // Attempting to issue v2 without v2 approval fails with 422 (v1 approval does not carry over to v2!)
+    const issueV2WithoutApproval = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/documents/${documentId}/issue`,
+    });
+    expect(issueV2WithoutApproval.statusCode).toBe(422);
+    expect(issueV2WithoutApproval.json().code).toBe(
+      "DOCUMENT_ISSUE_REQUIRES_APPROVAL",
+    );
+  });
+
+  it("Slice 5 (15. Customs): supports multi-procedure CustomsCases (Export & Import DUA), validates HS Code/EORI, and enforces Hold clearance before Release", async () => {
+    // 1. Invalid customs filing (short HS code '8507' < 6 digits) must fail with 422 CUSTOMS_INVALID_TARIFF_OR_EORI
+    const badCustomsRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/customs`,
+      payload: {
+        procedureType: "IMPORT_CLEARANCE",
+        jurisdictionCountry: "ES",
+        customsOfficeLocode: "ESBCN",
+        declarantEoriOrTaxId: "ESB61928374",
+        tariffItems: [
+          {
+            hsCode: "8507",
+            goodsDescription: "Invalid short HS code",
+            countryOfOrigin: "CN",
+            statisticalValueEur: 50000,
+          },
+        ],
+      },
+    });
+    expect(badCustomsRes.statusCode).toBe(422);
+    expect(badCustomsRes.json().code).toBe("CUSTOMS_INVALID_TARIFF_OR_EORI");
+
+    // 2. Submit valid EXPORT_CLEARANCE at CNSHA + IMPORT_CLEARANCE (DUA) at ESBCN on the same Shipment
+    const exportCaseRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/customs`,
+      payload: {
+        procedureType: "EXPORT_CLEARANCE",
+        jurisdictionCountry: "CN",
+        customsOfficeLocode: "CNSHA",
+        declarantEoriOrTaxId: "CN9131000071",
+        tariffItems: [
+          {
+            hsCode: "8507.60.00",
+            goodsDescription: "Lithium-Ion Battery Packs",
+            countryOfOrigin: "CN",
+            statisticalValueEur: 50000,
+            dutyRatePercent: 0,
+            vatRatePercent: 0,
+          },
+        ],
+      },
+    });
+    expect(exportCaseRes.statusCode).toBe(201);
+
+    const importCaseRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/customs`,
+      payload: {
+        procedureType: "IMPORT_CLEARANCE",
+        jurisdictionCountry: "ES",
+        customsOfficeLocode: "ESBCN",
+        declarantEoriOrTaxId: "ESB61928374",
+        tariffItems: [
+          {
+            hsCode: "8507.60.00",
+            goodsDescription: "Lithium-Ion Battery Packs",
+            countryOfOrigin: "CN",
+            statisticalValueEur: 50000,
+            dutyRatePercent: 4.5,
+            vatRatePercent: 21.0,
+          },
+        ],
+      },
+    });
+    expect(importCaseRes.statusCode).toBe(201);
+    const importCase = importCaseRes.json();
+    const customsCaseId = importCase.customsCaseId;
+    expect(importCase.totalCalculatedDutyEur).toBe(2250);
+    expect(importCase.totalCalculatedVatEur).toBe(10972.5);
+
+    // 3. Place an ORANGE documentary inspection hold -> state becomes UNDER_INSPECTION_HOLD
+    const holdRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/customs/${customsCaseId}/hold`,
+      payload: {
+        channel: "ORANGE",
+        reasonCode: "CERT_ORIGIN_CHECK",
+        authorityNotes: "AEAT solicita verificación de Certificado de Origen",
+      },
+    });
+    expect(holdRes.statusCode).toBe(200);
+    expect(holdRes.json().state).toBe("UNDER_INSPECTION_HOLD");
+    expect(holdRes.json().openHoldsCount).toBe(1);
+
+    // 4. Attempting to release while open hold is not cleared (clearOpenHolds: false) must fail with 422 CUSTOMS_CANNOT_RELEASE_WITH_OPEN_HOLD
+    const blockedReleaseRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/customs/${customsCaseId}/release`,
+      payload: {
+        clearOpenHolds: false,
+      },
+    });
+    expect(blockedReleaseRes.statusCode).toBe(422);
+    expect(blockedReleaseRes.json().code).toBe(
+      "CUSTOMS_CANNOT_RELEASE_WITH_OPEN_HOLD",
+    );
+
+    // 5. Clear hold and release -> transitions to RELEASED (GREEN) and hydrates Shipment360ReadModel
+    const releaseRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/customs/${customsCaseId}/release`,
+      payload: {
+        clearOpenHolds: true,
+        resolutionNotes: "Certificado de Origen validado por AEAT",
+      },
+    });
+    expect(releaseRes.statusCode).toBe(200);
+    expect(releaseRes.json().state).toBe("RELEASED");
+    expect(releaseRes.json().openHoldsCount).toBe(0);
+
+    // Verify Shipment360ReadModel includes all Slice 5 aggregates (Consolidation, Documents, CustomsCases)
+    const view360 = (
+      await app.inject({
+        method: "GET",
+        url: `/api/scm/v1/shipments/${shipment1Id}/360`,
+      })
+    ).json();
+    expect(
+      view360.tradeAndConsolidation.consolidations.length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      view360.tradeAndConsolidation.documents.length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(view360.tradeAndConsolidation.customsCases.length).toBe(2);
+  });
 });

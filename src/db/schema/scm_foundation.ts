@@ -320,6 +320,95 @@ export const scmQualityAssessments = sqliteTable("data_quality_assessments", {
 });
 
 // ============================================================================
+// 09. CONSOLIDATION BOUNDED CONTEXT SCHEMA (consolidation_*)
+// Many-to-Many House <-> Master Shared Transport Execution
+// ============================================================================
+
+export const scmConsolidations = sqliteTable("consolidation_consolidations", {
+  id: text("id").primaryKey(),
+  consolidationReference: text("consolidation_reference").notNull().unique(),
+  consolidationType: text("consolidation_type").notNull(), // LCL_CONSOLE | AIR_CONSOLE | ROAD_GROUPAGE | BUYERS_CONSOLIDATION
+  mode: text("mode").notNull(), // SEA | AIR | ROAD
+  originLocode: text("origin_locode").notNull(),
+  destinationLocode: text("destination_locode").notNull(),
+  carrierName: text("carrier_name").notNull(),
+  vesselOrFlight: text("vessel_or_flight"),
+  voyageNumber: text("voyage_number"),
+  masterDocumentNumber: text("master_document_number").notNull(),
+  maxCapacityWeightKg: real("max_capacity_weight_kg").notNull().default(26000),
+  maxCapacityVolumeCbm: real("max_capacity_volume_cbm").notNull().default(68),
+  allocatedWeightKg: real("allocated_weight_kg").notNull().default(0),
+  allocatedVolumeCbm: real("allocated_volume_cbm").notNull().default(0),
+  status: text("status").notNull().default("OPEN_FOR_STUFFING"), // PLANNING | OPEN_FOR_STUFFING | LOCKED_MANIFEST | DEPARTED | DECONSOLIDATED | CLOSED
+  membersJson: text("members_json").notNull().default("[]"), // ConsolidationMember[]
+  equipmentIdsJson: text("equipment_ids_json").notNull().default("[]"),
+  organizationId: text("organization_id").notNull(),
+  branchId: text("branch_id").notNull(),
+  version: integer("version").notNull().default(1),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+// ============================================================================
+// 14. DOCUMENT MANAGEMENT BOUNDED CONTEXT SCHEMA (document_mgmt_*)
+// Immutable Document Versions, SHA-256 Hashes & Mandatory Approval Gates
+// ============================================================================
+
+export const scmDocuments = sqliteTable("document_mgmt_documents", {
+  id: text("id").primaryKey(),
+  shipmentId: text("shipment_id").notNull(),
+  ownerEntityType: text("owner_entity_type").notNull().default("SHIPMENT"), // SHIPMENT | ORDER | CONSOLIDATION | CUSTOMS_CASE | INVOICE
+  ownerEntityId: text("owner_entity_id").notNull(),
+  documentType: text("document_type").notNull(), // HOUSE_BL | MASTER_BL | AIR_WAYBILL | CMR | COMMERCIAL_INVOICE | PACKING_LIST | CERTIFICATE_OF_ORIGIN | CUSTOMS_SAD_DUA | DANGEROUS_GOODS_DECLARATION | POD_RECEIPT
+  documentReference: text("document_reference").notNull(),
+  title: text("title").notNull(),
+  requiresApproval: integer("requires_approval", { mode: "boolean" })
+    .notNull()
+    .default(true),
+  currentVersionNo: integer("current_version_no").notNull().default(1),
+  lifecycleState: text("lifecycle_state").notNull().default("DRAFT"), // DRAFT | GENERATED | UNDER_REVIEW | APPROVED | REJECTED | ISSUED | SUPERSEDED | ARCHIVED
+  versionsJson: text("versions_json").notNull().default("[]"), // DocumentVersion[]
+  approvalsJson: text("approvals_json").notNull().default("[]"), // DocumentApproval[]
+  organizationId: text("organization_id").notNull(),
+  branchId: text("branch_id").notNull(),
+  version: integer("version").notNull().default(1),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+// ============================================================================
+// 15. CUSTOMS BOUNDED CONTEXT SCHEMA (customs_*)
+// Multi-Procedure Customs Cases (Export / Transit T1 / Import DUA), Tariff Items & Holds
+// ============================================================================
+
+export const scmCustomsCases = sqliteTable("customs_cases", {
+  id: text("id").primaryKey(),
+  caseNumber: text("case_number").notNull().unique(),
+  shipmentId: text("shipment_id").notNull(),
+  procedureType: text("procedure_type").notNull(), // EXPORT_CLEARANCE | IMPORT_CLEARANCE | TRANSIT_BONDED | SECURITY_FILING_ENS_ISF_AMS
+  jurisdictionCountry: text("jurisdiction_country").notNull(),
+  customsOfficeLocode: text("customs_office_locode").notNull(),
+  declarantEoriOrTaxId: text("declarant_eori_or_tax_id").notNull(),
+  exporterPartyId: text("exporter_party_id").notNull(),
+  importerOfRecordPartyId: text("importer_of_record_party_id").notNull(),
+  customsBrokerName: text("customs_broker_name").notNull(),
+  mrnNumber: text("mrn_number"),
+  channelAssigned: text("channel_assigned"), // GREEN | YELLOW_DOC_CHECK | ORANGE | RED_PHYSICAL_INSPECTION
+  state: text("state").notNull().default("CREATED"), // CREATED | DATA_PREPARATION | READY_FOR_FILING | SUBMITTED | UNDER_INSPECTION_HOLD | DUTIES_ASSESSED | RELEASED | CANCELLED
+  tariffItemsJson: text("tariff_items_json").notNull().default("[]"),
+  holdsJson: text("holds_json").notNull().default("[]"),
+  totalCalculatedDutyEur: real("total_calculated_duty_eur")
+    .notNull()
+    .default(0),
+  totalCalculatedVatEur: real("total_calculated_vat_eur").notNull().default(0),
+  organizationId: text("organization_id").notNull(),
+  branchId: text("branch_id").notNull(),
+  version: integer("version").notNull().default(1),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+// ============================================================================
 // 20. WORKFLOW RUNTIME BOUNDED CONTEXT SCHEMA (workflow_rt_*)
 // Domain-Agnostic BPMN-like Process Definitions, Instances & Active Tokens
 // ============================================================================
