@@ -29,6 +29,12 @@ import {
   declareShipmentCargo,
   assignShipmentEquipment,
 } from "../scm/contexts/cargo-equipment/cargo-equipment.context.js";
+import { ingestOperationalTrackingEvent } from "../scm/contexts/tracking-events/tracking-events.context.js";
+import {
+  toggleSlaStopClock,
+  evaluateShipmentDataQuality,
+  promoteExceptionsToMacroIncident,
+} from "../scm/contexts/control-engines/control-engines.context.js";
 import {
   getShipment360ReadModel,
   registerShipment360Projectors,
@@ -246,6 +252,80 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
         actor,
       );
       return reply.code(201).send(equipment);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  // ==========================================================================
+  // 11, 13, 18, 19. SLICE 2 & SLICE 3 ENDPOINTS
+  // Tracking Events, SLA Stop-Clock, Contextual Data Quality & Macro Incidents
+  // ==========================================================================
+  fastify.post("/shipments/:id/events", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const result = await ingestOperationalTrackingEvent(
+        {
+          ...body,
+          shipmentId: id,
+        },
+        actor,
+      );
+      return reply.code(201).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/shipments/:id/sla-stop-clock", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const result = await toggleSlaStopClock(
+        {
+          shipmentId: id,
+          slaCode: body.slaCode || "SLA_CUSTOMS_RELEASE",
+          action: body.action || "PAUSE",
+          reason: body.reason || "External Stop-Clock",
+          simulatedPauseMinutes: body.simulatedPauseMinutes,
+        },
+        actor,
+      );
+      await ensureScmFoundationTables();
+      return reply.send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post(
+    "/shipments/:id/data-quality/evaluate",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { id } = request.params as { id: string };
+        const body = (request.body as any) || {};
+        const result = await evaluateShipmentDataQuality(
+          id,
+          body.stage || "PRE_DEPARTURE_EXPORT",
+          actor,
+        );
+        return reply.send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.post("/incidents", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const body = (request.body as any) || {};
+      const result = await promoteExceptionsToMacroIncident(body, actor);
+      return reply.code(201).send(result);
     } catch (err) {
       return handleDomainError(err, reply);
     }

@@ -190,6 +190,136 @@ export const scmEquipmentAssignments = sqliteTable(
 );
 
 // ============================================================================
+// 11. TRACKING & EVENTS BOUNDED CONTEXT SCHEMA (tracking_events_*)
+// Append-only Event Stream + MilestonePlan (Planned / Estimated / Actual)
+// ============================================================================
+
+export const scmTrackingEventsStream = sqliteTable("tracking_events_stream", {
+  eventId: text("event_id").primaryKey(),
+  shipmentId: text("shipment_id").notNull(),
+  eventCode: text("event_code").notNull(), // GATE_IN | VGM_VERIFIED | VESSEL_DEPARTED | ETA_UPDATED | CUSTOMS_HOLD | CUSTOMS_RELEASED | TEMP_EXCURSION | DELIVERED
+  milestoneCode: text("milestone_code").notNull(), // VGM_CUTOFF | ETD_POL | TRANSSHIPMENT | ETA_POD | CUSTOMS_CLEARANCE | POD_DELIVERY
+  locationLocode: text("location_locode").notNull(),
+  sourceType: text("source_type").notNull(), // TERMINAL_PORT_CUSTOMS | CARRIER_DCSA_EDI | IOT_AIS_TELEMETRY | MANUAL_OPERATOR
+  sourceTrustRank: integer("source_trust_rank").notNull().default(1), // 4 = Authority/Terminal, 3 = Carrier EDI, 2 = IoT/AIS, 1 = Manual
+  timestampKind: text("timestamp_kind").notNull(), // PLANNED | ESTIMATED | ACTUAL
+  eventTimestamp: text("event_timestamp").notNull(),
+  summary: text("summary").notNull(),
+  payloadJson: text("payload_json").notNull().default("{}"),
+  organizationId: text("organization_id").notNull(),
+  branchId: text("branch_id").notNull(),
+  recordedAt: integer("recorded_at", { mode: "timestamp" }).notNull(),
+});
+
+export const scmMilestonePlans = sqliteTable(
+  "tracking_events_milestone_plans",
+  {
+    id: text("id").primaryKey(),
+    shipmentId: text("shipment_id").notNull().unique(),
+    routeVersionNo: integer("route_version_no").notNull().default(1),
+    milestonesJson: text("milestones_json").notNull(), // MilestoneItem[] with Planned/Estimated/Actual + estimationHistory
+    version: integer("version").notNull().default(1),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+);
+
+// ============================================================================
+// 13. EXCEPTION MANAGEMENT BOUNDED CONTEXT SCHEMA (exception_mgmt_*)
+// Active Deduplication (shipmentId + category + milestoneCode) + N:1 Incidents
+// ============================================================================
+
+export const scmOperationalExceptions = sqliteTable(
+  "exception_mgmt_exceptions",
+  {
+    id: text("id").primaryKey(),
+    dedupKey: text("dedup_key").notNull().unique(), // `${shipmentId}:${category}:${milestoneCode}`
+    shipmentId: text("shipment_id").notNull(),
+    referenceNumber: text("reference_number").notNull(),
+    category: text("category").notNull(), // ETA_DELAY | CUTOFF_AT_RISK | CUSTOMS_HOLD | TEMPERATURE_EXCURSION | DATA_QUALITY_BLOCK
+    severity: text("severity").notNull(), // LOW | MEDIUM | HIGH | CRITICAL
+    status: text("status").notNull().default("OPEN"), // OPEN | IN_MITIGATION | RESOLVED
+    title: text("title").notNull(),
+    summary: text("summary").notNull(),
+    milestoneCode: text("milestone_code").notNull(),
+    locationLocode: text("location_locode").notNull(),
+    occurrenceCount: integer("occurrence_count").notNull().default(1),
+    incidentId: text("incident_id"),
+    incidentNumber: text("incident_number"),
+    linkedWorkItemId: text("linked_work_item_id"),
+    evidenceLogJson: text("evidence_log_json").notNull().default("[]"),
+    organizationId: text("organization_id").notNull(),
+    branchId: text("branch_id").notNull(),
+    firstDetectedAt: text("first_detected_at").notNull(),
+    lastOccurredAt: text("last_occurred_at").notNull(),
+    resolvedAt: text("resolved_at"),
+  },
+);
+
+export const scmOperationalIncidents = sqliteTable("exception_mgmt_incidents", {
+  id: text("id").primaryKey(),
+  incidentNumber: text("incident_number").notNull().unique(),
+  title: text("title").notNull(),
+  category: text("category").notNull(), // PORT_CONGESTION | VESSEL_SCHEDULE_DISRUPTION | CUSTOMS_SYSTEM_OUTAGE | WEATHER_DISRUPTION
+  severity: text("severity").notNull(), // HIGH | CRITICAL
+  status: text("status").notNull().default("ACTIVE"), // ACTIVE | MITIGATED | CLOSED
+  affectedLocode: text("affected_locode").notNull(),
+  affectedVesselOrFlight: text("affected_vessel_or_flight"),
+  impactedShipmentIdsJson: text("impacted_shipment_ids_json")
+    .notNull()
+    .default("[]"),
+  summary: text("summary").notNull(),
+  organizationId: text("organization_id").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+// ============================================================================
+// 18. SLA MANAGEMENT BOUNDED CONTEXT SCHEMA (sla_mgmt_*)
+// Reactive Clocks + Automatic & Manual Stop-Clock (PAUSE / RESUME)
+// ============================================================================
+
+export const scmSlaInstances = sqliteTable("sla_mgmt_instances", {
+  id: text("id").primaryKey(),
+  shipmentId: text("shipment_id").notNull(),
+  slaCode: text("sla_code").notNull(), // SLA_BOOKING_TO_VGM | SLA_TRANSIT_PUNCTUALITY | SLA_CUSTOMS_RELEASE | SLA_COLD_CHAIN_STABILITY
+  slaName: text("sla_name").notNull(),
+  status: text("status").notNull().default("ON_TRACK"), // ON_TRACK | AT_RISK | BREACHED | PAUSED | MET
+  startedAt: text("started_at").notNull(),
+  originalDeadlineAt: text("original_deadline_at").notNull(),
+  effectiveDeadlineAt: text("effective_deadline_at").notNull(),
+  pausedAt: text("paused_at"),
+  pauseReason: text("pause_reason"),
+  accumulatedPausedMinutes: integer("accumulated_paused_minutes")
+    .notNull()
+    .default(0),
+  stopClockHistoryJson: text("stop_clock_history_json").notNull().default("[]"),
+  organizationId: text("organization_id").notNull(),
+  branchId: text("branch_id").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+// ============================================================================
+// 19. DATA QUALITY BOUNDED CONTEXT SCHEMA (data_quality_*)
+// Contextual 4-Stage Gate (BOOKING -> PRE_DEPARTURE_EXPORT -> CUSTOMS_CLEARANCE -> BILLING_READY)
+// ============================================================================
+
+export const scmQualityAssessments = sqliteTable("data_quality_assessments", {
+  id: text("id").primaryKey(),
+  shipmentId: text("shipment_id").notNull().unique(),
+  activeStage: text("active_stage").notNull().default("PRE_DEPARTURE_EXPORT"), // BOOKING | PRE_DEPARTURE_EXPORT | CUSTOMS_CLEARANCE | BILLING_READY
+  score: integer("score").notNull().default(100),
+  gateStatus: text("gate_status").notNull().default("PASSED"), // PASSED | WARN | BLOCKED
+  blockingFindingsCount: integer("blocking_findings_count")
+    .notNull()
+    .default(0),
+  warningFindingsCount: integer("warning_findings_count").notNull().default(0),
+  findingsJson: text("findings_json").notNull().default("[]"),
+  organizationId: text("organization_id").notNull(),
+  branchId: text("branch_id").notNull(),
+  evaluatedAt: integer("evaluated_at", { mode: "timestamp" }).notNull(),
+});
+
+// ============================================================================
 // 24. OPERATIONAL INTELLIGENCE BOUNDED CONTEXT SCHEMA (op_intelligence_*)
 // Read Models / Projections (Shipment360ReadModel)
 // ============================================================================

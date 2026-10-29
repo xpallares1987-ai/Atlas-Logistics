@@ -1,6 +1,14 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db } from "../../../db/index.js";
-import { scmShipment360Views } from "../../../db/schema/scm_foundation.js";
+import {
+  scmShipment360Views,
+  scmMilestonePlans,
+  scmTrackingEventsStream,
+  scmSlaInstances,
+  scmQualityAssessments,
+  scmOperationalExceptions,
+  scmOperationalIncidents,
+} from "../../../db/schema/scm_foundation.js";
 import {
   DomainEventEnvelope,
   SecurityActorContext,
@@ -12,6 +20,15 @@ import {
   ensureScmFoundationTables,
   outboxBus,
 } from "../../kernel/outbox-bus.js";
+import {
+  MilestoneItem,
+  syncMilestonePlanFromRouteVersion,
+} from "../tracking-events/tracking-events.context.js";
+import {
+  QualityFinding,
+  initializeSlaClocksForShipment,
+  registerControlEnginesSubscribers,
+} from "../control-engines/control-engines.context.js";
 
 export interface Shipment360ReadModel {
   shipmentId: string;
@@ -49,10 +66,24 @@ export interface Shipment360ReadModel {
       drivers: string[];
     };
     dataQuality: {
+      activeStage?: string;
       score: number;
       gateStatus: "PASSED" | "WARN" | "BLOCKED";
       openFindingsCount: number;
+      findings?: QualityFinding[];
     };
+    sla?: Array<{
+      slaId: string;
+      slaCode: string;
+      slaName: string;
+      status: "ON_TRACK" | "AT_RISK" | "BREACHED" | "PAUSED" | "MET";
+      originalDeadlineAt: string;
+      effectiveDeadlineAt: string;
+      pausedAt?: string | null;
+      pauseReason?: string | null;
+      accumulatedPausedMinutes: number;
+      stopClockHistory: any[];
+    }>;
   };
 
   commercialContext: {
@@ -93,6 +124,51 @@ export interface Shipment360ReadModel {
     };
     cargoItems: any[];
     equipment: any[];
+  };
+
+  tracking?: {
+    milestones: MilestoneItem[];
+    recentEvents: Array<{
+      eventId: string;
+      eventCode: string;
+      milestoneCode: string;
+      locationLocode: string;
+      sourceType: string;
+      sourceTrustRank: number;
+      timestampKind: string;
+      eventTimestamp: string;
+      summary: string;
+    }>;
+  };
+
+  actionableItems?: {
+    exceptions: Array<{
+      exceptionId: string;
+      dedupKey: string;
+      category: string;
+      severity: string;
+      status: string;
+      title: string;
+      summary: string;
+      milestoneCode: string;
+      locationLocode: string;
+      occurrenceCount: number;
+      incidentId?: string | null;
+      incidentNumber?: string | null;
+      linkedWorkItemId?: string | null;
+      lastOccurredAt: string;
+    }>;
+    incidents: Array<{
+      incidentId: string;
+      incidentNumber: string;
+      title: string;
+      category: string;
+      severity: string;
+      status: string;
+      affectedLocode: string;
+      affectedVesselOrFlight?: string | null;
+      summary: string;
+    }>;
   };
 
   activityTrail: Array<{
@@ -149,6 +225,8 @@ let projectorsRegistered = false;
 export function registerShipment360Projectors(): void {
   if (projectorsRegistered) return;
 
+  registerControlEnginesSubscribers();
+
   // 1. On ShipmentCreated -> Initialize the Shipment360ReadModel projection
   outboxBus.subscribe(
     "shipment_execution.ShipmentCreated.v1",
@@ -188,10 +266,13 @@ export function registerShipment360Projectors(): void {
             drivers: [],
           },
           dataQuality: {
+            activeStage: "BOOKING",
             score: 100,
             gateStatus: "PASSED",
             openFindingsCount: 0,
+            findings: [],
           },
+          sla: [],
         },
         commercialContext: {
           customerAccount: {
@@ -219,6 +300,14 @@ export function registerShipment360Projectors(): void {
           },
           cargoItems: [],
           equipment: [],
+        },
+        tracking: {
+          milestones: [],
+          recentEvents: [],
+        },
+        actionableItems: {
+          exceptions: [],
+          incidents: [],
         },
         activityTrail: [
           {
@@ -283,18 +372,38 @@ export function registerShipment360Projectors(): void {
     handleOrderFulfilmentEvent,
   );
 
-  // 3. On RouteVersionPublished -> Update routing section in projection
+  // 3. On RouteVersionPublished -> Update routing section + sync MilestonePlan + init SLA clocks
   outboxBus.subscribe(
     "transport_planning.RouteVersionPublished.v1",
     "op_intelligence.Shipment360Projector.OnRouteVersionPublished",
     async (event) => {
       const p = event.payload;
+      const milestones = await syncMilestonePlanFromRouteVersion(
+        {
+          shipmentId: p.shipmentId,
+          versionNo: p.versionNo,
+          stops: p.stops,
+          legs: p.legs,
+        },
+        event.actor,
+      );
+      await initializeSlaClocksForShipment(
+        {
+          shipmentId: p.shipmentId,
+          stops: p.stops,
+          legs: p.legs,
+        },
+        event.actor,
+      );
+
       await updateProjectionForShipment(p.shipmentId, event, (model) => {
         model.routing.routePlanId = p.routePlanId;
         model.routing.activeVersionNumber = p.versionNo;
         model.routing.versionHistoryCount += 1;
         model.routing.stops = p.stops;
         model.routing.legs = p.legs;
+        model.tracking = model.tracking || { milestones: [], recentEvents: [] };
+        model.tracking.milestones = milestones;
         if (model.header.lifecycleState === "CREATED") {
           model.header.lifecycleState = "PLANNED";
         }
@@ -408,11 +517,194 @@ export function registerShipment360Projectors(): void {
     },
   );
 
+  // 8. Slice 2 & 3 Projectors: Tracking Events, SLA Stop-Clock, Data Quality & Exceptions
+  outboxBus.subscribe(
+    "tracking_events.TransportEventReceived.v1",
+    "op_intelligence.Shipment360Projector.OnTransportEventReceived",
+    async (event) => {
+      const p = event.payload;
+      await updateProjectionForShipment(p.shipmentId, event, (model) => {
+        model.tracking = model.tracking || { milestones: [], recentEvents: [] };
+        model.tracking.milestones = p.milestones || model.tracking.milestones;
+        model.tracking.recentEvents.unshift({
+          eventId: p.streamEventId,
+          eventCode: p.eventCode,
+          milestoneCode: p.milestoneCode,
+          locationLocode: p.locationLocode,
+          sourceType: p.sourceType,
+          sourceTrustRank: p.sourceTrustRank,
+          timestampKind: p.timestampKind,
+          eventTimestamp: p.eventTimestamp,
+          summary: p.summary,
+        });
+      });
+    },
+  );
+
+  outboxBus.subscribe(
+    "exception_mgmt.ExceptionDetected.v1",
+    "op_intelligence.Shipment360Projector.OnExceptionDetected",
+    async (event) => {
+      const p = event.payload;
+      await updateProjectionForShipment(p.shipmentId, event, (model) => {
+        model.controlSummary.health.status =
+          p.severity === "CRITICAL" ? "CRITICAL" : "AT_RISK";
+        model.controlSummary.health.score = Math.max(
+          25,
+          model.controlSummary.health.score - 25,
+        );
+        const driverTag = `EXCEPTION_${p.category}_${p.milestoneCode}`;
+        if (!model.controlSummary.health.drivers.includes(driverTag)) {
+          model.controlSummary.health.drivers.push(driverTag);
+        }
+      });
+    },
+  );
+
+  outboxBus.subscribe(
+    "data_quality.QualityAssessmentCompleted.v1",
+    "op_intelligence.Shipment360Projector.OnQualityAssessmentCompleted",
+    async (event) => {
+      const p = event.payload;
+      await updateProjectionForShipment(p.shipmentId, event, (model) => {
+        model.controlSummary.dataQuality = {
+          activeStage: p.activeStage,
+          score: p.score,
+          gateStatus: p.gateStatus,
+          openFindingsCount: p.openFindingsCount,
+          findings: p.findings,
+        };
+      });
+    },
+  );
+
   projectorsRegistered = true;
 }
 
 // Auto-register projectors on module load
 registerShipment360Projectors();
+
+export async function enrichShipment360Model(
+  model: Shipment360ReadModel,
+): Promise<Shipment360ReadModel> {
+  const shipmentId = model.shipmentId;
+
+  const [
+    milestonePlanRows,
+    eventRows,
+    slaRows,
+    dqRows,
+    exceptionRows,
+    incidentRows,
+  ] = await Promise.all([
+    db
+      .select()
+      .from(scmMilestonePlans)
+      .where(eq(scmMilestonePlans.shipmentId, shipmentId))
+      .limit(1),
+    db
+      .select()
+      .from(scmTrackingEventsStream)
+      .where(eq(scmTrackingEventsStream.shipmentId, shipmentId))
+      .orderBy(desc(scmTrackingEventsStream.recordedAt))
+      .limit(20),
+    db
+      .select()
+      .from(scmSlaInstances)
+      .where(eq(scmSlaInstances.shipmentId, shipmentId)),
+    db
+      .select()
+      .from(scmQualityAssessments)
+      .where(eq(scmQualityAssessments.shipmentId, shipmentId))
+      .limit(1),
+    db
+      .select()
+      .from(scmOperationalExceptions)
+      .where(eq(scmOperationalExceptions.shipmentId, shipmentId)),
+    db.select().from(scmOperationalIncidents),
+  ]);
+
+  const milestones: MilestoneItem[] =
+    milestonePlanRows.length > 0
+      ? JSON.parse(milestonePlanRows[0].milestonesJson)
+      : model.tracking?.milestones || [];
+
+  model.tracking = {
+    milestones,
+    recentEvents: eventRows.map((r) => ({
+      eventId: r.eventId,
+      eventCode: r.eventCode,
+      milestoneCode: r.milestoneCode,
+      locationLocode: r.locationLocode,
+      sourceType: r.sourceType,
+      sourceTrustRank: r.sourceTrustRank,
+      timestampKind: r.timestampKind,
+      eventTimestamp: r.eventTimestamp,
+      summary: r.summary,
+    })),
+  };
+
+  model.controlSummary.sla = slaRows.map((s) => ({
+    slaId: s.id,
+    slaCode: s.slaCode,
+    slaName: s.slaName,
+    status: s.status as any,
+    originalDeadlineAt: s.originalDeadlineAt,
+    effectiveDeadlineAt: s.effectiveDeadlineAt,
+    pausedAt: s.pausedAt,
+    pauseReason: s.pauseReason,
+    accumulatedPausedMinutes: s.accumulatedPausedMinutes,
+    stopClockHistory: JSON.parse(s.stopClockHistoryJson),
+  }));
+
+  if (dqRows.length > 0) {
+    const dq = dqRows[0];
+    model.controlSummary.dataQuality = {
+      activeStage: dq.activeStage,
+      score: dq.score,
+      gateStatus: dq.gateStatus as any,
+      openFindingsCount: dq.blockingFindingsCount + dq.warningFindingsCount,
+      findings: JSON.parse(dq.findingsJson),
+    };
+  }
+
+  const matchingIncidents = incidentRows.filter((inc) => {
+    const ids: string[] = JSON.parse(inc.impactedShipmentIdsJson);
+    return ids.includes(shipmentId);
+  });
+
+  model.actionableItems = {
+    exceptions: exceptionRows.map((e) => ({
+      exceptionId: e.id,
+      dedupKey: e.dedupKey,
+      category: e.category,
+      severity: e.severity,
+      status: e.status,
+      title: e.title,
+      summary: e.summary,
+      milestoneCode: e.milestoneCode,
+      locationLocode: e.locationLocode,
+      occurrenceCount: e.occurrenceCount,
+      incidentId: e.incidentId,
+      incidentNumber: e.incidentNumber,
+      linkedWorkItemId: e.linkedWorkItemId,
+      lastOccurredAt: e.lastOccurredAt,
+    })),
+    incidents: matchingIncidents.map((inc) => ({
+      incidentId: inc.id,
+      incidentNumber: inc.incidentNumber,
+      title: inc.title,
+      category: inc.category,
+      severity: inc.severity,
+      status: inc.status,
+      affectedLocode: inc.affectedLocode,
+      affectedVesselOrFlight: inc.affectedVesselOrFlight,
+      summary: inc.summary,
+    })),
+  };
+
+  return model;
+}
 
 export async function getShipment360ReadModel(
   shipmentId: string,
@@ -437,5 +729,6 @@ export async function getShipment360ReadModel(
   const row = rows[0];
   assertAbacScope(actor, row.organizationId, row.branchId);
 
-  return JSON.parse(row.readModelJson) as Shipment360ReadModel;
+  const parsed = JSON.parse(row.readModelJson) as Shipment360ReadModel;
+  return enrichShipment360Model(parsed);
 }

@@ -160,6 +160,98 @@ export async function ensureScmFoundationTables(): Promise<void> {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );`,
+    `CREATE TABLE IF NOT EXISTS tracking_events_stream (
+      event_id TEXT PRIMARY KEY NOT NULL,
+      shipment_id TEXT NOT NULL,
+      event_code TEXT NOT NULL,
+      milestone_code TEXT NOT NULL,
+      location_locode TEXT NOT NULL,
+      source_type TEXT NOT NULL,
+      source_trust_rank INTEGER NOT NULL DEFAULT 1,
+      timestamp_kind TEXT NOT NULL,
+      event_timestamp TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      payload_json TEXT NOT NULL DEFAULT '{}',
+      organization_id TEXT NOT NULL,
+      branch_id TEXT NOT NULL,
+      recorded_at INTEGER NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS tracking_events_milestone_plans (
+      id TEXT PRIMARY KEY NOT NULL,
+      shipment_id TEXT NOT NULL UNIQUE,
+      route_version_no INTEGER NOT NULL DEFAULT 1,
+      milestones_json TEXT NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1,
+      updated_at INTEGER NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS exception_mgmt_exceptions (
+      id TEXT PRIMARY KEY NOT NULL,
+      dedup_key TEXT NOT NULL UNIQUE,
+      shipment_id TEXT NOT NULL,
+      reference_number TEXT NOT NULL,
+      category TEXT NOT NULL,
+      severity TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'OPEN',
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      milestone_code TEXT NOT NULL,
+      location_locode TEXT NOT NULL,
+      occurrence_count INTEGER NOT NULL DEFAULT 1,
+      incident_id TEXT,
+      incident_number TEXT,
+      linked_work_item_id TEXT,
+      evidence_log_json TEXT NOT NULL DEFAULT '[]',
+      organization_id TEXT NOT NULL,
+      branch_id TEXT NOT NULL,
+      first_detected_at TEXT NOT NULL,
+      last_occurred_at TEXT NOT NULL,
+      resolved_at TEXT
+    );`,
+    `CREATE TABLE IF NOT EXISTS exception_mgmt_incidents (
+      id TEXT PRIMARY KEY NOT NULL,
+      incident_number TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      severity TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      affected_locode TEXT NOT NULL,
+      affected_vessel_or_flight TEXT,
+      impacted_shipment_ids_json TEXT NOT NULL DEFAULT '[]',
+      summary TEXT NOT NULL,
+      organization_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS sla_mgmt_instances (
+      id TEXT PRIMARY KEY NOT NULL,
+      shipment_id TEXT NOT NULL,
+      sla_code TEXT NOT NULL,
+      sla_name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'ON_TRACK',
+      started_at TEXT NOT NULL,
+      original_deadline_at TEXT NOT NULL,
+      effective_deadline_at TEXT NOT NULL,
+      paused_at TEXT,
+      pause_reason TEXT,
+      accumulated_paused_minutes INTEGER NOT NULL DEFAULT 0,
+      stop_clock_history_json TEXT NOT NULL DEFAULT '[]',
+      organization_id TEXT NOT NULL,
+      branch_id TEXT NOT NULL,
+      updated_at INTEGER NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS data_quality_assessments (
+      id TEXT PRIMARY KEY NOT NULL,
+      shipment_id TEXT NOT NULL UNIQUE,
+      active_stage TEXT NOT NULL DEFAULT 'PRE_DEPARTURE_EXPORT',
+      score INTEGER NOT NULL DEFAULT 100,
+      gate_status TEXT NOT NULL DEFAULT 'PASSED',
+      blocking_findings_count INTEGER NOT NULL DEFAULT 0,
+      warning_findings_count INTEGER NOT NULL DEFAULT 0,
+      findings_json TEXT NOT NULL DEFAULT '[]',
+      organization_id TEXT NOT NULL,
+      branch_id TEXT NOT NULL,
+      evaluated_at INTEGER NOT NULL
+    );`,
     `CREATE TABLE IF NOT EXISTS op_intelligence_shipment_360_views (
       shipment_id TEXT PRIMARY KEY NOT NULL,
       reference_number TEXT NOT NULL,
@@ -244,6 +336,7 @@ class TransactionalOutboxBus {
   /**
    * Relays all PENDING outbox messages to registered subscribers with
    * strict Consumer Inbox idempotency (each consumer processes a given eventId at most once).
+   * Loops up to 8 passes so cascading domain events settle deterministically.
    */
   public async relayPendingEvents(): Promise<{
     relayedEventsCount: number;
@@ -251,60 +344,64 @@ class TransactionalOutboxBus {
   }> {
     await ensureScmFoundationTables();
 
-    const pendingRows = await db
-      .select()
-      .from(scmOutboxMessages)
-      .where(eq(scmOutboxMessages.status, "PENDING"));
-
     let relayedEventsCount = 0;
     let consumerDeliveriesCount = 0;
 
-    for (const row of pendingRows) {
-      const envelope: DomainEventEnvelope = {
-        eventId: row.eventId,
-        eventType: row.eventType,
-        schemaVersion: row.schemaVersion,
-        producerContext: row.producerContext,
-        aggregateType: row.aggregateType,
-        aggregateId: row.aggregateId,
-        aggregateVersion: row.aggregateVersion,
-        correlationId: row.correlationId,
-        causationId: row.causationId,
-        actor: JSON.parse(row.actorContextJson),
-        occurredAt: row.occurredAt.toISOString(),
-        payload: JSON.parse(row.payloadJson),
-      };
+    for (let pass = 0; pass < 8; pass++) {
+      const pendingRows = await db
+        .select()
+        .from(scmOutboxMessages)
+        .where(eq(scmOutboxMessages.status, "PENDING"));
 
-      const matchingSubscribers = this.subscribers.filter(
-        (s) => s.eventType === row.eventType || s.eventType === "*",
-      );
+      if (pendingRows.length === 0) break;
 
-      try {
-        for (const sub of matchingSubscribers) {
-          const delivered = await this.deliverIdempotently(sub, envelope);
-          if (delivered) {
-            consumerDeliveriesCount += 1;
+      for (const row of pendingRows) {
+        const envelope: DomainEventEnvelope = {
+          eventId: row.eventId,
+          eventType: row.eventType,
+          schemaVersion: row.schemaVersion,
+          producerContext: row.producerContext,
+          aggregateType: row.aggregateType,
+          aggregateId: row.aggregateId,
+          aggregateVersion: row.aggregateVersion,
+          correlationId: row.correlationId,
+          causationId: row.causationId,
+          actor: JSON.parse(row.actorContextJson),
+          occurredAt: row.occurredAt.toISOString(),
+          payload: JSON.parse(row.payloadJson),
+        };
+
+        const matchingSubscribers = this.subscribers.filter(
+          (s) => s.eventType === row.eventType || s.eventType === "*",
+        );
+
+        try {
+          for (const sub of matchingSubscribers) {
+            const delivered = await this.deliverIdempotently(sub, envelope);
+            if (delivered) {
+              consumerDeliveriesCount += 1;
+            }
           }
+
+          await db
+            .update(scmOutboxMessages)
+            .set({
+              status: "PUBLISHED",
+              publishedAt: new Date(),
+            })
+            .where(eq(scmOutboxMessages.eventId, row.eventId));
+
+          relayedEventsCount += 1;
+        } catch (err: any) {
+          await db
+            .update(scmOutboxMessages)
+            .set({
+              retryCount: row.retryCount + 1,
+              lastError: err?.message || "Unknown consumer error",
+            })
+            .where(eq(scmOutboxMessages.eventId, row.eventId));
+          throw err;
         }
-
-        await db
-          .update(scmOutboxMessages)
-          .set({
-            status: "PUBLISHED",
-            publishedAt: new Date(),
-          })
-          .where(eq(scmOutboxMessages.eventId, row.eventId));
-
-        relayedEventsCount += 1;
-      } catch (err: any) {
-        await db
-          .update(scmOutboxMessages)
-          .set({
-            retryCount: row.retryCount + 1,
-            lastError: err?.message || "Unknown consumer error",
-          })
-          .where(eq(scmOutboxMessages.eventId, row.eventId));
-        throw err;
       }
     }
 

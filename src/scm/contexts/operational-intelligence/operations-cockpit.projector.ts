@@ -4,6 +4,7 @@ import { db } from "../../../db/index.js";
 import {
   scmCockpitWorkItems,
   scmShipment360Views,
+  scmOperationalExceptions,
 } from "../../../db/schema/scm_foundation.js";
 import {
   SecurityActorContext,
@@ -25,6 +26,7 @@ import {
 import {
   Shipment360ReadModel,
   registerShipment360Projectors,
+  enrichShipment360Model,
 } from "./shipment360.projector.js";
 
 export interface AttentionScoreBreakdown {
@@ -117,17 +119,13 @@ export async function ensureScmDemoSeedData(): Promise<void> {
   await ensureScmFoundationTables();
   registerShipment360Projectors();
 
-  const existingViews = await db
-    .select({ shipmentId: scmShipment360Views.shipmentId })
-    .from(scmShipment360Views)
-    .limit(1);
-
-  const existingCockpit = await db
+  const existingSeedItem = await db
     .select({ workItemId: scmCockpitWorkItems.workItemId })
     .from(scmCockpitWorkItems)
+    .where(eq(scmCockpitWorkItems.workItemId, "wrk_imo_dg_approval_01"))
     .limit(1);
 
-  if (existingViews.length > 0 && existingCockpit.length > 0) {
+  if (existingSeedItem.length > 0) {
     seedInitialized = true;
     return;
   }
@@ -838,6 +836,15 @@ export async function executeCockpitWorkItem(
     })
     .where(eq(scmCockpitWorkItems.workItemId, workItemId));
 
+  // If this workItemId was linked to an operational exception, resolve it automatically
+  await db
+    .update(scmOperationalExceptions)
+    .set({
+      status: "RESOLVED",
+      resolvedAt: nowIso,
+    })
+    .where(eq(scmOperationalExceptions.linkedWorkItemId, workItemId));
+
   // Emit domain event to Outbox and update Shipment360ReadModel if linked to a shipment
   let updatedShipment360: Shipment360ReadModel | null = null;
 
@@ -878,7 +885,7 @@ export async function executeCockpitWorkItem(
         })
         .where(eq(scmShipment360Views.shipmentId, item.subject.shipmentId));
 
-      updatedShipment360 = model;
+      updatedShipment360 = await enrichShipment360Model(model);
     }
   }
 
@@ -919,7 +926,9 @@ export async function listShipment360ReadModels(
     .from(scmShipment360Views)
     .orderBy(desc(scmShipment360Views.updatedAt));
 
-  return rows
+  const models = rows
     .filter((r) => r.organizationId === actor.organizationId)
     .map((r) => JSON.parse(r.readModelJson) as Shipment360ReadModel);
+
+  return Promise.all(models.map((m) => enrichShipment360Model(m)));
 }
