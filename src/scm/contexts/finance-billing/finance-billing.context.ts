@@ -940,13 +940,17 @@ export async function registerAndMatchPurchaseInvoice(
         referenceNumber: shp?.shipmentReference || input.shipmentId,
         customerName: shp?.customerName || "Customer Account",
         routeSummary: "Corredor Multimodal 360",
-        transportMode: shp?.serviceMode || "SEA",
+        transportMode: (shp?.serviceMode as any) || "SEA",
         category: "DATA_QUALITY_BLOCK",
         severity: "HIGH",
         title: `Discrepancia 3-Way Match Factura Proveedor ${input.supplierInvoiceNumber} (+€${varianceAmountEur})`,
         summary: `Proveedor ${input.supplierName} reclama €${input.claimedAmountEur} frente a €${expectedCostAmountEur} esperados (+${variancePercent}% > tolerancia ${tolerancePercent}%). Pago bloqueado.`,
         milestoneCode: "POD_DELIVERY",
         locationLocode: "ESBCN",
+        actionCommandName: "billing.ResolvePurchaseInvoiceDiscrepancy",
+        actionLabel: "Revisar y Aprobar Variación 3-Way Match",
+        defaultResolutionValue:
+          "Variación auditada y aprobada por Finanzas Operativas",
       },
       actor,
     );

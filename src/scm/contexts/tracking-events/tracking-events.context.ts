@@ -438,7 +438,7 @@ export async function ingestOperationalTrackingEvent(
     .where(eq(scmMilestonePlans.shipmentId, input.shipmentId));
 
   const corrId = uuidv4();
-  const domainEvents = [
+  const domainEvents: any[] = [
     {
       eventId: `evt_${uuidv4()}`,
       eventType: "tracking_events.TransportEventReceived.v1",

@@ -12,16 +12,21 @@ import {
   SEED_ONE_RECORD_WAYBILLS,
   SEED_CARGO_IQ_TIMELINE,
   validateDangerousGoodsDeclaration,
-  evaluateMilestoneSla
-} from '@atlas/shared';
+  evaluateMilestoneSla,
+} from "@atlas/shared";
 
 export class IataOneRecordService {
-  private waybills: OneRecordWaybill[] = JSON.parse(JSON.stringify(SEED_ONE_RECORD_WAYBILLS));
+  private waybills: OneRecordWaybill[] = JSON.parse(
+    JSON.stringify(SEED_ONE_RECORD_WAYBILLS),
+  );
   private milestones: Map<string, CargoIqMilestone[]> = new Map();
 
   constructor() {
     // Seed initial milestones for the BCN-JFK AWB
-    this.milestones.set('075-82910482', JSON.parse(JSON.stringify(SEED_CARGO_IQ_TIMELINE)));
+    this.milestones.set(
+      "075-82910482",
+      JSON.parse(JSON.stringify(SEED_CARGO_IQ_TIMELINE)),
+    );
   }
 
   public getWaybills(): OneRecordWaybill[] {
@@ -30,7 +35,7 @@ export class IataOneRecordService {
 
   public getWaybill(waybillId: string): OneRecordWaybill | undefined {
     return this.waybills.find(
-      (w) => w.waybillId === waybillId || w.fullAwbNumber === waybillId
+      (w) => w.waybillId === waybillId || w.fullAwbNumber === waybillId,
     );
   }
 
@@ -42,17 +47,28 @@ export class IataOneRecordService {
   public recordMilestoneEvent(
     awbNumber: string,
     milestoneCode: CargoIqMilestoneCode,
-    eventRemarks?: string
-  ): { success: boolean; updatedMilestone?: CargoIqMilestone; message: string } {
-    let list = this.milestones.get(awbNumber);
-    if (!list) {
-      list = JSON.parse(JSON.stringify(SEED_CARGO_IQ_TIMELINE));
+    eventRemarks?: string,
+  ): {
+    success: boolean;
+    updatedMilestone?: CargoIqMilestone;
+    message: string;
+  } {
+    const existing = this.milestones.get(awbNumber);
+    const list: CargoIqMilestone[] = existing
+      ? existing
+      : (JSON.parse(
+          JSON.stringify(SEED_CARGO_IQ_TIMELINE),
+        ) as CargoIqMilestone[]);
+    if (!existing) {
       this.milestones.set(awbNumber, list);
     }
 
     const milestone = list.find((m) => m.milestoneCode === milestoneCode);
     if (!milestone) {
-      return { success: false, message: `Hito ${milestoneCode} no encontrado para e-AWB ${awbNumber}.` };
+      return {
+        success: false,
+        message: `Hito ${milestoneCode} no encontrado para e-AWB ${awbNumber}.`,
+      };
     }
 
     milestone.actualTimestamp = new Date().toISOString();
@@ -62,11 +78,13 @@ export class IataOneRecordService {
     return {
       success: true,
       updatedMilestone: evaluated,
-      message: `Hito Cargo iQ ${milestoneCode} registrado con éxito.`
+      message: `Hito Cargo iQ ${milestoneCode} registrado con éxito.`,
     };
   }
 
-  public validateDangerousGoods(item: DangerousGoodsItem): EDgdValidationResult {
+  public validateDangerousGoods(
+    item: DangerousGoodsItem,
+  ): EDgdValidationResult {
     return validateDangerousGoodsDeclaration(item);
   }
 }
