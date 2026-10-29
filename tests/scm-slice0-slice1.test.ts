@@ -560,4 +560,51 @@ describe("SCM Architecture Blueprint v1 — Vertical Slice 0 & Slice 1", () => {
     expect(updated360.json().header.closureState).toBe("REOPENED");
     expect(updated360.json().projectionVersion).toBeGreaterThanOrEqual(8);
   });
+
+  it("Slice 1 (Work-to-User UX Paradigm): serves prioritized OperationsCockpitReadModel and executes work items in-situ", async () => {
+    // 1. Fetch Smart Work Queue (OperationsCockpitReadModel)
+    const cockpitRes = await app.inject({
+      method: "GET",
+      url: "/api/scm/v1/cockpit",
+    });
+    expect(cockpitRes.statusCode).toBe(200);
+    const cockpit = cockpitRes.json();
+    expect(cockpit.summary.totalOpen).toBeGreaterThanOrEqual(4);
+    expect(cockpit.items.length).toBeGreaterThanOrEqual(4);
+
+    // Verify items are sorted by attentionScore descending and include 5-factor breakdown
+    const topItem = cockpit.items[0];
+    expect(topItem.workItemId).toBe("wrk_imo_dg_approval_01");
+    expect(topItem.attentionScore).toBe(96);
+    expect(topItem.scoreBreakdown.slaScore).toBe(98);
+    expect(topItem.scoreBreakdown.totalAttentionScore).toBe(96);
+
+    // 2. Execute top work item in-situ via POST /api/scm/v1/cockpit/:workItemId/execute
+    const execRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/cockpit/${topItem.workItemId}/execute`,
+      payload: {
+        resolutionNotes:
+          "IMDG-AUTH-2026-UN3480-OK — MSDS y Packing Group II verificados.",
+      },
+    });
+    expect(execRes.statusCode).toBe(200);
+    const execData = execRes.json();
+    expect(execData.completedItem.status).toBe("COMPLETED");
+    expect(execData.completedItem.dataQualityGate).toBe("PASSED");
+    expect(execData.updatedShipment360).toBeTruthy();
+    expect(execData.updatedShipment360.controlSummary.health.status).toBe(
+      "ON_TRACK",
+    );
+
+    // 3. List all Shipment360ReadModel projections via GET /api/scm/v1/shipments-360
+    const list360Res = await app.inject({
+      method: "GET",
+      url: "/api/scm/v1/shipments-360",
+    });
+    expect(list360Res.statusCode).toBe(200);
+    const list360 = list360Res.json();
+    expect(Array.isArray(list360)).toBe(true);
+    expect(list360.length).toBeGreaterThanOrEqual(3);
+  });
 });

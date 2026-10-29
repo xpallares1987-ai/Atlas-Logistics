@@ -113,6 +113,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {t("sidebar.dashboard")}
             </NavLink>
           )}
+          {(isAdminOrFF || isCustomsBroker) && (
+            <NavLink
+              onClick={() => setMobileMenuOpen(false)}
+              to="/my-work"
+              icon={Zap}
+            >
+              My Work · Smart Queue
+            </NavLink>
+          )}
+          {(isAdminOrFF || isCustomsBroker) && (
+            <NavLink
+              onClick={() => setMobileMenuOpen(false)}
+              to="/shipment-360"
+              icon={Compass}
+            >
+              Shipment Workspace 360°
+            </NavLink>
+          )}
           {(isAdminOrFF || isShipper) && (
             <NavLink
               onClick={() => setMobileMenuOpen(false)}

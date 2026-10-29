@@ -33,6 +33,11 @@ import {
   getShipment360ReadModel,
   registerShipment360Projectors,
 } from "../scm/contexts/operational-intelligence/shipment360.projector.js";
+import {
+  listOperationsCockpitItems,
+  executeCockpitWorkItem,
+  listShipment360ReadModels,
+} from "../scm/contexts/operational-intelligence/operations-cockpit.projector.js";
 
 function extractActorFromRequest(
   request: FastifyRequest,
@@ -247,14 +252,54 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   });
 
   // ==========================================================================
-  // 24. OPERATIONAL INTELLIGENCE — SHIPMENT 360 READ MODEL (CQRS BFF)
+  // 24. OPERATIONAL INTELLIGENCE — SHIPMENT 360 & SMART WORK QUEUE (CQRS BFF)
   // ==========================================================================
+  fastify.get("/shipments-360", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const list = await listShipment360ReadModels(actor);
+      return reply.send(list);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
   fastify.get("/shipments/:id/360", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
       const readModel = await getShipment360ReadModel(id, actor);
       return reply.send(readModel);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.get("/cockpit", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const query = (request.query as any) || {};
+      const result = await listOperationsCockpitItems(
+        {
+          status: query.status,
+          urgencyBucket: query.urgencyBucket,
+          search: query.search,
+        },
+        actor,
+      );
+      return reply.send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/cockpit/:workItemId/execute", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { workItemId } = request.params as { workItemId: string };
+      const body = (request.body as any) || {};
+      const result = await executeCockpitWorkItem(workItemId, body, actor);
+      return reply.send(result);
     } catch (err) {
       return handleDomainError(err, reply);
     }

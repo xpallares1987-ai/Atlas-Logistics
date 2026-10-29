@@ -209,3 +209,24 @@ export const scmShipment360Views = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   },
 );
+
+export const scmCockpitWorkItems = sqliteTable(
+  "op_intelligence_cockpit_items",
+  {
+    workItemId: text("work_item_id").primaryKey(),
+    workItemType: text("work_item_type").notNull(), // HUMAN_TASK | APPROVAL | REVIEW | FOLLOW_UP | ACTIVE_EXCEPTION
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    attentionScore: integer("attention_score").notNull(),
+    urgencyBucket: text("urgency_bucket").notNull(), // IMMEDIATE_ACTION | DUE_TODAY | AT_RISK | UPCOMING
+    status: text("status").notNull().default("OPEN"), // OPEN | COMPLETED
+    organizationId: text("organization_id").notNull(),
+    branchId: text("branch_id").notNull(),
+    teamId: text("team_id").notNull(),
+    assigneeUserId: text("assignee_user_id"),
+    shipmentId: text("shipment_id"),
+    referenceNumber: text("reference_number").notNull(),
+    itemModelJson: text("item_model_json").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+);

@@ -172,6 +172,23 @@ export async function ensureScmFoundationTables(): Promise<void> {
       read_model_json TEXT NOT NULL,
       updated_at INTEGER NOT NULL
     );`,
+    `CREATE TABLE IF NOT EXISTS op_intelligence_cockpit_items (
+      work_item_id TEXT PRIMARY KEY NOT NULL,
+      work_item_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      attention_score INTEGER NOT NULL,
+      urgency_bucket TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'OPEN',
+      organization_id TEXT NOT NULL,
+      branch_id TEXT NOT NULL,
+      team_id TEXT NOT NULL,
+      assignee_user_id TEXT,
+      shipment_id TEXT,
+      reference_number TEXT NOT NULL,
+      item_model_json TEXT NOT NULL,
+      updated_at INTEGER NOT NULL
+    );`,
   ];
 
   for (const sql of statements) {

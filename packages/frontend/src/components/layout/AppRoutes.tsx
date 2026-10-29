@@ -7,6 +7,12 @@ import { getMfeRemoteUrl } from "../../lib/mfe/mfe-config";
 
 const Login = React.lazy(() => import("../../pages/Login"));
 const DashboardModule = React.lazy(() => import("../../pages/DashboardModule"));
+const MyWorkQueueModule = React.lazy(
+  () => import("../../pages/MyWorkQueueModule"),
+);
+const ShipmentWorkspace360Module = React.lazy(
+  () => import("../../pages/ShipmentWorkspace360Module"),
+);
 
 const RateComparerContainer = () => (
   <SafeRemoteLoader
@@ -195,6 +201,38 @@ export const AppRoutes = () => {
               ]}
             >
               <DashboardModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-work"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "ADMIN",
+                "EXECUTIVE",
+                "MANAGER",
+                "SALES",
+                "OPERATIONS",
+              ]}
+            >
+              <MyWorkQueueModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/shipment-360"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "ADMIN",
+                "EXECUTIVE",
+                "MANAGER",
+                "SALES",
+                "OPERATIONS",
+              ]}
+            >
+              <ShipmentWorkspace360Module />
             </ProtectedRoute>
           }
         />
