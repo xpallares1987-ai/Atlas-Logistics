@@ -79,6 +79,18 @@ import {
   executeCockpitWorkItem,
   listShipment360ReadModels,
 } from "../scm/contexts/operational-intelligence/operations-cockpit.projector.js";
+import {
+  createOperationalShipment,
+  updateOperationalShipment,
+  createInitialRoutePlan,
+  getShipment360OperationalModel,
+} from "../scm/contexts/operational-core/slice1-operational.context.js";
+import {
+  createTask,
+  addTaskDependency,
+  completeTask,
+  getTasksForSubject,
+} from "../scm/contexts/work-management/work-management.context.js";
 
 function extractActorFromRequest(
   request: FastifyRequest,
@@ -854,6 +866,116 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
         outboxMessages: outbox,
         inboxDeliveries: inbox,
       });
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  // ==========================================================================
+  // 26. SCM LOGICAL MODEL v1 — OPERATIONAL CORE & WORK MANAGEMENT (SLICES 1 & 2)
+  // ==========================================================================
+  fastify.post("/operational/shipments", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const body = request.body as any;
+      const result = await createOperationalShipment(body, actor);
+      return reply.code(201).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.put("/operational/shipments/:shipmentId", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { shipmentId } = request.params as { shipmentId: string };
+      const body = request.body as any;
+      const result = await updateOperationalShipment(
+        { shipmentId, ...body },
+        actor,
+      );
+      return reply.code(200).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post(
+    "/operational/shipments/:shipmentId/route-plan",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { shipmentId } = request.params as { shipmentId: string };
+        const body = request.body as any;
+        const result = await createInitialRoutePlan(
+          { shipmentId, ...body },
+          actor,
+        );
+        return reply.code(201).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get(
+    "/operational/shipments/:shipmentId/360",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const result = await getShipment360OperationalModel(shipmentId);
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.post("/operational/tasks", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const body = request.body as any;
+      const result = await createTask(body, actor);
+      return reply.code(201).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/operational/tasks/dependencies", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const body = request.body as any;
+      const result = await addTaskDependency(body, actor);
+      return reply.code(201).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post(
+    "/operational/tasks/:taskId/complete",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { taskId } = request.params as { taskId: string };
+        const body = (request.body as any) || {};
+        const result = await completeTask(taskId, body.result, actor);
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get("/operational/tasks", async (request, reply) => {
+    try {
+      const query = (request.query as any) || {};
+      const result = await getTasksForSubject(
+        query.subjectType || "SHIPMENT",
+        query.subjectId,
+      );
+      return reply.code(200).send(result);
     } catch (err) {
       return handleDomainError(err, reply);
     }
