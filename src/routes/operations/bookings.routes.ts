@@ -10,6 +10,10 @@ import { companies } from "../../db/schema/core.js";
 import { invoices, invoiceItems } from "../../db/schema/finance.js";
 import { eq } from "drizzle-orm";
 import { ensureOperationsSeedData } from "./seed-data.js";
+import {
+  confirmBookingToShipment,
+  cancelBookingRequest,
+} from "../../services/booking-lifecycle.service.js";
 
 export const bookingOperationsRoutes: FastifyPluginAsync = async (fastify) => {
   // Get companies
@@ -275,6 +279,36 @@ export const bookingOperationsRoutes: FastifyPluginAsync = async (fastify) => {
         containers: [],
       });
     } catch (error: any) {
+      return reply.code(500).send({ error: error.message });
+    }
+  });
+
+  // Confirm booking to Shipment + Milestones + Draft B/L
+  fastify.post("/bookings/:id/confirm", async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const result = await confirmBookingToShipment(id, body);
+      return reply.send(result);
+    } catch (error: any) {
+      if (error.message?.includes("not found")) {
+        return reply.code(404).send({ error: error.message });
+      }
+      return reply.code(500).send({ error: error.message });
+    }
+  });
+
+  // Cancel booking
+  fastify.post("/bookings/:id/cancel", async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const cancelled = await cancelBookingRequest(id, body.reason);
+      return reply.send(cancelled);
+    } catch (error: any) {
+      if (error.message?.includes("not found")) {
+        return reply.code(404).send({ error: error.message });
+      }
       return reply.code(500).send({ error: error.message });
     }
   });

@@ -42,11 +42,254 @@ type TabKey = "RATE_LOCK" | "CUTOFF_RADAR" | "SI_STUDIO" | "EQUIPMENT_RELEASE";
 
 export default function BookingManagementModule() {
   const [activeTab, setActiveTab] = useState<TabKey>("RATE_LOCK");
-  const [selectedPresetId, setSelectedPresetId] = useState<string>("bkg-transpac-01");
+  const [selectedPresetId, setSelectedPresetId] =
+    useState<string>("bkg-transpac-01");
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedEdi, setCopiedEdi] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(882); // ~14m 42s
   const [showNewBookingModal, setShowNewBookingModal] = useState(false);
+
+  // Live DB Bookings state (2-Phase Booking-to-Shipment Lifecycle)
+  const [dbBookings, setDbBookings] = useState<any[]>([]);
+  const [loadingDbBookings, setLoadingDbBookings] = useState(false);
+  const [confirmingBooking, setConfirmingBooking] = useState<any | null>(null);
+  const [confirmForm, setConfirmForm] = useState({
+    carrierBookingNumber: "",
+    vesselName: "MV ATLAS HORIZON",
+    voyageNumber: "VY-2026E",
+    containerNumber: "ATLU4928174",
+    sealNumber: "SL-ATLS-90124",
+    shipperName: "Atlas Global Imports S.L.",
+    consigneeName: "European Distribution Hub B.V.",
+    autoDownloadPdf: true,
+  });
+  const [isConfirmSubmitting, setIsConfirmSubmitting] = useState(false);
+  const [lastConversionResult, setLastConversionResult] = useState<any | null>(
+    null,
+  );
+  const [newBookingForm, setNewBookingForm] = useState({
+    customerName: "Atlas Global Imports S.L.",
+    carrier: "Maersk",
+    origin: "CNSHA (Shanghai)",
+    destination: "ESBCN (Barcelona)",
+    equipment: "40HC",
+    incoterm: "FOB",
+    commodity: "Electronic Components",
+    weight: 18500,
+    totalCost: 2650,
+  });
+
+  const fetchDbBookings = async () => {
+    try {
+      setLoadingDbBookings(true);
+      const res = await fetch("/api/bookings");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setDbBookings(data);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching DB bookings:", err);
+    } finally {
+      setLoadingDbBookings(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDbBookings();
+  }, []);
+
+  const generateLifecycleBlPdf = (payload: {
+    blReference: string;
+    bookingReference: string;
+    carrierBookingNumber: string;
+    trackingNumber: string;
+    carrier: string;
+    shipperName: string;
+    consigneeName: string;
+    vesselName: string;
+    voyageNumber: string;
+    origin: string;
+    destination: string;
+    equipment: string;
+    containerNumber: string;
+    sealNumber: string;
+    commodity: string;
+    weightKg: number;
+    incoterm: string;
+    sha256Hash?: string;
+  }) => {
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, 210, 34, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      `ATLAS LOGISTICS - DRAFT BILL OF LADING (${payload.blReference})`,
+      14,
+      14,
+    );
+
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `Shipment Tracking: ${payload.trackingNumber} | Booking Ref: ${payload.bookingReference} | Carrier Ref: ${payload.carrierBookingNumber}`,
+      14,
+      22,
+    );
+    if (payload.sha256Hash) {
+      doc.setFontSize(7);
+      doc.text(`SHA-256 Digital Audit: ${payload.sha256Hash}`, 14, 28);
+    }
+
+    autoTable(doc, {
+      startY: 40,
+      head: [["Field", "Party / Operational Detail", "Routing & Terms"]],
+      body: [
+        [
+          "Shipper / Exporter",
+          payload.shipperName,
+          `Incoterm: ${payload.incoterm}`,
+        ],
+        ["Consignee", payload.consigneeName, "Order of Consignee"],
+        [
+          "Ocean Carrier",
+          payload.carrier,
+          `Carrier Booking: ${payload.carrierBookingNumber}`,
+        ],
+        [
+          "Vessel & Voyage",
+          `${payload.vesselName} / ${payload.voyageNumber}`,
+          `POL: ${payload.origin} -> POD: ${payload.destination}`,
+        ],
+      ],
+      theme: "striped",
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+    });
+
+    const nextY = (doc as any).lastAutoTable.finalY + 8;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text("CONTAINER & CARGO PARTICULARS", 14, nextY);
+
+    autoTable(doc, {
+      startY: nextY + 4,
+      head: [
+        [
+          "Container No.",
+          "Seal No.",
+          "Equipment",
+          "Gross Weight",
+          "Commodity Description",
+        ],
+      ],
+      body: [
+        [
+          payload.containerNumber,
+          payload.sealNumber,
+          payload.equipment,
+          `${Number(payload.weightKg || 18000).toLocaleString()} KG`,
+          payload.commodity,
+        ],
+      ],
+      theme: "grid",
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [51, 65, 85], textColor: [255, 255, 255] },
+    });
+
+    doc.save(`Draft_BL_${payload.blReference}.pdf`);
+  };
+
+  const handleOpenConfirmModal = (bkg: any) => {
+    const details = bkg.parsedCargoDetails || {};
+    setConfirmingBooking(bkg);
+    setConfirmForm({
+      carrierBookingNumber: `CR-${Math.floor(100000 + Math.random() * 900000)}`,
+      vesselName: bkg.vessel || "MV ATLAS HORIZON",
+      voyageNumber: bkg.voyage || "VY-2026E",
+      containerNumber: `ATLU${Math.floor(1000000 + Math.random() * 8999999)}`,
+      sealNumber: `SL-${Math.floor(10000 + Math.random() * 89999)}`,
+      shipperName: details.customerName || "Atlas Global Imports S.L.",
+      consigneeName: "European Distribution Hub B.V.",
+      autoDownloadPdf: true,
+    });
+  };
+
+  const handleConfirmBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirmingBooking) return;
+    setIsConfirmSubmitting(true);
+    try {
+      const res = await fetch(`/api/bookings/${confirmingBooking.id}/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(confirmForm),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setLastConversionResult(result);
+        const details = confirmingBooking.parsedCargoDetails || {};
+        if (confirmForm.autoDownloadPdf) {
+          generateLifecycleBlPdf({
+            blReference:
+              result.blDocument?.documentReference ||
+              `BL-${result.shipment?.trackingNumber}`,
+            bookingReference: confirmingBooking.referenceNumber,
+            carrierBookingNumber: confirmForm.carrierBookingNumber,
+            trackingNumber: result.shipment?.trackingNumber,
+            carrier: details.carrier || "Ocean Carrier",
+            shipperName: confirmForm.shipperName,
+            consigneeName: confirmForm.consigneeName,
+            vesselName: confirmForm.vesselName,
+            voyageNumber: confirmForm.voyageNumber,
+            origin: confirmingBooking.origin,
+            destination: confirmingBooking.destination,
+            equipment: confirmingBooking.equipment || "40HC",
+            containerNumber:
+              result.container?.containerNumber || confirmForm.containerNumber,
+            sealNumber: confirmForm.sealNumber,
+            commodity: details.commodity || "General Cargo",
+            weightKg: Number(details.weight) || 18000,
+            incoterm: details.incoterm || "FOB",
+            sha256Hash: result.blDocument?.sha256Hash,
+          });
+        }
+        setConfirmingBooking(null);
+        await fetchDbBookings();
+      }
+    } catch (err) {
+      console.error("Failed to confirm booking:", err);
+    } finally {
+      setIsConfirmSubmitting(false);
+    }
+  };
+
+  const handleCancelDbBooking = async (bookingId: string) => {
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason: "Cancelled by operator in Control Tower",
+        }),
+      });
+      if (res.ok) {
+        await fetchDbBookings();
+      }
+    } catch (err) {
+      console.error("Failed to cancel booking:", err);
+    }
+  };
 
   // Live countdown timer for rate lock
   useEffect(() => {
@@ -64,12 +307,17 @@ export default function BookingManagementModule() {
 
   // Preset state
   const initialPreset = useMemo(
-    () => OCEAN_BOOKING_PRESETS.find((p) => p.id === selectedPresetId) || OCEAN_BOOKING_PRESETS[0],
-    [selectedPresetId]
+    () =>
+      OCEAN_BOOKING_PRESETS.find((p) => p.id === selectedPresetId) ||
+      OCEAN_BOOKING_PRESETS[0],
+    [selectedPresetId],
   );
 
-  const [activeBooking, setActiveBooking] = useState<OceanBooking>(initialPreset);
-  const [allBookings, setAllBookings] = useState<OceanBooking[]>(OCEAN_BOOKING_PRESETS);
+  const [activeBooking, setActiveBooking] =
+    useState<OceanBooking>(initialPreset);
+  const [allBookings, setAllBookings] = useState<OceanBooking[]>(
+    OCEAN_BOOKING_PRESETS,
+  );
 
   const handleSelectPreset = (presetId: string) => {
     setSelectedPresetId(presetId);
@@ -81,10 +329,19 @@ export default function BookingManagementModule() {
 
   // Multi-carrier spot rates list
   const rateLockQuotes = useMemo<RateLockQuote[]>(() => {
-    const carriers: CarrierCode[] = ["MAERSK", "MSC", "CMA_CGM", "HAPAG_LLOYD", "ONE"];
+    const carriers: CarrierCode[] = [
+      "MAERSK",
+      "MSC",
+      "CMA_CGM",
+      "HAPAG_LLOYD",
+      "ONE",
+    ];
     return carriers.map((code) => {
       const meta = CARRIER_METADATA[code];
-      const baseMap: Record<CarrierCode, { freight: number; baf: number; free: number; transit: number }> = {
+      const baseMap: Record<
+        CarrierCode,
+        { freight: number; baf: number; free: number; transit: number }
+      > = {
         MAERSK: { freight: 2150, baf: 320, free: 5, transit: 14 },
         MSC: { freight: 2080, baf: 340, free: 6, transit: 15 },
         CMA_CGM: { freight: 2120, baf: 310, free: 7, transit: 16 },
@@ -106,13 +363,20 @@ export default function BookingManagementModule() {
         thcOriginUsd: 140,
         thcDestUsd: 280,
         totalSpotUsd: base.freight + base.baf + 140 + 280,
-        validityExpiresAt: new Date(Date.now() + countdownSeconds * 1000).toISOString(),
+        validityExpiresAt: new Date(
+          Date.now() + countdownSeconds * 1000,
+        ).toISOString(),
         rateLockToken: `RL-${meta.scac}-2026-LOCK`,
         freeTimeDays: base.free,
         transitTimeDays: base.transit,
       };
     });
-  }, [activeBooking.originPort, activeBooking.destinationPort, activeBooking.requestedEquipment.isoType, countdownSeconds]);
+  }, [
+    activeBooking.originPort,
+    activeBooking.destinationPort,
+    activeBooking.requestedEquipment.isoType,
+    countdownSeconds,
+  ]);
 
   // Cut-off Evaluation
   const cutOffEval = useMemo(() => {
@@ -130,7 +394,7 @@ export default function BookingManagementModule() {
         setActiveBooking(newBkg);
         setActiveTab("CUTOFF_RADAR");
       },
-    }
+    },
   );
 
   const siMutation = useApiMutation<any, any>(
@@ -139,9 +403,11 @@ export default function BookingManagementModule() {
     {
       onSuccess: (res) => {
         setActiveBooking(res.booking);
-        setAllBookings((prev) => prev.map((b) => (b.id === res.booking.id ? res.booking : b)));
+        setAllBookings((prev) =>
+          prev.map((b) => (b.id === res.booking.id ? res.booking : b)),
+        );
       },
-    }
+    },
   );
 
   const releaseMutation = useApiMutation<any, any>(
@@ -150,9 +416,11 @@ export default function BookingManagementModule() {
     {
       onSuccess: (res) => {
         setActiveBooking(res.booking);
-        setAllBookings((prev) => prev.map((b) => (b.id === res.booking.id ? res.booking : b)));
+        setAllBookings((prev) =>
+          prev.map((b) => (b.id === res.booking.id ? res.booking : b)),
+        );
       },
-    }
+    },
   );
 
   // PDF Draft Bill of Lading Download
@@ -170,29 +438,55 @@ export default function BookingManagementModule() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(15);
     doc.setFont("helvetica", "bold");
-    doc.text(`${activeBooking.rateLock.carrierName.toUpperCase()} - DRAFT BILL OF LADING`, 14, 14);
+    doc.text(
+      `${activeBooking.rateLock.carrierName.toUpperCase()} - DRAFT BILL OF LADING`,
+      14,
+      14,
+    );
 
     doc.setFontSize(8.5);
     doc.setFont("helvetica", "normal");
     doc.text(
       `DCSA v2.0 / EDI 304 Standard | Booking Ref: ${activeBooking.bookingNumber || activeBooking.referenceNumber} | SCAC: ${activeBooking.carrierScac}`,
       14,
-      22
+      22,
     );
 
     // Parties Grid
     const si = activeBooking.shippingInstructions;
     const partiesData = [
-      ["Shipper / Exporter", si?.shipperName || "Atlas Logistics Enterprise Group", si?.shipperAddress || "Pudong Logistics Hub, Shanghai"],
-      ["Consignee", si?.consigneeName || "Atlas Logistics Corp USA", si?.consigneeAddress || "Port of Los Angeles Gate 3"],
-      ["Notify Party", si?.notifyPartyName || "Same as Consignee", "Notify on Arrival via Automated Webhook"],
-      ["Vessel & Voyage", `${activeBooking.vesselName} / ${activeBooking.voyageNumber}`, `Port of Loading: ${activeBooking.originPort} | Port of Discharge: ${activeBooking.destinationPort}`],
-      ["Bill of Lading Type", si?.blType || "WAYBILL", `Freight Payment Term: ${si?.freightPaymentTerm || "PREPAID"}`],
+      [
+        "Shipper / Exporter",
+        si?.shipperName || "Atlas Logistics Enterprise Group",
+        si?.shipperAddress || "Pudong Logistics Hub, Shanghai",
+      ],
+      [
+        "Consignee",
+        si?.consigneeName || "Atlas Logistics Corp USA",
+        si?.consigneeAddress || "Port of Los Angeles Gate 3",
+      ],
+      [
+        "Notify Party",
+        si?.notifyPartyName || "Same as Consignee",
+        "Notify on Arrival via Automated Webhook",
+      ],
+      [
+        "Vessel & Voyage",
+        `${activeBooking.vesselName} / ${activeBooking.voyageNumber}`,
+        `Port of Loading: ${activeBooking.originPort} | Port of Discharge: ${activeBooking.destinationPort}`,
+      ],
+      [
+        "Bill of Lading Type",
+        si?.blType || "WAYBILL",
+        `Freight Payment Term: ${si?.freightPaymentTerm || "PREPAID"}`,
+      ],
     ];
 
     autoTable(doc, {
       startY: 38,
-      head: [["Transport Party", "Name / Entity", "Address & Routing Instructions"]],
+      head: [
+        ["Transport Party", "Name / Entity", "Address & Routing Instructions"],
+      ],
       body: partiesData,
       theme: "striped",
       styles: { fontSize: 8, cellPadding: 2.2 },
@@ -206,18 +500,20 @@ export default function BookingManagementModule() {
     doc.setTextColor(30, 41, 59);
     doc.text("CONTAINER PARTICULARS & VERIFIED GROSS MASS (VGM)", 14, nextY);
 
-    const cargoRows = (si?.containerDetails || [
-      {
-        containerNumber: "MSKU9284712",
-        sealNumber: "SL-MAEU-884910",
-        tareWeightKg: 3880,
-        verifiedGrossMassKg: 24500,
-        packagesCount: 1200,
-        packageType: "Cartons",
-        cargoDescription: activeBooking.commodityDescription,
-        hsCode: "8528.59",
-      },
-    ]).map((c) => [
+    const cargoRows = (
+      si?.containerDetails || [
+        {
+          containerNumber: "MSKU9284712",
+          sealNumber: "SL-MAEU-884910",
+          tareWeightKg: 3880,
+          verifiedGrossMassKg: 24500,
+          packagesCount: 1200,
+          packageType: "Cartons",
+          cargoDescription: activeBooking.commodityDescription,
+          hsCode: "8528.59",
+        },
+      ]
+    ).map((c) => [
       c.containerNumber,
       c.sealNumber,
       `${c.verifiedGrossMassKg.toLocaleString()} kg`,
@@ -228,7 +524,16 @@ export default function BookingManagementModule() {
 
     autoTable(doc, {
       startY: nextY + 4,
-      head: [["Container No.", "Seal No.", "VGM Gross Wt", "Packages", "Cargo Description", "HS Code"]],
+      head: [
+        [
+          "Container No.",
+          "Seal No.",
+          "VGM Gross Wt",
+          "Packages",
+          "Cargo Description",
+          "HS Code",
+        ],
+      ],
       body: cargoRows,
       theme: "grid",
       styles: { fontSize: 7.5, cellPadding: 2 },
@@ -244,10 +549,12 @@ export default function BookingManagementModule() {
       "This document is a certified Draft Ocean Bill of Lading / Sea Waybill generated in compliance with DCSA Transport Document Standards. Received for shipment in apparent external good order and condition.",
       14,
       finalY,
-      { maxWidth: 182 }
+      { maxWidth: 182 },
     );
 
-    doc.save(`Draft_BL_${activeBooking.bookingNumber || activeBooking.referenceNumber}.pdf`);
+    doc.save(
+      `Draft_BL_${activeBooking.bookingNumber || activeBooking.referenceNumber}.pdf`,
+    );
   };
 
   // PDF Depot Release Gate Pass Download
@@ -274,18 +581,36 @@ export default function BookingManagementModule() {
     doc.text(
       `Depot Gate Pass | Ref: ${release?.releaseOrderNumber || "REL-PENDING"} | Valid Until: ${release?.validUntil || "2026-10-25"}`,
       14,
-      22
+      22,
     );
 
     const depotData = [
-      ["Carrier & SCAC", `${activeBooking.rateLock.carrierName} (${activeBooking.carrierScac})`],
-      ["Carrier Booking Number", activeBooking.bookingNumber || activeBooking.referenceNumber],
+      [
+        "Carrier & SCAC",
+        `${activeBooking.rateLock.carrierName} (${activeBooking.carrierScac})`,
+      ],
+      [
+        "Carrier Booking Number",
+        activeBooking.bookingNumber || activeBooking.referenceNumber,
+      ],
       ["Depot Facility", release?.depotName || "Intermodal Container Terminal"],
-      ["Depot Code & Address", `${release?.depotCode || "DEPOT-01"} - ${release?.depotAddress || "Gate 4, Terminal Area"}`],
-      ["Container Equipment Allotted", `${activeBooking.requestedEquipment.quantity}x ${activeBooking.requestedEquipment.isoType} High Cube`],
-      ["Assigned Container Seals", release?.sealNumbersAllocated.join(", ") || "SL-PENDING"],
+      [
+        "Depot Code & Address",
+        `${release?.depotCode || "DEPOT-01"} - ${release?.depotAddress || "Gate 4, Terminal Area"}`,
+      ],
+      [
+        "Container Equipment Allotted",
+        `${activeBooking.requestedEquipment.quantity}x ${activeBooking.requestedEquipment.isoType} High Cube`,
+      ],
+      [
+        "Assigned Container Seals",
+        release?.sealNumbersAllocated.join(", ") || "SL-PENDING",
+      ],
       ["DRIVER AUTHORIZATION PIN", release?.pickupPin || "8492"],
-      ["Status & Validity", `${release?.status || "ISSUED"} - Valid through ${release?.validUntil || "2026-10-25"}`],
+      [
+        "Status & Validity",
+        `${release?.status || "ISSUED"} - Valid through ${release?.validUntil || "2026-10-25"}`,
+      ],
     ];
 
     autoTable(doc, {
@@ -311,10 +636,12 @@ export default function BookingManagementModule() {
     doc.text(
       `Present Authorization PIN [ ${release?.pickupPin || "8492"} ] and Booking Ref [ ${activeBooking.bookingNumber} ] at Depot Ingate Kiosk.\nConfirm external container inspection and seal integrity before departing terminal gate.`,
       20,
-      pinY + 16
+      pinY + 16,
     );
 
-    doc.save(`Depot_Gate_Pass_${activeBooking.bookingNumber || activeBooking.referenceNumber}.pdf`);
+    doc.save(
+      `Depot_Gate_Pass_${activeBooking.bookingNumber || activeBooking.referenceNumber}.pdf`,
+    );
   };
 
   const handleCopyEdi = (text: string) => {
@@ -336,13 +663,16 @@ export default function BookingManagementModule() {
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white flex flex-wrap items-center gap-2">
                   <span>Ocean Booking & Equipment Control Tower</span>
-                  <span className="text-slate-400 font-normal text-base">| Booking & B/L Management</span>
+                  <span className="text-slate-400 font-normal text-base">
+                    | Booking & B/L Management
+                  </span>
                   <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono font-medium">
                     DCSA v2.0 / EDI 301 & 304
                   </span>
                 </h1>
                 <p className="text-sm text-slate-400 mt-0.5">
-                  Motor de Reserva Multi-Naviera Autónomo, Bloqueo de Tarifa Spot y Despacho de Instrucciones B/L
+                  Motor de Reserva Multi-Naviera Autónomo, Bloqueo de Tarifa
+                  Spot y Despacho de Instrucciones B/L
                 </p>
               </div>
             </div>
@@ -357,7 +687,9 @@ export default function BookingManagementModule() {
               <Plus className="w-3.5 h-3.5" />
               New Booking
             </Button>
-            <span className="text-xs text-slate-400 font-medium mr-1">Corredores Activos:</span>
+            <span className="text-xs text-slate-400 font-medium mr-1">
+              Corredores Activos:
+            </span>
             {OCEAN_BOOKING_PRESETS.map((p) => (
               <button
                 key={p.id}
@@ -371,8 +703,8 @@ export default function BookingManagementModule() {
                 {p.id === "bkg-transpac-01"
                   ? "🇺🇸 Transpacífico (Shanghai -> LA)"
                   : p.id === "bkg-asiaeu-02"
-                  ? "🇪🇺 Asia-Europa (Singapur -> RTM)"
-                  : "🇪🇸 Customer01 Corredor (BCN -> NYC Book TEST01)"}
+                    ? "🇪🇺 Asia-Europa (Singapur -> RTM)"
+                    : "🇪🇸 Customer01 Corredor (BCN -> NYC Book TEST01)"}
               </button>
             ))}
           </div>
@@ -384,26 +716,259 @@ export default function BookingManagementModule() {
             <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" /> Pending
             </h3>
-            <div className="text-sm font-semibold text-white mt-1">1 En Asignación</div>
+            <div className="text-sm font-semibold text-white mt-1">
+              {dbBookings.filter((b) => b.status === "PENDING").length || 1} En
+              Asignación
+            </div>
           </div>
           <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-3">
             <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed
             </h3>
-            <div className="text-sm font-semibold text-white mt-1">3 Reservas DCSA</div>
+            <div className="text-sm font-semibold text-white mt-1">
+              {dbBookings.filter((b) => b.status === "CONFIRMED").length + 3}{" "}
+              Reservas DCSA
+            </div>
           </div>
           <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-3">
             <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
               <Ship className="w-3.5 h-3.5" /> In Transit
             </h3>
-            <div className="text-sm font-semibold text-white mt-1">2 Buques en Navegación</div>
+            <div className="text-sm font-semibold text-white mt-1">
+              2 Buques en Navegación
+            </div>
           </div>
           <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-3">
             <h3 className="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5" /> Delivered
             </h3>
-            <div className="text-sm font-semibold text-white mt-1">Completadas</div>
+            <div className="text-sm font-semibold text-white mt-1">
+              Completadas
+            </div>
           </div>
+        </div>
+
+        {/* Live Operational Booking Inbox (2-Phase Conversion: Booking -> Shipment + B/L) */}
+        <div className="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Package className="w-5 h-5 text-indigo-400" />
+                Bandeja Operativa de Reservas (Booking-to-Shipment Pipeline)
+                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-mono">
+                  {dbBookings.length} registros
+                </span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Fase 1: Solicitudes creadas desde Cotizaciones/Pricing (PENDING)
+                → Fase 2: Confirmación Naviera, creación atómica de Expedición
+                (Shipment + Hitos) y emisión de Borrador B/L.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={fetchDbBookings}
+                className="text-xs py-1.5 px-3"
+              >
+                {loadingDbBookings ? "Actualizando..." : "Actualizar Bandeja"}
+              </Button>
+            </div>
+          </div>
+
+          {lastConversionResult && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                <div className="text-xs">
+                  <span className="font-bold text-emerald-300">
+                    ¡Conversión Operativa Completada!
+                  </span>{" "}
+                  Reserva{" "}
+                  <span className="font-mono font-bold text-white">
+                    {lastConversionResult.booking?.referenceNumber}
+                  </span>{" "}
+                  → Expedición Activa{" "}
+                  <span className="font-mono font-bold text-emerald-400">
+                    {lastConversionResult.shipment?.trackingNumber}
+                  </span>{" "}
+                  ({lastConversionResult.milestones?.length || 3} hitos creados)
+                  y Borrador B/L{" "}
+                  <span className="font-mono font-bold text-indigo-300">
+                    {lastConversionResult.blDocument?.documentReference}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setLastConversionResult(null)}
+                className="text-xs text-slate-400 hover:text-white self-end sm:self-center"
+              >
+                Cerrar
+              </button>
+            </div>
+          )}
+
+          {dbBookings.length === 0 ? (
+            <div className="text-center py-6 text-xs text-slate-400 bg-slate-950/50 rounded-xl border border-slate-800/80">
+              No hay solicitudes de reserva en la base de datos. Cree una desde{" "}
+              <strong className="text-indigo-400">/quotes</strong>,{" "}
+              <strong className="text-indigo-400">/pricing</strong> o con el
+              botón <strong className="text-white">New Booking</strong> arriba.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
+                    <th className="py-2.5 px-3">Booking Ref</th>
+                    <th className="py-2.5 px-3">Cliente / Naviera</th>
+                    <th className="py-2.5 px-3">Ruta (POL → POD)</th>
+                    <th className="py-2.5 px-3">Equipo & Carga</th>
+                    <th className="py-2.5 px-3">Estado</th>
+                    <th className="py-2.5 px-3">Expedición / B/L</th>
+                    <th className="py-2.5 px-3 text-right">Acción Operativa</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {dbBookings.slice(0, 12).map((bkg) => {
+                    const details = bkg.parsedCargoDetails || {};
+                    const isPending = bkg.status === "PENDING";
+                    const isConfirmed = bkg.status === "CONFIRMED";
+                    return (
+                      <tr
+                        key={bkg.id}
+                        className="hover:bg-slate-800/40 transition-colors"
+                      >
+                        <td className="py-3 px-3 font-mono font-bold text-indigo-400">
+                          {bkg.referenceNumber}
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="font-semibold text-white">
+                            {details.customerName || "Corporate Client"}
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            {details.carrier || "Ocean Carrier"} ·{" "}
+                            {details.incoterm || "FOB"}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="font-mono text-slate-200">
+                            {bkg.origin}
+                          </span>
+                          <span className="text-emerald-400 mx-1.5">→</span>
+                          <span className="font-mono text-slate-200">
+                            {bkg.destination}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-mono mr-1.5">
+                            {bkg.equipment || "40HC"}
+                          </span>
+                          <span className="text-slate-400">
+                            {details.commodity || "General Cargo"} (
+                            {Number(details.weight || 18000).toLocaleString()}{" "}
+                            kg)
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                              isConfirmed
+                                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                : isPending
+                                  ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                                  : "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                            }`}
+                          >
+                            {bkg.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 font-mono">
+                          {details.shipmentTrackingNumber ? (
+                            <div>
+                              <div className="text-emerald-400 font-bold">
+                                {details.shipmentTrackingNumber}
+                              </div>
+                              <div className="text-[10px] text-slate-400">
+                                B/L:{" "}
+                                {details.blReference ||
+                                  `BL-${details.shipmentTrackingNumber}`}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-500">
+                              Pendiente confirmación
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          {isPending && (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleOpenConfirmModal(bkg)}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm transition-colors flex items-center gap-1"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                Confirmar y Generar Expedición
+                              </button>
+                              <button
+                                onClick={() => handleCancelDbBooking(bkg.id)}
+                                className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-600/30 text-slate-400 hover:text-rose-300 text-xs transition-colors"
+                                title="Cancelar Reserva"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                          {isConfirmed && (
+                            <button
+                              onClick={() =>
+                                generateLifecycleBlPdf({
+                                  blReference:
+                                    details.blReference ||
+                                    `BL-${details.shipmentTrackingNumber || bkg.referenceNumber}`,
+                                  bookingReference: bkg.referenceNumber,
+                                  carrierBookingNumber:
+                                    details.carrierBookingNumber ||
+                                    `CR-${bkg.referenceNumber}`,
+                                  trackingNumber:
+                                    details.shipmentTrackingNumber ||
+                                    "ATLS-BOOKED",
+                                  carrier: details.carrier || "Ocean Carrier",
+                                  shipperName:
+                                    details.customerName ||
+                                    "Atlas Global Imports S.L.",
+                                  consigneeName:
+                                    "European Distribution Hub B.V.",
+                                  vesselName: bkg.vessel || "MV ATLAS HORIZON",
+                                  voyageNumber: bkg.voyage || "VY-2026E",
+                                  origin: bkg.origin,
+                                  destination: bkg.destination,
+                                  equipment: bkg.equipment || "40HC",
+                                  containerNumber:
+                                    details.containerNumber || "ATLU4928174",
+                                  sealNumber:
+                                    details.sealNumber || "SL-ATLS-90124",
+                                  commodity:
+                                    details.commodity || "General Cargo",
+                                  weightKg: Number(details.weight) || 18000,
+                                  incoterm: details.incoterm || "FOB",
+                                })
+                              }
+                              className="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 font-semibold text-xs transition-colors inline-flex items-center gap-1"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              Descargar B/L (PDF)
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Global KPI Strip */}
@@ -485,10 +1050,26 @@ export default function BookingManagementModule() {
         {/* Tab Navigation */}
         <div className="flex border-b border-slate-800 gap-2">
           {[
-            { key: "RATE_LOCK", label: "1. Tarifas Spot & Despacho DCSA", icon: DollarSign },
-            { key: "CUTOFF_RADAR", label: "2. Radar de Plazos Cut-Off", icon: Clock },
-            { key: "SI_STUDIO", label: "3. Instrucciones B/L (EDI 304)", icon: FileText },
-            { key: "EQUIPMENT_RELEASE", label: "4. Pase de Equipo Vacío (Depot)", icon: QrCode },
+            {
+              key: "RATE_LOCK",
+              label: "1. Tarifas Spot & Despacho DCSA",
+              icon: DollarSign,
+            },
+            {
+              key: "CUTOFF_RADAR",
+              label: "2. Radar de Plazos Cut-Off",
+              icon: Clock,
+            },
+            {
+              key: "SI_STUDIO",
+              label: "3. Instrucciones B/L (EDI 304)",
+              icon: FileText,
+            },
+            {
+              key: "EQUIPMENT_RELEASE",
+              label: "4. Pase de Equipo Vacío (Depot)",
+              icon: QrCode,
+            },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -521,7 +1102,12 @@ export default function BookingManagementModule() {
                   </span>
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Ruta: <strong>{activeBooking.originPort}</strong> → <strong>{activeBooking.destinationPort}</strong> | Equipo: <strong>{activeBooking.requestedEquipment.quantity}x {activeBooking.requestedEquipment.isoType}</strong>
+                  Ruta: <strong>{activeBooking.originPort}</strong> →{" "}
+                  <strong>{activeBooking.destinationPort}</strong> | Equipo:{" "}
+                  <strong>
+                    {activeBooking.requestedEquipment.quantity}x{" "}
+                    {activeBooking.requestedEquipment.isoType}
+                  </strong>
                 </p>
               </div>
             </div>
@@ -529,7 +1115,8 @@ export default function BookingManagementModule() {
             {/* Carrier Rate Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {rateLockQuotes.map((quote) => {
-                const isSelectedCarrier = activeBooking.carrier === quote.carrier;
+                const isSelectedCarrier =
+                  activeBooking.carrier === quote.carrier;
                 return (
                   <div
                     key={quote.carrier}
@@ -541,8 +1128,12 @@ export default function BookingManagementModule() {
                   >
                     <div className="flex items-start justify-between gap-2 pb-2 border-b border-slate-700/60">
                       <div>
-                        <div className="font-bold text-white text-sm">{quote.carrierName}</div>
-                        <div className="text-[11px] text-slate-400 font-mono">SCAC: {quote.carrierScac}</div>
+                        <div className="font-bold text-white text-sm">
+                          {quote.carrierName}
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-mono">
+                          SCAC: {quote.carrierScac}
+                        </div>
                       </div>
                       <span className="text-xs px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 font-mono font-medium border border-blue-500/30">
                         {quote.transitTimeDays}d tránsito
@@ -551,27 +1142,50 @@ export default function BookingManagementModule() {
 
                     <div className="space-y-1.5 text-xs">
                       <div className="flex justify-between text-slate-300">
-                        <span className="text-slate-400">Flete Marítimo Base:</span>
-                        <span className="font-mono">${quote.oceanFreightUsd.toLocaleString()}</span>
+                        <span className="text-slate-400">
+                          Flete Marítimo Base:
+                        </span>
+                        <span className="font-mono">
+                          ${quote.oceanFreightUsd.toLocaleString()}
+                        </span>
                       </div>
                       <div className="flex justify-between text-slate-300">
-                        <span className="text-slate-400">Recargo BAF Combustible:</span>
-                        <span className="font-mono">${quote.bafUsd.toLocaleString()}</span>
+                        <span className="text-slate-400">
+                          Recargo BAF Combustible:
+                        </span>
+                        <span className="font-mono">
+                          ${quote.bafUsd.toLocaleString()}
+                        </span>
                       </div>
                       <div className="flex justify-between text-slate-300">
-                        <span className="text-slate-400">THC Origen & Destino:</span>
-                        <span className="font-mono">${(quote.thcOriginUsd + quote.thcDestUsd).toLocaleString()}</span>
+                        <span className="text-slate-400">
+                          THC Origen & Destino:
+                        </span>
+                        <span className="font-mono">
+                          $
+                          {(
+                            quote.thcOriginUsd + quote.thcDestUsd
+                          ).toLocaleString()}
+                        </span>
                       </div>
                       <div className="flex justify-between text-slate-300 pt-1 border-t border-slate-700/50">
-                        <span className="text-slate-400">Días Libres Free-Time:</span>
-                        <span className="font-mono text-emerald-400 font-semibold">{quote.freeTimeDays} días garantizados</span>
+                        <span className="text-slate-400">
+                          Días Libres Free-Time:
+                        </span>
+                        <span className="font-mono text-emerald-400 font-semibold">
+                          {quote.freeTimeDays} días garantizados
+                        </span>
                       </div>
                     </div>
 
                     <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between">
                       <div>
-                        <div className="text-[10px] text-slate-400 uppercase tracking-wider">Total Spot Garantizado</div>
-                        <div className="text-xl font-bold font-mono text-emerald-400">${quote.totalSpotUsd.toLocaleString()} USD</div>
+                        <div className="text-[10px] text-slate-400 uppercase tracking-wider">
+                          Total Spot Garantizado
+                        </div>
+                        <div className="text-xl font-bold font-mono text-emerald-400">
+                          ${quote.totalSpotUsd.toLocaleString()} USD
+                        </div>
                       </div>
 
                       <Button
@@ -581,7 +1195,8 @@ export default function BookingManagementModule() {
                             carrier: quote.carrier,
                             originPort: activeBooking.originPort,
                             destinationPort: activeBooking.destinationPort,
-                            commodityDescription: activeBooking.commodityDescription,
+                            commodityDescription:
+                              activeBooking.commodityDescription,
                             isoType: activeBooking.requestedEquipment.isoType,
                             quantity: activeBooking.requestedEquipment.quantity,
                             rateLockToken: quote.rateLockToken,
@@ -590,7 +1205,9 @@ export default function BookingManagementModule() {
                         disabled={bookingMutation.isPending}
                         className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
                       >
-                        {bookingMutation.isPending ? "Reservando..." : "Reservar Ahora"}
+                        {bookingMutation.isPending
+                          ? "Reservando..."
+                          : "Reservar Ahora"}
                       </Button>
                     </div>
                   </div>
@@ -603,15 +1220,23 @@ export default function BookingManagementModule() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-blue-400" />
-                  <h3 className="font-bold text-white text-sm">Transmisión Telemática DCSA v2.0 & EDI 301 Generada</h3>
+                  <h3 className="font-bold text-white text-sm">
+                    Transmisión Telemática DCSA v2.0 & EDI 301 Generada
+                  </h3>
                 </div>
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => handleCopyEdi(generateEDI301Transaction(activeBooking))}
+                  onClick={() =>
+                    handleCopyEdi(generateEDI301Transaction(activeBooking))
+                  }
                   className="text-xs flex items-center gap-1.5"
                 >
-                  {copiedEdi ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedEdi ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
                   {copiedEdi ? "Copiado!" : "Copiar EDI 301"}
                 </Button>
               </div>
@@ -628,9 +1253,12 @@ export default function BookingManagementModule() {
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">Radar de Hitos y Fechas Límite (Cut-Off Milestones)</h2>
+                <h2 className="text-lg font-semibold text-white">
+                  Radar de Hitos y Fechas Límite (Cut-Off Milestones)
+                </h2>
                 <p className="text-xs text-slate-400">
-                  Control en tiempo real de plazos críticos para evitar cargos por retraso de documentación o exclusión de carga.
+                  Control en tiempo real de plazos críticos para evitar cargos
+                  por retraso de documentación o exclusión de carga.
                 </p>
               </div>
               <div className="relative w-full md:w-64">
@@ -650,14 +1278,18 @@ export default function BookingManagementModule() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/70 space-y-2">
                   <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span className="font-semibold text-white">SI Cut-Off (Instrucciones)</span>
+                    <span className="font-semibold text-white">
+                      SI Cut-Off (Instrucciones)
+                    </span>
                     <Clock className="w-4 h-4 text-blue-400" />
                   </div>
                   <div className="text-lg font-bold font-mono text-blue-400">
                     {cutOffEval?.siHoursRemaining ?? 24}h restantes
                   </div>
                   <div className="text-[11px] text-slate-400 font-mono truncate">
-                    {activeBooking.cutOffs.siCutOff.replace("T", " ").replace("Z", "")}
+                    {activeBooking.cutOffs.siCutOff
+                      .replace("T", " ")
+                      .replace("Z", "")}
                   </div>
                   <Button
                     size="sm"
@@ -671,14 +1303,18 @@ export default function BookingManagementModule() {
 
                 <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/70 space-y-2">
                   <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span className="font-semibold text-white">VGM Cut-Off (Peso Bruto)</span>
+                    <span className="font-semibold text-white">
+                      VGM Cut-Off (Peso Bruto)
+                    </span>
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   </div>
                   <div className="text-lg font-bold font-mono text-emerald-400">
                     {cutOffEval?.vgmHoursRemaining ?? 36}h restantes
                   </div>
                   <div className="text-[11px] text-slate-400 font-mono truncate">
-                    {activeBooking.cutOffs.vgmCutOff.replace("T", " ").replace("Z", "")}
+                    {activeBooking.cutOffs.vgmCutOff
+                      .replace("T", " ")
+                      .replace("Z", "")}
                   </div>
                   <div className="text-[10px] text-emerald-400 font-medium pt-1">
                     ✓ Báscula / SOLAS Certificada
@@ -687,14 +1323,18 @@ export default function BookingManagementModule() {
 
                 <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/70 space-y-2">
                   <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span className="font-semibold text-white">Cargo Gate-In Cut-Off</span>
+                    <span className="font-semibold text-white">
+                      Cargo Gate-In Cut-Off
+                    </span>
                     <Anchor className="w-4 h-4 text-amber-400" />
                   </div>
                   <div className="text-lg font-bold font-mono text-amber-400">
                     {cutOffEval?.cargoHoursRemaining ?? 48}h restantes
                   </div>
                   <div className="text-[11px] text-slate-400 font-mono truncate">
-                    {activeBooking.cutOffs.cargoCutOff.replace("T", " ").replace("Z", "")}
+                    {activeBooking.cutOffs.cargoCutOff
+                      .replace("T", " ")
+                      .replace("Z", "")}
                   </div>
                   <Button
                     size="sm"
@@ -708,14 +1348,18 @@ export default function BookingManagementModule() {
 
                 <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/70 space-y-2">
                   <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span className="font-semibold text-white">Export Customs Cut-Off</span>
+                    <span className="font-semibold text-white">
+                      Export Customs Cut-Off
+                    </span>
                     <ShieldCheck className="w-4 h-4 text-purple-400" />
                   </div>
                   <div className="text-lg font-bold font-mono text-purple-400">
                     {cutOffEval?.customsHoursRemaining ?? 40}h restantes
                   </div>
                   <div className="text-[11px] text-slate-400 font-mono truncate">
-                    {activeBooking.cutOffs.customsCutOff.replace("T", " ").replace("Z", "")}
+                    {activeBooking.cutOffs.customsCutOff
+                      .replace("T", " ")
+                      .replace("Z", "")}
                   </div>
                   <div className="text-[10px] text-purple-300 font-medium pt-1">
                     ✓ Levante DUA / Exportación
@@ -750,7 +1394,9 @@ export default function BookingManagementModule() {
                       >
                         <td className="py-3 px-4 font-mono font-semibold text-white">
                           <div className="flex items-center gap-1.5">
-                            <span>{bkg.bookingNumber || bkg.referenceNumber}</span>
+                            <span>
+                              {bkg.bookingNumber || bkg.referenceNumber}
+                            </span>
                             {isSelected && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
                                 Activo
@@ -762,19 +1408,28 @@ export default function BookingManagementModule() {
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <div className="text-white font-medium">{bkg.rateLock.carrierName}</div>
-                          <div className="text-slate-400 text-[11px] font-mono">SCAC: {bkg.carrierScac}</div>
+                          <div className="text-white font-medium">
+                            {bkg.rateLock.carrierName}
+                          </div>
+                          <div className="text-slate-400 text-[11px] font-mono">
+                            SCAC: {bkg.carrierScac}
+                          </div>
                         </td>
                         <td className="py-3 px-4">
-                          <div className="text-white font-medium">{bkg.vesselName}</div>
-                          <div className="text-slate-400 text-[11px] font-mono">Viaje: {bkg.voyageNumber}</div>
+                          <div className="text-white font-medium">
+                            {bkg.vesselName}
+                          </div>
+                          <div className="text-slate-400 text-[11px] font-mono">
+                            Viaje: {bkg.voyageNumber}
+                          </div>
                         </td>
                         <td className="py-3 px-4 font-mono font-semibold text-slate-200">
                           {bkg.originPort} → {bkg.destinationPort}
                         </td>
                         <td className="py-3 px-4 font-mono">
                           <span className="text-blue-300 font-semibold">
-                            {bkg.requestedEquipment.quantity}x {bkg.requestedEquipment.isoType}
+                            {bkg.requestedEquipment.quantity}x{" "}
+                            {bkg.requestedEquipment.isoType}
                           </span>
                         </td>
                         <td className="py-3 px-4">
@@ -792,7 +1447,8 @@ export default function BookingManagementModule() {
                             }}
                             className="text-xs"
                           >
-                            Gestionar B/L <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                            Gestionar B/L{" "}
+                            <ChevronRight className="w-3.5 h-3.5 ml-1" />
                           </Button>
                         </td>
                       </tr>
@@ -811,9 +1467,16 @@ export default function BookingManagementModule() {
             <div className="lg:col-span-2 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Instrucciones de Embarque (Shipping Instructions)</h2>
+                  <h2 className="text-lg font-semibold text-white">
+                    Instrucciones de Embarque (Shipping Instructions)
+                  </h2>
                   <p className="text-xs text-slate-400">
-                    Booking: <span className="font-mono text-blue-400">{activeBooking.bookingNumber}</span> | Naviera: <strong>{activeBooking.rateLock.carrierName}</strong>
+                    Booking:{" "}
+                    <span className="font-mono text-blue-400">
+                      {activeBooking.bookingNumber}
+                    </span>{" "}
+                    | Naviera:{" "}
+                    <strong>{activeBooking.rateLock.carrierName}</strong>
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -832,39 +1495,60 @@ export default function BookingManagementModule() {
               <div className="p-5 rounded-xl bg-slate-800/50 border border-slate-700/80 space-y-4 text-xs">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-slate-400 font-medium">Shipper / Exportador</label>
+                    <label className="text-slate-400 font-medium">
+                      Shipper / Exportador
+                    </label>
                     <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-700 font-mono text-slate-200">
-                      {activeBooking.shippingInstructions?.shipperName || "Atlas Logistics Enterprise Group"}
-                      <div className="text-[11px] text-slate-400 mt-0.5">{activeBooking.shippingInstructions?.shipperAddress || "Zaragoza / Barcelona Logistics Park"}</div>
+                      {activeBooking.shippingInstructions?.shipperName ||
+                        "Atlas Logistics Enterprise Group"}
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        {activeBooking.shippingInstructions?.shipperAddress ||
+                          "Zaragoza / Barcelona Logistics Park"}
+                      </div>
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-slate-400 font-medium">Consignee / Importador</label>
+                    <label className="text-slate-400 font-medium">
+                      Consignee / Importador
+                    </label>
                     <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-700 font-mono text-slate-200">
-                      {activeBooking.shippingInstructions?.consigneeName || "Apex High-Tech Logistics Inc"}
-                      <div className="text-[11px] text-slate-400 mt-0.5">{activeBooking.shippingInstructions?.consigneeAddress || "Port of Los Angeles Gate 3"}</div>
+                      {activeBooking.shippingInstructions?.consigneeName ||
+                        "Apex High-Tech Logistics Inc"}
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        {activeBooking.shippingInstructions?.consigneeAddress ||
+                          "Port of Los Angeles Gate 3"}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-slate-400 font-medium">Tipo de Conocimiento (B/L Type)</label>
+                    <label className="text-slate-400 font-medium">
+                      Tipo de Conocimiento (B/L Type)
+                    </label>
                     <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-700 font-mono text-white font-semibold">
-                      {activeBooking.shippingInstructions?.blType || "WAYBILL"} (Express Sea Waybill)
+                      {activeBooking.shippingInstructions?.blType || "WAYBILL"}{" "}
+                      (Express Sea Waybill)
                     </div>
                   </div>
                   <div>
-                    <label className="text-slate-400 font-medium">Condición de Flete</label>
+                    <label className="text-slate-400 font-medium">
+                      Condición de Flete
+                    </label>
                     <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-700 font-mono text-emerald-400 font-semibold">
-                      {activeBooking.shippingInstructions?.freightPaymentTerm || "PREPAID"}
+                      {activeBooking.shippingInstructions?.freightPaymentTerm ||
+                        "PREPAID"}
                     </div>
                   </div>
                   <div>
-                    <label className="text-slate-400 font-medium">Lugar de Emisión</label>
+                    <label className="text-slate-400 font-medium">
+                      Lugar de Emisión
+                    </label>
                     <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-700 font-mono text-white">
-                      {activeBooking.shippingInstructions?.placeOfIssue || activeBooking.originPort}
+                      {activeBooking.shippingInstructions?.placeOfIssue ||
+                        activeBooking.originPort}
                     </div>
                   </div>
                 </div>
@@ -878,19 +1562,39 @@ export default function BookingManagementModule() {
                 </h3>
 
                 <div className="space-y-2">
-                  {(activeBooking.shippingInstructions?.containerDetails || []).map((cont, idx) => (
-                    <div key={idx} className="p-3 rounded-lg bg-slate-900 border border-slate-700/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  {(
+                    activeBooking.shippingInstructions?.containerDetails || []
+                  ).map((cont, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-lg bg-slate-900 border border-slate-700/80 flex flex-wrap items-center justify-between gap-3 text-xs"
+                    >
                       <div>
-                        <div className="font-mono font-bold text-white text-sm">{cont.containerNumber}</div>
-                        <div className="text-slate-400 text-[11px]">Precinto: <strong className="font-mono text-slate-200">{cont.sealNumber}</strong></div>
+                        <div className="font-mono font-bold text-white text-sm">
+                          {cont.containerNumber}
+                        </div>
+                        <div className="text-slate-400 text-[11px]">
+                          Precinto:{" "}
+                          <strong className="font-mono text-slate-200">
+                            {cont.sealNumber}
+                          </strong>
+                        </div>
                       </div>
                       <div className="font-mono">
-                        <div className="text-emerald-400 font-bold">{cont.verifiedGrossMassKg.toLocaleString()} kg VGM</div>
-                        <div className="text-slate-400 text-[11px]">Tara: {cont.tareWeightKg} kg</div>
+                        <div className="text-emerald-400 font-bold">
+                          {cont.verifiedGrossMassKg.toLocaleString()} kg VGM
+                        </div>
+                        <div className="text-slate-400 text-[11px]">
+                          Tara: {cont.tareWeightKg} kg
+                        </div>
                       </div>
                       <div>
-                        <div className="text-slate-200">{cont.packagesCount} {cont.packageType}</div>
-                        <div className="text-slate-400 text-[11px]">HS: {cont.hsCode}</div>
+                        <div className="text-slate-200">
+                          {cont.packagesCount} {cont.packageType}
+                        </div>
+                        <div className="text-slate-400 text-[11px]">
+                          HS: {cont.hsCode}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -903,14 +1607,20 @@ export default function BookingManagementModule() {
               <div className="flex items-center justify-between pb-2 border-b border-slate-700">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-blue-400" />
-                  <h3 className="text-sm font-bold text-white">EDI 304 Transmisión ANSI X12</h3>
+                  <h3 className="text-sm font-bold text-white">
+                    EDI 304 Transmisión ANSI X12
+                  </h3>
                 </div>
                 <Button
                   size="sm"
                   variant="secondary"
                   onClick={() => {
                     if (activeBooking.shippingInstructions) {
-                      handleCopyEdi(generateEDI304ShippingInstruction(activeBooking.shippingInstructions));
+                      handleCopyEdi(
+                        generateEDI304ShippingInstruction(
+                          activeBooking.shippingInstructions,
+                        ),
+                      );
                     }
                   }}
                   className="text-xs"
@@ -921,7 +1631,9 @@ export default function BookingManagementModule() {
 
               <div className="p-3.5 rounded-lg bg-slate-950 font-mono text-[11px] text-slate-300 max-h-72 overflow-y-auto whitespace-pre leading-relaxed border border-slate-800">
                 {activeBooking.shippingInstructions
-                  ? generateEDI304ShippingInstruction(activeBooking.shippingInstructions)
+                  ? generateEDI304ShippingInstruction(
+                      activeBooking.shippingInstructions,
+                    )
                   : "Generando transacción EDI 304..."}
               </div>
 
@@ -945,7 +1657,8 @@ export default function BookingManagementModule() {
                         verifiedGrossMassKg: 26500,
                         packagesCount: 22,
                         packageType: "Coils / Reels",
-                        cargoDescription: "Paper Reels for Corrugated Packaging (Book TEST01)",
+                        cargoDescription:
+                          "Paper Reels for Corrugated Packaging (Book TEST01)",
                         hsCode: "48051100",
                       },
                     ],
@@ -955,7 +1668,9 @@ export default function BookingManagementModule() {
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 flex items-center justify-center gap-2 text-xs"
               >
                 <Send className="w-4 h-4" />
-                {siMutation.isPending ? "Transmitiendo..." : "Enviar Instrucciones a Naviera (EDI 304)"}
+                {siMutation.isPending
+                  ? "Transmitiendo..."
+                  : "Enviar Instrucciones a Naviera (EDI 304)"}
               </Button>
             </div>
           </div>
@@ -968,9 +1683,12 @@ export default function BookingManagementModule() {
             <div className="lg:col-span-2 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Orden de Liberación de Equipo Vacío (Empty Release)</h2>
+                  <h2 className="text-lg font-semibold text-white">
+                    Orden de Liberación de Equipo Vacío (Empty Release)
+                  </h2>
                   <p className="text-xs text-slate-400">
-                    Autorización oficial para la recogida de contenedores vacíos en el depósito del puerto.
+                    Autorización oficial para la recogida de contenedores vacíos
+                    en el depósito del puerto.
                   </p>
                 </div>
                 <Button
@@ -987,7 +1705,9 @@ export default function BookingManagementModule() {
                 <div className="p-5 rounded-xl bg-slate-800/50 border border-slate-700/80 space-y-4 text-xs">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-700">
                     <div>
-                      <div className="text-slate-400">Número de Orden de Liberación:</div>
+                      <div className="text-slate-400">
+                        Número de Orden de Liberación:
+                      </div>
                       <div className="text-base font-bold font-mono text-emerald-400">
                         {activeBooking.equipmentRelease.releaseOrderNumber}
                       </div>
@@ -999,20 +1719,39 @@ export default function BookingManagementModule() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
-                      <span className="text-slate-400">Depósito Autorizado:</span>
-                      <div className="font-bold text-white text-sm">{activeBooking.equipmentRelease.depotName}</div>
-                      <div className="text-slate-400">{activeBooking.equipmentRelease.depotAddress}</div>
-                      <div className="text-[11px] font-mono text-blue-400 pt-1">Código: {activeBooking.equipmentRelease.depotCode}</div>
+                      <span className="text-slate-400">
+                        Depósito Autorizado:
+                      </span>
+                      <div className="font-bold text-white text-sm">
+                        {activeBooking.equipmentRelease.depotName}
+                      </div>
+                      <div className="text-slate-400">
+                        {activeBooking.equipmentRelease.depotAddress}
+                      </div>
+                      <div className="text-[11px] font-mono text-blue-400 pt-1">
+                        Código: {activeBooking.equipmentRelease.depotCode}
+                      </div>
                     </div>
 
                     <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
-                      <span className="text-slate-400">Equipo & Cantidad Autorizada:</span>
+                      <span className="text-slate-400">
+                        Equipo & Cantidad Autorizada:
+                      </span>
                       <div className="font-bold text-white text-sm">
-                        {activeBooking.equipmentRelease.containerCount}x {activeBooking.equipmentRelease.isoType} High Cube
+                        {activeBooking.equipmentRelease.containerCount}x{" "}
+                        {activeBooking.equipmentRelease.isoType} High Cube
                       </div>
-                      <div className="text-slate-400">Validez Hasta: <strong className="text-slate-200 font-mono">{activeBooking.equipmentRelease.validUntil}</strong></div>
+                      <div className="text-slate-400">
+                        Validez Hasta:{" "}
+                        <strong className="text-slate-200 font-mono">
+                          {activeBooking.equipmentRelease.validUntil}
+                        </strong>
+                      </div>
                       <div className="text-[11px] text-emerald-400 font-mono pt-1">
-                        Precintos Reservados: {activeBooking.equipmentRelease.sealNumbersAllocated.join(", ")}
+                        Precintos Reservados:{" "}
+                        {activeBooking.equipmentRelease.sealNumbersAllocated.join(
+                          ", ",
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1021,10 +1760,12 @@ export default function BookingManagementModule() {
                   <div className="p-4 rounded-xl bg-blue-950/30 border border-blue-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 text-blue-300 font-bold text-sm">
-                        <Key className="w-4 h-4 text-blue-400" /> PIN de Acceso de Transportista
+                        <Key className="w-4 h-4 text-blue-400" /> PIN de Acceso
+                        de Transportista
                       </div>
                       <div className="text-slate-400 text-xs mt-0.5">
-                        Introducir este PIN de 4 dígitos en el quiosco de entrada de la terminal para liberar los contenedores.
+                        Introducir este PIN de 4 dígitos en el quiosco de
+                        entrada de la terminal para liberar los contenedores.
                       </div>
                     </div>
                     <div className="px-6 py-2 rounded-xl bg-blue-600 text-white font-mono font-bold text-2xl tracking-widest text-center shadow-lg shadow-blue-600/30">
@@ -1035,9 +1776,12 @@ export default function BookingManagementModule() {
               ) : (
                 <div className="p-8 rounded-xl bg-slate-800/40 border border-slate-700/60 text-center space-y-3">
                   <QrCode className="w-10 h-10 text-slate-500 mx-auto" />
-                  <div className="text-sm font-semibold text-white">No se ha emitido orden de liberación para esta reserva</div>
+                  <div className="text-sm font-semibold text-white">
+                    No se ha emitido orden de liberación para esta reserva
+                  </div>
                   <p className="text-xs text-slate-400 max-w-md mx-auto">
-                    Haga clic en el botón a continuación para generar el pase de recogida en depósito con PIN y precintos autorizados.
+                    Haga clic en el botón a continuación para generar el pase de
+                    recogida en depósito con PIN y precintos autorizados.
                   </p>
                   <Button
                     onClick={() => {
@@ -1045,7 +1789,8 @@ export default function BookingManagementModule() {
                         bookingId: activeBooking.id,
                         depotCode: "ESBCN-CANTUNIS",
                         depotName: "Can Tunis Logistainer Intermodal Depot",
-                        depotAddress: "Carrer del Port, Can Tunis Ferroviaria, Barcelona",
+                        depotAddress:
+                          "Carrer del Port, Can Tunis Ferroviaria, Barcelona",
                       });
                     }}
                     className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
@@ -1060,7 +1805,9 @@ export default function BookingManagementModule() {
             <div className="p-5 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-4 h-fit text-xs text-center">
               <div className="flex items-center justify-center gap-2 pb-2 border-b border-slate-700">
                 <QrCode className="w-5 h-5 text-blue-400" />
-                <h3 className="text-sm font-bold text-white">Pase Digital de Acceso Gate</h3>
+                <h3 className="text-sm font-bold text-white">
+                  Pase Digital de Acceso Gate
+                </h3>
               </div>
 
               <div className="p-6 rounded-xl bg-white text-slate-900 inline-block mx-auto border-4 border-slate-800 shadow-xl">
@@ -1071,20 +1818,197 @@ export default function BookingManagementModule() {
               </div>
 
               <div className="text-slate-400 text-[11px] leading-relaxed">
-                Escanee en la barrera OCR del depósito de contenedores para apertura automática de barrera y pesaje en báscula.
+                Escanee en la barrera OCR del depósito de contenedores para
+                apertura automática de barrera y pesaje en báscula.
               </div>
             </div>
           </div>
         )}
 
-        {/* House Bill of Lading Draft Modal */}
+        {/* Confirm Booking -> Active Shipment + Draft B/L Modal (Phase 2) */}
+        {confirmingBooking && (
+          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-emerald-500/40 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    Confirmar Reserva y Generar Expedición Activa
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Reserva{" "}
+                    <span className="font-mono font-bold text-indigo-400">
+                      {confirmingBooking.referenceNumber}
+                    </span>{" "}
+                    ({confirmingBooking.origin} →{" "}
+                    {confirmingBooking.destination})
+                  </p>
+                </div>
+                <button
+                  onClick={() => setConfirmingBooking(null)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form
+                onSubmit={handleConfirmBookingSubmit}
+                className="space-y-4 text-xs"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-300 font-semibold block mb-1">
+                      Nº Confirmación Naviera (Carrier Booking Ref) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={confirmForm.carrierBookingNumber}
+                      onChange={(e) =>
+                        setConfirmForm({
+                          ...confirmForm,
+                          carrierBookingNumber: e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-300 font-semibold block mb-1">
+                      Buque (Vessel Name) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={confirmForm.vesselName}
+                      onChange={(e) =>
+                        setConfirmForm({
+                          ...confirmForm,
+                          vesselName: e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-300 font-semibold block mb-1">
+                      Viaje (Voyage Number) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={confirmForm.voyageNumber}
+                      onChange={(e) =>
+                        setConfirmForm({
+                          ...confirmForm,
+                          voyageNumber: e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-300 font-semibold block mb-1">
+                      Nº Contenedor Asignado
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmForm.containerNumber}
+                      onChange={(e) =>
+                        setConfirmForm({
+                          ...confirmForm,
+                          containerNumber: e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-300 font-semibold block mb-1">
+                      Shipper / Exportador (B/L)
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmForm.shipperName}
+                      onChange={(e) =>
+                        setConfirmForm({
+                          ...confirmForm,
+                          shipperName: e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-300 font-semibold block mb-1">
+                      Consignee / Importador (B/L)
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmForm.consigneeName}
+                      onChange={(e) =>
+                        setConfirmForm({
+                          ...confirmForm,
+                          consigneeName: e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white"
+                    />
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 pt-1 cursor-pointer text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={confirmForm.autoDownloadPdf}
+                    onChange={(e) =>
+                      setConfirmForm({
+                        ...confirmForm,
+                        autoDownloadPdf: e.target.checked,
+                      })
+                    }
+                    className="rounded border-slate-600 text-emerald-500 focus:ring-emerald-500"
+                  />
+                  <span>
+                    Emitir y descargar automáticamente el{" "}
+                    <strong>Borrador Bill of Lading (PDF)</strong> con sello
+                    SHA-256
+                  </span>
+                </label>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    onClick={() => setConfirmingBooking(null)}
+                    className="text-xs"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isConfirmSubmitting}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                  >
+                    {isConfirmSubmitting
+                      ? "Procesando Transacción..."
+                      : "Confirmar Reserva, Crear Shipment y Emitir B/L"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* New Booking Request Modal (Phase 1) */}
         {showNewBookingModal && (
           <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <FileText className="w-5 h-5 text-blue-400" />
-                  House Bill of Lading Draft
+                  Nueva Solicitud de Reserva (Phase 1: PENDING)
                 </h3>
                 <button
                   onClick={() => setShowNewBookingModal(false)}
@@ -1096,34 +2020,118 @@ export default function BookingManagementModule() {
 
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="text-slate-400 block mb-1">Shipper</label>
+                  <label className="text-slate-400 block mb-1">
+                    Shipper / Cliente
+                  </label>
                   <input
                     type="text"
-                    defaultValue="Atlas Logistics Enterprise Group"
+                    value={newBookingForm.customerName}
+                    onChange={(e) =>
+                      setNewBookingForm({
+                        ...newBookingForm,
+                        customerName: e.target.value,
+                      })
+                    }
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Consignee</label>
+                  <label className="text-slate-400 block mb-1">
+                    Naviera (Carrier)
+                  </label>
                   <input
                     type="text"
-                    defaultValue="Apex High-Tech Logistics Inc"
+                    value={newBookingForm.carrier}
+                    onChange={(e) =>
+                      setNewBookingForm({
+                        ...newBookingForm,
+                        carrier: e.target.value,
+                      })
+                    }
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Port of Loading</label>
+                  <label className="text-slate-400 block mb-1">
+                    Port of Loading (Origin)
+                  </label>
                   <input
                     type="text"
-                    defaultValue="CNSHA"
+                    value={newBookingForm.origin}
+                    onChange={(e) =>
+                      setNewBookingForm({
+                        ...newBookingForm,
+                        origin: e.target.value,
+                      })
+                    }
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Port of Discharge</label>
+                  <label className="text-slate-400 block mb-1">
+                    Port of Discharge (Destination)
+                  </label>
                   <input
                     type="text"
-                    defaultValue="USLAX"
+                    value={newBookingForm.destination}
+                    onChange={(e) =>
+                      setNewBookingForm({
+                        ...newBookingForm,
+                        destination: e.target.value,
+                      })
+                    }
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1">
+                    Equipo & Incoterm
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      value={newBookingForm.equipment}
+                      onChange={(e) =>
+                        setNewBookingForm({
+                          ...newBookingForm,
+                          equipment: e.target.value,
+                        })
+                      }
+                      className="flex-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                    >
+                      <option value="20GP">20GP</option>
+                      <option value="40GP">40GP</option>
+                      <option value="40HC">40HC</option>
+                    </select>
+                    <select
+                      value={newBookingForm.incoterm}
+                      onChange={(e) =>
+                        setNewBookingForm({
+                          ...newBookingForm,
+                          incoterm: e.target.value,
+                        })
+                      }
+                      className="flex-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
+                    >
+                      <option value="FOB">FOB</option>
+                      <option value="CIF">CIF</option>
+                      <option value="EXW">EXW</option>
+                      <option value="DAP">DAP</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1">
+                    Mercancía (Commodity)
+                  </label>
+                  <input
+                    type="text"
+                    value={newBookingForm.commodity}
+                    onChange={(e) =>
+                      setNewBookingForm({
+                        ...newBookingForm,
+                        commodity: e.target.value,
+                      })
+                    }
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white"
                   />
                 </div>
@@ -1138,7 +2146,21 @@ export default function BookingManagementModule() {
                   Cancel
                 </Button>
                 <Button
-                  onClick={() => setShowNewBookingModal(false)}
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/bookings", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(newBookingForm),
+                      });
+                      if (res.ok) {
+                        setShowNewBookingModal(false);
+                        await fetchDbBookings();
+                      }
+                    } catch (err) {
+                      console.error("Error creating booking:", err);
+                    }
+                  }}
                   className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
                 >
                   Save Booking

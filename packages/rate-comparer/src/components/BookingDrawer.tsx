@@ -12,7 +12,7 @@ import {
 interface BookingDrawerProps {
   rate: any;
   onClose: () => void;
-  onBook: (bookingData: any) => Promise<void>;
+  onBook: (bookingData: any) => Promise<any>;
 }
 
 export default function BookingDrawer({
@@ -20,8 +20,10 @@ export default function BookingDrawer({
   onClose,
   onBook,
 }: BookingDrawerProps) {
+  const [customerName, setCustomerName] = useState("Atlas Global Imports S.L.");
+  const [incoterm, setIncoterm] = useState("FOB");
   const [commodity, setCommodity] = useState("General Cargo");
-  const [weight, setWeight] = useState("");
+  const [weight, setWeight] = useState("18500");
   const [poNumber, setPoNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,15 +35,19 @@ export default function BookingDrawer({
     setIsSubmitting(true);
     setError(null);
     try {
-      await onBook({
+      const saved = await onBook({
         ...rate,
+        customerName,
+        incoterm,
         commodity,
         weight: Number(weight),
         poNumber,
       });
 
-      const newRef = `BKG-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      setBookingRef(newRef);
+      const serverRef =
+        saved?.referenceNumber ||
+        `BKG-${new Date().toISOString().slice(0, 7).replace("-", "")}-${Math.floor(1000 + Math.random() * 9000)}`;
+      setBookingRef(serverRef);
       setIsSuccess(true);
     } catch (err: any) {
       setError(err.message || "An error occurred while saving the booking.");
@@ -83,19 +89,24 @@ export default function BookingDrawer({
               <CheckCircle className="w-12 h-12 text-emerald-400" />
             </div>
             <h3 className="text-2xl font-black text-white text-center">
-              Booking Confirmed!
+              Booking Request Created!
             </h3>
             <p className="text-slate-400 text-center text-sm">
-              Your shipment has been successfully booked. You will receive a
-              confirmation email shortly.
+              Your booking request has been queued in the Operations Inbox.
+              Confirm the carrier booking number in{" "}
+              <span className="text-indigo-400 font-bold">/bookings</span> to
+              generate the active shipment and Draft Bill of Lading.
             </p>
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 w-full text-center mt-4 shadow-inner">
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 w-full text-center mt-4 shadow-inner space-y-2">
               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
                 Booking Reference
               </p>
               <p className="text-lg font-mono font-bold text-indigo-400">
                 {bookingRef}
               </p>
+              <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                Status: PENDING CARRIER CONFIRMATION
+              </span>
             </div>
           </div>
         ) : (
@@ -128,7 +139,7 @@ export default function BookingDrawer({
             <form
               id="booking-form"
               onSubmit={handleSubmit}
-              className="space-y-5"
+              className="space-y-4"
             >
               {error && (
                 <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm font-medium flex items-start gap-2">
@@ -136,6 +147,38 @@ export default function BookingDrawer({
                   <span>{error}</span>
                 </div>
               )}
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    Shipper / Customer
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Customer company"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-medium focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    Incoterm
+                  </label>
+                  <select
+                    value={incoterm}
+                    onChange={(e) => setIncoterm(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white font-bold focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="FOB">FOB</option>
+                    <option value="CIF">CIF</option>
+                    <option value="EXW">EXW</option>
+                    <option value="DAP">DAP</option>
+                    <option value="DDP">DDP</option>
+                  </select>
+                </div>
+              </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">

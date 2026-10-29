@@ -51,14 +51,22 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
 
   const handleBookingConfirm = async (bookingData: any) => {
     const rateId = bookingData.id;
-    if (bookedRates.find((r) => r.id === rateId)) return;
     setIsBooking(rateId);
     try {
-      const customerId = "11111111-1111-1111-1111-111111111111"; // Mock UUID
+      const customerId = "11111111-1111-1111-1111-111111111111"; // Default Corporate Client
 
-      await drizzleRateService.saveBooking(bookingData, customerId);
+      const savedBooking = await drizzleRateService.saveBooking(
+        bookingData,
+        customerId,
+      );
 
-      addToCart(bookingData as any);
+      if (!bookedRates.find((r) => r.id === rateId)) {
+        addToCart({
+          ...bookingData,
+          bookingReference: savedBooking?.referenceNumber,
+        } as any);
+      }
+      return savedBooking;
     } catch (error) {
       console.error("Failed to book shipment:", error);
       throw error;

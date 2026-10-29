@@ -90,21 +90,31 @@ export const drizzleRateService = {
   ): Promise<any> {
     try {
       const payload = {
-        bookingReference: `BKG-${Date.now()}`,
         customerId,
-        carrier: bookingData.carrierName || "Unknown",
-        origin: bookingData.pol,
-        destination: bookingData.pod,
-        equipment: bookingData.containerType || "40HC",
+        customerName: bookingData.customerName || "Corporate Client",
+        carrier:
+          bookingData.carrierName ||
+          (typeof bookingData.carrier === "string"
+            ? bookingData.carrier
+            : bookingData.carrier?.name) ||
+          "Ocean Carrier",
+        origin: bookingData.pol || bookingData.origin,
+        destination: bookingData.pod || bookingData.destination,
+        serviceType: bookingData.serviceType || "FCL",
+        incoterm: bookingData.incoterm || "FOB",
+        equipment: bookingData.containerType || bookingData.equipment || "40HC",
         commodity: bookingData.commodity || "General Cargo",
-        weight: bookingData.weight || 0,
+        weight: Number(bookingData.weight) || 15000,
         poNumber: bookingData.poNumber || "",
-        status: "DRAFT",
-        totalCost: bookingData.totalCost || 0,
+        totalCost: Number(bookingData.totalCost || bookingData.rate) || 0,
+        currency: bookingData.currency || "USD",
+        transitTimeDays: Number(
+          bookingData.transitTimeDays || bookingData.transitTime || 25,
+        ),
+        rateId: bookingData.id,
       };
 
-      // Depending on the backend this could be /api/bookings
-      const response = await fetch("/api/operations/bookings", {
+      const response = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

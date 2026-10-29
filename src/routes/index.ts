@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from "fastify";
 
 import shipmentsRoutes from "./shipments.routes.js";
+import bookingsRoutes from "./bookings.routes.js";
 import quotesRoutes from "./quotes.routes.js";
 import financialRoutes from "./financial.routes.js";
 import eventsRoutes from "./events.routes.js";
@@ -58,6 +59,7 @@ import workloadRoutes from "../modules/workload/workload.routes.js";
 
 export {
   shipmentsRoutes,
+  bookingsRoutes,
   quotesRoutes,
   financialRoutes,
   eventsRoutes,
@@ -119,6 +121,7 @@ export {
 export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   // Core Operational & Transactional Routes
   await fastify.register(shipmentsRoutes, { prefix: "/api/shipments" });
+  await fastify.register(bookingsRoutes, { prefix: "/api/bookings" });
   await fastify.register(exceptionsRoutes, {
     prefix: "/api/shipments/exceptions",
   });

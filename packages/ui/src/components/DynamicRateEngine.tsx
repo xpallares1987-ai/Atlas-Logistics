@@ -37,6 +37,10 @@ export function DynamicRateEngine() {
   const [ratesData, setRatesData] = useState<DynamicRateItem[]>([]);
   const [_loading, setLoading] = useState(true);
   const [ingestionModalOpen, setIngestionModalOpen] = useState(false);
+  const [bookingFeedback, setBookingFeedback] = useState<{
+    referenceNumber: string;
+    carrier: string;
+  } | null>(null);
 
   const [origin, setOrigin] = useState("CNSHA (Shanghai)");
   const [destination, setDestination] = useState("NLRTM (Rotterdam)");
@@ -483,15 +487,61 @@ export function DynamicRateEngine() {
                       </td>
 
                       <td className="py-5 px-6 text-center">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => generateQuote(rate)}
-                          className="p-3 bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white rounded-xl transition-colors shadow-lg"
-                          title="Generate Official PDF Quote"
-                        >
-                          <Shield className="w-5 h-5" />
-                        </motion.button>
+                        <div className="flex items-center justify-center gap-2">
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`${API_URL}/bookings`, {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({
+                                    carrier: rate.carrier,
+                                    origin,
+                                    destination,
+                                    equipment: containerSize,
+                                    serviceType: "FCL",
+                                    incoterm: "FOB",
+                                    commodity: "General Cargo",
+                                    weight: 18500,
+                                    totalCost: Math.round(rate.sellRateTotal),
+                                    currency,
+                                    transitTimeDays: rate.transitTime,
+                                    rateId: rate.id,
+                                  }),
+                                });
+                                if (res.ok) {
+                                  const created = await res.json();
+                                  setBookingFeedback({
+                                    referenceNumber: created.referenceNumber,
+                                    carrier: rate.carrier,
+                                  });
+                                }
+                              } catch (err) {
+                                console.error(
+                                  "Failed to create booking request",
+                                  err,
+                                );
+                              }
+                            }}
+                            className="px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-xl text-xs font-bold transition-colors shadow-lg"
+                            title="Create Booking Request (Phase 1)"
+                          >
+                            Reservar
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => generateQuote(rate)}
+                            className="p-3 bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white rounded-xl transition-colors shadow-lg"
+                            title="Generate Official PDF Quote"
+                          >
+                            <Shield className="w-5 h-5" />
+                          </motion.button>
+                        </div>
                       </td>
                     </motion.tr>
                   ))}
@@ -501,6 +551,26 @@ export function DynamicRateEngine() {
           </div>
         </div>
       </div>
+
+      {bookingFeedback && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-emerald-500/40 rounded-2xl p-4 shadow-2xl flex items-center gap-4">
+          <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+              Solicitud de Reserva Creada (PENDING)
+            </div>
+            <div className="text-sm font-mono font-bold text-white">
+              {bookingFeedback.referenceNumber} · {bookingFeedback.carrier}
+            </div>
+          </div>
+          <button
+            onClick={() => setBookingFeedback(null)}
+            className="text-xs text-slate-400 hover:text-white px-2 py-1"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
 
       <RateIngestionModal
         isOpen={ingestionModalOpen}
