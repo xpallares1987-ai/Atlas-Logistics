@@ -44,6 +44,10 @@ import {
   getDocumentsForShipment,
   getCustomsCasesForShipment,
 } from "../trade-consolidation/trade-consolidation.context.js";
+import {
+  ShipmentFinanceReadModel,
+  getShipmentFinanceReadModel,
+} from "../finance-billing/finance-billing.context.js";
 
 export interface Shipment360ReadModel {
   shipmentId: string;
@@ -194,6 +198,8 @@ export interface Shipment360ReadModel {
     documents: DocumentReadModel[];
     customsCases: CustomsCaseReadModel[];
   };
+
+  finance?: ShipmentFinanceReadModel;
 
   activityTrail: Array<{
     eventId: string;
@@ -710,6 +716,38 @@ export function registerShipment360Projectors(): void {
     handleSlice5ShipmentEvent,
   );
 
+  // 11. Slice 6 Projectors: Operational Finance & Billing 3-Way Match
+  outboxBus.subscribe(
+    "op_finance.FinancialLineAdded.v1",
+    "op_intelligence.Shipment360Projector.OnFinancialLineAdded",
+    handleSlice5ShipmentEvent,
+  );
+  outboxBus.subscribe(
+    "billing.InvoiceIssued.v1",
+    "op_intelligence.Shipment360Projector.OnInvoiceIssued",
+    handleSlice5ShipmentEvent,
+  );
+  outboxBus.subscribe(
+    "billing.CreditNoteIssued.v1",
+    "op_intelligence.Shipment360Projector.OnCreditNoteIssued",
+    handleSlice5ShipmentEvent,
+  );
+  outboxBus.subscribe(
+    "billing.PurchaseInvoiceMatched.v1",
+    "op_intelligence.Shipment360Projector.OnPurchaseInvoiceMatched",
+    handleSlice5ShipmentEvent,
+  );
+  outboxBus.subscribe(
+    "billing.PurchaseInvoiceDisputed.v1",
+    "op_intelligence.Shipment360Projector.OnPurchaseInvoiceDisputed",
+    handleSlice5ShipmentEvent,
+  );
+  outboxBus.subscribe(
+    "billing.PurchaseInvoiceVarianceApproved.v1",
+    "op_intelligence.Shipment360Projector.OnPurchaseInvoiceVarianceApproved",
+    handleSlice5ShipmentEvent,
+  );
+
   projectorsRegistered = true;
 }
 
@@ -733,6 +771,7 @@ export async function enrichShipment360Model(
     consolidations,
     documents,
     customsCases,
+    finance,
   ] = await Promise.all([
     db
       .select()
@@ -764,6 +803,7 @@ export async function enrichShipment360Model(
     getConsolidationsForShipment(shipmentId),
     getDocumentsForShipment(shipmentId),
     getCustomsCasesForShipment(shipmentId),
+    getShipmentFinanceReadModel(shipmentId),
   ]);
 
   const milestones: MilestoneItem[] =
@@ -857,6 +897,8 @@ export async function enrichShipment360Model(
     documents,
     customsCases,
   };
+
+  model.finance = finance;
 
   return model;
 }

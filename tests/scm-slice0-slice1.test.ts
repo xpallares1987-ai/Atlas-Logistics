@@ -1266,4 +1266,236 @@ describe("SCM Architecture Blueprint v1 — Vertical Slices 0, 1, 2, 3 & 4", () 
     ).toBeGreaterThanOrEqual(1);
     expect(view360.tradeAndConsolidation.customsCases.length).toBe(2);
   });
+
+  // ==========================================================================
+  // VERTICAL SLICE 6: OPERATIONAL FINANCE (DECISION 20B) & BILLING 3-WAY MATCH
+  // ==========================================================================
+  it("Slice 6 (16. Operational Finance - Decision 20B): seeds baseline COST & REVENUE FinancialLines, computes Expected vs. Actual Margin & Open Accruals, and rejects negative line amounts", async () => {
+    // 1. Fetch initial ShipmentFinance read model (auto-seeded with baseline COST & REVENUE lines)
+    const finRes = await app.inject({
+      method: "GET",
+      url: `/api/scm/v1/shipments/${shipment1Id}/finance`,
+    });
+    expect(finRes.statusCode).toBe(200);
+    const finInitial = finRes.json();
+    expect(finInitial.lines.length).toBe(3);
+    expect(finInitial.expectedCostTotalEur).toBe(3250); // 2800 + 450
+    expect(finInitial.expectedRevenueTotalEur).toBe(4250);
+    expect(finInitial.actualGrossMarginEur).toBe(1000);
+    expect(finInitial.openAccrualAmountEur).toBe(450);
+
+    // 2. Attempting to add a FinancialLine with negative amount must fail with 422 FINANCE_INVALID_LINE_AMOUNTS
+    const badLineRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/finance/lines`,
+      payload: {
+        lineType: "COST",
+        chargeCode: "DEMURRAGE",
+        description: "Invalid negative demurrage",
+        partnerPartyId: "TERM-BCN",
+        partnerName: "BEST Terminal Barcelona",
+        quantity: 1,
+        unitPrice: -150,
+      },
+    });
+    expect(badLineRes.statusCode).toBe(422);
+    expect(badLineRes.json().code).toBe("FINANCE_INVALID_LINE_AMOUNTS");
+
+    // 3. Add a valid REVENUE surcharge line (€750) -> recalculates revenue (€5,000) and gross margin (€1,750, 35%)
+    const addRevRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/finance/lines`,
+      payload: {
+        lineType: "REVENUE",
+        chargeCode: "DG_IMO_SURCHARGE",
+        description: "Recargo Mercancía Peligrosa IMO Clase 9",
+        partnerPartyId: "CUST-IBERIAN-MOTORS",
+        partnerName: "Iberian Motors S.A.",
+        quantity: 1,
+        unitPrice: 750,
+        confirmationState: "CONFIRMED",
+      },
+    });
+    expect(addRevRes.statusCode).toBe(201);
+    const finUpdated = addRevRes.json();
+    expect(finUpdated.confirmedRevenueTotalEur).toBe(5000); // 4250 + 750
+    expect(finUpdated.actualGrossMarginEur).toBe(1750); // 5000 - 3250
+    expect(finUpdated.marginPercent).toBe(35);
+  });
+
+  it("Slice 6 (17. Billing - SalesInvoice & CreditNote): issues immutable SalesInvoice locking REVENUE lines, blocks in-place mutations, and unlocks lines via CreditNote", async () => {
+    // 1. Issue SalesInvoice for all unbilled REVENUE lines
+    const issueRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/sales-invoices`,
+      payload: {
+        billToCustomerPartyId: "CUST-IBERIAN-MOTORS",
+        customerName: "Iberian Motors S.A.",
+        taxRatePercent: 21,
+      },
+    });
+    expect(issueRes.statusCode).toBe(201);
+    const inv1 = issueRes.json();
+    expect(inv1.status).toBe("ISSUED");
+    expect(inv1.invoiceNumber).toMatch(/^INV-2026-\d{6}$/);
+    expect(inv1.netAmountEur).toBe(5000);
+    expect(inv1.taxAmountEur).toBe(1050);
+    expect(inv1.grossAmountEur).toBe(6050);
+    const invoiceId = inv1.invoiceId;
+    const lockedRevenueLineId = inv1.lines[0].sourceFinancialLineId;
+
+    // 2. Attempting to mutate an ISSUED SalesInvoice in-place must fail with 422 BILLING_ISSUED_INVOICE_IMMUTABLE
+    const patchInvRes = await app.inject({
+      method: "PATCH",
+      url: `/api/scm/v1/sales-invoices/${invoiceId}`,
+      payload: {
+        netAmountEur: 4500,
+      },
+    });
+    expect(patchInvRes.statusCode).toBe(422);
+    expect(patchInvRes.json().code).toBe("BILLING_ISSUED_INVOICE_IMMUTABLE");
+
+    // 3. Attempting to mutate a FinancialLine that is FULLY_INVOICED must fail with 422 FINANCE_INVOICED_LINE_IMMUTABLE
+    const mutateLockedLineRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/finance/lines`,
+      payload: {
+        lineId: lockedRevenueLineId,
+        lineType: "REVENUE",
+        chargeCode: "OCEAN_FREIGHT",
+        description: "Attempted direct edit after invoice issued",
+        partnerPartyId: "CUST-IBERIAN-MOTORS",
+        partnerName: "Iberian Motors S.A.",
+        quantity: 1,
+        unitPrice: 4400,
+      },
+    });
+    expect(mutateLockedLineRes.statusCode).toBe(422);
+    expect(mutateLockedLineRes.json().code).toBe(
+      "FINANCE_INVOICED_LINE_IMMUTABLE",
+    );
+
+    // 4. Issue CreditNote with mandatory creditReason -> marks invoice CREDITED and unlocks linked REVENUE lines
+    const creditNoteRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/sales-invoices/${invoiceId}/credit-note`,
+      payload: {
+        creditReason: "Ajuste comercial autorizado sobre recargo IMO",
+      },
+    });
+    expect(creditNoteRes.statusCode).toBe(200);
+    const creditedInv = creditNoteRes.json();
+    expect(creditedInv.status).toBe("CREDITED");
+    expect(creditedInv.creditNoteNumber).toMatch(/^CN-2026-\d{6}$/);
+
+    // 5. Now the previously locked REVENUE line is UNINVOICED and can be updated!
+    const updateUnlockedLineRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/finance/lines`,
+      payload: {
+        lineId: lockedRevenueLineId,
+        lineType: "REVENUE",
+        chargeCode: "OCEAN_FREIGHT",
+        description: "Flete Marítimo Venta FCL 40HC (Revisado)",
+        partnerPartyId: "CUST-IBERIAN-MOTORS",
+        partnerName: "Iberian Motors S.A.",
+        quantity: 1,
+        unitPrice: 4350,
+      },
+    });
+    expect(updateUnlockedLineRes.statusCode).toBe(201);
+    expect(updateUnlockedLineRes.json().confirmedRevenueTotalEur).toBe(5100);
+  });
+
+  it("Slice 6 (17. Billing - PurchaseInvoice 3-Way Match & Anti-Double Payment): enforces anti-double-payment invariant, blocks payment on >2% variance discrepancy, and updates ShipmentFinance actual margin upon variance approval", async () => {
+    const finBefore = (
+      await app.inject({
+        method: "GET",
+        url: `/api/scm/v1/shipments/${shipment1Id}/finance`,
+      })
+    ).json();
+    const oceanCostLine = finBefore.lines.find(
+      (l: any) => l.lineType === "COST" && l.chargeCode === "OCEAN_FREIGHT",
+    );
+    expect(oceanCostLine.functionalAmountEur).toBe(2800);
+
+    // 1. Register supplier invoice with +15% overcharge (€3,220 vs €2,800 expected) -> OVERCHARGE_DISCREPANCY & BLOCKED_FOR_VARIANCE
+    const uniqueVendorInvNo = `MAERSK-2026-${Date.now()}`;
+    const pinvRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/purchase-invoices`,
+      payload: {
+        supplierPartyId: "CARRIER-MAERSK",
+        supplierName: "Maersk Line A/S",
+        supplierInvoiceNumber: uniqueVendorInvNo,
+        fiscalYear: 2026,
+        claimedAmountEur: 3220,
+        matchedFinancialLineId: oceanCostLine.lineId,
+      },
+    });
+    expect(pinvRes.statusCode).toBe(201);
+    const pinv = pinvRes.json();
+    const purchaseInvoiceId = pinv.purchaseInvoiceId;
+    expect(pinv.matchOutcome).toBe("OVERCHARGE_DISCREPANCY");
+    expect(pinv.threeWayMatchStatus).toBe("BLOCKED_FOR_VARIANCE");
+    expect(pinv.status).toBe("DISPUTED");
+    expect(pinv.varianceAmountEur).toBe(420);
+    expect(pinv.variancePercent).toBe(15);
+
+    // 2. Anti-Double-Payment Invariant: registering the same (supplierPartyId, supplierInvoiceNumber, fiscalYear) again must fail with 422 BILLING_DUPLICATE_VENDOR_INVOICE
+    const dupPinvRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/shipments/${shipment1Id}/purchase-invoices`,
+      payload: {
+        supplierPartyId: "CARRIER-MAERSK",
+        supplierName: "Maersk Line A/S",
+        supplierInvoiceNumber: uniqueVendorInvNo,
+        fiscalYear: 2026,
+        claimedAmountEur: 3220,
+        matchedFinancialLineId: oceanCostLine.lineId,
+      },
+    });
+    expect(dupPinvRes.statusCode).toBe(422);
+    expect(dupPinvRes.json().code).toBe("BILLING_DUPLICATE_VENDOR_INVOICE");
+
+    // 3. Attempting to approve payment without explicit variance override must fail with 422 BILLING_PURCHASE_INVOICE_VARIANCE_BLOCKED
+    const blockedApproveRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/purchase-invoices/${purchaseInvoiceId}/approve`,
+      payload: {
+        approveVarianceOverride: false,
+      },
+    });
+    expect(blockedApproveRes.statusCode).toBe(422);
+    expect(blockedApproveRes.json().code).toBe(
+      "BILLING_PURCHASE_INVOICE_VARIANCE_BLOCKED",
+    );
+
+    // 4. Approve variance with explicit override & audit notes -> unblocks payment (APPROVED_FOR_PAYMENT) and updates ShipmentFinance actual cost & margin!
+    const approveOverrideRes = await app.inject({
+      method: "POST",
+      url: `/api/scm/v1/purchase-invoices/${purchaseInvoiceId}/approve`,
+      payload: {
+        approveVarianceOverride: true,
+        approvalNotes:
+          "Sobrecargo BAF y congestión Tánger Med validado según adenda contractual",
+      },
+    });
+    expect(approveOverrideRes.statusCode).toBe(200);
+    const approvedPinv = approveOverrideRes.json();
+    expect(approvedPinv.threeWayMatchStatus).toBe("VARIANCE_APPROVED");
+    expect(approvedPinv.status).toBe("APPROVED_FOR_PAYMENT");
+
+    // 5. Verify Shipment360ReadModel reflects updated actual cost (€3,670 = 3220 + 450), open accruals (€450), and actualGrossMarginEur (€1,430)
+    const view360After = (
+      await app.inject({
+        method: "GET",
+        url: `/api/scm/v1/shipments/${shipment1Id}/360`,
+      })
+    ).json();
+    expect(view360After.finance.confirmedCostTotalEur).toBe(3670);
+    expect(view360After.finance.actualGrossMarginEur).toBe(1430); // 5100 - 3670
+    expect(view360After.finance.openAccrualAmountEur).toBe(450); // Only THC_DEST remains unbilled accrual
+    expect(view360After.finance.financiallyReady).toBe(true);
+  });
 });

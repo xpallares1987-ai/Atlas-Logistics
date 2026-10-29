@@ -371,6 +371,76 @@ interface Shipment360ReadModel {
     }>;
   };
 
+  finance?: {
+    shipmentFinanceId: string;
+    shipmentId: string;
+    functionalCurrency: string;
+    financialState: string;
+    lines: Array<{
+      lineId: string;
+      lineType: "COST" | "REVENUE";
+      chargeCode: string;
+      description: string;
+      partnerPartyId: string;
+      partnerName: string;
+      calculationBasis: string;
+      quantity: number;
+      unitPrice: number;
+      transactionCurrency: string;
+      exchangeRate: number;
+      transactionAmount: number;
+      functionalAmountEur: number;
+      confirmationState: string;
+      invoiceLinkState: string;
+      linkedInvoiceIds: string[];
+    }>;
+    expectedCostTotalEur: number;
+    confirmedCostTotalEur: number;
+    expectedRevenueTotalEur: number;
+    confirmedRevenueTotalEur: number;
+    expectedGrossMarginEur: number;
+    actualGrossMarginEur: number;
+    marginPercent: number;
+    openAccrualAmountEur: number;
+    financiallyReady: boolean;
+    salesInvoices: Array<{
+      invoiceId: string;
+      invoiceNumber: string;
+      shipmentId: string;
+      billToCustomerPartyId: string;
+      customerName: string;
+      customerTaxId: string;
+      currency: string;
+      netAmountEur: number;
+      taxRatePercent: number;
+      taxAmountEur: number;
+      grossAmountEur: number;
+      status: string;
+      lines: any[];
+      creditNoteNumber?: string | null;
+      creditReason?: string | null;
+      issuedAt?: string | null;
+    }>;
+    purchaseInvoices: Array<{
+      purchaseInvoiceId: string;
+      supplierPartyId: string;
+      supplierName: string;
+      supplierInvoiceNumber: string;
+      fiscalYear: number;
+      shipmentId: string;
+      matchedFinancialLineId: string;
+      claimedAmountEur: number;
+      expectedCostAmountEur: number;
+      varianceAmountEur: number;
+      variancePercent: number;
+      tolerancePercent: number;
+      matchOutcome: string;
+      threeWayMatchStatus: string;
+      status: string;
+      approvalNotes?: string | null;
+    }>;
+  };
+
   activityTrail: Array<{
     eventId: string;
     eventType: string;
@@ -385,7 +455,8 @@ type WorkspaceTab =
   | "CARGO_EQUIPMENT"
   | "CONTROL_GATE"
   | "WORKFLOW_DECISIONS"
-  | "TRADE_CONSOLIDATION";
+  | "TRADE_CONSOLIDATION"
+  | "FINANCE_BILLING";
 type DrawerTab = "EXPLAINABILITY" | "OUTBOX_TRAIL";
 
 export const ShipmentWorkspace360Module: React.FC = () => {
@@ -954,6 +1025,140 @@ export const ShipmentWorkspace360Module: React.FC = () => {
     }
   };
 
+  const handleIssueSalesInvoice = async () => {
+    if (!activeShipment) return;
+    setActionBusy(true);
+    setBannerFeedback(null);
+    try {
+      const res = await fetch(
+        `/api/scm/v1/shipments/${encodeURIComponent(activeShipment.shipmentId)}/sales-invoices`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customerPartyId:
+              activeShipment.commercialContext.customerAccount.partyId,
+            customerName: activeShipment.commercialContext.customerAccount.name,
+            taxPercent: 21,
+          }),
+        },
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setBannerFeedback(`⚠️ ${json.errorCode}: ${json.message}`);
+      } else {
+        setBannerFeedback(
+          `🧾 SalesInvoice ${json.invoiceNumber} EMITIDA (€${json.grossAmountEur.toLocaleString()}). Líneas de Ingreso bloqueadas (FULLY_INVOICED).`,
+        );
+      }
+      await loadWorkspaceData(activeShipment.shipmentId);
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleIssueCreditNote = async (invoiceId: string) => {
+    if (!activeShipment) return;
+    setActionBusy(true);
+    setBannerFeedback(null);
+    try {
+      const res = await fetch(
+        `/api/scm/v1/sales-invoices/${encodeURIComponent(invoiceId)}/credit-note`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            creditReason:
+              "Rectificación fiscal autorizada por ajuste de tarifa comercial",
+          }),
+        },
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setBannerFeedback(`⚠️ ${json.code || json.error}: ${json.message}`);
+      } else {
+        setBannerFeedback(
+          `🔄 Credit Note ${json.creditNoteNumber} emitida sobre ${json.invoiceNumber}. Líneas desbloqueadas para re-facturación.`,
+        );
+      }
+      await loadWorkspaceData(activeShipment.shipmentId);
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleSimulatePurchaseInvoiceDiscrepancy = async () => {
+    if (!activeShipment) return;
+    setActionBusy(true);
+    setBannerFeedback(null);
+    try {
+      const firstCostLine = activeShipment.finance?.lines.find(
+        (l) => l.lineType === "COST",
+      );
+      const baseExpected = firstCostLine?.functionalAmountEur || 2800;
+      const overchargedAmount = Math.round(baseExpected * 1.18);
+      const res = await fetch(
+        `/api/scm/v1/shipments/${encodeURIComponent(activeShipment.shipmentId)}/purchase-invoices`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            supplierPartyId: firstCostLine?.partnerPartyId || "CARRIER-MAERSK",
+            supplierName: firstCostLine?.partnerName || "Maersk Line A/S",
+            supplierInvoiceNumber: `SUP-INV-${Date.now().toString().slice(-5)}`,
+            fiscalYear: 2026,
+            claimedAmountEur: overchargedAmount,
+            matchedFinancialLineId: firstCostLine?.lineId,
+          }),
+        },
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setBannerFeedback(`⚠️ ${json.code || json.error}: ${json.message}`);
+      } else {
+        setBannerFeedback(
+          `🚨 3-Way Match ${json.matchOutcome}: Factura ${json.supplierInvoiceNumber} bloqueada (${json.threeWayMatchStatus}) por sobrecargo de +${json.variancePercent}% (+€${json.varianceAmountEur}).`,
+        );
+      }
+      await loadWorkspaceData(activeShipment.shipmentId);
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleApprovePurchaseInvoiceVariance = async (
+    purchaseInvoiceId: string,
+  ) => {
+    if (!activeShipment) return;
+    setActionBusy(true);
+    setBannerFeedback(null);
+    try {
+      const res = await fetch(
+        `/api/scm/v1/purchase-invoices/${encodeURIComponent(purchaseInvoiceId)}/approve`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            approveVarianceOverride: true,
+            approvalNotes:
+              "Variación de recargo BAF/Congestión aprobada por Finanzas Operativas",
+          }),
+        },
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setBannerFeedback(`⚠️ ${json.code || json.error}: ${json.message}`);
+      } else {
+        setBannerFeedback(
+          `✅ Factura de compra ${json.supplierInvoiceNumber} desbloqueada (${json.status}). Coste real y margen actualizados en ShipmentFinance.`,
+        );
+      }
+      await loadWorkspaceData(activeShipment.shipmentId);
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   if (loading && !activeShipment) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 p-8 flex items-center justify-center">
@@ -1484,6 +1689,21 @@ export const ShipmentWorkspace360Module: React.FC = () => {
                 (activeShipment.tradeAndConsolidation?.documents.length || 0) +
                 (activeShipment.tradeAndConsolidation?.customsCases.length ||
                   0)}
+              )
+            </button>
+            <button
+              onClick={() => setActiveTab("FINANCE_BILLING")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+                activeTab === "FINANCE_BILLING"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800"
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              7. Operational Finance &amp; Billing 3-Way Match (
+              {activeShipment.finance
+                ? `${activeShipment.finance.marginPercent}%`
+                : "—"}
               )
             </button>
           </div>
@@ -2464,6 +2684,311 @@ export const ShipmentWorkspace360Module: React.FC = () => {
                         </div>
                       ),
                     )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: OPERATIONAL FINANCE (DECISION 20B) & BILLING 3-WAY MATCH */}
+          {activeTab === "FINANCE_BILLING" && activeShipment.finance && (
+            <div className="space-y-6">
+              {/* Margin & Accrual KPI Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                  <div className="text-[10px] font-mono uppercase text-slate-400">
+                    Ingresos Confirmados (REVENUE)
+                  </div>
+                  <div className="text-lg font-bold font-mono text-emerald-300 mt-1">
+                    €
+                    {activeShipment.finance.confirmedRevenueTotalEur.toLocaleString()}
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-500">
+                    Esperado: €
+                    {activeShipment.finance.expectedRevenueTotalEur.toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                  <div className="text-[10px] font-mono uppercase text-slate-400">
+                    Costes Confirmados (COST)
+                  </div>
+                  <div className="text-lg font-bold font-mono text-rose-300 mt-1">
+                    €
+                    {activeShipment.finance.confirmedCostTotalEur.toLocaleString()}
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-500">
+                    Esperado: €
+                    {activeShipment.finance.expectedCostTotalEur.toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                  <div className="text-[10px] font-mono uppercase text-slate-400">
+                    Gross Margin Actual
+                  </div>
+                  <div className="text-lg font-bold font-mono text-indigo-300 mt-1">
+                    €
+                    {activeShipment.finance.actualGrossMarginEur.toLocaleString()}{" "}
+                    ({activeShipment.finance.marginPercent}%)
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-500">
+                    Plan: €
+                    {activeShipment.finance.expectedGrossMarginEur.toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                  <div className="text-[10px] font-mono uppercase text-slate-400">
+                    Open Accruals &amp; Financial Gate
+                  </div>
+                  <div className="text-lg font-bold font-mono text-amber-300 mt-1">
+                    €
+                    {activeShipment.finance.openAccrualAmountEur.toLocaleString()}
+                  </div>
+                  <div className="text-[11px] font-mono">
+                    Gate Cierre:{" "}
+                    <strong
+                      className={
+                        activeShipment.finance.financiallyReady
+                          ? "text-emerald-300"
+                          : "text-amber-300"
+                      }
+                    >
+                      {activeShipment.finance.financiallyReady
+                        ? "FINANCIALLY_READY"
+                        : "OPEN_DISPUTE"}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* FinancialLines Table (Decision 20B) */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-300">
+                  16. Operational Finance — ShipmentFinance &amp; FinancialLines
+                  (Decision 20B: COST &amp; REVENUE)
+                </h3>
+                <div className="space-y-2">
+                  {activeShipment.finance.lines.map((line) => (
+                    <div
+                      key={line.lineId}
+                      className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                              line.lineType === "REVENUE"
+                                ? "bg-emerald-500/20 text-emerald-300"
+                                : "bg-rose-500/20 text-rose-300"
+                            }`}
+                          >
+                            {line.lineType}
+                          </span>
+                          <span className="font-mono font-bold text-white">
+                            {line.chargeCode}
+                          </span>
+                          <span className="text-slate-300">
+                            {line.description}
+                          </span>
+                        </div>
+                        <div className="text-[11px] font-mono text-slate-400">
+                          Party: {line.partnerName} ({line.partnerPartyId}) ·
+                          Status:{" "}
+                          <strong className="text-slate-200">
+                            {line.confirmationState}
+                          </strong>{" "}
+                          · Link:{" "}
+                          <strong className="text-indigo-300">
+                            {line.invoiceLinkState}
+                          </strong>
+                        </div>
+                      </div>
+                      <div className="text-right font-mono shrink-0">
+                        <div className="text-slate-200 font-bold">
+                          €{line.functionalAmountEur.toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {line.quantity} x €{line.unitPrice.toLocaleString()} (
+                          {line.calculationBasis})
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 17. Billing — SalesInvoices & CreditNote Flow */}
+              <div className="pt-4 border-t border-slate-800 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                      17. Billing — SalesInvoice Inmutable &amp; Credit Notes
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Una vez emitida (
+                      <code className="text-emerald-300">ISSUED</code>
+                      ), la factura y sus líneas quedan bloqueadas; cualquier
+                      ajuste requiere emitir{" "}
+                      <code className="text-amber-300">CreditNote</code>.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleIssueSalesInvoice}
+                    disabled={actionBusy}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition"
+                  >
+                    Emitir SalesInvoice Fiscal (ISSUED)
+                  </button>
+                </div>
+
+                {activeShipment.finance.salesInvoices.length === 0 ? (
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
+                    No se han emitido facturas de venta para este expediente.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {activeShipment.finance.salesInvoices.map((inv) => (
+                      <div
+                        key={inv.invoiceId}
+                        className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-emerald-300">
+                              {inv.invoiceNumber}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                                inv.status === "ISSUED"
+                                  ? "bg-emerald-500/20 text-emerald-300"
+                                  : "bg-amber-500/20 text-amber-300"
+                              }`}
+                            >
+                              {inv.status}
+                            </span>
+                          </div>
+                          <div className="font-mono text-slate-300">
+                            Cliente: {inv.customerName} · Neto: €
+                            {inv.netAmountEur.toLocaleString()} + IVA €
+                            {inv.taxAmountEur.toLocaleString()} ={" "}
+                            <strong>
+                              €{inv.grossAmountEur.toLocaleString()}
+                            </strong>
+                          </div>
+                          {inv.creditNoteNumber && (
+                            <div className="text-[11px] font-mono text-amber-300">
+                              Rectificada por Credit Note:{" "}
+                              <strong>{inv.creditNoteNumber}</strong> (
+                              {inv.creditReason})
+                            </div>
+                          )}
+                        </div>
+                        {inv.status === "ISSUED" && (
+                          <button
+                            onClick={() => handleIssueCreditNote(inv.invoiceId)}
+                            disabled={actionBusy}
+                            className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shrink-0 transition"
+                          >
+                            Emitir Credit Note Rectificativa
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 17. Billing — PurchaseInvoice 3-Way Match */}
+              <div className="pt-4 border-t border-slate-800 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-rose-300">
+                      17. Billing — PurchaseInvoice 3-Way Match &amp; Anti-Doble
+                      Pago
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Conciliación automática contra coste esperado; bloquea el
+                      pago si la desviación supera la tolerancia (±2%).
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSimulatePurchaseInvoiceDiscrepancy}
+                    disabled={actionBusy}
+                    className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition"
+                  >
+                    Simular Factura Proveedor con Sobrecargo +18%
+                  </button>
+                </div>
+
+                {activeShipment.finance.purchaseInvoices.length === 0 ? (
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
+                    No hay facturas de compra registradas para este expediente.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {activeShipment.finance.purchaseInvoices.map((pinv) => (
+                      <div
+                        key={pinv.purchaseInvoiceId}
+                        className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono font-bold text-rose-300">
+                              {pinv.supplierInvoiceNumber} ({pinv.supplierName})
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                                pinv.threeWayMatchStatus ===
+                                "BLOCKED_FOR_VARIANCE"
+                                  ? "bg-rose-500/20 text-rose-300"
+                                  : "bg-emerald-500/20 text-emerald-300"
+                              }`}
+                            >
+                              {pinv.matchOutcome} · {pinv.threeWayMatchStatus} (
+                              {pinv.status})
+                            </span>
+                          </div>
+                          <div className="font-mono text-slate-300">
+                            Esperado: €
+                            {pinv.expectedCostAmountEur.toLocaleString()} ·
+                            Reclamado Proveedor: €
+                            {pinv.claimedAmountEur.toLocaleString()} ·
+                            Variación:{" "}
+                            <strong
+                              className={
+                                pinv.varianceAmountEur > 0
+                                  ? "text-rose-300"
+                                  : "text-emerald-300"
+                              }
+                            >
+                              +€{pinv.varianceAmountEur.toLocaleString()} (
+                              {pinv.variancePercent}%)
+                            </strong>
+                          </div>
+                          {pinv.approvalNotes && (
+                            <div className="text-[11px] font-mono text-emerald-300">
+                              Aprobación: {pinv.approvalNotes}
+                            </div>
+                          )}
+                        </div>
+                        {pinv.threeWayMatchStatus ===
+                          "BLOCKED_FOR_VARIANCE" && (
+                          <button
+                            onClick={() =>
+                              handleApprovePurchaseInvoiceVariance(
+                                pinv.purchaseInvoiceId,
+                              )
+                            }
+                            disabled={actionBusy}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shrink-0 transition"
+                          >
+                            Aprobar Variación &amp; Desbloquear Pago
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

@@ -39,6 +39,15 @@ import {
   getCustomsCasesForShipment,
 } from "../scm/contexts/trade-consolidation/trade-consolidation.context.js";
 import {
+  getShipmentFinanceReadModel,
+  addOrUpdateFinancialLine,
+  issueSalesInvoice,
+  attemptModifyIssuedSalesInvoice,
+  issueSalesCreditNote,
+  registerAndMatchPurchaseInvoice,
+  approvePurchaseInvoicePayment,
+} from "../scm/contexts/finance-billing/finance-billing.context.js";
+import {
   createCustomerOrder,
   confirmCustomerOrder,
   loadOrderAggregate,
@@ -639,6 +648,133 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       return handleDomainError(err, reply);
     }
   });
+
+  // ==========================================================================
+  // 16 & 17. SLICE 6 ENDPOINTS — OPERATIONAL FINANCE & BILLING 3-WAY MATCH
+  // ==========================================================================
+  fastify.get("/shipments/:id/finance", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const fin = await getShipmentFinanceReadModel(id, actor);
+      return reply.send(fin);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/shipments/:id/finance/lines", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const fin = await addOrUpdateFinancialLine(
+        {
+          ...body,
+          shipmentId: id,
+        },
+        actor,
+      );
+      return reply.code(201).send(fin);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/shipments/:id/sales-invoices", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const inv = await issueSalesInvoice(
+        {
+          ...body,
+          shipmentId: id,
+        },
+        actor,
+      );
+      return reply.code(201).send(inv);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.patch("/sales-invoices/:invoiceId", async (request, reply) => {
+    try {
+      const { invoiceId } = request.params as { invoiceId: string };
+      const body = (request.body as any) || {};
+      await attemptModifyIssuedSalesInvoice({
+        invoiceId,
+        newNetAmountEur: body.netAmountEur ?? 0,
+      });
+      return reply.send({ updated: true });
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post(
+    "/sales-invoices/:invoiceId/credit-note",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { invoiceId } = request.params as { invoiceId: string };
+        const body = (request.body as any) || {};
+        const inv = await issueSalesCreditNote(
+          {
+            invoiceId,
+            creditReason: body.creditReason,
+          },
+          actor,
+        );
+        return reply.send(inv);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.post("/shipments/:id/purchase-invoices", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as any) || {};
+      const pinv = await registerAndMatchPurchaseInvoice(
+        {
+          ...body,
+          shipmentId: id,
+        },
+        actor,
+      );
+      return reply.code(201).send(pinv);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post(
+    "/purchase-invoices/:purchaseInvoiceId/approve",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { purchaseInvoiceId } = request.params as {
+          purchaseInvoiceId: string;
+        };
+        const body = (request.body as any) || {};
+        const pinv = await approvePurchaseInvoicePayment(
+          {
+            purchaseInvoiceId,
+            approveVarianceOverride: body.approveVarianceOverride,
+            approvalNotes: body.approvalNotes,
+          },
+          actor,
+        );
+        return reply.send(pinv);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
 
   // ==========================================================================
   // 24. OPERATIONAL INTELLIGENCE — SHIPMENT 360 & SMART WORK QUEUE (CQRS BFF)

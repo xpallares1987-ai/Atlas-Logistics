@@ -409,6 +409,94 @@ export const scmCustomsCases = sqliteTable("customs_cases", {
 });
 
 // ============================================================================
+// 16. OPERATIONAL FINANCE BOUNDED CONTEXT SCHEMA (op_finance_*)
+// Aggregate ShipmentFinance (Decision 20B): FinancialLines, Margin & Accruals
+// ============================================================================
+
+export const scmShipmentFinances = sqliteTable("op_finance_shipment_finances", {
+  id: text("id").primaryKey(),
+  shipmentId: text("shipment_id").notNull().unique(),
+  functionalCurrency: text("functional_currency").notNull().default("EUR"),
+  financialState: text("financial_state").notNull().default("OPEN"), // OPEN | ACCRUALS_POSTED | FINANCIALLY_READY | SOFT_CLOSED | HARD_LOCKED
+  expectedCostTotalEur: real("expected_cost_total_eur").notNull().default(0),
+  confirmedCostTotalEur: real("confirmed_cost_total_eur").notNull().default(0),
+  expectedRevenueTotalEur: real("expected_revenue_total_eur")
+    .notNull()
+    .default(0),
+  confirmedRevenueTotalEur: real("confirmed_revenue_total_eur")
+    .notNull()
+    .default(0),
+  expectedGrossMarginEur: real("expected_gross_margin_eur")
+    .notNull()
+    .default(0),
+  actualGrossMarginEur: real("actual_gross_margin_eur").notNull().default(0),
+  marginPercent: real("margin_percent").notNull().default(0),
+  openAccrualAmountEur: real("open_accrual_amount_eur").notNull().default(0),
+  financiallyReady: integer("financially_ready", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  linesJson: text("lines_json").notNull().default("[]"), // FinancialLine[]
+  organizationId: text("organization_id").notNull(),
+  branchId: text("branch_id").notNull(),
+  version: integer("version").notNull().default(1),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+// ============================================================================
+// 17. BILLING BOUNDED CONTEXT SCHEMA (billing_*)
+// Aggregates SalesInvoice (Immutable Fiscal Sequence) & PurchaseInvoice (3-Way Match)
+// ============================================================================
+
+export const scmSalesInvoices = sqliteTable("billing_sales_invoices", {
+  id: text("id").primaryKey(),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  shipmentId: text("shipment_id").notNull(),
+  billToCustomerPartyId: text("bill_to_customer_party_id").notNull(),
+  customerName: text("customer_name").notNull(),
+  customerTaxId: text("customer_tax_id").notNull(),
+  currency: text("currency").notNull().default("EUR"),
+  netAmountEur: real("net_amount_eur").notNull(),
+  taxRatePercent: real("tax_rate_percent").notNull().default(21),
+  taxAmountEur: real("tax_amount_eur").notNull(),
+  grossAmountEur: real("gross_amount_eur").notNull(),
+  status: text("status").notNull().default("DRAFT"), // DRAFT | APPROVED | ISSUED | POSTED_TO_ERP | PAID | CREDITED
+  linesJson: text("lines_json").notNull().default("[]"),
+  creditNoteNumber: text("credit_note_number"),
+  creditReason: text("credit_reason"),
+  issuedAt: text("issued_at"),
+  organizationId: text("organization_id").notNull(),
+  branchId: text("branch_id").notNull(),
+  version: integer("version").notNull().default(1),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export const scmPurchaseInvoices = sqliteTable("billing_purchase_invoices", {
+  id: text("id").primaryKey(),
+  dedupVendorKey: text("dedup_vendor_key").notNull().unique(), // `${supplierPartyId}:${supplierInvoiceNumber}:${fiscalYear}`
+  supplierPartyId: text("supplier_party_id").notNull(),
+  supplierName: text("supplier_name").notNull(),
+  supplierInvoiceNumber: text("supplier_invoice_number").notNull(),
+  fiscalYear: integer("fiscal_year").notNull(),
+  shipmentId: text("shipment_id").notNull(),
+  matchedFinancialLineId: text("matched_financial_line_id").notNull(),
+  claimedAmountEur: real("claimed_amount_eur").notNull(),
+  expectedCostAmountEur: real("expected_cost_amount_eur").notNull(),
+  varianceAmountEur: real("variance_amount_eur").notNull(),
+  variancePercent: real("variance_percent").notNull(),
+  tolerancePercent: real("tolerance_percent").notNull().default(2),
+  matchOutcome: text("match_outcome").notNull(), // EXACT_MATCH | WITHIN_TOLERANCE | OVERCHARGE_DISCREPANCY | UNPLANNED_CHARGE
+  threeWayMatchStatus: text("three_way_match_status").notNull(), // AUTO_MATCHED | BLOCKED_FOR_VARIANCE | VARIANCE_APPROVED | REJECTED_TO_VENDOR
+  status: text("status").notNull(), // REGISTERED | APPROVED_FOR_PAYMENT | DISPUTED | PAID
+  approvalNotes: text("approval_notes"),
+  organizationId: text("organization_id").notNull(),
+  branchId: text("branch_id").notNull(),
+  version: integer("version").notNull().default(1),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+// ============================================================================
 // 20. WORKFLOW RUNTIME BOUNDED CONTEXT SCHEMA (workflow_rt_*)
 // Domain-Agnostic BPMN-like Process Definitions, Instances & Active Tokens
 // ============================================================================
