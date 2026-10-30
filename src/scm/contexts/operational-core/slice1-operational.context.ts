@@ -13,6 +13,7 @@ import {
   scmLogicalMilestonePlans,
   scmLogicalMilestones,
 } from "../../../db/schema/scm_logical_slice1_sqlite.js";
+import { scmOutboxMessages } from "../../../db/schema/scm_foundation.js";
 import {
   SecurityActorContext,
   DEFAULT_OPERATOR_ACTOR,
@@ -20,7 +21,10 @@ import {
   DomainInvariantError,
 } from "../../kernel/primitives.js";
 import { ensureScmLogicalSlice1Tables } from "../../kernel/logical-slice1-tables.js";
-import { outboxBus } from "../../kernel/outbox-bus.js";
+import {
+  ensureScmFoundationTables,
+  outboxBus,
+} from "../../kernel/outbox-bus.js";
 import {
   createTask,
   addTaskDependency,
@@ -127,79 +131,99 @@ export async function createOperationalShipment(
     bookingReference?: string;
     teamId?: string;
     userId?: string;
+    idempotencyKey?: string;
   },
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ): Promise<OperationalShipmentRecord> {
   await ensureScmLogicalSlice1Tables();
 
+  // Command Idempotency Check: By shipmentReference
+  const existing = await db
+    .select()
+    .from(scmLogicalShipments)
+    .where(eq(scmLogicalShipments.shipmentReference, input.shipmentReference))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return getOperationalShipmentById(existing[0].shipmentId);
+  }
+
   const shipmentId = input.shipmentId || `shp_${uuidv4()}`;
   const now = new Date();
+  const correlationId = `corr_${uuidv4()}`;
+  const causationId = input.idempotencyKey || `cmd_create_shipment`;
 
-  // 1. Persist Aggregate Root
-  await db.insert(scmLogicalShipments).values({
-    shipmentId,
-    shipmentReference: input.shipmentReference,
-    serviceType: input.serviceType,
-    owningOrganizationId: actor.organizationId,
-    lifecycle: "CREATED",
-    closureStatus: "OPEN",
-    createdAt: now,
-    updatedAt: now,
-    version: 1,
+  // Atomic Transaction Boundary: Aggregate Mutation + Outbox Event in the SAME transaction
+  await db.transaction(async (tx) => {
+    // 1. Persist Aggregate Root
+    await tx.insert(scmLogicalShipments).values({
+      shipmentId,
+      shipmentReference: input.shipmentReference,
+      serviceType: input.serviceType,
+      owningOrganizationId: actor.organizationId,
+      lifecycle: "CREATED",
+      closureStatus: "OPEN",
+      createdAt: now,
+      updatedAt: now,
+      version: 1,
+    });
+
+    // 2. Persist Composition Entities
+    const referenceId = `sref_${uuidv4()}`;
+    await tx.insert(scmShipmentReferences).values({
+      referenceId,
+      shipmentId,
+      type: "BOOKING_REFERENCE",
+      value: input.bookingReference || `BK-${input.shipmentReference}`,
+      source: "INITIAL_DISPATCH",
+      isPrimary: true,
+    });
+
+    const shipmentPartyRoleId = `spr_${uuidv4()}`;
+    await tx.insert(scmShipmentPartyRoles).values({
+      shipmentPartyRoleId,
+      shipmentId,
+      partyId: input.customerPartyId,
+      role: "CUSTOMER",
+    });
+
+    const assignmentId = `sasg_${uuidv4()}`;
+    await tx.insert(scmShipmentAssignments).values({
+      assignmentId,
+      shipmentId,
+      assignmentType: "OPERATIONS_OWNER",
+      organizationId: actor.organizationId,
+      teamId: input.teamId || "TEAM-DEFAULT-OPS",
+      userId: input.userId || actor.userId,
+      activeFrom: now.toISOString(),
+    });
+
+    // 3. Atomically enqueue Domain Event in Transactional Outbox within TX
+    await outboxBus.enqueueEvents(
+      [
+        {
+          eventId: `evt_${uuidv4()}`,
+          eventType: "shipment_execution.ShipmentCreated.v2",
+          schemaVersion: 2,
+          producerContext: "shipment_exec",
+          aggregateType: "Shipment",
+          aggregateId: shipmentId,
+          aggregateVersion: 1,
+          correlationId,
+          causationId,
+          actor,
+          occurredAt: now.toISOString(),
+          payload: {
+            shipmentId,
+            shipmentReference: input.shipmentReference,
+            serviceType: input.serviceType,
+            customerPartyId: input.customerPartyId,
+          },
+        },
+      ],
+      tx,
+    );
   });
-
-  // 2. Persist Composition Entities
-  const referenceId = `sref_${uuidv4()}`;
-  await db.insert(scmShipmentReferences).values({
-    referenceId,
-    shipmentId,
-    type: "BOOKING_REFERENCE",
-    value: input.bookingReference || `BK-${input.shipmentReference}`,
-    source: "INITIAL_DISPATCH",
-    isPrimary: true,
-  });
-
-  const shipmentPartyRoleId = `spr_${uuidv4()}`;
-  await db.insert(scmShipmentPartyRoles).values({
-    shipmentPartyRoleId,
-    shipmentId,
-    partyId: input.customerPartyId,
-    role: "CUSTOMER",
-  });
-
-  const assignmentId = `sasg_${uuidv4()}`;
-  await db.insert(scmShipmentAssignments).values({
-    assignmentId,
-    shipmentId,
-    assignmentType: "OPERATIONS_OWNER",
-    organizationId: actor.organizationId,
-    teamId: input.teamId || "TEAM-DEFAULT-OPS",
-    userId: input.userId || actor.userId,
-    activeFrom: now.toISOString(),
-  });
-
-  // 3. Atomically enqueue Domain Event in Transactional Outbox
-  await outboxBus.enqueueEvents([
-    {
-      eventId: `evt_${uuidv4()}`,
-      eventType: "shipment_execution.ShipmentCreated.v2",
-      schemaVersion: 2,
-      producerContext: "shipment_exec",
-      aggregateType: "Shipment",
-      aggregateId: shipmentId,
-      aggregateVersion: 1,
-      correlationId: `corr_${uuidv4()}`,
-      causationId: `cmd_create_shipment`,
-      actor,
-      occurredAt: now.toISOString(),
-      payload: {
-        shipmentId,
-        shipmentReference: input.shipmentReference,
-        serviceType: input.serviceType,
-        customerPartyId: input.customerPartyId,
-      },
-    },
-  ]);
 
   await outboxBus.relayPendingEvents();
 
@@ -308,93 +332,143 @@ export async function createInitialRoutePlan(
       plannedDeparture: string;
       plannedArrival: string;
     }>;
+    idempotencyKey?: string;
   },
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ): Promise<OperationalRoutePlanRecord> {
   await ensureScmLogicalSlice1Tables();
 
+  // Command Idempotency Check: if route plan already exists for shipment
+  const existing = await db
+    .select()
+    .from(scmLogicalRoutePlans)
+    .where(eq(scmLogicalRoutePlans.shipmentId, input.shipmentId))
+    .limit(1);
+
+  if (existing.length > 0) {
+    const plan = existing[0];
+    const verRows = await db
+      .select()
+      .from(scmLogicalRouteVersions)
+      .where(eq(scmLogicalRouteVersions.routePlanId, plan.routePlanId))
+      .limit(1);
+
+    if (verRows.length > 0) {
+      const ver = verRows[0];
+      const [stops, legs] = await Promise.all([
+        db
+          .select()
+          .from(scmLogicalRouteStops)
+          .where(eq(scmLogicalRouteStops.routeVersionId, ver.routeVersionId)),
+        db
+          .select()
+          .from(scmLogicalTransportLegs)
+          .where(
+            eq(scmLogicalTransportLegs.routeVersionId, ver.routeVersionId),
+          ),
+      ]);
+      return {
+        routePlanId: plan.routePlanId,
+        shipmentId: input.shipmentId,
+        versionNumber: ver.versionNumber,
+        status: ver.status,
+        changeReason: ver.changeReason,
+        stops,
+        legs,
+      };
+    }
+  }
+
   const routePlanId = `rpl_${uuidv4()}`;
   const routeVersionId = `rver_${uuidv4()}`;
   const now = new Date();
+  const correlationId = `corr_${uuidv4()}`;
+  const causationId = input.idempotencyKey || `cmd_plan_route`;
 
-  // 1. Create RoutePlan Root
-  await db.insert(scmLogicalRoutePlans).values({
-    routePlanId,
-    shipmentId: input.shipmentId,
-    currentVersionId: routeVersionId,
-    status: "ACTIVE",
-    createdAt: now,
-    version: 1,
-  });
-
-  // 2. Create Published RouteVersion (inmutable)
-  await db.insert(scmLogicalRouteVersions).values({
-    routeVersionId,
-    routePlanId,
-    versionNumber: 1,
-    status: "PUBLISHED",
-    changeReason: "Initial published corridor plan",
-    createdBy: actor.userId,
-    createdAt: now,
-    publishedAt: now.toISOString(),
-  });
-
-  // 3. Create RouteStops
-  for (const stop of input.stops) {
-    await db.insert(scmLogicalRouteStops).values({
-      stopId: `stp_${uuidv4()}`,
-      routeVersionId,
-      sequence: stop.sequence,
-      locationId: stop.locationId,
-      stopType: stop.stopType,
-      plannedArrival: stop.plannedArrival || null,
-      plannedDeparture: stop.plannedDeparture || null,
+  // Atomic Transaction Boundary: RoutePlan + Stops + Legs + Shipment state + Outbox Event in the SAME transaction
+  await db.transaction(async (tx) => {
+    // 1. Create RoutePlan Root
+    await tx.insert(scmLogicalRoutePlans).values({
+      routePlanId,
+      shipmentId: input.shipmentId,
+      currentVersionId: routeVersionId,
+      status: "ACTIVE",
+      createdAt: now,
+      version: 1,
     });
-  }
 
-  // 4. Create TransportLegs
-  for (const leg of input.legs) {
-    await db.insert(scmLogicalTransportLegs).values({
-      legId: `leg_${uuidv4()}`,
+    // 2. Create Published RouteVersion (inmutable)
+    await tx.insert(scmLogicalRouteVersions).values({
       routeVersionId,
-      sequence: leg.sequence,
-      originLocationId: leg.originLocationId,
-      destinationLocationId: leg.destinationLocationId,
-      transportMode: leg.transportMode,
-      plannedDeparture: leg.plannedDeparture,
-      plannedArrival: leg.plannedArrival,
+      routePlanId,
+      versionNumber: 1,
+      status: "PUBLISHED",
+      changeReason: "Initial published corridor plan",
+      createdBy: actor.userId,
+      createdAt: now,
+      publishedAt: now.toISOString(),
     });
-  }
 
-  // 5. Update shipment lifecycle to PLANNED
-  await db
-    .update(scmLogicalShipments)
-    .set({ lifecycle: "PLANNED", updatedAt: now })
-    .where(eq(scmLogicalShipments.shipmentId, input.shipmentId));
+    // 3. Create RouteStops
+    for (const stop of input.stops) {
+      await tx.insert(scmLogicalRouteStops).values({
+        stopId: `stp_${uuidv4()}`,
+        routeVersionId,
+        sequence: stop.sequence,
+        locationId: stop.locationId,
+        stopType: stop.stopType,
+        plannedArrival: stop.plannedArrival || null,
+        plannedDeparture: stop.plannedDeparture || null,
+      });
+    }
 
-  // 6. Enqueue RoutePlanned.v2 event in Transactional Outbox
-  await outboxBus.enqueueEvents([
-    {
-      eventId: `evt_${uuidv4()}`,
-      eventType: "transport_planning.RoutePlanned.v2",
-      schemaVersion: 2,
-      producerContext: "transport_plan",
-      aggregateType: "RoutePlan",
-      aggregateId: routePlanId,
-      aggregateVersion: 1,
-      correlationId: `corr_${uuidv4()}`,
-      causationId: `cmd_plan_route`,
-      actor,
-      occurredAt: now.toISOString(),
-      payload: {
-        routePlanId,
-        shipmentId: input.shipmentId,
-        versionNumber: 1,
-        stops: input.stops,
-        legs: input.legs,
-      },
-    },
-  ]);
+    // 4. Create TransportLegs
+    for (const leg of input.legs) {
+      await tx.insert(scmLogicalTransportLegs).values({
+        legId: `leg_${uuidv4()}`,
+        routeVersionId,
+        sequence: leg.sequence,
+        originLocationId: leg.originLocationId,
+        destinationLocationId: leg.destinationLocationId,
+        transportMode: leg.transportMode,
+        plannedDeparture: leg.plannedDeparture,
+        plannedArrival: leg.plannedArrival,
+      });
+    }
+
+    // 5. Update shipment lifecycle to PLANNED
+    await tx
+      .update(scmLogicalShipments)
+      .set({ lifecycle: "PLANNED", updatedAt: now })
+      .where(eq(scmLogicalShipments.shipmentId, input.shipmentId));
+
+    // 6. Enqueue RoutePlanned.v2 event in Transactional Outbox within TX
+    await outboxBus.enqueueEvents(
+      [
+        {
+          eventId: `evt_${uuidv4()}`,
+          eventType: "transport_planning.RoutePlanned.v2",
+          schemaVersion: 2,
+          producerContext: "transport_plan",
+          aggregateType: "RoutePlan",
+          aggregateId: routePlanId,
+          aggregateVersion: 1,
+          correlationId,
+          causationId,
+          actor,
+          occurredAt: now.toISOString(),
+          payload: {
+            routePlanId,
+            shipmentId: input.shipmentId,
+            versionNumber: 1,
+            stops: input.stops,
+            legs: input.legs,
+          },
+        },
+      ],
+      tx,
+    );
+  });
 
   await outboxBus.relayPendingEvents();
 
@@ -542,6 +616,32 @@ export function registerOperationalSubscribers(): void {
         },
         event.actor,
       );
+
+      // Enqueue TasksGenerated.v2 event in Transactional Outbox
+      await outboxBus.enqueueEvents([
+        {
+          eventId: `evt_${uuidv4()}`,
+          eventType: "work_mgmt.TasksGenerated.v2",
+          schemaVersion: 2,
+          producerContext: "work_mgmt",
+          aggregateType: "TaskDAG",
+          aggregateId: p.shipmentId,
+          aggregateVersion: 1,
+          correlationId: event.correlationId,
+          causationId: event.eventId,
+          actor: event.actor,
+          occurredAt: new Date().toISOString(),
+          payload: {
+            shipmentId: p.shipmentId,
+            taskIds: [taskA.taskId, taskB.taskId, taskC.taskId],
+            pipeline: [
+              "CONFIRM_CARRIER_BOOKING",
+              "VERIFY_VGM_CUTOFF",
+              "ISSUE_BILL_OF_LADING",
+            ],
+          },
+        },
+      ]);
     },
   );
 
@@ -691,4 +791,111 @@ export async function getShipment360OperationalModel(
       })),
     })),
   };
+}
+
+// ============================================================================
+// 6. OPERATIONAL AUDIT TRAIL RECONSTRUCTION
+// Reconstructs: Shipment Created → Route Planned → Milestones Generated →
+//               Tasks Generated → Task Completed → Successor Unblocked
+// ============================================================================
+
+export interface OperationalAuditStep {
+  stepIndex: number;
+  stage:
+    | "SHIPMENT_CREATED"
+    | "ROUTE_PLANNED"
+    | "MILESTONES_GENERATED"
+    | "TASKS_GENERATED"
+    | "TASK_COMPLETED"
+    | "TASK_UNBLOCKED";
+  eventType: string;
+  eventId: string;
+  aggregateType: string;
+  aggregateId: string;
+  correlationId: string;
+  causationId: string;
+  actor: SecurityActorContext;
+  occurredAt: string;
+  description: string;
+  details: Record<string, unknown>;
+}
+
+export async function getOperationalAuditTrail(
+  shipmentId: string,
+): Promise<OperationalAuditStep[]> {
+  await ensureScmFoundationTables();
+
+  const allMessages = await db
+    .select()
+    .from(scmOutboxMessages)
+    .orderBy(scmOutboxMessages.occurredAt);
+
+  const shipmentEvents = allMessages.filter((m) => {
+    try {
+      const p = JSON.parse(m.payloadJson);
+      return (
+        m.aggregateId === shipmentId ||
+        p.shipmentId === shipmentId ||
+        p.subjectId === shipmentId
+      );
+    } catch {
+      return false;
+    }
+  });
+
+  const steps: OperationalAuditStep[] = [];
+  let index = 1;
+
+  for (const row of shipmentEvents) {
+    const payload = JSON.parse(row.payloadJson);
+    const actor = JSON.parse(row.actorContextJson);
+    let stage: OperationalAuditStep["stage"] | null = null;
+    let description = "";
+
+    switch (row.eventType) {
+      case "shipment_execution.ShipmentCreated.v2":
+        stage = "SHIPMENT_CREATED";
+        description = `Shipment '${payload.shipmentReference}' created with service type '${payload.serviceType}'`;
+        break;
+      case "transport_planning.RoutePlanned.v2":
+        stage = "ROUTE_PLANNED";
+        description = `Corridor route plan published (${payload.stops?.length || 0} stops, ${payload.legs?.length || 0} transport legs)`;
+        break;
+      case "tracking.MilestonePlanCreated.v2":
+        stage = "MILESTONES_GENERATED";
+        description = `Milestone tracking plan initialized with ${payload.milestoneCount || 5} operational milestones`;
+        break;
+      case "work_mgmt.TasksGenerated.v2":
+        stage = "TASKS_GENERATED";
+        description = `Operational task pipeline generated: ${(payload.pipeline || []).join(" -> ")}`;
+        break;
+      case "work_mgmt.TaskCompleted.v2":
+        stage = "TASK_COMPLETED";
+        description = `Task '${payload.taskType}' (${payload.taskId}) marked COMPLETED`;
+        break;
+      case "work_mgmt.TaskUnblocked.v2":
+        stage = "TASK_UNBLOCKED";
+        description = `Task '${payload.unblockedTaskId}' unblocked and transitioned to OPEN (predecessor '${payload.predecessorTaskId}' resolved)`;
+        break;
+    }
+
+    if (stage) {
+      steps.push({
+        stepIndex: index++,
+        stage,
+        eventType: row.eventType,
+        eventId: row.eventId,
+        aggregateType: row.aggregateType,
+        aggregateId: row.aggregateId,
+        correlationId: row.correlationId,
+        causationId: row.causationId,
+        actor,
+        occurredAt: row.occurredAt.toISOString(),
+        description,
+        details: payload,
+      });
+    }
+  }
+
+  return steps;
 }

@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { client, db } from "../../db/index.js";
 import {
   scmOutboxMessages,
   scmInboxProcessedMessages,
+  scmCommandIdempotency,
 } from "../../db/schema/scm_foundation.js";
 import { DomainEventEnvelope } from "./primitives.js";
 
@@ -46,6 +47,13 @@ export async function ensureScmFoundationTables(): Promise<void> {
       event_id TEXT NOT NULL,
       event_type TEXT NOT NULL,
       processed_at INTEGER NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS platform_gov_command_idempotency_v2 (
+      command_key TEXT PRIMARY KEY NOT NULL,
+      command_name TEXT NOT NULL,
+      entity_id TEXT,
+      result_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL
     );`,
     `CREATE TABLE IF NOT EXISTS orders_customer_orders (
       id TEXT PRIMARY KEY NOT NULL,
@@ -482,6 +490,15 @@ export async function ensureScmFoundationTables(): Promise<void> {
 
 class TransactionalOutboxBus {
   private subscribers: RegisteredSubscriber[] = [];
+  private maxRetries: number = 3;
+
+  public setMaxRetries(retries: number): void {
+    this.maxRetries = retries;
+  }
+
+  public clearSubscribers(): void {
+    this.subscribers = [];
+  }
 
   public subscribe(
     eventType: string,
@@ -496,12 +513,16 @@ class TransactionalOutboxBus {
     }
   }
 
-  public async enqueueEvents(events: DomainEventEnvelope[]): Promise<void> {
+  public async enqueueEvents(
+    events: DomainEventEnvelope[],
+    tx?: any,
+  ): Promise<void> {
     if (events.length === 0) return;
     await ensureScmFoundationTables();
 
+    const clientToUse = tx || db;
     for (const evt of events) {
-      await db
+      await clientToUse
         .insert(scmOutboxMessages)
         .values({
           eventId: evt.eventId,
@@ -527,15 +548,23 @@ class TransactionalOutboxBus {
    * Relays all PENDING outbox messages to registered subscribers with
    * strict Consumer Inbox idempotency (each consumer processes a given eventId at most once).
    * Loops up to 8 passes so cascading domain events settle deterministically.
+   *
+   * Outbox lifecycle:
+   * PENDING -> PROCESSING -> PROCESSED (on success)
+   *                       -> PENDING (retry on failure if retryCount < maxRetries)
+   *                       -> FAILED (Dead Letter Queue if retryCount >= maxRetries)
    */
   public async relayPendingEvents(): Promise<{
     relayedEventsCount: number;
     consumerDeliveriesCount: number;
+    failedEventsCount: number;
   }> {
     await ensureScmFoundationTables();
 
     let relayedEventsCount = 0;
     let consumerDeliveriesCount = 0;
+    let failedEventsCount = 0;
+    const failedInThisInvocation = new Set<string>();
 
     for (let pass = 0; pass < 8; pass++) {
       const pendingRows = await db
@@ -543,9 +572,19 @@ class TransactionalOutboxBus {
         .from(scmOutboxMessages)
         .where(eq(scmOutboxMessages.status, "PENDING"));
 
-      if (pendingRows.length === 0) break;
+      const eligibleRows = pendingRows.filter(
+        (r) => !failedInThisInvocation.has(r.eventId),
+      );
 
-      for (const row of pendingRows) {
+      if (eligibleRows.length === 0) break;
+
+      for (const row of eligibleRows) {
+        // Transition PENDING -> PROCESSING
+        await db
+          .update(scmOutboxMessages)
+          .set({ status: "PROCESSING" })
+          .where(eq(scmOutboxMessages.eventId, row.eventId));
+
         const envelope: DomainEventEnvelope = {
           eventId: row.eventId,
           eventType: row.eventType,
@@ -573,29 +612,100 @@ class TransactionalOutboxBus {
             }
           }
 
+          // Transition PROCESSING -> PROCESSED
           await db
             .update(scmOutboxMessages)
             .set({
-              status: "PUBLISHED",
+              status: "PROCESSED",
               publishedAt: new Date(),
             })
             .where(eq(scmOutboxMessages.eventId, row.eventId));
 
           relayedEventsCount += 1;
         } catch (err: any) {
+          failedInThisInvocation.add(row.eventId);
+          const nextRetry = row.retryCount + 1;
+          const isDeadLetter = nextRetry >= this.maxRetries;
+
           await db
             .update(scmOutboxMessages)
             .set({
-              retryCount: row.retryCount + 1,
-              lastError: err?.message || "Unknown consumer error",
+              status: isDeadLetter ? "FAILED" : "PENDING",
+              retryCount: nextRetry,
+              lastError: err?.message || String(err),
             })
             .where(eq(scmOutboxMessages.eventId, row.eventId));
-          throw err;
+
+          if (isDeadLetter) {
+            failedEventsCount += 1;
+          }
         }
       }
     }
 
-    return { relayedEventsCount, consumerDeliveriesCount };
+    return { relayedEventsCount, consumerDeliveriesCount, failedEventsCount };
+  }
+
+  /**
+   * Retrieves messages that have permanently failed processing and are held in the Dead Letter Queue (DLQ).
+   */
+  public async getDeadLetterQueue(): Promise<
+    Array<{
+      eventId: string;
+      eventType: string;
+      aggregateId: string;
+      aggregateType: string;
+      retryCount: number;
+      lastError: string | null;
+      occurredAt: Date;
+      payload: any;
+    }>
+  > {
+    await ensureScmFoundationTables();
+    const rows = await db
+      .select()
+      .from(scmOutboxMessages)
+      .where(eq(scmOutboxMessages.status, "FAILED"))
+      .orderBy(desc(scmOutboxMessages.occurredAt));
+
+    return rows.map((r) => ({
+      eventId: r.eventId,
+      eventType: r.eventType,
+      aggregateId: r.aggregateId,
+      aggregateType: r.aggregateType,
+      retryCount: r.retryCount,
+      lastError: r.lastError,
+      occurredAt: r.occurredAt,
+      payload: JSON.parse(r.payloadJson),
+    }));
+  }
+
+  /**
+   * Replays a dead-lettered message from DLQ by resetting its status to PENDING and triggering relay.
+   */
+  public async replayDeadLetterMessage(eventId: string): Promise<boolean> {
+    await ensureScmFoundationTables();
+    const existing = await db
+      .select()
+      .from(scmOutboxMessages)
+      .where(eq(scmOutboxMessages.eventId, eventId))
+      .limit(1);
+
+    if (existing.length === 0 || existing[0].status !== "FAILED") {
+      return false;
+    }
+
+    await db
+      .update(scmOutboxMessages)
+      .set({
+        status: "PENDING",
+        retryCount: 0,
+        lastError: null,
+      })
+      .where(eq(scmOutboxMessages.eventId, eventId));
+
+    await this.relayPendingEvents();
+    return true;
   }
 
   /**
@@ -637,3 +747,47 @@ class TransactionalOutboxBus {
 }
 
 export const outboxBus = new TransactionalOutboxBus();
+
+/**
+ * Executes an application command with idempotent guarantee.
+ * If commandKey is provided and was already processed, returns the previous result without re-executing.
+ */
+export async function executeWithIdempotency<T>(
+  commandKey: string | undefined,
+  commandName: string,
+  executor: (tx?: any) => Promise<{ result: T; entityId?: string }>,
+  tx?: any,
+): Promise<T> {
+  if (!commandKey || !commandKey.trim()) {
+    const res = await executor(tx);
+    return res.result;
+  }
+
+  await ensureScmFoundationTables();
+  const dbClient = tx || db;
+
+  const existing = await dbClient
+    .select()
+    .from(scmCommandIdempotency)
+    .where(eq(scmCommandIdempotency.commandKey, commandKey))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return JSON.parse(existing[0].resultJson) as T;
+  }
+
+  const { result, entityId } = await executor(tx);
+
+  await dbClient
+    .insert(scmCommandIdempotency)
+    .values({
+      commandKey,
+      commandName,
+      entityId: entityId || null,
+      resultJson: JSON.stringify(result),
+      createdAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  return result;
+}

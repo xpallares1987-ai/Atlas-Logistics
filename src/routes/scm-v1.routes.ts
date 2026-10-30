@@ -84,6 +84,7 @@ import {
   updateOperationalShipment,
   createInitialRoutePlan,
   getShipment360OperationalModel,
+  getOperationalAuditTrail,
 } from "../scm/contexts/operational-core/slice1-operational.context.js";
 import {
   createTask,
@@ -872,13 +873,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   });
 
   // ==========================================================================
-  // 26. SCM LOGICAL MODEL v1 — OPERATIONAL CORE & WORK MANAGEMENT (SLICES 1 & 2)
+  // 26. SCM LOGICAL MODEL v1 — OPERATIONAL CORE & WORK MANAGEMENT (SLICES 1, 2 & 3)
   // ==========================================================================
   fastify.post("/operational/shipments", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const body = request.body as any;
-      const result = await createOperationalShipment(body, actor);
+      const body = (request.body as any) || {};
+      const idempotencyKey =
+        (request.headers["x-idempotency-key"] as string) || body.idempotencyKey;
+      const result = await createOperationalShipment(
+        { ...body, idempotencyKey },
+        actor,
+      );
       return reply.code(201).send(result);
     } catch (err) {
       return handleDomainError(err, reply);
@@ -906,9 +912,12 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const actor = extractActorFromRequest(request);
         const { shipmentId } = request.params as { shipmentId: string };
-        const body = request.body as any;
+        const body = (request.body as any) || {};
+        const idempotencyKey =
+          (request.headers["x-idempotency-key"] as string) ||
+          body.idempotencyKey;
         const result = await createInitialRoutePlan(
-          { shipmentId, ...body },
+          { shipmentId, ...body, idempotencyKey },
           actor,
         );
         return reply.code(201).send(result);
@@ -925,6 +934,47 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
         const { shipmentId } = request.params as { shipmentId: string };
         const result = await getShipment360OperationalModel(shipmentId);
         return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get(
+    "/operational/shipments/:shipmentId/audit-trail",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const result = await getOperationalAuditTrail(shipmentId);
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get("/operational/outbox/dlq", async (_request, reply) => {
+    try {
+      const dlq = await outboxBus.getDeadLetterQueue();
+      return reply.code(200).send({
+        dlqCount: dlq.length,
+        messages: dlq,
+      });
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post(
+    "/operational/outbox/dlq/:eventId/replay",
+    async (request, reply) => {
+      try {
+        const { eventId } = request.params as { eventId: string };
+        const success = await outboxBus.replayDeadLetterMessage(eventId);
+        return reply.code(200).send({
+          eventId,
+          replayed: success,
+        });
       } catch (err) {
         return handleDomainError(err, reply);
       }
@@ -960,7 +1010,12 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
         const actor = extractActorFromRequest(request);
         const { taskId } = request.params as { taskId: string };
         const body = (request.body as any) || {};
-        const result = await completeTask(taskId, body.result, actor);
+        const idempotencyKey =
+          (request.headers["x-idempotency-key"] as string) ||
+          body.idempotencyKey;
+        const result = await completeTask(taskId, body.result, actor, {
+          idempotencyKey,
+        });
         return reply.code(200).send(result);
       } catch (err) {
         return handleDomainError(err, reply);

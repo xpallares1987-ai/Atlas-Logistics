@@ -17,7 +17,7 @@ export const scmOutboxMessages = sqliteTable("platform_gov_outbox_messages", {
   causationId: text("causation_id").notNull(),
   actorContextJson: text("actor_context_json").notNull(),
   payloadJson: text("payload_json").notNull(),
-  status: text("status").notNull().default("PENDING"), // PENDING | PUBLISHED | FAILED
+  status: text("status").notNull().default("PENDING"), // PENDING | PROCESSING | PROCESSED | FAILED
   retryCount: integer("retry_count").notNull().default(0),
   occurredAt: integer("occurred_at", { mode: "timestamp" }).notNull(),
   publishedAt: integer("published_at", { mode: "timestamp" }),
@@ -32,6 +32,17 @@ export const scmInboxProcessedMessages = sqliteTable(
     eventId: text("event_id").notNull(),
     eventType: text("event_type").notNull(),
     processedAt: integer("processed_at", { mode: "timestamp" }).notNull(),
+  },
+);
+
+export const scmCommandIdempotency = sqliteTable(
+  "platform_gov_command_idempotency_v2",
+  {
+    commandKey: text("command_key").primaryKey(),
+    commandName: text("command_name").notNull(),
+    entityId: text("entity_id"),
+    resultJson: text("result_json").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
 );
 

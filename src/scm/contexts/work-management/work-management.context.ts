@@ -13,6 +13,7 @@ import {
   assertInvariant,
 } from "../../kernel/primitives.js";
 import { ensureScmLogicalSlice1Tables } from "../../kernel/logical-slice1-tables.js";
+import { outboxBus } from "../../kernel/outbox-bus.js";
 
 // ============================================================================
 // WORK MANAGEMENT CONTEXT (Sections 21-22)
@@ -214,7 +215,8 @@ export async function addTaskDependency(
 export async function completeTask(
   taskId: string,
   result?: Record<string, unknown>,
-  _actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
+  actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
+  options?: { idempotencyKey?: string },
 ): Promise<TaskRecord> {
   await ensureScmLogicalSlice1Tables();
 
@@ -232,12 +234,17 @@ export async function completeTask(
   );
 
   const task = tasks[0];
-  assertInvariant(
-    task.status !== "COMPLETED",
-    "work_mgmt",
-    "TASK_ALREADY_COMPLETED",
-    `Task '${taskId}' is already completed`,
-  );
+
+  // Command Idempotency: If already completed, return existing record safely
+  if (task.status === "COMPLETED") {
+    return {
+      ...task,
+      createdAt: new Date(task.createdAt),
+      status: task.status as any,
+      subjectType: task.subjectType as any,
+      priority: task.priority as any,
+    };
+  }
 
   // Check unresolved blocking predecessors
   const incomingDeps = await db
@@ -264,63 +271,122 @@ export async function completeTask(
     }
   }
 
-  const nowIso = new Date().toISOString();
-  await db
-    .update(scmLogicalTasks)
-    .set({
-      status: "COMPLETED",
-      resultJson: result ? JSON.stringify(result) : null,
-      completedAt: nowIso,
-      version: task.version + 1,
-    })
-    .where(eq(scmLogicalTasks.taskId, taskId));
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const nextVersion = task.version + 1;
+  const correlationId = `corr_${uuidv4()}`;
+  const unblockedTaskIds: string[] = [];
 
-  // Now inspect tasks that were depending on this task and unblock them if all their dependencies are satisfied!
-  const outgoingDeps = await db
-    .select()
-    .from(scmLogicalTaskDependencies)
-    .where(eq(scmLogicalTaskDependencies.predecessorTaskId, taskId));
+  // Atomic transaction boundary: mutate task + unblock successors + enqueue domain events
+  await db.transaction(async (tx) => {
+    await tx
+      .update(scmLogicalTasks)
+      .set({
+        status: "COMPLETED",
+        resultJson: result ? JSON.stringify(result) : null,
+        completedAt: nowIso,
+        version: nextVersion,
+      })
+      .where(eq(scmLogicalTasks.taskId, taskId));
 
-  for (const dep of outgoingDeps) {
-    const succTasks = await db
+    // Inspect tasks that were depending on this task and unblock them if all their dependencies are satisfied
+    const outgoingDeps = await tx
       .select()
-      .from(scmLogicalTasks)
-      .where(eq(scmLogicalTasks.taskId, dep.successorTaskId))
-      .limit(1);
+      .from(scmLogicalTaskDependencies)
+      .where(eq(scmLogicalTaskDependencies.predecessorTaskId, taskId));
 
-    if (succTasks.length > 0 && succTasks[0].status === "BLOCKED") {
-      // Check if any other predecessor is still incomplete
-      const succIncoming = await db
+    for (const dep of outgoingDeps) {
+      const succTasks = await tx
         .select()
-        .from(scmLogicalTaskDependencies)
-        .where(
-          eq(scmLogicalTaskDependencies.successorTaskId, dep.successorTaskId),
-        );
+        .from(scmLogicalTasks)
+        .where(eq(scmLogicalTasks.taskId, dep.successorTaskId))
+        .limit(1);
 
-      let stillBlocked = false;
-      for (const d of succIncoming) {
-        if (d.predecessorTaskId === taskId) continue; // the one we just completed
-        if (d.status === "BLOCKING") {
-          const otherPred = await db
-            .select()
-            .from(scmLogicalTasks)
-            .where(eq(scmLogicalTasks.taskId, d.predecessorTaskId))
-            .limit(1);
-          if (otherPred.length > 0 && otherPred[0].status !== "COMPLETED") {
-            stillBlocked = true;
-            break;
+      if (succTasks.length > 0 && succTasks[0].status === "BLOCKED") {
+        const succIncoming = await tx
+          .select()
+          .from(scmLogicalTaskDependencies)
+          .where(
+            eq(scmLogicalTaskDependencies.successorTaskId, dep.successorTaskId),
+          );
+
+        let stillBlocked = false;
+        for (const d of succIncoming) {
+          if (d.predecessorTaskId === taskId) continue; // the one we just completed
+          if (d.status === "BLOCKING") {
+            const otherPred = await tx
+              .select()
+              .from(scmLogicalTasks)
+              .where(eq(scmLogicalTasks.taskId, d.predecessorTaskId))
+              .limit(1);
+            if (otherPred.length > 0 && otherPred[0].status !== "COMPLETED") {
+              stillBlocked = true;
+              break;
+            }
           }
         }
-      }
 
-      if (!stillBlocked) {
-        await db
-          .update(scmLogicalTasks)
-          .set({ status: "OPEN", version: succTasks[0].version + 1 })
-          .where(eq(scmLogicalTasks.taskId, dep.successorTaskId));
+        if (!stillBlocked) {
+          await tx
+            .update(scmLogicalTasks)
+            .set({ status: "OPEN", version: succTasks[0].version + 1 })
+            .where(eq(scmLogicalTasks.taskId, dep.successorTaskId));
+          unblockedTaskIds.push(dep.successorTaskId);
+        }
       }
     }
-  }
+
+    // Enqueue Domain Events atomically in the SAME transaction
+    const eventsToEnqueue: any[] = [
+      {
+        eventId: `evt_${uuidv4()}`,
+        eventType: "work_mgmt.TaskCompleted.v2",
+        schemaVersion: 2,
+        producerContext: "work_mgmt",
+        aggregateType: "Task",
+        aggregateId: taskId,
+        aggregateVersion: nextVersion,
+        correlationId,
+        causationId: options?.idempotencyKey || `cmd_complete_task_${taskId}`,
+        actor,
+        occurredAt: nowIso,
+        payload: {
+          taskId,
+          taskType: task.taskType,
+          subjectType: task.subjectType,
+          subjectId: task.subjectId,
+          result: result || null,
+        },
+      },
+    ];
+
+    for (const unblockedId of unblockedTaskIds) {
+      eventsToEnqueue.push({
+        eventId: `evt_${uuidv4()}`,
+        eventType: "work_mgmt.TaskUnblocked.v2",
+        schemaVersion: 2,
+        producerContext: "work_mgmt",
+        aggregateType: "Task",
+        aggregateId: unblockedId,
+        aggregateVersion: 2,
+        correlationId,
+        causationId: `evt_complete_${taskId}`,
+        actor,
+        occurredAt: nowIso,
+        payload: {
+          predecessorTaskId: taskId,
+          unblockedTaskId: unblockedId,
+          subjectType: task.subjectType,
+          subjectId: task.subjectId,
+        },
+      });
+    }
+
+    await outboxBus.enqueueEvents(eventsToEnqueue, tx);
+  });
+
+  // Relay after atomic transaction commit
+  await outboxBus.relayPendingEvents();
 
   const updated = await db
     .select()
