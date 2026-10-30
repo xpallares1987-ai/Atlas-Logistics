@@ -7,12 +7,17 @@ import {
   SubjectType,
 } from "../../../db/schema/scm_logical_slice1_sqlite.js";
 import {
+  scmWorkflowEngineInstancesV2 as scmWorkflowInstances,
+  scmWorkflowEngineTaskInstancesV2 as scmWorkflowTaskInstances,
+} from "../../../db/schema/scm_workflow_engine_sqlite.js";
+import {
   DomainInvariantError,
   SecurityActorContext,
   DEFAULT_OPERATOR_ACTOR,
   assertInvariant,
 } from "../../kernel/primitives.js";
 import { ensureScmLogicalSlice1Tables } from "../../kernel/logical-slice1-tables.js";
+import { ensureWorkflowEngineTables } from "../../kernel/workflow-engine-tables.js";
 import { outboxBus } from "../../kernel/outbox-bus.js";
 
 // ============================================================================
@@ -219,6 +224,7 @@ export async function completeTask(
   options?: { idempotencyKey?: string },
 ): Promise<TaskRecord> {
   await ensureScmLogicalSlice1Tables();
+  await ensureWorkflowEngineTables();
 
   const tasks = await db
     .select()
@@ -380,6 +386,77 @@ export async function completeTask(
           subjectId: task.subjectId,
         },
       });
+    }
+
+    // Workflow Engine TaskInstance & WorkflowInstance Progression
+    const wfTaskRows = await tx
+      .select()
+      .from(scmWorkflowTaskInstances)
+      .where(eq(scmWorkflowTaskInstances.taskId, taskId))
+      .limit(1);
+
+    if (wfTaskRows.length > 0) {
+      const wfTask = wfTaskRows[0];
+      await tx
+        .update(scmWorkflowTaskInstances)
+        .set({
+          status: "COMPLETED",
+          completedAt: nowIso,
+          executionResultJson: result ? JSON.stringify(result) : null,
+        })
+        .where(
+          eq(scmWorkflowTaskInstances.taskInstanceId, wfTask.taskInstanceId),
+        );
+
+      const allWfTasks = await tx
+        .select()
+        .from(scmWorkflowTaskInstances)
+        .where(
+          eq(
+            scmWorkflowTaskInstances.workflowInstanceId,
+            wfTask.workflowInstanceId,
+          ),
+        );
+
+      const allCompleted = allWfTasks.every(
+        (t) =>
+          t.taskInstanceId === wfTask.taskInstanceId ||
+          t.status === "COMPLETED",
+      );
+
+      if (allCompleted) {
+        await tx
+          .update(scmWorkflowInstances)
+          .set({
+            status: "COMPLETED",
+            completedAt: nowIso,
+          })
+          .where(
+            eq(scmWorkflowInstances.instanceId, wfTask.workflowInstanceId),
+          );
+
+        eventsToEnqueue.push({
+          eventId: `evt_${uuidv4()}`,
+          eventType: "workflow_engine.WorkflowInstanceCompleted.v2",
+          schemaVersion: 2,
+          producerContext: "workflow_engine",
+          aggregateType: "WorkflowInstance",
+          aggregateId: wfTask.workflowInstanceId,
+          aggregateVersion: 2,
+          correlationId,
+          causationId: `evt_complete_${taskId}`,
+          actor,
+          occurredAt: nowIso,
+          payload: {
+            instanceId: wfTask.workflowInstanceId,
+            subjectType: task.subjectType,
+            subjectId: task.subjectId,
+            shipmentId:
+              task.subjectType === "SHIPMENT" ? task.subjectId : undefined,
+            completedAt: nowIso,
+          },
+        });
+      }
     }
 
     await outboxBus.enqueueEvents(eventsToEnqueue, tx);

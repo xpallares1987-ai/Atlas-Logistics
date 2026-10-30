@@ -30,3 +30,4 @@ export * from "./edi.js";
 export * from "./control_tower.js";
 export * from "./scm_foundation.js";
 export * from "./scm_logical_slice1_sqlite.js";
+export * from "./scm_workflow_engine_sqlite.js";

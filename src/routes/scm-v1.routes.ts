@@ -92,6 +92,18 @@ import {
   completeTask,
   getTasksForSubject,
 } from "../scm/contexts/work-management/work-management.context.js";
+import {
+  createWorkflowDefinition,
+  createWorkflowDefinitionVersion,
+  addTaskDefinitionToVersion,
+  addDependencyDefinitionToVersion,
+  publishWorkflowDefinitionVersion,
+  getWorkflowVersionWithDAG,
+  listWorkflowDefinitions,
+  instantiateWorkflow,
+  getWorkflowInstanceById,
+  seedStandardWorkflowDefinitions,
+} from "../scm/contexts/workflow-engine/workflow-engine.context.js";
 
 function extractActorFromRequest(
   request: FastifyRequest,
@@ -1035,6 +1047,138 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       return handleDomainError(err, reply);
     }
   });
+
+  // ==========================================================================
+  // 27. SCM LOGICAL MODEL v1 — WORKFLOW ENGINE (SLICE 4)
+  // ==========================================================================
+  fastify.post("/workflow-engine/definitions", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const body = request.body as any;
+      const result = await createWorkflowDefinition(body, actor);
+      return reply.code(201).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.get("/workflow-engine/definitions", async (_request, reply) => {
+    try {
+      await seedStandardWorkflowDefinitions();
+      const result = await listWorkflowDefinitions();
+      return reply.code(200).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post(
+    "/workflow-engine/definitions/:defId/versions",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { defId } = request.params as { defId: string };
+        const body = (request.body as any) || {};
+        const result = await createWorkflowDefinitionVersion(
+          { workflowDefinitionId: defId, ...body },
+          actor,
+        );
+        return reply.code(201).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.post(
+    "/workflow-engine/versions/:versionId/tasks",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { versionId } = request.params as { versionId: string };
+        const body = request.body as any;
+        const result = await addTaskDefinitionToVersion(
+          { workflowVersionId: versionId, ...body },
+          actor,
+        );
+        return reply.code(201).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.post(
+    "/workflow-engine/versions/:versionId/dependencies",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { versionId } = request.params as { versionId: string };
+        const body = request.body as any;
+        const result = await addDependencyDefinitionToVersion(
+          { workflowVersionId: versionId, ...body },
+          actor,
+        );
+        return reply.code(201).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.post(
+    "/workflow-engine/versions/:versionId/publish",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { versionId } = request.params as { versionId: string };
+        const result = await publishWorkflowDefinitionVersion(versionId, actor);
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get(
+    "/workflow-engine/versions/:versionId",
+    async (request, reply) => {
+      try {
+        const { versionId } = request.params as { versionId: string };
+        const result = await getWorkflowVersionWithDAG(versionId);
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.post(
+    "/workflow-engine/instances/instantiate",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const body = request.body as any;
+        const result = await instantiateWorkflow(body, actor);
+        return reply.code(201).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get(
+    "/workflow-engine/instances/:instanceId",
+    async (request, reply) => {
+      try {
+        const { instanceId } = request.params as { instanceId: string };
+        const result = await getWorkflowInstanceById(instanceId);
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
 };
 
 export default scmV1Routes;

@@ -30,6 +30,10 @@ import {
   addTaskDependency,
   getTasksForSubject,
 } from "../work-management/work-management.context.js";
+import {
+  seedStandardWorkflowDefinitions,
+  instantiateWorkflow,
+} from "../workflow-engine/workflow-engine.context.js";
 
 // ============================================================================
 // OPERATIONAL CORE CONTEXT (Vertical Slice 1 Operational Flow)
@@ -555,7 +559,7 @@ export function registerOperationalSubscribers(): void {
     },
   );
 
-  // Subscriber 2: On MilestonePlanCreated.v2 -> Generate Initial Tasks with DAG dependencies
+  // Subscriber 2: On MilestonePlanCreated.v2 -> Instantiate Versioned Workflow & DAG
   outboxBus.subscribe(
     "tracking.MilestonePlanCreated.v2",
     "work_mgmt.InitialTasksGenerator.OnMilestonePlanCreated",
@@ -563,61 +567,20 @@ export function registerOperationalSubscribers(): void {
       await ensureScmLogicalSlice1Tables();
       const p = event.payload;
 
-      // 1. Task A: Confirm Carrier Booking
-      const taskA = await createTask(
+      // Seed standard workflow catalog if needed
+      await seedStandardWorkflowDefinitions();
+
+      // Instantiate the active version of the operational workflow definition
+      const wfInstance = await instantiateWorkflow(
         {
-          taskType: "CONFIRM_CARRIER_BOOKING",
+          definitionKey: "OCEAN_EXPORT_STANDARD",
           subjectType: "SHIPMENT",
           subjectId: p.shipmentId,
-          priority: "HIGH",
         },
         event.actor,
       );
 
-      // 2. Task B: Verify SOLAS VGM & Cut-off
-      const taskB = await createTask(
-        {
-          taskType: "VERIFY_VGM_CUTOFF",
-          subjectType: "SHIPMENT",
-          subjectId: p.shipmentId,
-          priority: "HIGH",
-        },
-        event.actor,
-      );
-
-      // 3. Task C: Issue Bill of Lading (Transport Document)
-      const taskC = await createTask(
-        {
-          taskType: "ISSUE_BILL_OF_LADING",
-          subjectType: "SHIPMENT",
-          subjectId: p.shipmentId,
-          priority: "MEDIUM",
-        },
-        event.actor,
-      );
-
-      // Add dependencies: Task A -> Task B -> Task C (Strict cycle-free DAG)
-      await addTaskDependency(
-        {
-          predecessorTaskId: taskA.taskId,
-          successorTaskId: taskB.taskId,
-          dependencyType: "FINISH_TO_START",
-          status: "BLOCKING",
-        },
-        event.actor,
-      );
-
-      await addTaskDependency(
-        {
-          predecessorTaskId: taskB.taskId,
-          successorTaskId: taskC.taskId,
-          dependencyType: "FINISH_TO_START",
-          status: "BLOCKING",
-        },
-        event.actor,
-      );
-
-      // Enqueue TasksGenerated.v2 event in Transactional Outbox
+      // Enqueue TasksGenerated.v2 event in Transactional Outbox for unified audit trail
       await outboxBus.enqueueEvents([
         {
           eventId: `evt_${uuidv4()}`,
@@ -633,12 +596,9 @@ export function registerOperationalSubscribers(): void {
           occurredAt: new Date().toISOString(),
           payload: {
             shipmentId: p.shipmentId,
-            taskIds: [taskA.taskId, taskB.taskId, taskC.taskId],
-            pipeline: [
-              "CONFIRM_CARRIER_BOOKING",
-              "VERIFY_VGM_CUTOFF",
-              "ISSUE_BILL_OF_LADING",
-            ],
+            workflowInstanceId: wfInstance.instanceId,
+            taskIds: wfInstance.tasks.map((t) => t.taskId),
+            pipeline: wfInstance.tasks.map((t) => t.taskTypeCode),
           },
         },
       ]);
@@ -805,9 +765,11 @@ export interface OperationalAuditStep {
     | "SHIPMENT_CREATED"
     | "ROUTE_PLANNED"
     | "MILESTONES_GENERATED"
+    | "WORKFLOW_STARTED"
     | "TASKS_GENERATED"
     | "TASK_COMPLETED"
-    | "TASK_UNBLOCKED";
+    | "TASK_UNBLOCKED"
+    | "WORKFLOW_COMPLETED";
   eventType: string;
   eventId: string;
   aggregateType: string;
@@ -865,6 +827,10 @@ export async function getOperationalAuditTrail(
         stage = "MILESTONES_GENERATED";
         description = `Milestone tracking plan initialized with ${payload.milestoneCount || 5} operational milestones`;
         break;
+      case "workflow_engine.WorkflowInstanceStarted.v2":
+        stage = "WORKFLOW_STARTED";
+        description = `Workflow instance '${payload.instanceId}' spawned for version '${payload.workflowVersionId}' (${payload.tasksCount} tasks instantiated)`;
+        break;
       case "work_mgmt.TasksGenerated.v2":
         stage = "TASKS_GENERATED";
         description = `Operational task pipeline generated: ${(payload.pipeline || []).join(" -> ")}`;
@@ -876,6 +842,10 @@ export async function getOperationalAuditTrail(
       case "work_mgmt.TaskUnblocked.v2":
         stage = "TASK_UNBLOCKED";
         description = `Task '${payload.unblockedTaskId}' unblocked and transitioned to OPEN (predecessor '${payload.predecessorTaskId}' resolved)`;
+        break;
+      case "workflow_engine.WorkflowInstanceCompleted.v2":
+        stage = "WORKFLOW_COMPLETED";
+        description = `Workflow instance '${payload.instanceId}' all tasks completed and process finalized`;
         break;
     }
 

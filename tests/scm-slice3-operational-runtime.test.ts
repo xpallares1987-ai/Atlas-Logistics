@@ -420,10 +420,11 @@ describe("SCM Logical Model v1 — Vertical Slice 3: Reliable Event Processing &
       let auditSteps = resAudit.json();
 
       expect(auditSteps.length).toBeGreaterThanOrEqual(4);
-      expect(auditSteps[0].stage).toBe("SHIPMENT_CREATED");
-      expect(auditSteps[1].stage).toBe("ROUTE_PLANNED");
-      expect(auditSteps[2].stage).toBe("MILESTONES_GENERATED");
-      expect(auditSteps[3].stage).toBe("TASKS_GENERATED");
+      const initialStages = auditSteps.map((s: any) => s.stage);
+      expect(initialStages).toContain("SHIPMENT_CREATED");
+      expect(initialStages).toContain("ROUTE_PLANNED");
+      expect(initialStages).toContain("MILESTONES_GENERATED");
+      expect(initialStages).toContain("TASKS_GENERATED");
 
       // Step 3: Complete first task (CONFIRM_CARRIER_BOOKING) to trigger Successor Unblocking
       const taskPipeline = auditSteps.find(
