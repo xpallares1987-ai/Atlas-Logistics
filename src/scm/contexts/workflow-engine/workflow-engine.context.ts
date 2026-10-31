@@ -13,7 +13,7 @@ import {
   scmLogicalTasks,
   scmLogicalTaskDependencies,
   SubjectType,
-} from "../../../db/schema/scm_logical_slice1_sqlite.js";
+} from "../../../db/schema/scm_entities_sqlite.js";
 import {
   DomainInvariantError,
   SecurityActorContext,

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db/index.js";
-import { ensureScmLogicalSlice1Tables } from "../src/scm/kernel/logical-slice1-tables.js";
+import { ensureScmEntityTables } from "../src/scm/kernel/operational-core-tables.js";
 import {
   scmParties,
   scmPartyAddresses,
@@ -29,13 +29,13 @@ import {
   scmLogicalOperationalEvents,
   scmLogicalTasks,
   scmLogicalTaskDependencies,
-} from "../src/db/schema/scm_logical_slice1_sqlite.js";
+} from "../src/db/schema/scm_entities_sqlite.js";
 
-describe("SCM Logical Entity Model v1 — Physical SQLite Schema (First Vertical Slice)", () => {
+describe("SCM Logical Entity Model v1 — Physical SQLite Schema & Invariants", () => {
   const suffix = Date.now().toString();
 
   beforeAll(async () => {
-    await ensureScmLogicalSlice1Tables();
+    await ensureScmEntityTables();
   });
 
   it("1. Party & CRM: persists Party Aggregate Root with owned Addresses, Contacts, Roles, Relationships & ExternalIdentifiers", async () => {

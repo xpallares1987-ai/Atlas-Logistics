@@ -119,19 +119,19 @@ Write-Host "  • No PostgreSQL needed for development" -ForegroundColor Gray
 Write-Host "  • Explore UI: pnpm db:inspect" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Troubleshooting:" -ForegroundColor Cyan
-Write-Host "  • Port conflict? Check QUICK_COMMANDS.md" -ForegroundColor Gray
+Write-Host "  • Port conflict or issues? Check docs/setup-guides/troubleshooting-maintenance.md" -ForegroundColor Gray
 Write-Host "  • DB migration fails? Run: pnpm db:reset-and-seed" -ForegroundColor Gray
 Write-Host "  • Redis won't start? Run: docker compose up redis --remove-orphans" -ForegroundColor Gray
 Write-Host ""
 
 # Files Created
-Write-Host "📚 DOCUMENTATION CREATED" -ForegroundColor Yellow
+Write-Host "📚 DOCUMENTATION REFERENCE" -ForegroundColor Yellow
 Write-Host "═══════════════════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
 Write-Host ""
-Write-Host "  DEV_SETUP.md              ← Complete setup guide (3 modes)" -ForegroundColor Gray
-Write-Host "  QUICK_COMMANDS.md         ← Command reference" -ForegroundColor Gray
-Write-Host "  ARCHITECTURE_SIMPLIFIED.md ← Diagrams & architecture" -ForegroundColor Gray
-Write-Host "  RECOMMENDED_DOCKER_SETUP.md ← Detailed explanation" -ForegroundColor Gray
+Write-Host "  docs/setup-guides/development-guide.md          ← Complete setup & development guide" -ForegroundColor Gray
+Write-Host "  docs/setup-guides/troubleshooting-maintenance.md ← Command reference & quick fixes" -ForegroundColor Gray
+Write-Host "  docs/setup-guides/docker-setup.md                ← Container infrastructure guide" -ForegroundColor Gray
+Write-Host "  docs/architecture/SCM_PLATFORM_ARCHITECTURE.md   ← SCM platform architecture" -ForegroundColor Gray
 Write-Host "  setup-verify.ps1          ← Verification script (Windows)" -ForegroundColor Gray
 Write-Host ""
 

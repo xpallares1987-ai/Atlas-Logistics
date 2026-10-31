@@ -80,12 +80,19 @@ import {
   listShipment360ReadModels,
 } from "../scm/contexts/operational-intelligence/operations-cockpit.projector.js";
 import {
+  getShipment360View,
+  listShipment360Views,
+  listOperationsCockpitItems as listOperationalCockpitItems,
+  getCockpitSummary as getOperationalCockpitSummary,
+  executeCockpitWorkItem as executeOperationalCockpitWorkItem,
+} from "../scm/contexts/operational-intelligence/operations-cockpit-bff.context.js";
+import {
   createOperationalShipment,
   updateOperationalShipment,
   createInitialRoutePlan,
   getShipment360OperationalModel,
   getOperationalAuditTrail,
-} from "../scm/contexts/operational-core/slice1-operational.context.js";
+} from "../scm/contexts/operational-core/operational-core.context.js";
 import {
   createTask,
   addTaskDependency,
@@ -944,7 +951,65 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
-        const result = await getShipment360OperationalModel(shipmentId);
+        const result = await getShipment360View(shipmentId);
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get("/operational/shipments-360", async (request, reply) => {
+    try {
+      const query = (request.query as any) || {};
+      const result = await listShipment360Views(query);
+      return reply.code(200).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.get("/operational/cockpit", async (request, reply) => {
+    try {
+      const query = (request.query as any) || {};
+      const result = await listOperationalCockpitItems(query);
+      return reply.code(200).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.get("/operational/my-work", async (request, reply) => {
+    try {
+      const query = (request.query as any) || {};
+      const result = await listOperationalCockpitItems(query);
+      return reply.code(200).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.get("/operational/cockpit/summary", async (_request, reply) => {
+    try {
+      const result = await getOperationalCockpitSummary();
+      return reply.code(200).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post(
+    "/operational/cockpit/:workItemId/execute",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { workItemId } = request.params as { workItemId: string };
+        const body = (request.body as any) || {};
+        const result = await executeOperationalCockpitWorkItem(
+          workItemId,
+          body,
+          actor,
+        );
         return reply.code(200).send(result);
       } catch (err) {
         return handleDomainError(err, reply);

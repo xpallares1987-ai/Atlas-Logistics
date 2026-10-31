@@ -10,10 +10,25 @@ Atlas Logistics es una **Super-App integral de Gestión de Cadena de Suministro 
 
 Atlas Logistics se ejecuta **100% en local sin coste operativo de nube**, utilizando tecnologías embebidas de máximo rendimiento:
 
-- **Base de Datos:** Drizzle ORM + libSQL (`atlas.db`, SQLite de alto rendimiento) con migraciones estructuradas, triggers de auditoría inmutables, secuencias autoincrementales y vistas SQL nativas.
-- **Backend API:** Fastify 5 con autenticación JWT (`@fastify/jwt`), control de acceso por roles (RBAC) y WebSockets nativos (`ws://`).
+- **Base de Datos:** Drizzle ORM + libSQL / SQLite de alto rendimiento con arquitectura embebida de persistencia normalizada (`party_crm_*`, `shipment_exec_*`, `transport_plan_*`, `wf_engine_*`).
+- **SCM Core & Workflow Engine:** Arquitectura orientada a dominio (DDD) con Outbox transaccional atómico, motor de workflows versionados con validación topológica de ciclos (DAG), y proyecciones CQRS BFF (Shipment 360 y Operations Cockpit).
+- **Backend API:** Fastify 5 con autenticación JWT (`@fastify/jwt`), control de acceso por roles/atributos (RBAC/ABAC) y WebSockets nativos (`ws://`).
 - **Background Jobs:** BullMQ + ioredis con fallback resiliente en memoria si Redis no está conectado.
 - **Monorepo:** Turborepo + pnpm workspaces con empaquetado modular (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/dashboard`, `@atlas/warehouse-ops`).
+
+---
+
+## 📚 Documentación Técnica & Arquitectura
+
+Toda la documentación del proyecto está consolidada y categorizada en [`docs/`](docs/README.md):
+
+- [**Arquitectura de la Plataforma SCM**](docs/architecture/SCM_PLATFORM_ARCHITECTURE.md) — Modelo de entidades, Outbox, runtime de eventos, motor de workflows y proyecciones CQRS.
+- [**Guía de Desarrollo Local**](docs/setup-guides/development-guide.md) — Puesta en marcha con `pnpm`, variables de entorno y pruebas.
+- [**Infraestructura Docker**](docs/setup-guides/docker-setup.md) — Perfiles de contenedores (default, observability, worker) y Docker CI.
+- [**Observabilidad & Monitorización**](docs/setup-guides/observability-monitoring.md) — Métricas de Prometheus, dashboards de Grafana y Pino logs.
+- [**Resolución de Problemas & Mantenimiento**](docs/setup-guides/troubleshooting-maintenance.md) — Diagnóstico rápido y mantenimiento preventivo.
+- [**Políticas de Seguridad & Backups**](docs/setup-guides/security-backup-policy.md) — Regla zero-leak, rotación de secretos y copias de SQLite.
+- [**Decisiones de Arquitectura (ADRs)**](docs/adr/) — Registro histórico de decisiones técnicas (ADR 0001 a 0008).
 
 ---
 

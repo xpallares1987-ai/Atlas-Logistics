@@ -1,11 +1,11 @@
 import { client } from "../../db/index.js";
-import { ensureScmLogicalSlice1Tables } from "./logical-slice1-tables.js";
+import { ensureScmEntityTables } from "./operational-core-tables.js";
 
 let wfTablesInitialized = false;
 
 export async function ensureWorkflowEngineTables(): Promise<void> {
   if (wfTablesInitialized) return;
-  await ensureScmLogicalSlice1Tables();
+  await ensureScmEntityTables();
 
   const statements = [
     `CREATE TABLE IF NOT EXISTS wf_engine_definitions_v2 (

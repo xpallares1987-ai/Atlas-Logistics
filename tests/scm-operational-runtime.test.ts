@@ -11,12 +11,12 @@ import {
   scmOutboxMessages,
   scmInboxProcessedMessages,
 } from "../src/db/schema/scm_foundation.js";
-import { scmLogicalShipments } from "../src/db/schema/scm_logical_slice1_sqlite.js";
+import { scmLogicalShipments } from "../src/db/schema/scm_entities_sqlite.js";
 import {
   createOperationalShipment,
   createInitialRoutePlan,
   getOperationalAuditTrail,
-} from "../src/scm/contexts/operational-core/slice1-operational.context.js";
+} from "../src/scm/contexts/operational-core/operational-core.context.js";
 import {
   createTask,
   addTaskDependency,

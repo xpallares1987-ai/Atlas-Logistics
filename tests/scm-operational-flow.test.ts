@@ -10,10 +10,10 @@ import {
   createOperationalShipment,
   updateOperationalShipment,
   getShipment360OperationalModel,
-} from "../src/scm/contexts/operational-core/slice1-operational.context.js";
+} from "../src/scm/contexts/operational-core/operational-core.context.js";
 import { DomainInvariantError } from "../src/scm/kernel/primitives.js";
 
-describe("SCM Logical Model v1 — Vertical Slice 1 & 2 Operational Flow", () => {
+describe("SCM Logical Model v1 — Reactive Operational Flow & DAG Enforcement", () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {

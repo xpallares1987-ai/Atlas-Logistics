@@ -12,7 +12,7 @@ import {
   scmLogicalTransportLegs,
   scmLogicalMilestonePlans,
   scmLogicalMilestones,
-} from "../../../db/schema/scm_logical_slice1_sqlite.js";
+} from "../../../db/schema/scm_entities_sqlite.js";
 import { scmOutboxMessages } from "../../../db/schema/scm_foundation.js";
 import {
   SecurityActorContext,
@@ -20,7 +20,7 @@ import {
   assertInvariant,
   DomainInvariantError,
 } from "../../kernel/primitives.js";
-import { ensureScmLogicalSlice1Tables } from "../../kernel/logical-slice1-tables.js";
+import { ensureScmEntityTables } from "../../kernel/operational-core-tables.js";
 import {
   ensureScmFoundationTables,
   outboxBus,
@@ -139,7 +139,7 @@ export async function createOperationalShipment(
   },
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ): Promise<OperationalShipmentRecord> {
-  await ensureScmLogicalSlice1Tables();
+  await ensureScmEntityTables();
 
   // Command Idempotency Check: By shipmentReference
   const existing = await db
@@ -187,7 +187,7 @@ export async function createOperationalShipment(
     await tx.insert(scmShipmentPartyRoles).values({
       shipmentPartyRoleId,
       shipmentId,
-      partyId: input.customerPartyId,
+      partyId: input.customerPartyId || "pty_default_customer",
       role: "CUSTOMER",
     });
 
@@ -246,7 +246,7 @@ export async function updateOperationalShipment(
   },
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ): Promise<OperationalShipmentRecord> {
-  await ensureScmLogicalSlice1Tables();
+  await ensureScmEntityTables();
 
   const existing = await db
     .select()
@@ -340,7 +340,7 @@ export async function createInitialRoutePlan(
   },
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ): Promise<OperationalRoutePlanRecord> {
-  await ensureScmLogicalSlice1Tables();
+  await ensureScmEntityTables();
 
   // Command Idempotency Check: if route plan already exists for shipment
   const existing = await db
@@ -500,7 +500,7 @@ export function registerOperationalSubscribers(): void {
     "transport_planning.RoutePlanned.v2",
     "tracking.MilestonePlanGenerator.OnRoutePlanned",
     async (event) => {
-      await ensureScmLogicalSlice1Tables();
+      await ensureScmEntityTables();
       const p = event.payload;
       const milestonePlanId = `mpl_${uuidv4()}`;
       const now = new Date();
@@ -564,7 +564,7 @@ export function registerOperationalSubscribers(): void {
     "tracking.MilestonePlanCreated.v2",
     "work_mgmt.InitialTasksGenerator.OnMilestonePlanCreated",
     async (event) => {
-      await ensureScmLogicalSlice1Tables();
+      await ensureScmEntityTables();
       const p = event.payload;
 
       // Seed standard workflow catalog if needed
@@ -617,7 +617,7 @@ registerOperationalSubscribers();
 export async function getOperationalShipmentById(
   shipmentId: string,
 ): Promise<OperationalShipmentRecord> {
-  await ensureScmLogicalSlice1Tables();
+  await ensureScmEntityTables();
 
   const shp = await db
     .select()
@@ -663,7 +663,7 @@ export async function getOperationalShipmentById(
 export async function getShipment360OperationalModel(
   shipmentId: string,
 ): Promise<Shipment360OperationalModel> {
-  await ensureScmLogicalSlice1Tables();
+  await ensureScmEntityTables();
 
   const shipment = await getOperationalShipmentById(shipmentId);
 

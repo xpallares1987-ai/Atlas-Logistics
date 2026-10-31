@@ -7,7 +7,7 @@ import { db } from "../../db/index.js";
  * Equipment/EquipmentSeal/EquipmentAllocation, MilestonePlan/Milestone/EstimateRevision,
  * OperationalEvent, Task/TaskDependency).
  *
- * Mirrors src/db/schema/scm_logical_slice1_sqlite.ts. Tables suffixed  coexist with the
+ * Mirrors src/db/schema/scm_entities_sqlite.ts. Tables suffixed _v2 coexist with the
  * JSON-blob tables of the same name used by Slices 0-6 (scm_foundation.ts) until those
  * contexts are migrated onto the normalized model.
  *
@@ -319,7 +319,7 @@ export const SCM_LOGICAL_SLICE1_DDL: string[] = [
 
 let ensured = false;
 
-export async function ensureScmLogicalSlice1Tables(): Promise<void> {
+export async function ensureScmEntityTables(): Promise<void> {
   if (ensured) return;
   // SQLite enforces FKs per connection; required for composition FKs to be honoured.
   await db.run(sql.raw("PRAGMA foreign_keys = ON;"));
@@ -328,3 +328,8 @@ export async function ensureScmLogicalSlice1Tables(): Promise<void> {
   }
   ensured = true;
 }
+
+/**
+ * Backward compatibility alias for ensureScmEntityTables
+ */
+export const ensureScmLogicalSlice1Tables = ensureScmEntityTables;

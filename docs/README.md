@@ -1,6 +1,6 @@
 # 📚 ATLAS LOGISTICS — DOCUMENTATION DIRECTORY & INDEX
 
-Bienvenido al centro neurálgico de documentación técnica, arquitectura y operaciones de **Atlas Logistics**.
+Centro neurálgico de documentación técnica, arquitectura y operaciones de **Atlas Logistics**.
 
 ---
 
@@ -9,70 +9,51 @@ Bienvenido al centro neurálgico de documentación técnica, arquitectura y oper
 ```
 docs/
 ├── README.md                  # Este índice general de documentación
-├── architecture/              # Diseños de arquitectura, diagramas y modelos de datos
-├── setup-guides/              # Guías técnicas de desarrollo, Docker, observabilidad y seguridad
-├── reports/
-│   └── archive/               # Archivo de auditorías e informes históricos de ejecución
+├── architecture/              # Especificación del SCM, modelos relacionales y runtime
+├── setup-guides/              # Guías consolidadas de desarrollo, contenedores, observabilidad y seguridad
 ├── adr/                       # Architectural Decision Records (ADRs)
-├── api/                       # Especificaciones y contratos de APIs
-└── deployment/                # Guías de infraestructura y despliegue
+├── deployment/                # Guías de infraestructura, despliegue y Cloud Run
+└── reports/
+    └── archive/               # Archivo de auditorías, checklists e informes históricos
 ```
 
 ---
 
 ## 🧭 Navegación Rápida
 
-### 🏛️ Arquitectura & Modelado
+### 🏛️ Arquitectura & Plataforma SCM
+- [**SCM_PLATFORM_ARCHITECTURE.md**](architecture/SCM_PLATFORM_ARCHITECTURE.md) — **Especificación integral del SCM Core**: agregados de dominio (Party, Shipment, Route, Cargo, Equipment, Tasks), Outbox transaccional atómico, motor de workflows versionados (DAG) y proyecciones CQRS BFF.
+- [**SCM_ARCHITECTURE_BLUEPRINT_V1.md**](architecture/SCM_ARCHITECTURE_BLUEPRINT_V1.md) — Blueprint exhaustivo con el catálogo de 25 Bounded Contexts y contratos de eventos.
 - [**ARCHITECTURE.md**](architecture/ARCHITECTURE.md) — Visión integral de micro-frontends, API modular y capas de persistencia.
 - [**ARCHITECTURE_SIMPLIFIED.md**](architecture/ARCHITECTURE_SIMPLIFIED.md) — Diagramas simplificados y flujos visuales del ERP logístico.
-- [**enterprise_evolution_plan.md**](architecture/enterprise_evolution_plan.md) — Hoja de ruta para evolución enterprise (multitenancy, microservicios).
-- [**DATOS_REFACTORING_PLAN.md**](architecture/DATOS_REFACTORING_PLAN.md) — Plan de optimización y particionamiento de modelos de datos.
 
-### 🛠️ Guías Técnicas & Desarrollo Local
-- [**DEV_SETUP.md**](setup-guides/DEV_SETUP.md) — Configuración del entorno de desarrollo local en 3 modos.
-- [**SETUP_COMPLETO.md**](setup-guides/SETUP_COMPLETO.md) — Resumen detallado en español para puesta en marcha.
-- [**QUICK_COMMANDS.md**](setup-guides/QUICK_COMMANDS.md) — Referencia de comandos frecuentes (`pnpm`, `docker`, `turbo`).
-- [**QUICK_FIXES.md**](setup-guides/QUICK_FIXES.md) — Guía rápida de solución a problemas comunes.
-- [**TWO_TERMINAL_WORKFLOW.md**](setup-guides/TWO_TERMINAL_WORKFLOW.md) — Flujo de trabajo ágil con doble terminal (Frontend / Backend).
-- [**CUSTOM_SETUP_TEMPLATE.md**](setup-guides/CUSTOM_SETUP_TEMPLATE.md) — Plantilla estándar de entorno para miembros del equipo.
+### 🛠️ Guías Técnicas Consolidadas
+- [**development-guide.md**](setup-guides/development-guide.md) — **Guía maestra de desarrollo local**: instalación (`pnpm`), variables de entorno, flujo con doble terminal y comandos de testing.
+- [**docker-setup.md**](setup-guides/docker-setup.md) — **Guía única de infraestructura Docker**: perfiles de contenedores (default, observability, worker), optimización de builds en CI y troubleshooting.
+- [**observability-monitoring.md**](setup-guides/observability-monitoring.md) — **Observabilidad integral**: métricas de Prometheus, dashboards de Grafana (puerto 3002), logs estructurados con Pino y benchmarking.
+- [**troubleshooting-maintenance.md**](setup-guides/troubleshooting-maintenance.md) — **Resolución rápida de incidencias**: puertos bloqueados, bloqueos en SQLite, autenticación de GitHub CLI y checklists de mantenimiento preventivo.
+- [**security-backup-policy.md**](setup-guides/security-backup-policy.md) — **Políticas de seguridad**: regla zero-leak, rotación de secretos y copias de seguridad de SQLite.
 
-### 🐳 Docker & Contenedores
-- [**docker-compose.prod.yml**](../docker-compose.prod.yml) — Orquestación de producción (Chainguard, Nginx Ingress, Fastify, Worker, Redis).
-- [**docker-compose.yml**](../docker-compose.yml) — Entorno de desarrollo local ultraligero (Redis + Observabilidad).
-- [**README.Docker.md**](setup-guides/README.Docker.md) — Manual de operaciones y comandos Docker.
-- [**RECOMMENDED_DOCKER_SETUP.md**](setup-guides/RECOMMENDED_DOCKER_SETUP.md) — Decisiones de arquitectura de contenedores.
-- [**DOCKER_CI_OPTIMIZATION.md**](setup-guides/DOCKER_CI_OPTIMIZATION.md) — Optimización de capas y tiempos de build en CI.
-- [**DOCKER_CI_QUICKREF.md**](setup-guides/DOCKER_CI_QUICKREF.md) — Hoja de referencia rápida para Docker CI.
-
-### 📊 Observabilidad & Rendimiento
-- [**OBSERVABILITY.md**](setup-guides/OBSERVABILITY.md) — Configuración de Prometheus, Grafana y métricas del sistema.
-- [**OBSERVABILITY_SUMMARY.md**](setup-guides/OBSERVABILITY_SUMMARY.md) — Resumen ejecutivo de observabilidad y alertas.
-- [**MONITORING_DASHBOARD.md**](setup-guides/MONITORING_DASHBOARD.md) — Guía de tableros Grafana para Atlas Logistics.
-- [**PERFORMANCE_BENCHMARKING.md**](setup-guides/PERFORMANCE_BENCHMARKING.md) — Métricas de rendimiento, benchmarks y límites de carga.
-
-### 🔒 Seguridad & Políticas de Mantenimiento
-- [**SECRETS_ROTATION_POLICY.md**](setup-guides/SECRETS_ROTATION_POLICY.md) — Política y calendario de rotación de credenciales y JWT.
-- [**PRECOMMIT_HOOKS_SETUP.md**](setup-guides/PRECOMMIT_HOOKS_SETUP.md) — Configuración de Git hooks con Husky.
-- [**MAINTENANCE_CHECKLIST.md**](setup-guides/MAINTENANCE_CHECKLIST.md) — Lista de tareas preventivas diarias, semanales y mensuales.
-- [**DEPENDENCY_HEALTH_ANALYSIS.md**](setup-guides/DEPENDENCY_HEALTH_ANALYSIS.md) — Análisis de salud y obsolescencia de dependencias.
-
-### 📜 Scripts de Utilidad (`/scripts`)
-- [**QUICK_START_WINDOWS.ps1**](../scripts/QUICK_START_WINDOWS.ps1) — Script de inicio rápido automatizado para entornos Windows.
-- [**setup-verify.ps1**](../scripts/setup-verify.ps1) — Verificador de dependencias y estado en PowerShell.
-- [**setup-verify.sh**](../scripts/setup-verify.sh) — Verificador de dependencias para entornos Linux/macOS.
-- [**Test-AtlasArchitecture.ps1**](../scripts/Test-AtlasArchitecture.ps1) — Verificador automatizado de la arquitectura del proyecto.
+### 📋 Decisiones Arquitectónicas (ADRs)
+- [**0001 Standardization on pnpm**](adr/0001-standardization-on-pnpm.md)
+- [**0002 Independent Hybrid Architecture**](adr/0002-independent-hybrid-architecture.md)
+- [**0003 Transition to Internal Monorepo Workspace**](adr/0003-transition-to-internal-monorepo-workspace.md)
+- [**0004 Zero-Cost Local Architecture**](adr/0004-zero-cost-local-architecture.md)
+- [**0005 Fastify WebSockets for Realtime**](adr/0005-fastify-websockets-for-realtime.md)
+- [**0006 BullMQ for Background Jobs**](adr/0006-bullmq-for-background-jobs.md)
+- [**0007 Micro-Frontends for Scale**](adr/0007-micro-frontends-for-scale.md)
+- [**0008 SCM Embedded SQLite, Outbox Eventing & CQRS BFF**](adr/0008-scm-sqlite-cqrs-workflow-engine.md)
 
 ### 📦 Archivo Histórico de Informes (`docs/reports/archive/`)
-Para consultar auditorías pasadas, certificados o resúmenes de fases previas, consulta la carpeta [**docs/reports/archive/**](reports/archive/):
-- `FINAL_PROJECT_HEALTH_REPORT.txt`
-- `COMPLETE_ENGAGEMENT_SUMMARY.txt`
-- `COMPLETION_CERTIFICATE.txt`
-- `FINAL_VALIDATION_REPORT.txt`
-- `FINAL_REPORT.txt`
-- `START_HERE.txt`
+Para consultar auditorías pasadas, revisiones de planes y checklists anteriores:
+- `FULL_AUDIT_REPORT.md`
+- `ACTIONS_CHECKLIST.md`
+- `ACTIONS_EXECUTED_REPORT.md`
+- `ANTIGRAVITY_CLI_PLANS_REVIEW.md`
+- `HEALTH_METRICS.md`
+- `MINOR_IMPROVEMENTS_COMPLETE.md`
+- `QUICK_START_ACTIONS.md`
+- `RECOMMENDATIONS_GOING_FORWARD.md`
+- `XML_PARSER_CONSOLIDATION.md`
 - `CHECKLIST_FINAL.md`
 - `DEEP_ANALYSIS_SUMMARY.md`
-- `ADDITIONAL_RECOMMENDATIONS.md`
-- `LOW_PRIORITY_ACTION_PLAN.md`
-- `PROXIMOS_PASOS.md`
-- `SUMMARY.md`

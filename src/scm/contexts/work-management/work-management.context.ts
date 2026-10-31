@@ -5,7 +5,7 @@ import {
   scmLogicalTasks,
   scmLogicalTaskDependencies,
   SubjectType,
-} from "../../../db/schema/scm_logical_slice1_sqlite.js";
+} from "../../../db/schema/scm_entities_sqlite.js";
 import {
   scmWorkflowEngineInstancesV2 as scmWorkflowInstances,
   scmWorkflowEngineTaskInstancesV2 as scmWorkflowTaskInstances,
@@ -16,7 +16,7 @@ import {
   DEFAULT_OPERATOR_ACTOR,
   assertInvariant,
 } from "../../kernel/primitives.js";
-import { ensureScmLogicalSlice1Tables } from "../../kernel/logical-slice1-tables.js";
+import { ensureScmEntityTables } from "../../kernel/operational-core-tables.js";
 import { ensureWorkflowEngineTables } from "../../kernel/workflow-engine-tables.js";
 import { outboxBus } from "../../kernel/outbox-bus.js";
 
@@ -121,7 +121,7 @@ export async function createTask(
   },
   _actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ): Promise<TaskRecord> {
-  await ensureScmLogicalSlice1Tables();
+  await ensureScmEntityTables();
 
   const taskId = input.taskId || `tsk_${uuidv4()}`;
   const now = new Date();
@@ -159,7 +159,7 @@ export async function addTaskDependency(
   },
   _actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ): Promise<TaskDependencyRecord> {
-  await ensureScmLogicalSlice1Tables();
+  await ensureScmEntityTables();
 
   // Enforce domain invariant: no cycles in the DAG
   await assertNoTransitiveCycle(input.predecessorTaskId, input.successorTaskId);
@@ -223,7 +223,7 @@ export async function completeTask(
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
   options?: { idempotencyKey?: string },
 ): Promise<TaskRecord> {
-  await ensureScmLogicalSlice1Tables();
+  await ensureScmEntityTables();
   await ensureWorkflowEngineTables();
 
   const tasks = await db
@@ -491,7 +491,7 @@ export async function getTasksForSubject(
     }
   >
 > {
-  await ensureScmLogicalSlice1Tables();
+  await ensureScmEntityTables();
 
   const tasks = await db
     .select()

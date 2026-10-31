@@ -7,7 +7,7 @@ import {
   check,
 } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
-import { scmLogicalTasks } from "./scm_logical_slice1_sqlite.js";
+import { scmLogicalTasks } from "./scm_entities_sqlite.js";
 
 // ============================================================================
 // SCM LOGICAL MODEL v1 — SLICE 4: VERSIONED WORKFLOW ENGINE SCHEMA

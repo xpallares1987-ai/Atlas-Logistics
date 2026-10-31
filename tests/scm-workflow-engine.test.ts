@@ -18,7 +18,7 @@ import {
   createInitialRoutePlan,
   getShipment360OperationalModel,
   getOperationalAuditTrail,
-} from "../src/scm/contexts/operational-core/slice1-operational.context.js";
+} from "../src/scm/contexts/operational-core/operational-core.context.js";
 import {
   completeTask,
   getTasksForSubject,
