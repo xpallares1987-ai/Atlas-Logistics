@@ -1,9 +1,11 @@
+import { randomUUID } from "node:crypto";
 import { eq, and, desc, like, sql } from "drizzle-orm";
 import { db } from "../../../db/index.js";
 import {
   scmOperationalShipment360ViewsV2,
   scmOperationalCockpitWorkItemsV2,
 } from "../../../db/schema/scm_operational_bff_sqlite.js";
+import { scmOperationalExceptionsV2 } from "../../../db/schema/scm_operational_intelligence_sqlite.js";
 import {
   scmLogicalShipments,
   scmLogicalRoutePlans,
@@ -13,13 +15,14 @@ import {
   scmLogicalMilestonePlans,
   scmLogicalMilestones,
   scmLogicalTasks,
-  scmLogicalTaskDependencies,
+  scmLogicalOperationalEvents,
 } from "../../../db/schema/scm_entities_sqlite.js";
 import {
   scmWorkflowEngineInstancesV2,
   scmWorkflowEngineDefinitionsV2,
   scmWorkflowEngineDefinitionVersionsV2,
 } from "../../../db/schema/scm_workflow_engine_sqlite.js";
+import { scmOutboxMessages } from "../../../db/schema/scm_foundation.js";
 import {
   SecurityActorContext,
   DEFAULT_OPERATOR_ACTOR,
@@ -36,6 +39,11 @@ import {
   completeTask,
   getTasksForSubject,
 } from "../work-management/work-management.context.js";
+import {
+  listOperationalExceptionsForShipment,
+  resolveOperationalException,
+  OperationalExceptionRecord,
+} from "./operational-exceptions.context.js";
 
 // ============================================================================
 // READ MODEL TYPES (CQRS Projections for UI / BFF)
@@ -49,6 +57,42 @@ export interface TaskActionMetadata {
     label: string;
     type: "string" | "number" | "boolean";
     required: boolean;
+  }>;
+}
+
+export interface OperationalSignal {
+  signalId: string;
+  signalType:
+    | "BLOCKING_EXCEPTION"
+    | "SLA_RISK"
+    | "TASK_BLOCKED"
+    | "ROUTE_DEVIATION"
+    | "WORKFLOW_HALTED";
+  severity: "CRITICAL" | "MAJOR" | "WARNING" | "INFO";
+  title: string;
+  explanation: string;
+  source: string;
+  createdAt: string;
+}
+
+export interface ExplainabilityModel {
+  isBlocked: boolean;
+  blockReasons: string[];
+  slaStatus: "ON_TRACK" | "AT_RISK" | "BREACHED";
+  slaRiskExplanation?: string;
+  activeWorkflowKey?: string;
+  recommendedAction: {
+    actionKey: string;
+    title: string;
+    description: string;
+    actionType: "COMPLETE_TASK" | "RESOLVE_EXCEPTION" | "INSPECT_ROUTE";
+    targetId: string;
+    isBlocking: boolean;
+  };
+  attentionScoreBreakdown: Array<{
+    factor: string;
+    points: number;
+    explanation: string;
   }>;
 }
 
@@ -91,11 +135,16 @@ export interface OperationalShipment360View {
     primaryAction?: TaskActionMetadata;
   }>;
 
+  exceptions: OperationalExceptionRecord[];
+  signals: OperationalSignal[];
+
   health: {
     status: "ON_TRACK" | "AT_RISK" | "CRITICAL";
     score: number;
     blockers: string[];
   };
+
+  explainability: ExplainabilityModel;
 
   metrics: {
     totalTasks: number;
@@ -103,6 +152,7 @@ export interface OperationalShipment360View {
     blockedTasks: number;
     completedTasks: number;
     progressPercentage: number;
+    activeExceptionsCount?: number;
   };
 
   projectionVersion: number;
@@ -119,11 +169,17 @@ export interface OperationalCockpitWorkItem {
   title: string;
   description: string;
   priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-  status: "OPEN" | "BLOCKED" | "COMPLETED";
+  status: "OPEN" | "BLOCKED" | "COMPLETED" | "IN_REVIEW";
   isBlocked: boolean;
   blockedByTasks: string[];
   urgencyBucket: "IMMEDIATE_ACTION" | "DUE_TODAY" | "UPCOMING" | "BLOCKED";
   attentionScore: number;
+  scoreBreakdown?: Array<{
+    factor: string;
+    points: number;
+    explanation: string;
+  }>;
+  itemType?: "TASK" | "EXCEPTION";
   workflowInfo?: {
     instanceId: string;
     definitionCode: string;
@@ -143,6 +199,39 @@ export interface CockpitSummaryMetrics {
   dueTodayCount: number;
   activeWorkflowsCount: number;
   completedWorkflowsCount: number;
+  activeExceptionsCount?: number;
+}
+
+export interface OperationalTimelineEvent {
+  timelineId: string;
+  timestamp: string;
+  eventType: string;
+  source: "OUTBOX" | "EXCEPTION" | "TELEMETRY" | "WORKFLOW";
+  category:
+    "LIFECYCLE" | "PLANNING" | "WORKFLOW" | "TASK" | "EXCEPTION" | "TELEMETRY";
+  title: string;
+  description: string;
+  actor: string;
+  payload: Record<string, any>;
+}
+
+export interface ProjectionsHealthReport {
+  status: "HEALTHY" | "DEGRADED" | "OUT_OF_SYNC";
+  outboxMetrics: {
+    pendingCount: number;
+    processingCount: number;
+    processedCount: number;
+    failedCount: number;
+    dlqCount: number;
+  };
+  projectionMetrics: {
+    shipment360Count: number;
+    cockpitItemsCount: number;
+    exceptionsCount: number;
+  };
+  projectorLagMs: number;
+  lastProcessedEventTimestamp: string | null;
+  lastOutboxEventTimestamp: string | null;
 }
 
 // ============================================================================
@@ -251,48 +340,146 @@ export function resolveTaskMetadata(taskTypeCode: string): {
 }
 
 // ============================================================================
-// ATTENTION SCORE & URGENCY COMPUTATION
+// ATTENTION SCORE & URGENCY COMPUTATION (TRANSPARENT EXPLAINABILITY)
 // ============================================================================
 
 export function computeAttentionScoreAndUrgency(
-  task: {
+  target: {
+    itemType?: "TASK" | "EXCEPTION";
     status: string;
     isBlocked: boolean;
     priority: string;
     deadline?: string | null;
+    hasBlockingException?: boolean;
   },
   serviceType: string,
 ): {
   attentionScore: number;
   urgencyBucket: "IMMEDIATE_ACTION" | "DUE_TODAY" | "UPCOMING" | "BLOCKED";
+  scoreBreakdown: Array<{
+    factor: string;
+    points: number;
+    explanation: string;
+  }>;
 } {
-  if (task.status === "COMPLETED") {
-    return { attentionScore: 0, urgencyBucket: "UPCOMING" };
+  const scoreBreakdown: Array<{
+    factor: string;
+    points: number;
+    explanation: string;
+  }> = [];
+
+  if (
+    target.status === "COMPLETED" ||
+    target.status === "RESOLVED" ||
+    target.status === "WAIVED"
+  ) {
+    scoreBreakdown.push({
+      factor: "ITEM_COMPLETED",
+      points: 0,
+      explanation: "Item has been successfully completed or resolved",
+    });
+    return { attentionScore: 0, urgencyBucket: "UPCOMING", scoreBreakdown };
   }
 
-  if (task.isBlocked || task.status === "BLOCKED") {
-    return { attentionScore: 15, urgencyBucket: "BLOCKED" };
+  if (target.isBlocked || target.status === "BLOCKED") {
+    scoreBreakdown.push({
+      factor: "BLOCKED_PREREQUISITE",
+      points: 15,
+      explanation:
+        "Execution blocked pending completion of prerequisite dependencies",
+    });
+    return { attentionScore: 15, urgencyBucket: "BLOCKED", scoreBreakdown };
   }
 
-  let baseScore = 50;
-  if (task.priority === "CRITICAL") baseScore = 90;
-  else if (task.priority === "HIGH") baseScore = 75;
-  else if (task.priority === "MEDIUM") baseScore = 55;
-  else if (task.priority === "LOW") baseScore = 35;
+  let totalScore = 40;
+  scoreBreakdown.push({
+    factor: "BASE_WEIGHT",
+    points: 40,
+    explanation: "Base operational attention allocation",
+  });
 
-  if (serviceType === "AIR_EXPEDITE") baseScore += 10;
-  else if (serviceType === "OCEAN_FCL") baseScore += 5;
+  // Priority weight
+  if (target.priority === "CRITICAL") {
+    totalScore += 45;
+    scoreBreakdown.push({
+      factor: "PRIORITY_CRITICAL",
+      points: 45,
+      explanation: "Item priority designated as CRITICAL",
+    });
+  } else if (target.priority === "HIGH" || target.priority === "MAJOR") {
+    totalScore += 30;
+    scoreBreakdown.push({
+      factor: target.priority === "MAJOR" ? "PRIORITY_MAJOR" : "PRIORITY_HIGH",
+      points: 30,
+      explanation: `Item priority designated as ${target.priority}`,
+    });
+  } else if (target.priority === "MEDIUM" || target.priority === "MINOR") {
+    totalScore += 15;
+    scoreBreakdown.push({
+      factor:
+        target.priority === "MINOR" ? "PRIORITY_MINOR" : "PRIORITY_MEDIUM",
+      points: 15,
+      explanation: `Item priority designated as ${target.priority}`,
+    });
+  } else if (target.priority === "LOW" || target.priority === "INFO") {
+    scoreBreakdown.push({
+      factor: target.priority === "INFO" ? "PRIORITY_INFO" : "PRIORITY_LOW",
+      points: 0,
+      explanation: `Item priority designated as ${target.priority}`,
+    });
+  }
+
+  // Service Type
+  if (serviceType === "AIR_EXPEDITE") {
+    totalScore += 10;
+    scoreBreakdown.push({
+      factor: "SERVICE_AIR_EXPEDITE",
+      points: 10,
+      explanation: "Time-critical air freight transit",
+    });
+  } else if (serviceType === "OCEAN_FCL") {
+    totalScore += 5;
+    scoreBreakdown.push({
+      factor: "SERVICE_OCEAN_FCL",
+      points: 5,
+      explanation: "Maritime container tracking milestones",
+    });
+  }
+
+  // Active blocking exception on shipment
+  if (target.hasBlockingException) {
+    totalScore += 20;
+    scoreBreakdown.push({
+      factor: "BLOCKING_EXCEPTION_IMPACT",
+      points: 20,
+      explanation:
+        "Shipment has active operational blocking exception requiring resolution",
+    });
+  }
+
+  if (target.itemType === "EXCEPTION") {
+    totalScore += 15;
+    scoreBreakdown.push({
+      factor: "EXCEPTION_WORK_ITEM",
+      points: 15,
+      explanation:
+        "Direct operational exception work item requiring immediate clearance",
+    });
+  }
+
+  const finalScore = Math.min(100, Math.max(0, totalScore));
 
   let urgency: "IMMEDIATE_ACTION" | "DUE_TODAY" | "UPCOMING" = "UPCOMING";
-  if (task.priority === "CRITICAL" || baseScore >= 85) {
+  if (target.priority === "CRITICAL" || finalScore >= 80) {
     urgency = "IMMEDIATE_ACTION";
-  } else if (task.priority === "HIGH" || baseScore >= 70) {
+  } else if (target.priority === "HIGH" || finalScore >= 65) {
     urgency = "DUE_TODAY";
   }
 
   return {
-    attentionScore: Math.min(100, Math.max(0, baseScore)),
+    attentionScore: finalScore,
     urgencyBucket: urgency,
+    scoreBreakdown,
   };
 }
 
@@ -455,6 +642,13 @@ export async function computeShipment360View(
   const progressPercentage =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
+  // Fetch Exceptions for this Shipment
+  const exceptions = await listOperationalExceptionsForShipment(shipmentId);
+  const activeExceptions = exceptions.filter(
+    (e) => e.status !== "RESOLVED" && e.status !== "WAIVED",
+  );
+  const blockingExceptions = activeExceptions.filter((e) => e.isBlocking);
+
   let healthStatus: "ON_TRACK" | "AT_RISK" | "CRITICAL" = "ON_TRACK";
   let healthScore = 100;
   const blockers: string[] = [];
@@ -463,11 +657,138 @@ export async function computeShipment360View(
     healthScore -= blockedTasks * 15;
     blockers.push(`${blockedTasks} task(s) currently blocked by dependencies`);
   }
+
+  // Exception impacts on health
+  for (const exc of blockingExceptions) {
+    if (exc.severity === "CRITICAL") {
+      healthScore -= 40;
+      healthStatus = "CRITICAL";
+    } else if (exc.severity === "MAJOR") {
+      healthScore -= 25;
+      if (healthStatus !== "CRITICAL") healthStatus = "AT_RISK";
+    } else {
+      healthScore -= 10;
+    }
+    blockers.push(
+      `[${exc.severity}] Exception (${exc.category}): ${exc.title}`,
+    );
+  }
+
   if (healthScore < 50) {
     healthStatus = "CRITICAL";
-  } else if (healthScore < 80) {
+  } else if (healthScore < 80 && healthStatus !== "CRITICAL") {
     healthStatus = "AT_RISK";
   }
+
+  // Synthesize Operational Signals
+  const signals: OperationalSignal[] = [];
+  for (const exc of activeExceptions) {
+    signals.push({
+      signalId: `sig_${exc.exceptionId}`,
+      signalType: exc.isBlocking ? "BLOCKING_EXCEPTION" : "ROUTE_DEVIATION",
+      severity:
+        exc.severity === "CRITICAL"
+          ? "CRITICAL"
+          : exc.severity === "MAJOR"
+            ? "MAJOR"
+            : "WARNING",
+      title: exc.title,
+      explanation: exc.description,
+      source: "EXCEPTION_ENGINE",
+      createdAt: exc.createdAt,
+    });
+  }
+  if (blockedTasks > 0) {
+    signals.push({
+      signalId: `sig_blocked_tasks_${shipmentId}`,
+      signalType: "TASK_BLOCKED",
+      severity: "WARNING",
+      title: `${blockedTasks} Task(s) Blocked`,
+      explanation:
+        "Operational tasks are awaiting upstream dependency resolution",
+      source: "WORK_MANAGEMENT",
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  // Explainability & Recommended Action
+  let recommendedAction: ExplainabilityModel["recommendedAction"];
+  if (blockingExceptions.length > 0) {
+    const topExc = blockingExceptions[0];
+    recommendedAction = {
+      actionKey: "RESOLVE_EXCEPTION",
+      title: `Resolve ${topExc.category}`,
+      description: topExc.description,
+      actionType: "RESOLVE_EXCEPTION",
+      targetId: topExc.exceptionId,
+      isBlocking: true,
+    };
+  } else if (openTasks > 0) {
+    const firstOpen =
+      enrichedTasks.find((t) => !t.isBlocked && t.status === "OPEN") ||
+      enrichedTasks[0];
+    recommendedAction = {
+      actionKey: "COMPLETE_TASK",
+      title: firstOpen.title,
+      description: `Execute operational action: ${firstOpen.title}`,
+      actionType: "COMPLETE_TASK",
+      targetId: firstOpen.taskId,
+      isBlocking: false,
+    };
+  } else {
+    recommendedAction = {
+      actionKey: "INSPECT_ROUTE",
+      title: "Monitor Tracking Milestones",
+      description: "All immediate operational tasks are up to date",
+      actionType: "INSPECT_ROUTE",
+      targetId: shipmentId,
+      isBlocking: false,
+    };
+  }
+
+  const attentionBreakdown = [
+    {
+      factor: "BASE_WEIGHT",
+      points: 40,
+      explanation: "Standard shipment operational monitoring",
+    },
+    ...(blockingExceptions.length > 0
+      ? [
+          {
+            factor: "ACTIVE_BLOCKING_EXCEPTIONS",
+            points: 40,
+            explanation: `${blockingExceptions.length} active blocking exception(s) require intervention`,
+          },
+        ]
+      : []),
+    ...(blockedTasks > 0
+      ? [
+          {
+            factor: "BLOCKED_DEPENDENCIES",
+            points: 15,
+            explanation: `${blockedTasks} task(s) currently blocked by dependencies`,
+          },
+        ]
+      : []),
+  ];
+
+  const explainability: ExplainabilityModel = {
+    isBlocked: blockers.length > 0,
+    blockReasons: blockers,
+    slaStatus:
+      healthStatus === "CRITICAL"
+        ? "BREACHED"
+        : healthStatus === "AT_RISK"
+          ? "AT_RISK"
+          : "ON_TRACK",
+    slaRiskExplanation:
+      blockers.length > 0
+        ? blockers.join("; ")
+        : "Operations progressing according to planned schedule",
+    activeWorkflowKey: workflow?.definitionCode,
+    recommendedAction,
+    attentionScoreBreakdown: attentionBreakdown,
+  };
 
   const customerRole = shipment.partyRoles.find((r) => r.role === "CUSTOMER");
 
@@ -483,17 +804,21 @@ export async function computeShipment360View(
     milestonePlan,
     workflow,
     tasks: enrichedTasks,
+    exceptions,
+    signals,
     health: {
       status: healthStatus,
       score: Math.max(0, healthScore),
       blockers,
     },
+    explainability,
     metrics: {
       totalTasks,
       openTasks,
       blockedTasks,
       completedTasks,
       progressPercentage,
+      activeExceptionsCount: activeExceptions.length,
     },
     projectionVersion: 1,
     lastUpdatedAt: new Date().toISOString(),
@@ -558,13 +883,19 @@ export async function refreshShipmentProjections(
   }
 
   // 2. Upsert Cockpit Items for each task
+  const hasActiveBlockingExc = view.exceptions.some(
+    (e) => e.isBlocking && e.status !== "RESOLVED" && e.status !== "WAIVED",
+  );
+
   for (const task of view.tasks) {
     const meta = resolveTaskMetadata(task.taskType);
     const scoreUrgency = computeAttentionScoreAndUrgency(
       {
+        itemType: "TASK",
         status: task.status,
         isBlocked: task.isBlocked,
         priority: task.priority,
+        hasBlockingException: hasActiveBlockingExc,
       },
       view.serviceType,
     );
@@ -588,6 +919,8 @@ export async function refreshShipmentProjections(
       blockedByTasks: blockedBy,
       urgencyBucket: scoreUrgency.urgencyBucket,
       attentionScore: scoreUrgency.attentionScore,
+      scoreBreakdown: scoreUrgency.scoreBreakdown,
+      itemType: "TASK",
       workflowInfo: view.workflow
         ? {
             instanceId: view.workflow.instanceId,
@@ -645,6 +978,118 @@ export async function refreshShipmentProjections(
     }
   }
 
+  // 3. Upsert Cockpit Items for each active exception
+  const activeExceptions = view.exceptions.filter(
+    (e) => e.status !== "RESOLVED" && e.status !== "WAIVED",
+  );
+
+  for (const exc of activeExceptions) {
+    const scoreUrgency = computeAttentionScoreAndUrgency(
+      {
+        itemType: "EXCEPTION",
+        status: exc.status,
+        isBlocked: false,
+        priority: exc.severity,
+        hasBlockingException: exc.isBlocking,
+      },
+      view.serviceType,
+    );
+
+    const excWorkItem: OperationalCockpitWorkItem = {
+      workItemId: exc.exceptionId,
+      taskId: exc.exceptionId,
+      shipmentId,
+      shipmentReference: view.shipmentReference,
+      serviceType: view.serviceType,
+      taskTypeCode: exc.category,
+      title: `[Exception] ${exc.title}`,
+      description: exc.description,
+      priority: exc.severity as any,
+      status: exc.status === "OPEN" ? "OPEN" : "IN_REVIEW",
+      isBlocked: false,
+      blockedByTasks: [],
+      urgencyBucket: scoreUrgency.urgencyBucket,
+      attentionScore: scoreUrgency.attentionScore,
+      scoreBreakdown: scoreUrgency.scoreBreakdown,
+      itemType: "EXCEPTION",
+      primaryAction: {
+        command: "RESOLVE_EXCEPTION",
+        actionLabel: "Resolve Exception",
+        inputFields: [
+          {
+            name: "resolutionNotes",
+            label: "Resolution Notes",
+            type: "string",
+            required: true,
+          },
+        ],
+      },
+      updatedAt: now.toISOString(),
+    };
+
+    const existingExcItem = await db
+      .select()
+      .from(scmOperationalCockpitWorkItemsV2)
+      .where(eq(scmOperationalCockpitWorkItemsV2.workItemId, exc.exceptionId))
+      .limit(1);
+
+    if (existingExcItem.length === 0) {
+      await db.insert(scmOperationalCockpitWorkItemsV2).values({
+        workItemId: exc.exceptionId,
+        taskId: exc.exceptionId,
+        shipmentId,
+        shipmentReference: view.shipmentReference,
+        serviceType: view.serviceType,
+        taskTypeCode: exc.category,
+        title: `[Exception] ${exc.title}`,
+        priority: exc.severity,
+        status: exc.status === "OPEN" ? "OPEN" : "IN_REVIEW",
+        isBlocked: 0,
+        urgencyBucket: scoreUrgency.urgencyBucket,
+        attentionScore: scoreUrgency.attentionScore,
+        workflowInstanceId: view.workflow?.instanceId || null,
+        itemJson: JSON.stringify(excWorkItem),
+        updatedAt: now,
+      });
+    } else {
+      await db
+        .update(scmOperationalCockpitWorkItemsV2)
+        .set({
+          shipmentReference: view.shipmentReference,
+          serviceType: view.serviceType,
+          taskTypeCode: exc.category,
+          title: `[Exception] ${exc.title}`,
+          priority: exc.severity,
+          status: exc.status === "OPEN" ? "OPEN" : "IN_REVIEW",
+          isBlocked: 0,
+          urgencyBucket: scoreUrgency.urgencyBucket,
+          attentionScore: scoreUrgency.attentionScore,
+          workflowInstanceId: view.workflow?.instanceId || null,
+          itemJson: JSON.stringify(excWorkItem),
+          updatedAt: now,
+        })
+        .where(
+          eq(scmOperationalCockpitWorkItemsV2.workItemId, exc.exceptionId),
+        );
+    }
+  }
+
+  // 4. Update resolved exceptions in Cockpit to COMPLETED
+  const resolvedExceptions = view.exceptions.filter(
+    (e) => e.status === "RESOLVED" || e.status === "WAIVED",
+  );
+  for (const exc of resolvedExceptions) {
+    await db
+      .update(scmOperationalCockpitWorkItemsV2)
+      .set({
+        status: "COMPLETED",
+        attentionScore: 0,
+        urgencyBucket: "UPCOMING",
+        updatedAt: now,
+      })
+      .where(eq(scmOperationalCockpitWorkItemsV2.workItemId, exc.exceptionId));
+  }
+
   return view;
 }
 
@@ -667,6 +1112,9 @@ export function registerOperationalBffSubscribers(): void {
     "work_mgmt.TaskUnblocked.v2",
     "workflow_engine.WorkflowInstanceCompleted.v2",
     "shipment_execution.ShipmentStatusUpdated.v2",
+    "op_intelligence.OperationalExceptionRaised.v2",
+    "op_intelligence.OperationalExceptionAssigned.v2",
+    "op_intelligence.OperationalExceptionResolved.v2",
   ];
 
   for (const eventType of eventsToWatch) {
@@ -769,7 +1217,7 @@ export async function listShipment360Views(params?: {
 }
 
 export async function listOperationsCockpitItems(params?: {
-  status?: "OPEN" | "BLOCKED" | "COMPLETED" | "ALL";
+  status?: "OPEN" | "BLOCKED" | "COMPLETED" | "IN_REVIEW" | "ALL";
   urgencyBucket?: string;
   priority?: string;
   shipmentId?: string;
@@ -785,7 +1233,9 @@ export async function listOperationsCockpitItems(params?: {
     conditions.push(eq(scmOperationalCockpitWorkItemsV2.status, params.status));
   } else if (!params?.status) {
     // Default to OPEN & non-completed items
-    conditions.push(eq(scmOperationalCockpitWorkItemsV2.status, "OPEN"));
+    conditions.push(
+      sql`${scmOperationalCockpitWorkItemsV2.status} IN ('OPEN', 'IN_REVIEW')`,
+    );
   }
 
   if (params?.urgencyBucket) {
@@ -840,7 +1290,8 @@ export async function getCockpitSummary(): Promise<CockpitSummaryMetrics> {
 
   const totalTasks = allItems.length;
   const openActionableCount = allItems.filter(
-    (i) => i.status === "OPEN" && i.isBlocked === 0,
+    (i) =>
+      (i.status === "OPEN" || i.status === "IN_REVIEW") && i.isBlocked === 0,
   ).length;
   const blockedCount = allItems.filter(
     (i) => i.isBlocked === 1 && i.status !== "COMPLETED",
@@ -863,6 +1314,11 @@ export async function getCockpitSummary(): Promise<CockpitSummaryMetrics> {
     (w) => w.status === "COMPLETED",
   ).length;
 
+  const allExceptions = await db.select().from(scmOperationalExceptionsV2);
+  const activeExceptionsCount = allExceptions.filter(
+    (e) => e.status !== "RESOLVED" && e.status !== "WAIVED",
+  ).length;
+
   return {
     totalTasks,
     openActionableCount,
@@ -872,24 +1328,105 @@ export async function getCockpitSummary(): Promise<CockpitSummaryMetrics> {
     dueTodayCount,
     activeWorkflowsCount,
     completedWorkflowsCount,
+    activeExceptionsCount,
   };
 }
 
+// ============================================================================
+// IN-SITU COCKPIT EXECUTION (TASKS & OPERATIONAL EXCEPTIONS)
+// ============================================================================
+
 export async function executeCockpitWorkItem(
   workItemId: string,
-  input: { result?: Record<string, any>; notes?: string; [key: string]: any },
+  input: {
+    result?: Record<string, any>;
+    notes?: string;
+    resolutionNotes?: string;
+    resolutionStatus?: "RESOLVED" | "WAIVED";
+    [key: string]: any;
+  },
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ): Promise<{
   success: boolean;
   executedWorkItemId: string;
   completedTask: any;
+  resolvedException?: OperationalExceptionRecord;
   unlockedWorkItems: OperationalCockpitWorkItem[];
   workflowStatus?: string;
   shipment360: OperationalShipment360View;
 }> {
   await ensureOperationalBffTables();
 
-  // 1. Find the target work item
+  // 1. Check if the work item is an Operational Exception
+  const excRows = await db
+    .select()
+    .from(scmOperationalExceptionsV2)
+    .where(eq(scmOperationalExceptionsV2.exceptionId, workItemId))
+    .limit(1);
+
+  if (excRows.length > 0) {
+    const targetShipmentId = excRows[0].shipmentId;
+    const resolutionNotes =
+      input.resolutionNotes ||
+      input.notes ||
+      "Resolved in-situ via Operations Cockpit";
+
+    const resolvedException = await resolveOperationalException(
+      workItemId,
+      {
+        resolutionNotes,
+        resolutionStatus: input.resolutionStatus || "RESOLVED",
+      },
+      actor,
+    );
+
+    // Relay pending outbox events (cascades reactive projections)
+    await outboxBus.relayPendingEvents();
+
+    // Refresh projections for this shipment
+    const freshView = await refreshShipmentProjections(targetShipmentId);
+
+    // Find any newly unblocked work items
+    const unlockedWorkItems: OperationalCockpitWorkItem[] = freshView.tasks
+      .filter((t) => t.status === "OPEN" && !t.isBlocked)
+      .map((t) => {
+        const meta = resolveTaskMetadata(t.taskType);
+        const scoreUrgency = computeAttentionScoreAndUrgency(
+          { status: t.status, isBlocked: t.isBlocked, priority: t.priority },
+          freshView.serviceType,
+        );
+        return {
+          workItemId: t.taskId,
+          taskId: t.taskId,
+          shipmentId: targetShipmentId,
+          shipmentReference: freshView.shipmentReference,
+          serviceType: freshView.serviceType,
+          taskTypeCode: t.taskType,
+          title: meta.title,
+          description: meta.description,
+          priority: t.priority as any,
+          status: t.status as any,
+          isBlocked: false,
+          blockedByTasks: [],
+          urgencyBucket: scoreUrgency.urgencyBucket,
+          attentionScore: scoreUrgency.attentionScore,
+          primaryAction: meta.primaryAction,
+          updatedAt: freshView.lastUpdatedAt,
+        };
+      });
+
+    return {
+      success: true,
+      executedWorkItemId: workItemId,
+      completedTask: null,
+      resolvedException,
+      unlockedWorkItems,
+      workflowStatus: freshView.workflow?.status,
+      shipment360: freshView,
+    };
+  }
+
+  // 2. Otherwise handle as a regular Operational Task
   const itemRows = await db
     .select()
     .from(scmOperationalCockpitWorkItemsV2)
@@ -900,7 +1437,6 @@ export async function executeCockpitWorkItem(
   if (itemRows.length > 0) {
     targetShipmentId = itemRows[0].shipmentId;
   } else {
-    // Check if it exists in scmLogicalTasks
     const taskRows = await db
       .select()
       .from(scmLogicalTasks)
@@ -916,17 +1452,16 @@ export async function executeCockpitWorkItem(
     targetShipmentId = taskRows[0].subjectId;
   }
 
-  // 2. Complete the task in-situ
   const resultPayload = input.result || input;
   const completedTask = await completeTask(workItemId, resultPayload, actor);
 
-  // 3. Relay pending outbox events (cascades unblocking and workflow completion)
+  // Relay pending outbox events (cascades unblocking and workflow completion)
   await outboxBus.relayPendingEvents();
 
-  // 4. Refresh projections for this shipment
+  // Refresh projections for this shipment
   const freshView = await refreshShipmentProjections(targetShipmentId);
 
-  // 5. Detect newly unblocked items for this shipment
+  // Detect newly unblocked items for this shipment
   const unlockedWorkItems: OperationalCockpitWorkItem[] = freshView.tasks
     .filter(
       (t) => t.status === "OPEN" && !t.isBlocked && t.taskId !== workItemId,
@@ -972,6 +1507,248 @@ export async function executeCockpitWorkItem(
     unlockedWorkItems,
     workflowStatus: freshView.workflow?.status,
     shipment360: freshView,
+  };
+}
+
+// ============================================================================
+// OPERATIONAL TIMELINE SYNTHESIS (CHRONOLOGICAL EVENT-SOURCING AUDIT)
+// ============================================================================
+
+export async function getShipmentOperationalTimeline(
+  shipmentId: string,
+): Promise<OperationalTimelineEvent[]> {
+  await ensureOperationalBffTables();
+
+  const timeline: OperationalTimelineEvent[] = [];
+
+  // 1. Fetch Outbox messages for this shipment
+  const outboxRows = await db
+    .select()
+    .from(scmOutboxMessages)
+    .where(
+      sql`${scmOutboxMessages.aggregateId} = ${shipmentId} OR ${scmOutboxMessages.payloadJson} LIKE ${`%"shipmentId":"${shipmentId}"%`} OR ${scmOutboxMessages.payloadJson} LIKE ${`%"subjectId":"${shipmentId}"%`}`,
+    )
+    .orderBy(scmOutboxMessages.occurredAt);
+
+  for (const msg of outboxRows) {
+    let payload: Record<string, any> = {};
+    try {
+      payload = JSON.parse(msg.payloadJson);
+    } catch {
+      payload = {};
+    }
+
+    let category: OperationalTimelineEvent["category"] = "LIFECYCLE";
+    let title = msg.eventType;
+    let description = `Event ${msg.eventType} recorded for shipment`;
+
+    if (msg.eventType.includes("ShipmentCreated")) {
+      category = "LIFECYCLE";
+      title = "Shipment Created";
+      description = `Shipment initialized with service ${payload.serviceType || "STANDARD"}`;
+    } else if (msg.eventType.includes("RoutePlanned")) {
+      category = "PLANNING";
+      title = "Route Plan Established";
+      description = `Route version ${payload.versionNumber || 1} planned with ${payload.stopsCount || "multiple"} stops`;
+    } else if (
+      msg.eventType.includes("MilestonePlanCreated") ||
+      msg.eventType.includes("Created.v2")
+    ) {
+      category = "PLANNING";
+      title = "Milestone Plan Generated";
+      description = `Operational milestone schedule generated`;
+    } else if (msg.eventType.includes("WorkflowInstanceStarted")) {
+      category = "WORKFLOW";
+      title = "Operational Workflow Started";
+      description = `Workflow instance initiated for shipment`;
+    } else if (msg.eventType.includes("TasksGenerated")) {
+      category = "TASK";
+      title = "Tasks Generated";
+      description = `${payload.tasksCount || "Operational"} tasks materialized into DAG`;
+    } else if (msg.eventType.includes("TaskCompleted")) {
+      category = "TASK";
+      title = `Task Completed: ${payload.taskType || payload.taskId}`;
+      description = `Task marked completed successfully`;
+    } else if (msg.eventType.includes("TaskUnblocked")) {
+      category = "TASK";
+      title = `Task Unblocked: ${payload.taskType || payload.taskId}`;
+      description = `Predecessor finished; task is now actionable`;
+    } else if (msg.eventType.includes("WorkflowInstanceCompleted")) {
+      category = "WORKFLOW";
+      title = "Workflow Completed";
+      description = `All operational workflow tasks fulfilled`;
+    } else if (msg.eventType.includes("OperationalExceptionRaised")) {
+      category = "EXCEPTION";
+      title = `[${payload.severity || "EXCEPTION"}] ${payload.title || "Exception Raised"}`;
+      description = payload.description || `Category: ${payload.category}`;
+    } else if (msg.eventType.includes("OperationalExceptionAssigned")) {
+      category = "EXCEPTION";
+      title = `Exception Assigned: ${payload.exceptionId}`;
+      description = `Assigned to ${payload.assignedTeam || payload.assignedToUserId}`;
+    } else if (msg.eventType.includes("OperationalExceptionResolved")) {
+      category = "EXCEPTION";
+      title = `Exception Resolved: ${payload.category || payload.exceptionId}`;
+      description = payload.resolutionNotes || "Exception marked resolved";
+    }
+
+    let actorId = "system";
+    try {
+      const actorCtx = JSON.parse(msg.actorContextJson);
+      actorId = actorCtx.userId || "system";
+    } catch {
+      actorId = "system";
+    }
+
+    timeline.push({
+      timelineId: `tl_outbox_${msg.eventId}`,
+      timestamp: new Date(msg.occurredAt).toISOString(),
+      eventType: msg.eventType,
+      source: "OUTBOX",
+      category,
+      title,
+      description,
+      actor: actorId,
+      payload,
+    });
+  }
+
+  // 2. Fetch tracking telemetry events if any
+  const trackingRows = await db
+    .select()
+    .from(scmLogicalOperationalEvents)
+    .where(eq(scmLogicalOperationalEvents.subjectId, shipmentId))
+    .orderBy(scmLogicalOperationalEvents.occurredAt);
+
+  for (const trk of trackingRows) {
+    let payload: Record<string, any> = {};
+    try {
+      payload = JSON.parse(trk.payloadJson);
+    } catch {
+      payload = {};
+    }
+
+    timeline.push({
+      timelineId: `tl_trk_${trk.eventId}`,
+      timestamp: trk.occurredAt,
+      eventType: trk.eventType,
+      source: "TELEMETRY",
+      category: "TELEMETRY",
+      title: `Telemetry: ${trk.eventType}`,
+      description: `Source: ${trk.source} at location ${trk.locationId || "In-Transit"}`,
+      actor: trk.source,
+      payload,
+    });
+  }
+
+  // Sort timeline chronologically
+  timeline.sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
+
+  return timeline;
+}
+
+// ============================================================================
+// PROJECTION HEALTH & FULL REBUILD
+// ============================================================================
+
+export async function getProjectionsHealth(): Promise<ProjectionsHealthReport> {
+  await ensureOperationalBffTables();
+
+  const outboxRows = await db.select().from(scmOutboxMessages);
+  const dlq = await outboxBus.getDeadLetterQueue();
+
+  const pendingCount = outboxRows.filter((r) => r.status === "PENDING").length;
+  const processingCount = outboxRows.filter(
+    (r) => r.status === "PROCESSING",
+  ).length;
+  const processedCount = outboxRows.filter(
+    (r) => r.status === "PROCESSED",
+  ).length;
+  const failedCount = outboxRows.filter((r) => r.status === "FAILED").length;
+
+  const [shp360Rows, cockpitRows, excRows] = await Promise.all([
+    db.select().from(scmOperationalShipment360ViewsV2),
+    db.select().from(scmOperationalCockpitWorkItemsV2),
+    db.select().from(scmOperationalExceptionsV2),
+  ]);
+
+  // Compute lag
+  let latestOutboxMs = 0;
+  let lastOutboxTimestamp: string | null = null;
+  for (const r of outboxRows) {
+    const t = new Date(r.occurredAt).getTime();
+    if (t > latestOutboxMs) {
+      latestOutboxMs = t;
+      lastOutboxTimestamp = new Date(r.occurredAt).toISOString();
+    }
+  }
+
+  let latestProjMs = 0;
+  let lastProcessedTimestamp: string | null = null;
+  for (const p of shp360Rows) {
+    const t = new Date(p.updatedAt).getTime();
+    if (t > latestProjMs) {
+      latestProjMs = t;
+      lastProcessedTimestamp = new Date(p.updatedAt).toISOString();
+    }
+  }
+
+  const lagMs =
+    pendingCount > 0 && latestOutboxMs > latestProjMs
+      ? latestOutboxMs - latestProjMs
+      : 0;
+
+  let healthStatus: ProjectionsHealthReport["status"] = "HEALTHY";
+  if (dlq.length > 0 || failedCount > 0) {
+    healthStatus = "DEGRADED";
+  } else if (pendingCount > 25 || lagMs > 30000) {
+    healthStatus = "OUT_OF_SYNC";
+  }
+
+  return {
+    status: healthStatus,
+    outboxMetrics: {
+      pendingCount,
+      processingCount,
+      processedCount,
+      failedCount,
+      dlqCount: dlq.length,
+    },
+    projectionMetrics: {
+      shipment360Count: shp360Rows.length,
+      cockpitItemsCount: cockpitRows.length,
+      exceptionsCount: excRows.length,
+    },
+    projectorLagMs: lagMs,
+    lastProcessedEventTimestamp: lastProcessedTimestamp,
+    lastOutboxEventTimestamp: lastOutboxTimestamp,
+  };
+}
+
+export async function rebuildAllOperationalProjections(): Promise<{
+  success: boolean;
+  shipmentsRebuiltCount: number;
+  cockpitItemsRebuiltCount: number;
+  durationMs: number;
+}> {
+  const startTime = Date.now();
+  await ensureOperationalBffTables();
+
+  const shipments = await db.select().from(scmLogicalShipments);
+  let cockpitItemsCount = 0;
+
+  for (const shp of shipments) {
+    const view = await refreshShipmentProjections(shp.shipmentId);
+    cockpitItemsCount += view.tasks.length;
+  }
+
+  const durationMs = Date.now() - startTime;
+  return {
+    success: true,
+    shipmentsRebuiltCount: shipments.length,
+    cockpitItemsRebuiltCount: cockpitItemsCount,
+    durationMs,
   };
 }
 

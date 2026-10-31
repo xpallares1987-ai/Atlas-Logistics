@@ -32,3 +32,4 @@ export * from "./scm_foundation.js";
 export * from "./scm_entities_sqlite.js";
 export * from "./scm_workflow_engine_sqlite.js";
 export * from "./scm_operational_bff_sqlite.js";
+export * from "./scm_operational_intelligence_sqlite.js";

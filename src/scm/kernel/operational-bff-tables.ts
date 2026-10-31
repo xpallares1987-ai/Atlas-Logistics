@@ -54,6 +54,28 @@ export async function ensureOperationalBffTables(): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_op_intel_cockpit_v2_shipment_id ON op_intelligence_cockpit_items_v2(shipment_id);`,
     `CREATE INDEX IF NOT EXISTS idx_op_intel_cockpit_v2_status_priority ON op_intelligence_cockpit_items_v2(status, is_blocked, priority, attention_score);`,
     `CREATE INDEX IF NOT EXISTS idx_op_intel_cockpit_v2_urgency ON op_intelligence_cockpit_items_v2(urgency_bucket);`,
+
+    `CREATE TABLE IF NOT EXISTS op_intelligence_exceptions_v2 (
+      exception_id TEXT PRIMARY KEY NOT NULL,
+      shipment_id TEXT NOT NULL,
+      category TEXT NOT NULL,
+      severity TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'OPEN',
+      is_blocking INTEGER NOT NULL DEFAULT 1,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      root_cause TEXT,
+      assigned_to_user_id TEXT,
+      assigned_team TEXT,
+      resolution_notes TEXT,
+      resolved_by_user_id TEXT,
+      resolved_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );`,
+    `CREATE INDEX IF NOT EXISTS idx_op_intel_exc_v2_shipment ON op_intelligence_exceptions_v2(shipment_id);`,
+    `CREATE INDEX IF NOT EXISTS idx_op_intel_exc_v2_status_sev ON op_intelligence_exceptions_v2(status, severity, is_blocking);`,
+    `CREATE INDEX IF NOT EXISTS idx_op_intel_exc_v2_team ON op_intelligence_exceptions_v2(assigned_team);`,
   ];
 
   for (const stmt of statements) {

@@ -85,7 +85,18 @@ import {
   listOperationsCockpitItems as listOperationalCockpitItems,
   getCockpitSummary as getOperationalCockpitSummary,
   executeCockpitWorkItem as executeOperationalCockpitWorkItem,
+  getShipmentOperationalTimeline,
+  getProjectionsHealth,
+  rebuildAllOperationalProjections,
 } from "../scm/contexts/operational-intelligence/operations-cockpit-bff.context.js";
+import {
+  raiseOperationalException,
+  assignOperationalException,
+  resolveOperationalException,
+  getOperationalExceptionById,
+  listOperationalExceptionsForShipment,
+  listAllOperationalExceptions,
+} from "../scm/contexts/operational-intelligence/operational-exceptions.context.js";
 import {
   createOperationalShipment,
   updateOperationalShipment,
@@ -1023,6 +1034,110 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
         const result = await getOperationalAuditTrail(shipmentId);
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get(
+    "/operational/shipments/:shipmentId/timeline",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const result = await getShipmentOperationalTimeline(shipmentId);
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get("/operational/projections/health", async (_request, reply) => {
+    try {
+      const result = await getProjectionsHealth();
+      return reply.code(200).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.post("/operational/projections/rebuild", async (_request, reply) => {
+    try {
+      const result = await rebuildAllOperationalProjections();
+      return reply.code(200).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  // Operational Exceptions Engine
+  fastify.post("/operational/exceptions", async (request, reply) => {
+    try {
+      const actor = extractActorFromRequest(request);
+      const body = request.body as any;
+      const result = await raiseOperationalException(body, actor);
+      return reply.code(201).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.put(
+    "/operational/exceptions/:exceptionId/assign",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { exceptionId } = request.params as { exceptionId: string };
+        const body = request.body as any;
+        const result = await assignOperationalException(
+          exceptionId,
+          body,
+          actor,
+        );
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.post(
+    "/operational/exceptions/:exceptionId/resolve",
+    async (request, reply) => {
+      try {
+        const actor = extractActorFromRequest(request);
+        const { exceptionId } = request.params as { exceptionId: string };
+        const body = request.body as any;
+        const result = await resolveOperationalException(
+          exceptionId,
+          body,
+          actor,
+        );
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get("/operational/exceptions", async (request, reply) => {
+    try {
+      const query = (request.query as any) || {};
+      const result = await listAllOperationalExceptions(query);
+      return reply.code(200).send(result);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
+
+  fastify.get(
+    "/operational/shipments/:shipmentId/exceptions",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const result = await listOperationalExceptionsForShipment(shipmentId);
         return reply.code(200).send(result);
       } catch (err) {
         return handleDomainError(err, reply);

@@ -20,6 +20,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     - Explainable Attention Score engine (0–100) with urgency categorisation (`IMMEDIATE_ACTION`, `DUE_TODAY`, `UPCOMING`, `BLOCKED`).
     - Read-through self-healing projections preventing read/write race conditions.
     - In-situ cockpit execution endpoint (`/operational/cockpit/:workItemId/execute`) triggering domain task completion, successor unblocking, and instant projection refresh.
+- **System of Operational Intelligence & Exception Management**:
+  - **Operational Exception Engine (`scmOperationalExceptionsV2`)**:
+    - Domain aggregate for operational discrepancies, holds, delays, roll-overs, and equipment defects (`CUSTOMS_HOLD`, `WEATHER_DELAY`, `CARRIER_ROLL`, `EQUIPMENT_DEFECT`, `SLA_BREACH`, `DOCUMENTATION_ERROR`, `ROUTE_DEVIATION`, `SECURITY_AUDIT_HOLD`, `TERMINAL_CONGESTION`).
+    - Granular severity categorization (`CRITICAL`, `MAJOR`, `MINOR`, `INFO`) with blocking vs non-blocking gating.
+    - Transactional outbox events emitted on lifecycle mutations (`op_intelligence.OperationalExceptionRaised.v2`, `op_intelligence.OperationalExceptionAssigned.v2`, `op_intelligence.OperationalExceptionResolved.v2`).
+  - **Transparent Attention Scoring & Explainability**:
+    - Replaced heuristic black-box scoring with explainable factor breakdowns (`scoreBreakdown`: `BASE_WEIGHT`, priority weights, service tier weights, active blocking exception penalties, critical-path unblocked bonuses).
+    - Dynamic Recommended Actions (`recommendedAction`: `COMPLETE_TASK`, `RESOLVE_EXCEPTION`, `INSPECT_ROUTE`) guiding operators directly to the root intervention.
+  - **In-Situ Cockpit Execution for Exceptions**:
+    - Extended `/operational/cockpit/:workItemId/execute` to seamlessly resolve operational exceptions in-situ via domain commands, unblocking shipments, clearing blockers, and restoring health scores.
+  - **Shipment 360 Operational Timeline**:
+    - Chronological event-sourcing audit endpoint (`/operational/shipments/:shipmentId/timeline`) consolidating outbox domain events, exception history, and tracking telemetry.
+  - **Projection Health & Authoritative Full Rebuild**:
+    - Real-time health metrics endpoint (`/operational/projections/health`) reporting projector lag, queue counts, DLQ status, and projection volume.
+    - Full authoritative rebuild endpoint (`/operational/projections/rebuild`) regenerating read model projections directly from source tables.
 
 ### 🧹 Refactored & Consolidated
 
