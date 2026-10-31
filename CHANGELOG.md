@@ -35,6 +35,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - **Projection Health & Authoritative Full Rebuild**:
     - Real-time health metrics endpoint (`/operational/projections/health`) reporting projector lag, queue counts, DLQ status, and projection volume.
     - Full authoritative rebuild endpoint (`/operational/projections/rebuild`) regenerating read model projections directly from source tables.
+- **Operational Experience Layer (UI & Visual Command Centers)**:
+  - **Operations Cockpit 2.0 (`OperationsCockpitModule.tsx`)**:
+    - Unified work-to-user prioritized inbox answering WHAT, WHERE, IMPACT, WHY NOW (transparent point breakdowns `+40 Base, +45 Critical, +20 Blocking = 100 Attention`), and NEXT BEST ACTION.
+    - Embedded transversal UX interaction pattern: Explain $\to$ Decide $\to$ Act $\to$ Confirm with instant in-situ command execution.
+  - **Shipment 360 Command Center (`ShipmentWorkspace360Module.tsx`)**:
+    - 7-perspective operational mission control: Overview, Attention & Signals, Journey & Timeline, Tasks (DAG operational pipeline), Exceptions, Cargo & Route, and Outbox Audit log.
+    - Real-time health score degradation badges, blocker gating indicators, in-situ DAG task completion, and "+ Raise Exception" modal.
+  - **Exception Center (`ExceptionCenterModule.tsx`)**:
+    - Cross-shipment portfolio management with 4 dedicated perspectives: Open, Blocking, Assigned to Me, and Resolved.
+    - Multi-dimensional filtering by category, severity, and search keywords, paired with in-situ resolution modal restoring shipment health.
+  - **Platform Control Plane (`ControlPlaneModule.tsx`)**:
+    - Dedicated administrative control plane separated from operations.
+    - Real-time telemetry monitoring runtime health (`HEALTHY`, `DEGRADED`, `OUT_OF_SYNC`), projector lag in milliseconds, transactional outbox queues (Pending, Processing, Processed, Failed), Dead Letter Queue (DLQ) inspection with 1-click message replay, and administrative 1-click authoritative projection rebuild.
+  - **Routing & Navigation Architecture**:
+    - Configured routes `/cockpit`, `/my-work`, `/shipment-360`, `/exceptions`, and `/control-plane` in `AppRoutes.tsx`.
+    - Restructured `Sidebar.tsx` into dedicated *Operations* and *System Control* navigation groups.
 
 ### 🧹 Refactored & Consolidated
 

@@ -7,11 +7,17 @@ import { getMfeRemoteUrl } from "../../lib/mfe/mfe-config";
 
 const Login = React.lazy(() => import("../../pages/Login"));
 const DashboardModule = React.lazy(() => import("../../pages/DashboardModule"));
-const MyWorkQueueModule = React.lazy(
-  () => import("../../pages/MyWorkQueueModule"),
+const OperationsCockpitModule = React.lazy(
+  () => import("../../pages/OperationsCockpitModule"),
 );
 const ShipmentWorkspace360Module = React.lazy(
   () => import("../../pages/ShipmentWorkspace360Module"),
+);
+const ExceptionCenterModule = React.lazy(
+  () => import("../../pages/ExceptionCenterModule"),
+);
+const ControlPlaneModule = React.lazy(
+  () => import("../../pages/ControlPlaneModule"),
 );
 
 const RateComparerContainer = () => (
@@ -205,6 +211,22 @@ export const AppRoutes = () => {
           }
         />
         <Route
+          path="/cockpit"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "ADMIN",
+                "EXECUTIVE",
+                "MANAGER",
+                "SALES",
+                "OPERATIONS",
+              ]}
+            >
+              <OperationsCockpitModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/my-work"
           element={
             <ProtectedRoute
@@ -216,7 +238,7 @@ export const AppRoutes = () => {
                 "OPERATIONS",
               ]}
             >
-              <MyWorkQueueModule />
+              <OperationsCockpitModule />
             </ProtectedRoute>
           }
         />
@@ -233,6 +255,32 @@ export const AppRoutes = () => {
               ]}
             >
               <ShipmentWorkspace360Module />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/exceptions"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "ADMIN",
+                "EXECUTIVE",
+                "MANAGER",
+                "SALES",
+                "OPERATIONS",
+              ]}
+            >
+              <ExceptionCenterModule />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/control-plane"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER", "OPERATIONS"]}
+            >
+              <ControlPlaneModule />
             </ProtectedRoute>
           }
         />

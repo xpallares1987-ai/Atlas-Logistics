@@ -18,6 +18,7 @@ import {
   BookOpen,
   Briefcase,
   ShieldAlert,
+  Server,
   Landmark,
   Users,
   X,
@@ -116,10 +117,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {(isAdminOrFF || isCustomsBroker) && (
             <NavLink
               onClick={() => setMobileMenuOpen(false)}
-              to="/my-work"
+              to="/cockpit"
               icon={Zap}
             >
-              My Work · Smart Queue
+              Operations Cockpit 2.0
             </NavLink>
           )}
           {(isAdminOrFF || isCustomsBroker) && (
@@ -128,7 +129,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               to="/shipment-360"
               icon={Compass}
             >
-              Shipment Workspace 360°
+              Shipment 360 Command Center
+            </NavLink>
+          )}
+          {(isAdminOrFF || isCustomsBroker) && (
+            <NavLink
+              onClick={() => setMobileMenuOpen(false)}
+              to="/exceptions"
+              icon={ShieldAlert}
+            >
+              Exception Center
             </NavLink>
           )}
           {(isAdminOrFF || isShipper) && (
@@ -549,6 +559,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {t("sidebar.customerPortal")}
           </NavLink>
         </div>
+
+        {isAdminOrFF && (
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">
+              System Control
+            </span>
+            <NavLink
+              onClick={() => setMobileMenuOpen(false)}
+              to="/control-plane"
+              icon={Server}
+            >
+              Platform Control Plane
+            </NavLink>
+          </div>
+        )}
       </aside>
     </>
   );
