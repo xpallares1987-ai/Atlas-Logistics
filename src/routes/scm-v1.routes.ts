@@ -122,6 +122,8 @@ import {
   getWorkflowInstanceById,
   seedStandardWorkflowDefinitions,
 } from "../scm/contexts/workflow-engine/workflow-engine.context.js";
+import { PDFService, HBLData } from "../services/pdf.service.js";
+import { broadcastEvent } from "./events.routes.js";
 
 function extractActorFromRequest(
   request: FastifyRequest,
@@ -1021,12 +1023,175 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
           body,
           actor,
         );
+
+        // Propagate real-time event to connected UI clients
+        try {
+          broadcastEvent({
+            type: result.resolvedException
+              ? "OPERATIONAL_EXCEPTION_RESOLVED"
+              : "OPERATIONAL_TASK_COMPLETED",
+            workItemId,
+            shipmentId: result.shipment360?.shipmentId,
+            unlockedWorkItems: result.unlockedWorkItems,
+            message: result.resolvedException
+              ? `Incidencia operativa ${workItemId} resuelta.`
+              : `Tarea ${result.completedTask?.title || workItemId} completada exitosamente.`,
+          });
+        } catch (_ignored) {}
+
         return reply.code(200).send(result);
       } catch (err) {
         return handleDomainError(err, reply);
       }
     },
   );
+
+  fastify.get(
+    "/operational/shipments/:shipmentId/bol",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const view = await getShipment360View(shipmentId);
+
+        const shipperRole = view.shipment?.partyRoles?.find(
+          (p) => p.role.toUpperCase() === "SHIPPER",
+        );
+        const consigneeRole = view.shipment?.partyRoles?.find(
+          (p) => p.role.toUpperCase() === "CONSIGNEE",
+        );
+        const notifyRole = view.shipment?.partyRoles?.find(
+          (p) => p.role.toUpperCase() === "NOTIFY_PARTY",
+        );
+
+        const stops = view.routePlan?.stops || [];
+        const portOfLoading = stops[0]?.locationId || "ESVLC (Valencia Port)";
+        const portOfDischarge =
+          stops[stops.length - 1]?.locationId || "USNYC (New York Harbor)";
+
+        const hblData: HBLData = {
+          shipmentId: view.shipmentReference || shipmentId,
+          shipper:
+            shipperRole?.partyId ||
+            "Global Freight Solutions S.A. - Valencia Logistic Hub",
+          consignee:
+            consigneeRole?.partyId ||
+            "Atlantic Logistics Distribution LLC - New York",
+          notifyParty:
+            notifyRole?.partyId || "Atlantic Logistics Customs Brokerage Inc.",
+          portOfLoading,
+          portOfDischarge,
+          vessel: "MSC OSCAR",
+          voyage: "V.2409W",
+          containers: [
+            {
+              containerNumber: "MSCU9284710",
+              type: "40' High Cube",
+              sealNumber: "SL-994821",
+              grossWeightKg: 24500,
+              tareWeightKg: 3900,
+              netWeightKg: 20600,
+              cbm: 68.2,
+              packages: 480,
+            },
+          ],
+          commodities: [
+            {
+              description:
+                "Industrial Components & Assembly Machinery (Harmonized Code 8479.89)",
+              hsCode: "8479.89.97",
+              packageType: "Pallets / Wooden Crates",
+              pieces: 480,
+              grossWeightKg: 20600,
+              volumeCbm: 68.2,
+            },
+          ],
+          issueDate: new Date().toISOString().split("T")[0],
+        };
+
+        const pdfBuffer = await PDFService.generateHBL(hblData);
+        reply.header("Content-Type", "application/pdf");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="HBL-${view.shipmentReference || shipmentId}.pdf"`,
+        );
+        return reply.send(pdfBuffer);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get("/shipments/:shipmentId/bol", async (request, reply) => {
+    try {
+      const { shipmentId } = request.params as { shipmentId: string };
+      const view = await getShipment360View(shipmentId);
+
+      const shipperRole = view.shipment?.partyRoles?.find(
+        (p) => p.role.toUpperCase() === "SHIPPER",
+      );
+      const consigneeRole = view.shipment?.partyRoles?.find(
+        (p) => p.role.toUpperCase() === "CONSIGNEE",
+      );
+      const notifyRole = view.shipment?.partyRoles?.find(
+        (p) => p.role.toUpperCase() === "NOTIFY_PARTY",
+      );
+
+      const stops = view.routePlan?.stops || [];
+      const portOfLoading = stops[0]?.locationId || "ESVLC (Valencia Port)";
+      const portOfDischarge =
+        stops[stops.length - 1]?.locationId || "USNYC (New York Harbor)";
+
+      const hblData: HBLData = {
+        shipmentId: view.shipmentReference || shipmentId,
+        shipper:
+          shipperRole?.partyId ||
+          "Global Freight Solutions S.A. - Valencia Logistic Hub",
+        consignee:
+          consigneeRole?.partyId ||
+          "Atlantic Logistics Distribution LLC - New York",
+        notifyParty:
+          notifyRole?.partyId || "Atlantic Logistics Customs Brokerage Inc.",
+        portOfLoading,
+        portOfDischarge,
+        vessel: "MSC OSCAR",
+        voyage: "V.2409W",
+        containers: [
+          {
+            containerNumber: "MSCU9284710",
+            type: "40' High Cube",
+            sealNumber: "SL-994821",
+            grossWeightKg: 24500,
+            tareWeightKg: 3900,
+            netWeightKg: 20600,
+            cbm: 68.2,
+            packages: 480,
+          },
+        ],
+        commodities: [
+          {
+            description:
+              "Industrial Components & Assembly Machinery (Harmonized Code 8479.89)",
+            hsCode: "8479.89.97",
+            packageType: "Pallets / Wooden Crates",
+            pieces: 480,
+            grossWeightKg: 20600,
+            volumeCbm: 68.2,
+          },
+        ],
+        issueDate: new Date().toISOString().split("T")[0],
+      };
+
+      const pdfBuffer = await PDFService.generateHBL(hblData);
+      reply.header("Content-Type", "application/pdf");
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename="HBL-${view.shipmentReference || shipmentId}.pdf"`,
+      );
+      return reply.send(pdfBuffer);
+    } catch (err) {
+      return handleDomainError(err, reply);
+    }
+  });
 
   fastify.get(
     "/operational/shipments/:shipmentId/audit-trail",

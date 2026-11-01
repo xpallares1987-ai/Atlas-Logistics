@@ -204,10 +204,24 @@ export default function OperationsCockpitModule() {
     e.preventDefault();
     if (!selectedItem) return;
 
+    const previousItems = [...items];
+    const executedId = selectedItem.workItemId;
+
+    // Optimistic UI: Immediately mark completed or remove from open view
+    setItems((prev) =>
+      statusFilter === "OPEN"
+        ? prev.filter((i) => i.workItemId !== executedId)
+        : prev.map((i) =>
+            i.workItemId === executedId
+              ? { ...i, status: "COMPLETED", isBlocked: false }
+              : i,
+          ),
+    );
+
     try {
       setSubmitting(true);
       const res = await authFetch(
-        `/api/scm/v1/operational/cockpit/${selectedItem.workItemId}/execute`,
+        `/api/scm/v1/operational/cockpit/${executedId}/execute`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -228,12 +242,15 @@ export default function OperationsCockpitModule() {
         setLastExecutionResult(result);
         await fetchCockpitData();
       } else {
+        // Rollback optimistic update on error
+        setItems(previousItems);
         const errJson = await res.json().catch(() => ({}));
         alert(
           `Error executing work item: ${errJson.message || res.statusText}`,
         );
       }
     } catch (err) {
+      setItems(previousItems);
       console.error("Failed to execute in-situ action:", err);
       alert("Network error executing work item in-situ.");
     } finally {
@@ -492,50 +509,82 @@ export default function OperationsCockpitModule() {
         </div>
       </div>
 
-      {/* Confirmation Notification (CONFIRM Step of UX Pattern) */}
+      {/* Confirmation Notification (CONFIRM Step of UX Pattern) & Next Action Dispatch */}
       {lastExecutionResult && (
-        <div className="p-4 rounded-xl bg-emerald-950/50 border border-emerald-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-200">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-              <CheckCircle2 className="w-5 h-5" />
+        <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-700/60 flex flex-col gap-3 animate-in fade-in duration-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-emerald-200">
+                  Acción Confirmada en el Core Transaccional
+                </div>
+                <div className="text-xs text-emerald-400/90 mt-0.5 flex flex-wrap gap-2 items-center">
+                  <span>
+                    {lastExecutionResult.resolvedException
+                      ? `Incidencia ${lastExecutionResult.executedWorkItemId} resuelta`
+                      : `Tarea ${lastExecutionResult.executedWorkItemId} completada`}
+                  </span>
+                  <span>•</span>
+                  <span>
+                    {lastExecutionResult.unlockedWorkItems.length > 0
+                      ? `${lastExecutionResult.unlockedWorkItems.length} tarea(s) sucesora(s) desbloqueada(s)`
+                      : "Sin bloqueos inmediatos"}
+                  </span>
+                  <span>•</span>
+                  <span>
+                    Shipment Health:{" "}
+                    <strong className="text-white">
+                      {lastExecutionResult.shipment360?.health?.status} (
+                      {lastExecutionResult.shipment360?.health?.score}/100)
+                    </strong>
+                  </span>
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="text-sm font-bold text-emerald-200">
-                Action Confirmed & Persisted in Transactional Core
-              </div>
-              <div className="text-xs text-emerald-400/90 mt-0.5 flex flex-wrap gap-2 items-center">
-                <span>
-                  {lastExecutionResult.resolvedException
-                    ? `Exception ${lastExecutionResult.executedWorkItemId} resolved`
-                    : `Task ${lastExecutionResult.executedWorkItemId} completed`}
-                </span>
-                <span>•</span>
-                <span>
-                  {lastExecutionResult.unlockedWorkItems.length > 0
-                    ? `${lastExecutionResult.unlockedWorkItems.length} downstream tasks unblocked`
-                    : "No further immediate blockers"}
-                </span>
-                <span>•</span>
-                <span>
-                  Shipment Health:{" "}
-                  <strong className="text-white">
-                    {lastExecutionResult.shipment360?.health?.status} (
-                    {lastExecutionResult.shipment360?.health?.score}/100)
-                  </strong>
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  navigate(
+                    `/shipment-360?id=${lastExecutionResult.shipment360?.shipmentId || ""}&tab=tasks`,
+                  )
+                }
+                className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition flex items-center gap-1 shadow-sm"
+              >
+                Abrir en Shipment 360 (DAG){" "}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
-          <button
-            onClick={() =>
-              navigate(
-                `/shipment-360?id=${lastExecutionResult.shipment360?.shipmentId || ""}`,
-              )
-            }
-            className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition flex items-center gap-1 shadow-sm"
-          >
-            Open in Shipment 360 <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+
+          {/* Next Action Dispatch Pills */}
+          {lastExecutionResult.unlockedWorkItems.length > 0 && (
+            <div className="pt-2 border-t border-emerald-800/40 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5 text-amber-400" /> Siguientes
+                Acciones Desbloqueadas:
+              </span>
+              {lastExecutionResult.unlockedWorkItems.map((nextItem) => (
+                <button
+                  key={nextItem.workItemId}
+                  onClick={() => {
+                    handleSelectItem(nextItem);
+                    window.scrollTo({ top: 380, behavior: "smooth" });
+                  }}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-600/60 text-white flex items-center gap-1.5 transition-all shadow-sm"
+                  title="Seleccionar inmediatamente en la bandeja de ejecución"
+                >
+                  <span>{nextItem.title}</span>
+                  <span className="text-[10px] text-emerald-300 font-mono">
+                    [{nextItem.urgencyBucket || "ACTIONABLE"}]
+                  </span>
+                  <ChevronRight className="w-3 h-3 text-emerald-300" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
