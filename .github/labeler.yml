@@ -44,9 +44,6 @@ logistics:
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/shared/src/logistics/**'
-          - 'src/modules/customer01/**'
-          - 'packages/frontend/src/pages/Customer01OperationsModule.tsx'
-
 documentation:
   - changed-files:
       - any-glob-to-any-file:

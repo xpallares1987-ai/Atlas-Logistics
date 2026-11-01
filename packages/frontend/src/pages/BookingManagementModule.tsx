@@ -704,7 +704,7 @@ export default function BookingManagementModule() {
                   ? "🇺🇸 Transpacífico (Shanghai -> LA)"
                   : p.id === "bkg-asiaeu-02"
                     ? "🇪🇺 Asia-Europa (Singapur -> RTM)"
-                    : "🇪🇸 Customer01 Corredor (BCN -> NYC Book TEST01)"}
+                    : "🇪🇸 Atlántico Norte (BCN -> NYC Express)"}
               </button>
             ))}
           </div>
@@ -1641,7 +1641,7 @@ export default function BookingManagementModule() {
                 onClick={() => {
                   siMutation.mutate({
                     bookingId: activeBooking.id,
-                    shipperName: "Customer01 Paper S.A. (Corredor Book TEST01)",
+                    shipperName: "Iberian Logistics Solutions S.A.",
                     shipperAddress: "Can Tunis Ferroviaria, Barcelona",
                     consigneeName: "Atlantic Container Corp (New York)",
                     consigneeAddress: "Port Newark Container Terminal (PNCT)",
@@ -1657,8 +1657,7 @@ export default function BookingManagementModule() {
                         verifiedGrossMassKg: 26500,
                         packagesCount: 22,
                         packageType: "Coils / Reels",
-                        cargoDescription:
-                          "Paper Reels for Corrugated Packaging (Book TEST01)",
+                        cargoDescription: "Paper Reels & Industrial Packaging",
                         hsCode: "48051100",
                       },
                     ],

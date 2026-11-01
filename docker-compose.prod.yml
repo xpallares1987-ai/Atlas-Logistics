@@ -27,10 +27,11 @@ services:
     restart: always
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL:-file:/data/prod.db}
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       LOG_LEVEL: info
-      JWT_SECRET: ${JWT_SECRET:-CHANGE_ME_PRODUCTION_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      COOKIE_SECRET: ${COOKIE_SECRET}
     expose:
       - "3001"
     ports:
@@ -69,7 +70,7 @@ services:
       args:
         NODE_VERSION: 22
         PNPM_VERSION: 11.5.1
-        VITE_API_URL: ${VITE_API_URL:-https://api.example.com}
+        VITE_API_URL: ${VITE_API_URL}
     image: atlas-logistics:frontend-prod
     container_name: atlas-frontend-prod
     restart: always
@@ -101,7 +102,7 @@ services:
     pull_policy: if_not_present
     container_name: atlas-redis-prod
     restart: always
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-atlas-secure-pass-change-me}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     expose:
       - "6379"
     volumes:

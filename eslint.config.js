@@ -11,6 +11,7 @@ export default tseslint.config(
       "**/coverage/**",
       "packages/**",
       "functions/**",
+      ".turbo/**",
       "**/e2e/**",
       "scripts/**",
       "**/playwright.config.ts",

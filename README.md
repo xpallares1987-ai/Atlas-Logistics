@@ -289,7 +289,6 @@ Atlas Logistics cubre todos los eslabones operativos, normativos y documentales 
 ### 21. 📚 Enciclopedia Logística & Wiki PWA Nativa (/wiki)
 
 - **Manuales Operativos & Normativas Multimodales**:
-  - **Corredor Oficial Customer01 (Book TEST01 · DEPT-TEST01)**: Flujos ferroviarios exclusivos en CANTUNIS (-76,9% CO2e), camión-lona en TLSA/BERRIO, prohibición de TMZa, estiba 40' HC (RD 2822/1998 26.500 kg netos) y algoritmo 2-opt de rebalanceo de centro de gravedad ($|\Delta x| \le 0,60\text{ m}$).
   - **Guía Oficial DUA/SAD 54 Casillas**: Casilla 46 (Valor Estadístico) bajo CAU Arts. 70-74, Casilla 47 (liquidación de aranceles TARIC, IVA y antidumping) y regímenes aduaneros H1/H2/I1/A1.
   - **Matriz Incoterms® 2020**: Asignación de costes y riesgos, y sustitución obligatoria de FOB/CIF por FCA/CIP en transporte marítimo de contenedores.
   - **Demurrage, Detention & Storage**: Días libres, escalones tarifarios diarios de navieras y protocolos FMC de arbitraje de costes.

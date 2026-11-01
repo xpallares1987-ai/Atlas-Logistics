@@ -10,15 +10,30 @@ async function startWorkerNode() {
   logger.info("Initializing Worker Node...");
   await loadSecrets(process.env.GOOGLE_CLOUD_PROJECT || "atlas-logistics");
 
+  // Validate database connectivity before starting workers
   if (db) {
-    logger.info("Database connection initialized in worker node.");
+    try {
+      logger.info("Testing database connectivity...");
+      // Simple query to validate connectivity
+      const client = (db as any).client || (db as any)._client;
+      if (client && typeof client.execute === "function") {
+        await client.execute("SELECT 1");
+      }
+      logger.info("Database connection validated");
+    } catch (error) {
+      logger.error(
+        { err: error },
+        "FATAL: Failed to connect to database. Worker cannot start.",
+      );
+      process.exit(1);
+    }
   }
 
   await connectRedis();
 
   logger.info("Starting background workers...");
 
-  // Iniciamos los procesos en segundo plano (Zeebe Workers y utilidades AI)
+  // Start background processes (Zeebe Workers and AI utilities)
   startAiParserWorker();
   registerAllWorkers();
   startOcrWorker();
@@ -27,30 +42,42 @@ async function startWorkerNode() {
 
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}. Shutting down worker node gracefully...`);
-    try {
-      if (redis) {
+    const errors: Error[] = [];
+
+    // Close Redis
+    if (redis) {
+      try {
         await redis.quit();
         logger.info("Redis connection closed.");
+      } catch (err) {
+        logger.warn({ err }, "Error closing Redis connection");
+        errors.push(err as Error);
       }
+    }
 
-      // Close database connection
-      if (db) {
-        try {
-          // If using Drizzle with libsql, close the client
-          const client = (db as any).client || (db as any)._client;
-          if (client && typeof client.close === "function") {
-            await client.close();
-            logger.info("Database connection closed.");
-          }
-        } catch (closeError) {
-          logger.warn({ err: closeError }, "Error closing database connection:");
+    // Close database connection
+    if (db) {
+      try {
+        const client = (db as any).client || (db as any)._client;
+        if (client && typeof client.close === "function") {
+          await client.close();
+          logger.info("Database connection closed.");
         }
+      } catch (closeError) {
+        logger.warn({ err: closeError }, "Error closing database connection");
+        errors.push(closeError as Error);
       }
+    }
 
-      process.exit(0);
-    } catch (error) {
-      logger.error(error, "Error during graceful shutdown:");
+    if (errors.length > 0) {
+      logger.warn(
+        { errors },
+        "Shutdown completed with errors, but process exiting.",
+      );
       process.exit(1);
+    } else {
+      logger.info("Graceful shutdown completed successfully.");
+      process.exit(0);
     }
   };
 

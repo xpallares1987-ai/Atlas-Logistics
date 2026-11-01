@@ -54,7 +54,6 @@ import oceanBookingRoutes from "../modules/ocean-booking/ocean-booking.routes.js
 import portCongestionRoutes from "../modules/port-congestion/port-congestion.routes.js";
 import carbonInsettingRoutes from "../modules/carbon-insetting/carbon-insetting.routes.js";
 import iataOneRecordRoutes from "../modules/iata-one-record/iata-one-record.routes.js";
-import customer01Routes from "../modules/customer01/customer01.routes.js";
 import scmV1Routes from "./scm-v1.routes.js";
 
 export {
@@ -111,7 +110,6 @@ export {
   portCongestionRoutes,
   carbonInsettingRoutes,
   iataOneRecordRoutes,
-  customer01Routes,
 };
 
 /**
@@ -214,9 +212,6 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(iataOneRecordRoutes, {
     prefix: "/api/one-record",
-  });
-  await fastify.register(customer01Routes, {
-    prefix: "/api/customer01",
   });
   await fastify.register(scmV1Routes, {
     prefix: "/api/scm/v1",

@@ -7,8 +7,9 @@ import {
   previewRates,
 } from "../src/services/rate-ingestion.service.js";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure";
+// Use test-specific secrets for tests (guaranteed to be >= 32 chars)
+const TEST_JWT_SECRET =
+  process.env.TEST_JWT_SECRET || "test-jwt-secret-minimum-32-characters-long";
 
 describe("Rate Ingestion Engine — Unit & Integration Tests", () => {
   let authHeader: { authorization: string };
@@ -22,7 +23,7 @@ describe("Rate Ingestion Engine — Unit & Integration Tests", () => {
         role: "ADMIN",
         name: "Admin User",
       },
-      JWT_SECRET,
+      TEST_JWT_SECRET,
       { expiresIn: "1h" },
     );
     authHeader = { authorization: `Bearer ${token}` };

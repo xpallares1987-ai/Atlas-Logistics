@@ -18,7 +18,7 @@ describe("WikiService & In-App Knowledge Base", () => {
 
   it("should find article by slug", () => {
     const article = WikiService.getArticleBySlug(
-      "corredor-oficial-customer01-normativa",
+      "corredor-ferroviario-can-tunis-normativa",
     );
     expect(article).toBeDefined();
     expect(article?.title).toContain("Corredor Oficial");
@@ -38,7 +38,7 @@ describe("WikiService & In-App Knowledge Base", () => {
     expect(results.length).toBeGreaterThan(0);
     const topResult = results[0];
     expect(topResult.article.slug).toBe(
-      "corredor-oficial-customer01-normativa",
+      "corredor-ferroviario-can-tunis-normativa",
     );
   });
 
@@ -71,7 +71,7 @@ describe("WikiService & In-App Knowledge Base", () => {
 
   it("should get related articles", () => {
     const related = WikiService.getRelatedArticles(
-      "art-customer01-corredor-oficial",
+      "art-corredor-ferroviario-can-tunis",
       2,
     );
     expect(related.length).toBeLessThanOrEqual(2);

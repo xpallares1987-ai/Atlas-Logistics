@@ -9,7 +9,7 @@ import { WikiArticle, WikiCategoryMeta, GlossaryTerm } from "./wiki.types.js";
 export const WIKI_CATEGORIES_META: WikiCategoryMeta[] = [
   {
     id: "GOVERNANCE_CORREDOR",
-    name: "Corredor Oficial Customer01",
+    name: "Corredor Ferroviario Can Tunis",
     shortDescription:
       "Normativa operativa de Book TEST01, terminales de muelle, estiba 40' HC y roles.",
     icon: "TrainTrack",
@@ -75,13 +75,13 @@ export const WIKI_CATEGORIES_META: WikiCategoryMeta[] = [
 
 export const WIKI_ARTICLES: WikiArticle[] = [
   {
-    id: "art-customer01-corredor-oficial",
-    slug: "corredor-oficial-customer01-normativa",
+    id: "art-corredor-ferroviario-can-tunis",
+    slug: "corredor-ferroviario-can-tunis-normativa",
     title:
       "Normativa Operativa del Corredor Oficial Book TEST01 (Barcelona DEPT-TEST01)",
     category: "GOVERNANCE_CORREDOR",
     tags: [
-      "Customer01",
+      "Can Tunis",
       "Book TEST01",
       "CANTUNIS",
       "TLSA",
@@ -99,13 +99,13 @@ export const WIKI_ARTICLES: WikiArticle[] = [
     contentMarkdown: `
 # Normativa Operativa del Corredor Oficial Book TEST01 (DEPT-TEST01)
 
-Este documento fija la regulación técnica, operativa y de gobernanza de obligado cumplimiento para todo el flujo de exportación de papel en el corredor oficial de **Customer01 Barcelona**.
+Este documento fija la regulación técnica, operativa y de gobernanza de obligado cumplimiento para todo el flujo de exportación de papel en el corredor oficial de **Can Tunis Barcelona**.
 
 ---
 
 ## 1. Cadena Física de Transporte y Almacenes Externos de Llenado
 
-Las fábricas de producción de **Customer01 Paper** en España expiden bobinas de papel hacia almacenes exteriores donde se realiza el llenado de contenedores marítimos:
+Las fábricas de producción de **Atlas Industrial Freight** en España expiden bobinas de papel hacia almacenes exteriores donde se realiza el llenado de contenedores marítimos:
 
 1. **Expedición en Tren (Vagones Ferroviarios Completos):**
    - Destino exclusivo: **CANTUNIS** (Logistainer BCN, Can Tunis / Morrot, Barcelona).
@@ -146,7 +146,7 @@ Las fábricas de producción de **Customer01 Paper** en España expiden bobinas 
 - **ADMIN (SuperAdmin / Systems Lead):**
   - Control integral de infraestructura, rotación de claves criptográficas (AES-256-GCM), backups GFS y gestión de accesos.
 - **TEST01 (Operator Lead / Department Team Leader):**
-  - Liderazgo operativo del equipo de Customer01 Barcelona.
+  - Liderazgo operativo del equipo de Can Tunis Barcelona.
   - Responsable exclusivo de la asignación operativa de contenedores, expedientes de muelle, resolución de incidencias y disputas D&D.
 - **TEST02 (Operations Manager / Department Manager):**
   - Dirección y supervisión ejecutiva departamental.

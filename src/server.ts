@@ -18,14 +18,49 @@ import { logger } from "./config/logger.js";
 import { connectRedis } from "./config/redis.js";
 
 const PORT = parseInt(
-  process.env.PORT || process.env.BACKEND_PORT || process.env.API_PORT || "3001",
+  process.env.PORT ||
+    process.env.BACKEND_PORT ||
+    process.env.API_PORT ||
+    "3001",
   10,
 );
+
+/**
+ * Validate required environment variables at startup.
+ */
+function validateEnvironment() {
+  const required = ["JWT_SECRET", "COOKIE_SECRET"];
+  const missing = required.filter((key) => !process.env[key]);
+
+  if (missing.length > 0) {
+    logger.error(
+      { missing },
+      "FATAL: Required environment variables are missing",
+    );
+    process.exit(1);
+  }
+
+  // Warn if using weak secrets in production
+  if (process.env.NODE_ENV === "production") {
+    const weakSecrets = required.filter(
+      (key) => (process.env[key] || "").length < 32,
+    );
+    if (weakSecrets.length > 0) {
+      logger.warn(
+        { weakSecrets },
+        "WARNING: Production secrets are too short (< 32 chars). Security may be compromised.",
+      );
+    }
+  }
+}
 
 async function bootstrap() {
   logger.info(
     `Starting Atlas Logistics Backend (Mode: ${process.env.NODE_ENV || "development"})...`,
   );
+
+  // Validate critical environment variables FIRST
+  validateEnvironment();
 
   if (process.env.GOOGLE_CLOUD_PROJECT) {
     await loadSecrets(process.env.GOOGLE_CLOUD_PROJECT);
@@ -35,9 +70,21 @@ async function bootstrap() {
     logger.info(`Database connection initialized: ${databaseUrl}`);
     try {
       await runMigrations();
-      await createAdmin();
+      logger.info("Database migrations completed successfully");
+      try {
+        await createAdmin();
+      } catch (adminErr) {
+        logger.warn(
+          { err: adminErr },
+          "Admin user creation warning (non-critical):",
+        );
+      }
     } catch (migErr) {
-      logger.warn({ err: migErr }, "Database auto-migration/admin setup warning:");
+      logger.error(
+        { err: migErr },
+        "FATAL: Database migration failed. Schema is incomplete.",
+      );
+      process.exit(1);
     }
   }
 

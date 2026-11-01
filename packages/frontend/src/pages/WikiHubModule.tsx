@@ -51,7 +51,7 @@ export default function WikiHubModule() {
     WikiCategory | "ALL"
   >("ALL");
   const [activeArticleSlug, setActiveArticleSlug] = useState<string>(
-    "corredor-oficial-customer01-normativa",
+    "corredor-ferroviario-can-tunis-normativa",
   );
   const [activeTab, setActiveTab] = useState<"ARTICLES" | "GLOSSARY">(
     "ARTICLES",

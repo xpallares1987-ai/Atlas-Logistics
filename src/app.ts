@@ -16,10 +16,14 @@ import { redis, USE_MOCK } from "./config/redis.js";
 import "./cron/backup-scheduler.js"; // start cron scheduler
 import { logger } from "./config/logger.js";
 import { authMiddleware } from "./middleware/auth.js";
+import { correlationIdPlugin } from "./middleware/correlation-id.js";
 import { registerAllRoutes } from "./routes/index.js";
 import { tenancyPlugin } from "./lib/tenancy/index.js";
 
 const app = Fastify({ loggerInstance: logger });
+
+// Correlation ID middleware for distributed tracing
+app.register(correlationIdPlugin);
 
 // Security Middlewares
 const isProduction = process.env.NODE_ENV === "production";
@@ -80,6 +84,7 @@ app.register(fastifyCors, {
   credentials: true,
 });
 
+// Fix rate limit operator precedence: ensure CI/test checks are grouped
 app.register(fastifyRateLimit, {
   max: process.env.CI || process.env.NODE_ENV === "test" ? 1000 : 5000,
   timeWindow: "15 minutes",
@@ -95,20 +100,15 @@ app.register(swagger, {
 });
 app.register(swaggerUI, { routePrefix: "/docs" });
 
-// REQUIRED: COOKIE_SECRET and JWT_SECRET must be provided via environment
+// REQUIRED: COOKIE_SECRET and JWT_SECRET are validated in server.ts bootstrap()
+// These are guaranteed to exist here
 app.register(fastifyCookie, {
-  secret:
-    process.env.COOKIE_SECRET || (() => {
-      throw new Error("COOKIE_SECRET environment variable is required");
-    })(),
+  secret: process.env.COOKIE_SECRET!,
   parseOptions: {},
 });
 
 app.register(fastifyJwt, {
-  secret:
-    process.env.JWT_SECRET || (() => {
-      throw new Error("JWT_SECRET environment variable is required");
-    })(),
+  secret: process.env.JWT_SECRET!,
 });
 
 // Protect API routes with an onRequest hook
@@ -124,7 +124,8 @@ app.addHook("onRequest", async (request, reply) => {
     request.url.startsWith("/api/warehouse/ws") ||
     request.url.startsWith("/api/edi/inbound") ||
     request.url.startsWith("/api/documents/verify/") ||
-    (request.url.startsWith("/api/documents/") && request.url.endsWith("/pdf")) ||
+    (request.url.startsWith("/api/documents/") &&
+      request.url.endsWith("/pdf")) ||
     request.url === "/api/health" ||
     request.url === "/health" ||
     request.url === "/metrics" ||
@@ -163,5 +164,20 @@ app.register(tenancyPlugin);
 
 // Register all application routes
 app.register(registerAllRoutes);
+
+// Graceful shutdown: close Redis and other resources
+app.addHook("onClose", async (instance) => {
+  logger.info("Shutting down gracefully...");
+  const redisStatus = (redis as any).status;
+  // Check if Redis is not already closed
+  if (redis && redisStatus !== "close" && redisStatus !== "closed") {
+    try {
+      await redis.quit();
+      logger.info("Redis connection closed");
+    } catch (err) {
+      logger.warn({ err }, "Error closing Redis connection");
+    }
+  }
+});
 
 export default app;

@@ -3,7 +3,8 @@ import { logger } from "../config/logger.js";
 import { lucia } from "../lib/auth.js";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET;
+// JWT_SECRET is guaranteed to exist due to validation in server.ts
+const JWT_SECRET = process.env.JWT_SECRET!;
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -20,12 +21,14 @@ export const authMiddleware = async (
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
       try {
-        const decoded = jwt.verify(token, JWT_SECRET || "");
-        if (decoded) {
-          request.user = decoded;
-          return;
-        }
-      } catch {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        request.user = decoded;
+        return;
+      } catch (tokenErr) {
+        logger.debug(
+          { err: tokenErr },
+          "JWT verification failed, falling back to session cookie",
+        );
         // Fall back to session cookie if token is invalid
       }
     }
@@ -61,7 +64,7 @@ export const authMiddleware = async (
     request.user = user;
     request.session = session;
   } catch (error) {
-    logger.error(error, "Error verificando sesión:");
+    logger.error(error, "Error during session validation:");
     reply.code(401).send({ error: "Invalid Session" });
   }
 };

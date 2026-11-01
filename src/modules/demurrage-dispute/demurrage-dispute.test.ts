@@ -8,7 +8,9 @@ describe("Demurrage Dispute Module: Fastify API Routes", () => {
 
   beforeAll(async () => {
     app = Fastify();
-    await app.register(demurrageDisputeRoutes, { prefix: "/api/demurrage-dispute" });
+    await app.register(demurrageDisputeRoutes, {
+      prefix: "/api/demurrage-dispute",
+    });
     await app.ready();
   });
 
@@ -113,7 +115,7 @@ describe("Demurrage Dispute Module: Fastify API Routes", () => {
         shipperOrConsignee: {
           companyName: "Customer01 Paper Book TEST01",
           contactName: "System Admin",
-          email: "ops@customer01.internal",
+          email: "ops@freight-terminal.internal",
           accountReference: "DEPT-TEST01",
         },
       },

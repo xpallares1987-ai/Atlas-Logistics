@@ -17,9 +17,7 @@ const isDockerOrRemote =
 // Forced mock in dev/test unless REDIS_HOST is explicitly provided and not localhost,
 // or unless running in production or USE_REDIS_MOCK is explicitly "false"
 export const USE_MOCK =
-  !isProduction &&
-  !isExplicitReal &&
-  (isExplicitMock || !isDockerOrRemote);
+  !isProduction && !isExplicitReal && (isExplicitMock || !isDockerOrRemote);
 
 export let isRedisAvailable = false;
 
@@ -52,7 +50,7 @@ if (USE_MOCK) {
     port: REDIS_PORT,
     lazyConnect: true,
     maxRetriesPerRequest: null,
-    // Retry strategy básico para soportar caídas temporales de red en Cloud Run
+    // Retry strategy to support temporary network failures
     retryStrategy(times: number) {
       if (times > 3) {
         return null; // Stop retrying after 3 attempts
@@ -74,14 +72,14 @@ export const connectRedis = async () => {
     if (USE_MOCK) {
       isRedisAvailable = true;
       logger.info(
-        "Conectado a Redis Mock (ioredis-mock) en memoria. Entorno sin Redis local.",
+        "Using Redis Mock (ioredis-mock) in memory. Local environment without Redis.",
       );
       return;
     }
 
     if (redis.status === "ready") {
       isRedisAvailable = true;
-      logger.info(`Conectado a Redis en ${REDIS_HOST}:${REDIS_PORT}`);
+      logger.info(`Connected to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
       return;
     }
 
@@ -89,7 +87,7 @@ export const connectRedis = async () => {
       await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
           cleanup();
-          resolve();
+          reject(new Error("Redis connection timeout"));
         }, 5000);
         const onReady = () => {
           cleanup();
@@ -108,13 +106,13 @@ export const connectRedis = async () => {
         redis.once("error", onError);
       });
       isRedisAvailable = true;
-      logger.info(`Conectado a Redis en ${REDIS_HOST}:${REDIS_PORT}`);
+      logger.info(`Connected to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
       return;
     }
 
     await redis.connect();
     isRedisAvailable = true;
-    logger.info(`Conectado a Redis en ${REDIS_HOST}:${REDIS_PORT}`);
+    logger.info(`Connected to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
   } catch (error: any) {
     if (
       error?.message?.includes("already connecting") ||
@@ -123,16 +121,24 @@ export const connectRedis = async () => {
       isRedisAvailable = true;
       return;
     }
+
     isRedisAvailable = false;
-    const message =
-      "No se pudo conectar a Redis. El sistema funcionará degradado (sin caché y simulando BullMQ en memoria local).";
-    logger.warn({ err: error }, message);
 
     // In production, require Redis to be available
     if (process.env.NODE_ENV === "production") {
+      logger.error(
+        { err: error },
+        "FATAL: Redis connection failed in production. Cannot start without Redis.",
+      );
       throw new Error(
         `Redis connection failed in production: ${error?.message || error}`,
       );
     }
+
+    // In development, warn but continue with degraded functionality
+    logger.warn(
+      { err: error },
+      "Redis is unavailable. System will function degraded (without caching and with in-memory job simulation).",
+    );
   }
 };
