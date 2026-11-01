@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../lib/api";
 import {
   AlertCircle,
   AlertTriangle,
+  ArrowLeft,
   Boxes,
   CheckCircle2,
   Compass,
   FileText,
   GitBranch,
   History,
+  Info,
   Layers,
   Lock,
   PlusCircle,
@@ -221,11 +223,30 @@ type TabKey =
 
 export default function ShipmentWorkspace360Module() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const urlShipmentId = searchParams.get("id") || "";
+  const urlTab = searchParams.get("tab") as TabKey | null;
+  const urlHighlight = searchParams.get("highlight") || "";
+  const urlAction = searchParams.get("action") || "";
+
   const [selectedShipmentId, setSelectedShipmentId] =
     useState<string>(urlShipmentId);
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [activeTab, setActiveTab] = useState<TabKey>(
+    urlTab &&
+      [
+        "overview",
+        "attention",
+        "journey",
+        "tasks",
+        "exceptions",
+        "cargo_route",
+        "audit",
+      ].includes(urlTab)
+      ? urlTab
+      : "overview",
+  );
+  const [highlightId, setHighlightId] = useState<string>(urlHighlight);
 
   const [shipmentsList, setShipmentsList] = useState<
     OperationalShipment360View[]
@@ -366,11 +387,34 @@ export default function ShipmentWorkspace360Module() {
     fetchShipmentsList();
   }, [fetchShipmentsList]);
 
+  // Synchronize URL search params with local state
   useEffect(() => {
     if (urlShipmentId && urlShipmentId !== selectedShipmentId) {
       setSelectedShipmentId(urlShipmentId);
     }
   }, [urlShipmentId, selectedShipmentId]);
+
+  useEffect(() => {
+    if (
+      urlTab &&
+      [
+        "overview",
+        "attention",
+        "journey",
+        "tasks",
+        "exceptions",
+        "cargo_route",
+        "audit",
+      ].includes(urlTab) &&
+      urlTab !== activeTab
+    ) {
+      setActiveTab(urlTab);
+    }
+  }, [urlTab, activeTab]);
+
+  useEffect(() => {
+    setHighlightId(urlHighlight);
+  }, [urlHighlight]);
 
   useEffect(() => {
     if (selectedShipmentId) {
@@ -390,10 +434,116 @@ export default function ShipmentWorkspace360Module() {
     fetchAuditTrail,
   ]);
 
+  // Auto-focus & open contextual action drawer when landing from deep-link with action=resolve
+  useEffect(() => {
+    if (!shipmentDetail || !urlHighlight || urlAction !== "resolve") return;
+
+    // 1. Try matching exception
+    const matchedEx = shipmentDetail.exceptions?.find(
+      (e) =>
+        e.exceptionId === urlHighlight ||
+        e.exceptionId === urlHighlight.replace("exc_", ""),
+    );
+    if (matchedEx && matchedEx.status !== "RESOLVED") {
+      setActiveActionModal({
+        type: "RESOLVE_EXCEPTION",
+        targetId: matchedEx.exceptionId,
+        title: `Resolve Exception: ${matchedEx.title}`,
+        description:
+          matchedEx.description ||
+          "Provide resolution justification to restore shipment health and unblock execution.",
+        inputs: { resolutionNote: "" },
+      });
+      return;
+    }
+
+    // 2. Try matching task
+    const cleanTaskId = urlHighlight.replace("task_", "");
+    const matchedTask = shipmentDetail.tasks?.find(
+      (t) => t.taskId === urlHighlight || t.taskId === cleanTaskId,
+    );
+    if (matchedTask && matchedTask.status !== "COMPLETED") {
+      setActiveActionModal({
+        type: "COMPLETE_TASK",
+        targetId: matchedTask.taskId,
+        title: matchedTask.title,
+        description: `Complete domain task ${matchedTask.taskType} and unlock successors in the DAG.`,
+        inputs: {},
+        primaryAction: matchedTask.primaryAction,
+      });
+      return;
+    }
+
+    // 3. Fallback matching recommendedAction
+    const rec = shipmentDetail.explainability?.recommendedAction;
+    if (
+      rec &&
+      (rec.targetId === urlHighlight || rec.targetId === cleanTaskId)
+    ) {
+      if (rec.actionType === "RESOLVE_EXCEPTION") {
+        setActiveActionModal({
+          type: "RESOLVE_EXCEPTION",
+          targetId: rec.targetId,
+          title: rec.title,
+          description: rec.description,
+          inputs: { resolutionNote: "" },
+        });
+      } else {
+        const task = shipmentDetail.tasks?.find(
+          (t) => t.taskId === rec.targetId,
+        );
+        setActiveActionModal({
+          type: "COMPLETE_TASK",
+          targetId: rec.targetId,
+          title: rec.title,
+          description: rec.description,
+          inputs: {},
+          primaryAction: task?.primaryAction,
+        });
+      }
+    }
+  }, [shipmentDetail, urlHighlight, urlAction]);
+
+  // Smooth scroll to highlighted item
+  useEffect(() => {
+    if (!highlightId) return;
+    const timer = setTimeout(() => {
+      const el =
+        document.getElementById(`highlight-${highlightId}`) ||
+        document.getElementById(
+          `highlight-${highlightId.replace(/^(task_|exc_)/, "")}`,
+        ) ||
+        document.querySelector(`[data-highlight-id="${highlightId}"]`) ||
+        document.querySelector(
+          `[data-highlight-id="${highlightId.replace(/^(task_|exc_)/, "")}"]`,
+        );
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [highlightId, activeTab, shipmentDetail]);
+
   const handleSelectShipment = (id: string) => {
     setSelectedShipmentId(id);
-    setSearchParams({ id });
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("id", id);
+      next.delete("highlight");
+      next.delete("action");
+      return next;
+    });
+    setHighlightId("");
     setActionSuccessMessage(null);
+  };
+
+  const handleTabChange = (newTab: TabKey) => {
+    setActiveTab(newTab);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", newTab);
+      return next;
+    });
   };
 
   // Execute in-situ action
@@ -421,37 +571,25 @@ export default function ShipmentWorkspace360Module() {
           `Exception resolved successfully. Downstream blockers unblocked.`,
         );
       } else {
-        // Find corresponding task's workItemId or execute directly via cockpit execute endpoint
-        const cockpitRes = await authFetch(
-          `/api/scm/v1/operational/cockpit?shipmentId=${shipmentDetail.shipmentId}`,
+        // Execute task directly via transactional cockpit execute endpoint
+        const execRes = await authFetch(
+          `/api/scm/v1/operational/cockpit/${activeActionModal.targetId}/execute`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              inputValues: activeActionModal.inputs,
+              ...activeActionModal.inputs,
+            }),
+          },
         );
-        const cockpitItems = await cockpitRes.json();
-        const matchedItem = cockpitItems.find(
-          (it: { taskId: string }) => it.taskId === activeActionModal.targetId,
-        );
-
-        if (matchedItem) {
-          const execRes = await authFetch(
-            `/api/scm/v1/operational/cockpit/${matchedItem.workItemId}/execute`,
-            {
-              method: "POST",
-              body: JSON.stringify({ inputValues: activeActionModal.inputs }),
-            },
+        if (!execRes.ok) {
+          const errData = await execRes.json().catch(() => null);
+          throw new Error(
+            errData?.message || "Failed to execute domain command",
           );
-          if (!execRes.ok) throw new Error("Failed to execute cockpit command");
-        } else {
-          // Direct fallback complete task command
-          const res = await authFetch(
-            `/api/scm/v1/operational/cockpit/task_${activeActionModal.targetId}/execute`,
-            {
-              method: "POST",
-              body: JSON.stringify({ inputValues: activeActionModal.inputs }),
-            },
-          );
-          if (!res.ok) throw new Error("Failed to complete task");
         }
         setActionSuccessMessage(
-          `Task '${activeActionModal.title}' completed successfully.`,
+          `Task '${activeActionModal.title}' completed successfully. Downstream gates unblocked.`,
         );
       }
 
@@ -678,17 +816,26 @@ export default function ShipmentWorkspace360Module() {
         {/* Right Active Shipment Workspace */}
         <main className="flex-1 overflow-y-auto flex flex-col bg-slate-950">
           {actionSuccessMessage && (
-            <div className="m-6 mb-0 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-300">
+            <div className="m-6 mb-0 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-300 shadow-md">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>{actionSuccessMessage}</span>
               </div>
-              <button
-                onClick={() => setActionSuccessMessage(null)}
-                className="text-emerald-400 hover:text-emerald-200 font-bold ml-4"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <button
+                  onClick={() => navigate("/cockpit")}
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 shadow-sm transition"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" /> Volver al Cockpit
+                </button>
+                <button
+                  onClick={() => setActionSuccessMessage(null)}
+                  className="text-emerald-400 hover:text-emerald-200 font-bold px-2 py-1"
+                  title="Dismiss notification"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           )}
 
@@ -796,6 +943,10 @@ export default function ShipmentWorkspace360Module() {
                     key: "journey",
                     label: "Journey & Timeline",
                     icon: History,
+                    count:
+                      timelineEvents.length ||
+                      shipmentDetail.routePlan?.legs?.length ||
+                      0,
                   },
                   {
                     key: "tasks",
@@ -814,15 +965,28 @@ export default function ShipmentWorkspace360Module() {
                         (e) => e.status === "OPEN",
                       ).length || 0,
                   },
-                  { key: "cargo_route", label: "Cargo & Route", icon: Ship },
-                  { key: "audit", label: "Outbox Audit", icon: FileText },
+                  {
+                    key: "cargo_route",
+                    label: "Cargo & Route",
+                    icon: Ship,
+                    count:
+                      (shipmentDetail.shipment?.cargoDetails?.packageCount
+                        ? 1
+                        : 0) + (shipmentDetail.routePlan?.legs?.length || 0),
+                  },
+                  {
+                    key: "audit",
+                    label: "Outbox Audit",
+                    icon: FileText,
+                    count: auditEvents.length || 0,
+                  },
                 ].map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.key;
                   return (
                     <button
                       key={tab.key}
-                      onClick={() => setActiveTab(tab.key as TabKey)}
+                      onClick={() => handleTabChange(tab.key as TabKey)}
                       className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition -mb-px ${
                         isActive
                           ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
@@ -1089,33 +1253,40 @@ export default function ShipmentWorkspace360Module() {
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        {shipmentDetail.signals.map((sig) => (
-                          <div
-                            key={sig.signalId}
-                            className={`p-4 rounded-xl border flex items-start gap-3 ${
-                              sig.severity === "CRITICAL"
-                                ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
-                                : sig.severity === "MAJOR"
-                                  ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-                                  : "bg-slate-900 border-slate-800 text-slate-300"
-                            }`}
-                          >
-                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-xs">
-                                  {sig.title}
-                                </span>
-                                <span className="text-[10px] font-mono opacity-75">
-                                  {sig.source}
-                                </span>
+                        {shipmentDetail.signals.map((sig) => {
+                          const isHighlighted = highlightId === sig.signalId;
+                          return (
+                            <div
+                              key={sig.signalId}
+                              id={`highlight-${sig.signalId}`}
+                              data-highlight-id={sig.signalId}
+                              className={`p-4 rounded-xl border flex items-start gap-3 transition-all duration-300 ${
+                                isHighlighted
+                                  ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900 shadow-xl shadow-amber-500/20 bg-amber-950/30 border-amber-400"
+                                  : sig.severity === "CRITICAL"
+                                    ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                                    : sig.severity === "MAJOR"
+                                      ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                                      : "bg-slate-900 border-slate-800 text-slate-300"
+                              }`}
+                            >
+                              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-xs">
+                                    {sig.title}
+                                  </span>
+                                  <span className="text-[10px] font-mono opacity-75">
+                                    {sig.source}
+                                  </span>
+                                </div>
+                                <p className="text-xs opacity-90">
+                                  {sig.explanation}
+                                </p>
                               </div>
-                              <p className="text-xs opacity-90">
-                                {sig.explanation}
-                              </p>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1219,16 +1390,24 @@ export default function ShipmentWorkspace360Module() {
                     {shipmentDetail.tasks.map((task) => {
                       const isComplete = task.status === "COMPLETED";
                       const isGated = task.isBlocked;
+                      const isHighlighted =
+                        highlightId === task.taskId ||
+                        highlightId === `task_${task.taskId}` ||
+                        highlightId.replace("task_", "") === task.taskId;
 
                       return (
                         <div
                           key={task.taskId}
-                          className={`p-4 rounded-xl border transition flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                            isComplete
-                              ? "bg-slate-900/40 border-slate-800/60 opacity-80"
-                              : isGated
-                                ? "bg-amber-500/5 border-amber-500/20"
-                                : "bg-slate-900 border-indigo-500/40 shadow-sm"
+                          id={`highlight-${task.taskId}`}
+                          data-highlight-id={task.taskId}
+                          className={`p-4 rounded-xl border transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                            isHighlighted
+                              ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900 shadow-xl shadow-amber-500/20 bg-amber-950/20 border-amber-400"
+                              : isComplete
+                                ? "bg-slate-900/40 border-slate-800/60 opacity-80"
+                                : isGated
+                                  ? "bg-amber-500/5 border-amber-500/20"
+                                  : "bg-slate-900 border-indigo-500/40 shadow-sm"
                           }`}
                         >
                           <div className="flex items-start gap-3">
@@ -1365,15 +1544,24 @@ export default function ShipmentWorkspace360Module() {
                     <div className="space-y-3">
                       {shipmentDetail.exceptions.map((ex) => {
                         const isResolved = ex.status === "RESOLVED";
+                        const isHighlighted =
+                          highlightId === ex.exceptionId ||
+                          highlightId === `exc_${ex.exceptionId}` ||
+                          highlightId.replace("exc_", "") === ex.exceptionId;
+
                         return (
                           <div
                             key={ex.exceptionId}
-                            className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                              isResolved
-                                ? "bg-slate-900/30 border-slate-800 opacity-70"
-                                : ex.severity === "CRITICAL"
-                                  ? "bg-rose-500/10 border-rose-500/30"
-                                  : "bg-amber-500/10 border-amber-500/30"
+                            id={`highlight-${ex.exceptionId}`}
+                            data-highlight-id={ex.exceptionId}
+                            className={`p-4 rounded-xl border transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                              isHighlighted
+                                ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900 shadow-xl shadow-amber-500/20 bg-amber-950/20 border-amber-400"
+                                : isResolved
+                                  ? "bg-slate-900/30 border-slate-800 opacity-70"
+                                  : ex.severity === "CRITICAL"
+                                    ? "bg-rose-500/10 border-rose-500/30"
+                                    : "bg-amber-500/10 border-amber-500/30"
                             }`}
                           >
                             <div className="space-y-1">
@@ -1621,127 +1809,187 @@ export default function ShipmentWorkspace360Module() {
         </main>
       </div>
 
-      {/* In-Situ Action Modal (Explain -> Decide -> Act -> Confirm) */}
+      {/* Contextual Slide-Over Action Drawer (Explain -> Decide -> Act -> Confirm) */}
       {activeActionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-700 p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
-                <h3 className="text-base font-bold text-white">
-                  Execute Action In-Situ
-                </h3>
-              </div>
-              <button
-                onClick={() => setActiveActionModal(null)}
-                className="text-slate-400 hover:text-slate-200 text-sm font-bold"
-              >
-                ✕
-              </button>
-            </div>
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setActiveActionModal(null)}
+          />
 
-            {/* Step 1: Explain */}
-            <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs space-y-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">
-                1. Explain Context
-              </div>
-              <p className="font-semibold text-slate-200">
-                {activeActionModal.title}
-              </p>
-              <p className="text-slate-400">{activeActionModal.description}</p>
-            </div>
-
-            {/* Step 2: Decide & Act */}
-            <form onSubmit={handleExecuteAction} className="space-y-4">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                2. Input Decision Parameters
-              </div>
-
-              {activeActionModal.type === "RESOLVE_EXCEPTION" ? (
-                <div>
-                  <label
-                    htmlFor="modal-resolution-note"
-                    className="block text-xs font-semibold text-slate-300 mb-1"
-                  >
-                    Resolution Justification Note
-                  </label>
-                  <textarea
-                    id="modal-resolution-note"
-                    name="resolutionNote"
-                    aria-label="Resolution Justification Note"
-                    required
-                    rows={3}
-                    value={activeActionModal.inputs["resolutionNote"] || ""}
-                    onChange={(e) =>
-                      setActiveActionModal({
-                        ...activeActionModal,
-                        inputs: {
-                          ...activeActionModal.inputs,
-                          resolutionNote: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="E.g., Rolled booking accommodated on feeder vessel CMA CGM LOUVRE ETA +24h..."
-                    className="w-full p-2.5 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                  />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div className="w-screen max-w-md md:max-w-lg bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col justify-between">
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-inner">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      Contextual Action Drawer
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Supply Chain Execution & Resolution Protocol
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {activeActionModal.primaryAction?.inputFields &&
-                  activeActionModal.primaryAction.inputFields.length > 0 ? (
-                    activeActionModal.primaryAction.inputFields.map((f) => (
-                      <div key={f.name}>
+                <button
+                  onClick={() => setActiveActionModal(null)}
+                  className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 rounded-lg text-sm font-bold transition"
+                  title="Close Drawer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Drawer Body: Explain -> Decide -> Act */}
+              <div className="p-6 overflow-y-auto space-y-6 flex-1">
+                {/* Step 1: Explain */}
+                <div className="p-4 rounded-xl bg-indigo-950/30 border border-indigo-500/30 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5" /> 1. Explain Context &
+                      Impact
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-900/60 text-indigo-300 border border-indigo-700/50">
+                      {activeActionModal.type === "RESOLVE_EXCEPTION"
+                        ? "Exception"
+                        : "Workflow Task"}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white">
+                    {activeActionModal.title}
+                  </h4>
+                  <p className="text-slate-300 leading-relaxed">
+                    {activeActionModal.description}
+                  </p>
+                  <div className="pt-2 border-t border-indigo-500/20 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                    <span>Target ID:</span>
+                    <span className="text-indigo-300 font-semibold">
+                      {activeActionModal.targetId}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Step 2 & 3: Decide & Act */}
+                <form
+                  id="drawer-action-form"
+                  onSubmit={handleExecuteAction}
+                  className="space-y-4"
+                >
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" /> 2. Decide &
+                    Act
+                  </div>
+
+                  {activeActionModal.type === "RESOLVE_EXCEPTION" ? (
+                    <div className="space-y-4">
+                      <div>
                         <label
-                          htmlFor={`modal-field-${f.name}`}
+                          htmlFor="modal-resolution-note"
                           className="block text-xs font-semibold text-slate-300 mb-1"
                         >
-                          {f.label}{" "}
-                          {f.required && (
-                            <span className="text-rose-400">*</span>
-                          )}
+                          Resolution Justification Note{" "}
+                          <span className="text-rose-400">*</span>
                         </label>
-                        <input
-                          id={`modal-field-${f.name}`}
-                          name={f.name}
-                          aria-label={f.label}
-                          type={f.type === "number" ? "number" : "text"}
-                          required={f.required}
-                          value={activeActionModal.inputs[f.name] || ""}
+                        <textarea
+                          id="modal-resolution-note"
+                          name="resolutionNote"
+                          aria-label="Resolution Justification Note"
+                          required
+                          rows={4}
+                          value={
+                            activeActionModal.inputs["resolutionNote"] || ""
+                          }
                           onChange={(e) =>
                             setActiveActionModal({
                               ...activeActionModal,
                               inputs: {
                                 ...activeActionModal.inputs,
-                                [f.name]: e.target.value,
+                                resolutionNote: e.target.value,
                               },
                             })
                           }
-                          placeholder={`Enter ${f.label.toLowerCase()}...`}
-                          className="w-full p-2 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                          placeholder="E.g., Rolled booking accommodated on feeder vessel CMA CGM LOUVRE ETA +24h, customs clearance certified..."
+                          className="w-full p-3 text-xs rounded-xl bg-slate-950 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
-                    ))
+
+                      <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>
+                          Executing resolution will write an immutable domain
+                          event to the Outbox and unblock downstream DAG tasks.
+                        </span>
+                      </div>
+                    </div>
                   ) : (
-                    <div className="text-xs text-slate-400 p-3 bg-slate-800/40 rounded-lg">
-                      No additional parameters required. Submitting will commit
-                      the domain aggregate mutation with outbox event.
+                    <div className="space-y-3">
+                      {activeActionModal.primaryAction?.inputFields &&
+                      activeActionModal.primaryAction.inputFields.length > 0 ? (
+                        activeActionModal.primaryAction.inputFields.map((f) => (
+                          <div key={f.name}>
+                            <label
+                              htmlFor={`modal-field-${f.name}`}
+                              className="block text-xs font-semibold text-slate-300 mb-1"
+                            >
+                              {f.label}{" "}
+                              {f.required && (
+                                <span className="text-rose-400">*</span>
+                              )}
+                            </label>
+                            <input
+                              id={`modal-field-${f.name}`}
+                              name={f.name}
+                              aria-label={f.label}
+                              type={f.type === "number" ? "number" : "text"}
+                              required={f.required}
+                              value={activeActionModal.inputs[f.name] || ""}
+                              onChange={(e) =>
+                                setActiveActionModal({
+                                  ...activeActionModal,
+                                  inputs: {
+                                    ...activeActionModal.inputs,
+                                    [f.name]: e.target.value,
+                                  },
+                                })
+                              }
+                              placeholder={`Enter ${f.label.toLowerCase()}...`}
+                              className="w-full p-2.5 text-xs rounded-xl bg-slate-950 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                            />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-xs text-slate-400 p-3.5 bg-slate-950 rounded-xl border border-slate-800 flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                          <span>
+                            No additional parameters required. Submitting will
+                            advance the DAG workflow and persist the domain
+                            mutation.
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
+                </form>
+              </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+              {/* Drawer Footer: Confirm */}
+              <div className="p-6 border-t border-slate-800 bg-slate-950/80 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setActiveActionModal(null)}
-                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                  className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
                 >
                   Cancel
                 </button>
                 <button
+                  form="drawer-action-form"
                   type="submit"
                   disabled={actionSubmitting}
-                  className="px-5 py-2 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition disabled:opacity-50"
+                  className="px-5 py-2.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition disabled:opacity-50"
                 >
                   {actionSubmitting ? (
                     <>
@@ -1751,12 +1999,12 @@ export default function ShipmentWorkspace360Module() {
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
-                      Confirm & Execute
+                      Confirm & Execute Mutation
                     </>
                   )}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
