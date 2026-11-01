@@ -69,7 +69,7 @@ export function StatCards() {
           <motion.div
             key={stat.id}
             whileHover={{ y: -4 }}
-            className="relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 p-6 flex items-center gap-4 group min-h-[112px] transition-transform duration-200 will-change-transform hover:shadow-2xl hover:shadow-indigo-500/10"
+            className="relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 p-5 flex items-center gap-4 group min-h-[104px] transition-transform duration-200 will-change-transform hover:shadow-2xl hover:shadow-indigo-500/10"
           >
             {/* Ambient Background Glow */}
             <div
@@ -77,21 +77,24 @@ export function StatCards() {
             />
 
             <div
-              className={`p-4 rounded-xl ${stat.bgColor} border border-white/5 shadow-inner`}
+              className={`p-3 rounded-xl ${stat.bgColor} border border-white/5 shadow-inner shrink-0`}
             >
-              <Icon className={`w-8 h-8 ${stat.iconColor}`} strokeWidth={1.5} />
+              <Icon
+                className={`w-6 h-6 ${stat.iconColor}`}
+                strokeWidth={1.75}
+              />
             </div>
 
-            <div className="z-10">
-              <p className="text-sm font-medium text-slate-400 mb-1">
+            <div className="z-10 min-w-0 flex-1">
+              <p className="text-xs font-medium text-slate-400 truncate mb-0.5">
                 {stat.name}
               </p>
-              <p className="text-3xl font-bold text-white tracking-tight">
+              <p className="text-2xl font-bold text-white tracking-tight">
                 {stat.value}
               </p>
               <div className="flex items-center mt-1">
                 <span
-                  className={`text-xs font-semibold ${stat.trend === "up" ? "text-emerald-400" : stat.trend === "down" ? "text-rose-400" : "text-amber-400"}`}
+                  className={`text-xs font-medium truncate ${stat.trend === "up" ? "text-emerald-400" : stat.trend === "down" ? "text-rose-400" : "text-amber-400"}`}
                 >
                   {stat.change}
                 </span>

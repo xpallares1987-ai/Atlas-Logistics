@@ -32,6 +32,35 @@ console.warn = (...args) => {
   originalWarn(...args);
 };
 
+// Intercept API fetch calls to seamlessly inject the stored auth token
+const originalFetch = window.fetch;
+window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  const url =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.href
+        : (input as Request).url;
+
+  if (
+    url.startsWith("/api") ||
+    (typeof url === "string" && url.includes("/api/"))
+  ) {
+    const token =
+      localStorage.getItem("atlas_token") || localStorage.getItem("token");
+    if (token) {
+      const headers = new Headers(
+        init?.headers || (input instanceof Request ? input.headers : {}),
+      );
+      if (!headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      init = { ...init, headers };
+    }
+  }
+  return originalFetch(input, init);
+};
+
 const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(

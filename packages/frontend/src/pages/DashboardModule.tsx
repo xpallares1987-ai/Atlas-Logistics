@@ -70,9 +70,21 @@ export function DashboardModule() {
       }
     };
 
+    ws.onerror = () => {
+      // Graceful fallback if WebSocket is temporarily unavailable
+    };
+
     return () => {
       isMounted = false;
-      ws.close();
+      ws.onmessage = null;
+      ws.onerror = null;
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      } else if (ws.readyState === WebSocket.CONNECTING) {
+        ws.onopen = () => {
+          ws.close();
+        };
+      }
     };
   }, [queryClient, dateRange]);
 

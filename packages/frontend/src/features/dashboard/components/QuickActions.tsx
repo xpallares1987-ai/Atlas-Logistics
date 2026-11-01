@@ -24,6 +24,9 @@ export function QuickActions() {
     <div className="flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-xl border border-white/10">
         <input
+          id="dashboard-start-date"
+          name="startDate"
+          aria-label="Start date"
           type="date"
           className="bg-transparent text-sm text-slate-300 px-2 py-1 outline-none"
           value={start}
@@ -31,6 +34,9 @@ export function QuickActions() {
         />
         <span className="text-slate-500">to</span>
         <input
+          id="dashboard-end-date"
+          name="endDate"
+          aria-label="End date"
           type="date"
           className="bg-transparent text-sm text-slate-300 px-2 py-1 outline-none"
           value={end}

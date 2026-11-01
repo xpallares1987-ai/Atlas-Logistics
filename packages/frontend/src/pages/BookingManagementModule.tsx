@@ -37,6 +37,7 @@ import {
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useApiMutation } from "../hooks/useApiQuery";
+import { authFetch } from "../lib/api";
 
 type TabKey = "RATE_LOCK" | "CUTOFF_RADAR" | "SI_STUDIO" | "EQUIPMENT_RELEASE";
 
@@ -82,7 +83,7 @@ export default function BookingManagementModule() {
   const fetchDbBookings = async () => {
     try {
       setLoadingDbBookings(true);
-      const res = await fetch("/api/bookings");
+      const res = await authFetch("/api/bookings");
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -230,11 +231,14 @@ export default function BookingManagementModule() {
     if (!confirmingBooking) return;
     setIsConfirmSubmitting(true);
     try {
-      const res = await fetch(`/api/bookings/${confirmingBooking.id}/confirm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(confirmForm),
-      });
+      const res = await authFetch(
+        `/api/bookings/${confirmingBooking.id}/confirm`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(confirmForm),
+        },
+      );
       if (res.ok) {
         const result = await res.json();
         setLastConversionResult(result);
@@ -276,7 +280,7 @@ export default function BookingManagementModule() {
 
   const handleCancelDbBooking = async (bookingId: string) => {
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/cancel`, {
+      const res = await authFetch(`/api/bookings/${bookingId}/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2147,9 +2151,8 @@ export default function BookingManagementModule() {
                 <Button
                   onClick={async () => {
                     try {
-                      const res = await fetch("/api/bookings", {
+                      const res = await authFetch("/api/bookings", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(newBookingForm),
                       });
                       if (res.ok) {

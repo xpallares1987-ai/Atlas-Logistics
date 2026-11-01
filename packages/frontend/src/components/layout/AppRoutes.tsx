@@ -279,6 +279,22 @@ export const AppRoutes = () => {
           }
         />
         <Route
+          path="/rate-comparer"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "ADMIN",
+                "EXECUTIVE",
+                "MANAGER",
+                "SALES",
+                "OPERATIONS",
+              ]}
+            >
+              <RateComparerContainer />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/quotes"
           element={
             <ProtectedRoute

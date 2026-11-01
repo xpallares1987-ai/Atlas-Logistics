@@ -86,10 +86,13 @@ export interface OperationalExceptionRecord {
   isBlocking: boolean;
   status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "IGNORED";
   assignedTo?: string | null;
+  assignedToUserId?: string | null;
   assignedTeam?: string | null;
-  raisedAt: string;
+  raisedAt?: string;
+  createdAt?: string;
   resolvedAt?: string | null;
   resolutionNote?: string | null;
+  resolutionNotes?: string | null;
 }
 
 export interface OperationalShipment360View {
@@ -1595,16 +1598,29 @@ export default function ShipmentWorkspace360Module() {
                               <div className="flex items-center gap-3 text-[11px] text-slate-500">
                                 <span>
                                   Raised:{" "}
-                                  {new Date(ex.raisedAt).toLocaleString()}
+                                  {ex.raisedAt || ex.createdAt
+                                    ? new Date(
+                                        ex.raisedAt || ex.createdAt!,
+                                      ).toLocaleString()
+                                    : "Recently"}
                                 </span>
-                                {ex.assignedTo && (
-                                  <span>• Assigned: {ex.assignedTo}</span>
-                                )}
-                                {isResolved && (
-                                  <span className="text-emerald-400">
-                                    • Note: {ex.resolutionNote}
+                                {(ex.assignedTo ||
+                                  ex.assignedToUserId ||
+                                  ex.assignedTeam) && (
+                                  <span>
+                                    • Assigned:{" "}
+                                    {ex.assignedTo ||
+                                      ex.assignedToUserId ||
+                                      ex.assignedTeam}
                                   </span>
                                 )}
+                                {isResolved &&
+                                  (ex.resolutionNote || ex.resolutionNotes) && (
+                                    <span className="text-emerald-400">
+                                      • Note:{" "}
+                                      {ex.resolutionNote || ex.resolutionNotes}
+                                    </span>
+                                  )}
                               </div>
                             </div>
 

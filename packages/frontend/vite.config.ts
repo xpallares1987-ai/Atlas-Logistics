@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import federation from "@originjs/vite-plugin-federation";
@@ -7,6 +8,7 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [
+    tailwindcss(),
     react(),
     federation({
       name: "host",

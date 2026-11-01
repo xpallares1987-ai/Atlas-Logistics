@@ -27,10 +27,13 @@ export interface OperationalExceptionRecord {
   isBlocking: boolean;
   status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "IGNORED";
   assignedTo?: string | null;
+  assignedToUserId?: string | null;
   assignedTeam?: string | null;
-  raisedAt: string;
+  raisedAt?: string;
+  createdAt?: string;
   resolvedAt?: string | null;
   resolutionNote?: string | null;
+  resolutionNotes?: string | null;
 }
 
 type ExceptionFilterTab = "OPEN" | "BLOCKING" | "ASSIGNED" | "RESOLVED";
@@ -174,7 +177,9 @@ export default function ExceptionCenterModule() {
     (e) => e.isBlocking && (e.status === "OPEN" || e.status === "IN_PROGRESS"),
   ).length;
   const assignedCount = exceptions.filter(
-    (e) => (e.status === "OPEN" || e.status === "IN_PROGRESS") && e.assignedTo,
+    (e) =>
+      (e.status === "OPEN" || e.status === "IN_PROGRESS") &&
+      Boolean(e.assignedTo || e.assignedToUserId || e.assignedTeam),
   ).length;
   const resolvedCount = exceptions.filter(
     (e) => e.status === "RESOLVED",
@@ -190,7 +195,8 @@ export default function ExceptionCenterModule() {
         );
       case "ASSIGNED":
         return (
-          (e.status === "OPEN" || e.status === "IN_PROGRESS") && !!e.assignedTo
+          (e.status === "OPEN" || e.status === "IN_PROGRESS") &&
+          Boolean(e.assignedTo || e.assignedToUserId || e.assignedTeam)
         );
       case "RESOLVED":
         return e.status === "RESOLVED";
@@ -501,26 +507,38 @@ export default function ExceptionCenterModule() {
 
                       <span>•</span>
                       <span>
-                        Raised: {new Date(ex.raisedAt).toLocaleString()}
+                        Raised:{" "}
+                        {ex.raisedAt || ex.createdAt
+                          ? new Date(
+                              ex.raisedAt || ex.createdAt!,
+                            ).toLocaleString()
+                          : "Recently"}
                       </span>
 
-                      {ex.assignedTo && (
+                      {(ex.assignedTo ||
+                        ex.assignedToUserId ||
+                        ex.assignedTeam) && (
                         <>
                           <span>•</span>
                           <span className="text-slate-300">
-                            Owner: {ex.assignedTo}
+                            Owner:{" "}
+                            {ex.assignedTo ||
+                              ex.assignedToUserId ||
+                              ex.assignedTeam}
                           </span>
                         </>
                       )}
 
-                      {isResolved && ex.resolutionNote && (
-                        <>
-                          <span>•</span>
-                          <span className="text-emerald-400 font-medium">
-                            Resolution: {ex.resolutionNote}
-                          </span>
-                        </>
-                      )}
+                      {isResolved &&
+                        (ex.resolutionNote || ex.resolutionNotes) && (
+                          <>
+                            <span>•</span>
+                            <span className="text-emerald-400 font-medium">
+                              Resolution:{" "}
+                              {ex.resolutionNote || ex.resolutionNotes}
+                            </span>
+                          </>
+                        )}
                     </div>
                   </div>
 

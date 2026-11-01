@@ -48,7 +48,7 @@ export default function App() {
               <TopNavbar setMobileMenuOpen={setMobileMenuOpen} />
 
               {/* Page Content */}
-              <div className="flex-1 overflow-hidden relative p-6">
+              <div className="flex-1 overflow-y-auto relative">
                 <AppRoutes />
               </div>
 

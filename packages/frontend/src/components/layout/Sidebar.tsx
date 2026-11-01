@@ -81,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Shell */}
       <aside
-        className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0 transition duration-200 ease-in-out w-72 bg-slate-950 text-slate-300 p-6 flex flex-col gap-8 z-50 shadow-2xl border-r border-slate-800/60 overflow-y-auto`}
+        className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0 transition duration-200 ease-in-out w-72 shrink-0 bg-slate-950 text-slate-300 p-6 flex flex-col gap-8 z-50 shadow-2xl border-r border-slate-800/60 overflow-y-auto`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
