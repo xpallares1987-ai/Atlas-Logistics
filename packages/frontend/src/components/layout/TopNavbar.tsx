@@ -42,7 +42,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
   }, [addToCart]);
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 z-30 shrink-0">
+    <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 md:px-8 z-30 shrink-0">
       <div className="flex-1 flex items-center gap-4">
         <Button
           className="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg h-auto"

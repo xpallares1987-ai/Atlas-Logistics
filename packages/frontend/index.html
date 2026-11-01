@@ -1,123 +1,132 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <meta name="theme-color" content="#1e1b4b" />
+    <meta name="theme-color" content="#020617" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="alternate icon" href="/favicon.ico" />
     <link rel="manifest" href="/manifest.json" />
     <title>Atlas Logistics Enterprise</title>
+
+    <!-- Preconnect to Google Fonts servers to eliminate connection latency -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Non-render-blocking font stylesheet preload with font-display: swap -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+      />
+    </noscript>
   </head>
-  <body>
+  <body class="bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500/30">
     <div id="root">
-      <!-- App Shell Skeleton to improve LCP / render delay before React hydrates -->
+      <!-- Dark Theme App Shell Skeleton with exact layout dimensions to eliminate CLS -->
       <div
         style="
           display: flex;
           height: 100vh;
-          background-color: #f3f4f6;
-          font-family: ui-sans-serif, system-ui, sans-serif;
+          width: 100vw;
+          background-color: #020617;
+          color: #f8fafc;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          overflow: hidden;
         "
       >
+        <!-- Exact 18rem Sidebar Skeleton matching Sidebar.tsx -->
         <aside
           style="
-            width: 16rem;
-            background-color: #111827;
-            color: white;
+            width: 18rem;
+            background-color: #020617;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.5rem;
+            flex-shrink: 0;
           "
         >
-          <h1
-            style="
-              font-size: 1.5rem;
-              line-height: 2rem;
-              font-weight: 700;
-              margin-bottom: 2rem;
-              letter-spacing: 0.05em;
-            "
-          >
-            ATLAS<span style="color: #3b82f6">.SCM</span>
-          </h1>
+          <div style="display: flex; align-items: center; gap: 0.75rem">
+            <div
+              style="
+                width: 2.5rem;
+                height: 2.5rem;
+                border-radius: 0.75rem;
+                background: linear-gradient(135deg, #6366f1, #9333ea);
+              "
+            ></div>
+            <h1
+              style="
+                font-size: 1.5rem;
+                font-weight: 900;
+                letter-spacing: 0.1em;
+                color: #ffffff;
+                margin: 0;
+              "
+            >
+              ATLAS<span style="color: #6366f1">.</span>
+            </h1>
+          </div>
+
           <nav style="display: flex; flex-direction: column; gap: 0.5rem">
-            <div
-              style="padding: 0.5rem; border-radius: 0.25rem; color: #9ca3af"
-            >
-              Dashboard (Core)
-            </div>
-            <div
-              style="padding: 0.5rem; border-radius: 0.25rem; color: #9ca3af"
-            >
-              Rate Comparer
-            </div>
-            <div
-              style="padding: 0.5rem; border-radius: 0.25rem; color: #9ca3af"
-            >
-              ESG Carbon Tracker
-            </div>
-            <div
-              style="padding: 0.5rem; border-radius: 0.25rem; color: #9ca3af"
-            >
-              Container Planner
-            </div>
+            <div style="height: 0.75rem; width: 3rem; background: rgba(255,255,255,0.1); border-radius: 0.25rem; margin-bottom: 0.25rem"></div>
+            <div style="height: 2.25rem; background: rgba(99,102,241,0.15); border-radius: 0.5rem; border: 1px solid rgba(99,102,241,0.3)"></div>
+            <div style="height: 2.25rem; background: rgba(255,255,255,0.03); border-radius: 0.5rem"></div>
+            <div style="height: 2.25rem; background: rgba(255,255,255,0.03); border-radius: 0.5rem"></div>
+            <div style="height: 2.25rem; background: rgba(255,255,255,0.03); border-radius: 0.5rem"></div>
           </nav>
         </aside>
-        <main style="flex: 1; padding: 2rem; overflow-y: auto">
-          <div
+
+        <!-- Main Body Skeleton matching TopNavbar & Page Containers -->
+        <main style="flex: 1; display: flex; flex-direction: column; background-color: #0f172a; overflow: hidden">
+          <!-- TopNavbar 4rem height placeholder -->
+          <header
             style="
+              height: 4rem;
+              background-color: #020617;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.08);
               display: flex;
               align-items: center;
-              justify-content: center;
-              height: 100%;
-              color: #6b7280;
+              justify-content: space-between;
+              padding: 0 1.5rem;
+              flex-shrink: 0;
             "
           >
-            <svg
-              style="
-                animation: spin 1s linear infinite;
-                height: 2rem;
-                width: 2rem;
-                margin-right: 0.75rem;
-                color: #6366f1;
-              "
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                style="opacity: 0.25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                style="opacity: 0.75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Loading Micro-Frontend...
+            <div style="width: 14rem; height: 2rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem"></div>
+            <div style="display: flex; gap: 0.75rem">
+              <div style="width: 2rem; height: 2rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem"></div>
+              <div style="width: 2rem; height: 2rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem"></div>
+            </div>
+          </header>
+
+          <!-- Content Area Skeleton with exact dimensions -->
+          <div style="flex: 1; padding: 2rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem">
+            <div style="width: 20rem; height: 2.5rem; background: rgba(255,255,255,0.06); border-radius: 0.5rem"></div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem">
+              <div style="height: 7rem; background: rgba(255,255,255,0.04); border-radius: 1rem; border: 1px solid rgba(255,255,255,0.06)"></div>
+              <div style="height: 7rem; background: rgba(255,255,255,0.04); border-radius: 1rem; border: 1px solid rgba(255,255,255,0.06)"></div>
+              <div style="height: 7rem; background: rgba(255,255,255,0.04); border-radius: 1rem; border: 1px solid rgba(255,255,255,0.06)"></div>
+              <div style="height: 7rem; background: rgba(255,255,255,0.04); border-radius: 1rem; border: 1px solid rgba(255,255,255,0.06)"></div>
+            </div>
           </div>
         </main>
       </div>
-      <style>
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-      </style>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

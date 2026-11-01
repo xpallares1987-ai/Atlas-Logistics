@@ -55,7 +55,6 @@ import portCongestionRoutes from "../modules/port-congestion/port-congestion.rou
 import carbonInsettingRoutes from "../modules/carbon-insetting/carbon-insetting.routes.js";
 import iataOneRecordRoutes from "../modules/iata-one-record/iata-one-record.routes.js";
 import customer01Routes from "../modules/customer01/customer01.routes.js";
-import workloadRoutes from "../modules/workload/workload.routes.js";
 import scmV1Routes from "./scm-v1.routes.js";
 
 export {
@@ -218,9 +217,6 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(customer01Routes, {
     prefix: "/api/customer01",
-  });
-  await fastify.register(workloadRoutes, {
-    prefix: "/api/workload",
   });
   await fastify.register(scmV1Routes, {
     prefix: "/api/scm/v1",

@@ -26,7 +26,7 @@ FROM deps AS builder
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Install dependencies with BuildKit cache mount - run scripts for esbuild, etc.
+# Install dependencies with BuildKit cache mount
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
@@ -43,9 +43,9 @@ RUN pnpm run build && \
     find /app/packages/frontend/dist -type f \( -name '*.map' -o -name '*.snap' \) -delete
 
 # ============================================================================
-# STAGE 3: PRODUCTION — Chainguard nginx (production-ready, no dev tools)
+# STAGE 3: PRODUCTION — Standard nginx (production-ready)
 # ============================================================================
-FROM cgr.dev/chainguard/nginx:latest AS production
+FROM nginx:alpine AS production
 
 # Copy nginx configuration first
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
@@ -57,4 +57,4 @@ EXPOSE 8080
 
 # Healthcheck with built-in wget
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s \
-    CMD ["/usr/bin/wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+    CMD ["/bin/sh", "-c", "wget --quiet --tries=1 --spider http://localhost:8080/healthz || exit 1"]

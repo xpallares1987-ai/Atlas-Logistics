@@ -248,15 +248,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {isAdminOrFF && (
             <NavLink
               onClick={() => setMobileMenuOpen(false)}
-              to="/workload"
-              icon={Users}
-            >
-              Carterización & Carga Trabajo
-            </NavLink>
-          )}
-          {isAdminOrFF && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
               to="/profitability"
               icon={Activity}
             >

@@ -45,9 +45,7 @@ logistics:
       - any-glob-to-any-file:
           - 'packages/shared/src/logistics/**'
           - 'src/modules/customer01/**'
-          - 'src/modules/workload/**'
           - 'packages/frontend/src/pages/Customer01OperationsModule.tsx'
-          - 'packages/frontend/src/pages/WorkloadPortfolioModule.tsx'
 
 documentation:
   - changed-files:

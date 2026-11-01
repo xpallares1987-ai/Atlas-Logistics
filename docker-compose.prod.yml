@@ -1,33 +1,8 @@
-# ==============================================================================
-# ATLAS LOGISTICS — PRODUCTION DOCKER COMPOSE
-# ==============================================================================
-# Zero-CVE production deployment with Chainguard hardened images.
-# Security-first: read-only filesystems, non-root users, resource limits,
-# restricted capabilities, health checks, and explicit restart policies.
-#
-# Prerequisites:
-#   - Set JWT_SECRET, REDIS_PASSWORD, GRAFANA_ADMIN_PASSWORD in .env
-#   - Configure VITE_API_URL for production API endpoint
-#   - Review security_opt and read_only_root_filesystem settings
-#
-# Usage:
-#   docker compose -f docker-compose.prod.yml up -d --build
-#   docker compose -f docker-compose.prod.yml logs -f backend
-#   docker compose -f docker-compose.prod.yml down
-#
-# ==============================================================================
-
 version: '3.8'
-
-# Production: Load from .env.production
-env_file:
-  - .env.production
 
 x-common-security: &common_security
   security_opt:
     - no-new-privileges:true
-  cap_drop:
-    - ALL
 
 x-common-healthcheck: &default_healthcheck
   interval: 30s
@@ -37,7 +12,7 @@ x-common-healthcheck: &default_healthcheck
 
 services:
   # ============================================================================
-  # BACKEND SERVICE (Node.js + Fastify, Chainguard hardened)
+  # BACKEND SERVICE (Node.js + Fastify)
   # ============================================================================
   backend:
     build:
@@ -51,17 +26,16 @@ services:
     container_name: atlas-backend-prod
     restart: always
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=file:/data/prod.db
-      - REDIS_URL=redis://redis:6379
-      - LOG_LEVEL=info
-      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-file:/data/prod.db}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      LOG_LEVEL: info
+      JWT_SECRET: ${JWT_SECRET:-CHANGE_ME_PRODUCTION_SECRET}
     expose:
       - "3001"
     ports:
       - "3001:3001"
     volumes:
-      # Persistent database and data (writable for SQLite)
       - ./data:/app/data
     depends_on:
       redis:
@@ -75,10 +49,6 @@ services:
           - api
           - backend
     <<: *common_security
-    read_only_root_filesystem: true
-    tmpfs:
-      - /tmp
-      - /app/data
     deploy:
       resources:
         limits:
@@ -89,7 +59,7 @@ services:
           memory: 1G
 
   # ============================================================================
-  # FRONTEND SERVICE (Nginx reverse proxy, Chainguard hardened)
+  # FRONTEND SERVICE (Nginx reverse proxy)
   # ============================================================================
   frontend:
     build:
@@ -111,13 +81,9 @@ services:
     networks:
       - atlas-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      test: ["CMD", "sh", "-c", "wget --quiet --tries=1 --spider http://localhost:8080/healthz || exit 1"]
       <<: *default_healthcheck
     <<: *common_security
-    read_only_root_filesystem: true
-    tmpfs:
-      - /var/run
-      - /var/cache
     deploy:
       resources:
         limits:
@@ -149,9 +115,6 @@ services:
       retries: 5
       start_period: 10s
     <<: *common_security
-    read_only_root_filesystem: true
-    tmpfs:
-      - /tmp
     deploy:
       resources:
         limits:
@@ -161,134 +124,11 @@ services:
           cpus: '0.25'
           memory: 256M
 
-  # ============================================================================
-  # PROMETHEUS (Metrics Collection)
-  # ============================================================================
-  prometheus:
-    image: prom/prometheus:latest
-    pull_policy: if_not_present
-    container_name: atlas-prometheus-prod
-    restart: always
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./grafana/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./grafana/rules:/etc/prometheus/rules:ro
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.enable-lifecycle'
-      - '--web.external-url=${PROMETHEUS_EXTERNAL_URL:-http://localhost:9090}'
-    networks:
-      - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      <<: *default_healthcheck
-    <<: *common_security
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
-  # ============================================================================
-  # GRAFANA (Visualization & Dashboards)
-  # ============================================================================
-  grafana:
-    image: grafana/grafana:latest
-    pull_policy: if_not_present
-    container_name: atlas-grafana-prod
-    restart: always
-    ports:
-      - "3002:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-atlas-secure-pass-change-me}
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=${GRAFANA_EXTERNAL_URL:-https://monitoring.example.com}
-      - GF_SECURITY_COOKIE_SECURE=true
-      - GF_SECURITY_COOKIE_SAMESITE=Lax
-      - GF_LOG_MODE=prod
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      prometheus:
-        condition: service_healthy
-    networks:
-      - atlas-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      <<: *default_healthcheck
-    <<: *common_security
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
-  # ============================================================================
-  # NODE EXPORTER (System Metrics)
-  # ============================================================================
-  node-exporter:
-    image: prom/node-exporter:latest
-    pull_policy: if_not_present
-    container_name: atlas-node-exporter-prod
-    restart: always
-    ports:
-      - "9100:9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    networks:
-      - atlas-network
-    <<: *common_security
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-        reservations:
-          cpus: '0.1'
-          memory: 64M
-
 volumes:
   redis_data:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./data/redis
-  prometheus_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./data/prometheus
-  grafana_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./data/grafana
 
 networks:
   atlas-network:
     name: atlas-network
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.28.0.0/16

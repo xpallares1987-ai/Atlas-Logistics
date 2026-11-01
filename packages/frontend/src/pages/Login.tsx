@@ -46,9 +46,8 @@ export default function Login() {
   return (
     <div className="min-h-screen w-full bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden font-sans selection:bg-indigo-500/30">
       {/* Dynamic Background Effects */}
-      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-indigo-500/20 blur-[120px] rounded-full pointer-events-none animate-pulse" />
-      <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none" />
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none mix-blend-overlay" />
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -176,7 +175,9 @@ export default function Login() {
                 <span className="text-base">📦</span>
                 <div>
                   <div className="font-bold">Operador</div>
-                  <div className="text-[10px] text-slate-500">Tráfico & Almacén</div>
+                  <div className="text-[10px] text-slate-500">
+                    Tráfico & Almacén
+                  </div>
                 </div>
               </button>
 
@@ -214,7 +215,9 @@ export default function Login() {
                 <span className="text-base">💰</span>
                 <div>
                   <div className="font-bold">Tesorería</div>
-                  <div className="text-[10px] text-slate-500">CASS & Fletes</div>
+                  <div className="text-[10px] text-slate-500">
+                    CASS & Fletes
+                  </div>
                 </div>
               </button>
 
@@ -232,7 +235,10 @@ export default function Login() {
               >
                 <span className="text-base">🚢</span>
                 <div>
-                  <span className="font-bold">Cliente Shipper</span> — <span className="text-[10px] text-slate-500">Portal de Seguimiento & Cotizador</span>
+                  <span className="font-bold">Cliente Shipper</span> —{" "}
+                  <span className="text-[10px] text-slate-500">
+                    Portal de Seguimiento & Cotizador
+                  </span>
                 </div>
               </button>
             </div>

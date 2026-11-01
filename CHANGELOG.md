@@ -52,6 +52,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     - Configured routes `/cockpit`, `/my-work`, `/shipment-360`, `/exceptions`, and `/control-plane` in `AppRoutes.tsx`.
     - Restructured `Sidebar.tsx` into dedicated *Operations* and *System Control* navigation groups.
 
+- **Core Web Vitals & Frontend Performance Optimization**:
+  - Eliminated font-induced CLS by preconnecting Google fonts, applying non-render-blocking stylesheet loading, and setting `@font-face` metric override fallbacks (`size-adjust`, `ascent-override`, `descent-override`) for `Outfit` and `Inter`.
+  - Replaced unconstrained chart containers with explicit dimensions (`minHeight: 280`), eliminating initial 0-height layout shifts.
+  - Converted `.glass-card` CSS transitions to hardware-accelerated compositor properties (`transform`, `opacity`).
+  - Purged legacy Node polyfills (`nodePolyfills()` including `crypto-browserify`, `stream-browserify`, and `vm-browserify`) and targeted modern `es2022` with code-split manual vendor chunking.
+  - Implemented centralized authenticated fetch utility (`authFetch`) injecting JWT Bearer tokens across operational command centers.
+
+### 🗑️ Removed
+
+- **Carterización & Carga de Trabajo (`/workload`)**:
+  - Entirely decommissioned and purged legacy account portfolio and operative workload module (`WorkloadPortfolioModule.tsx`, `/workload` route, and navigation link).
+  - Removed backend Fastify routes `/api/workload/*`, `WorkloadService`, and corresponding test suites.
+  - Cleaned up `@atlas/shared` removing deprecated workload types and charge audit utilities while preserving physical axle load calculations for container stowage (`axle-heatmap.ts`).
+  - Removed obsolete E2E tests (`workload.spec.ts`) and GitHub Actions labeler configuration.
+
 ### 🧹 Refactored & Consolidated
 
 - **Domain Nomenclature & Documentation Consolidation**:

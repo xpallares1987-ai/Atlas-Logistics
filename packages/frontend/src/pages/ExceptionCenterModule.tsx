@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { authFetch } from "../lib/api";
 import {
   AlertCircle,
   AlertTriangle,
@@ -73,11 +74,11 @@ export default function ExceptionCenterModule() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch("/api/scm/v1/operational/exceptions");
+      const res = await authFetch("/api/scm/v1/operational/exceptions");
       if (!res.ok)
         throw new Error(`HTTP error ${res.status}: Failed to fetch exceptions`);
       const data = await res.json();
-      setExceptions(data);
+      setExceptions(Array.isArray(data) ? data : (data?.items ?? []));
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -101,11 +102,10 @@ export default function ExceptionCenterModule() {
     try {
       setResolvingSubmitting(true);
       setError(null);
-      const res = await fetch(
+      const res = await authFetch(
         `/api/scm/v1/operational/exceptions/${resolvingException.exceptionId}/resolve`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             resolutionNote:
               resolutionNote.trim() ||
@@ -138,9 +138,8 @@ export default function ExceptionCenterModule() {
     try {
       setRaisingSubmitting(true);
       setError(null);
-      const res = await fetch("/api/scm/v1/operational/exceptions", {
+      const res = await authFetch("/api/scm/v1/operational/exceptions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           shipmentId: newShipmentId.trim(),
           category: newCategory,
@@ -361,6 +360,9 @@ export default function ExceptionCenterModule() {
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
               <input
+                id="exception-center-search"
+                name="exceptionSearch"
+                aria-label="Search exceptions"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -373,8 +375,16 @@ export default function ExceptionCenterModule() {
           <div className="flex items-center gap-3 flex-wrap">
             {/* Category Filter */}
             <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-slate-400">Category:</span>
+              <label
+                htmlFor="filter-exception-category"
+                className="text-slate-400"
+              >
+                Category:
+              </label>
               <select
+                id="filter-exception-category"
+                name="filterCategory"
+                aria-label="Filter by Category"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="p-1.5 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-200 focus:outline-none focus:border-indigo-500"
@@ -390,8 +400,16 @@ export default function ExceptionCenterModule() {
 
             {/* Severity Filter */}
             <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-slate-400">Severity:</span>
+              <label
+                htmlFor="filter-exception-severity"
+                className="text-slate-400"
+              >
+                Severity:
+              </label>
               <select
+                id="filter-exception-severity"
+                name="filterSeverity"
+                aria-label="Filter by Severity"
                 value={severityFilter}
                 onChange={(e) => setSeverityFilter(e.target.value)}
                 className="p-1.5 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-200 focus:outline-none focus:border-indigo-500"
@@ -570,10 +588,16 @@ export default function ExceptionCenterModule() {
             {/* Step 2: Decide & Act */}
             <form onSubmit={handleResolveSubmit} className="space-y-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-300">
+                <label
+                  htmlFor="resolve-justification"
+                  className="block text-xs font-semibold text-slate-300"
+                >
                   Resolution Justification (Required)
                 </label>
                 <textarea
+                  id="resolve-justification"
+                  name="resolutionNote"
+                  aria-label="Resolution Justification"
                   required
                   rows={3}
                   value={resolutionNote}
@@ -635,10 +659,16 @@ export default function ExceptionCenterModule() {
 
             <form onSubmit={handleRaiseSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label
+                  htmlFor="raise-target-shipment"
+                  className="block text-xs font-semibold text-slate-300 mb-1"
+                >
                   Target Shipment ID
                 </label>
                 <input
+                  id="raise-target-shipment"
+                  name="shipmentId"
+                  aria-label="Target Shipment ID"
                   type="text"
                   required
                   value={newShipmentId}
@@ -650,10 +680,16 @@ export default function ExceptionCenterModule() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label
+                    htmlFor="raise-category"
+                    className="block text-xs font-semibold text-slate-300 mb-1"
+                  >
                     Category
                   </label>
                   <select
+                    id="raise-category"
+                    name="category"
+                    aria-label="Category"
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="w-full p-2 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-200 focus:outline-none focus:border-indigo-500"
@@ -667,10 +703,16 @@ export default function ExceptionCenterModule() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label
+                    htmlFor="raise-severity"
+                    className="block text-xs font-semibold text-slate-300 mb-1"
+                  >
                     Severity
                   </label>
                   <select
+                    id="raise-severity"
+                    name="severity"
+                    aria-label="Severity"
                     value={newSeverity}
                     onChange={(e) => setNewSeverity(e.target.value)}
                     className="w-full p-2 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-200 focus:outline-none focus:border-indigo-500"
@@ -684,10 +726,16 @@ export default function ExceptionCenterModule() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label
+                  htmlFor="raise-title"
+                  className="block text-xs font-semibold text-slate-300 mb-1"
+                >
                   Title
                 </label>
                 <input
+                  id="raise-title"
+                  name="title"
+                  aria-label="Title"
                   type="text"
                   required
                   value={newTitle}
@@ -698,10 +746,16 @@ export default function ExceptionCenterModule() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label
+                  htmlFor="raise-description"
+                  className="block text-xs font-semibold text-slate-300 mb-1"
+                >
                   Description
                 </label>
                 <textarea
+                  id="raise-description"
+                  name="description"
+                  aria-label="Description"
                   rows={3}
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
@@ -712,8 +766,9 @@ export default function ExceptionCenterModule() {
 
               <div className="flex items-center gap-2 pt-1">
                 <input
-                  type="checkbox"
                   id="blockingCheckCenter"
+                  name="isBlocking"
+                  aria-label="Mark as Blocking Exception"
                   checked={newIsBlocking}
                   onChange={(e) => setNewIsBlocking(e.target.checked)}
                   className="rounded bg-slate-800 border-slate-700 text-rose-500 focus:ring-0"

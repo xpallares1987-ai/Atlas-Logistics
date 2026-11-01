@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
+import { authFetch } from "../lib/api";
 import {
   AlertCircle,
   AlertTriangle,
@@ -273,16 +274,21 @@ export default function ShipmentWorkspace360Module() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch("/api/scm/v1/operational/shipments-360");
+      const res = await authFetch("/api/scm/v1/operational/shipments-360");
       if (!res.ok)
         throw new Error(`HTTP error ${res.status}: Failed to fetch shipments`);
       const data = await res.json();
-      setShipmentsList(data);
+      const items: OperationalShipment360View[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+          ? data.items
+          : [];
+      setShipmentsList(items);
 
       // If no shipment selected yet, pick the first or keep URL one
-      if (data.length > 0) {
+      if (items.length > 0) {
         if (!selectedShipmentId) {
-          const firstId = data[0].shipmentId;
+          const firstId = items[0].shipmentId;
           setSelectedShipmentId(firstId);
           setSearchParams({ id: firstId });
         }
@@ -302,7 +308,9 @@ export default function ShipmentWorkspace360Module() {
     try {
       setDetailLoading(true);
       setError(null);
-      const res = await fetch(`/api/scm/v1/operational/shipments/${id}/360`);
+      const res = await authFetch(
+        `/api/scm/v1/operational/shipments/${id}/360`,
+      );
       if (!res.ok)
         throw new Error(`Failed to load shipment 360 data for ${id}`);
       const data = await res.json();
@@ -321,12 +329,12 @@ export default function ShipmentWorkspace360Module() {
     if (!id) return;
     try {
       setTimelineLoading(true);
-      const res = await fetch(
+      const res = await authFetch(
         `/api/scm/v1/operational/shipments/${id}/timeline`,
       );
       if (res.ok) {
         const data = await res.json();
-        setTimelineEvents(data);
+        setTimelineEvents(Array.isArray(data) ? data : (data?.items ?? []));
       }
     } catch (err) {
       console.error("Failed to load timeline", err);
@@ -340,12 +348,12 @@ export default function ShipmentWorkspace360Module() {
     if (!id) return;
     try {
       setAuditLoading(true);
-      const res = await fetch(
+      const res = await authFetch(
         `/api/scm/v1/operational/shipments/${id}/audit-trail`,
       );
       if (res.ok) {
         const data = await res.json();
-        setAuditEvents(data);
+        setAuditEvents(Array.isArray(data) ? data : (data?.items ?? []));
       }
     } catch (err) {
       console.error("Failed to load audit trail", err);
@@ -401,11 +409,10 @@ export default function ShipmentWorkspace360Module() {
         const note =
           activeActionModal.inputs["resolutionNote"] ||
           "Resolved in-situ via Command Center";
-        const res = await fetch(
+        const res = await authFetch(
           `/api/scm/v1/operational/exceptions/${activeActionModal.targetId}/resolve`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ resolutionNote: note }),
           },
         );
@@ -415,7 +422,7 @@ export default function ShipmentWorkspace360Module() {
         );
       } else {
         // Find corresponding task's workItemId or execute directly via cockpit execute endpoint
-        const cockpitRes = await fetch(
+        const cockpitRes = await authFetch(
           `/api/scm/v1/operational/cockpit?shipmentId=${shipmentDetail.shipmentId}`,
         );
         const cockpitItems = await cockpitRes.json();
@@ -424,22 +431,20 @@ export default function ShipmentWorkspace360Module() {
         );
 
         if (matchedItem) {
-          const execRes = await fetch(
+          const execRes = await authFetch(
             `/api/scm/v1/operational/cockpit/${matchedItem.workItemId}/execute`,
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ inputValues: activeActionModal.inputs }),
             },
           );
           if (!execRes.ok) throw new Error("Failed to execute cockpit command");
         } else {
           // Direct fallback complete task command
-          const res = await fetch(
+          const res = await authFetch(
             `/api/scm/v1/operational/cockpit/task_${activeActionModal.targetId}/execute`,
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ inputValues: activeActionModal.inputs }),
             },
           );
@@ -472,9 +477,8 @@ export default function ShipmentWorkspace360Module() {
     try {
       setRaiseSubmitting(true);
       setError(null);
-      const res = await fetch(`/api/scm/v1/operational/exceptions`, {
+      const res = await authFetch(`/api/scm/v1/operational/exceptions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           shipmentId: shipmentDetail.shipmentId,
           category: newExceptionCategory,
@@ -599,6 +603,9 @@ export default function ShipmentWorkspace360Module() {
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
               <input
+                id="shipment-360-search"
+                name="shipmentFilter"
+                aria-label="Filter shipments"
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
@@ -1652,10 +1659,16 @@ export default function ShipmentWorkspace360Module() {
 
               {activeActionModal.type === "RESOLVE_EXCEPTION" ? (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label
+                    htmlFor="modal-resolution-note"
+                    className="block text-xs font-semibold text-slate-300 mb-1"
+                  >
                     Resolution Justification Note
                   </label>
                   <textarea
+                    id="modal-resolution-note"
+                    name="resolutionNote"
+                    aria-label="Resolution Justification Note"
                     required
                     rows={3}
                     value={activeActionModal.inputs["resolutionNote"] || ""}
@@ -1678,13 +1691,19 @@ export default function ShipmentWorkspace360Module() {
                   activeActionModal.primaryAction.inputFields.length > 0 ? (
                     activeActionModal.primaryAction.inputFields.map((f) => (
                       <div key={f.name}>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        <label
+                          htmlFor={`modal-field-${f.name}`}
+                          className="block text-xs font-semibold text-slate-300 mb-1"
+                        >
                           {f.label}{" "}
                           {f.required && (
                             <span className="text-rose-400">*</span>
                           )}
                         </label>
                         <input
+                          id={`modal-field-${f.name}`}
+                          name={f.name}
+                          aria-label={f.label}
                           type={f.type === "number" ? "number" : "text"}
                           required={f.required}
                           value={activeActionModal.inputs[f.name] || ""}

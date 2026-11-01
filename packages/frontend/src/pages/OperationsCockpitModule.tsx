@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { authFetch } from "../lib/api";
 import {
   AlertTriangle,
   ArrowRight,
@@ -129,8 +130,8 @@ export default function OperationsCockpitModule() {
       }
 
       const [cockpitRes, summaryRes] = await Promise.all([
-        fetch(`/api/scm/v1/operational/cockpit?${params.toString()}`),
-        fetch("/api/scm/v1/operational/cockpit/summary"),
+        authFetch(`/api/scm/v1/operational/cockpit?${params.toString()}`),
+        authFetch("/api/scm/v1/operational/cockpit/summary"),
       ]);
 
       if (cockpitRes.ok) {
@@ -205,11 +206,10 @@ export default function OperationsCockpitModule() {
 
     try {
       setSubmitting(true);
-      const res = await fetch(
+      const res = await authFetch(
         `/api/scm/v1/operational/cockpit/${selectedItem.workItemId}/execute`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             result: formData,
             notes:
@@ -456,6 +456,9 @@ export default function OperationsCockpitModule() {
           <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
             <input
+              id="cockpit-search-input"
+              name="cockpitSearch"
+              aria-label="Search reference, task, hold..."
               type="text"
               placeholder="Search reference, task, hold..."
               value={search}
@@ -808,11 +811,17 @@ export default function OperationsCockpitModule() {
                 {selectedItem.itemType === "EXCEPTION" ? (
                   <div className="flex flex-col gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      <label
+                        htmlFor="cockpit-resolution-notes"
+                        className="block text-xs font-semibold text-slate-300 mb-1"
+                      >
                         Resolution Notes{" "}
                         <span className="text-rose-400">*</span>
                       </label>
                       <textarea
+                        id="cockpit-resolution-notes"
+                        name="resolutionNotes"
+                        aria-label="Resolution Notes"
                         required
                         rows={3}
                         value={formData.resolutionNotes || ""}
@@ -861,13 +870,19 @@ export default function OperationsCockpitModule() {
                   <div className="flex flex-col gap-3">
                     {selectedItem.primaryAction?.inputFields?.map((field) => (
                       <div key={field.name}>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        <label
+                          htmlFor={`task-field-${field.name}`}
+                          className="block text-xs font-semibold text-slate-300 mb-1"
+                        >
                           {field.label}{" "}
                           {field.required && (
                             <span className="text-rose-400">*</span>
                           )}
                         </label>
                         <input
+                          id={`task-field-${field.name}`}
+                          name={field.name}
+                          aria-label={field.label}
                           type={field.type === "number" ? "number" : "text"}
                           required={field.required}
                           value={formData[field.name] ?? ""}

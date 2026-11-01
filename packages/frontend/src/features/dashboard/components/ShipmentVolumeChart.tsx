@@ -52,7 +52,10 @@ export function ShipmentVolumeChart() {
         </div>
       </div>
 
-      <div className="flex-1 w-full z-10" style={{ minHeight: 0 }}>
+      <div
+        className="flex-1 w-full z-10"
+        style={{ minHeight: 280, height: 280 }}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}

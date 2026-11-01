@@ -43,7 +43,7 @@ export default function App() {
             />
 
             {/* Main Content Area */}
-            <main className="flex-1 flex flex-col overflow-hidden relative bg-slate-50 w-full">
+            <main className="flex-1 flex flex-col overflow-hidden relative bg-slate-900 dark:bg-slate-900 w-full">
               {/* Top Navbar */}
               <TopNavbar setMobileMenuOpen={setMobileMenuOpen} />
 
@@ -53,7 +53,7 @@ export default function App() {
               </div>
 
               {/* Footer */}
-              <footer className="h-12 border-t border-slate-200 bg-white flex items-center justify-between px-8 text-xs text-slate-500 z-40 shrink-0">
+              <footer className="h-12 border-t border-slate-800 bg-slate-950 flex items-center justify-between px-8 text-xs text-slate-500 z-40 shrink-0">
                 <div>
                   &copy; {new Date().getFullYear()} Atlas Logistics Enterprise.
                   All rights reserved.

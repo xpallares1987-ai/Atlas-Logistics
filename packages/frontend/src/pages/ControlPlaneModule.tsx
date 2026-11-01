@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { authFetch } from "../lib/api";
 import {
   Activity,
   AlertCircle,
@@ -68,8 +69,8 @@ export default function ControlPlaneModule() {
     try {
       setLoading(true);
       const [healthRes, dlqRes] = await Promise.all([
-        fetch("/api/scm/v1/operational/projections/health"),
-        fetch("/api/scm/v1/operational/outbox/dlq"),
+        authFetch("/api/scm/v1/operational/projections/health"),
+        authFetch("/api/scm/v1/operational/outbox/dlq"),
       ]);
 
       if (healthRes.ok) {
@@ -102,7 +103,7 @@ export default function ControlPlaneModule() {
     try {
       setReplayingEventId(eventId);
       setMessage(null);
-      const res = await fetch(
+      const res = await authFetch(
         `/api/scm/v1/operational/outbox/dlq/${eventId}/replay`,
         {
           method: "POST",
@@ -147,9 +148,12 @@ export default function ControlPlaneModule() {
       setMessage(null);
       setRebuildResult(null);
 
-      const res = await fetch("/api/scm/v1/operational/projections/rebuild", {
-        method: "POST",
-      });
+      const res = await authFetch(
+        "/api/scm/v1/operational/projections/rebuild",
+        {
+          method: "POST",
+        },
+      );
       if (!res.ok) throw new Error(`Rebuild failed with HTTP ${res.status}`);
       const data = await res.json();
       setRebuildResult(data);

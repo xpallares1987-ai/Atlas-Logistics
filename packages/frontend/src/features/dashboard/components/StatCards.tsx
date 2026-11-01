@@ -68,8 +68,8 @@ export function StatCards() {
         return (
           <motion.div
             key={stat.id}
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 p-6 flex items-center gap-4 group transition-all duration-300 hover:border-white/20 hover:shadow-2xl hover:shadow-indigo-500/10"
+            whileHover={{ y: -4 }}
+            className="relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 p-6 flex items-center gap-4 group min-h-[112px] transition-transform duration-200 will-change-transform hover:shadow-2xl hover:shadow-indigo-500/10"
           >
             {/* Ambient Background Glow */}
             <div

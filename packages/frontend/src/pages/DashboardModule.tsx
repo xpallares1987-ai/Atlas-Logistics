@@ -78,12 +78,7 @@ export function DashboardModule() {
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto min-h-[calc(100vh-4rem)] bg-slate-950 text-slate-100 overflow-x-hidden">
-      <motion.div
-        className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4"
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-      >
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <div>
           <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-emerald-400 to-emerald-200 mb-2 tracking-tight">
             Command Center
@@ -93,7 +88,7 @@ export function DashboardModule() {
           </p>
         </div>
         <QuickActions />
-      </motion.div>
+      </div>
 
       <motion.div
         variants={containerVariants}

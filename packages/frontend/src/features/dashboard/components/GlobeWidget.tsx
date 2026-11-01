@@ -22,8 +22,7 @@ export function GlobeWidget() {
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/50 to-slate-900/20 z-10 pointer-events-none" />
 
       {/* 2D Vector Map Background */}
-      <div className="absolute inset-0 z-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+PHBhdGggZmlsbD0iIzYzNjZmMSIgZD0iTTMwLjUgMjEuNWw1LTMgNC01IDUtMSAzIDUgNCA2LTItMy0zLTItMyAybC0zIDR6Ii8+PHBhdGggZmlsbD0iIzYzNjZmMSIgZD0iTTkwLjUgMTEuNWwyLTQgNi0yIDMgNCAxIDcgMiA1LTQgMi0zLTItMi03em00NCA0NGwyLTUgNy0yIDUgNCAzIDcgNCA2LTItMy0zLTItMyAyem02MCA2MGwyLTQgNi0yIDMgNCAxIDcgMiA1LTQgMi0zLTItMi03eiIvPjwvc3ZnPg==')] bg-cover bg-center" />
-      <div className="absolute inset-0 z-0 opacity-40 bg-[url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')] bg-cover bg-center [mask-image:linear-gradient(to_bottom,white,transparent)] invert mix-blend-screen" />
+      <div className="absolute inset-0 z-0 opacity-25 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+PHBhdGggZmlsbD0iIzYzNjZmMSIgZD0iTTMwLjUgMjEuNWw1LTMgNC01IDUtMSAzIDUgNCA2LTItMy0zLTItMyAybC0zIDR6Ii8+PHBhdGggZmlsbD0iIzYzNjZmMSIgZD0iTTkwLjUgMTEuNWwyLTQgNi0yIDMgNCAxIDcgMiA1LTQgMi0zLTItMi03em00NCA0NGwyLTUgNy0yIDUgNCAzIDcgNCA2LTItMy0zLTItMyAyem02MCA2MGwyLTQgNi0yIDMgNCAxIDcgMiA1LTQgMi0zLTItMi03eiIvPjwvc3ZnPg==')] bg-cover bg-center [mask-image:linear-gradient(to_bottom,white,transparent)] mix-blend-screen" />
 
       {/* Simulated Active Nodes */}
       <div className="absolute top-[40%] left-[25%] w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_15px_#34d399] z-0 animate-pulse" />

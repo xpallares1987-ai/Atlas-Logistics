@@ -47,9 +47,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm exec npm rebuild --production 2>/dev/null || true
 
 # ============================================================================
-# STAGE 4: PRODUCTION — Chainguard hardened Node.js image
+# STAGE 4: PRODUCTION — Standard Node.js image
 # ============================================================================
-FROM cgr.dev/chainguard/node:latest AS production
+FROM node:${NODE_VERSION}-alpine AS production
 
 ENV NODE_ENV="production"
 ENV NODE_OPTIONS="--max-old-space-size=2048"
@@ -57,22 +57,22 @@ ENV NODE_OPTIONS="--max-old-space-size=2048"
 WORKDIR /app
 
 # Copy production dependencies with explicit ownership
-COPY --chown=nonroot:nonroot --from=prod-deps /app/node_modules /app/node_modules
-COPY --chown=nonroot:nonroot --from=build /app/packages /app/packages
-COPY --chown=nonroot:nonroot --from=build /app/src /app/src
-COPY --chown=nonroot:nonroot --from=build /app/drizzle /app/drizzle
+COPY --from=prod-deps /app/node_modules /app/node_modules
+COPY --from=build /app/packages /app/packages
+COPY --from=build /app/src /app/src
+COPY --from=build /app/drizzle /app/drizzle
 
 # Create data directory for SQLite
-RUN mkdir -p /app/data && chown nonroot:nonroot /app/data
+RUN mkdir -p /app/data
 
 # Only copy necessary manifests
-COPY --chown=nonroot:nonroot pnpm-lock.yaml package.json ./
+COPY pnpm-lock.yaml package.json ./
 
 EXPOSE 3001
 
 # Healthcheck using native Node
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
-    CMD ["/usr/bin/node", "-e", "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+    CMD ["/bin/sh", "-c", "node -e \"fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\" || exit 1"]
 
 CMD ["--import", "tsx/esm", "src/server.ts"]
 

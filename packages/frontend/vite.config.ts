@@ -1,16 +1,13 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import tailwindcss from "@tailwindcss/vite";
 import federation from "@originjs/vite-plugin-federation";
 import { VitePWA } from "vite-plugin-pwa";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [
     react(),
-    nodePolyfills(),
     federation({
       name: "host",
       remotes: {
@@ -52,15 +49,49 @@ export default defineConfig({
         ],
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 5000000, // 5MB to accommodate three.js
+        maximumFileSizeToCacheInBytes: 5000000,
       },
     }),
   ],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),
-      "@atlas/mfe-warehouse": path.resolve(import.meta.dirname, "../mfe-warehouse"),
-      "@atlas/rate-comparer": path.resolve(import.meta.dirname, "../rate-comparer"),
+      "@atlas/mfe-warehouse": path.resolve(
+        import.meta.dirname,
+        "../mfe-warehouse",
+      ),
+      "@atlas/rate-comparer": path.resolve(
+        import.meta.dirname,
+        "../rate-comparer",
+      ),
+    },
+  },
+  build: {
+    target: "es2022",
+    cssCodeSplit: true,
+    modulePreload: {
+      polyfill: false,
+    },
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("three") || id.includes("@react-three")) {
+              return "three-vendor";
+            }
+            if (id.includes("recharts") || id.includes("d3-")) {
+              return "charts-vendor";
+            }
+            if (id.includes("bpmn-js")) {
+              return "bpmn-vendor";
+            }
+            if (id.includes("jspdf") || id.includes("pdfjs-dist")) {
+              return "pdf-vendor";
+            }
+          }
+        },
+      },
     },
   },
   server: {
