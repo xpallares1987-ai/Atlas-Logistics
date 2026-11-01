@@ -1,9 +1,9 @@
 import React, { Suspense, useState, useMemo } from "react";
+import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import {
   OrbitControls,
   Box,
-  Environment,
   Text,
   TransformControls,
   Line,
@@ -38,6 +38,50 @@ import {
 } from "@atlas/shared";
 
 // =========================================================================
+// ERROR BOUNDARY FOR 3D WEBGL CANVAS
+// =========================================================================
+
+class CanvasErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: any) {
+    console.warn("3D Canvas error caught:", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-slate-300 bg-slate-950/90 z-20">
+          <p className="text-sm font-bold text-rose-400 mb-2">
+            No se pudo inicializar la vista 3D WebGL
+          </p>
+          <p className="text-xs text-slate-400 max-w-sm mb-4">
+            {this.state.error?.message || "Error interno del renderizador 3D"}
+          </p>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="px-3 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition"
+          >
+            Reintentar Render
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// =========================================================================
 // 3D SCENE OBJECTS
 // =========================================================================
 
@@ -59,11 +103,23 @@ const CargoBox3D: React.FC<CargoBoxProps> = ({
   isConflicting,
 }) => {
   // Convert from corner origin (0, 0, 0) to centered Three.js coordinates
-  const threeX = item.x + item.effectiveWidthM / 2 - container.internalWidthM / 2;
+  const threeX =
+    item.x + item.effectiveWidthM / 2 - container.internalWidthM / 2;
   const threeY = item.z + item.effectiveHeightM / 2;
-  const threeZ = item.y + item.effectiveLengthM / 2 - container.internalLengthM / 2;
+  const threeZ =
+    item.y + item.effectiveLengthM / 2 - container.internalLengthM / 2;
 
   const boxColor = isConflicting ? "#ef4444" : item.color || "#3b82f6";
+
+  const boxGeometry = useMemo(
+    () =>
+      new THREE.BoxGeometry(
+        item.effectiveWidthM,
+        item.effectiveHeightM,
+        item.effectiveLengthM,
+      ),
+    [item.effectiveWidthM, item.effectiveHeightM, item.effectiveLengthM],
+  );
 
   const boxMesh = (
     <group
@@ -73,7 +129,13 @@ const CargoBox3D: React.FC<CargoBoxProps> = ({
         onSelect(item.id);
       }}
     >
-      <Box args={[item.effectiveWidthM, item.effectiveHeightM, item.effectiveLengthM]}>
+      <Box
+        args={[
+          item.effectiveWidthM,
+          item.effectiveHeightM,
+          item.effectiveLengthM,
+        ]}
+      >
         <meshStandardMaterial
           color={boxColor}
           roughness={0.4}
@@ -85,17 +147,11 @@ const CargoBox3D: React.FC<CargoBoxProps> = ({
 
       {/* Edge Wireframe */}
       <lineSegments>
-        <edgesGeometry
-          args={[
-            // @ts-ignore
-            new (window as any).THREE.BoxGeometry(
-              item.effectiveWidthM,
-              item.effectiveHeightM,
-              item.effectiveLengthM
-            ),
-          ]}
+        <edgesGeometry args={[boxGeometry]} />
+        <lineBasicMaterial
+          color={isSelected ? "#ffffff" : "#0f172a"}
+          linewidth={1}
         />
-        <lineBasicMaterial color={isSelected ? "#ffffff" : "#0f172a"} linewidth={1} />
       </lineSegments>
 
       {/* Item Label */}
@@ -127,7 +183,10 @@ interface ContainerShellProps {
   showWalls: boolean;
 }
 
-const ContainerShell3D: React.FC<ContainerShellProps> = ({ container, showWalls }) => {
+const ContainerShell3D: React.FC<ContainerShellProps> = ({
+  container,
+  showWalls,
+}) => {
   const halfW = container.internalWidthM / 2;
   const halfL = container.internalLengthM / 2;
   const h = container.internalHeightM;
@@ -135,12 +194,18 @@ const ContainerShell3D: React.FC<ContainerShellProps> = ({ container, showWalls 
   return (
     <group>
       {/* Floor Deck */}
-      <Box args={[container.internalWidthM, 0.08, container.internalLengthM]} position={[0, -0.04, 0]}>
+      <Box
+        args={[container.internalWidthM, 0.08, container.internalLengthM]}
+        position={[0, -0.04, 0]}
+      >
         <meshStandardMaterial color="#1e293b" roughness={0.8} />
       </Box>
 
       {/* Front Nose Bulkhead */}
-      <Box args={[container.internalWidthM, h, 0.08]} position={[0, h / 2, -halfL - 0.04]}>
+      <Box
+        args={[container.internalWidthM, h, 0.08]}
+        position={[0, h / 2, -halfL - 0.04]}
+      >
         <meshStandardMaterial color="#0f172a" roughness={0.6} />
       </Box>
 
@@ -148,12 +213,28 @@ const ContainerShell3D: React.FC<ContainerShellProps> = ({ container, showWalls 
       {showWalls && (
         <>
           {/* Left Wall */}
-          <Box args={[0.04, h, container.internalLengthM]} position={[-halfW - 0.02, h / 2, 0]}>
-            <meshStandardMaterial color="#3b82f6" opacity={0.12} transparent wireframe={false} />
+          <Box
+            args={[0.04, h, container.internalLengthM]}
+            position={[-halfW - 0.02, h / 2, 0]}
+          >
+            <meshStandardMaterial
+              color="#3b82f6"
+              opacity={0.12}
+              transparent
+              wireframe={false}
+            />
           </Box>
           {/* Right Wall */}
-          <Box args={[0.04, h, container.internalLengthM]} position={[halfW + 0.02, h / 2, 0]}>
-            <meshStandardMaterial color="#3b82f6" opacity={0.12} transparent wireframe={false} />
+          <Box
+            args={[0.04, h, container.internalLengthM]}
+            position={[halfW + 0.02, h / 2, 0]}
+          >
+            <meshStandardMaterial
+              color="#3b82f6"
+              opacity={0.12}
+              transparent
+              wireframe={false}
+            />
           </Box>
         </>
       )}
@@ -165,22 +246,38 @@ const ContainerShell3D: React.FC<ContainerShellProps> = ({ container, showWalls 
         [-halfW, h / 2, halfL],
         [halfW, h / 2, halfL],
       ].map((pos, idx) => (
-        <Box key={idx} args={[0.1, h, 0.1]} position={pos as [number, number, number]}>
+        <Box
+          key={idx}
+          args={[0.1, h, 0.1]}
+          position={pos as [number, number, number]}
+        >
           <meshStandardMaterial color="#475569" />
         </Box>
       ))}
 
       {/* Top Outer Rails */}
-      <Box args={[container.internalWidthM, 0.08, 0.08]} position={[0, h + 0.04, -halfL]}>
+      <Box
+        args={[container.internalWidthM, 0.08, 0.08]}
+        position={[0, h + 0.04, -halfL]}
+      >
         <meshStandardMaterial color="#475569" />
       </Box>
-      <Box args={[container.internalWidthM, 0.08, 0.08]} position={[0, h + 0.04, halfL]}>
+      <Box
+        args={[container.internalWidthM, 0.08, 0.08]}
+        position={[0, h + 0.04, halfL]}
+      >
         <meshStandardMaterial color="#475569" />
       </Box>
-      <Box args={[0.08, 0.08, container.internalLengthM]} position={[-halfW, h + 0.04, 0]}>
+      <Box
+        args={[0.08, 0.08, container.internalLengthM]}
+        position={[-halfW, h + 0.04, 0]}
+      >
         <meshStandardMaterial color="#475569" />
       </Box>
-      <Box args={[0.08, 0.08, container.internalLengthM]} position={[halfW, h + 0.04, 0]}>
+      <Box
+        args={[0.08, 0.08, container.internalLengthM]}
+        position={[halfW, h + 0.04, 0]}
+      >
         <meshStandardMaterial color="#475569" />
       </Box>
     </group>
@@ -206,13 +303,23 @@ const CenterOfGravityMarker3D: React.FC<CenterOfGravityMarkerProps> = ({
   const threeY = cogZ;
   const threeZ = cogY - container.internalLengthM / 2;
 
-  const color = status === "OPTIMAL" ? "#10b981" : status === "ACCEPTABLE" ? "#f59e0b" : "#ef4444";
+  const color =
+    status === "OPTIMAL"
+      ? "#10b981"
+      : status === "ACCEPTABLE"
+        ? "#f59e0b"
+        : "#ef4444";
 
   return (
     <group position={[threeX, threeY, threeZ]}>
       {/* Floating Center of Gravity Sphere */}
       <Sphere args={[0.22, 16, 16]}>
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} roughness={0.2} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.5}
+          roughness={0.2}
+        />
       </Sphere>
 
       {/* Vertical plumb line connecting to container floor */}
@@ -226,7 +333,13 @@ const CenterOfGravityMarker3D: React.FC<CenterOfGravityMarkerProps> = ({
         dashed
       />
 
-      <Text position={[0, 0.35, 0]} fontSize={0.22} color="white" anchorX="center" anchorY="bottom">
+      <Text
+        position={[0, 0.35, 0]}
+        fontSize={0.22}
+        color="white"
+        anchorX="center"
+        anchorY="bottom"
+      >
         CoG
       </Text>
     </group>
@@ -238,29 +351,37 @@ const CenterOfGravityMarker3D: React.FC<CenterOfGravityMarkerProps> = ({
 // =========================================================================
 
 export default function ContainerPlannerModule() {
-  const [selectedContainerKey, setSelectedContainerKey] = useState<ContainerTypeKey>("40ft_hc");
+  const [selectedContainerKey, setSelectedContainerKey] =
+    useState<ContainerTypeKey>("40ft_hc");
   const activeContainer = useMemo(
     () => EQUIPMENT_CATALOG[selectedContainerKey],
-    [selectedContainerKey]
+    [selectedContainerKey],
   );
 
   // Active Manifest Items
   const [cargoList, setCargoList] = useState<CargoItemInput[]>(
-    STOWAGE_DEMO_PRESETS.balanced_40hc.items
+    STOWAGE_DEMO_PRESETS.balanced_40hc.items,
   );
 
   // Optimization Result
   const [optResult, setOptResult] = useState<StowageOptimizationResult>(() =>
-    optimizeStowage3D(EQUIPMENT_CATALOG["40ft_hc"], STOWAGE_DEMO_PRESETS.balanced_40hc.items)
+    optimizeStowage3D(
+      EQUIPMENT_CATALOG["40ft_hc"],
+      STOWAGE_DEMO_PRESETS.balanced_40hc.items,
+    ),
   );
 
   // 3D Canvas View Controls
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [transformMode, setTransformMode] = useState<"translate" | "rotate">("translate");
+  const [transformMode, setTransformMode] = useState<"translate" | "rotate">(
+    "translate",
+  );
   const [showCogMarker, setShowCogMarker] = useState(true);
   const [showWalls, setShowWalls] = useState(true);
   const [autoRotate, setAutoRotate] = useState(false);
-  const [activeTab, setActiveTab] = useState<"AXLE" | "IMDG" | "MANIFEST">("AXLE");
+  const [activeTab, setActiveTab] = useState<"AXLE" | "IMDG" | "MANIFEST">(
+    "AXLE",
+  );
 
   // Add Item Modal / Form state
   const [newItemName, setNewItemName] = useState("");
@@ -273,7 +394,9 @@ export default function ContainerPlannerModule() {
 
   // Handler: Optimize load
   const handleRunOptimizer = (itemsToPack: CargoItemInput[] = cargoList) => {
-    const result = optimizeStowage3D(activeContainer, itemsToPack, { centerPayload: true });
+    const result = optimizeStowage3D(activeContainer, itemsToPack, {
+      centerPayload: true,
+    });
     setOptResult(result);
   };
 
@@ -281,7 +404,9 @@ export default function ContainerPlannerModule() {
   const handleSelectContainer = (key: ContainerTypeKey) => {
     setSelectedContainerKey(key);
     const newContainer = EQUIPMENT_CATALOG[key];
-    const result = optimizeStowage3D(newContainer, cargoList, { centerPayload: true });
+    const result = optimizeStowage3D(newContainer, cargoList, {
+      centerPayload: true,
+    });
     setOptResult(result);
   };
 
@@ -292,7 +417,9 @@ export default function ContainerPlannerModule() {
     setSelectedContainerKey(preset.containerType);
     setCargoList(preset.items);
     const container = EQUIPMENT_CATALOG[preset.containerType];
-    const result = optimizeStowage3D(container, preset.items, { centerPayload: true });
+    const result = optimizeStowage3D(container, preset.items, {
+      centerPayload: true,
+    });
     setOptResult(result);
   };
 
@@ -301,7 +428,14 @@ export default function ContainerPlannerModule() {
     e.preventDefault();
     if (!newItemName.trim()) return;
 
-    const colors = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ec4899", "#06b6d4"];
+    const colors = [
+      "#3b82f6",
+      "#10b981",
+      "#8b5cf6",
+      "#f59e0b",
+      "#ec4899",
+      "#06b6d4",
+    ];
     const newItem: CargoItemInput = {
       id: `item_${Date.now()}`,
       name: newItemName.trim(),
@@ -358,7 +492,10 @@ export default function ContainerPlannerModule() {
             Motor de Estiba 3D & Reparto de Pesos por Eje
           </h1>
           <p className="text-xs text-slate-400 mt-0.5 max-w-3xl">
-            Optimización heurística 3D de cubicaje para contenedores ISO, furgones y megatrailers con cálculo del Centro de Gravedad (CoG), análisis de sobrecarga de ejes (Directiva 96/53/CE) y segregación de mercancías peligrosas IMDG 7.2.4.
+            Optimización heurística 3D de cubicaje para contenedores ISO,
+            furgones y megatrailers con cálculo del Centro de Gravedad (CoG),
+            análisis de sobrecarga de ejes (Directiva 96/53/CE) y segregación de
+            mercancías peligrosas IMDG 7.2.4.
           </p>
         </div>
 
@@ -418,12 +555,15 @@ export default function ContainerPlannerModule() {
 
           <select
             value={selectedContainerKey}
-            onChange={(e) => handleSelectContainer(e.target.value as ContainerTypeKey)}
+            onChange={(e) =>
+              handleSelectContainer(e.target.value as ContainerTypeKey)
+            }
             className="w-full bg-slate-950 border border-slate-800 text-white font-semibold text-xs rounded-xl p-2.5 focus:outline-none focus:border-indigo-500"
           >
             {Object.values(EQUIPMENT_CATALOG).map((spec) => (
               <option key={spec.key} value={spec.key}>
-                {spec.name} ({spec.internalLengthM}m × {spec.internalWidthM}m × {spec.internalHeightM}m)
+                {spec.name} ({spec.internalLengthM}m × {spec.internalWidthM}m ×{" "}
+                {spec.internalHeightM}m)
               </option>
             ))}
           </select>
@@ -431,15 +571,23 @@ export default function ContainerPlannerModule() {
           <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-800 text-center font-mono text-[11px]">
             <div className="bg-slate-950/60 p-2 rounded-xl">
               <div className="text-[9px] text-slate-500 uppercase">Volumen</div>
-              <div className="font-bold text-white">{activeContainer.internalVolumeCbm} m³</div>
+              <div className="font-bold text-white">
+                {activeContainer.internalVolumeCbm} m³
+              </div>
             </div>
             <div className="bg-slate-950/60 p-2 rounded-xl">
-              <div className="text-[9px] text-slate-500 uppercase">Carga Máx</div>
-              <div className="font-bold text-emerald-400">{(activeContainer.maxPayloadKg / 1000).toFixed(1)} t</div>
+              <div className="text-[9px] text-slate-500 uppercase">
+                Carga Máx
+              </div>
+              <div className="font-bold text-emerald-400">
+                {(activeContainer.maxPayloadKg / 1000).toFixed(1)} t
+              </div>
             </div>
             <div className="bg-slate-950/60 p-2 rounded-xl">
               <div className="text-[9px] text-slate-500 uppercase">Tara</div>
-              <div className="font-bold text-slate-300">{activeContainer.tareWeightKg} kg</div>
+              <div className="font-bold text-slate-300">
+                {activeContainer.tareWeightKg} kg
+              </div>
             </div>
           </div>
         </div>
@@ -448,15 +596,22 @@ export default function ContainerPlannerModule() {
         <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* KPI 1: Volumen */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-4 flex flex-col justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Cubicaje Utilizado</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">
+              Cubicaje Utilizado
+            </span>
             <div>
               <div className="text-xl font-black text-white">
-                {optResult.totalCargoVolumeCbm.toFixed(1)} <span className="text-xs font-normal text-slate-400">/ {activeContainer.internalVolumeCbm} m³</span>
+                {optResult.totalCargoVolumeCbm.toFixed(1)}{" "}
+                <span className="text-xs font-normal text-slate-400">
+                  / {activeContainer.internalVolumeCbm} m³
+                </span>
               </div>
               <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
                 <div
                   className="bg-indigo-500 h-full rounded-full transition-all"
-                  style={{ width: `${Math.min(100, optResult.volumeUtilizationPercent)}%` }}
+                  style={{
+                    width: `${Math.min(100, optResult.volumeUtilizationPercent)}%`,
+                  }}
                 />
               </div>
             </div>
@@ -467,17 +622,26 @@ export default function ContainerPlannerModule() {
 
           {/* KPI 2: Payload */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-4 flex flex-col justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Carga Útil Total</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">
+              Carga Útil Total
+            </span>
             <div>
               <div className="text-xl font-black text-white">
-                {(optResult.totalCargoWeightKg / 1000).toFixed(1)} <span className="text-xs font-normal text-slate-400">/ {(activeContainer.maxPayloadKg / 1000).toFixed(1)} t</span>
+                {(optResult.totalCargoWeightKg / 1000).toFixed(1)}{" "}
+                <span className="text-xs font-normal text-slate-400">
+                  / {(activeContainer.maxPayloadKg / 1000).toFixed(1)} t
+                </span>
               </div>
               <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
-                    optResult.weightUtilizationPercent > 100 ? "bg-rose-500" : "bg-emerald-500"
+                    optResult.weightUtilizationPercent > 100
+                      ? "bg-rose-500"
+                      : "bg-emerald-500"
                   }`}
-                  style={{ width: `${Math.min(100, optResult.weightUtilizationPercent)}%` }}
+                  style={{
+                    width: `${Math.min(100, optResult.weightUtilizationPercent)}%`,
+                  }}
                 />
               </div>
             </div>
@@ -488,11 +652,15 @@ export default function ContainerPlannerModule() {
 
           {/* KPI 3: Stability CoG */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-4 flex flex-col justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Score Estabilidad CoG</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">
+              Score Estabilidad CoG
+            </span>
             <div>
               <div className="text-xl font-black text-white flex items-center gap-1.5">
                 <span>{optResult.centerOfGravity.stabilityScore}</span>
-                <span className="text-xs font-normal text-slate-400">/ 100</span>
+                <span className="text-xs font-normal text-slate-400">
+                  / 100
+                </span>
               </div>
               <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
                 <div
@@ -500,10 +668,12 @@ export default function ContainerPlannerModule() {
                     optResult.centerOfGravity.stabilityScore >= 80
                       ? "bg-emerald-500"
                       : optResult.centerOfGravity.stabilityScore >= 60
-                      ? "bg-amber-500"
-                      : "bg-rose-500"
+                        ? "bg-amber-500"
+                        : "bg-rose-500"
                   }`}
-                  style={{ width: `${optResult.centerOfGravity.stabilityScore}%` }}
+                  style={{
+                    width: `${optResult.centerOfGravity.stabilityScore}%`,
+                  }}
                 />
               </div>
             </div>
@@ -512,21 +682,23 @@ export default function ContainerPlannerModule() {
                 optResult.centerOfGravity.lateralStatus === "OPTIMAL"
                   ? "text-emerald-400"
                   : optResult.centerOfGravity.lateralStatus === "ACCEPTABLE"
-                  ? "text-amber-400"
-                  : "text-rose-400"
+                    ? "text-amber-400"
+                    : "text-rose-400"
               }`}
             >
               {optResult.centerOfGravity.lateralStatus === "OPTIMAL"
                 ? "Óptimo Balanceado"
                 : optResult.centerOfGravity.lateralStatus === "ACCEPTABLE"
-                ? "Aceptable"
-                : "Riesgo de Escora"}
+                  ? "Aceptable"
+                  : "Riesgo de Escora"}
             </span>
           </div>
 
           {/* KPI 4: Axle Compliance */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-4 flex flex-col justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Cargas por Eje</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">
+              Cargas por Eje
+            </span>
             <div>
               <div className="text-xl font-black text-white flex items-center gap-1.5">
                 {optResult.axleDistribution.isLegal ? (
@@ -535,19 +707,29 @@ export default function ContainerPlannerModule() {
                   <AlertTriangle size={20} className="text-rose-400" />
                 )}
                 <span className="text-sm font-bold">
-                  {optResult.axleDistribution.isLegal ? "Conforme" : "Sobrecarga"}
+                  {optResult.axleDistribution.isLegal
+                    ? "Conforme"
+                    : "Sobrecarga"}
                 </span>
               </div>
               <div className="text-[10px] font-mono text-slate-300 mt-2">
-                MMA: {(optResult.axleDistribution.grossCombinedWeightKg / 1000).toFixed(1)} t
+                MMA:{" "}
+                {(
+                  optResult.axleDistribution.grossCombinedWeightKg / 1000
+                ).toFixed(1)}{" "}
+                t
               </div>
             </div>
             <span
               className={`text-[10px] font-bold ${
-                optResult.axleDistribution.isLegal ? "text-emerald-400" : "text-rose-400"
+                optResult.axleDistribution.isLegal
+                  ? "text-emerald-400"
+                  : "text-rose-400"
               }`}
             >
-              {optResult.axleDistribution.isLegal ? "Directiva 96/53/CE OK" : "Infracción Legal"}
+              {optResult.axleDistribution.isLegal
+                ? "Directiva 96/53/CE OK"
+                : "Infracción Legal"}
             </span>
           </div>
         </div>
@@ -601,7 +783,9 @@ export default function ContainerPlannerModule() {
                 <button
                   onClick={() => setTransformMode("translate")}
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
-                    transformMode === "translate" ? "bg-indigo-600 text-white" : "text-slate-400"
+                    transformMode === "translate"
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-400"
                   }`}
                 >
                   Mover
@@ -609,7 +793,9 @@ export default function ContainerPlannerModule() {
                 <button
                   onClick={() => setTransformMode("rotate")}
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
-                    transformMode === "rotate" ? "bg-indigo-600 text-white" : "text-slate-400"
+                    transformMode === "rotate"
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-400"
                   }`}
                 >
                   Girar
@@ -619,53 +805,58 @@ export default function ContainerPlannerModule() {
           </div>
 
           {/* 3D Canvas */}
-          <Suspense
-            fallback={
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-xs font-mono">
-                Cargando Renderizador 3D WebGL...
-              </div>
-            }
-          >
-            <Canvas
-              camera={{ position: [5, 4, 9], fov: 42 }}
-              className="w-full h-full"
+          <CanvasErrorBoundary>
+            <Suspense
+              fallback={
+                <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-xs font-mono">
+                  Cargando Renderizador 3D WebGL...
+                </div>
+              }
             >
-              <ambientLight intensity={0.6} />
-              <pointLight position={[10, 10, 10]} intensity={1.2} />
-              <pointLight position={[-10, 5, -10]} intensity={0.5} />
-              <Environment preset="city" />
+              <Canvas
+                camera={{ position: [5, 4, 9], fov: 42 }}
+                className="w-full h-full"
+              >
+                <ambientLight intensity={0.8} />
+                <directionalLight position={[10, 15, 10]} intensity={1.5} />
+                <directionalLight position={[-10, 8, -10]} intensity={0.6} />
+                <hemisphereLight intensity={0.3} groundColor="#0f172a" />
 
-              <ContainerShell3D container={activeContainer} showWalls={showWalls} />
-
-              {optResult.packedItems.map((item) => (
-                <CargoBox3D
-                  key={item.id}
-                  item={item}
-                  isSelected={selectedId === item.id}
-                  onSelect={setSelectedId}
-                  mode={transformMode}
+                <ContainerShell3D
                   container={activeContainer}
-                  isConflicting={conflictingItemIds.has(item.id)}
+                  showWalls={showWalls}
                 />
-              ))}
 
-              {showCogMarker && (
-                <CenterOfGravityMarker3D
-                  cogX={optResult.centerOfGravity.cogX}
-                  cogY={optResult.centerOfGravity.cogY}
-                  cogZ={optResult.centerOfGravity.cogZ}
-                  container={activeContainer}
-                  status={optResult.centerOfGravity.lateralStatus}
+                {optResult.packedItems.map((item) => (
+                  <CargoBox3D
+                    key={item.id}
+                    item={item}
+                    isSelected={selectedId === item.id}
+                    onSelect={setSelectedId}
+                    mode={transformMode}
+                    container={activeContainer}
+                    isConflicting={conflictingItemIds.has(item.id)}
+                  />
+                ))}
+
+                {showCogMarker && (
+                  <CenterOfGravityMarker3D
+                    cogX={optResult.centerOfGravity.cogX}
+                    cogY={optResult.centerOfGravity.cogY}
+                    cogZ={optResult.centerOfGravity.cogZ}
+                    container={activeContainer}
+                    status={optResult.centerOfGravity.lateralStatus}
+                  />
+                )}
+
+                <OrbitControls
+                  makeDefault
+                  autoRotate={autoRotate && !selectedId}
+                  autoRotateSpeed={0.8}
                 />
-              )}
-
-              <OrbitControls
-                makeDefault
-                autoRotate={autoRotate && !selectedId}
-                autoRotateSpeed={0.8}
-              />
-            </Canvas>
-          </Suspense>
+              </Canvas>
+            </Suspense>
+          </CanvasErrorBoundary>
 
           {/* CoG 2D Top-Down Radar HUD (Bottom Right of Canvas) */}
           <div className="absolute bottom-4 right-4 bg-slate-950/90 p-3 rounded-2xl border border-slate-800 text-white z-10 w-44 shadow-2xl">
@@ -674,13 +865,21 @@ export default function ContainerPlannerModule() {
                 <Scale size={12} className="text-amber-400" />
                 Radar CoG 2D
               </span>
-              <span className="font-mono text-[9px] text-slate-400">±5% Tolerancia</span>
+              <span className="font-mono text-[9px] text-slate-400">
+                ±5% Tolerancia
+              </span>
             </div>
 
             <div className="w-36 h-28 mx-auto relative border border-slate-700 bg-slate-900 rounded-xl flex items-center justify-center overflow-hidden">
               {/* Center Crosshair */}
-              <div className="absolute inset-x-0 h-px bg-slate-800" style={{ top: "50%" }} />
-              <div className="absolute inset-y-0 w-px bg-slate-800" style={{ left: "50%" }} />
+              <div
+                className="absolute inset-x-0 h-px bg-slate-800"
+                style={{ top: "50%" }}
+              />
+              <div
+                className="absolute inset-y-0 w-px bg-slate-800"
+                style={{ left: "50%" }}
+              />
 
               {/* Safety Boundary Box (±5% deviation) */}
               <div
@@ -688,8 +887,12 @@ export default function ContainerPlannerModule() {
                 style={{ top: "calc(50% - 32px)", left: "calc(50% - 20px)" }}
               />
 
-              <span className="absolute top-1 left-1.5 text-[8px] font-mono text-slate-500">FRONT (Nose)</span>
-              <span className="absolute bottom-1 right-1.5 text-[8px] font-mono text-slate-500">DOOR</span>
+              <span className="absolute top-1 left-1.5 text-[8px] font-mono text-slate-500">
+                FRONT (Nose)
+              </span>
+              <span className="absolute bottom-1 right-1.5 text-[8px] font-mono text-slate-500">
+                DOOR
+              </span>
 
               {/* Floating CoG Dot */}
               <div
@@ -697,8 +900,8 @@ export default function ContainerPlannerModule() {
                   optResult.centerOfGravity.lateralStatus === "OPTIMAL"
                     ? "bg-emerald-500 ring-2 ring-emerald-400/40 animate-pulse"
                     : optResult.centerOfGravity.lateralStatus === "ACCEPTABLE"
-                    ? "bg-amber-500 ring-2 ring-amber-400/40"
-                    : "bg-rose-500 ring-2 ring-rose-400/40 animate-bounce"
+                      ? "bg-amber-500 ring-2 ring-amber-400/40"
+                      : "bg-rose-500 ring-2 ring-rose-400/40 animate-bounce"
                 }`}
                 style={{
                   left: `${Math.min(90, Math.max(10, 50 + optResult.centerOfGravity.lateralDeviationPercent * 3))}%`,
@@ -710,8 +913,12 @@ export default function ContainerPlannerModule() {
             </div>
 
             <div className="mt-2 flex justify-between text-[9px] text-slate-400 font-mono">
-              <span>Lat: {optResult.centerOfGravity.lateralDeviationPercent}%</span>
-              <span>Long: {optResult.centerOfGravity.longitudinalDeviationPercent}%</span>
+              <span>
+                Lat: {optResult.centerOfGravity.lateralDeviationPercent}%
+              </span>
+              <span>
+                Long: {optResult.centerOfGravity.longitudinalDeviationPercent}%
+              </span>
             </div>
           </div>
         </div>
@@ -770,22 +977,29 @@ export default function ContainerPlannerModule() {
                         : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                     }`}
                   >
-                    {optResult.axleDistribution.isLegal ? "LEGAL / APTO" : "SOBREPESO"}
+                    {optResult.axleDistribution.isLegal
+                      ? "LEGAL / APTO"
+                      : "SOBREPESO"}
                   </span>
                 </div>
 
                 {/* Steer Axle */}
                 <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-white/5 space-y-1.5">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-slate-300">Eje Directriz Tractor (Eje 1)</span>
+                    <span className="font-semibold text-slate-300">
+                      Eje Directriz Tractor (Eje 1)
+                    </span>
                     <span className="font-mono font-bold text-white">
-                      {optResult.axleDistribution.steerAxleLoadKg.toLocaleString()} / 7,000 kg
+                      {optResult.axleDistribution.steerAxleLoadKg.toLocaleString()}{" "}
+                      / 7,000 kg
                     </span>
                   </div>
                   <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${
-                        optResult.axleDistribution.steerOverloadKg > 0 ? "bg-rose-500" : "bg-indigo-500"
+                        optResult.axleDistribution.steerOverloadKg > 0
+                          ? "bg-rose-500"
+                          : "bg-indigo-500"
                       }`}
                       style={{
                         width: `${Math.min(100, (optResult.axleDistribution.steerAxleLoadKg / 7000) * 100)}%`,
@@ -797,15 +1011,20 @@ export default function ContainerPlannerModule() {
                 {/* Drive Axle */}
                 <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-white/5 space-y-1.5">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-slate-300">Eje Motriz Tractor (Quinta Rueda)</span>
+                    <span className="font-semibold text-slate-300">
+                      Eje Motriz Tractor (Quinta Rueda)
+                    </span>
                     <span className="font-mono font-bold text-white">
-                      {optResult.axleDistribution.driveAxleLoadKg.toLocaleString()} / 11,500 kg
+                      {optResult.axleDistribution.driveAxleLoadKg.toLocaleString()}{" "}
+                      / 11,500 kg
                     </span>
                   </div>
                   <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${
-                        optResult.axleDistribution.driveOverloadKg > 0 ? "bg-rose-500" : "bg-emerald-500"
+                        optResult.axleDistribution.driveOverloadKg > 0
+                          ? "bg-rose-500"
+                          : "bg-emerald-500"
                       }`}
                       style={{
                         width: `${Math.min(100, (optResult.axleDistribution.driveAxleLoadKg / 11500) * 100)}%`,
@@ -815,7 +1034,9 @@ export default function ContainerPlannerModule() {
                   {optResult.axleDistribution.driveOverloadKg > 0 && (
                     <div className="text-[10px] text-rose-400 font-bold flex items-center gap-1">
                       <AlertTriangle size={12} />
-                      Sobrecarga en eje motriz: +{optResult.axleDistribution.driveOverloadKg} kg sobre el límite legal.
+                      Sobrecarga en eje motriz: +
+                      {optResult.axleDistribution.driveOverloadKg} kg sobre el
+                      límite legal.
                     </div>
                   )}
                 </div>
@@ -823,15 +1044,20 @@ export default function ContainerPlannerModule() {
                 {/* Trailer Tridem */}
                 <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-white/5 space-y-1.5">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-slate-300">Tridem Semirremolque (Bogie Trasero)</span>
+                    <span className="font-semibold text-slate-300">
+                      Tridem Semirremolque (Bogie Trasero)
+                    </span>
                     <span className="font-mono font-bold text-white">
-                      {optResult.axleDistribution.trailerTridemLoadKg.toLocaleString()} / 24,000 kg
+                      {optResult.axleDistribution.trailerTridemLoadKg.toLocaleString()}{" "}
+                      / 24,000 kg
                     </span>
                   </div>
                   <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${
-                        optResult.axleDistribution.trailerOverloadKg > 0 ? "bg-rose-500" : "bg-indigo-500"
+                        optResult.axleDistribution.trailerOverloadKg > 0
+                          ? "bg-rose-500"
+                          : "bg-indigo-500"
                       }`}
                       style={{
                         width: `${Math.min(100, (optResult.axleDistribution.trailerTridemLoadKg / 24000) * 100)}%`,
@@ -849,11 +1075,13 @@ export default function ContainerPlannerModule() {
                   <p className="text-[11px] text-slate-400">
                     {optResult.axleDistribution.legalComplianceSummary}
                   </p>
-                  {optResult.centerOfGravity.safetyRecommendations.map((rec, idx) => (
-                    <p key={idx} className="text-[11px] text-amber-400/90">
-                      • {rec}
-                    </p>
-                  ))}
+                  {optResult.centerOfGravity.safetyRecommendations.map(
+                    (rec, idx) => (
+                      <p key={idx} className="text-[11px] text-amber-400/90">
+                        • {rec}
+                      </p>
+                    ),
+                  )}
                 </div>
               </div>
             )}
@@ -872,13 +1100,16 @@ export default function ContainerPlannerModule() {
                         : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                     }`}
                   >
-                    {optResult.imoSegregation.hasIncompatibleHazard ? "INCOMPATIBLE" : "CONFORME"}
+                    {optResult.imoSegregation.hasIncompatibleHazard
+                      ? "INCOMPATIBLE"
+                      : "CONFORME"}
                   </span>
                 </div>
 
                 {optResult.imoSegregation.checks.length === 0 ? (
                   <div className="p-8 text-center text-slate-500 text-xs">
-                    No hay mercancías peligrosas declaradas en este contenedor. Carga clasificada como carga general.
+                    No hay mercancías peligrosas declaradas en este contenedor.
+                    Carga clasificada como carga general.
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
@@ -893,19 +1124,38 @@ export default function ContainerPlannerModule() {
                       >
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-white">
-                            {chk.itemAName} <span className="text-amber-400 font-mono">(Clase {chk.classA})</span> vs {chk.itemBName} <span className="text-amber-400 font-mono">(Clase {chk.classB})</span>
+                            {chk.itemAName}{" "}
+                            <span className="text-amber-400 font-mono">
+                              (Clase {chk.classA})
+                            </span>{" "}
+                            vs {chk.itemBName}{" "}
+                            <span className="text-amber-400 font-mono">
+                              (Clase {chk.classB})
+                            </span>
                           </span>
                           <span
                             className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                              chk.isCompliant ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-400"
+                              chk.isCompliant
+                                ? "bg-emerald-500/20 text-emerald-300"
+                                : "bg-rose-500/20 text-rose-400"
                             }`}
                           >
                             {chk.isCompliant ? "CUMPLE" : "VIOLACIÓN"}
                           </span>
                         </div>
                         <div className="text-[11px] text-slate-300 flex justify-between">
-                          <span>Distancia 3D: <strong className="font-mono text-white">{chk.actualDistanceM}m</strong></span>
-                          <span>Requerimiento IMDG: <strong className="font-mono text-indigo-400">Código {chk.imdgRequirementCode}</strong></span>
+                          <span>
+                            Distancia 3D:{" "}
+                            <strong className="font-mono text-white">
+                              {chk.actualDistanceM}m
+                            </strong>
+                          </span>
+                          <span>
+                            Requerimiento IMDG:{" "}
+                            <strong className="font-mono text-indigo-400">
+                              Código {chk.imdgRequirementCode}
+                            </strong>
+                          </span>
                         </div>
                         <p className="text-[10px] text-slate-400 italic">
                           {chk.statusMessage}
@@ -925,7 +1175,8 @@ export default function ContainerPlannerModule() {
                     Bultos del Manifiesto ({cargoList.length})
                   </span>
                   <span className="text-[10px] font-mono text-emerald-400">
-                    {optResult.packedItems.length} estibados • {optResult.unpackedItems.length} pendientes
+                    {optResult.packedItems.length} estibados •{" "}
+                    {optResult.unpackedItems.length} pendientes
                   </span>
                 </div>
 
@@ -947,9 +1198,12 @@ export default function ContainerPlannerModule() {
                           style={{ backgroundColor: item.color || "#3b82f6" }}
                         />
                         <div>
-                          <div className="text-xs font-bold text-white">{item.name}</div>
+                          <div className="text-xs font-bold text-white">
+                            {item.name}
+                          </div>
                           <div className="text-[10px] text-slate-400 font-mono">
-                            {item.lengthM}m × {item.widthM}m × {item.heightM}m • {item.weightKg} kg
+                            {item.lengthM}m × {item.widthM}m × {item.heightM}m •{" "}
+                            {item.weightKg} kg
                             {item.hazardClass && (
                               <span className="text-amber-400 font-bold ml-1.5">
                                 [IMO {item.hazardClass}]
@@ -994,7 +1248,9 @@ export default function ContainerPlannerModule() {
                         type="number"
                         step="0.1"
                         value={newItemLength}
-                        onChange={(e) => setNewItemLength(Number(e.target.value))}
+                        onChange={(e) =>
+                          setNewItemLength(Number(e.target.value))
+                        }
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg p-1 text-white"
                       />
                     </div>
@@ -1004,7 +1260,9 @@ export default function ContainerPlannerModule() {
                         type="number"
                         step="0.1"
                         value={newItemWidth}
-                        onChange={(e) => setNewItemWidth(Number(e.target.value))}
+                        onChange={(e) =>
+                          setNewItemWidth(Number(e.target.value))
+                        }
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg p-1 text-white"
                       />
                     </div>
@@ -1014,7 +1272,9 @@ export default function ContainerPlannerModule() {
                         type="number"
                         step="0.1"
                         value={newItemHeight}
-                        onChange={(e) => setNewItemHeight(Number(e.target.value))}
+                        onChange={(e) =>
+                          setNewItemHeight(Number(e.target.value))
+                        }
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg p-1 text-white"
                       />
                     </div>
@@ -1024,7 +1284,9 @@ export default function ContainerPlannerModule() {
                         type="number"
                         step="50"
                         value={newItemWeight}
-                        onChange={(e) => setNewItemWeight(Number(e.target.value))}
+                        onChange={(e) =>
+                          setNewItemWeight(Number(e.target.value))
+                        }
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg p-1 text-white"
                       />
                     </div>
@@ -1062,7 +1324,10 @@ export default function ContainerPlannerModule() {
           {/* Footer of Right Panel: Heuristic Status Banner */}
           <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
             <span className="text-slate-400 text-[11px]">
-              Tiempo de cálculo heurístico: <strong className="font-mono text-emerald-400">{optResult.executionTimeMs} ms</strong>
+              Tiempo de cálculo heurístico:{" "}
+              <strong className="font-mono text-emerald-400">
+                {optResult.executionTimeMs} ms
+              </strong>
             </span>
             <Button
               onClick={() => handleRunOptimizer()}
