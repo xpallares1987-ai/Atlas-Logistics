@@ -1,4 +1,4 @@
-version: '3.8'
+name: atlas-logistics
 
 x-common-security: &common_security
   security_opt:
@@ -21,7 +21,7 @@ services:
       target: production
       args:
         NODE_VERSION: 22
-        PNPM_VERSION: 10.0.0
+        PNPM_VERSION: 11.5.1
     image: atlas-logistics:backend-prod
     container_name: atlas-backend-prod
     restart: always
@@ -68,7 +68,7 @@ services:
       target: production
       args:
         NODE_VERSION: 22
-        PNPM_VERSION: 10.0.0
+        PNPM_VERSION: 11.5.1
         VITE_API_URL: ${VITE_API_URL:-https://api.example.com}
     image: atlas-logistics:frontend-prod
     container_name: atlas-frontend-prod

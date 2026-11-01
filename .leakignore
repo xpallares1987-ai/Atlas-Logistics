@@ -18,3 +18,8 @@ scratch/
 *.patch
 *.diff
 full_diff.patch
+.env
+.env.*
+!.env.example
+!.env.production.example
+!.env.local.example

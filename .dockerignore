@@ -13,6 +13,8 @@ pnpm-error.log
 # Build artifacts
 dist
 build
+!packages/frontend/dist
+!packages/*/dist
 .turbo
 .next
 .nuxt
