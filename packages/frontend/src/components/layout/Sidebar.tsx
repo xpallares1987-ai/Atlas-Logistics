@@ -520,8 +520,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <div className="flex flex-col gap-2">
           <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">
-            Knowledge & Standards
+            Directory & Standards
           </span>
+          <NavLink
+            onClick={() => setMobileMenuOpen(false)}
+            to="/addresses"
+            icon={Building2}
+          >
+            Addresses & B/L Hub
+          </NavLink>
           <NavLink
             onClick={() => setMobileMenuOpen(false)}
             to="/wiki"

@@ -13,11 +13,10 @@ import {
   Anchor,
   Box,
   Calendar,
-  DollarSign,
   Building2,
   Scale,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export interface QuoteBookingModalProps {
   isOpen: boolean;

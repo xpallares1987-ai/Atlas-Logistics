@@ -80,6 +80,9 @@ const SailingSchedulesModule = React.lazy(
 const BookingManagementModule = React.lazy(
   () => import("../../pages/BookingManagementModule"),
 );
+const AddressesHubModule = React.lazy(
+  () => import("../../pages/AddressesHubModule"),
+);
 const CustomsClearanceModule = React.lazy(
   () => import("../../pages/CustomsClearanceModule"),
 );
@@ -386,6 +389,25 @@ export const AppRoutes = () => {
               ]}
             >
               <BookingManagementModule />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Master Data & Entity Directory */}
+        <Route
+          path="/addresses"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "ADMIN",
+                "EXECUTIVE",
+                "MANAGER",
+                "SALES",
+                "OPERATIONS",
+                "CUSTOMER",
+              ]}
+            >
+              <AddressesHubModule />
             </ProtectedRoute>
           }
         />

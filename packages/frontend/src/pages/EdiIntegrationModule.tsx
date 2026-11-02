@@ -1338,7 +1338,9 @@ export default function EdiIntegrationModule() {
                 ) : (
                   dcsaSubscriptions.map((sub, idx) => (
                     <div
-                      key={sub.subscriptionId || (sub as any).id || idx}
+                      key={
+                        (sub as any).subscriptionId || (sub as any).id || idx
+                      }
                       className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs"
                     >
                       <div>

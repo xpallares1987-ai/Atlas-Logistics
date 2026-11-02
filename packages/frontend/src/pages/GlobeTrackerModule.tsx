@@ -4,6 +4,7 @@ import {
   Marker,
   Arc,
 } from "@atlas/ui/src/components/GlobeTracker";
+// @ts-ignore
 import type { GlobeMethods } from "react-globe.gl";
 import {
   Ship,
