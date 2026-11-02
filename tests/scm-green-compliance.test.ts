@@ -179,6 +179,10 @@ describe("SCM Green Compliance, EU CBAM and Customs DUA Integration Suite", () =
     const duaXml = duaXmlRes.payload;
     expect(duaXml).toContain("<DeclaracionAduaneraDUA");
     expect(duaXml).toContain("</DeclaracionAduaneraDUA>");
+    expect(duaXml).toContain("<TipoPorcentaje>4.00%</TipoPorcentaje>");
+    expect(duaXml).toContain("<TipoPorcentaje>21.00%</TipoPorcentaje>");
+    expect(duaXml).not.toContain("400.00%");
+    expect(duaXml).not.toContain("2100.00%");
   });
 
   it("manages bidirectional customs inspection holds and operational gating exceptions", async () => {

@@ -13,6 +13,7 @@ export function useNotificationsWebSocket() {
 
     let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout>;
+    let reconnectAttempts = 0;
 
     const connect = () => {
       if (!isMounted) return;
@@ -22,6 +23,7 @@ export function useNotificationsWebSocket() {
 
         ws.onopen = () => {
           if (!isMounted) return;
+          reconnectAttempts = 0;
           console.log("WebSocket connected for notifications");
         };
 
@@ -52,15 +54,23 @@ export function useNotificationsWebSocket() {
           }
         };
 
-        ws.onclose = () => {
+        ws.onclose = (event) => {
           if (!isMounted) return;
-          console.log("WebSocket disconnected, reconnecting in 5s...");
-          reconnectTimer = setTimeout(connect, 5000);
+          reconnectAttempts++;
+          const delay = Math.min(
+            1000 * Math.pow(1.5, reconnectAttempts),
+            10000,
+          );
+          console.log(
+            `WebSocket disconnected (code ${event.code}), reconnecting in ${Math.round(delay / 1000)}s...`,
+          );
+          clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(connect, delay);
         };
 
         ws.onerror = (err) => {
           if (!isMounted) return;
-          console.warn("WebSocket notification connection notice:", err);
+          console.debug("WebSocket notification transient notice:", err);
         };
       } catch (err) {
         if (!isMounted) return;

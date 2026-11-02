@@ -61,6 +61,12 @@ export class DuaXmlService {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&apos;");
 
+    const formatRatePercent = (rate: number): string => {
+      if (typeof rate !== "number" || isNaN(rate)) return "0.00%";
+      const pct = rate > 1 ? rate : rate * 100;
+      return `${pct.toFixed(2)}%`;
+    };
+
     const itemsXml = data.items
       .map(
         (it) => `
@@ -72,12 +78,12 @@ export class DuaXmlService {
       <TributosLiquidacion>
         <Tributo code="A00" name="Arancel">
           <Base>${it.statisticalValue.toFixed(2)}</Base>
-          <TipoPorcentaje>${(it.dutyRate * 100).toFixed(2)}%</TipoPorcentaje>
+          <TipoPorcentaje>${formatRatePercent(it.dutyRate)}</TipoPorcentaje>
           <Importe>${it.dutyAmount.toFixed(2)}</Importe>
         </Tributo>
         <Tributo code="B00" name="IVA">
           <Base>${(it.statisticalValue + it.dutyAmount).toFixed(2)}</Base>
-          <TipoPorcentaje>${(it.vatRate * 100).toFixed(2)}%</TipoPorcentaje>
+          <TipoPorcentaje>${formatRatePercent(it.vatRate)}</TipoPorcentaje>
           <Importe>${it.vatAmount.toFixed(2)}</Importe>
         </Tributo>
         <TotalPartida>${it.totalAmount.toFixed(2)}</TotalPartida>

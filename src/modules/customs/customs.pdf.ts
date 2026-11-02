@@ -215,7 +215,11 @@ export class CustomsPdfGenerator {
         doc.text("A00", 50, currentY + 6);
         doc.text("Derechos de Arancel (Import Duty)", 100, currentY + 6);
         doc.text(`${customsVal.toFixed(2)} EUR`, 260, currentY + 6);
-        doc.text("3.3%", 370, currentY + 6);
+        const dutyPct =
+          customsVal > 0
+            ? `${((dutyAmt / customsVal) * 100).toFixed(1)}%`
+            : "3.3%";
+        doc.text(dutyPct, 370, currentY + 6);
         doc.text(`${dutyAmt.toFixed(2)} EUR`, 450, currentY + 6);
 
         // Row 2: VAT
@@ -224,7 +228,11 @@ export class CustomsPdfGenerator {
         doc.text("B00", 50, currentY + 6);
         doc.text("IVA a la Importacion (Import VAT)", 100, currentY + 6);
         doc.text(`${(customsVal + dutyAmt).toFixed(2)} EUR`, 260, currentY + 6);
-        doc.text("21.0%", 370, currentY + 6);
+        const vatPct =
+          customsVal + dutyAmt > 0
+            ? `${((vatAmt / (customsVal + dutyAmt)) * 100).toFixed(1)}%`
+            : "21.0%";
+        doc.text(vatPct, 370, currentY + 6);
         doc.text(`${vatAmt.toFixed(2)} EUR`, 450, currentY + 6);
 
         // Total Row
