@@ -17,6 +17,7 @@ import {
 import { Loader2 } from "lucide-react";
 import RfqGeneratorModal from "./RfqGeneratorModal";
 import BookingDrawer from "./BookingDrawer";
+import { QuoteBookingModal } from "@atlas/ui";
 import { useAppStore } from "../store";
 import { drizzleRateService } from "../services/drizzleRateService";
 
@@ -590,10 +591,42 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
         <RfqGeneratorModal rate={rfqRate} onClose={() => setRfqRate(null)} />
       )}
       {drawerRate && (
-        <BookingDrawer
-          rate={drawerRate}
+        <QuoteBookingModal
+          isOpen={Boolean(drawerRate)}
+          quote={{
+            id: drawerRate.id,
+            quoteNumber:
+              drawerRate.quoteNumber ||
+              `QT-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+            origin: drawerRate.origin || drawerRate.originPort || "CNSHA",
+            destination:
+              drawerRate.destination || drawerRate.destinationPort || "ESBCN",
+            carrier:
+              typeof drawerRate.carrier === "string"
+                ? drawerRate.carrier
+                : drawerRate.carrier?.name || "Maersk",
+            equipment:
+              drawerRate.containerType || drawerRate.equipment || "40HC",
+            sellRateTotal: drawerRate.totalCost || drawerRate.rate || 2450,
+            buyRateTotal:
+              drawerRate.baseFreightCost ||
+              (drawerRate.totalCost ? drawerRate.totalCost * 0.85 : 2000),
+            sellMargin:
+              (drawerRate.totalCost || 2450) -
+              (drawerRate.baseFreightCost || 2000),
+            currency: activeCurrency || drawerRate.currency || "USD",
+            transitDays: drawerRate.transitTimeDays || drawerRate.transit || 28,
+            validTo: drawerRate.validTo || "2026-12-31",
+          }}
           onClose={() => setDrawerRate(null)}
-          onBook={handleBookingConfirm}
+          onSuccess={(result) => {
+            addToCart({
+              ...drawerRate,
+              bookingReference:
+                result.booking?.carrierBookingNumber ||
+                result.booking?.referenceNumber,
+            });
+          }}
         />
       )}
     </div>

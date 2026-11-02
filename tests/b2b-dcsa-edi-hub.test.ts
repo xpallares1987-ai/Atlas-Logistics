@@ -286,6 +286,7 @@ describe("B2B Interoperability Suite: DCSA 3.0 Event Hub & Ocean EDI (304, 310, 
     it("generates an official ANSI X12 310 with multi-line freight charges and totals", async () => {
       const invoice: X12OceanInvoice = {
         invoiceNumber: "INV-MAEU-9921",
+        bookingReference: "BK-MAEU-9921",
         billOfLadingNumber: "MAEU9921001",
         invoiceDate: "20261102",
         carrierScac: "MAEU",
@@ -382,9 +383,9 @@ describe("B2B Interoperability Suite: DCSA 3.0 Event Hub & Ocean EDI (304, 310, 
       const result = await EdiDispatcherService.processInboundPayload(raw315);
 
       expect(result.standard).toBe("ANSI_X12");
-      expect(result.events.length).toBe(1);
+      expect(result.events?.length).toBe(1);
 
-      const statusEvent = result.events[0] as any;
+      const statusEvent = result.events![0] as any;
       expect(statusEvent.milestone).toBe("VESSEL_DEPARTED");
       expect(statusEvent.bookingReference).toBe("BK-2026-9042");
       expect(statusEvent.containerNumber).toContain("8821901");

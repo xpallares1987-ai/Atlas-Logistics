@@ -445,10 +445,16 @@ export function RateIngestionModal({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label
+                    htmlFor="defaultCarrierSelect"
+                    className="block text-xs font-semibold text-slate-700 mb-1"
+                  >
                     Naviera / Carrier Predeterminado
                   </label>
                   <select
+                    id="defaultCarrierSelect"
+                    name="carrier"
+                    aria-label="Naviera o Carrier Predeterminado"
                     value={carrier}
                     onChange={(e) => setCarrier(e.target.value)}
                     className="w-full text-sm p-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500"
@@ -492,6 +498,9 @@ export function RateIngestionModal({
                 }`}
               >
                 <input
+                  id="rateFileInput"
+                  name="rateFile"
+                  aria-label="Archivo de tarifas CSV, TSV o texto"
                   ref={fileInputRef}
                   type="file"
                   accept=".csv,.tsv,.txt"
@@ -583,10 +592,16 @@ export function RateIngestionModal({
                     key={field.key}
                     className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
                   >
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label
+                      htmlFor={`mapping_field_${field.key}`}
+                      className="block text-xs font-semibold text-slate-700 mb-1"
+                    >
                       {field.label}
                     </label>
                     <select
+                      id={`mapping_field_${field.key}`}
+                      name={`mapping_${field.key}`}
+                      aria-label={`Mapeo para ${field.label}`}
                       value={columnMapping[field.key] || ""}
                       onChange={(e) =>
                         setColumnMapping({
@@ -642,6 +657,9 @@ export function RateIngestionModal({
                     </div>
                     <div className="flex items-center gap-2">
                       <select
+                        id={`port_alias_${item.original.replace(/\s+/g, "_")}`}
+                        name={`port_alias_${item.original.replace(/\s+/g, "_")}`}
+                        aria-label={`Homologar puerto ${item.original}`}
                         value={portAliasesToSave[item.original] || ""}
                         onChange={(e) =>
                           setPortAliasesToSave({

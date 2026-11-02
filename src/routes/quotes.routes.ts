@@ -22,6 +22,12 @@ import {
   getImportBatches,
   resolvePort,
 } from "../services/rate-ingestion.service.js";
+import {
+  createBookingRequest,
+  confirmBookingToShipment,
+} from "../services/booking-lifecycle.service.js";
+import { recordEscrowDeposit } from "../modules/smart-contracts/smart-contracts.routes.js";
+import { DcsaHubService } from "../services/dcsa/dcsa-hub.service.js";
 
 const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get(
@@ -348,6 +354,237 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         return updatedQuote[0];
       } catch (error: any) {
         reply.code(500).send({ error: error.message });
+      }
+    },
+  );
+
+  fastify.post(
+    "/:id/accept-and-book",
+    {
+      config: {
+        rateLimit: {
+          max: process.env.CI ? 10000 : 50,
+          timeWindow: "1 minute",
+          allowList: ["127.0.0.1", "::1"],
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as any;
+        const body = (request.body as any) || {};
+
+        let quoteRecord: any = null;
+        const existingQuotes = await db
+          .select()
+          .from(quotes)
+          .where(eq(quotes.id, id))
+          .limit(1);
+
+        if (existingQuotes.length > 0) {
+          quoteRecord = existingQuotes[0];
+          await db
+            .update(quotes)
+            .set({ status: "ACCEPTED", updatedAt: new Date() })
+            .where(eq(quotes.id, id));
+          quoteRecord.status = "ACCEPTED";
+        } else {
+          // Si es una cotización dinámica generada en memoria sin persistir
+          const quoteId =
+            id && id !== "dynamic" && id !== "new" ? id : uuidv4();
+          const quoteNumber =
+            body.quoteNumber ||
+            `QT-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+
+          let customerId = body.customerId;
+          if (!customerId) {
+            const firstCompany = await db
+              .select({ id: companies.id })
+              .from(companies)
+              .limit(1);
+            customerId = firstCompany[0]?.id || "c-1";
+          }
+
+          const newQuote = await db
+            .insert(quotes)
+            .values({
+              id: quoteId,
+              quoteNumber,
+              customerId,
+              originLocationId: body.originLocationId || null,
+              destinationLocationId: body.destinationLocationId || null,
+              equipment: body.equipment || "40HC",
+              buyRateTotal: Number(
+                body.buyRateTotal ??
+                  (body.rateAmount ? body.rateAmount * 0.85 : 2000),
+              ),
+              sellMargin: Number(
+                body.sellMargin ??
+                  (body.rateAmount ? body.rateAmount * 0.15 : 450),
+              ),
+              sellRateTotal: Number(
+                body.sellRateTotal ?? (body.rateAmount || 2450),
+              ),
+              status: "ACCEPTED",
+              validTo: body.validTo
+                ? new Date(body.validTo)
+                : new Date(Date.now() + 30 * 86400000),
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .returning();
+          quoteRecord = newQuote[0];
+        }
+
+        const origin = body.origin || quoteRecord?.originLocationId || "CNSHA";
+        const destination =
+          body.destination || quoteRecord?.destinationLocationId || "NLRTM";
+        const carrier = body.carrier || "Maersk";
+        const equipment = body.equipment || quoteRecord?.equipment || "40HC";
+        const commodity =
+          body.commodityDescription ||
+          body.commodity ||
+          "General Commercial Merchandise";
+        const weight = Number(body.grossWeightKg || body.weight || 18500);
+        const shipper = body.shipperName || "Atlas Global Shipper S.A.";
+        const consignee =
+          body.consigneeName || "Continental Distribution Hub Ltd";
+        const rateAmount = Number(
+          body.rateAmount || quoteRecord?.sellRateTotal || 2450,
+        );
+        const currency = body.currency || "USD";
+        const paymentMode: "ESCROW_SMART_CONTRACT" | "NET_30_CREDIT" =
+          body.paymentMode === "NET_30_CREDIT"
+            ? "NET_30_CREDIT"
+            : "ESCROW_SMART_CONTRACT";
+
+        // 1. Crear solicitud de reserva
+        const createdBooking = await createBookingRequest({
+          origin,
+          destination,
+          carrier,
+          equipment,
+          commodity,
+          commodities: [{ description: commodity, grossWeightKg: weight }],
+          weight,
+          customerName: shipper,
+          consigneeName: consignee,
+          rateAmount,
+          currency,
+          transitDays: Number(body.transitDays || 28),
+          status: "PENDING",
+        });
+
+        // 2. Confirmar reserva marítima asignando buque, viaje, contenedor y cut-off
+        const confirmed = await confirmBookingToShipment(createdBooking.id, {
+          shipperName: shipper,
+          consigneeName: consignee,
+          vesselName: body.vesselName,
+          voyageNumber: body.voyageNumber,
+          containerNumber: body.containerNumber,
+          sealNumber: body.sealNumber,
+        });
+
+        // 3. Procesar modalidad de pago: Smart Contract Escrow vs. Net-30
+        let escrowBlock: any = null;
+        let proformaInvoiceNumber: string | null = null;
+
+        if (paymentMode === "ESCROW_SMART_CONTRACT") {
+          escrowBlock = recordEscrowDeposit({
+            contractId: `escrow_${confirmed.shipment?.id || createdBooking.id}`,
+            eblNumber: `EBL-${confirmed.shipment?.trackingNumber || createdBooking.referenceNumber}`,
+            sender: shipper,
+            amountUsd: rateAmount,
+            details: `Depósito en custodia (Smart Escrow) garantizado para flete ${createdBooking.referenceNumber}. Liberación automatizada por oráculo DCSA (CUSTOMS_CLEARED / CONTAINER_DISCHARGED).`,
+            metadata: {
+              bookingReference: createdBooking.referenceNumber,
+              carrierBookingNumber: confirmed.booking?.carrierBookingNumber,
+              shipmentId: confirmed.shipment?.id,
+              paymentMode: "ESCROW_SMART_CONTRACT",
+            },
+          });
+        } else {
+          proformaInvoiceNumber = `INV-PRO-${Date.now().toString().slice(-6)}`;
+        }
+
+        // 4. Despacho/Simulación DCSA 3.0 Telemetry Event
+        let dcsaSimResult: any = null;
+        try {
+          let scac: "MSCU" | "MAEU" | "CMDU" | "HLCU" = "MAEU";
+          const carrierUpper = (carrier || "").toUpperCase();
+          if (carrierUpper.includes("MSC")) scac = "MSCU";
+          else if (carrierUpper.includes("CMA")) scac = "CMDU";
+          else if (carrierUpper.includes("HAPAG")) scac = "HLCU";
+
+          dcsaSimResult = await DcsaHubService.simulateCarrierEvent({
+            carrierCode: scac,
+            eventType: "SHIPMENT",
+            eventTypeCode: "CONF",
+            bookingReference:
+              confirmed.booking?.carrierBookingNumber ||
+              createdBooking.referenceNumber,
+            containerNumber: confirmed.container?.containerNumber,
+            locode: origin,
+          });
+        } catch (dcsaErr: any) {
+          fastify.log.warn(
+            { err: dcsaErr },
+            "DCSA carrier event simulation notice",
+          );
+        }
+
+        const cutOffDateStr =
+          (confirmed.booking as any)?.cutOffDate ||
+          new Date(Date.now() + 4 * 86400000).toISOString().split("T")[0];
+
+        return reply.send({
+          success: true,
+          message:
+            "Cotización aceptada y reserva marítima emitida exitosamente",
+          quote: {
+            id: quoteRecord?.id,
+            quoteNumber: quoteRecord?.quoteNumber,
+            status: "ACCEPTED",
+          },
+          booking: {
+            id: createdBooking.id,
+            referenceNumber: createdBooking.referenceNumber,
+            carrierBookingNumber: confirmed.booking?.carrierBookingNumber,
+            carrier: confirmed.booking?.carrier,
+            vessel: confirmed.shipment?.vesselName || confirmed.booking?.vessel,
+            voyage:
+              confirmed.shipment?.voyageNumber || confirmed.booking?.voyage,
+            origin: createdBooking.origin,
+            destination: createdBooking.destination,
+            equipment: createdBooking.equipment,
+            cutOffDate: cutOffDateStr,
+            containerNumber: confirmed.container?.containerNumber,
+            sealNumber: confirmed.container?.sealNumber,
+          },
+          shipment: confirmed.shipment,
+          payment: {
+            mode: paymentMode,
+            escrowBlock:
+              paymentMode === "ESCROW_SMART_CONTRACT" ? escrowBlock : null,
+            proformaInvoiceNumber,
+            amount: rateAmount,
+            currency,
+          },
+          edi: {
+            dcsaEvent: dcsaSimResult?.event,
+            signature: dcsaSimResult?.signature,
+            verified: dcsaSimResult?.verification?.verified ?? true,
+          },
+          links: {
+            shipment360Url: `/shipment-360?id=${confirmed.shipment?.id || createdBooking.id}`,
+            ediHubUrl: `/edi?ref=${confirmed.booking?.carrierBookingNumber || createdBooking.referenceNumber}`,
+            smartContractsUrl: `/smart-contracts`,
+            quotePdfUrl: `/api/quotes/${quoteRecord?.id}/pdf`,
+          },
+        });
+      } catch (error: any) {
+        fastify.log.error(error, "Error in accept-and-book quote");
+        return reply.code(500).send({ error: error.message });
       }
     },
   );

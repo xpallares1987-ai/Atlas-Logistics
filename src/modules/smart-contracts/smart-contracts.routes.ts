@@ -51,7 +51,9 @@ const IngestOracleEventSchema = z.object({
 
 const EndorseTitleSchema = z.object({
   toParty: z.string().min(2),
-  transferType: z.enum(["SPECIAL_ENDORSEMENT", "PLEDGE_TO_BANK", "BLANK_ENDORSEMENT"]).default("SPECIAL_ENDORSEMENT"),
+  transferType: z
+    .enum(["SPECIAL_ENDORSEMENT", "PLEDGE_TO_BANK", "BLANK_ENDORSEMENT"])
+    .default("SPECIAL_ENDORSEMENT"),
   signerName: z.string().optional(),
 });
 
@@ -89,7 +91,9 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
       const { scenarioId } = SelectPresetSchema.parse(request.body);
       const preset = SMART_CONTRACTS_PRESETS[scenarioId];
       if (!preset) {
-        return reply.code(404).send({ success: false, error: "Escenario no encontrado" });
+        return reply
+          .code(404)
+          .send({ success: false, error: "Escenario no encontrado" });
       }
       activeState = {
         scenarioId: preset.scenarioId,
@@ -116,15 +120,21 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
 
       const lastBlock = activeState.ledger[activeState.ledger.length - 1];
       const newBlockNumber = lastBlock ? lastBlock.blockNumber + 1 : 1;
-      const prevHash = lastBlock ? lastBlock.txHash : "0000000000000000000000000000000000000000000000000000000000000000";
+      const prevHash = lastBlock
+        ? lastBlock.txHash
+        : "0000000000000000000000000000000000000000000000000000000000000000";
 
       // Map milestoneKey to blockchain event type
       let eventType: BlockchainEventType = "TELEMETRY_PING";
-      if (parsed.milestoneKey === "VESSEL_DEPARTED") eventType = "VESSEL_DEPARTED";
+      if (parsed.milestoneKey === "VESSEL_DEPARTED")
+        eventType = "VESSEL_DEPARTED";
       if (parsed.milestoneKey === "SEAL_VERIFIED") eventType = "SEAL_INSPECTED";
-      if (parsed.milestoneKey === "CUSTOMS_CLEARED") eventType = "CUSTOMS_CLEARED";
-      if (parsed.milestoneKey === "DISCHARGED_PORT") eventType = "CONTAINER_DISCHARGED";
-      if (parsed.milestoneKey === "PROOF_OF_DELIVERY") eventType = "PROOF_OF_DELIVERY";
+      if (parsed.milestoneKey === "CUSTOMS_CLEARED")
+        eventType = "CUSTOMS_CLEARED";
+      if (parsed.milestoneKey === "DISCHARGED_PORT")
+        eventType = "CONTAINER_DISCHARGED";
+      if (parsed.milestoneKey === "PROOF_OF_DELIVERY")
+        eventType = "PROOF_OF_DELIVERY";
 
       const newBlock = createBlock(newBlockNumber, prevHash, {
         event: eventType,
@@ -141,7 +151,7 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
         activeState.escrow,
         parsed.milestoneKey,
         parsed.sender,
-        newBlockNumber
+        newBlockNumber,
       );
 
       activeState.ledger.push(newBlock);
@@ -149,14 +159,18 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
 
       // If auto-settled, append settlement block
       if (evaluation.isAutoSettled) {
-        const settlementBlock = createBlock(newBlockNumber + 1, newBlock.txHash, {
-          event: "SMART_CONTRACT_SETTLEMENT",
-          contractId: activeState.escrow.contractId,
-          eblNumber: activeState.ebl.eblNumber,
-          sender: "Atlas Smart Escrow VM",
-          details: `Liquidación automática ejecutada: $${activeState.escrow.releasedAmountUsd.toLocaleString()} USD transferidos al beneficiario ${activeState.escrow.beneficiaryName}.`,
-          metadata: { settlementTxHash: activeState.escrow.settlementTxHash },
-        });
+        const settlementBlock = createBlock(
+          newBlockNumber + 1,
+          newBlock.txHash,
+          {
+            event: "SMART_CONTRACT_SETTLEMENT",
+            contractId: activeState.escrow.contractId,
+            eblNumber: activeState.ebl.eblNumber,
+            sender: "Atlas Smart Escrow VM",
+            details: `Liquidación automática ejecutada: $${activeState.escrow.releasedAmountUsd.toLocaleString()} USD transferidos al beneficiario ${activeState.escrow.beneficiaryName}.`,
+            metadata: { settlementTxHash: activeState.escrow.settlementTxHash },
+          },
+        );
         activeState.ledger.push(settlementBlock);
         activeState.ebl.status = "SURRENDERED";
       }
@@ -183,14 +197,16 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
         activeState.ebl,
         parsed.toParty,
         parsed.transferType,
-        parsed.signerName || activeState.ebl.currentTitleHolder
+        parsed.signerName || activeState.ebl.currentTitleHolder,
       );
 
       activeState.ebl = updatedEbl;
 
       const lastBlock = activeState.ledger[activeState.ledger.length - 1];
       const newBlockNumber = lastBlock ? lastBlock.blockNumber + 1 : 1;
-      const prevHash = lastBlock ? lastBlock.txHash : "0000000000000000000000000000000000000000000000000000000000000000";
+      const prevHash = lastBlock
+        ? lastBlock.txHash
+        : "0000000000000000000000000000000000000000000000000000000000000000";
 
       const endorsementBlock = createBlock(newBlockNumber, prevHash, {
         event: "TITLE_ENDORSED",
@@ -233,7 +249,9 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
 
       const lastBlock = activeState.ledger[activeState.ledger.length - 1];
       const newBlockNumber = lastBlock ? lastBlock.blockNumber + 1 : 1;
-      const prevHash = lastBlock ? lastBlock.txHash : "0000000000000000000000000000000000000000000000000000000000000000";
+      const prevHash = lastBlock
+        ? lastBlock.txHash
+        : "0000000000000000000000000000000000000000000000000000000000000000";
 
       const disputeBlock = createBlock(newBlockNumber, prevHash, {
         event: "ESCROW_DISPUTED",
@@ -256,6 +274,70 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ success: false, error: err.message });
     }
   });
+
+  // POST /api/smart-contracts/deposit-escrow
+  fastify.post("/deposit-escrow", async (request, reply) => {
+    try {
+      const body = (request.body as any) || {};
+      const block = recordEscrowDeposit({
+        contractId: body.contractId || `escrow_${Date.now()}`,
+        eblNumber: body.eblNumber || `EBL-${Date.now()}`,
+        sender: body.sender || "Client Shipper",
+        amountUsd: Number(body.amountUsd || 2500),
+        details:
+          body.details ||
+          "Depósito en garantía contractual bloqueado para reserva de flete.",
+        metadata: body.metadata,
+      });
+
+      return reply.send({
+        success: true,
+        data: {
+          escrow: activeState.escrow,
+          block,
+        },
+      });
+    } catch (err: any) {
+      return reply.code(400).send({ success: false, error: err.message });
+    }
+  });
 };
+
+export function recordEscrowDeposit(input: {
+  contractId: string;
+  eblNumber: string;
+  sender: string;
+  amountUsd: number;
+  details: string;
+  metadata?: Record<string, any>;
+}): BlockchainBlock {
+  const lastBlock = activeState.ledger[activeState.ledger.length - 1];
+  const newBlockNumber = lastBlock ? lastBlock.blockNumber + 1 : 1;
+  const prevHash = lastBlock
+    ? lastBlock.txHash
+    : "0000000000000000000000000000000000000000000000000000000000000000";
+
+  const block = createBlock(newBlockNumber, prevHash, {
+    event: "ESCROW_DEPOSITED",
+    contractId: input.contractId,
+    eblNumber: input.eblNumber,
+    sender: input.sender,
+    details: input.details,
+    metadata: {
+      amountUsd: input.amountUsd,
+      ...input.metadata,
+    },
+  });
+
+  activeState.ledger.push(block);
+  activeState.escrow.status = "FUNDED";
+  activeState.escrow.totalAmountUsd = input.amountUsd;
+
+  return block;
+}
+
+export function getSmartContractsActiveState() {
+  return activeState;
+}
 
 export default smartContractsRoutes;

@@ -13,10 +13,12 @@ import {
   Globe,
   SlidersHorizontal,
   FileSpreadsheet,
+  Ship,
 } from "lucide-react";
 import { useOpenExchangeRates } from "./hooks/useOpenExchangeRates";
 import { motion, AnimatePresence } from "framer-motion";
 import { RateIngestionModal } from "./RateIngestionModal";
+import { QuoteBookingModal } from "./QuoteBookingModal";
 
 export interface DynamicRateItem {
   id: string;
@@ -48,6 +50,7 @@ export function DynamicRateEngine() {
     currency: string;
   } | null>(null);
   const [isGeneratingQuote, setIsGeneratingQuote] = useState(false);
+  const [bookingModalQuote, setBookingModalQuote] = useState<any | null>(null);
 
   const [origin, setOrigin] = useState("CNSHA (Shanghai)");
   const [destination, setDestination] = useState("NLRTM (Rotterdam)");
@@ -225,10 +228,16 @@ export function DynamicRateEngine() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div>
-                <label className="block text-xs text-slate-400 mb-1.5 font-semibold">
+                <label
+                  htmlFor="polInput"
+                  className="block text-xs text-slate-400 mb-1.5 font-semibold"
+                >
                   Port of Loading (POL)
                 </label>
                 <input
+                  id="polInput"
+                  name="origin"
+                  aria-label="Port of Loading (POL)"
                   type="text"
                   value={origin}
                   onChange={(e) => setOrigin(e.target.value)}
@@ -236,10 +245,16 @@ export function DynamicRateEngine() {
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-400 mb-1.5 font-semibold">
+                <label
+                  htmlFor="podInput"
+                  className="block text-xs text-slate-400 mb-1.5 font-semibold"
+                >
                   Port of Discharge (POD)
                 </label>
                 <input
+                  id="podInput"
+                  name="destination"
+                  aria-label="Port of Discharge (POD)"
                   type="text"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
@@ -247,10 +262,16 @@ export function DynamicRateEngine() {
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-400 mb-1.5 font-semibold">
+                <label
+                  htmlFor="equipmentSelect"
+                  className="block text-xs text-slate-400 mb-1.5 font-semibold"
+                >
                   Equipment Type
                 </label>
                 <select
+                  id="equipmentSelect"
+                  name="containerSize"
+                  aria-label="Equipment Type"
                   value={containerSize}
                   onChange={(e) => setContainerSize(e.target.value)}
                   className="w-full bg-slate-950/50 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner appearance-none"
@@ -313,7 +334,10 @@ export function DynamicRateEngine() {
 
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs text-indigo-200/70 font-semibold">
+                  <label
+                    htmlFor="marginRangeInput"
+                    className="text-xs text-indigo-200/70 font-semibold"
+                  >
                     Target Markup Value
                   </label>
                   <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-950/50 px-2 py-0.5 rounded">
@@ -324,6 +348,9 @@ export function DynamicRateEngine() {
                 </div>
                 <div className="relative">
                   <input
+                    id="marginRangeInput"
+                    name="marginValue"
+                    aria-label="Target Markup Value"
                     type="range"
                     min={marginType === "flat" ? 0 : 0}
                     max={marginType === "flat" ? 2000 : 100}
@@ -546,55 +573,38 @@ export function DynamicRateEngine() {
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={async () => {
-                              try {
-                                const res = await fetch(`${API_URL}/bookings`, {
-                                  method: "POST",
-                                  headers: {
-                                    "Content-Type": "application/json",
-                                  },
-                                  body: JSON.stringify({
-                                    carrier: rate.carrier,
-                                    origin,
-                                    destination,
-                                    equipment: containerSize,
-                                    serviceType: "FCL",
-                                    incoterm: "FOB",
-                                    commodity: "General Cargo",
-                                    weight: 18500,
-                                    totalCost: Math.round(rate.sellRateTotal),
-                                    currency,
-                                    transitTimeDays: rate.transitTime,
-                                    rateId: rate.id,
-                                  }),
-                                });
-                                if (res.ok) {
-                                  const created = await res.json();
-                                  setBookingFeedback({
-                                    referenceNumber: created.referenceNumber,
-                                    carrier: rate.carrier,
-                                  });
-                                }
-                              } catch (err) {
-                                console.error(
-                                  "Failed to create booking request",
-                                  err,
-                                );
-                              }
+                            onClick={() => {
+                              setBookingModalQuote({
+                                id: rate.id,
+                                quoteNumber: `QT-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+                                origin,
+                                destination,
+                                carrier: rate.carrier,
+                                equipment: containerSize,
+                                sellRateTotal: rate.sellRateTotal,
+                                buyRateTotal: rate.buyRateTotal,
+                                sellMargin: rate.sellMargin,
+                                currency,
+                                transitDays: rate.transitTime,
+                                validTo: rate.validTo,
+                                serviceLine: rate.serviceLine,
+                              });
                             }}
-                            className="px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-xl text-xs font-bold transition-colors shadow-lg"
-                            title="Create Booking Request (Phase 1)"
+                            className="px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-1.5"
+                            title="Aceptar cotización y emitir reserva marítima oficial (EDI 300/301 & Escrow)"
                           >
-                            Reservar
+                            <Ship className="w-3.5 h-3.5" />
+                            Aceptar y Reservar
                           </motion.button>
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
+                            disabled={isGeneratingQuote}
                             onClick={() => generateQuote(rate)}
-                            className="p-3 bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white rounded-xl transition-colors shadow-lg"
-                            title="Generate Official PDF Quote"
+                            className="p-2.5 bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white rounded-xl transition-colors shadow-lg disabled:opacity-50"
+                            title="Descargar PDF oficial de la cotización"
                           >
-                            <Shield className="w-5 h-5" />
+                            <Shield className="w-4 h-4" />
                           </motion.button>
                         </div>
                       </td>
@@ -656,6 +666,22 @@ export function DynamicRateEngine() {
         defaultCarrier="Maersk"
         apiUrl={API_URL + "/rates"}
       />
+
+      {bookingModalQuote && (
+        <QuoteBookingModal
+          isOpen={Boolean(bookingModalQuote)}
+          quote={bookingModalQuote}
+          onClose={() => setBookingModalQuote(null)}
+          onSuccess={(result) => {
+            setBookingFeedback({
+              referenceNumber:
+                result.booking?.carrierBookingNumber ||
+                result.booking?.referenceNumber,
+              carrier: result.booking?.carrier || bookingModalQuote.carrier,
+            });
+          }}
+        />
+      )}
     </motion.div>
   );
 }
