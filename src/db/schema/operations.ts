@@ -8,7 +8,7 @@ import {
 import { commonAuditFields } from "./_common.js";
 import { lanes } from "./pricing.js";
 import { carriers, customsBrokers } from "./vendors.js";
-import { locations, companies, users } from "./core.js";
+import { locations, companies, users, addresses } from "./core.js";
 
 export const routeSegments = sqliteTable("route_segments", {
   id: text("id").primaryKey(),
@@ -187,6 +187,24 @@ export const bookings = sqliteTable("bookings", {
   voyage: text("voyage"),
   cargoDetails: text("cargo_details"), // JSON string
   estimatedDeparture: integer("estimated_departure", { mode: "timestamp" }),
+
+  // B/L Party foreign keys to Addresses Hub
+  shipperAddressId: text("shipper_address_id").references(() => addresses.id),
+  consigneeAddressId: text("consignee_address_id").references(
+    () => addresses.id,
+  ),
+  notifyAddressId: text("notify_address_id").references(() => addresses.id),
+  dischargeAgentAddressId: text("discharge_agent_address_id").references(
+    () => addresses.id,
+  ),
+
+  // Negotiable B/L Options
+  isToOrder: integer("is_to_order", { mode: "boolean" }).default(false),
+  orderOf: text("order_of"),
+
+  // Immutable Canonical B/L Parties Snapshot (BIMCO / FIATA / DCSA)
+  blPartiesSnapshot: text("bl_parties_snapshot", { mode: "json" }),
+
   ...commonAuditFields,
 });
 

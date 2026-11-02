@@ -1,6 +1,6 @@
 /**
  * Autonomous Multi-Carrier Ocean Booking Engine (EDI 301 / DCSA API Instant Rate Lock)
- * 
+ *
  * Standards & Protocols:
  * - DCSA Booking API v2.0 (Digital Container Shipping Association)
  * - ANSI X12 EDI 301 (Confirmation of Booking / Booking Request)
@@ -9,19 +9,9 @@
  */
 
 export type CarrierCode =
-  | "MAERSK"
-  | "MSC"
-  | "CMA_CGM"
-  | "HAPAG_LLOYD"
-  | "ONE"
-  | "EVERGREEN";
+  "MAERSK" | "MSC" | "CMA_CGM" | "HAPAG_LLOYD" | "ONE" | "EVERGREEN";
 
-export type ContainerIsoType =
-  | "20GP"
-  | "40GP"
-  | "40HC"
-  | "40HR"
-  | "45HC";
+export type ContainerIsoType = "20GP" | "40GP" | "40HC" | "40HR" | "45HC";
 
 export type BookingStatus =
   | "DRAFT"
@@ -34,8 +24,8 @@ export type BookingStatus =
   | "CANCELLED";
 
 export type BillOfLadingType =
-  | "WAYBILL"       // Express Sea Waybill (Non-negotiable)
-  | "ORIGINAL"      // Negotiable Bill of Lading (3/3 Originals)
+  | "WAYBILL" // Express Sea Waybill (Non-negotiable)
+  | "ORIGINAL" // Negotiable Bill of Lading (3/3 Originals)
   | "TELEX_RELEASE"; // Telex / Electronic Release
 
 export interface CarrierMetadata {
@@ -104,12 +94,12 @@ export interface RateLockQuote {
 }
 
 export interface CutOffMilestones {
-  cargoCutOff: string;       // Gate-in deadline
-  vgmCutOff: string;         // Verified Gross Mass deadline
-  siCutOff: string;          // Shipping Instructions deadline
-  customsCutOff: string;     // Export customs release deadline
-  estimatedDeparture: string;// ETD
-  estimatedArrival: string;  // ETA
+  cargoCutOff: string; // Gate-in deadline
+  vgmCutOff: string; // Verified Gross Mass deadline
+  siCutOff: string; // Shipping Instructions deadline
+  customsCutOff: string; // Export customs release deadline
+  estimatedDeparture: string; // ETD
+  estimatedArrival: string; // ETA
 }
 
 export interface CutOffStatusEvaluation {
@@ -188,6 +178,43 @@ export interface OceanBooking {
   cutOffs?: CutOffMilestones;
   shippingInstructions?: ShippingInstructionData;
   equipmentRelease?: EquipmentReleaseOrder;
+  // Canonical Maritime B/L Parties Integration
+  shipperAddressId?: string | null;
+  consigneeAddressId?: string | null;
+  notifyAddressId?: string | null;
+  dischargeAgentAddressId?: string | null;
+  isToOrder?: boolean;
+  orderOf?: string | null;
+  blPartiesSnapshot?: {
+    shipper?: {
+      title: string;
+      lines: string[];
+      rawBlock: string;
+      characterCount: number;
+      isValidLength: boolean;
+    };
+    consignee?: {
+      title: string;
+      lines: string[];
+      rawBlock: string;
+      characterCount: number;
+      isValidLength: boolean;
+    };
+    notify?: {
+      title: string;
+      lines: string[];
+      rawBlock: string;
+      characterCount: number;
+      isValidLength: boolean;
+    };
+    agent?: {
+      title: string;
+      lines: string[];
+      rawBlock: string;
+      characterCount: number;
+      isValidLength: boolean;
+    };
+  } | null;
   createdAt: string;
   updatedAt: string;
   notes?: string;
@@ -198,9 +225,11 @@ export interface OceanBooking {
  */
 export function validateCutOffDeadlines(
   cutOffs: CutOffMilestones,
-  currentTimestampStr?: string
+  currentTimestampStr?: string,
 ): CutOffStatusEvaluation {
-  const now = currentTimestampStr ? new Date(currentTimestampStr).getTime() : Date.now();
+  const now = currentTimestampStr
+    ? new Date(currentTimestampStr).getTime()
+    : Date.now();
 
   const parseHours = (isoStr: string) => {
     const diffMs = new Date(isoStr).getTime() - now;
@@ -217,7 +246,12 @@ export function validateCutOffDeadlines(
   const isCargoExpired = cargoHoursRemaining <= 0;
   const isCustomsExpired = customsHoursRemaining <= 0;
 
-  const minHours = Math.min(siHoursRemaining, vgmHoursRemaining, cargoHoursRemaining, customsHoursRemaining);
+  const minHours = Math.min(
+    siHoursRemaining,
+    vgmHoursRemaining,
+    cargoHoursRemaining,
+    customsHoursRemaining,
+  );
 
   let overallStatus: CutOffStatusEvaluation["overallStatus"] = "SAFE";
   if (minHours <= 0) {
@@ -246,7 +280,9 @@ export function validateCutOffDeadlines(
 /**
  * Generates standard DCSA Booking API v2.0 JSON payload.
  */
-export function generateDCSABookingPayload(booking: OceanBooking): Record<string, any> {
+export function generateDCSABookingPayload(
+  booking: OceanBooking,
+): Record<string, any> {
   return {
     receiptTypeAtOrigin: "CY",
     deliveryTypeAtDestination: "CY",
@@ -312,7 +348,9 @@ export function generateEDI301Transaction(booking: OceanBooking): string {
 /**
  * Generates an ANSI X12 EDI 304 (Shipping Instructions / Ocean Bill of Lading) transaction set string.
  */
-export function generateEDI304ShippingInstruction(si: ShippingInstructionData): string {
+export function generateEDI304ShippingInstruction(
+  si: ShippingInstructionData,
+): string {
   const now = new Date();
   const dateStr = now.toISOString().slice(2, 10).replace(/-/g, "");
   const timeStr = now.toTimeString().slice(0, 5).replace(/:/g, "");
@@ -332,12 +370,18 @@ export function generateEDI304ShippingInstruction(si: ShippingInstructionData): 
   si.containerDetails.forEach((cont, idx) => {
     segments.push(`LX*${idx + 1}~`);
     segments.push(`M7*${cont.sealNumber}~`);
-    segments.push(`W09*${cont.containerNumber}*${cont.tareWeightKg}*K*${cont.verifiedGrossMassKg}~`);
-    segments.push(`L0*${idx + 1}*${cont.packagesCount}*${cont.packageType}*${cont.verifiedGrossMassKg}*K~`);
+    segments.push(
+      `W09*${cont.containerNumber}*${cont.tareWeightKg}*K*${cont.verifiedGrossMassKg}~`,
+    );
+    segments.push(
+      `L0*${idx + 1}*${cont.packagesCount}*${cont.packageType}*${cont.verifiedGrossMassKg}*K~`,
+    );
     segments.push(`L5*${idx + 1}*${cont.cargoDescription}*${cont.hsCode}~`);
   });
 
-  segments.push(`L3*${si.containerDetails.reduce((s, c) => s + c.verifiedGrossMassKg, 0)}*K***${si.freightPaymentTerm}~`);
+  segments.push(
+    `L3*${si.containerDetails.reduce((s, c) => s + c.verifiedGrossMassKg, 0)}*K***${si.freightPaymentTerm}~`,
+  );
   segments.push(`SE*${segments.length - 2}*0001~`);
   segments.push(`GE*1*2~`);
   segments.push(`IEA*1*000000002~`);
@@ -350,7 +394,11 @@ export function generateEDI304ShippingInstruction(si: ShippingInstructionData): 
  */
 export function generateEquipmentReleaseOrder(
   booking: OceanBooking,
-  depotOverrides?: { depotCode?: string; depotName?: string; depotAddress?: string }
+  depotOverrides?: {
+    depotCode?: string;
+    depotName?: string;
+    depotAddress?: string;
+  },
 ): EquipmentReleaseOrder {
   const bkgNum = booking.bookingNumber || booking.referenceNumber;
   const releaseOrderNumber = `REL-${booking.carrierScac}-${bkgNum.slice(-6)}-${Date.now().toString(36).toUpperCase()}`;
@@ -358,11 +406,15 @@ export function generateEquipmentReleaseOrder(
   // Generate unique container seal numbers
   const sealNumbersAllocated: string[] = [];
   for (let i = 0; i < booking.requestedEquipment.quantity; i++) {
-    sealNumbersAllocated.push(`SL-${booking.carrierScac}-${Math.floor(100000 + Math.random() * 900000)}`);
+    sealNumbersAllocated.push(
+      `SL-${booking.carrierScac}-${Math.floor(100000 + Math.random() * 900000)}`,
+    );
   }
 
   const pickupPin = Math.floor(1000 + Math.random() * 9000).toString();
-  const validUntil = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const validUntil = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
 
   const defaultDepot = {
     depotCode: `${booking.originPort}-DEPOT-1`,
@@ -405,7 +457,8 @@ export const OCEAN_BOOKING_PRESETS: OceanBooking[] = [
     destinationPort: "USLAX",
     vesselName: "MAERSK MC-KINNEY MOLLER",
     voyageNumber: "2608W",
-    commodityDescription: "High-Tech Consumer Electronics & Lithium Battery Assemblies (UN 3481)",
+    commodityDescription:
+      "High-Tech Consumer Electronics & Lithium Battery Assemblies (UN 3481)",
     requestedEquipment: {
       isoType: "40HC",
       quantity: 1,
@@ -433,8 +486,12 @@ export const OCEAN_BOOKING_PRESETS: OceanBooking[] = [
       vgmCutOff: new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString(),
       siCutOff: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       customsCutOff: new Date(Date.now() + 40 * 60 * 60 * 1000).toISOString(),
-      estimatedDeparture: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
-      estimatedArrival: new Date(Date.now() + 17 * 24 * 60 * 60 * 1000).toISOString(),
+      estimatedDeparture: new Date(
+        Date.now() + 72 * 60 * 60 * 1000,
+      ).toISOString(),
+      estimatedArrival: new Date(
+        Date.now() + 17 * 24 * 60 * 60 * 1000,
+      ).toISOString(),
     },
     shippingInstructions: {
       bookingReference: "MSK-99201482",
@@ -519,8 +576,12 @@ export const OCEAN_BOOKING_PRESETS: OceanBooking[] = [
       vgmCutOff: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
       siCutOff: new Date(Date.now() + 30 * 60 * 60 * 1000).toISOString(),
       customsCutOff: new Date(Date.now() + 60 * 60 * 60 * 1000).toISOString(),
-      estimatedDeparture: new Date(Date.now() + 96 * 60 * 60 * 1000).toISOString(),
-      estimatedArrival: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(),
+      estimatedDeparture: new Date(
+        Date.now() + 96 * 60 * 60 * 1000,
+      ).toISOString(),
+      estimatedArrival: new Date(
+        Date.now() + 25 * 24 * 60 * 60 * 1000,
+      ).toISOString(),
     },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -536,7 +597,8 @@ export const OCEAN_BOOKING_PRESETS: OceanBooking[] = [
     destinationPort: "USNYC",
     vesselName: "AL ZUBARA",
     voyageNumber: "2611W",
-    commodityDescription: "Customer01 Kraft Paper Coils & Recycled Fluting Corrugated (Corridor Test 01 Can Tunis)",
+    commodityDescription:
+      "Customer01 Kraft Paper Coils & Recycled Fluting Corrugated (Corridor Test 01 Can Tunis)",
     requestedEquipment: {
       isoType: "40HC",
       quantity: 2,
@@ -564,16 +626,22 @@ export const OCEAN_BOOKING_PRESETS: OceanBooking[] = [
       vgmCutOff: new Date(Date.now() + 40 * 60 * 60 * 1000).toISOString(),
       siCutOff: new Date(Date.now() + 28 * 60 * 60 * 1000).toISOString(),
       customsCutOff: new Date(Date.now() + 50 * 60 * 60 * 1000).toISOString(),
-      estimatedDeparture: new Date(Date.now() + 80 * 60 * 60 * 1000).toISOString(),
-      estimatedArrival: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      estimatedDeparture: new Date(
+        Date.now() + 80 * 60 * 60 * 1000,
+      ).toISOString(),
+      estimatedArrival: new Date(
+        Date.now() + 14 * 24 * 60 * 60 * 1000,
+      ).toISOString(),
     },
     shippingInstructions: {
       bookingReference: "HLC-48291030",
       carrierScac: "HLCU",
       shipperName: "Customer01 Paper S.A. (Corredor DEPT-TEST01)",
-      shipperAddress: "Polígono Industrial El Espartal, Zaragoza / Can Tunis BCN",
+      shipperAddress:
+        "Polígono Industrial El Espartal, Zaragoza / Can Tunis BCN",
       consigneeName: "Atlantic Packaging & Container Corporation (New York)",
-      consigneeAddress: "Port Newark Container Terminal (PNCT), Newark, NJ 07114",
+      consigneeAddress:
+        "Port Newark Container Terminal (PNCT), Newark, NJ 07114",
       notifyPartyName: "Atlas Logistics Group Barcelona Lead (System Admin)",
       blType: "ORIGINAL",
       freightPaymentTerm: "PREPAID",

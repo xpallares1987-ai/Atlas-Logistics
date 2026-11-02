@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
-import { db } from "../db/index.js";
+import { db, client } from "../db/index.js";
 import {
   bookings,
   shipments,
@@ -8,9 +8,10 @@ import {
 } from "../db/schema/operations.js";
 import { shipmentEventLogs } from "../db/schema/audit.js";
 import { documents } from "../db/schema/support.js";
-import { companies } from "../db/schema/core.js";
+import { companies, addresses, addressContacts } from "../db/schema/core.js";
 import { eq, desc, or } from "drizzle-orm";
 import { ensureOperationsSeedData } from "../routes/operations/seed-data.js";
+import { formatAllBlBoxes } from "@atlas/shared";
 
 export interface CreateBookingInput {
   referenceNumber?: string;
@@ -35,10 +36,20 @@ export interface CreateBookingInput {
   transitDays?: number;
   estimatedDeparture?: string | number | Date;
   status?: string;
+
+  // Addresses Hub Integration
+  shipperAddressId?: string;
+  consigneeAddressId?: string;
+  notifyAddressId?: string;
+  dischargeAgentAddressId?: string;
+  isToOrder?: boolean;
+  orderOf?: string;
+  blPartiesSnapshot?: any;
 }
 
 export interface ConfirmBookingInput {
   carrierBookingNumber?: string;
+  bookingNumber?: string;
   vesselName?: string;
   voyageNumber?: string;
   containerNumber?: string;
@@ -47,6 +58,152 @@ export interface ConfirmBookingInput {
   incoterm?: string;
   shipperName?: string;
   consigneeName?: string;
+
+  // Addresses Hub Integration
+  shipperAddressId?: string;
+  consigneeAddressId?: string;
+  notifyAddressId?: string;
+  dischargeAgentAddressId?: string;
+  isToOrder?: boolean;
+  orderOf?: string;
+  blPartiesSnapshot?: any;
+}
+
+let bookingsColumnsEnsured = false;
+export async function ensureBookingsColumns() {
+  if (bookingsColumnsEnsured) return;
+  const cols = [
+    "ALTER TABLE bookings ADD COLUMN shipper_address_id TEXT REFERENCES addresses(id);",
+    "ALTER TABLE bookings ADD COLUMN consignee_address_id TEXT REFERENCES addresses(id);",
+    "ALTER TABLE bookings ADD COLUMN notify_address_id TEXT REFERENCES addresses(id);",
+    "ALTER TABLE bookings ADD COLUMN discharge_agent_address_id TEXT REFERENCES addresses(id);",
+    "ALTER TABLE bookings ADD COLUMN is_to_order INTEGER DEFAULT 0;",
+    "ALTER TABLE bookings ADD COLUMN order_of TEXT;",
+    "ALTER TABLE bookings ADD COLUMN bl_parties_snapshot TEXT;",
+  ];
+  for (const sql of cols) {
+    try {
+      await client.execute(sql);
+    } catch {}
+  }
+  bookingsColumnsEnsured = true;
+}
+
+export async function resolveBlPartiesSnapshot(params: {
+  shipperAddressId?: string;
+  consigneeAddressId?: string;
+  notifyAddressId?: string;
+  dischargeAgentAddressId?: string;
+  isToOrder?: boolean;
+  orderOf?: string;
+  fallbackShipperName?: string;
+  fallbackConsigneeName?: string;
+}) {
+  let shipperAddr: any = null;
+  let shipperContact: any = null;
+  let consigneeAddr: any = null;
+  let consigneeContact: any = null;
+  let notifyAddr: any = null;
+  let notifyContact: any = null;
+  let agentAddr: any = null;
+  let agentContact: any = null;
+
+  if (params.shipperAddressId) {
+    const res = await db
+      .select()
+      .from(addresses)
+      .where(eq(addresses.id, params.shipperAddressId))
+      .limit(1);
+    if (res[0]) {
+      shipperAddr = res[0];
+      const contacts = await db
+        .select()
+        .from(addressContacts)
+        .where(eq(addressContacts.addressId, res[0].id));
+      shipperContact = contacts.find((c) => c.isPrimary) || contacts[0];
+    }
+  }
+
+  if (params.consigneeAddressId) {
+    const res = await db
+      .select()
+      .from(addresses)
+      .where(eq(addresses.id, params.consigneeAddressId))
+      .limit(1);
+    if (res[0]) {
+      consigneeAddr = res[0];
+      const contacts = await db
+        .select()
+        .from(addressContacts)
+        .where(eq(addressContacts.addressId, res[0].id));
+      consigneeContact = contacts.find((c) => c.isPrimary) || contacts[0];
+    }
+  }
+
+  if (params.notifyAddressId) {
+    const res = await db
+      .select()
+      .from(addresses)
+      .where(eq(addresses.id, params.notifyAddressId))
+      .limit(1);
+    if (res[0]) {
+      notifyAddr = res[0];
+      const contacts = await db
+        .select()
+        .from(addressContacts)
+        .where(eq(addressContacts.addressId, res[0].id));
+      notifyContact = contacts.find((c) => c.isPrimary) || contacts[0];
+    }
+  }
+
+  if (params.dischargeAgentAddressId) {
+    const res = await db
+      .select()
+      .from(addresses)
+      .where(eq(addresses.id, params.dischargeAgentAddressId))
+      .limit(1);
+    if (res[0]) {
+      agentAddr = res[0];
+      const contacts = await db
+        .select()
+        .from(addressContacts)
+        .where(eq(addressContacts.addressId, res[0].id));
+      agentContact = contacts.find((c) => c.isPrimary) || contacts[0];
+    }
+  }
+
+  return formatAllBlBoxes({
+    shipper:
+      shipperAddr ||
+      (params.fallbackShipperName
+        ? {
+            companyName: params.fallbackShipperName,
+            street1: "",
+            zipCode: "",
+            city: "",
+            country: "ES",
+          }
+        : undefined),
+    shipperContact,
+    consignee:
+      consigneeAddr ||
+      (params.fallbackConsigneeName
+        ? {
+            companyName: params.fallbackConsigneeName,
+            street1: "",
+            zipCode: "",
+            city: "",
+            country: "NL",
+          }
+        : undefined),
+    consigneeContact,
+    isToOrder: params.isToOrder,
+    orderOf: params.orderOf,
+    notify: notifyAddr,
+    notifyContact,
+    agent: agentAddr,
+    agentContact,
+  });
 }
 
 function parseCargoDetails(
@@ -91,8 +248,21 @@ export function formatBookingRecord(b: typeof bookings.$inferSelect) {
     commodities[0]?.grossWeightKg ||
     12000;
 
+  const parsedSnapshot = b.blPartiesSnapshot
+    ? typeof b.blPartiesSnapshot === "string"
+      ? JSON.parse(b.blPartiesSnapshot)
+      : b.blPartiesSnapshot
+    : null;
+
   return {
     ...b,
+    shipperAddressId: b.shipperAddressId || null,
+    consigneeAddressId: b.consigneeAddressId || null,
+    notifyAddressId: b.notifyAddressId || null,
+    dischargeAgentAddressId: b.dischargeAgentAddressId || null,
+    isToOrder: !!b.isToOrder,
+    orderOf: b.orderOf || null,
+    blPartiesSnapshot: parsedSnapshot,
     customer:
       details.customerName ||
       (b.customerId === "c-1" ? "Demo Customer Ltd" : b.customerId),
@@ -107,6 +277,7 @@ export function formatBookingRecord(b: typeof bookings.$inferSelect) {
     rateAmount: details.rateAmount ?? 2450,
     currency: details.currency || "USD",
     transitDays: details.transitDays ?? 25,
+    bookingNumber: details.carrierBookingNumber || b.referenceNumber,
     carrierBookingNumber: details.carrierBookingNumber || null,
     shipmentId: details.shipmentId || null,
     trackingNumber: details.trackingNumber || null,
@@ -140,6 +311,7 @@ export function formatBookingRecord(b: typeof bookings.$inferSelect) {
 
 export async function createBookingRequest(input: CreateBookingInput) {
   await ensureOperationsSeedData();
+  await ensureBookingsColumns();
 
   const now = new Date();
   const yyyymm = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -201,6 +373,20 @@ export async function createBookingRequest(input: CreateBookingInput) {
     ? new Date(input.estimatedDeparture)
     : new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
 
+  let blSnapshot = input.blPartiesSnapshot || null;
+  if (!blSnapshot && (input.shipperAddressId || input.consigneeAddressId)) {
+    blSnapshot = await resolveBlPartiesSnapshot({
+      shipperAddressId: input.shipperAddressId,
+      consigneeAddressId: input.consigneeAddressId,
+      notifyAddressId: input.notifyAddressId,
+      dischargeAgentAddressId: input.dischargeAgentAddressId,
+      isToOrder: input.isToOrder,
+      orderOf: input.orderOf,
+      fallbackShipperName: input.customerName,
+      fallbackConsigneeName: input.consigneeName,
+    });
+  }
+
   const inserted = await db
     .insert(bookings)
     .values({
@@ -217,6 +403,13 @@ export async function createBookingRequest(input: CreateBookingInput) {
       voyage: input.voyage || "2610W",
       cargoDetails: JSON.stringify(cargoDetailsObj),
       estimatedDeparture: estDep,
+      shipperAddressId: input.shipperAddressId || null,
+      consigneeAddressId: input.consigneeAddressId || null,
+      notifyAddressId: input.notifyAddressId || null,
+      dischargeAgentAddressId: input.dischargeAgentAddressId || null,
+      isToOrder: !!input.isToOrder,
+      orderOf: input.orderOf || null,
+      blPartiesSnapshot: blSnapshot ? JSON.stringify(blSnapshot) : null,
       createdAt: now,
       updatedAt: now,
     })
@@ -231,6 +424,7 @@ export async function listBookings(filters?: {
   limit?: number;
 }) {
   await ensureOperationsSeedData();
+  await ensureBookingsColumns();
   const limit = filters?.limit || 100;
   const rows = await db
     .select()
@@ -255,6 +449,7 @@ export async function listBookings(filters?: {
 
 export async function getBookingById(idOrRef: string) {
   await ensureOperationsSeedData();
+  await ensureBookingsColumns();
   const rows = await db
     .select()
     .from(bookings)
@@ -301,6 +496,7 @@ export async function confirmBookingToShipment(
   input: ConfirmBookingInput = {},
 ) {
   await ensureOperationsSeedData();
+  await ensureBookingsColumns();
 
   const existing = await db
     .select()
@@ -366,6 +562,7 @@ export async function confirmBookingToShipment(
   const scacPrefix = carrierName.substring(0, 4).toUpperCase().padEnd(4, "U");
   const carrierBookingNumber =
     input.carrierBookingNumber ||
+    input.bookingNumber ||
     details.carrierBookingNumber ||
     `${scacPrefix}${Math.floor(1000000 + Math.random() * 9000000)}`;
 
@@ -463,6 +660,26 @@ export async function confirmBookingToShipment(
     details.consigneeName ||
     "Continental Distribution Hub";
 
+  const resolvedBlSnapshot = await resolveBlPartiesSnapshot({
+    shipperAddressId:
+      input.shipperAddressId || (bkg as any).shipperAddressId || undefined,
+    consigneeAddressId:
+      input.consigneeAddressId || (bkg as any).consigneeAddressId || undefined,
+    notifyAddressId:
+      input.notifyAddressId || (bkg as any).notifyAddressId || undefined,
+    dischargeAgentAddressId:
+      input.dischargeAgentAddressId ||
+      (bkg as any).dischargeAgentAddressId ||
+      undefined,
+    isToOrder:
+      input.isToOrder !== undefined
+        ? input.isToOrder
+        : (bkg as any).isToOrder || undefined,
+    orderOf: input.orderOf || (bkg as any).orderOf || undefined,
+    fallbackShipperName: shipperNameVal,
+    fallbackConsigneeName: consigneeNameVal,
+  });
+
   const blPayload = {
     blNumber: blReference,
     bookingReference: bkg.referenceNumber,
@@ -477,7 +694,14 @@ export async function confirmBookingToShipment(
     consignee: {
       name: consigneeNameVal,
     },
-    notifyParty: "Same as Consignee",
+    notifyParty: input.isToOrder
+      ? "Mandatory Notify Party"
+      : "Same as Consignee",
+    blParties: resolvedBlSnapshot,
+    shipperBox: resolvedBlSnapshot.shipper.rawBlock,
+    consigneeBox: resolvedBlSnapshot.consignee.rawBlock,
+    notifyBox: resolvedBlSnapshot.notify.rawBlock,
+    agentBox: resolvedBlSnapshot.agent.rawBlock,
     vesselName,
     voyageNumber,
     portOfLoading: bkg.origin || "CNSHA",
@@ -536,6 +760,25 @@ export async function confirmBookingToShipment(
       vessel: vesselName,
       voyage: voyageNumber,
       cargoDetails: JSON.stringify(updatedDetails),
+      shipperAddressId:
+        input.shipperAddressId || (bkg as any).shipperAddressId || null,
+      consigneeAddressId:
+        input.consigneeAddressId || (bkg as any).consigneeAddressId || null,
+      notifyAddressId:
+        input.notifyAddressId || (bkg as any).notifyAddressId || null,
+      dischargeAgentAddressId:
+        input.dischargeAgentAddressId ||
+        (bkg as any).dischargeAgentAddressId ||
+        null,
+      isToOrder:
+        input.isToOrder !== undefined
+          ? !!input.isToOrder
+          : !!(bkg as any).isToOrder,
+      orderOf:
+        input.orderOf !== undefined
+          ? input.orderOf
+          : (bkg as any).orderOf || null,
+      blPartiesSnapshot: JSON.stringify(resolvedBlSnapshot),
       updatedAt: now,
     })
     .where(eq(bookings.id, bkg.id))

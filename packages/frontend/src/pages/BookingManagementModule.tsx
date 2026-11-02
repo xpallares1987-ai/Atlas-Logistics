@@ -21,9 +21,10 @@ import {
   AlertCircle,
   Package,
   Plus,
+  Building2,
   X,
 } from "lucide-react";
-import { Button } from "@atlas/ui";
+import { Button, AddressSelector } from "@atlas/ui";
 import {
   OCEAN_BOOKING_PRESETS,
   CARRIER_METADATA,
@@ -63,6 +64,12 @@ export default function BookingManagementModule() {
     shipperName: "Atlas Global Imports S.L.",
     consigneeName: "European Distribution Hub B.V.",
     autoDownloadPdf: true,
+    shipperAddressId: "",
+    consigneeAddressId: "",
+    notifyAddressId: "",
+    dischargeAgentAddressId: "",
+    isToOrder: false,
+    orderOf: "THE SHIPPER",
   });
   const [isConfirmSubmitting, setIsConfirmSubmitting] = useState(false);
   const [lastConversionResult, setLastConversionResult] = useState<any | null>(
@@ -221,8 +228,14 @@ export default function BookingManagementModule() {
       containerNumber: `ATLU${Math.floor(1000000 + Math.random() * 8999999)}`,
       sealNumber: `SL-${Math.floor(10000 + Math.random() * 89999)}`,
       shipperName: details.customerName || "Atlas Global Imports S.L.",
-      consigneeName: "European Distribution Hub B.V.",
+      consigneeName: details.consigneeName || "European Distribution Hub B.V.",
       autoDownloadPdf: true,
+      shipperAddressId: bkg.shipperAddressId || "",
+      consigneeAddressId: bkg.consigneeAddressId || "",
+      notifyAddressId: bkg.notifyAddressId || "",
+      dischargeAgentAddressId: bkg.dischargeAgentAddressId || "",
+      isToOrder: !!bkg.isToOrder,
+      orderOf: bkg.orderOf || "THE SHIPPER",
     });
   };
 
@@ -1527,6 +1540,57 @@ export default function BookingManagementModule() {
                   </div>
                 </div>
 
+                {/* Canonical B/L Party Boxes Preview */}
+                {activeBooking.blPartiesSnapshot && (
+                  <div className="pt-2 border-t border-slate-700/60">
+                    <div className="text-xs font-semibold text-slate-300 mb-2 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-indigo-400" />
+                      <span>
+                        Casillas Canónicas B/L (BIMCO / FIATA / DCSA eBL)
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[11px]">
+                      <div className="bg-slate-950 p-3 rounded-lg border border-slate-700 text-slate-300">
+                        <div className="text-[10px] text-indigo-400 uppercase font-sans font-bold mb-1">
+                          1. Shipper / Exporter
+                        </div>
+                        <div className="whitespace-pre leading-relaxed">
+                          {activeBooking.blPartiesSnapshot.shipper?.rawBlock ||
+                            "N/A"}
+                        </div>
+                      </div>
+                      <div className="bg-slate-950 p-3 rounded-lg border border-slate-700 text-slate-300">
+                        <div className="text-[10px] text-blue-400 uppercase font-sans font-bold mb-1">
+                          2. Consignee{" "}
+                          {activeBooking.isToOrder ? "(TO ORDER)" : ""}
+                        </div>
+                        <div className="whitespace-pre leading-relaxed">
+                          {activeBooking.blPartiesSnapshot.consignee
+                            ?.rawBlock || "N/A"}
+                        </div>
+                      </div>
+                      <div className="bg-slate-950 p-3 rounded-lg border border-slate-700 text-slate-300">
+                        <div className="text-[10px] text-purple-400 uppercase font-sans font-bold mb-1">
+                          3. Notify Party
+                        </div>
+                        <div className="whitespace-pre leading-relaxed">
+                          {activeBooking.blPartiesSnapshot.notify?.rawBlock ||
+                            "N/A"}
+                        </div>
+                      </div>
+                      <div className="bg-slate-950 p-3 rounded-lg border border-slate-700 text-slate-300">
+                        <div className="text-[10px] text-emerald-400 uppercase font-sans font-bold mb-1">
+                          4. Delivery / Discharge Agent
+                        </div>
+                        <div className="whitespace-pre leading-relaxed">
+                          {activeBooking.blPartiesSnapshot.agent?.rawBlock ||
+                            "N/A"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="text-slate-400 font-medium">
@@ -1927,36 +1991,92 @@ export default function BookingManagementModule() {
                       className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white font-mono"
                     />
                   </div>
-                  <div>
-                    <label className="text-slate-300 font-semibold block mb-1">
-                      Shipper / Exportador (B/L)
-                    </label>
-                    <input
-                      type="text"
-                      value={confirmForm.shipperName}
-                      onChange={(e) =>
-                        setConfirmForm({
-                          ...confirmForm,
-                          shipperName: e.target.value,
-                        })
-                      }
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white"
+                </div>
+
+                {/* Addresses Hub Integration: B/L 4 Party Boxes */}
+                <div className="pt-3 border-t border-slate-800 space-y-4">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400">
+                    <Building2 className="w-4 h-4 text-indigo-400" />
+                    <span>
+                      Partes Documentales del Conocimiento de Embarque
+                      (Addresses Hub)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <AddressSelector
+                      id="confirm-bkg-shipper"
+                      label="1. Shipper / Exportador (B/L)"
+                      roleType="CUSTOMER"
+                      selectedAddressId={confirmForm.shipperAddressId}
+                      onAddressSelect={(addr) => {
+                        setConfirmForm((prev) => ({
+                          ...prev,
+                          shipperAddressId: addr?.id || "",
+                          shipperName: addr?.companyName || prev.shipperName,
+                        }));
+                      }}
+                    />
+
+                    <AddressSelector
+                      id="confirm-bkg-consignee"
+                      label="2. Consignee / Consignatario (B/L)"
+                      enableToOrder={true}
+                      isToOrder={confirmForm.isToOrder}
+                      orderOf={confirmForm.orderOf}
+                      onToOrderChange={(toOrder, ord) => {
+                        setConfirmForm((prev) => ({
+                          ...prev,
+                          isToOrder: toOrder,
+                          orderOf: ord,
+                          consigneeName: toOrder
+                            ? `TO ORDER OF ${ord}`
+                            : prev.consigneeName,
+                        }));
+                      }}
+                      roleType={["CUSTOMER", "CONSIGNEE_NOTIFY"]}
+                      selectedAddressId={confirmForm.consigneeAddressId}
+                      onAddressSelect={(addr) => {
+                        setConfirmForm((prev) => ({
+                          ...prev,
+                          consigneeAddressId: addr?.id || "",
+                          consigneeName:
+                            addr?.companyName || prev.consigneeName,
+                        }));
+                      }}
                     />
                   </div>
-                  <div>
-                    <label className="text-slate-300 font-semibold block mb-1">
-                      Consignee / Importador (B/L)
-                    </label>
-                    <input
-                      type="text"
-                      value={confirmForm.consigneeName}
-                      onChange={(e) =>
-                        setConfirmForm({
-                          ...confirmForm,
-                          consigneeName: e.target.value,
-                        })
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <AddressSelector
+                      id="confirm-bkg-notify"
+                      label="3. Notify Party / Notificar a (B/L)"
+                      roleType="CONSIGNEE_NOTIFY"
+                      selectedAddressId={confirmForm.notifyAddressId}
+                      onAddressSelect={(addr) => {
+                        setConfirmForm((prev) => ({
+                          ...prev,
+                          notifyAddressId: addr?.id || "",
+                        }));
+                      }}
+                    />
+
+                    <AddressSelector
+                      id="confirm-bkg-agent"
+                      label="4. Delivery / Discharge Agent (B/L)"
+                      roleType="CARRIER_AGENT"
+                      suggestedUnLocode={confirmingBooking?.destination}
+                      suggestedCarrier={
+                        confirmingBooking?.carrier ||
+                        confirmingBooking?.parsedCargoDetails?.carrier
                       }
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white"
+                      selectedAddressId={confirmForm.dischargeAgentAddressId}
+                      onAddressSelect={(addr) => {
+                        setConfirmForm((prev) => ({
+                          ...prev,
+                          dischargeAgentAddressId: addr?.id || "",
+                        }));
+                      }}
                     />
                   </div>
                 </div>

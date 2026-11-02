@@ -17,5 +17,6 @@ export * from "./RateIngestionModal";
 export * from "./QuoteBookingModal";
 export * from "./DynamicRateEngine";
 export * from "./AddressModal";
+export * from "./AddressSelector";
 export * from "./DuplicateWarningModal";
 export * from "./BlCardPreview";
