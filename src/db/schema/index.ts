@@ -27,6 +27,7 @@ export * from "./bulk_operations.js";
 export * from "./carbon_emissions.js";
 export * from "./iot_telemetry.js";
 export * from "./edi.js";
+export * from "./dcsa.js";
 export * from "./control_tower.js";
 export * from "./scm_foundation.js";
 export * from "./scm_entities_sqlite.js";

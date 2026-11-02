@@ -21,12 +21,118 @@ export interface X12StatusEvent {
   exceptionReason?: string;
 }
 
+export interface X12OceanShippingInstruction {
+  bookingReference: string;
+  billOfLadingNumber?: string;
+  carrierScac: string;
+  vesselName: string;
+  voyageNumber: string;
+  shipper: {
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    countryCode: string;
+  };
+  consignee: {
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    countryCode: string;
+  };
+  notifyParty?: {
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    countryCode: string;
+  };
+  portOfLoading: { locode: string; portName: string };
+  portOfDischarge: { locode: string; portName: string };
+  container: {
+    containerNumber: string;
+    sealNumber: string;
+    equipmentType: string;
+    grossWeightKg: number;
+    tareWeightKg?: number;
+    verifiedGrossMassKg: number;
+    vgmVerificationMethod: "METHOD_1" | "METHOD_2";
+    vgmAuthorizedPerson: string;
+  };
+  cargo: {
+    description: string;
+    packageCount: number;
+    packageType: string;
+    grossWeightKg: number;
+    volumeCbm: number;
+    hsCode?: string;
+  };
+}
+
+export interface X12OceanInvoice {
+  invoiceNumber: string;
+  invoiceDate: string;
+  bookingReference: string;
+  billOfLadingNumber: string;
+  carrierScac: string;
+  currency: string;
+  shipper: { name: string; city: string; countryCode: string };
+  consignee: { name: string; city: string; countryCode: string };
+  portOfLoading: string;
+  portOfDischarge: string;
+  lineItems: Array<{
+    chargeCode: string;
+    chargeDescription: string;
+    rate: number;
+    basis: string;
+    amount: number;
+  }>;
+  totalAmount: number;
+  totalWeightKg: number;
+  totalVolumeCbm: number;
+}
+
+export interface X12OceanStatusEvent {
+  senderId: string;
+  receiverId: string;
+  controlNumber: string;
+  bookingReference?: string;
+  billOfLadingNumber?: string;
+  containerNumber?: string;
+  sealNumber?: string;
+  vesselName?: string;
+  voyageNumber?: string;
+  carrierScac?: string;
+  statusCode: string;
+  milestone: string;
+  portLocode?: string;
+  eventTimestamp: string;
+  isException: boolean;
+  exceptionReason?: string;
+}
+
 export interface X12LoadTenderInstruction {
   bookingReference: string;
   proNumber?: string;
   carrierScac: string;
-  shipper: { name: string; address: string; city: string; state: string; postalCode: string };
-  consignee: { name: string; address: string; city: string; state: string; postalCode: string };
+  shipper: {
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    postalCode: string;
+  };
+  consignee: {
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    postalCode: string;
+  };
   pickupDate: string; // YYYYMMDD
   deliveryDate: string; // YYYYMMDD
   cargoDescription: string;
@@ -89,6 +195,272 @@ export class X12Service {
   /**
    * Parse ANSI X12 214 (Transportation Carrier Shipment Status)
    */
+  /**
+   * Parse ANSI X12 315 (Ocean Shipment Status Details)
+   */
+  public static parse315(ast: EdiDocumentAST): X12OceanStatusEvent[] {
+    const events: X12OceanStatusEvent[] = [];
+
+    const isa = ast.segments.find((s) => s.tag === "ISA");
+    const senderId = isa ? this.getElem(isa, 5).trim() : "UNKNOWN_CARRIER";
+    const receiverId = isa ? this.getElem(isa, 7).trim() : "ATLASLOG";
+    const controlNumber = isa ? this.getElem(isa, 12).trim() : "000000001";
+
+    let currentBooking = "";
+    let currentBL = "";
+    let currentContainer = "";
+    let currentSeal = "";
+    let currentVessel = "";
+    let currentVoyage = "";
+    let currentPort = "";
+    let currentStatusCode = "";
+    let currentTimestamp = new Date().toISOString();
+
+    for (const seg of ast.segments) {
+      if (seg.tag === "B4") {
+        currentStatusCode = this.getElem(seg, 2);
+        currentContainer =
+          `${this.getElem(seg, 6)}${this.getElem(seg, 7)}`.trim() ||
+          this.getElem(seg, 7);
+        const dateVal = this.getElem(seg, 3);
+        const timeVal = this.getElem(seg, 4);
+        if (dateVal) {
+          currentTimestamp = this.formatX12Date(dateVal, timeVal);
+        }
+      } else if (seg.tag === "N9") {
+        const qual = this.getElem(seg, 0);
+        const val = this.getElem(seg, 1);
+        if (qual === "BM" || qual === "BL") currentBL = val;
+        else if (qual === "BN" || qual === "BK") currentBooking = val;
+        else if (qual === "SN") currentSeal = val;
+      } else if (seg.tag === "Q2") {
+        currentVessel =
+          this.getElem(seg, 9) ||
+          this.getElem(seg, 11) ||
+          this.getElem(seg, 12) ||
+          this.getElem(seg, 0);
+        currentVoyage = this.getElem(seg, 7) || this.getElem(seg, 8);
+      } else if (seg.tag === "R4") {
+        currentPort = this.getElem(seg, 2) || this.getElem(seg, 5);
+      }
+    }
+
+    let milestone = "IN_TRANSIT";
+    let isException = false;
+    let reason: string | undefined;
+
+    const upper = currentStatusCode.toUpperCase().trim();
+    switch (upper) {
+      case "AL":
+        milestone = "CONTAINER_LOADED";
+        break;
+      case "VD":
+      case "DEPA":
+        milestone = "VESSEL_DEPARTED";
+        break;
+      case "VA":
+      case "ARRI":
+        milestone = "VESSEL_ARRIVED";
+        break;
+      case "UV":
+      case "DISC":
+        milestone = "CONTAINER_DISCHARGED";
+        break;
+      case "I":
+      case "GI":
+        milestone = "GATE_IN";
+        break;
+      case "OA":
+      case "GO":
+        milestone = "GATE_OUT";
+        break;
+      case "H1":
+      case "CH":
+        milestone = "CUSTOMS_HOLD";
+        isException = true;
+        reason = "Retención aduanera o inspección en terminal.";
+        break;
+      case "RL":
+      case "RO":
+        milestone = "ROLLOVER";
+        isException = true;
+        reason =
+          "Contenedor no embarcado en buque programado (Rollover / Disrupción naviera).";
+        break;
+      default:
+        milestone = upper || "IN_TRANSIT";
+    }
+
+    events.push({
+      senderId,
+      receiverId,
+      controlNumber,
+      bookingReference: currentBooking || undefined,
+      billOfLadingNumber: currentBL || undefined,
+      containerNumber: currentContainer || undefined,
+      sealNumber: currentSeal || undefined,
+      vesselName: currentVessel || undefined,
+      voyageNumber: currentVoyage || undefined,
+      carrierScac: senderId,
+      statusCode: currentStatusCode || "315_STATUS",
+      milestone,
+      portLocode: currentPort || undefined,
+      eventTimestamp: currentTimestamp,
+      isException,
+      exceptionReason: reason,
+    });
+
+    return events;
+  }
+
+  /**
+   * Generate an official ANSI X12 304 (Ocean Shipping Instructions) with SOLAS VGM
+   */
+  public static generate304(
+    instruction: X12OceanShippingInstruction,
+    senderId: string = "ATLASLOG",
+    receiverId: string = "MAERSKLINE",
+  ): string {
+    const now = new Date();
+    const dateStr = now.toISOString().slice(2, 10).replace(/-/g, "");
+    const fullDate = now.toISOString().slice(0, 10).replace(/-/g, "");
+    const timeStr = now.toTimeString().slice(0, 4).replace(/:/g, "");
+    const controlNum = Math.floor(
+      100000000 + Math.random() * 900000000,
+    ).toString();
+    const grpCtrl = Math.floor(1000 + Math.random() * 9000).toString();
+
+    const paddedSender = senderId.padEnd(15, " ");
+    const paddedReceiver = receiverId.padEnd(15, " ");
+
+    const segments: string[] = [];
+
+    segments.push(
+      `ISA*00*          *00*          *ZZ*${paddedSender}*ZZ*${paddedReceiver}*${dateStr}*${timeStr}*U*00401*${controlNum}*0*P*>~`,
+    );
+    segments.push(
+      `GS*SO*${senderId}*${receiverId}*${fullDate}*${timeStr}*${grpCtrl}*X*004010~`,
+    );
+    segments.push(`ST*304*0001~`);
+    segments.push(
+      `B2*${instruction.carrierScac}*${instruction.bookingReference}***L~`,
+    );
+    segments.push(`B2A*00~`);
+
+    const cont = instruction.container;
+    segments.push(
+      `Y4*${cont.containerNumber}*${cont.equipmentType}***${cont.grossWeightKg}*K*${cont.sealNumber}~`,
+    );
+
+    const vgmCode = cont.vgmVerificationMethod === "METHOD_1" ? "SM1" : "SM2";
+    segments.push(
+      `W09*${cont.verifiedGrossMassKg}*K*${vgmCode}*${cont.vgmAuthorizedPerson || "ATLAS LOGISTICS DECLARANT"}~`,
+    );
+
+    segments.push(`N1*SH*${instruction.shipper.name}~`);
+    segments.push(`N3*${instruction.shipper.address}~`);
+    segments.push(
+      `N4*${instruction.shipper.city}*${instruction.shipper.state}*${instruction.shipper.postalCode}*${instruction.shipper.countryCode}~`,
+    );
+
+    segments.push(`N1*CN*${instruction.consignee.name}~`);
+    segments.push(`N3*${instruction.consignee.address}~`);
+    segments.push(
+      `N4*${instruction.consignee.city}*${instruction.consignee.state}*${instruction.consignee.postalCode}*${instruction.consignee.countryCode}~`,
+    );
+
+    segments.push(
+      `R4*L*UN*${instruction.portOfLoading.locode}***${instruction.portOfLoading.portName}~`,
+    );
+    segments.push(
+      `R4*D*UN*${instruction.portOfDischarge.locode}***${instruction.portOfDischarge.portName}~`,
+    );
+
+    segments.push(
+      `Q2*9839420*US*${fullDate}***${cont.grossWeightKg}*K*${instruction.voyageNumber}**${instruction.vesselName}~`,
+    );
+
+    segments.push(`LX*1~`);
+    segments.push(
+      `L5*1*${instruction.cargo.description.slice(0, 50)}*${instruction.cargo.hsCode || "72083800"}~`,
+    );
+    segments.push(
+      `L0*1*${instruction.cargo.grossWeightKg}*K*${instruction.cargo.grossWeightKg}*K*${instruction.cargo.volumeCbm}*X*${instruction.cargo.packageCount}*${instruction.cargo.packageType}~`,
+    );
+
+    const seCount = segments.length - 2 + 1;
+    segments.push(`SE*${seCount}*0001~`);
+    segments.push(`GE*1*${grpCtrl}~`);
+    segments.push(`IEA*1*${controlNum}~`);
+
+    return segments.join("\n");
+  }
+
+  /**
+   * Generate an official ANSI X12 310 (Ocean Freight Details and Invoice)
+   */
+  public static generate310(
+    invoice: X12OceanInvoice,
+    senderId: string = "MAERSKLINE",
+    receiverId: string = "ATLASLOG",
+  ): string {
+    const now = new Date();
+    const dateStr = now.toISOString().slice(2, 10).replace(/-/g, "");
+    const fullDate = now.toISOString().slice(0, 10).replace(/-/g, "");
+    const timeStr = now.toTimeString().slice(0, 4).replace(/:/g, "");
+    const controlNum = Math.floor(
+      100000000 + Math.random() * 900000000,
+    ).toString();
+    const grpCtrl = Math.floor(1000 + Math.random() * 9000).toString();
+
+    const paddedSender = senderId.padEnd(15, " ");
+    const paddedReceiver = receiverId.padEnd(15, " ");
+
+    const segments: string[] = [];
+
+    segments.push(
+      `ISA*00*          *00*          *ZZ*${paddedSender}*ZZ*${paddedReceiver}*${dateStr}*${timeStr}*U*00401*${controlNum}*0*P*>~`,
+    );
+    segments.push(
+      `GS*SI*${senderId}*${receiverId}*${fullDate}*${timeStr}*${grpCtrl}*X*004010~`,
+    );
+    segments.push(`ST*310*0001~`);
+
+    segments.push(
+      `B3*B*${invoice.invoiceNumber}*${invoice.billOfLadingNumber}*PP*${invoice.invoiceDate}*${invoice.totalAmount.toFixed(2)}*${invoice.currency}~`,
+    );
+
+    segments.push(`N1*SH*${invoice.shipper.name}~`);
+    segments.push(
+      `N4*${invoice.shipper.city}***${invoice.shipper.countryCode}~`,
+    );
+    segments.push(`N1*CN*${invoice.consignee.name}~`);
+    segments.push(
+      `N4*${invoice.consignee.city}***${invoice.consignee.countryCode}~`,
+    );
+
+    segments.push(`R4*L*UN*${invoice.portOfLoading}~`);
+    segments.push(`R4*D*UN*${invoice.portOfDischarge}~`);
+    segments.push(`C3*${invoice.currency}~`);
+
+    invoice.lineItems.forEach((item, idx) => {
+      segments.push(
+        `L1*${idx + 1}*${item.rate.toFixed(2)}*${item.basis}*${item.amount.toFixed(2)}*${item.chargeCode}*${item.chargeDescription.slice(0, 30)}~`,
+      );
+    });
+
+    segments.push(
+      `L3*${invoice.totalWeightKg.toFixed(0)}*K*${invoice.totalVolumeCbm.toFixed(1)}*X*${invoice.totalAmount.toFixed(2)}~`,
+    );
+
+    const seCount = segments.length - 2 + 1;
+    segments.push(`SE*${seCount}*0001~`);
+    segments.push(`GE*1*${grpCtrl}~`);
+    segments.push(`IEA*1*${controlNum}~`);
+
+    return segments.join("\n");
+  }
+
   public static parse214(ast: EdiDocumentAST): X12StatusEvent[] {
     const events: X12StatusEvent[] = [];
 
@@ -164,7 +536,9 @@ export class X12Service {
     const dateStr = now.toISOString().slice(2, 10).replace(/-/g, ""); // YYMMDD
     const fullDate = now.toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
     const timeStr = now.toTimeString().slice(0, 4).replace(/:/g, ""); // HHMM
-    const controlNum = Math.floor(100000000 + Math.random() * 900000000).toString();
+    const controlNum = Math.floor(
+      100000000 + Math.random() * 900000000,
+    ).toString();
     const grpCtrl = Math.floor(1000 + Math.random() * 9000).toString();
 
     const paddedSender = senderId.padEnd(15, " ");
@@ -212,7 +586,9 @@ export class X12Service {
     segments.push(`G62*70*${tender.deliveryDate}~`);
 
     // S5: Stop-Off Details
-    segments.push(`S5*1*LD*${tender.totalWeightLbs}*L*${tender.totalQuantity}~`);
+    segments.push(
+      `S5*1*LD*${tender.totalWeightLbs}*L*${tender.totalQuantity}~`,
+    );
 
     // L5: Description of Marks and Numbers
     segments.push(`L5*1*${tender.cargoDescription.slice(0, 50)}~`);
@@ -244,7 +620,9 @@ export class X12Service {
     const dateStr = now.toISOString().slice(2, 10).replace(/-/g, "");
     const fullDate = now.toISOString().slice(0, 10).replace(/-/g, "");
     const timeStr = now.toTimeString().slice(0, 4).replace(/:/g, "");
-    const controlNum = Math.floor(100000000 + Math.random() * 900000000).toString();
+    const controlNum = Math.floor(
+      100000000 + Math.random() * 900000000,
+    ).toString();
     const grpCtrl = Math.floor(1000 + Math.random() * 9000).toString();
 
     const paddedSender = ourReceiverId.padEnd(15, " ");

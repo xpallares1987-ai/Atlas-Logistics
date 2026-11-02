@@ -9,7 +9,16 @@ import {
 import { eq, desc } from "drizzle-orm";
 import { EdiTokenizer, EdiDocumentAST } from "./edi-tokenizer.js";
 import { EdifactService, EdifactIftminInstruction } from "./edifact.service.js";
-import { X12Service, X12LoadTenderInstruction } from "./x12.service.js";
+import {
+  X12Service,
+  X12LoadTenderInstruction,
+  X12OceanShippingInstruction,
+  X12OceanInvoice,
+  X12OceanStatusEvent,
+} from "./x12.service.js";
+import { raiseOperationalException } from "../../scm/contexts/operational-intelligence/operational-exceptions.context.js";
+import { ingestOperationalTrackingEvent } from "../../scm/contexts/tracking-events/tracking-events.context.js";
+import { DEFAULT_OPERATOR_ACTOR } from "../../scm/kernel/primitives.js";
 import { DomainEventBus } from "../../lib/events/domain-event-bus.js";
 import { logger } from "../../config/logger.js";
 
@@ -23,10 +32,12 @@ export interface InboundProcessingResult {
   receiverId: string;
   status: "APPLIED" | "ACKNOWLEDGED" | "FAILED";
   ackPayload: string;
+  acknowledgment?: string;
   messagesProcessed: number;
   extractedMilestones: string[];
   exceptionsDetected: number;
   details: any[];
+  events?: any[];
 }
 
 export class EdiDispatcherService {
@@ -159,7 +170,13 @@ export class EdiDispatcherService {
       }
     } else {
       // ANSI X12
-      const events = X12Service.parse214(ast);
+      const stSeg = ast.segments.find((s) => s.tag === "ST");
+      const transactionSetId =
+        stSeg && stSeg.elements[0] ? stSeg.elements[0].toString() : "214";
+      const is315 = transactionSetId === "315";
+      const events = is315
+        ? X12Service.parse315(ast)
+        : X12Service.parse214(ast);
       if (events.length > 0) {
         senderId = events[0].senderId;
         receiverId = events[0].receiverId;
@@ -194,15 +211,19 @@ export class EdiDispatcherService {
         extractedMilestones.push(ev.milestone);
         if (ev.isException) exceptionsDetected++;
 
+        const refNumber =
+          "referenceNumber" in ev
+            ? ev.referenceNumber
+            : (ev as any).billOfLadingNumber;
         const matchedShipment = await this.matchShipment(
           ev.bookingReference,
-          ev.referenceNumber,
+          refNumber,
         );
 
         await db.insert(ediMessages).values({
           id: msgId,
           interchangeId,
-          messageType: "214",
+          messageType: is315 ? "315" : "214",
           controlNumber: ev.controlNumber,
           shipmentId: matchedShipment?.id,
           bookingReference: ev.bookingReference,
@@ -214,12 +235,103 @@ export class EdiDispatcherService {
           processedAt: new Date(),
         });
 
+        // SCM Hybrid Risk Integration: trigger blocking operational exception if rollover or customs hold
+        if (matchedShipment && ev.isException) {
+          try {
+            await raiseOperationalException(
+              {
+                shipmentId: matchedShipment.id,
+                category:
+                  ev.milestone === "CUSTOMS_HOLD"
+                    ? "SECURITY_AUDIT_HOLD"
+                    : "CARRIER_ROLL",
+                severity: "CRITICAL",
+                title: `Disrupción Marítima EDI ${is315 ? "315" : "214"}: ${ev.milestone}`,
+                description:
+                  ev.exceptionReason ||
+                  `Naviera notifica evento crítico ${ev.milestone} para ${ev.bookingReference || "embarque"}.`,
+                isBlocking: true,
+                assignedTeam: "CARRIER_OPERATIONS",
+              },
+              {
+                ...DEFAULT_OPERATOR_ACTOR,
+                userId: "usr_edi_gateway",
+              },
+            );
+          } catch (_err) {}
+        }
+
+        // SCM Tracking Event Ingestion
+        if (matchedShipment) {
+          try {
+            let trackingEventCode:
+              | "GATE_IN"
+              | "VGM_VERIFIED"
+              | "VESSEL_DEPARTED"
+              | "ETA_UPDATED"
+              | "CUSTOMS_HOLD"
+              | "CUSTOMS_RELEASED"
+              | "TEMP_EXCURSION"
+              | "DELIVERED" = "ETA_UPDATED";
+            if (ev.milestone === "VESSEL_DEPARTED")
+              trackingEventCode = "VESSEL_DEPARTED";
+            else if (ev.milestone === "CUSTOMS_HOLD")
+              trackingEventCode = "CUSTOMS_HOLD";
+            else if (ev.milestone === "GATE_IN" || ev.milestone === "PICKED_UP")
+              trackingEventCode = "GATE_IN";
+            else if (ev.milestone === "DELIVERED")
+              trackingEventCode = "DELIVERED";
+
+            let scmMilestoneCode:
+              | "VGM_CUTOFF"
+              | "ETD_POL"
+              | "TRANSSHIPMENT"
+              | "ETA_POD"
+              | "CUSTOMS_CLEARANCE"
+              | "POD_DELIVERY" = "ETD_POL";
+            if (ev.milestone === "VESSEL_DEPARTED")
+              scmMilestoneCode = "ETD_POL";
+            else if (ev.milestone === "CUSTOMS_HOLD")
+              scmMilestoneCode = "CUSTOMS_CLEARANCE";
+            else if (
+              ev.milestone === "VESSEL_ARRIVED" ||
+              ev.milestone === "CONTAINER_DISCHARGED"
+            )
+              scmMilestoneCode = "ETA_POD";
+            else if (ev.milestone === "DELIVERED")
+              scmMilestoneCode = "POD_DELIVERY";
+
+            await ingestOperationalTrackingEvent(
+              {
+                shipmentId: matchedShipment.id,
+                eventCode: trackingEventCode,
+                milestoneCode: scmMilestoneCode,
+                locationLocode: (ev as any).portLocode || "ESVLC",
+                sourceType: "CARRIER_DCSA_EDI",
+                timestampKind: "ACTUAL",
+                eventTimestamp: ev.eventTimestamp,
+                summary: `Transmisión EDI ${is315 ? "315" : "214"} - Hito: ${ev.milestone} (${ev.statusCode})`,
+              },
+              {
+                ...DEFAULT_OPERATOR_ACTOR,
+                userId: "usr_edi_gateway",
+              },
+            );
+          } catch (_err) {}
+        }
+
+        const locCity = "locationCity" in ev ? ev.locationCity : undefined;
+        const locState = "locationState" in ev ? ev.locationState : undefined;
+        const locCountry =
+          "locationCountry" in ev ? ev.locationCountry : (ev as any).portLocode;
+        const locationName = [locCity, locState, locCountry]
+          .filter(Boolean)
+          .join(", ");
+
         if (matchedShipment) {
           await this.advanceShipmentMilestone(matchedShipment.id, {
             ...ev,
-            locationName: [ev.locationCity, ev.locationState, ev.locationCountry]
-              .filter(Boolean)
-              .join(", "),
+            locationName,
           });
         }
 
@@ -232,7 +344,7 @@ export class EdiDispatcherService {
             carrier: ev.senderId,
             milestone: ev.milestone,
             statusCode: ev.statusCode,
-            location: [ev.locationCity, ev.locationState].filter(Boolean).join(", "),
+            location: locationName,
             isException: ev.isException,
             exceptionReason: ev.exceptionReason,
             eventTimestamp: ev.eventTimestamp,
@@ -278,10 +390,12 @@ export class EdiDispatcherService {
       receiverId,
       status: "APPLIED",
       ackPayload,
+      acknowledgment: ackPayload,
       messagesProcessed: messageDetails.length,
       extractedMilestones,
       exceptionsDetected,
       details: messageDetails,
+      events: messageDetails,
     };
   }
 
@@ -289,7 +403,7 @@ export class EdiDispatcherService {
    * Generate and persist an outbound EDI message (e.g. IFTMIN or X12 204)
    */
   public static async generateOutbound(options: {
-    format: "IFTMIN" | "204";
+    format: "IFTMIN" | "204" | "304" | "310";
     bookingReference: string;
     partnerId?: string;
     senderId?: string;
@@ -312,6 +426,20 @@ export class EdiDispatcherService {
         options.instructionData as EdifactIftminInstruction,
         options.senderId || "ATLASLOG",
         options.receiverId || "MAERSKLINE",
+      );
+    } else if (options.format === "304") {
+      standard = "ANSI_X12";
+      rawPayload = X12Service.generate304(
+        options.instructionData as X12OceanShippingInstruction,
+        options.senderId || "ATLASLOG",
+        options.receiverId || "MAERSKLINE",
+      );
+    } else if (options.format === "310") {
+      standard = "ANSI_X12";
+      rawPayload = X12Service.generate310(
+        options.instructionData as X12OceanInvoice,
+        options.senderId || "MAERSKLINE",
+        options.receiverId || "ATLASLOG",
       );
     } else {
       standard = "ANSI_X12";
@@ -384,7 +512,10 @@ export class EdiDispatcherService {
    * Helper to query configured partners
    */
   public static async listPartners() {
-    return db.select().from(ediPartners).where(eq(ediPartners.isDeleted, false));
+    return db
+      .select()
+      .from(ediPartners)
+      .where(eq(ediPartners.isDeleted, false));
   }
 
   /**
@@ -414,11 +545,17 @@ export class EdiDispatcherService {
         .set(updateData)
         .where(eq(shipments.id, shipmentId));
     } catch (err) {
-      logger.warn({ shipmentId, err }, "Could not auto-advance shipment milestone");
+      logger.warn(
+        { shipmentId, err },
+        "Could not auto-advance shipment milestone",
+      );
     }
   }
 
-  private static async matchShipment(bookingRef?: string, trackingRef?: string) {
+  private static async matchShipment(
+    bookingRef?: string,
+    trackingRef?: string,
+  ) {
     if (!bookingRef && !trackingRef) return null;
     try {
       if (trackingRef) {

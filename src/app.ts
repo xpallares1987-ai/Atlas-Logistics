@@ -124,6 +124,7 @@ app.addHook("onRequest", async (request, reply) => {
     request.url.startsWith("/api/warehouse/ws") ||
     request.url.startsWith("/api/dashboard/live") ||
     request.url.startsWith("/api/edi/inbound") ||
+    request.url.startsWith("/api/dcsa/v3/events") ||
     request.url.startsWith("/api/documents/verify/") ||
     (request.url.startsWith("/api/documents/") &&
       request.url.endsWith("/pdf")) ||

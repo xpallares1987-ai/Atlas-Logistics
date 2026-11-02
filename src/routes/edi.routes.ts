@@ -12,7 +12,7 @@ const inboundSchema = z.object({
 });
 
 const generateSchema = z.object({
-  format: z.enum(["IFTMIN", "204"]),
+  format: z.enum(["IFTMIN", "204", "304", "310"]),
   bookingReference: z.string().min(1),
   partnerId: z.string().optional(),
   senderId: z.string().optional(),
@@ -81,7 +81,14 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
       if (standard === "EDIFACT") {
         parsedEvents = EdifactService.parseIFTSTA(ast);
       } else {
-        parsedEvents = X12Service.parse214(ast);
+        const is315 = ast.segments.some(
+          (s) => s.tag === "ST" && s.elements[0] === "315",
+        );
+        if (is315) {
+          parsedEvents = X12Service.parse315(ast);
+        } else {
+          parsedEvents = X12Service.parse214(ast);
+        }
       }
 
       return reply.send({
@@ -176,6 +183,42 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get("/samples", async (_request, reply) => {
     const samples = [
+      {
+        id: "msc_x12_315_vessel_departure",
+        name: "MSC ANSI X12 315 — Ocean Vessel Departure (Zarpe de Buque)",
+        standard: "ANSI_X12",
+        messageType: "315",
+        carrier: "MSCU",
+        bookingRef: "BK-2026-9042",
+        description:
+          "Reporte oficial de telemetría de zarpado del portacontenedores MSC OSCAR desde Valencia hacia New York Harbor.",
+        payload:
+          "ISA*00*          *00*          *ZZ*MSCU           *ZZ*ATLASLOG       *261102*1200*U*00401*000099481*0*P*>~GS*QO*MSCU*ATLASLOG*20261102*1200*9948*X*004010~ST*315*0001~B4*N*12*VD*20261102*1130*ESVLC*MSCU*9821034~N9*BM*MSCU99482103~N9*BN*BK-2026-9042~N9*SN*SL-994821~Q2*9839420*US*20261102***24500*K*V.2611W**MSC OSCAR~R4*R*UN*ESVLC***VALENCIA TERMINAL~R4*D*UN*USNYC***NEW YORK HARBOR~SE*11*0001~GE*1*9948~IEA*1*000099481~",
+      },
+      {
+        id: "maersk_x12_315_rollover",
+        name: "Maersk ANSI X12 315 — Rollover Exception (Contenedor Dejado en Tierra)",
+        standard: "ANSI_X12",
+        messageType: "315",
+        carrier: "MAEU",
+        bookingRef: "BK-2026-9042",
+        description:
+          "Alerta de excepción marítima crítica: Capacidad sobrepasada. Contenedor no embarcado y rolado al siguiente buque.",
+        payload:
+          "ISA*00*          *00*          *ZZ*MAEU           *ZZ*ATLASLOG       *261102*1400*U*00401*000099482*0*P*>~GS*QO*MAEU*ATLASLOG*20261102*1400*9949*X*004010~ST*315*0001~B4*N*12*RL*20261102*1345*ESVLC*MAEU*7749102~N9*BM*MAEU77491023~N9*BN*BK-2026-9042~Q2*9778810*DK*20261102***22000*K*V.4402E**MAERSK MC-KINNEY~R4*R*UN*ESVLC***VALENCIA TERMINAL~SE*8*0001~GE*1*9949~IEA*1*000099482~",
+      },
+      {
+        id: "hapag_x12_304_si",
+        name: "Hapag-Lloyd ANSI X12 304 — Shipping Instructions & SOLAS VGM",
+        standard: "ANSI_X12",
+        messageType: "304",
+        carrier: "HLCU",
+        bookingRef: "BK-2026-9042",
+        description:
+          "Instrucciones de embarque marítimo completas con pesaje certificado VGM (SOLAS Method 1) y datos de precinto.",
+        payload:
+          "ISA*00*          *00*          *ZZ*ATLASLOG       *ZZ*HLCU           *261102*1000*U*00401*000099483*0*P*>~GS*SO*ATLASLOG*HLCU*20261102*1000*9950*X*004010~ST*304*0001~B2*HLCU*BK-2026-9042***L~B2A*00~Y4*HLCU8810239*40HC***24500*K*SL-881920~W09*24500*K*SM1*ATLAS LOGISTICS DECLARANT~N1*SH*IBERIA INDUSTRIAL SL~N3*AV. PUERTO 42~N4*VALENCIA*VC*46024*ES~N1*CN*GLOBAL ATLANTIC MACHINERY LLC~N3*420 BROADWAY AVE~N4*NEW YORK*NY*10013*US~R4*L*UN*ESVLC***VALENCIA PORT~R4*D*UN*USNYC***NEW YORK HARBOR~Q2*9839420*US*20261102***24500*K*V.2611W**HAPAG ROTTERDAM~LX*1~L5*1*MACHINERY PARTS & COMPONENTS*72083800~L0*1*24500*K*24500*K*68.2*X*480*PK~SE*19*0001~GE*1*9950~IEA*1*000099483~",
+      },
       {
         id: "maersk_iftsta_departure",
         name: "Maersk Line IFTSTA — Vessel Departure (Zarpe)",
