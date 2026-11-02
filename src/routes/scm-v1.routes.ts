@@ -124,6 +124,14 @@ import {
 } from "../scm/contexts/workflow-engine/workflow-engine.context.js";
 import { PDFService, HBLData } from "../services/pdf.service.js";
 import { broadcastEvent } from "./events.routes.js";
+import {
+  computeShipmentGreenCompliance,
+  generateShipmentCarbonCertificatePdf,
+  generateShipmentCbamReportPdf,
+  generateShipmentCbamXml,
+  generateShipmentDuaPdf,
+  generateShipmentDuaXml,
+} from "../scm/contexts/operational-intelligence/green-compliance.projector.js";
 
 function extractActorFromRequest(
   request: FastifyRequest,
@@ -1115,6 +1123,110 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
           `attachment; filename="HBL-${view.shipmentReference || shipmentId}.pdf"`,
         );
         return reply.send(pdfBuffer);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get(
+    "/operational/shipments/:shipmentId/green-compliance",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const result = await computeShipmentGreenCompliance(shipmentId);
+        return reply.code(200).send(result);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get(
+    "/operational/shipments/:shipmentId/carbon-certificate",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const pdfBuffer =
+          await generateShipmentCarbonCertificatePdf(shipmentId);
+        reply.header("Content-Type", "application/pdf");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="Scope3_Carbon_Certificate_${shipmentId}.pdf"`,
+        );
+        return reply.send(pdfBuffer);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get(
+    "/operational/shipments/:shipmentId/cbam-report",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const pdfBuffer = await generateShipmentCbamReportPdf(shipmentId);
+        reply.header("Content-Type", "application/pdf");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="CBAM_Declaration_Report_${shipmentId}.pdf"`,
+        );
+        return reply.send(pdfBuffer);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get(
+    "/operational/shipments/:shipmentId/cbam-xml",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const xml = await generateShipmentCbamXml(shipmentId);
+        reply.header("Content-Type", "application/xml");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="CBAM_Registry_${shipmentId}.xml"`,
+        );
+        return reply.send(xml);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get(
+    "/operational/shipments/:shipmentId/dua-pdf",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const pdfBuffer = await generateShipmentDuaPdf(shipmentId);
+        reply.header("Content-Type", "application/pdf");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="DUA_Customs_Declaration_${shipmentId}.pdf"`,
+        );
+        return reply.send(pdfBuffer);
+      } catch (err) {
+        return handleDomainError(err, reply);
+      }
+    },
+  );
+
+  fastify.get(
+    "/operational/shipments/:shipmentId/dua-xml",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const xml = await generateShipmentDuaXml(shipmentId);
+        reply.header("Content-Type", "application/xml");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="DUA_AEAT_${shipmentId}.xml"`,
+        );
+        return reply.send(xml);
       } catch (err) {
         return handleDomainError(err, reply);
       }

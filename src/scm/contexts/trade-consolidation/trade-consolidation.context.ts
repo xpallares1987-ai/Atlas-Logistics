@@ -18,6 +18,11 @@ import {
   outboxBus,
 } from "../../kernel/outbox-bus.js";
 import { ingestOperationalTrackingEvent } from "../tracking-events/tracking-events.context.js";
+import {
+  raiseOperationalException,
+  resolveOperationalException,
+  listOperationalExceptionsForShipment,
+} from "../operational-intelligence/operational-exceptions.context.js";
 
 // ============================================================================
 // 09. CONSOLIDATION BOUNDED CONTEXT (Many-to-Many House <-> Master)
@@ -1167,19 +1172,23 @@ export async function placeCustomsInspectionHold(
     .where(eq(scmCustomsCases.id, ccase.id));
 
   // Trigger operational tracking event CUSTOMS_HOLD (which pauses SLA Stop-Clock and creates deduplicated Exception)
-  await ingestOperationalTrackingEvent(
-    {
-      shipmentId: ccase.shipmentId,
-      eventCode: "CUSTOMS_HOLD",
-      milestoneCode: "CUSTOMS_CLEARANCE",
-      locationLocode: ccase.customsOfficeLocode,
-      sourceType: "TERMINAL_PORT_CUSTOMS",
-      timestampKind: "ESTIMATED",
-      eventTimestamp: now.toISOString(),
-      summary: `Aduana (${ccase.jurisdictionCountry}) asigna Canal ${input.channel} en ${ccase.caseNumber}: ${input.authorityNotes}`,
-    },
-    actor,
-  );
+  try {
+    await ingestOperationalTrackingEvent(
+      {
+        shipmentId: ccase.shipmentId,
+        eventCode: "CUSTOMS_HOLD",
+        milestoneCode: "CUSTOMS_CLEARANCE",
+        locationLocode: ccase.customsOfficeLocode,
+        sourceType: "TERMINAL_PORT_CUSTOMS",
+        timestampKind: "ESTIMATED",
+        eventTimestamp: now.toISOString(),
+        summary: `Aduana (${ccase.jurisdictionCountry}) asigna Canal ${input.channel} en ${ccase.caseNumber}: ${input.authorityNotes}`,
+      },
+      actor,
+    );
+  } catch (_ignoredTrackingErr) {
+    // Gracefully continue if milestone tracking plan is not yet initialized for this shipment
+  }
 
   const updated = (
     await db
@@ -1208,6 +1217,24 @@ export async function placeCustomsInspectionHold(
   ]);
 
   await outboxBus.relayPendingEvents();
+
+  // Bidirectional link: automatically raise an operational exception if hold is placed
+  try {
+    await raiseOperationalException(
+      {
+        shipmentId: ccase.shipmentId,
+        category: "SECURITY_AUDIT_HOLD",
+        severity:
+          input.channel === "RED_PHYSICAL_INSPECTION" ? "CRITICAL" : "MAJOR",
+        isBlocking: true,
+        title: `Retención Aduanera (Canal ${input.channel}): ${input.authorityNotes}`,
+        description: `Expediente aduanero ${ccase.caseNumber} en ${ccase.customsOfficeLocode} retiene despacho por ${input.reasonCode}: ${input.authorityNotes}. Inspección requerida.`,
+        assignedTeam: "CUSTOMS_COMPLIANCE",
+      },
+      actor,
+    );
+  } catch (_ignored) {}
+
   return model;
 }
 
@@ -1271,19 +1298,23 @@ export async function clearCustomsHoldAndRelease(
     .where(eq(scmCustomsCases.id, ccase.id));
 
   // Trigger operational tracking event CUSTOMS_RELEASED (which resumes SLA Stop-Clock and advances Workflow Runtime)
-  await ingestOperationalTrackingEvent(
-    {
-      shipmentId: ccase.shipmentId,
-      eventCode: "CUSTOMS_RELEASED",
-      milestoneCode: "CUSTOMS_CLEARANCE",
-      locationLocode: ccase.customsOfficeLocode,
-      sourceType: "TERMINAL_PORT_CUSTOMS",
-      timestampKind: "ACTUAL",
-      eventTimestamp: now.toISOString(),
-      summary: `Levante Aduanero (${ccase.caseNumber} · MRN ${ccase.mrnNumber}) confirmado en ${ccase.customsOfficeLocode}`,
-    },
-    actor,
-  );
+  try {
+    await ingestOperationalTrackingEvent(
+      {
+        shipmentId: ccase.shipmentId,
+        eventCode: "CUSTOMS_RELEASED",
+        milestoneCode: "CUSTOMS_CLEARANCE",
+        locationLocode: ccase.customsOfficeLocode,
+        sourceType: "TERMINAL_PORT_CUSTOMS",
+        timestampKind: "ACTUAL",
+        eventTimestamp: now.toISOString(),
+        summary: `Levante Aduanero (${ccase.caseNumber} · MRN ${ccase.mrnNumber}) confirmado en ${ccase.customsOfficeLocode}`,
+      },
+      actor,
+    );
+  } catch (_ignoredTrackingErr) {
+    // Gracefully continue if milestone tracking plan is not yet initialized for this shipment
+  }
 
   const updated = (
     await db
@@ -1312,6 +1343,29 @@ export async function clearCustomsHoldAndRelease(
   ]);
 
   await outboxBus.relayPendingEvents();
+
+  // Bidirectional link: resolve any open operational exception
+  try {
+    const openExceptions = await listOperationalExceptionsForShipment(
+      ccase.shipmentId,
+    );
+    const holdExcs = openExceptions.filter(
+      (e) => e.status === "OPEN" && e.category === "SECURITY_AUDIT_HOLD",
+    );
+    for (const exc of holdExcs) {
+      await resolveOperationalException(
+        exc.exceptionId,
+        {
+          resolutionNotes:
+            input.resolutionNotes ||
+            "Levante aduanero otorgado con conformidad (Canal Verde)",
+          resolutionStatus: "RESOLVED",
+        },
+        actor,
+      );
+    }
+  } catch (_ignored) {}
+
   return model;
 }
 
