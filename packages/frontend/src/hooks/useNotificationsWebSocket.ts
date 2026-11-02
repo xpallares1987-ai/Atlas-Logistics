@@ -12,11 +12,49 @@ export function useNotificationsWebSocket() {
       : `${protocol}//${window.location.host}/ws/notifications`;
 
     let ws: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout>;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
     let reconnectAttempts = 0;
+
+    const cleanupSocket = () => {
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+      }
+      if (ws) {
+        ws.onopen = null;
+        ws.onmessage = null;
+        ws.onclose = null;
+        ws.onerror = null;
+        if (
+          ws.readyState === WebSocket.OPEN ||
+          ws.readyState === WebSocket.CONNECTING
+        ) {
+          try {
+            ws.close();
+          } catch {
+            // Safe cleanup
+          }
+        }
+        ws = null;
+      }
+    };
+
+    const scheduleReconnect = () => {
+      if (!isMounted || reconnectTimer) return;
+      reconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 10000);
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, delay);
+    };
 
     const connect = () => {
       if (!isMounted) return;
+
+      // Always close previous dangling or connecting sockets before opening a new one
+      cleanupSocket();
 
       try {
         ws = new WebSocket(wsUrl);
@@ -25,13 +63,32 @@ export function useNotificationsWebSocket() {
           if (!isMounted) return;
           reconnectAttempts = 0;
           console.log("WebSocket connected for notifications");
+
+          // Keep connection alive across Vite proxy / network timeouts
+          if (heartbeatTimer) clearInterval(heartbeatTimer);
+          heartbeatTimer = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              try {
+                ws.send(JSON.stringify({ type: "PING" }));
+              } catch {
+                // Heartbeat send failed, let onclose handle it
+              }
+            }
+          }, 25000);
         };
 
         ws.onmessage = (event) => {
           if (!isMounted) return;
           try {
             const data = JSON.parse(event.data);
-            if (data.type === "CONNECTED") return;
+            // Ignore system protocol control frames
+            if (
+              data.type === "CONNECTED" ||
+              data.type === "HEARTBEAT" ||
+              data.type === "PONG"
+            ) {
+              return;
+            }
 
             addNotification({
               id: crypto.randomUUID(),
@@ -56,25 +113,20 @@ export function useNotificationsWebSocket() {
 
         ws.onclose = (event) => {
           if (!isMounted) return;
-          reconnectAttempts++;
-          const delay = Math.min(
-            1000 * Math.pow(1.5, reconnectAttempts),
-            10000,
+          console.debug(
+            `WebSocket closed (code: ${event.code}), scheduling reconnect...`,
           );
-          console.log(
-            `WebSocket disconnected (code ${event.code}), reconnecting in ${Math.round(delay / 1000)}s...`,
-          );
-          clearTimeout(reconnectTimer);
-          reconnectTimer = setTimeout(connect, delay);
+          scheduleReconnect();
         };
 
         ws.onerror = (err) => {
           if (!isMounted) return;
-          console.debug("WebSocket notification transient notice:", err);
+          // Silent/debug log to prevent noisy devtools console warnings during restarts/reconnects
+          console.debug("WebSocket transient notice:", err);
         };
       } catch (err) {
         if (!isMounted) return;
-        reconnectTimer = setTimeout(connect, 5000);
+        scheduleReconnect();
       }
     };
 
@@ -82,17 +134,11 @@ export function useNotificationsWebSocket() {
 
     return () => {
       isMounted = false;
-      clearTimeout(reconnectTimer);
-      if (ws) {
-        // Detach handlers to prevent error spam during React StrictMode unmount
-        ws.onopen = null;
-        ws.onmessage = null;
-        ws.onclose = null;
-        ws.onerror = null;
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.close();
-        }
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
       }
+      cleanupSocket();
     };
   }, [addNotification]);
 }

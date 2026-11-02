@@ -70,7 +70,12 @@ app.register(fastifyCors, {
     if (!origin) return cb(null, true);
     const allowed = process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(",").map((s) => s.trim())
-      : ["http://localhost:3000", "http://localhost:5173"];
+      : [
+          "http://localhost:3000",
+          "http://localhost:5173",
+          "http://localhost:3100",
+          "http://127.0.0.1:3100",
+        ];
     // Whitelist specific domains; avoid broad wildcard matches
     const googleAllowed = [
       "https://atlas-logistics.web.app",
