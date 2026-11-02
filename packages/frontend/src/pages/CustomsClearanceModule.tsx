@@ -368,6 +368,9 @@ export default function CustomsClearanceModule() {
           <div className="p-4 border-b border-white/10 space-y-3">
             <div>
               <Input
+                id="customs-search-input"
+                name="customsSearch"
+                aria-label="Buscar por DUA, B/L o Partida"
                 type="text"
                 placeholder="Buscar por DUA, B/L o Partida..."
                 value={searchQuery}
@@ -837,10 +840,15 @@ export default function CustomsClearanceModule() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-400">
+                  <label
+                    htmlFor="customs-calc-hs-code"
+                    className="text-xs font-bold text-slate-400"
+                  >
                     Código TARIC / HS Code
                   </label>
                   <select
+                    id="customs-calc-hs-code"
+                    name="calcHsCode"
                     value={calcHsCode}
                     onChange={(e) => setCalcHsCode(e.target.value)}
                     className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
@@ -870,10 +878,15 @@ export default function CustomsClearanceModule() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-400">
+                  <label
+                    htmlFor="customs-calc-origin"
+                    className="text-xs font-bold text-slate-400"
+                  >
                     País de Origen
                   </label>
                   <select
+                    id="customs-calc-origin"
+                    name="calcOrigin"
                     value={calcOrigin}
                     onChange={(e) => setCalcOrigin(e.target.value)}
                     className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
@@ -887,10 +900,15 @@ export default function CustomsClearanceModule() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-400">
+                  <label
+                    htmlFor="customs-calc-fob-value"
+                    className="text-xs font-bold text-slate-400"
+                  >
                     Valor FOB de la Mercancía (€)
                   </label>
                   <input
+                    id="customs-calc-fob-value"
+                    name="calcFobValue"
                     type="number"
                     value={calcFobValue}
                     onChange={(e) => setCalcFobValue(Number(e.target.value))}
@@ -899,10 +917,15 @@ export default function CustomsClearanceModule() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-400">
+                  <label
+                    htmlFor="customs-calc-freight"
+                    className="text-xs font-bold text-slate-400"
+                  >
                     Flete Internacional (€)
                   </label>
                   <input
+                    id="customs-calc-freight"
+                    name="calcFreight"
                     type="number"
                     value={calcFreight}
                     onChange={(e) => setCalcFreight(Number(e.target.value))}
@@ -911,10 +934,15 @@ export default function CustomsClearanceModule() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-400">
+                  <label
+                    htmlFor="customs-calc-insurance"
+                    className="text-xs font-bold text-slate-400"
+                  >
                     Seguro de Transporte (€)
                   </label>
                   <input
+                    id="customs-calc-insurance"
+                    name="calcInsurance"
                     type="number"
                     value={calcInsurance}
                     onChange={(e) => setCalcInsurance(Number(e.target.value))}
@@ -923,10 +951,15 @@ export default function CustomsClearanceModule() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-400">
+                  <label
+                    htmlFor="customs-calc-weight-kg"
+                    className="text-xs font-bold text-slate-400"
+                  >
                     Peso Bruto (KG)
                   </label>
                   <input
+                    id="customs-calc-weight-kg"
+                    name="calcWeightKg"
                     type="number"
                     value={calcWeightKg}
                     onChange={(e) => setCalcWeightKg(Number(e.target.value))}

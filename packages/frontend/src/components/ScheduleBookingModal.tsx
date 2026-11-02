@@ -137,11 +137,16 @@ export function ScheduleBookingModal({
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <label
+              htmlFor="booking-commodity"
+              className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"
+            >
               <Package className="w-3.5 h-3.5 text-indigo-400" />
               Commodity Description
             </label>
             <Input
+              id="booking-commodity"
+              name="commodity"
               type="text"
               required
               value={commodity}
@@ -152,11 +157,16 @@ export function ScheduleBookingModal({
 
           <div className="flex gap-4">
             <div className="space-y-1.5 flex-1">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <label
+                htmlFor="booking-equipment"
+                className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"
+              >
                 <Box className="w-3.5 h-3.5 text-indigo-400" />
                 Equipment
               </label>
               <Select
+                id="booking-equipment"
+                name="equipment"
                 value={equipment}
                 onChange={(e) => setEquipment(e.target.value)}
               >
@@ -170,11 +180,16 @@ export function ScheduleBookingModal({
             </div>
 
             <div className="space-y-1.5 flex-1">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <label
+                htmlFor="booking-weight"
+                className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"
+              >
                 <Scale className="w-3.5 h-3.5 text-indigo-400" />
                 Weight (KG)
               </label>
               <Input
+                id="booking-weight"
+                name="weight"
                 type="number"
                 required
                 min="1"

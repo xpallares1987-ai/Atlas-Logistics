@@ -288,10 +288,16 @@ export default function RatesContent() {
                   <div className="px-4 flex items-center gap-3 w-full border-r border-slate-700/60 group">
                     <CalendarDays className="w-5 h-5 text-slate-400 group-focus-within:text-indigo-400 transition-colors" />
                     <div className="flex flex-col w-full relative">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+                      <label
+                        htmlFor="rate-departure-date"
+                        className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 cursor-pointer"
+                      >
                         Departure
-                      </span>
+                      </label>
                       <input
+                        id="rate-departure-date"
+                        name="departureDate"
+                        aria-label="Departure Date"
                         type="date"
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
@@ -303,10 +309,16 @@ export default function RatesContent() {
                   <div className="px-4 flex items-center gap-3 w-full group">
                     <Box className="w-5 h-5 text-slate-400 group-focus-within:text-indigo-400 transition-colors" />
                     <div className="flex flex-col w-full">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+                      <label
+                        htmlFor="rate-equipment-type"
+                        className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 cursor-pointer"
+                      >
                         Equipment
-                      </span>
+                      </label>
                       <select
+                        id="rate-equipment-type"
+                        name="equipmentType"
+                        aria-label="Equipment Type"
                         value={equipment}
                         onChange={(e) => setEquipment(e.target.value)}
                         className="bg-transparent text-sm text-slate-200 outline-none w-full appearance-none cursor-pointer font-medium transition-colors"

@@ -41,19 +41,29 @@ type TabKey = "RADAR" | "SUSPENSIONS" | "AUDIT" | "DOSSIER";
 
 export default function DemurrageAlertsModule() {
   const [activeTab, setActiveTab] = useState<TabKey>("RADAR");
-  const [selectedPresetId, setSelectedPresetId] = useState<string>("us_west_coast_la_lb");
+  const [selectedPresetId, setSelectedPresetId] = useState<string>(
+    "us_west_coast_la_lb",
+  );
   const [copiedLetter, setCopiedLetter] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Current active scenario state
   const initialPreset = useMemo(
-    () => DEMURRAGE_DISPUTE_PRESETS.find((p) => p.id === selectedPresetId) || DEMURRAGE_DISPUTE_PRESETS[0],
-    [selectedPresetId]
+    () =>
+      DEMURRAGE_DISPUTE_PRESETS.find((p) => p.id === selectedPresetId) ||
+      DEMURRAGE_DISPUTE_PRESETS[0],
+    [selectedPresetId],
   );
 
-  const [currentInvoice, setCurrentInvoice] = useState<CarrierInvoiceData>(initialPreset.invoice);
-  const [currentSuspensions, setCurrentSuspensions] = useState<ClockSuspension[]>(initialPreset.suspensions);
-  const [currentMilestones, setCurrentMilestones] = useState<EDI315Milestone[]>(initialPreset.milestones);
+  const [currentInvoice, setCurrentInvoice] = useState<CarrierInvoiceData>(
+    initialPreset.invoice,
+  );
+  const [currentSuspensions, setCurrentSuspensions] = useState<
+    ClockSuspension[]
+  >(initialPreset.suspensions);
+  const [currentMilestones, setCurrentMilestones] = useState<EDI315Milestone[]>(
+    initialPreset.milestones,
+  );
 
   // When preset changes, update local states
   const handleSelectPreset = (presetId: string) => {
@@ -90,17 +100,26 @@ export default function DemurrageAlertsModule() {
   }, [auditResult]);
 
   // New Clock Suspension Form state
-  const [newReasonCode, setNewReasonCode] = useState<SuspensionReasonCode>("TERMINAL_GATE_CLOSED");
+  const [newReasonCode, setNewReasonCode] = useState<SuspensionReasonCode>(
+    "TERMINAL_GATE_CLOSED",
+  );
   const [newReasonText, setNewReasonText] = useState("");
-  const [newStartDate, setNewStartDate] = useState(new Date().toISOString().split("T")[0]);
-  const [newEndDate, setNewEndDate] = useState(new Date().toISOString().split("T")[0]);
+  const [newStartDate, setNewStartDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [newEndDate, setNewEndDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
   const [newNoticeRef, setNewNoticeRef] = useState("");
 
   const handleAddSuspension = (e: React.FormEvent) => {
     e.preventDefault();
     const start = new Date(newStartDate);
     const end = new Date(newEndDate);
-    const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    const days = Math.max(
+      1,
+      Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1,
+    );
 
     const newSusp: ClockSuspension = {
       id: `susp-${Date.now().toString(36)}`,
@@ -120,7 +139,9 @@ export default function DemurrageAlertsModule() {
 
   // Email dispatch mutation
   const [dispatchReceipt, setDispatchReceipt] = useState<any>(null);
-  const [dispatchEmailTo, setDispatchEmailTo] = useState(disputePack.recipientCarrier.email);
+  const [dispatchEmailTo, setDispatchEmailTo] = useState(
+    disputePack.recipientCarrier.email,
+  );
 
   const dispatchMutation = useApiMutation<any, any>(
     "/demurrage-dispute/dispatch-email",
@@ -129,7 +150,7 @@ export default function DemurrageAlertsModule() {
       onSuccess: (data) => {
         setDispatchReceipt(data);
       },
-    }
+    },
   );
 
   const handleDispatchEmail = () => {
@@ -169,7 +190,7 @@ export default function DemurrageAlertsModule() {
     doc.text(
       `Statutory Notice | FMC 46 CFR Part 541 / EU Port Rules / RD 2/2011 | Ref: ${disputePack.dossierId}`,
       14,
-      24
+      24,
     );
     doc.text(`Generated: ${new Date().toISOString()}`, 14, 30);
 
@@ -181,18 +202,39 @@ export default function DemurrageAlertsModule() {
 
     const summaryData = [
       ["Container Number", auditResult.containerNumber],
-      ["Carrier Name & SCAC", `${auditResult.carrierName} (${currentInvoice.carrierScac})`],
+      [
+        "Carrier Name & SCAC",
+        `${auditResult.carrierName} (${currentInvoice.carrierScac})`,
+      ],
       ["Carrier Invoice Number", auditResult.invoiceNumber],
       ["Governing Jurisdiction", auditResult.jurisdiction],
-      ["Gross Calendar Dwell Days", `${auditResult.grossCalendarDwellDays} days`],
-      ["Legally Suspended Clock Days", `${auditResult.totalSuspendedDays} days (Deducted)`],
+      [
+        "Gross Calendar Dwell Days",
+        `${auditResult.grossCalendarDwellDays} days`,
+      ],
+      [
+        "Legally Suspended Clock Days",
+        `${auditResult.totalSuspendedDays} days (Deducted)`,
+      ],
       ["Net Audited Dwell Days", `${auditResult.netActualDwellDays} days`],
       ["Contractual Free Days Granted", `${auditResult.freeDaysGranted} days`],
       ["Carrier Billed Billable Days", `${auditResult.carrierBilledDays} days`],
-      ["Audited Legal Billable Days", `${auditResult.auditedLegalBillableDays} days`],
-      ["Carrier Invoiced Amount", `${auditResult.carrierInvoicedAmount.toLocaleString()} ${auditResult.currency}`],
-      ["Audited Legal Amount", `${auditResult.auditedLegalAmount.toLocaleString()} ${auditResult.currency}`],
-      ["DISPUTED WAIVER CLAIMED", `${auditResult.disputedWaiverAmount.toLocaleString()} ${auditResult.currency} (${auditResult.savingsPercentage}% Waiver)`],
+      [
+        "Audited Legal Billable Days",
+        `${auditResult.auditedLegalBillableDays} days`,
+      ],
+      [
+        "Carrier Invoiced Amount",
+        `${auditResult.carrierInvoicedAmount.toLocaleString()} ${auditResult.currency}`,
+      ],
+      [
+        "Audited Legal Amount",
+        `${auditResult.auditedLegalAmount.toLocaleString()} ${auditResult.currency}`,
+      ],
+      [
+        "DISPUTED WAIVER CLAIMED",
+        `${auditResult.disputedWaiverAmount.toLocaleString()} ${auditResult.currency} (${auditResult.savingsPercentage}% Waiver)`,
+      ],
       ["Audit Final Determination", auditResult.auditStatus],
     ];
 
@@ -209,7 +251,11 @@ export default function DemurrageAlertsModule() {
     const nextY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("2. ITEMIZED CLOCK PAUSE SUSPENSIONS & VERIFIED EVENT PROOFS", 14, nextY);
+    doc.text(
+      "2. ITEMIZED CLOCK PAUSE SUSPENSIONS & VERIFIED EVENT PROOFS",
+      14,
+      nextY,
+    );
 
     const suspensionRows = auditResult.suspensionsApplied.map((s) => [
       s.code,
@@ -221,7 +267,15 @@ export default function DemurrageAlertsModule() {
 
     autoTable(doc, {
       startY: nextY + 4,
-      head: [["Reason Code", "Event Description", "Period", "Deduction", "Official Authority Reference"]],
+      head: [
+        [
+          "Reason Code",
+          "Event Description",
+          "Period",
+          "Deduction",
+          "Official Authority Reference",
+        ],
+      ],
       body: suspensionRows,
       theme: "grid",
       styles: { fontSize: 8, cellPadding: 2 },
@@ -232,7 +286,11 @@ export default function DemurrageAlertsModule() {
     const letterY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("3. STATUTORY DEMAND & NOTICE OF LEGAL INSUFFICIENT BILLING", 14, letterY);
+    doc.text(
+      "3. STATUTORY DEMAND & NOTICE OF LEGAL INSUFFICIENT BILLING",
+      14,
+      letterY,
+    );
 
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
@@ -260,14 +318,17 @@ export default function DemurrageAlertsModule() {
                   </span>
                 </h1>
                 <p className="text-sm text-slate-400 mt-0.5">
-                  Motor de Resolución de Disputas D&D, Auditoría de Factura vs. Hitos EDI 315 y Suspensión de Reloj Legal
+                  Motor de Resolución de Disputas D&D, Auditoría de Factura vs.
+                  Hitos EDI 315 y Suspensión de Reloj Legal
                 </p>
               </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <span className="text-xs text-slate-400 font-medium mr-1">Escenario Regulatorio:</span>
+            <span className="text-xs text-slate-400 font-medium mr-1">
+              Escenario Regulatorio:
+            </span>
             {DEMURRAGE_DISPUTE_PRESETS.map((preset) => (
               <button
                 key={preset.id}
@@ -281,8 +342,8 @@ export default function DemurrageAlertsModule() {
                 {preset.id === "us_west_coast_la_lb"
                   ? "🇺🇸 US West Coast (FMC § 541)"
                   : preset.id === "eu_rotterdam_ect"
-                  ? "🇪🇺 Rotterdam ECT (Huelga)"
-                  : "🇪🇸 Barcelona Can Tunis (Book TEST01)"}
+                    ? "🇪🇺 Rotterdam ECT (Huelga)"
+                    : "🇪🇸 Barcelona Can Tunis (Book TEST01)"}
               </button>
             ))}
           </div>
@@ -295,8 +356,12 @@ export default function DemurrageAlertsModule() {
               <span>Contenedor Auditado</span>
               <Building2 className="w-4 h-4 text-slate-400" />
             </div>
-            <div className="text-xl font-bold text-white font-mono">{auditResult.containerNumber}</div>
-            <div className="text-xs text-slate-400 mt-1">{auditResult.carrierName} ({currentInvoice.carrierScac})</div>
+            <div className="text-xl font-bold text-white font-mono">
+              {auditResult.containerNumber}
+            </div>
+            <div className="text-xs text-slate-400 mt-1">
+              {auditResult.carrierName} ({currentInvoice.carrierScac})
+            </div>
           </div>
 
           <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
@@ -318,7 +383,8 @@ export default function DemurrageAlertsModule() {
               <DollarSign className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="text-xl font-bold text-emerald-400 font-mono">
-              {auditResult.disputedWaiverAmount.toLocaleString()} {auditResult.currency}
+              {auditResult.disputedWaiverAmount.toLocaleString()}{" "}
+              {auditResult.currency}
             </div>
             <div className="text-xs text-emerald-400/80 mt-1 font-medium">
               {auditResult.savingsPercentage}% ahorro sobre factura
@@ -342,7 +408,9 @@ export default function DemurrageAlertsModule() {
               )}
             </div>
             <div className="text-xs text-slate-400 mt-1 truncate">
-              {auditResult.fmcCompliance.isCompliant ? "FMC Conforme" : "FMC Defectuosa (§ 541)"}
+              {auditResult.fmcCompliance.isCompliant
+                ? "FMC Conforme"
+                : "FMC Defectuosa (§ 541)"}
             </div>
           </div>
         </div>
@@ -350,10 +418,26 @@ export default function DemurrageAlertsModule() {
         {/* Tab Navigation */}
         <div className="flex border-b border-slate-800 gap-2">
           {[
-            { key: "RADAR", label: "1. Radar de Free-Time & Clocks", icon: Clock },
-            { key: "SUSPENSIONS", label: "2. Motor de Suspensión de Reloj", icon: PauseCircle },
-            { key: "AUDIT", label: "3. Auditoría Factura vs. EDI 315", icon: Scale },
-            { key: "DOSSIER", label: "4. Dossier Evidencial & Disputa", icon: FileText },
+            {
+              key: "RADAR",
+              label: "1. Radar de Free-Time & Clocks",
+              icon: Clock,
+            },
+            {
+              key: "SUSPENSIONS",
+              label: "2. Motor de Suspensión de Reloj",
+              icon: PauseCircle,
+            },
+            {
+              key: "AUDIT",
+              label: "3. Auditoría Factura vs. EDI 315",
+              icon: Scale,
+            },
+            {
+              key: "DOSSIER",
+              label: "4. Dossier Evidencial & Disputa",
+              icon: FileText,
+            },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -379,14 +463,21 @@ export default function DemurrageAlertsModule() {
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">Radar de Relojes de Demurrage en Tiempo Real</h2>
+                <h2 className="text-lg font-semibold text-white">
+                  Radar de Relojes de Demurrage en Tiempo Real
+                </h2>
                 <p className="text-xs text-slate-400">
-                  Monitorización continua de terminales marítimas y ferroviarias, días libres y deducción automática de suspensiones.
+                  Monitorización continua de terminales marítimas y
+                  ferroviarias, días libres y deducción automática de
+                  suspensiones.
                 </p>
               </div>
               <div className="relative w-full md:w-64">
                 <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                 <input
+                  id="demurrage-filter"
+                  name="demurrageFilter"
+                  aria-label="Filtrar contenedor / B/L"
                   type="text"
                   placeholder="Filtrar contenedor / B/L..."
                   value={searchTerm}
@@ -403,7 +494,9 @@ export default function DemurrageAlertsModule() {
                     <th className="py-3 px-4">Contenedor / B/L</th>
                     <th className="py-3 px-4">Naviera / SCAC</th>
                     <th className="py-3 px-4">Puerto & Terminal</th>
-                    <th className="py-3 px-4">Días Dwell (Bruto / Suspendido / Neto)</th>
+                    <th className="py-3 px-4">
+                      Días Dwell (Bruto / Suspendido / Neto)
+                    </th>
                     <th className="py-3 px-4">Días Libres</th>
                     <th className="py-3 px-4">Estado del Reloj</th>
                     <th className="py-3 px-4">Importe Incurrido</th>
@@ -413,10 +506,16 @@ export default function DemurrageAlertsModule() {
                 <tbody className="divide-y divide-slate-800">
                   {DEMURRAGE_DISPUTE_PRESETS.filter(
                     (p) =>
-                      p.invoice.containerNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      p.invoice.billOfLading.toLowerCase().includes(searchTerm.toLowerCase())
+                      p.invoice.containerNumber
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase()) ||
+                      p.invoice.billOfLading
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase()),
                   ).map((preset) => {
-                    const isSelected = preset.invoice.containerNumber === currentInvoice.containerNumber;
+                    const isSelected =
+                      preset.invoice.containerNumber ===
+                      currentInvoice.containerNumber;
                     const pAudit = calculateDemurrageAudit({
                       invoice: preset.invoice,
                       suspensions: preset.suspensions,
@@ -444,24 +543,38 @@ export default function DemurrageAlertsModule() {
                           </div>
                         </td>
                         <td className="py-3.5 px-4">
-                          <div className="text-white font-medium">{preset.invoice.carrierName}</div>
-                          <div className="text-slate-400 text-[11px]">SCAC: {preset.invoice.carrierScac}</div>
+                          <div className="text-white font-medium">
+                            {preset.invoice.carrierName}
+                          </div>
+                          <div className="text-slate-400 text-[11px]">
+                            SCAC: {preset.invoice.carrierScac}
+                          </div>
                         </td>
                         <td className="py-3.5 px-4">
-                          <div className="text-white font-medium">{preset.invoice.pod}</div>
+                          <div className="text-white font-medium">
+                            {preset.invoice.pod}
+                          </div>
                           <div className="text-slate-400 text-[11px] truncate max-w-[180px]">
                             {preset.invoice.terminalName}
                           </div>
                         </td>
                         <td className="py-3.5 px-4 font-mono">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-slate-200">{pAudit.grossCalendarDwellDays}d brutos</span>
-                            <span className="text-amber-400 font-semibold">(-{pAudit.totalSuspendedDays}d pausa)</span>
-                            <span className="text-emerald-400 font-bold">= {pAudit.netActualDwellDays}d netos</span>
+                            <span className="text-slate-200">
+                              {pAudit.grossCalendarDwellDays}d brutos
+                            </span>
+                            <span className="text-amber-400 font-semibold">
+                              (-{pAudit.totalSuspendedDays}d pausa)
+                            </span>
+                            <span className="text-emerald-400 font-bold">
+                              = {pAudit.netActualDwellDays}d netos
+                            </span>
                           </div>
                         </td>
                         <td className="py-3.5 px-4 font-mono">
-                          <span className="text-blue-300 font-semibold">{preset.invoice.freeDaysGranted} días</span>
+                          <span className="text-blue-300 font-semibold">
+                            {preset.invoice.freeDaysGranted} días
+                          </span>
                         </td>
                         <td className="py-3.5 px-4">
                           {pAudit.auditStatus === "FULL_WAIVER_JUSTIFIED" ? (
@@ -470,14 +583,20 @@ export default function DemurrageAlertsModule() {
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                              <AlertTriangle className="w-3 h-3" /> Devengo Excesivo
+                              <AlertTriangle className="w-3 h-3" /> Devengo
+                              Excesivo
                             </span>
                           )}
                         </td>
                         <td className="py-3.5 px-4 font-mono font-bold text-white">
-                          <div>{preset.invoice.invoicedAmount.toLocaleString()} {preset.invoice.currency}</div>
+                          <div>
+                            {preset.invoice.invoicedAmount.toLocaleString()}{" "}
+                            {preset.invoice.currency}
+                          </div>
                           <div className="text-[11px] text-emerald-400 font-normal">
-                            Disputa: {pAudit.disputedWaiverAmount.toLocaleString()} {preset.invoice.currency}
+                            Disputa:{" "}
+                            {pAudit.disputedWaiverAmount.toLocaleString()}{" "}
+                            {preset.invoice.currency}
                           </div>
                         </td>
                         <td className="py-3.5 px-4 text-right">
@@ -504,10 +623,16 @@ export default function DemurrageAlertsModule() {
             <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/60 flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
               <div className="text-xs text-slate-300 leading-relaxed">
-                <span className="font-semibold text-white">Regulación FMC 46 CFR § 541 & Estándares Portuarios Europeos: </span>
-                Bajo el estándar FMC OSRA 2022, el reloj de días libres (Free Time) debe pausarse obligatoriamente siempre que
-                el contenedor no esté física u operativamente disponible para su recogida o devolución (ej. bloqueo de citas en terminal,
-                inspecciones aduaneras no intrusivas VACIS o reconocimientos físicos de circuito rojo, huelgas o averías de báscula/OCR).
+                <span className="font-semibold text-white">
+                  Regulación FMC 46 CFR § 541 & Estándares Portuarios
+                  Europeos:{" "}
+                </span>
+                Bajo el estándar FMC OSRA 2022, el reloj de días libres (Free
+                Time) debe pausarse obligatoriamente siempre que el contenedor
+                no esté física u operativamente disponible para su recogida o
+                devolución (ej. bloqueo de citas en terminal, inspecciones
+                aduaneras no intrusivas VACIS o reconocimientos físicos de
+                circuito rojo, huelgas o averías de báscula/OCR).
               </div>
             </div>
           </div>
@@ -520,9 +645,12 @@ export default function DemurrageAlertsModule() {
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Eventos de Pausa de Reloj Registrados</h2>
+                  <h2 className="text-lg font-semibold text-white">
+                    Eventos de Pausa de Reloj Registrados
+                  </h2>
                   <p className="text-xs text-slate-400">
-                    Días legalmente excluidos del cómputo de demurrage para el contenedor {currentInvoice.containerNumber}.
+                    Días legalmente excluidos del cómputo de demurrage para el
+                    contenedor {currentInvoice.containerNumber}.
                   </p>
                 </div>
                 <div className="text-xs px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono font-medium">
@@ -550,14 +678,23 @@ export default function DemurrageAlertsModule() {
                       </span>
                     </div>
 
-                    <p className="text-sm font-medium text-white">{susp.reason}</p>
+                    <p className="text-sm font-medium text-white">
+                      {susp.reason}
+                    </p>
 
                     <div className="flex flex-wrap items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-700/50">
                       <div className="flex items-center gap-1.5">
                         <FileCheck className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Referencia Oficial: <strong>{susp.officialNoticeRef || "Aviso Oficial"}</strong></span>
+                        <span>
+                          Referencia Oficial:{" "}
+                          <strong>
+                            {susp.officialNoticeRef || "Aviso Oficial"}
+                          </strong>
+                        </span>
                       </div>
-                      <span className="text-emerald-400 font-medium">Certificado y Aprobado</span>
+                      <span className="text-emerald-400 font-medium">
+                        Certificado y Aprobado
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -568,30 +705,57 @@ export default function DemurrageAlertsModule() {
             <div className="p-5 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-4 h-fit">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-700">
                 <PauseCircle className="w-5 h-5 text-amber-400" />
-                <h3 className="text-sm font-bold text-white">Declarar Nueva Suspensión de Reloj</h3>
+                <h3 className="text-sm font-bold text-white">
+                  Declarar Nueva Suspensión de Reloj
+                </h3>
               </div>
 
-              <form onSubmit={handleAddSuspension} className="space-y-3.5 text-xs">
+              <form
+                onSubmit={handleAddSuspension}
+                className="space-y-3.5 text-xs"
+              >
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Causa Reglamentaria (FMC / Puerto)</label>
+                  <label className="block text-slate-400 mb-1 font-medium">
+                    Causa Reglamentaria (FMC / Puerto)
+                  </label>
                   <select
                     value={newReasonCode}
-                    onChange={(e) => setNewReasonCode(e.target.value as SuspensionReasonCode)}
+                    onChange={(e) =>
+                      setNewReasonCode(e.target.value as SuspensionReasonCode)
+                    }
                     className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"
                   >
-                    <option value="TERMINAL_GATE_CLOSED">Cierre de Puertas de Terminal (Gate Closed)</option>
-                    <option value="APPOINTMENT_UNAVAILABLE">Falta de Citas de Entrada (No Appointments)</option>
-                    <option value="CUSTOMS_PHYSICAL_EXAM">Inspección Física Aduana (Circuito Rojo / Exam)</option>
-                    <option value="CUSTOMS_VACIS_SCAN">Escáner No Intrusivo VACIS / Rayos X</option>
-                    <option value="CHASSIS_SHORTAGE">Déficit de Chasis / Plataformas Autorizadas</option>
-                    <option value="RAIL_EMBARGO">Embargo Ferroviario o Avería de Vía (Adif/Rail)</option>
-                    <option value="PORT_STRIKE_FORCE_MAJEURE">Huelga Portuaria / Fuerza Mayor</option>
-                    <option value="CARRIER_IT_OUTAGE">Caída de Sistemas Informáticos Naviera / TOS</option>
+                    <option value="TERMINAL_GATE_CLOSED">
+                      Cierre de Puertas de Terminal (Gate Closed)
+                    </option>
+                    <option value="APPOINTMENT_UNAVAILABLE">
+                      Falta de Citas de Entrada (No Appointments)
+                    </option>
+                    <option value="CUSTOMS_PHYSICAL_EXAM">
+                      Inspección Física Aduana (Circuito Rojo / Exam)
+                    </option>
+                    <option value="CUSTOMS_VACIS_SCAN">
+                      Escáner No Intrusivo VACIS / Rayos X
+                    </option>
+                    <option value="CHASSIS_SHORTAGE">
+                      Déficit de Chasis / Plataformas Autorizadas
+                    </option>
+                    <option value="RAIL_EMBARGO">
+                      Embargo Ferroviario o Avería de Vía (Adif/Rail)
+                    </option>
+                    <option value="PORT_STRIKE_FORCE_MAJEURE">
+                      Huelga Portuaria / Fuerza Mayor
+                    </option>
+                    <option value="CARRIER_IT_OUTAGE">
+                      Caída de Sistemas Informáticos Naviera / TOS
+                    </option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Descripción de los Hechos</label>
+                  <label className="block text-slate-400 mb-1 font-medium">
+                    Descripción de los Hechos
+                  </label>
                   <textarea
                     rows={2}
                     placeholder="Ej. Terminal Pier 400 sin ventanas de cita habilitadas en eModal..."
@@ -604,7 +768,9 @@ export default function DemurrageAlertsModule() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-slate-400 mb-1 font-medium">Fecha Inicio</label>
+                    <label className="block text-slate-400 mb-1 font-medium">
+                      Fecha Inicio
+                    </label>
                     <input
                       type="date"
                       value={newStartDate}
@@ -614,7 +780,9 @@ export default function DemurrageAlertsModule() {
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 mb-1 font-medium">Fecha Fin</label>
+                    <label className="block text-slate-400 mb-1 font-medium">
+                      Fecha Fin
+                    </label>
                     <input
                       type="date"
                       value={newEndDate}
@@ -626,7 +794,9 @@ export default function DemurrageAlertsModule() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Referencia / Boletín Oficial</label>
+                  <label className="block text-slate-400 mb-1 font-medium">
+                    Referencia / Boletín Oficial
+                  </label>
                   <input
                     type="text"
                     placeholder="Ej. Incidencia eModal #APM-400 / DUA Circuito Rojo"
@@ -637,7 +807,10 @@ export default function DemurrageAlertsModule() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-2">
+                <Button
+                  type="submit"
+                  className="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-2"
+                >
                   Registrar e Incorporar a la Auditoría
                 </Button>
               </form>
@@ -655,7 +828,9 @@ export default function DemurrageAlertsModule() {
                 <div className="flex items-center justify-between pb-2 border-b border-rose-900/40">
                   <div className="flex items-center gap-2">
                     <FileWarning className="w-5 h-5 text-rose-400" />
-                    <h3 className="font-bold text-white text-sm">Factura Emitida por la Naviera</h3>
+                    <h3 className="font-bold text-white text-sm">
+                      Factura Emitida por la Naviera
+                    </h3>
                   </div>
                   <span className="font-mono text-xs px-2 py-0.5 rounded bg-rose-900/40 text-rose-300 font-semibold">
                     {currentInvoice.invoiceNumber}
@@ -670,27 +845,35 @@ export default function DemurrageAlertsModule() {
                     </div>
                   </div>
                   <div>
-                    <span className="text-slate-400">Tarifa Diaria Aplicada:</span>
+                    <span className="text-slate-400">
+                      Tarifa Diaria Aplicada:
+                    </span>
                     <div className="text-xl font-bold font-mono text-white mt-0.5">
-                      {currentInvoice.billedDailyRate || 150} {currentInvoice.currency}/día
+                      {currentInvoice.billedDailyRate || 150}{" "}
+                      {currentInvoice.currency}/día
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-400">Período Facturado:</span>
                     <div className="font-mono text-slate-300 mt-0.5">
-                      {currentInvoice.billedStartDate} al {currentInvoice.billedEndDate}
+                      {currentInvoice.billedStartDate} al{" "}
+                      {currentInvoice.billedEndDate}
                     </div>
                   </div>
                   <div>
-                    <span className="text-slate-400">Total Facturado Naviera:</span>
+                    <span className="text-slate-400">
+                      Total Facturado Naviera:
+                    </span>
                     <div className="text-xl font-bold font-mono text-rose-400 mt-0.5">
-                      {auditResult.carrierInvoicedAmount.toLocaleString()} {currentInvoice.currency}
+                      {auditResult.carrierInvoicedAmount.toLocaleString()}{" "}
+                      {currentInvoice.currency}
                     </div>
                   </div>
                 </div>
 
                 <div className="p-3 rounded-lg bg-rose-900/20 border border-rose-800/40 text-xs text-rose-300">
-                  La naviera computó todo el período natural continuo sin descontar cierres de puerta ni retenciones aduaneras.
+                  La naviera computó todo el período natural continuo sin
+                  descontar cierres de puerta ni retenciones aduaneras.
                 </div>
               </div>
 
@@ -699,7 +882,9 @@ export default function DemurrageAlertsModule() {
                 <div className="flex items-center justify-between pb-2 border-b border-emerald-900/40">
                   <div className="flex items-center gap-2">
                     <ShieldAlert className="w-5 h-5 text-emerald-400" />
-                    <h3 className="font-bold text-white text-sm">Liquidación Legal Auditada (Atlas Engine)</h3>
+                    <h3 className="font-bold text-white text-sm">
+                      Liquidación Legal Auditada (Atlas Engine)
+                    </h3>
                   </div>
                   <span className="font-mono text-xs px-2 py-0.5 rounded bg-emerald-900/40 text-emerald-300 font-semibold">
                     AUD-LEGAL-OK
@@ -708,27 +893,38 @@ export default function DemurrageAlertsModule() {
 
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
-                    <span className="text-slate-400">Días Legalmente Exigibles:</span>
+                    <span className="text-slate-400">
+                      Días Legalmente Exigibles:
+                    </span>
                     <div className="text-xl font-bold font-mono text-emerald-400 mt-0.5">
                       {auditResult.auditedLegalBillableDays} días
                     </div>
                   </div>
                   <div>
-                    <span className="text-slate-400">Días Pausados Descontados:</span>
+                    <span className="text-slate-400">
+                      Días Pausados Descontados:
+                    </span>
                     <div className="text-xl font-bold font-mono text-amber-400 mt-0.5">
                       -{auditResult.totalSuspendedDays} días
                     </div>
                   </div>
                   <div>
-                    <span className="text-slate-400">Importe Real Exigible:</span>
+                    <span className="text-slate-400">
+                      Importe Real Exigible:
+                    </span>
                     <div className="text-xl font-bold font-mono text-white mt-0.5">
-                      {auditResult.auditedLegalAmount.toLocaleString()} {currentInvoice.currency}
+                      {auditResult.auditedLegalAmount.toLocaleString()}{" "}
+                      {currentInvoice.currency}
                     </div>
                   </div>
                   <div>
-                    <span className="text-slate-400">Ahorro / Exención Disputada:</span>
+                    <span className="text-slate-400">
+                      Ahorro / Exención Disputada:
+                    </span>
                     <div className="text-xl font-bold font-mono text-emerald-400 mt-0.5">
-                      {auditResult.disputedWaiverAmount.toLocaleString()} {currentInvoice.currency} ({auditResult.savingsPercentage}%)
+                      {auditResult.disputedWaiverAmount.toLocaleString()}{" "}
+                      {currentInvoice.currency} ({auditResult.savingsPercentage}
+                      %)
                     </div>
                   </div>
                 </div>
@@ -752,14 +948,23 @@ export default function DemurrageAlertsModule() {
                 <div className="flex items-center gap-2">
                   <Scale className="w-5 h-5 text-blue-400" />
                   <div>
-                    <h3 className="font-bold text-white text-sm">Auditoría de Requisitos Obligatorios FMC 46 CFR § 541.6</h3>
-                    <p className="text-xs text-slate-400">Comprobación de los 13 datos reglamentarios exigidos por la FMC de EE.UU.</p>
+                    <h3 className="font-bold text-white text-sm">
+                      Auditoría de Requisitos Obligatorios FMC 46 CFR § 541.6
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Comprobación de los 13 datos reglamentarios exigidos por
+                      la FMC de EE.UU.
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <div className="text-xs text-slate-400">Índice de Conformidad:</div>
-                    <div className={`font-mono font-bold text-sm ${auditResult.fmcCompliance.isCompliant ? "text-emerald-400" : "text-rose-400"}`}>
+                    <div className="text-xs text-slate-400">
+                      Índice de Conformidad:
+                    </div>
+                    <div
+                      className={`font-mono font-bold text-sm ${auditResult.fmcCompliance.isCompliant ? "text-emerald-400" : "text-rose-400"}`}
+                    >
                       {auditResult.fmcCompliance.complianceScore}% / 100%
                     </div>
                   </div>
@@ -770,10 +975,13 @@ export default function DemurrageAlertsModule() {
                 <div className="p-3.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-start gap-2.5">
                   <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-bold text-rose-200">INVOICE STATUTORILY DEFECTIVE (FMC § 541.8)</div>
+                    <div className="font-bold text-rose-200">
+                      INVOICE STATUTORILY DEFECTIVE (FMC § 541.8)
+                    </div>
                     <div>{auditResult.fmcCompliance.legalVerdict}</div>
                     <div className="mt-1 font-semibold text-rose-200">
-                      Elementos omitidos por la naviera: {auditResult.fmcCompliance.missingFields.join(", ")}
+                      Elementos omitidos por la naviera:{" "}
+                      {auditResult.fmcCompliance.missingFields.join(", ")}
                     </div>
                   </div>
                 </div>
@@ -782,19 +990,61 @@ export default function DemurrageAlertsModule() {
               {/* 13 Checklist Items Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
                 {[
-                  { name: "Container Number", valid: Boolean(currentInvoice.containerNumber) },
-                  { name: "Bill of Lading / Booking", valid: Boolean(currentInvoice.billOfLading) },
-                  { name: "Port / Terminal of Discharge", valid: Boolean(currentInvoice.pod) },
-                  { name: "Vessel Name & Voyage", valid: Boolean(currentInvoice.vesselVoyage) },
-                  { name: "Discharge Date", valid: Boolean(currentInvoice.dischargeDate) },
-                  { name: "Container Availability Date", valid: Boolean(currentInvoice.availableDate) },
-                  { name: "Terminal Gate Hours Provided", valid: Boolean(currentInvoice.terminalHoursProvided) },
-                  { name: "Free Time Start Date", valid: Boolean(currentInvoice.freeTimeStartDate) },
-                  { name: "Free Time End Date", valid: Boolean(currentInvoice.freeTimeEndDate) },
-                  { name: "Number of Free Days Allowed", valid: Boolean(currentInvoice.freeDaysGranted) },
-                  { name: "Billed Charge Period Start & End", valid: Boolean(currentInvoice.billedStartDate && currentInvoice.billedEndDate) },
-                  { name: "Applicable Tariff Rule / Rate", valid: Boolean(currentInvoice.billedDailyRate) },
-                  { name: "Designated Dispute Contact Email", valid: Boolean(currentInvoice.disputeContactEmail) },
+                  {
+                    name: "Container Number",
+                    valid: Boolean(currentInvoice.containerNumber),
+                  },
+                  {
+                    name: "Bill of Lading / Booking",
+                    valid: Boolean(currentInvoice.billOfLading),
+                  },
+                  {
+                    name: "Port / Terminal of Discharge",
+                    valid: Boolean(currentInvoice.pod),
+                  },
+                  {
+                    name: "Vessel Name & Voyage",
+                    valid: Boolean(currentInvoice.vesselVoyage),
+                  },
+                  {
+                    name: "Discharge Date",
+                    valid: Boolean(currentInvoice.dischargeDate),
+                  },
+                  {
+                    name: "Container Availability Date",
+                    valid: Boolean(currentInvoice.availableDate),
+                  },
+                  {
+                    name: "Terminal Gate Hours Provided",
+                    valid: Boolean(currentInvoice.terminalHoursProvided),
+                  },
+                  {
+                    name: "Free Time Start Date",
+                    valid: Boolean(currentInvoice.freeTimeStartDate),
+                  },
+                  {
+                    name: "Free Time End Date",
+                    valid: Boolean(currentInvoice.freeTimeEndDate),
+                  },
+                  {
+                    name: "Number of Free Days Allowed",
+                    valid: Boolean(currentInvoice.freeDaysGranted),
+                  },
+                  {
+                    name: "Billed Charge Period Start & End",
+                    valid: Boolean(
+                      currentInvoice.billedStartDate &&
+                      currentInvoice.billedEndDate,
+                    ),
+                  },
+                  {
+                    name: "Applicable Tariff Rule / Rate",
+                    valid: Boolean(currentInvoice.billedDailyRate),
+                  },
+                  {
+                    name: "Designated Dispute Contact Email",
+                    valid: Boolean(currentInvoice.disputeContactEmail),
+                  },
                 ].map((item, idx) => (
                   <div
                     key={idx}
@@ -819,23 +1069,39 @@ export default function DemurrageAlertsModule() {
             <div className="p-5 rounded-xl bg-slate-800/50 border border-slate-700/80 space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-700">
                 <Layers className="w-5 h-5 text-blue-400" />
-                <h3 className="font-bold text-white text-sm">Cronología Técnica de Hitos EDI 315</h3>
+                <h3 className="font-bold text-white text-sm">
+                  Cronología Técnica de Hitos EDI 315
+                </h3>
               </div>
 
               <div className="space-y-3">
                 {currentMilestones.map((m, idx) => (
-                  <div key={m.id || idx} className="flex items-start gap-3 text-xs">
+                  <div
+                    key={m.id || idx}
+                    className="flex items-start gap-3 text-xs"
+                  >
                     <div className="w-10 h-7 rounded bg-blue-500/20 text-blue-400 font-mono font-bold flex items-center justify-center border border-blue-500/30 shrink-0">
                       {m.code}
                     </div>
                     <div className="flex-1 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-white">{m.eventDescription}</span>
-                        <span className="font-mono text-slate-400">{m.timestamp.replace("T", " ").replace("Z", "")}</span>
+                        <span className="font-semibold text-white">
+                          {m.eventDescription}
+                        </span>
+                        <span className="font-mono text-slate-400">
+                          {m.timestamp.replace("T", " ").replace("Z", "")}
+                        </span>
                       </div>
                       <div className="text-slate-400 mt-1 flex items-center gap-2">
-                        <span>Ubicación: <strong>{m.locationName} ({m.locationCode})</strong></span>
-                        <span className="text-emerald-400">✓ Telemétricamente Verificado</span>
+                        <span>
+                          Ubicación:{" "}
+                          <strong>
+                            {m.locationName} ({m.locationCode})
+                          </strong>
+                        </span>
+                        <span className="text-emerald-400">
+                          ✓ Telemétricamente Verificado
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -852,9 +1118,14 @@ export default function DemurrageAlertsModule() {
             <div className="lg:col-span-2 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Escrito Formal de Disputa & Demanda Legal</h2>
+                  <h2 className="text-lg font-semibold text-white">
+                    Escrito Formal de Disputa & Demanda Legal
+                  </h2>
                   <p className="text-xs text-slate-400">
-                    Dossier ID: <span className="font-mono text-blue-400">{disputePack.dossierId}</span>
+                    Dossier ID:{" "}
+                    <span className="font-mono text-blue-400">
+                      {disputePack.dossierId}
+                    </span>
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -864,7 +1135,11 @@ export default function DemurrageAlertsModule() {
                     onClick={handleCopyLetter}
                     className="text-xs flex items-center gap-1.5"
                   >
-                    {copiedLetter ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedLetter ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
                     {copiedLetter ? "Copiado!" : "Copiar Texto"}
                   </Button>
                   <Button
@@ -885,9 +1160,14 @@ export default function DemurrageAlertsModule() {
               <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-blue-400" />
-                  <span>Documentos Anexos: {disputePack.evidenceAttachments.join(", ")}</span>
+                  <span>
+                    Documentos Anexos:{" "}
+                    {disputePack.evidenceAttachments.join(", ")}
+                  </span>
                 </div>
-                <span className="text-amber-400 font-medium">{disputePack.statutoryDeadlineNotice}</span>
+                <span className="text-amber-400 font-medium">
+                  {disputePack.statutoryDeadlineNotice}
+                </span>
               </div>
             </div>
 
@@ -895,12 +1175,16 @@ export default function DemurrageAlertsModule() {
             <div className="p-5 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-4 h-fit">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-700">
                 <Send className="w-5 h-5 text-blue-400" />
-                <h3 className="text-sm font-bold text-white">Despacho Telemático de Disputa</h3>
+                <h3 className="text-sm font-bold text-white">
+                  Despacho Telemático de Disputa
+                </h3>
               </div>
 
               <div className="space-y-3.5 text-xs">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Naviera Destinataria</label>
+                  <label className="block text-slate-400 mb-1 font-medium">
+                    Naviera Destinataria
+                  </label>
                   <input
                     type="text"
                     disabled
@@ -910,7 +1194,9 @@ export default function DemurrageAlertsModule() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Departamento / Mesa de Reclamaciones</label>
+                  <label className="block text-slate-400 mb-1 font-medium">
+                    Departamento / Mesa de Reclamaciones
+                  </label>
                   <input
                     type="text"
                     disabled
@@ -920,7 +1206,9 @@ export default function DemurrageAlertsModule() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Email Oficial de Disputas Naviera</label>
+                  <label className="block text-slate-400 mb-1 font-medium">
+                    Email Oficial de Disputas Naviera
+                  </label>
                   <input
                     type="email"
                     value={dispatchEmailTo}
@@ -930,7 +1218,9 @@ export default function DemurrageAlertsModule() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Asunto</label>
+                  <label className="block text-slate-400 mb-1 font-medium">
+                    Asunto
+                  </label>
                   <input
                     type="text"
                     disabled
@@ -945,7 +1235,9 @@ export default function DemurrageAlertsModule() {
                   className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 flex items-center justify-center gap-2"
                 >
                   <Send className="w-4 h-4" />
-                  {dispatchMutation.isPending ? "Transmitiendo..." : "Despachar Reclamación a Naviera"}
+                  {dispatchMutation.isPending
+                    ? "Transmitiendo..."
+                    : "Despachar Reclamación a Naviera"}
                 </Button>
 
                 {dispatchReceipt && (
@@ -954,10 +1246,21 @@ export default function DemurrageAlertsModule() {
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                       Expediente Despachado con Éxito
                     </div>
-                    <div>Código de Acuse: <strong className="font-mono text-white">{dispatchReceipt.confirmationCode}</strong></div>
-                    <div>Mensaje ID: <span className="font-mono text-slate-400">{dispatchReceipt.messageId}</span></div>
+                    <div>
+                      Código de Acuse:{" "}
+                      <strong className="font-mono text-white">
+                        {dispatchReceipt.confirmationCode}
+                      </strong>
+                    </div>
+                    <div>
+                      Mensaje ID:{" "}
+                      <span className="font-mono text-slate-400">
+                        {dispatchReceipt.messageId}
+                      </span>
+                    </div>
                     <div className="text-[11px] text-slate-400 mt-1">
-                      Plazo legal de 30 días naturales iniciado según normativa aplicable.
+                      Plazo legal de 30 días naturales iniciado según normativa
+                      aplicable.
                     </div>
                   </div>
                 )}

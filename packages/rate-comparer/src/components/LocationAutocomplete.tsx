@@ -71,6 +71,8 @@ interface LocationAutocompleteProps {
   value: Location | null;
   onChange: (location: Location | null) => void;
   icon?: React.ReactNode;
+  id?: string;
+  name?: string;
 }
 
 export default function LocationAutocomplete({
@@ -79,11 +81,16 @@ export default function LocationAutocomplete({
   value,
   onChange,
   icon,
+  id,
+  name,
 }: LocationAutocompleteProps) {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputId =
+    id || `loc-autocomplete-${label.toLowerCase().replace(/\s+/g, "-")}`;
+  const inputName = name || inputId;
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -138,7 +145,10 @@ export default function LocationAutocomplete({
   return (
     <div className="relative w-full" ref={containerRef}>
       <div className="flex flex-col relative group">
-        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">
+        <label
+          htmlFor={inputId}
+          className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1"
+        >
           {label}
         </label>
         <div
@@ -148,6 +158,9 @@ export default function LocationAutocomplete({
             {icon || <MapPin className="w-5 h-5" />}
           </div>
           <input
+            id={inputId}
+            name={inputName}
+            aria-label={label}
             type="text"
             className="bg-transparent border-none outline-none text-base font-semibold text-white placeholder-slate-500 w-full"
             placeholder={placeholder}

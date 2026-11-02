@@ -1038,10 +1038,15 @@ export default function EdiIntegrationModule() {
 
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-400 mb-1 block">
+                  <label
+                    htmlFor="sim-carrier"
+                    className="text-[11px] font-semibold text-slate-400 mb-1 block"
+                  >
                     Línea Naviera (Carrier)
                   </label>
                   <select
+                    id="sim-carrier"
+                    name="simCarrier"
                     value={simCarrier}
                     onChange={(e: any) => setSimCarrier(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none focus:border-indigo-500/60"
@@ -1056,10 +1061,15 @@ export default function EdiIntegrationModule() {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-400 mb-1 block">
+                  <label
+                    htmlFor="sim-event-type"
+                    className="text-[11px] font-semibold text-slate-400 mb-1 block"
+                  >
                     Categoría de Evento
                   </label>
                   <select
+                    id="sim-event-type"
+                    name="simEventType"
                     value={simEventType}
                     onChange={(e: any) => setSimEventType(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none focus:border-indigo-500/60"
@@ -1075,10 +1085,15 @@ export default function EdiIntegrationModule() {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-400 mb-1 block">
+                  <label
+                    htmlFor="sim-event-type-code"
+                    className="text-[11px] font-semibold text-slate-400 mb-1 block"
+                  >
                     Código de Hito DCSA
                   </label>
                   <select
+                    id="sim-event-type-code"
+                    name="simEventTypeCode"
                     value={simEventTypeCode}
                     onChange={(e: any) => setSimEventTypeCode(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none focus:border-indigo-500/60 font-mono"
@@ -1099,10 +1114,15 @@ export default function EdiIntegrationModule() {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-400 mb-1 block">
+                  <label
+                    htmlFor="sim-locode"
+                    className="text-[11px] font-semibold text-slate-400 mb-1 block"
+                  >
                     Puerto UN/LOCODE
                   </label>
                   <Input
+                    id="sim-locode"
+                    name="simLocode"
                     value={simLocode}
                     onChange={(e: any) => setSimLocode(e.target.value)}
                     className="bg-slate-950 border-slate-800 font-mono"
@@ -1110,10 +1130,15 @@ export default function EdiIntegrationModule() {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-400 mb-1 block">
+                  <label
+                    htmlFor="sim-booking-ref"
+                    className="text-[11px] font-semibold text-slate-400 mb-1 block"
+                  >
                     Referencia de Booking
                   </label>
                   <Input
+                    id="sim-booking-ref"
+                    name="simBookingRef"
                     value={simBookingRef}
                     onChange={(e: any) => setSimBookingRef(e.target.value)}
                     className="bg-slate-950 border-slate-800 font-mono"
@@ -1121,10 +1146,15 @@ export default function EdiIntegrationModule() {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-400 mb-1 block">
+                  <label
+                    htmlFor="sim-container-num"
+                    className="text-[11px] font-semibold text-slate-400 mb-1 block"
+                  >
                     Nº Contenedor
                   </label>
                   <Input
+                    id="sim-container-num"
+                    name="simContainerNum"
                     value={simContainerNum}
                     onChange={(e: any) => setSimContainerNum(e.target.value)}
                     className="bg-slate-950 border-slate-800 font-mono"
@@ -1135,11 +1165,16 @@ export default function EdiIntegrationModule() {
               {/* Disruption Toggle */}
               <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="sim-is-disruption"
+                    className="text-xs font-bold text-slate-300 flex items-center gap-1.5 cursor-pointer"
+                  >
                     <AlertTriangle size={14} className="text-amber-400" />
                     Simular Disrupción Operativa / Rollover
-                  </span>
+                  </label>
                   <input
+                    id="sim-is-disruption"
+                    name="simIsDisruption"
                     type="checkbox"
                     checked={simIsDisruption}
                     onChange={(e) => {
@@ -1151,6 +1186,9 @@ export default function EdiIntegrationModule() {
                 </div>
                 {simIsDisruption && (
                   <Input
+                    id="sim-disruption-reason"
+                    name="simDisruptionReason"
+                    aria-label="Motivo de la disrupción"
                     value={simDisruptionReason}
                     onChange={(e: any) =>
                       setSimDisruptionReason(e.target.value)
@@ -1223,10 +1261,15 @@ export default function EdiIntegrationModule() {
               {showSubModal && (
                 <div className="p-3 rounded-2xl bg-slate-950 border border-indigo-500/30 flex flex-col gap-2.5 text-xs">
                   <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">
+                    <label
+                      htmlFor="sub-carrier"
+                      className="text-[10px] text-slate-400 block mb-1"
+                    >
                       Carrier Code
                     </label>
                     <select
+                      id="sub-carrier"
+                      name="subCarrier"
                       value={subCarrier}
                       onChange={(e: any) => setSubCarrier(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-800 rounded-xl p-1.5 text-xs text-white"
@@ -1238,20 +1281,30 @@ export default function EdiIntegrationModule() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">
+                    <label
+                      htmlFor="sub-url"
+                      className="text-[10px] text-slate-400 block mb-1"
+                    >
                       Callback URL (Webhook)
                     </label>
                     <Input
+                      id="sub-url"
+                      name="subUrl"
                       value={subUrl}
                       onChange={(e: any) => setSubUrl(e.target.value)}
                       className="bg-slate-900 border-slate-800 text-xs"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">
+                    <label
+                      htmlFor="sub-secret"
+                      className="text-[10px] text-slate-400 block mb-1"
+                    >
                       Secret Token (HMAC SHA-256)
                     </label>
                     <Input
+                      id="sub-secret"
+                      name="subSecret"
                       value={subSecret}
                       onChange={(e: any) => setSubSecret(e.target.value)}
                       className="bg-slate-900 border-slate-800 text-xs font-mono"

@@ -19,7 +19,11 @@ import {
   Search,
 } from "lucide-react";
 import { Button, Input } from "@atlas/ui";
-import { useApiQuery, useApiMutation, useQueryClient } from "../hooks/useApiQuery";
+import {
+  useApiQuery,
+  useApiMutation,
+  useQueryClient,
+} from "../hooks/useApiQuery";
 import type {
   BlockchainBlock,
   DigitalBillOfLadingMLETR,
@@ -45,7 +49,9 @@ interface LedgerApiResponse {
 
 export default function SmartContractsModule() {
   const queryClient = useQueryClient();
-  const [selectedBlock, setSelectedBlock] = useState<BlockchainBlock | null>(null);
+  const [selectedBlock, setSelectedBlock] = useState<BlockchainBlock | null>(
+    null,
+  );
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [searchBlockQuery, setSearchBlockQuery] = useState("");
   const [filterEvent, setFilterEvent] = useState<string>("ALL");
@@ -53,7 +59,9 @@ export default function SmartContractsModule() {
   // Modals state
   const [isEndorseModalOpen, setIsEndorseModalOpen] = useState(false);
   const [endorseToParty, setEndorseToParty] = useState("");
-  const [endorseType, setEndorseType] = useState<"SPECIAL_ENDORSEMENT" | "PLEDGE_TO_BANK" | "BLANK_ENDORSEMENT">("SPECIAL_ENDORSEMENT");
+  const [endorseType, setEndorseType] = useState<
+    "SPECIAL_ENDORSEMENT" | "PLEDGE_TO_BANK" | "BLANK_ENDORSEMENT"
+  >("SPECIAL_ENDORSEMENT");
   const [endorseSigner, setEndorseSigner] = useState("");
 
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
@@ -70,7 +78,7 @@ export default function SmartContractsModule() {
   // Queries
   const { data: ledgerData, isLoading } = useApiQuery<LedgerApiResponse>(
     ["smart-contracts-ledger"],
-    "/smart-contracts/ledger"
+    "/smart-contracts/ledger",
   );
 
   // Mutations
@@ -82,7 +90,7 @@ export default function SmartContractsModule() {
         queryClient.invalidateQueries({ queryKey: ["smart-contracts-ledger"] });
         setVerificationFeedback(null);
       },
-    }
+    },
   );
 
   const oracleEventMutation = useApiMutation<
@@ -120,7 +128,7 @@ export default function SmartContractsModule() {
         setIsDisputeModalOpen(false);
         setDisputeReason("");
       },
-    }
+    },
   );
 
   const verifyChainMutation = useApiMutation<any, void>(
@@ -137,7 +145,7 @@ export default function SmartContractsModule() {
             : `Error de integridad: ${data.verification.reason}`,
         });
       },
-    }
+    },
   );
 
   const copyToClipboard = (text: string, id: string) => {
@@ -171,18 +179,29 @@ export default function SmartContractsModule() {
   }
 
   const { ebl, escrow, ledger, chainVerification } = ledgerData;
-  const completedConditionsCount = escrow.conditions.filter((c) => c.isCompleted).length;
-  const progressPercent = Math.round((completedConditionsCount / escrow.conditions.length) * 100);
+  const completedConditionsCount = escrow.conditions.filter(
+    (c) => c.isCompleted,
+  ).length;
+  const progressPercent = Math.round(
+    (completedConditionsCount / escrow.conditions.length) * 100,
+  );
 
   const filteredBlocks = ledger.filter((block) => {
     const matchesSearch =
       searchBlockQuery === "" ||
       block.txHash.toLowerCase().includes(searchBlockQuery.toLowerCase()) ||
-      block.payload.sender.toLowerCase().includes(searchBlockQuery.toLowerCase()) ||
-      block.payload.details.toLowerCase().includes(searchBlockQuery.toLowerCase()) ||
-      block.payload.event.toLowerCase().includes(searchBlockQuery.toLowerCase());
+      block.payload.sender
+        .toLowerCase()
+        .includes(searchBlockQuery.toLowerCase()) ||
+      block.payload.details
+        .toLowerCase()
+        .includes(searchBlockQuery.toLowerCase()) ||
+      block.payload.event
+        .toLowerCase()
+        .includes(searchBlockQuery.toLowerCase());
 
-    const matchesEvent = filterEvent === "ALL" || block.payload.event === filterEvent;
+    const matchesEvent =
+      filterEvent === "ALL" || block.payload.event === filterEvent;
     return matchesSearch && matchesEvent;
   });
 
@@ -226,7 +245,8 @@ export default function SmartContractsModule() {
                 </span>
               </h1>
               <p className="text-xs text-slate-400 mt-0.5">
-                Ley Modelo CNUDMI/UNCITRAL MLETR • Custodia & Transmisión de Título • Escrow con Oráculos
+                Ley Modelo CNUDMI/UNCITRAL MLETR • Custodia & Transmisión de
+                Título • Escrow con Oráculos
               </p>
             </div>
           </div>
@@ -237,7 +257,9 @@ export default function SmartContractsModule() {
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-slate-400">Consenso:</span>
-            <span className="font-semibold text-slate-200">Atlas Authority Node 1</span>
+            <span className="font-semibold text-slate-200">
+              Atlas Authority Node 1
+            </span>
           </div>
 
           <div
@@ -252,7 +274,9 @@ export default function SmartContractsModule() {
             ) : (
               <ShieldAlert className="w-4 h-4 text-rose-400" />
             )}
-            <span>{chainVerification.isValid ? "Cadena Íntegra" : "Cadena Corrupta"}</span>
+            <span>
+              {chainVerification.isValid ? "Cadena Íntegra" : "Cadena Corrupta"}
+            </span>
           </div>
 
           <Button
@@ -317,7 +341,8 @@ export default function SmartContractsModule() {
             title: "1. Shanghai ➔ Valencia ($48,500 USD)",
             subtitle: "Liquidación Automática Exitosa",
             desc: "6 hitos cumplidos. Fondos transferidos automáticamente al exportador tras POD.",
-            badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+            badgeColor:
+              "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
           },
           {
             id: "mletr_bank_endorsement",
@@ -338,7 +363,9 @@ export default function SmartContractsModule() {
           return (
             <button
               key={preset.id}
-              onClick={() => selectPresetMutation.mutate({ scenarioId: preset.id })}
+              onClick={() =>
+                selectPresetMutation.mutate({ scenarioId: preset.id })
+              }
               disabled={selectPresetMutation.isPending}
               className={`p-4 rounded-xl border text-left transition-all ${
                 isActive
@@ -347,15 +374,21 @@ export default function SmartContractsModule() {
               }`}
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-slate-200">{preset.title}</span>
+                <span className="text-xs font-semibold text-slate-200">
+                  {preset.title}
+                </span>
                 {isActive && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">
                     ACTIVO
                   </span>
                 )}
               </div>
-              <p className="text-xs text-indigo-400 font-medium mb-1">{preset.subtitle}</p>
-              <p className="text-[11px] text-slate-400 leading-relaxed">{preset.desc}</p>
+              <p className="text-xs text-indigo-400 font-medium mb-1">
+                {preset.subtitle}
+              </p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                {preset.desc}
+              </p>
             </button>
           );
         })}
@@ -370,22 +403,24 @@ export default function SmartContractsModule() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
               <div className="flex items-center gap-2.5">
                 <Coins className="w-5 h-5 text-emerald-400" />
-                <h2 className="text-base font-bold text-white">Smart Escrow Financial VM</h2>
+                <h2 className="text-base font-bold text-white">
+                  Smart Escrow Financial VM
+                </h2>
               </div>
               <span
                 className={`text-xs px-2.5 py-1 rounded-full font-bold border ${
                   escrow.status === "AUTO_RELEASED"
                     ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                     : escrow.status === "DISPUTED"
-                    ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
-                    : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                      ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                      : "bg-amber-500/20 text-amber-300 border-amber-500/40"
                 }`}
               >
                 {escrow.status === "AUTO_RELEASED"
                   ? "FONDOS LIBERADOS"
                   : escrow.status === "DISPUTED"
-                  ? "CONGELADO EN DISPUTA"
-                  : "EN CUSTODIA (HITOS)"}
+                    ? "CONGELADO EN DISPUTA"
+                    : "EN CUSTODIA (HITOS)"}
               </span>
             </div>
 
@@ -397,7 +432,9 @@ export default function SmartContractsModule() {
                 </span>
                 <span className="text-xl font-extrabold text-emerald-400">
                   ${escrow.totalAmountUsd.toLocaleString()}{" "}
-                  <span className="text-xs text-slate-400">{escrow.currency}</span>
+                  <span className="text-xs text-slate-400">
+                    {escrow.currency}
+                  </span>
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/60">
@@ -406,7 +443,9 @@ export default function SmartContractsModule() {
                 </span>
                 <span className="text-xl font-extrabold text-white">
                   ${escrow.releasedAmountUsd.toLocaleString()}{" "}
-                  <span className="text-xs text-slate-400">{escrow.currency}</span>
+                  <span className="text-xs text-slate-400">
+                    {escrow.currency}
+                  </span>
                 </span>
               </div>
             </div>
@@ -414,28 +453,43 @@ export default function SmartContractsModule() {
             <div className="text-xs text-slate-400 space-y-1 mb-4 bg-slate-950/40 p-3 rounded-xl border border-slate-800/40">
               <div className="flex justify-between">
                 <span className="text-slate-500">Contrato Escrow ID:</span>
-                <span className="font-mono text-slate-300">{escrow.contractId}</span>
+                <span className="font-mono text-slate-300">
+                  {escrow.contractId}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Ordenante (Pagador):</span>
-                <span className="text-slate-200 font-medium">{escrow.payerName}</span>
+                <span className="text-slate-200 font-medium">
+                  {escrow.payerName}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Beneficiario (Exportador):</span>
-                <span className="text-slate-200 font-medium">{escrow.beneficiaryName}</span>
+                <span className="text-slate-500">
+                  Beneficiario (Exportador):
+                </span>
+                <span className="text-slate-200 font-medium">
+                  {escrow.beneficiaryName}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Agente Fiduciario / Custodia:</span>
-                <span className="text-indigo-400 font-medium">{escrow.escrowBankOrVault}</span>
+                <span className="text-slate-500">
+                  Agente Fiduciario / Custodia:
+                </span>
+                <span className="text-indigo-400 font-medium">
+                  {escrow.escrowBankOrVault}
+                </span>
               </div>
             </div>
 
             {/* Progress bar */}
             <div className="space-y-1.5 mb-4">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-400 font-medium">Hitos Contractuales Verificados</span>
+                <span className="text-slate-400 font-medium">
+                  Hitos Contractuales Verificados
+                </span>
                 <span className="text-emerald-400 font-bold">
-                  {completedConditionsCount} / {escrow.conditions.length} ({progressPercent}%)
+                  {completedConditionsCount} / {escrow.conditions.length} (
+                  {progressPercent}%)
                 </span>
               </div>
               <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
@@ -444,8 +498,8 @@ export default function SmartContractsModule() {
                     escrow.status === "DISPUTED"
                       ? "bg-rose-500"
                       : progressPercent === 100
-                      ? "bg-emerald-500"
-                      : "bg-indigo-500"
+                        ? "bg-emerald-500"
+                        : "bg-indigo-500"
                   }`}
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercent}%` }}
@@ -472,12 +526,16 @@ export default function SmartContractsModule() {
                       <Clock className="w-4 h-4 text-slate-500 shrink-0" />
                     )}
                     <div>
-                      <p className="font-semibold text-slate-200">{condition.description}</p>
-                      {condition.isCompleted && condition.verificationSource && (
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          Fuente: {condition.verificationSource} • Bloque #{condition.blockNumber}
-                        </p>
-                      )}
+                      <p className="font-semibold text-slate-200">
+                        {condition.description}
+                      </p>
+                      {condition.isCompleted &&
+                        condition.verificationSource && (
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            Fuente: {condition.verificationSource} • Bloque #
+                            {condition.blockNumber}
+                          </p>
+                        )}
                     </div>
                   </div>
 
@@ -502,8 +560,9 @@ export default function SmartContractsModule() {
                   Liquidación Automática Ejecutada
                 </div>
                 <p className="text-[11px] text-emerald-300/80">
-                  La máquina virtual DLT ha liberado ${escrow.releasedAmountUsd.toLocaleString()} USD
-                  directamente al beneficiario.
+                  La máquina virtual DLT ha liberado $
+                  {escrow.releasedAmountUsd.toLocaleString()} USD directamente
+                  al beneficiario.
                 </p>
                 {escrow.settlementTxHash && (
                   <p className="font-mono text-[10px] text-emerald-400 truncate">
@@ -520,7 +579,9 @@ export default function SmartContractsModule() {
                   <AlertTriangle className="w-4 h-4 text-rose-400" />
                   Escrow Congelado por Disputa
                 </div>
-                <p className="text-[11px] text-rose-300">Razón: {escrow.disputeReason}</p>
+                <p className="text-[11px] text-rose-300">
+                  Razón: {escrow.disputeReason}
+                </p>
               </div>
             )}
 
@@ -539,7 +600,8 @@ export default function SmartContractsModule() {
                       oracleEventMutation.mutate({
                         milestoneKey: "SEAL_VERIFIED",
                         sender: "IoT Smart Lock Gateway",
-                        details: "Precinto verificado intacto mediante lectura BLE/NFC en control de acceso.",
+                        details:
+                          "Precinto verificado intacto mediante lectura BLE/NFC en control de acceso.",
                         iotTelemetry: {
                           isoSealNumber: ebl.isoSealNumber,
                           sealStatus: "INTACT",
@@ -561,7 +623,8 @@ export default function SmartContractsModule() {
                       oracleEventMutation.mutate({
                         milestoneKey: "CUSTOMS_CLEARED",
                         sender: "Aduana VUCE Oracle (AEAT)",
-                        details: "Despacho concedido Canal Verde. Certificado CERT-PRE-RELEASE validado.",
+                        details:
+                          "Despacho concedido Canal Verde. Certificado CERT-PRE-RELEASE validado.",
                       })
                     }
                     disabled={oracleEventMutation.isPending}
@@ -578,7 +641,8 @@ export default function SmartContractsModule() {
                       oracleEventMutation.mutate({
                         milestoneKey: "DISCHARGED_PORT",
                         sender: "Terminal TOS Port Gate",
-                        details: "Contenedor descargado de muelle e inspeccionado en grúa STS.",
+                        details:
+                          "Contenedor descargado de muelle e inspeccionado en grúa STS.",
                       })
                     }
                     disabled={oracleEventMutation.isPending}
@@ -595,7 +659,8 @@ export default function SmartContractsModule() {
                       oracleEventMutation.mutate({
                         milestoneKey: "PROOF_OF_DELIVERY",
                         sender: "Consignee Digital POD Terminal",
-                        details: "Prueba de entrega POD firmada digitalmente por consignatario receptor.",
+                        details:
+                          "Prueba de entrega POD firmada digitalmente por consignatario receptor.",
                       })
                     }
                     disabled={oracleEventMutation.isPending}
@@ -625,22 +690,24 @@ export default function SmartContractsModule() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
               <div className="flex items-center gap-2.5">
                 <FileSignature className="w-5 h-5 text-sky-400" />
-                <h2 className="text-base font-bold text-white">e-BL Negociable (MLETR)</h2>
+                <h2 className="text-base font-bold text-white">
+                  e-BL Negociable (MLETR)
+                </h2>
               </div>
               <span
                 className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
                   ebl.status === "SURRENDERED"
                     ? "bg-slate-800 text-slate-300 border-slate-700"
                     : ebl.status === "ENDORSED"
-                    ? "bg-sky-500/20 text-sky-300 border-sky-500/40"
-                    : "bg-indigo-500/20 text-indigo-300 border-indigo-500/40"
+                      ? "bg-sky-500/20 text-sky-300 border-sky-500/40"
+                      : "bg-indigo-500/20 text-indigo-300 border-indigo-500/40"
                 }`}
               >
                 {ebl.status === "SURRENDERED"
                   ? "CARTA DE PORTE ENTREGADA"
                   : ebl.status === "ENDORSED"
-                  ? "TÍTULO ENDOSADO"
-                  : "EMITIDO"}
+                    ? "TÍTULO ENDOSADO"
+                    : "EMITIDO"}
               </span>
             </div>
 
@@ -663,7 +730,9 @@ export default function SmartContractsModule() {
             <div className="text-xs space-y-1.5 bg-slate-950/40 p-3 rounded-xl border border-slate-800/40 mb-4">
               <div className="flex justify-between">
                 <span className="text-slate-500">e-BL Number:</span>
-                <span className="font-mono text-slate-200">{ebl.eblNumber}</span>
+                <span className="font-mono text-slate-200">
+                  {ebl.eblNumber}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Naviera (Carrier):</span>
@@ -690,7 +759,9 @@ export default function SmartContractsModule() {
               <div className="flex justify-between">
                 <span className="text-slate-500">Hash de Registro MLETR:</span>
                 <button
-                  onClick={() => copyToClipboard(ebl.electronicRecordHash, "ebl-hash")}
+                  onClick={() =>
+                    copyToClipboard(ebl.electronicRecordHash, "ebl-hash")
+                  }
                   className="font-mono text-indigo-400 hover:text-indigo-300 truncate max-w-[200px] flex items-center gap-1"
                 >
                   <span className="truncate">{ebl.electronicRecordHash}</span>
@@ -710,7 +781,8 @@ export default function SmartContractsModule() {
               </span>
               {ebl.endorsements.length === 0 ? (
                 <p className="text-xs text-slate-500 italic p-2 rounded bg-slate-950/20">
-                  No se han registrado endosos. El título permanece con el emisor original.
+                  No se han registrado endosos. El título permanece con el
+                  emisor original.
                 </p>
               ) : (
                 ebl.endorsements.map((end, idx) => (
@@ -727,8 +799,14 @@ export default function SmartContractsModule() {
                       </span>
                     </div>
                     <div className="text-[11px] text-slate-300">
-                      De: <span className="font-medium text-slate-400">{end.fromParty}</span> ➔ A:{" "}
-                      <span className="font-medium text-white">{end.toParty}</span>
+                      De:{" "}
+                      <span className="font-medium text-slate-400">
+                        {end.fromParty}
+                      </span>{" "}
+                      ➔ A:{" "}
+                      <span className="font-medium text-white">
+                        {end.toParty}
+                      </span>
                     </div>
                     <div className="font-mono text-[10px] text-slate-500 truncate">
                       Sig: {end.digitalSignature}
@@ -765,7 +843,8 @@ export default function SmartContractsModule() {
                   </span>
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Estructura de Merkle DAG con enlaces criptográficos SHA-256 inmutables
+                  Estructura de Merkle DAG con enlaces criptográficos SHA-256
+                  inmutables
                 </p>
               </div>
 
@@ -774,6 +853,8 @@ export default function SmartContractsModule() {
                 <div className="relative w-40 sm:w-48">
                   <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
                   <Input
+                    id="search-block-query"
+                    name="searchBlockQuery"
                     placeholder="Filtrar tx / evento..."
                     className="pl-8 text-xs py-1.5 h-8 bg-slate-950/80 border-slate-800 text-slate-200"
                     value={searchBlockQuery}
@@ -782,6 +863,8 @@ export default function SmartContractsModule() {
                 </div>
 
                 <select
+                  id="filter-ledger-event"
+                  name="filterLedgerEvent"
                   aria-label="Filtrar por tipo de evento"
                   value={filterEvent}
                   onChange={(e) => setFilterEvent(e.target.value)}
@@ -795,9 +878,13 @@ export default function SmartContractsModule() {
                   <option value="VESSEL_DEPARTED">VESSEL_DEPARTED</option>
                   <option value="SEAL_INSPECTED">SEAL_INSPECTED</option>
                   <option value="CUSTOMS_CLEARED">CUSTOMS_CLEARED</option>
-                  <option value="CONTAINER_DISCHARGED">CONTAINER_DISCHARGED</option>
+                  <option value="CONTAINER_DISCHARGED">
+                    CONTAINER_DISCHARGED
+                  </option>
                   <option value="PROOF_OF_DELIVERY">PROOF_OF_DELIVERY</option>
-                  <option value="SMART_CONTRACT_SETTLEMENT">SMART_CONTRACT_SETTLEMENT</option>
+                  <option value="SMART_CONTRACT_SETTLEMENT">
+                    SMART_CONTRACT_SETTLEMENT
+                  </option>
                   <option value="ESCROW_DISPUTED">ESCROW_DISPUTED</option>
                 </select>
               </div>
@@ -806,7 +893,8 @@ export default function SmartContractsModule() {
             {/* Blocks List */}
             <div className="space-y-3 mt-4 overflow-y-auto max-h-[680px] pr-1">
               {filteredBlocks.map((block) => {
-                const isSelected = selectedBlock?.blockNumber === block.blockNumber;
+                const isSelected =
+                  selectedBlock?.blockNumber === block.blockNumber;
                 return (
                   <motion.div
                     key={block.blockNumber}
@@ -827,7 +915,7 @@ export default function SmartContractsModule() {
                         </span>
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full font-bold border ${getEventBadgeClass(
-                            block.payload.event
+                            block.payload.event,
                           )}`}
                         >
                           {block.payload.event}
@@ -841,7 +929,10 @@ export default function SmartContractsModule() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            copyToClipboard(block.txHash, `tx-${block.blockNumber}`);
+                            copyToClipboard(
+                              block.txHash,
+                              `tx-${block.blockNumber}`,
+                            );
                           }}
                           className="font-mono text-[10px] text-slate-400 hover:text-slate-200 bg-slate-900 px-2 py-1 rounded border border-slate-800 flex items-center gap-1"
                         >
@@ -856,7 +947,9 @@ export default function SmartContractsModule() {
                     </div>
 
                     <div className="text-xs text-slate-300 mb-2 leading-relaxed">
-                      <span className="text-slate-400 font-medium">{block.payload.sender}: </span>
+                      <span className="text-slate-400 font-medium">
+                        {block.payload.sender}:{" "}
+                      </span>
                       {block.payload.details}
                     </div>
 
@@ -867,17 +960,28 @@ export default function SmartContractsModule() {
                           <Radio className="w-3 h-3" /> Telemetría IoT:
                         </span>
                         <span className="text-slate-300">
-                          Precinto: <strong>{block.payload.iotTelemetry.isoSealNumber}</strong> (
-                          {block.payload.iotTelemetry.sealStatus})
+                          Precinto:{" "}
+                          <strong>
+                            {block.payload.iotTelemetry.isoSealNumber}
+                          </strong>{" "}
+                          ({block.payload.iotTelemetry.sealStatus})
                         </span>
-                        {block.payload.iotTelemetry.temperatureCelsius !== undefined && (
+                        {block.payload.iotTelemetry.temperatureCelsius !==
+                          undefined && (
                           <span className="text-slate-300">
-                            Temp: <strong>{block.payload.iotTelemetry.temperatureCelsius}°C</strong>
+                            Temp:{" "}
+                            <strong>
+                              {block.payload.iotTelemetry.temperatureCelsius}°C
+                            </strong>
                           </span>
                         )}
-                        {block.payload.iotTelemetry.batteryPercent !== undefined && (
+                        {block.payload.iotTelemetry.batteryPercent !==
+                          undefined && (
                           <span className="text-slate-300">
-                            Batería: <strong>{block.payload.iotTelemetry.batteryPercent}%</strong>
+                            Batería:{" "}
+                            <strong>
+                              {block.payload.iotTelemetry.batteryPercent}%
+                            </strong>
                           </span>
                         )}
                       </div>
@@ -887,7 +991,9 @@ export default function SmartContractsModule() {
                     <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-2 border-t border-slate-800/60">
                       <div className="flex items-center gap-1 truncate max-w-[70%]">
                         <span className="text-slate-600">prevHash:</span>
-                        <span className="truncate">{block.prevHash.slice(0, 16)}...</span>
+                        <span className="truncate">
+                          {block.prevHash.slice(0, 16)}...
+                        </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <span className="text-slate-600">Merkle Root:</span>
@@ -903,7 +1009,9 @@ export default function SmartContractsModule() {
                         className="mt-3 pt-3 border-t border-slate-800 text-[11px] space-y-2 bg-slate-950/80 p-3 rounded-lg"
                       >
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Hash Completo Tx:</span>
+                          <span className="text-slate-500">
+                            Hash Completo Tx:
+                          </span>
                           <span className="font-mono text-indigo-300 select-all break-all">
                             {block.txHash}
                           </span>
@@ -915,19 +1023,25 @@ export default function SmartContractsModule() {
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Raíz de Merkle:</span>
+                          <span className="text-slate-500">
+                            Raíz de Merkle:
+                          </span>
                           <span className="font-mono text-emerald-400 select-all break-all">
                             {block.merkleRoot}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Firma Nodo Autoridad:</span>
+                          <span className="text-slate-500">
+                            Firma Nodo Autoridad:
+                          </span>
                           <span className="font-mono text-slate-400 truncate max-w-[300px]">
                             {block.signature}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Gas Empleado / Nonce:</span>
+                          <span className="text-slate-500">
+                            Gas Empleado / Nonce:
+                          </span>
                           <span className="font-mono text-slate-300">
                             {block.gasUsed} gas • Nonce: {block.nonce}
                           </span>
@@ -954,20 +1068,27 @@ export default function SmartContractsModule() {
             >
               <div className="flex items-center gap-2.5 mb-4">
                 <FileSignature className="w-5 h-5 text-sky-400" />
-                <h3 className="text-lg font-bold">Endosar Título de Propiedad (MLETR)</h3>
+                <h3 className="text-lg font-bold">
+                  Endosar Título de Propiedad (MLETR)
+                </h3>
               </div>
 
               <p className="text-xs text-slate-400 mb-4">
-                Transmita legalmente la titularidad del conocimiento de embarque electrónico conforme a
-                la Ley Modelo CNUDMI (UNCITRAL MLETR).
+                Transmita legalmente la titularidad del conocimiento de embarque
+                electrónico conforme a la Ley Modelo CNUDMI (UNCITRAL MLETR).
               </p>
 
               <div className="space-y-3.5 mb-6">
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  <label
+                    htmlFor="endorse-to-party"
+                    className="text-xs font-semibold text-slate-300 block mb-1"
+                  >
                     Nuevo Tenedor Legal (Endosatario)
                   </label>
                   <Input
+                    id="endorse-to-party"
+                    name="endorseToParty"
                     placeholder="Ej. Banco Santander S.A., CMA CGM France..."
                     value={endorseToParty}
                     onChange={(e) => setEndorseToParty(e.target.value)}
@@ -976,10 +1097,15 @@ export default function SmartContractsModule() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  <label
+                    htmlFor="endorse-type"
+                    className="text-xs font-semibold text-slate-300 block mb-1"
+                  >
                     Tipo de Transmisión de Título
                   </label>
                   <select
+                    id="endorse-type"
+                    name="endorseType"
                     value={endorseType}
                     onChange={(e) => setEndorseType(e.target.value as any)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs p-2 text-slate-200"
@@ -990,15 +1116,22 @@ export default function SmartContractsModule() {
                     <option value="PLEDGE_TO_BANK">
                       Pignoración Bancaria (Pledge to Bank / Carta de Crédito)
                     </option>
-                    <option value="BLANK_ENDORSEMENT">Endoso en Blanco (Al Portador)</option>
+                    <option value="BLANK_ENDORSEMENT">
+                      Endoso en Blanco (Al Portador)
+                    </option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  <label
+                    htmlFor="endorse-signer"
+                    className="text-xs font-semibold text-slate-300 block mb-1"
+                  >
                     Firmante Autorizado (Opcional)
                   </label>
                   <Input
+                    id="endorse-signer"
+                    name="endorseSigner"
                     placeholder={ebl.currentTitleHolder}
                     value={endorseSigner}
                     onChange={(e) => setEndorseSigner(e.target.value)}
@@ -1023,10 +1156,14 @@ export default function SmartContractsModule() {
                       signerName: endorseSigner || undefined,
                     })
                   }
-                  disabled={!endorseToParty.trim() || endorseTitleMutation.isPending}
+                  disabled={
+                    !endorseToParty.trim() || endorseTitleMutation.isPending
+                  }
                   className="bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold"
                 >
-                  {endorseTitleMutation.isPending ? "Firmando..." : "Firmar & Endosar Título"}
+                  {endorseTitleMutation.isPending
+                    ? "Firmando..."
+                    : "Firmar & Endosar Título"}
                 </Button>
               </div>
             </motion.div>
@@ -1046,20 +1183,29 @@ export default function SmartContractsModule() {
             >
               <div className="flex items-center gap-2.5 mb-3 text-rose-400">
                 <AlertTriangle className="w-5 h-5" />
-                <h3 className="text-lg font-bold text-white">Declarar Disputa en Smart Escrow</h3>
+                <h3 className="text-lg font-bold text-white">
+                  Declarar Disputa en Smart Escrow
+                </h3>
               </div>
 
               <p className="text-xs text-slate-400 mb-4">
-                El depósito contractual de ${escrow.totalAmountUsd.toLocaleString()} USD será congelado
-                preventivamente en el ledger inmutable hasta resolución pericial.
+                El depósito contractual de $
+                {escrow.totalAmountUsd.toLocaleString()} USD será congelado
+                preventivamente en el ledger inmutable hasta resolución
+                pericial.
               </p>
 
               <div className="space-y-3 mb-6">
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  <label
+                    htmlFor="dispute-reason"
+                    className="text-xs font-semibold text-slate-300 block mb-1"
+                  >
                     Motivo o Hallazgo de la Disputa
                   </label>
                   <Input
+                    id="dispute-reason"
+                    name="disputeReason"
                     placeholder="Ej. Violación de precinto ISO 17712 / Faltante de carga de 2,400 kg..."
                     value={disputeReason}
                     onChange={(e) => setDisputeReason(e.target.value)}
@@ -1077,11 +1223,17 @@ export default function SmartContractsModule() {
                   Cancelar
                 </Button>
                 <Button
-                  onClick={() => triggerDisputeMutation.mutate({ reason: disputeReason })}
-                  disabled={!disputeReason.trim() || triggerDisputeMutation.isPending}
+                  onClick={() =>
+                    triggerDisputeMutation.mutate({ reason: disputeReason })
+                  }
+                  disabled={
+                    !disputeReason.trim() || triggerDisputeMutation.isPending
+                  }
                   className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold"
                 >
-                  {triggerDisputeMutation.isPending ? "Congelando..." : "Congelar Fondos"}
+                  {triggerDisputeMutation.isPending
+                    ? "Congelando..."
+                    : "Congelar Fondos"}
                 </Button>
               </div>
             </motion.div>

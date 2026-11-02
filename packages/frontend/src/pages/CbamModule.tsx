@@ -366,6 +366,9 @@ export default function CbamModule() {
           <div className="w-full lg:w-1/3 flex flex-col bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl min-h-[400px] lg:min-h-0">
             <div className="p-4 border-b border-white/10 space-y-3">
               <Input
+                id="cbam-search-input"
+                name="cbamSearch"
+                aria-label="Buscar Nº Declaración, Importador, EORI"
                 type="text"
                 placeholder="Buscar Nº Declaración, Importador, EORI..."
                 value={searchQuery}
@@ -668,10 +671,15 @@ export default function CbamModule() {
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="text-slate-300 block mb-1">
+                  <label
+                    htmlFor="cbam-calc-net-weight"
+                    className="text-slate-300 block mb-1"
+                  >
                     Masa Neta Importada (t)
                   </label>
                   <Input
+                    id="cbam-calc-net-weight"
+                    name="calcNetWeight"
                     type="number"
                     value={calcNetWeight}
                     onChange={(e) => setCalcNetWeight(Number(e.target.value))}
@@ -680,10 +688,15 @@ export default function CbamModule() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-slate-400 block mb-1">
+                    <label
+                      htmlFor="cbam-calc-direct-factor"
+                      className="text-slate-400 block mb-1"
+                    >
                       Factor Directo (tCO2e/t)
                     </label>
                     <Input
+                      id="cbam-calc-direct-factor"
+                      name="calcDirectFactor"
                       type="number"
                       step="0.01"
                       value={calcDirectFactor}
@@ -693,10 +706,15 @@ export default function CbamModule() {
                     />
                   </div>
                   <div>
-                    <label className="text-slate-400 block mb-1">
+                    <label
+                      htmlFor="cbam-calc-indirect-factor"
+                      className="text-slate-400 block mb-1"
+                    >
                       Factor Indirecto (tCO2e/t)
                     </label>
                     <Input
+                      id="cbam-calc-indirect-factor"
+                      name="calcIndirectFactor"
                       type="number"
                       step="0.01"
                       value={calcIndirectFactor}
@@ -709,10 +727,15 @@ export default function CbamModule() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-slate-400 block mb-1">
+                    <label
+                      htmlFor="cbam-calc-default-direct"
+                      className="text-slate-400 block mb-1"
+                    >
                       Default Directo UE
                     </label>
                     <Input
+                      id="cbam-calc-default-direct"
+                      name="calcEuDefaultDirect"
                       type="number"
                       step="0.01"
                       value={calcEuDefaultDirect}
@@ -722,10 +745,15 @@ export default function CbamModule() {
                     />
                   </div>
                   <div>
-                    <label className="text-slate-400 block mb-1">
+                    <label
+                      htmlFor="cbam-calc-default-indirect"
+                      className="text-slate-400 block mb-1"
+                    >
                       Default Indirecto UE
                     </label>
                     <Input
+                      id="cbam-calc-default-indirect"
+                      name="calcEuDefaultIndirect"
                       type="number"
                       step="0.01"
                       value={calcEuDefaultIndirect}
@@ -882,10 +910,15 @@ export default function CbamModule() {
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="text-slate-300 block mb-1">
+                  <label
+                    htmlFor="cbam-sim-emissions"
+                    className="text-slate-300 block mb-1"
+                  >
                     Total Emisiones Integradas (tCO2e)
                   </label>
                   <Input
+                    id="cbam-sim-emissions"
+                    name="simEmissionsTotal"
                     type="number"
                     value={simEmissionsTotal}
                     onChange={(e) =>
@@ -896,10 +929,15 @@ export default function CbamModule() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-slate-400 block mb-1">
+                    <label
+                      htmlFor="cbam-sim-ets-price"
+                      className="text-slate-400 block mb-1"
+                    >
                       Precio Cotización EU ETS (€/t)
                     </label>
                     <Input
+                      id="cbam-sim-ets-price"
+                      name="simEtsPrice"
                       type="number"
                       step="0.1"
                       value={simEtsPrice}
@@ -907,10 +945,15 @@ export default function CbamModule() {
                     />
                   </div>
                   <div>
-                    <label className="text-slate-400 block mb-1">
+                    <label
+                      htmlFor="cbam-sim-foreign-price"
+                      className="text-slate-400 block mb-1"
+                    >
                       Precio Abonado en Origen (€)
                     </label>
                     <Input
+                      id="cbam-sim-foreign-price"
+                      name="simForeignPricePaid"
                       type="number"
                       value={simForeignPricePaid}
                       onChange={(e) =>
@@ -1030,10 +1073,15 @@ export default function CbamModule() {
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">
+                  <label
+                    htmlFor="cbam-status-input"
+                    className="text-xs text-slate-400 block mb-1"
+                  >
                     Estado de Tramitación
                   </label>
                   <select
+                    id="cbam-status-input"
+                    name="statusInput"
                     value={statusInput}
                     onChange={(e: any) => setStatusInput(e.target.value)}
                     className="w-full bg-slate-800/80 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
@@ -1055,10 +1103,15 @@ export default function CbamModule() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">
+                  <label
+                    htmlFor="cbam-remarks-input"
+                    className="text-xs text-slate-400 block mb-1"
+                  >
                     Observaciones de Auditoría
                   </label>
                   <textarea
+                    id="cbam-remarks-input"
+                    name="remarksInput"
                     value={remarksInput}
                     onChange={(e) => setRemarksInput(e.target.value)}
                     rows={3}

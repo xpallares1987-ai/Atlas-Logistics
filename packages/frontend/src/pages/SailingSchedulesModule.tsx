@@ -171,6 +171,9 @@ export default function SailingSchedulesModule() {
                 <MapPin className="w-5 h-5 text-indigo-400 group-focus-within:text-indigo-300 transition-colors" />
               </div>
               <input
+                id="schedules-origin"
+                name="origin"
+                aria-label="Origin Port"
                 type="text"
                 value={origin}
                 onChange={(e) => setOrigin(e.target.value)}
@@ -188,6 +191,9 @@ export default function SailingSchedulesModule() {
                 <MapPin className="w-5 h-5 text-emerald-400 group-focus-within:text-emerald-300 transition-colors" />
               </div>
               <input
+                id="schedules-destination"
+                name="destination"
+                aria-label="Destination Port"
                 type="text"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
@@ -201,6 +207,9 @@ export default function SailingSchedulesModule() {
                 <CalendarCheck className="w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
               </div>
               <input
+                id="schedules-departure-date"
+                name="departureDate"
+                aria-label="Departure Date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}

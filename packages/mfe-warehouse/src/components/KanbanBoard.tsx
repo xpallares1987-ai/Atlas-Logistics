@@ -158,7 +158,16 @@ export default function KanbanBoard() {
 
     return () => {
       clearTimeout(reconnectTimer);
-      if (ws) ws.close();
+      if (ws) {
+        ws.onclose = null;
+        ws.onerror = null;
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close();
+        } else if (ws.readyState === WebSocket.CONNECTING) {
+          const targetWs = ws;
+          targetWs.onopen = () => targetWs.close();
+        }
+      }
     };
   }, [queryClient]);
 

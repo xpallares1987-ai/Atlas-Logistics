@@ -108,11 +108,15 @@ export default function DocumentVaultModule() {
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
 
   // Modal Viewer & Digital Signature
-  const [activeModalDoc, setActiveModalDoc] = useState<VaultDocument | null>(null);
+  const [activeModalDoc, setActiveModalDoc] = useState<VaultDocument | null>(
+    null,
+  );
   const [modalPdfUrl, setModalPdfUrl] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [selectedSigner, setSelectedSigner] = useState("Carlos Mendoza");
-  const [signerTitle, setSignerTitle] = useState("Director de Operaciones & Tráfico");
+  const [signerTitle, setSignerTitle] = useState(
+    "Director de Operaciones & Tráfico",
+  );
 
   // Verification State
   const [verifyQuery, setVerifyQuery] = useState("");
@@ -130,11 +134,16 @@ export default function DocumentVaultModule() {
   >("INVOICE");
   const [ocrRawText, setOcrRawText] = useState<string>(SAMPLE_INVOICE_TEXT);
   const [isProcessingOcr, setIsProcessingOcr] = useState(false);
-  const [extractedInvoice, setExtractedInvoice] = useState<CommercialInvoiceData | null>(null);
-  const [extractedPackingList, setExtractedPackingList] = useState<PackingListData | null>(null);
-  const [extractedTransport, setExtractedTransport] = useState<TransportDocumentData | null>(null);
-  const [extractedDeclaration, setExtractedDeclaration] = useState<CustomsDeclarationData | null>(null);
-  const [crossCheckResult, setCrossCheckResult] = useState<TripartiteCrossCheckResult | null>(null);
+  const [extractedInvoice, setExtractedInvoice] =
+    useState<CommercialInvoiceData | null>(null);
+  const [extractedPackingList, setExtractedPackingList] =
+    useState<PackingListData | null>(null);
+  const [extractedTransport, setExtractedTransport] =
+    useState<TransportDocumentData | null>(null);
+  const [extractedDeclaration, setExtractedDeclaration] =
+    useState<CustomsDeclarationData | null>(null);
+  const [crossCheckResult, setCrossCheckResult] =
+    useState<TripartiteCrossCheckResult | null>(null);
   const [ocrNotification, setOcrNotification] = useState<string | null>(null);
 
   useEffect(() => {
@@ -152,7 +161,9 @@ export default function DocumentVaultModule() {
           const first = data.data[0];
           setSelectedType(first.type);
           setFormData(first.defaultData || {});
-          setDocReference(`${first.type}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+          setDocReference(
+            `${first.type}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          );
         }
       }
     } catch (e) {
@@ -178,7 +189,9 @@ export default function DocumentVaultModule() {
   const handleSelectTemplate = (template: DocumentTemplate) => {
     setSelectedType(template.type);
     setFormData(template.defaultData || {});
-    setDocReference(`${template.type}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+    setDocReference(
+      `${template.type}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+    );
   };
 
   const handleGenerateDocument = async (autoSign: boolean = false) => {
@@ -287,7 +300,9 @@ export default function DocumentVaultModule() {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -322,7 +337,9 @@ export default function DocumentVaultModule() {
     alert("Copiado al portapapeles");
   };
 
-  const handleLoadPreset = (type: "INVOICE" | "PACKING_LIST" | "TRANSPORT" | "DECLARATION") => {
+  const handleLoadPreset = (
+    type: "INVOICE" | "PACKING_LIST" | "TRANSPORT" | "DECLARATION",
+  ) => {
     setOcrDocType(type);
     if (type === "INVOICE") setOcrRawText(SAMPLE_INVOICE_TEXT);
     if (type === "PACKING_LIST") setOcrRawText(SAMPLE_PACKING_LIST_TEXT);
@@ -391,10 +408,12 @@ export default function DocumentVaultModule() {
         invRes.extractedFields,
         plRes.extractedFields,
         decRes.extractedFields,
-        trRes.extractedFields
+        trRes.extractedFields,
       );
       setCrossCheckResult(crossCheck);
-      setOcrNotification("¡Demo 4-en-1 cargado y validación tripartita calculada con éxito!");
+      setOcrNotification(
+        "¡Demo 4-en-1 cargado y validación tripartita calculada con éxito!",
+      );
       setTimeout(() => setOcrNotification(null), 4000);
     } catch (err: any) {
       alert(`Error al procesar demo: ${err.message}`);
@@ -405,14 +424,16 @@ export default function DocumentVaultModule() {
 
   const handleRunCrossCheck = () => {
     if (!extractedInvoice || !extractedPackingList || !extractedDeclaration) {
-      alert("Para ejecutar la validación tripartita se requiere extraer al menos Factura, Packing List y Pedimento/DUA.");
+      alert(
+        "Para ejecutar la validación tripartita se requiere extraer al menos Factura, Packing List y Pedimento/DUA.",
+      );
       return;
     }
     const result = performTripartiteCrossCheck(
       extractedInvoice,
       extractedPackingList,
       extractedDeclaration,
-      extractedTransport || undefined
+      extractedTransport || undefined,
     );
     setCrossCheckResult(result);
     setOcrNotification("Validación cruzada tripartita actualizada.");
@@ -453,8 +474,12 @@ export default function DocumentVaultModule() {
   const filteredDocuments = documents.filter((doc) => {
     const matchesSearch =
       (doc.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-      (doc.documentReference?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-      (doc.sha256Hash?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (doc.documentReference?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase(),
+      ) ||
+      (doc.sha256Hash?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase(),
+      ) ||
       (doc.signedBy?.toLowerCase() || "").includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === "ALL" || doc.type === typeFilter;
     const matchesStatus = statusFilter === "ALL" || doc.status === statusFilter;
@@ -488,7 +513,10 @@ export default function DocumentVaultModule() {
               Centro de Emisión & Firma Digital
             </h1>
             <p className="text-slate-400 text-sm mt-1 max-w-2xl">
-              Generación de documentos oficiales de transporte y aduanas (HBL, DUA, e-CMR, AWB, CIM, GDP, CBAM) con previsualización en vivo, estampa digital criptográfica SHA-256 y verificación de autenticidad inmutable.
+              Generación de documentos oficiales de transporte y aduanas (HBL,
+              DUA, e-CMR, AWB, CIM, GDP, CBAM) con previsualización en vivo,
+              estampa digital criptográfica SHA-256 y verificación de
+              autenticidad inmutable.
             </p>
           </div>
 
@@ -558,7 +586,10 @@ export default function DocumentVaultModule() {
 
       {/* TAB 1: EMISSION STUDIO */}
       {activeTab === "STUDIO" && (
-        <motion.div variants={containerVariants} className="flex flex-col gap-6">
+        <motion.div
+          variants={containerVariants}
+          className="flex flex-col gap-6"
+        >
           {/* Document Catalog Grid (12 Cards) */}
           <div className="flex flex-col gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -584,8 +615,12 @@ export default function DocumentVaultModule() {
                     </span>
                   </div>
                   <div>
-                    <div className="font-bold text-xs text-white">{tpl.name}</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">{tpl.regulation}</div>
+                    <div className="font-bold text-xs text-white">
+                      {tpl.name}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      {tpl.regulation}
+                    </div>
                   </div>
                 </button>
               ))}
@@ -601,17 +636,28 @@ export default function DocumentVaultModule() {
                 </span>
                 <div>
                   <h3 className="font-bold text-white text-base">
-                    Configuración de Emisión: {templates.find((t) => t.type === selectedType)?.name || selectedType}
+                    Configuración de Emisión:{" "}
+                    {templates.find((t) => t.type === selectedType)?.name ||
+                      selectedType}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Edite los datos o utilice los valores predeterminados para compilar el PDF oficial y estampar el sello digital.
+                    Edite los datos o utilice los valores predeterminados para
+                    compilar el PDF oficial y estampar el sello digital.
                   </p>
                 </div>
               </div>
 
               <div>
-                <span className="text-[11px] text-slate-400 block mb-1">Referencia Oficial:</span>
+                <label
+                  htmlFor="doc-reference-input"
+                  className="text-[11px] text-slate-400 block mb-1"
+                >
+                  Referencia Oficial:
+                </label>
                 <Input
+                  id="doc-reference-input"
+                  name="docReference"
+                  aria-label="Referencia Oficial"
                   value={docReference}
                   onChange={(e: any) => setDocReference(e.target.value)}
                   className="bg-slate-950 border-slate-800 font-mono text-xs w-48"
@@ -624,12 +670,18 @@ export default function DocumentVaultModule() {
               {Object.keys(formData).map((key) => {
                 const val = formData[key];
                 if (typeof val === "object") return null; // skip nested arrays for simple view
+                const inputId = `doc-form-${key}`;
                 return (
                   <div key={key} className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-slate-400 capitalize">
+                    <label
+                      htmlFor={inputId}
+                      className="text-[11px] font-semibold text-slate-400 capitalize"
+                    >
                       {key.replace(/([A-Z])/g, " $1")}
                     </label>
                     <Input
+                      id={inputId}
+                      name={key}
                       value={String(val ?? "")}
                       onChange={(e: any) =>
                         setFormData((prev) => ({
@@ -648,7 +700,10 @@ export default function DocumentVaultModule() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-800">
               <div className="flex items-center gap-3 text-xs text-slate-400">
                 <ShieldCheck size={16} className="text-emerald-400" />
-                <span>La emisión calculará automáticamente la huella criptográfica SHA-256 para trazabilidad legal.</span>
+                <span>
+                  La emisión calculará automáticamente la huella criptográfica
+                  SHA-256 para trazabilidad legal.
+                </span>
               </div>
 
               <div className="flex items-center gap-3">
@@ -666,7 +721,9 @@ export default function DocumentVaultModule() {
                   className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-5 py-2.5 rounded-2xl shadow-lg shadow-indigo-600/30 flex items-center gap-2"
                 >
                   <Lock size={16} />
-                  {isGenerating ? "Generando..." : "Emitir y Firmar Digitalmente"}
+                  {isGenerating
+                    ? "Generando..."
+                    : "Emitir y Firmar Digitalmente"}
                 </Button>
               </div>
             </div>
@@ -676,7 +733,10 @@ export default function DocumentVaultModule() {
 
       {/* TAB 2: VAULT LEDGER */}
       {activeTab === "VAULT" && (
-        <motion.div variants={itemVariants} className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col gap-4">
+        <motion.div
+          variants={itemVariants}
+          className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col gap-4"
+        >
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -684,12 +744,16 @@ export default function DocumentVaultModule() {
                 Bóveda de Documentos Emitidos
               </h2>
               <p className="text-xs text-slate-400">
-                Historial completo de documentos legales emitidos con sus hashes criptográficos y certificados de firma.
+                Historial completo de documentos legales emitidos con sus hashes
+                criptográficos y certificados de firma.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
               <Input
+                id="doc-search-query"
+                name="docSearchQuery"
+                aria-label="Buscar por referencia, hash o firmante"
                 placeholder="Buscar por referencia, hash o firmante..."
                 value={searchQuery}
                 onChange={(e: any) => setSearchQuery(e.target.value)}
@@ -697,6 +761,9 @@ export default function DocumentVaultModule() {
               />
 
               <select
+                id="doc-type-filter"
+                name="docTypeFilter"
+                aria-label="Filtrar por tipo de documento"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
                 className="bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded-xl px-3 py-2 focus:outline-none"
@@ -710,6 +777,9 @@ export default function DocumentVaultModule() {
               </select>
 
               <select
+                id="doc-status-filter"
+                name="docStatusFilter"
+                aria-label="Filtrar por estado de documento"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded-xl px-3 py-2 focus:outline-none"
@@ -724,7 +794,10 @@ export default function DocumentVaultModule() {
                 variant="ghost"
                 className="text-slate-400 hover:text-white p-2"
               >
-                <RefreshCw size={16} className={isLoadingDocs ? "animate-spin" : ""} />
+                <RefreshCw
+                  size={16}
+                  className={isLoadingDocs ? "animate-spin" : ""}
+                />
               </Button>
             </div>
           </div>
@@ -746,13 +819,20 @@ export default function DocumentVaultModule() {
               <tbody className="divide-y divide-slate-800/60 font-mono text-slate-300">
                 {filteredDocuments.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-slate-500 font-sans">
-                      No se encontraron documentos en la bóveda con los filtros seleccionados.
+                    <td
+                      colSpan={7}
+                      className="p-8 text-center text-slate-500 font-sans"
+                    >
+                      No se encontraron documentos en la bóveda con los filtros
+                      seleccionados.
                     </td>
                   </tr>
                 ) : (
                   filteredDocuments.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-slate-800/30 transition-colors">
+                    <tr
+                      key={doc.id}
+                      className="hover:bg-slate-800/30 transition-colors"
+                    >
                       <td className="p-3.5">
                         <div className="flex items-center gap-2 font-sans font-bold text-white">
                           {getTypeIcon(doc.type)}
@@ -766,7 +846,8 @@ export default function DocumentVaultModule() {
                         {doc.sha256Hash ? (
                           <div className="flex items-center gap-1.5">
                             <span className="text-[10px] text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-white/5">
-                              {doc.sha256Hash.substring(0, 10)}...{doc.sha256Hash.substring(58)}
+                              {doc.sha256Hash.substring(0, 10)}...
+                              {doc.sha256Hash.substring(58)}
                             </span>
                             <button
                               onClick={() => copyToClipboard(doc.sha256Hash!)}
@@ -777,17 +858,23 @@ export default function DocumentVaultModule() {
                             </button>
                           </div>
                         ) : (
-                          <span className="text-slate-600 font-sans">Sin calcular</span>
+                          <span className="text-slate-600 font-sans">
+                            Sin calcular
+                          </span>
                         )}
                       </td>
                       <td className="p-3.5 font-sans">
                         {doc.signedBy ? (
                           <div className="flex items-center gap-1.5 text-emerald-400">
                             <CheckCircle2 size={14} />
-                            <span className="font-semibold">{doc.signedBy}</span>
+                            <span className="font-semibold">
+                              {doc.signedBy}
+                            </span>
                           </div>
                         ) : (
-                          <span className="text-slate-500 italic">Pendiente</span>
+                          <span className="text-slate-500 italic">
+                            Pendiente
+                          </span>
                         )}
                       </td>
                       <td className="p-3.5 font-sans">
@@ -813,7 +900,11 @@ export default function DocumentVaultModule() {
                             <Eye size={12} className="mr-1 inline" /> Ver PDF
                           </Button>
                           <Button
-                            onClick={() => handleVerify(doc.sha256Hash || doc.documentReference)}
+                            onClick={() =>
+                              handleVerify(
+                                doc.sha256Hash || doc.documentReference,
+                              )
+                            }
                             className="bg-slate-800 hover:bg-slate-700 text-white text-[11px] px-2 py-1 rounded-xl h-auto"
                             title="Verificar Autenticidad"
                           >
@@ -832,7 +923,10 @@ export default function DocumentVaultModule() {
 
       {/* TAB 3: VERIFICATION */}
       {activeTab === "VERIFY" && (
-        <motion.div variants={itemVariants} className="bg-slate-900/80 border border-slate-800 rounded-3xl p-8 shadow-xl flex flex-col gap-6 max-w-3xl mx-auto w-full">
+        <motion.div
+          variants={itemVariants}
+          className="bg-slate-900/80 border border-slate-800 rounded-3xl p-8 shadow-xl flex flex-col gap-6 max-w-3xl mx-auto w-full"
+        >
           <div>
             <div className="flex items-center gap-3 mb-2">
               <span className="p-2 rounded-2xl bg-indigo-500/20 text-indigo-400">
@@ -843,12 +937,17 @@ export default function DocumentVaultModule() {
               </h2>
             </div>
             <p className="text-xs text-slate-400">
-              Introduzca la huella digital SHA-256 o el número de referencia del documento para comprobar su validez, inmutabilidad y certificado de firma.
+              Introduzca la huella digital SHA-256 o el número de referencia del
+              documento para comprobar su validez, inmutabilidad y certificado
+              de firma.
             </p>
           </div>
 
           <div className="flex gap-2">
             <Input
+              id="doc-verify-query"
+              name="docVerifyQuery"
+              aria-label="Hash SHA-256 o Referencia del Documento"
               placeholder="Pegue aquí el hash SHA-256 (64 caracteres) o la referencia (ej. HBL-2026-0081)..."
               value={verifyQuery}
               onChange={(e: any) => setVerifyQuery(e.target.value)}
@@ -883,7 +982,11 @@ export default function DocumentVaultModule() {
                       : "bg-red-500/20 text-red-400 border border-red-500/30"
                   }`}
                 >
-                  {verifyResult.authentic ? <ShieldCheck size={32} /> : <AlertTriangle size={32} />}
+                  {verifyResult.authentic ? (
+                    <ShieldCheck size={32} />
+                  ) : (
+                    <AlertTriangle size={32} />
+                  )}
                 </span>
                 <div>
                   <h3 className="font-extrabold text-white text-base">
@@ -891,39 +994,55 @@ export default function DocumentVaultModule() {
                       ? "CERTIFICADO DE AUTENTICIDAD VÁLIDO"
                       : "VERIFICACIÓN FALLIDA"}
                   </h3>
-                  <p className="text-xs text-slate-300 mt-0.5">{verifyResult.message}</p>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    {verifyResult.message}
+                  </p>
                 </div>
               </div>
 
               {verifyResult.document && (
                 <div className="grid grid-cols-2 gap-3 text-xs bg-slate-950/70 p-4 rounded-2xl border border-white/5 font-mono">
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase">Documento</span>
-                    <div className="font-bold text-white mt-0.5">{verifyResult.document.name}</div>
+                    <span className="text-[10px] text-slate-500 uppercase">
+                      Documento
+                    </span>
+                    <div className="font-bold text-white mt-0.5">
+                      {verifyResult.document.name}
+                    </div>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase">Referencia</span>
+                    <span className="text-[10px] text-slate-500 uppercase">
+                      Referencia
+                    </span>
                     <div className="font-bold text-indigo-400 mt-0.5">
                       {verifyResult.document.documentReference}
                     </div>
                   </div>
 
                   <div className="col-span-2">
-                    <span className="text-[10px] text-slate-500 uppercase">Huella Digital (SHA-256)</span>
+                    <span className="text-[10px] text-slate-500 uppercase">
+                      Huella Digital (SHA-256)
+                    </span>
                     <div className="text-[11px] text-emerald-400 break-all mt-0.5">
                       {verifyResult.document.sha256Hash}
                     </div>
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase">Firmante Acreditado</span>
+                    <span className="text-[10px] text-slate-500 uppercase">
+                      Firmante Acreditado
+                    </span>
                     <div className="font-bold text-white mt-0.5">
                       {verifyResult.document.signedBy || "Sin firmar"}
                     </div>
-                    <div className="text-[10px] text-slate-400">{verifyResult.document.signerTitle}</div>
+                    <div className="text-[10px] text-slate-400">
+                      {verifyResult.document.signerTitle}
+                    </div>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase">Certificado PKI</span>
+                    <span className="text-[10px] text-slate-500 uppercase">
+                      Certificado PKI
+                    </span>
                     <div className="font-bold text-slate-300 mt-0.5">
                       {verifyResult.document.signerCertificate || "N/A"}
                     </div>
@@ -937,7 +1056,10 @@ export default function DocumentVaultModule() {
 
       {/* TAB 4: OCR INGESTION & TRIPARTITE CROSS-CHECK STUDIO */}
       {activeTab === "OCR_STUDIO" && (
-        <motion.div variants={containerVariants} className="flex flex-col gap-6">
+        <motion.div
+          variants={containerVariants}
+          className="flex flex-col gap-6"
+        >
           {/* Notification Toast */}
           <AnimatePresence>
             {ocrNotification && (
@@ -972,14 +1094,18 @@ export default function DocumentVaultModule() {
                   <Scan size={20} />
                 </span>
                 <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-                  Motor Heurístico OCR de Comercio Exterior & Validación Tripartita
+                  Motor Heurístico OCR de Comercio Exterior & Validación
+                  Tripartita
                 </span>
               </div>
               <h2 className="text-xl font-black text-white">
                 Ingestión Inteligente 4-en-1 & Conciliación Aduanera
               </h2>
               <p className="text-xs text-slate-400 mt-0.5 max-w-3xl">
-                Digitalización y extracción de Factura Comercial, Packing List, Documento de Transporte (B/L, e-CMR) y Pedimento SAT / DUA con reconciliación inmediata de valor en aduana (CIF), tolerancias de peso bruto e integridad de precintos ISO 17712.
+                Digitalización y extracción de Factura Comercial, Packing List,
+                Documento de Transporte (B/L, e-CMR) y Pedimento SAT / DUA con
+                reconciliación inmediata de valor en aduana (CIF), tolerancias
+                de peso bruto e integridad de precintos ISO 17712.
               </p>
             </div>
 
@@ -990,7 +1116,9 @@ export default function DocumentVaultModule() {
                 className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs py-2.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/20 flex items-center gap-2"
               >
                 <Sparkles size={15} />
-                {isProcessingOcr ? "Procesando Demo..." : "Cargar Demo 4-en-1 & Validar"}
+                {isProcessingOcr
+                  ? "Procesando Demo..."
+                  : "Cargar Demo 4-en-1 & Validar"}
               </Button>
               <Button
                 onClick={() => {
@@ -1011,7 +1139,10 @@ export default function DocumentVaultModule() {
           </motion.div>
 
           {/* 4-Document Snapshot Cards */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <motion.div
+            variants={itemVariants}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          >
             {/* Card 1: Factura Comercial */}
             <div
               onClick={() => handleLoadPreset("INVOICE")}
@@ -1024,7 +1155,9 @@ export default function DocumentVaultModule() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <FileText size={16} className="text-blue-400" />
-                  <span className="text-xs font-bold text-white">Factura Comercial</span>
+                  <span className="text-xs font-bold text-white">
+                    Factura Comercial
+                  </span>
                 </div>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -1038,12 +1171,25 @@ export default function DocumentVaultModule() {
               </div>
               {extractedInvoice ? (
                 <div className="text-[11px] text-slate-300 space-y-0.5">
-                  <div className="font-mono text-white font-bold">{extractedInvoice.invoiceNumber}</div>
-                  <div>CIF: <span className="text-emerald-400 font-bold">${extractedInvoice.totalCifUsd.toLocaleString()}</span> {extractedInvoice.currency}</div>
-                  <div className="text-[10px] text-slate-400">Incoterm: {extractedInvoice.incoterm} • {extractedInvoice.lineItems.length} partidas</div>
+                  <div className="font-mono text-white font-bold">
+                    {extractedInvoice.invoiceNumber}
+                  </div>
+                  <div>
+                    CIF:{" "}
+                    <span className="text-emerald-400 font-bold">
+                      ${extractedInvoice.totalCifUsd.toLocaleString()}
+                    </span>{" "}
+                    {extractedInvoice.currency}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    Incoterm: {extractedInvoice.incoterm} •{" "}
+                    {extractedInvoice.lineItems.length} partidas
+                  </div>
                 </div>
               ) : (
-                <p className="text-[11px] text-slate-500 italic">Haz clic para cargar y extraer factura comercial.</p>
+                <p className="text-[11px] text-slate-500 italic">
+                  Haz clic para cargar y extraer factura comercial.
+                </p>
               )}
             </div>
 
@@ -1059,7 +1205,9 @@ export default function DocumentVaultModule() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Layers size={16} className="text-indigo-400" />
-                  <span className="text-xs font-bold text-white">Packing List</span>
+                  <span className="text-xs font-bold text-white">
+                    Packing List
+                  </span>
                 </div>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -1073,12 +1221,25 @@ export default function DocumentVaultModule() {
               </div>
               {extractedPackingList ? (
                 <div className="text-[11px] text-slate-300 space-y-0.5">
-                  <div className="font-mono text-white font-bold">{extractedPackingList.packingListNumber}</div>
-                  <div>Bultos: <span className="text-white font-bold">{extractedPackingList.totalPackages}</span> {extractedPackingList.packageType}</div>
-                  <div className="text-[10px] text-slate-400">Bruto: {extractedPackingList.grossWeightKg.toLocaleString()} kg • {extractedPackingList.totalCbm} m³</div>
+                  <div className="font-mono text-white font-bold">
+                    {extractedPackingList.packingListNumber}
+                  </div>
+                  <div>
+                    Bultos:{" "}
+                    <span className="text-white font-bold">
+                      {extractedPackingList.totalPackages}
+                    </span>{" "}
+                    {extractedPackingList.packageType}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    Bruto: {extractedPackingList.grossWeightKg.toLocaleString()}{" "}
+                    kg • {extractedPackingList.totalCbm} m³
+                  </div>
                 </div>
               ) : (
-                <p className="text-[11px] text-slate-500 italic">Haz clic para cargar y extraer lista de empaque.</p>
+                <p className="text-[11px] text-slate-500 italic">
+                  Haz clic para cargar y extraer lista de empaque.
+                </p>
               )}
             </div>
 
@@ -1094,7 +1255,9 @@ export default function DocumentVaultModule() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Ship size={16} className="text-cyan-400" />
-                  <span className="text-xs font-bold text-white">Doc. Transporte (B/L)</span>
+                  <span className="text-xs font-bold text-white">
+                    Doc. Transporte (B/L)
+                  </span>
                 </div>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -1108,12 +1271,25 @@ export default function DocumentVaultModule() {
               </div>
               {extractedTransport ? (
                 <div className="text-[11px] text-slate-300 space-y-0.5">
-                  <div className="font-mono text-white font-bold">{extractedTransport.documentNumber}</div>
-                  <div>Transportista: <span className="text-white font-semibold">{extractedTransport.carrierName}</span></div>
-                  <div className="text-[10px] text-slate-400">Bruto: {extractedTransport.declaredGrossWeightKg.toLocaleString()} kg • Precinto: {extractedTransport.sealNumber || "N/A"}</div>
+                  <div className="font-mono text-white font-bold">
+                    {extractedTransport.documentNumber}
+                  </div>
+                  <div>
+                    Transportista:{" "}
+                    <span className="text-white font-semibold">
+                      {extractedTransport.carrierName}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    Bruto:{" "}
+                    {extractedTransport.declaredGrossWeightKg.toLocaleString()}{" "}
+                    kg • Precinto: {extractedTransport.sealNumber || "N/A"}
+                  </div>
                 </div>
               ) : (
-                <p className="text-[11px] text-slate-500 italic">Haz clic para cargar y extraer B/L o e-CMR.</p>
+                <p className="text-[11px] text-slate-500 italic">
+                  Haz clic para cargar y extraer B/L o e-CMR.
+                </p>
               )}
             </div>
 
@@ -1129,7 +1305,9 @@ export default function DocumentVaultModule() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <FileCheck size={16} className="text-amber-400" />
-                  <span className="text-xs font-bold text-white">Pedimento SAT / DUA</span>
+                  <span className="text-xs font-bold text-white">
+                    Pedimento SAT / DUA
+                  </span>
                 </div>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -1143,18 +1321,35 @@ export default function DocumentVaultModule() {
               </div>
               {extractedDeclaration ? (
                 <div className="text-[11px] text-slate-300 space-y-0.5">
-                  <div className="font-mono text-white font-bold">{extractedDeclaration.declarationNumber}</div>
-                  <div>Valor Aduana: <span className="text-amber-400 font-bold">${extractedDeclaration.declaredCustomsValueUsd.toLocaleString()}</span> USD</div>
-                  <div className="text-[10px] text-slate-400">Partida: {extractedDeclaration.primaryHsCode} • {extractedDeclaration.regimenType}</div>
+                  <div className="font-mono text-white font-bold">
+                    {extractedDeclaration.declarationNumber}
+                  </div>
+                  <div>
+                    Valor Aduana:{" "}
+                    <span className="text-amber-400 font-bold">
+                      $
+                      {extractedDeclaration.declaredCustomsValueUsd.toLocaleString()}
+                    </span>{" "}
+                    USD
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    Partida: {extractedDeclaration.primaryHsCode} •{" "}
+                    {extractedDeclaration.regimenType}
+                  </div>
                 </div>
               ) : (
-                <p className="text-[11px] text-slate-500 italic">Haz clic para cargar y extraer pedimento oficial.</p>
+                <p className="text-[11px] text-slate-500 italic">
+                  Haz clic para cargar y extraer pedimento oficial.
+                </p>
               )}
             </div>
           </motion.div>
 
           {/* OCR Ingestion Workbench: Editor & Extracted Fields Preview */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <motion.div
+            variants={itemVariants}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+          >
             {/* Left: Raw Text Ingestion & Actions (7 Cols) */}
             <div className="lg:col-span-7 bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between gap-4">
               <div>
@@ -1204,6 +1399,9 @@ export default function DocumentVaultModule() {
 
                   <div className="flex items-center gap-2">
                     <input
+                      id="doc-ocr-file-input"
+                      name="ocrFileInput"
+                      aria-label="Cargar Archivo OCR"
                       type="file"
                       ref={ocrFileInputRef}
                       onChange={handleOcrFileSelect}
@@ -1211,6 +1409,9 @@ export default function DocumentVaultModule() {
                       accept=".txt,.json,.csv,.pdf"
                     />
                     <input
+                      id="doc-general-file-input"
+                      name="generalFileInput"
+                      aria-label="Cargar Archivo General"
                       type="file"
                       ref={fileInputRef}
                       onChange={handleFileUpload}
@@ -1238,6 +1439,9 @@ export default function DocumentVaultModule() {
 
                 <div className="relative">
                   <textarea
+                    id="doc-ocr-raw-text"
+                    name="ocrRawText"
+                    aria-label="Texto desestructurado del documento aduanero"
                     value={ocrRawText}
                     onChange={(e) => setOcrRawText(e.target.value)}
                     placeholder="Pegue aquí el texto desestructurado del documento aduanero o arrastre un archivo..."
@@ -1263,10 +1467,10 @@ export default function DocumentVaultModule() {
                         ocrDocType === "INVOICE"
                           ? "Factura Comercial"
                           : ocrDocType === "PACKING_LIST"
-                          ? "Packing List"
-                          : ocrDocType === "TRANSPORT"
-                          ? "Documento de Transporte"
-                          : "Pedimento SAT / DUA"
+                            ? "Packing List"
+                            : ocrDocType === "TRANSPORT"
+                              ? "Documento de Transporte"
+                              : "Pedimento SAT / DUA"
                       }`}
                 </Button>
                 <Button
@@ -1298,53 +1502,97 @@ export default function DocumentVaultModule() {
                 </div>
 
                 {/* Content according to active docType */}
-                {ocrDocType === "INVOICE" && (
-                  extractedInvoice ? (
+                {ocrDocType === "INVOICE" &&
+                  (extractedInvoice ? (
                     <div className="space-y-3 text-xs">
                       <div className="grid grid-cols-2 gap-2 bg-slate-950/70 p-3 rounded-2xl border border-white/5">
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Factura</div>
-                          <div className="font-mono font-bold text-white">{extractedInvoice.invoiceNumber}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Factura
+                          </div>
+                          <div className="font-mono font-bold text-white">
+                            {extractedInvoice.invoiceNumber}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Fecha</div>
-                          <div className="font-mono text-slate-300">{extractedInvoice.invoiceDate}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Fecha
+                          </div>
+                          <div className="font-mono text-slate-300">
+                            {extractedInvoice.invoiceDate}
+                          </div>
                         </div>
                         <div className="col-span-2">
-                          <div className="text-[10px] text-slate-500 uppercase">Vendedor (Exportador)</div>
-                          <div className="font-semibold text-slate-200">{extractedInvoice.sellerName}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Vendedor (Exportador)
+                          </div>
+                          <div className="font-semibold text-slate-200">
+                            {extractedInvoice.sellerName}
+                          </div>
                         </div>
                         <div className="col-span-2">
-                          <div className="text-[10px] text-slate-500 uppercase">Comprador (Importador)</div>
-                          <div className="font-semibold text-slate-200">{extractedInvoice.buyerName}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Comprador (Importador)
+                          </div>
+                          <div className="font-semibold text-slate-200">
+                            {extractedInvoice.buyerName}
+                          </div>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 bg-slate-950/70 p-3 rounded-2xl border border-white/5 text-center">
                         <div>
-                          <div className="text-[10px] text-slate-500">Incoterm</div>
-                          <div className="font-bold text-indigo-400">{extractedInvoice.incoterm}</div>
+                          <div className="text-[10px] text-slate-500">
+                            Incoterm
+                          </div>
+                          <div className="font-bold text-indigo-400">
+                            {extractedInvoice.incoterm}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500">Flete + Seguro</div>
-                          <div className="font-bold text-slate-300">${(extractedInvoice.freightUsd + extractedInvoice.insuranceUsd).toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">
+                            Flete + Seguro
+                          </div>
+                          <div className="font-bold text-slate-300">
+                            $
+                            {(
+                              extractedInvoice.freightUsd +
+                              extractedInvoice.insuranceUsd
+                            ).toLocaleString()}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500">Total CIF USD</div>
-                          <div className="font-bold text-emerald-400">${extractedInvoice.totalCifUsd.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">
+                            Total CIF USD
+                          </div>
+                          <div className="font-bold text-emerald-400">
+                            ${extractedInvoice.totalCifUsd.toLocaleString()}
+                          </div>
                         </div>
                       </div>
 
                       <div className="bg-slate-950/70 p-3 rounded-2xl border border-white/5">
-                        <div className="text-[10px] text-slate-500 uppercase mb-1">Partidas Arancelarias ({extractedInvoice.lineItems.length}):</div>
+                        <div className="text-[10px] text-slate-500 uppercase mb-1">
+                          Partidas Arancelarias (
+                          {extractedInvoice.lineItems.length}):
+                        </div>
                         <div className="space-y-1 max-h-36 overflow-y-auto">
                           {extractedInvoice.lineItems.map((item, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-[11px] border-b border-slate-900 pb-1">
+                            <div
+                              key={idx}
+                              className="flex justify-between items-center text-[11px] border-b border-slate-900 pb-1"
+                            >
                               <div>
-                                <span className="font-mono text-indigo-400 mr-2">{item.hsCode}</span>
-                                <span className="text-slate-300">{item.description}</span>
+                                <span className="font-mono text-indigo-400 mr-2">
+                                  {item.hsCode}
+                                </span>
+                                <span className="text-slate-300">
+                                  {item.description}
+                                </span>
                               </div>
-                              <span className="font-mono font-bold text-white">${item.totalAmount.toLocaleString()}</span>
+                              <span className="font-mono font-bold text-white">
+                                ${item.totalAmount.toLocaleString()}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -1352,146 +1600,245 @@ export default function DocumentVaultModule() {
                     </div>
                   ) : (
                     <div className="p-8 text-center text-slate-500 text-xs italic">
-                      No se ha extraído la Factura Comercial aún. Haz clic en "Ejecutar Extracción OCR".
+                      No se ha extraído la Factura Comercial aún. Haz clic en
+                      "Ejecutar Extracción OCR".
                     </div>
-                  )
-                )}
+                  ))}
 
-                {ocrDocType === "PACKING_LIST" && (
-                  extractedPackingList ? (
+                {ocrDocType === "PACKING_LIST" &&
+                  (extractedPackingList ? (
                     <div className="space-y-3 text-xs">
                       <div className="grid grid-cols-2 gap-2 bg-slate-950/70 p-3 rounded-2xl border border-white/5">
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Packing List</div>
-                          <div className="font-mono font-bold text-white">{extractedPackingList.packingListNumber}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Packing List
+                          </div>
+                          <div className="font-mono font-bold text-white">
+                            {extractedPackingList.packingListNumber}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Ref. Factura</div>
-                          <div className="font-mono text-indigo-400">{extractedPackingList.invoiceReference}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Ref. Factura
+                          </div>
+                          <div className="font-mono text-indigo-400">
+                            {extractedPackingList.invoiceReference}
+                          </div>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 bg-slate-950/70 p-3 rounded-2xl border border-white/5 text-center">
                         <div>
-                          <div className="text-[10px] text-slate-500">Total Bultos</div>
-                          <div className="font-bold text-white">{extractedPackingList.totalPackages} {extractedPackingList.packageType}</div>
+                          <div className="text-[10px] text-slate-500">
+                            Total Bultos
+                          </div>
+                          <div className="font-bold text-white">
+                            {extractedPackingList.totalPackages}{" "}
+                            {extractedPackingList.packageType}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500">Peso Bruto</div>
-                          <div className="font-bold text-emerald-400">{extractedPackingList.grossWeightKg.toLocaleString()} kg</div>
+                          <div className="text-[10px] text-slate-500">
+                            Peso Bruto
+                          </div>
+                          <div className="font-bold text-emerald-400">
+                            {extractedPackingList.grossWeightKg.toLocaleString()}{" "}
+                            kg
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500">Volumen Total</div>
-                          <div className="font-bold text-indigo-400">{extractedPackingList.totalCbm} m³</div>
+                          <div className="text-[10px] text-slate-500">
+                            Volumen Total
+                          </div>
+                          <div className="font-bold text-indigo-400">
+                            {extractedPackingList.totalCbm} m³
+                          </div>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 bg-slate-950/70 p-3 rounded-2xl border border-white/5">
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Contenedor</div>
-                          <div className="font-mono text-cyan-400 font-bold">{extractedPackingList.containerNumber || "N/A"}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Contenedor
+                          </div>
+                          <div className="font-mono text-cyan-400 font-bold">
+                            {extractedPackingList.containerNumber || "N/A"}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Precinto ISO 17712</div>
-                          <div className="font-mono text-amber-400 font-bold">{extractedPackingList.sealNumber || "N/A"}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Precinto ISO 17712
+                          </div>
+                          <div className="font-mono text-amber-400 font-bold">
+                            {extractedPackingList.sealNumber || "N/A"}
+                          </div>
                         </div>
                       </div>
                     </div>
                   ) : (
                     <div className="p-8 text-center text-slate-500 text-xs italic">
-                      No se ha extraído el Packing List aún. Haz clic en "Ejecutar Extracción OCR".
+                      No se ha extraído el Packing List aún. Haz clic en
+                      "Ejecutar Extracción OCR".
                     </div>
-                  )
-                )}
+                  ))}
 
-                {ocrDocType === "TRANSPORT" && (
-                  extractedTransport ? (
+                {ocrDocType === "TRANSPORT" &&
+                  (extractedTransport ? (
                     <div className="space-y-3 text-xs">
                       <div className="grid grid-cols-2 gap-2 bg-slate-950/70 p-3 rounded-2xl border border-white/5">
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Documento / Tipo</div>
-                          <div className="font-mono font-bold text-white">{extractedTransport.documentNumber} ({extractedTransport.documentType})</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Documento / Tipo
+                          </div>
+                          <div className="font-mono font-bold text-white">
+                            {extractedTransport.documentNumber} (
+                            {extractedTransport.documentType})
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Transportista</div>
-                          <div className="font-semibold text-slate-200">{extractedTransport.carrierName}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Transportista
+                          </div>
+                          <div className="font-semibold text-slate-200">
+                            {extractedTransport.carrierName}
+                          </div>
                         </div>
                         <div className="col-span-2">
-                          <div className="text-[10px] text-slate-500 uppercase">Ruta</div>
-                          <div className="text-slate-300">{extractedTransport.originPortOrHub} → {extractedTransport.destinationPortOrHub}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Ruta
+                          </div>
+                          <div className="text-slate-300">
+                            {extractedTransport.originPortOrHub} →{" "}
+                            {extractedTransport.destinationPortOrHub}
+                          </div>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 bg-slate-950/70 p-3 rounded-2xl border border-white/5 text-center">
                         <div>
-                          <div className="text-[10px] text-slate-500">Vehículo / Buque</div>
-                          <div className="font-bold text-white">{extractedTransport.vesselOrVehicle}</div>
+                          <div className="text-[10px] text-slate-500">
+                            Vehículo / Buque
+                          </div>
+                          <div className="font-bold text-white">
+                            {extractedTransport.vesselOrVehicle}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500">Viaje / Placa</div>
-                          <div className="font-bold text-indigo-400">{extractedTransport.voyageOrPlateNumber}</div>
+                          <div className="text-[10px] text-slate-500">
+                            Viaje / Placa
+                          </div>
+                          <div className="font-bold text-indigo-400">
+                            {extractedTransport.voyageOrPlateNumber}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500">Peso Declarado</div>
-                          <div className="font-bold text-emerald-400">{extractedTransport.declaredGrossWeightKg.toLocaleString()} kg</div>
+                          <div className="text-[10px] text-slate-500">
+                            Peso Declarado
+                          </div>
+                          <div className="font-bold text-emerald-400">
+                            {extractedTransport.declaredGrossWeightKg.toLocaleString()}{" "}
+                            kg
+                          </div>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 bg-slate-950/70 p-3 rounded-2xl border border-white/5">
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Contenedor</div>
-                          <div className="font-mono text-cyan-400 font-bold">{extractedTransport.containerNumber || "N/A"}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Contenedor
+                          </div>
+                          <div className="font-mono text-cyan-400 font-bold">
+                            {extractedTransport.containerNumber || "N/A"}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Precinto de Seguridad</div>
-                          <div className="font-mono text-amber-400 font-bold">{extractedTransport.sealNumber || "N/A"}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Precinto de Seguridad
+                          </div>
+                          <div className="font-mono text-amber-400 font-bold">
+                            {extractedTransport.sealNumber || "N/A"}
+                          </div>
                         </div>
                       </div>
                     </div>
                   ) : (
                     <div className="p-8 text-center text-slate-500 text-xs italic">
-                      No se ha extraído el Documento de Transporte aún. Haz clic en "Ejecutar Extracción OCR".
+                      No se ha extraído el Documento de Transporte aún. Haz clic
+                      en "Ejecutar Extracción OCR".
                     </div>
-                  )
-                )}
+                  ))}
 
-                {ocrDocType === "DECLARATION" && (
-                  extractedDeclaration ? (
+                {ocrDocType === "DECLARATION" &&
+                  (extractedDeclaration ? (
                     <div className="space-y-3 text-xs">
                       <div className="grid grid-cols-2 gap-2 bg-slate-950/70 p-3 rounded-2xl border border-white/5">
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Pedimento Aduanal</div>
-                          <div className="font-mono font-bold text-white">{extractedDeclaration.declarationNumber}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Pedimento Aduanal
+                          </div>
+                          <div className="font-mono font-bold text-white">
+                            {extractedDeclaration.declarationNumber}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500 uppercase">Patente / Aduana</div>
-                          <div className="font-mono text-slate-300">{extractedDeclaration.patentNumber} • {extractedDeclaration.customsOffice}</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Patente / Aduana
+                          </div>
+                          <div className="font-mono text-slate-300">
+                            {extractedDeclaration.patentNumber} •{" "}
+                            {extractedDeclaration.customsOffice}
+                          </div>
                         </div>
                         <div className="col-span-2">
-                          <div className="text-[10px] text-slate-500 uppercase">Importador</div>
-                          <div className="font-semibold text-slate-200">{extractedDeclaration.importerCompanyName} ({extractedDeclaration.importerTaxId})</div>
+                          <div className="text-[10px] text-slate-500 uppercase">
+                            Importador
+                          </div>
+                          <div className="font-semibold text-slate-200">
+                            {extractedDeclaration.importerCompanyName} (
+                            {extractedDeclaration.importerTaxId})
+                          </div>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 bg-slate-950/70 p-3 rounded-2xl border border-white/5 text-center">
                         <div>
-                          <div className="text-[10px] text-slate-500">Régimen</div>
-                          <div className="font-bold text-white">{extractedDeclaration.regimenType}</div>
+                          <div className="text-[10px] text-slate-500">
+                            Régimen
+                          </div>
+                          <div className="font-bold text-white">
+                            {extractedDeclaration.regimenType}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500">Partida HS</div>
-                          <div className="font-mono font-bold text-indigo-400">{extractedDeclaration.primaryHsCode}</div>
+                          <div className="text-[10px] text-slate-500">
+                            Partida HS
+                          </div>
+                          <div className="font-mono font-bold text-indigo-400">
+                            {extractedDeclaration.primaryHsCode}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-slate-500">Valor Aduana</div>
-                          <div className="font-bold text-amber-400">${extractedDeclaration.declaredCustomsValueUsd.toLocaleString()} USD</div>
+                          <div className="text-[10px] text-slate-500">
+                            Valor Aduana
+                          </div>
+                          <div className="font-bold text-amber-400">
+                            $
+                            {extractedDeclaration.declaredCustomsValueUsd.toLocaleString()}{" "}
+                            USD
+                          </div>
                         </div>
                       </div>
 
                       <div className="bg-slate-950/70 p-3 rounded-2xl border border-white/5 flex items-center justify-between text-[11px]">
                         <div>
-                          <span className="text-slate-400">Total Contribuciones: </span>
-                          <span className="font-bold text-white">${extractedDeclaration.taxes.totalTaxesUsd.toLocaleString()} USD</span>
+                          <span className="text-slate-400">
+                            Total Contribuciones:{" "}
+                          </span>
+                          <span className="font-bold text-white">
+                            $
+                            {extractedDeclaration.taxes.totalTaxesUsd.toLocaleString()}{" "}
+                            USD
+                          </span>
                         </div>
                         <div className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
                           <ShieldCheck size={12} />
@@ -1501,16 +1848,20 @@ export default function DocumentVaultModule() {
                     </div>
                   ) : (
                     <div className="p-8 text-center text-slate-500 text-xs italic">
-                      No se ha extraído el Pedimento aún. Haz clic en "Ejecutar Extracción OCR".
+                      No se ha extraído el Pedimento aún. Haz clic en "Ejecutar
+                      Extracción OCR".
                     </div>
-                  )
-                )}
+                  ))}
               </div>
 
               <div className="pt-4 border-t border-slate-800 flex justify-end">
                 <Button
                   onClick={handleRunCrossCheck}
-                  disabled={!extractedInvoice || !extractedPackingList || !extractedDeclaration}
+                  disabled={
+                    !extractedInvoice ||
+                    !extractedPackingList ||
+                    !extractedDeclaration
+                  }
                   className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2"
                 >
                   <ShieldCheck size={14} />
@@ -1534,13 +1885,19 @@ export default function DocumentVaultModule() {
                   </h3>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Verificación algorítmica de consistencia entre Factura Comercial, Packing List, Documento de Transporte y Pedimento SAT / DUA.
+                  Verificación algorítmica de consistencia entre Factura
+                  Comercial, Packing List, Documento de Transporte y Pedimento
+                  SAT / DUA.
                 </p>
               </div>
 
               <Button
                 onClick={handleRunCrossCheck}
-                disabled={!extractedInvoice || !extractedPackingList || !extractedDeclaration}
+                disabled={
+                  !extractedInvoice ||
+                  !extractedPackingList ||
+                  !extractedDeclaration
+                }
                 className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 px-5 rounded-2xl shadow-lg shadow-indigo-600/30 flex items-center gap-2"
               >
                 <RefreshCw size={14} />
@@ -1556,8 +1913,8 @@ export default function DocumentVaultModule() {
                     crossCheckResult.overallStatus === "MATCH_CLEARED"
                       ? "bg-emerald-950/40 border-emerald-500/40 shadow-lg shadow-emerald-500/5"
                       : crossCheckResult.overallStatus === "DISCREPANCY_WARNING"
-                      ? "bg-amber-950/40 border-amber-500/40 shadow-lg shadow-amber-500/5"
-                      : "bg-rose-950/40 border-rose-500/40 shadow-lg shadow-rose-500/5"
+                        ? "bg-amber-950/40 border-amber-500/40 shadow-lg shadow-amber-500/5"
+                        : "bg-rose-950/40 border-rose-500/40 shadow-lg shadow-rose-500/5"
                   }`}
                 >
                   <div className="flex items-center gap-3.5">
@@ -1565,9 +1922,10 @@ export default function DocumentVaultModule() {
                       className={`p-3 rounded-2xl ${
                         crossCheckResult.overallStatus === "MATCH_CLEARED"
                           ? "bg-emerald-500/20 text-emerald-400"
-                          : crossCheckResult.overallStatus === "DISCREPANCY_WARNING"
-                          ? "bg-amber-500/20 text-amber-400"
-                          : "bg-rose-500/20 text-rose-400"
+                          : crossCheckResult.overallStatus ===
+                              "DISCREPANCY_WARNING"
+                            ? "bg-amber-500/20 text-amber-400"
+                            : "bg-rose-500/20 text-rose-400"
                       }`}
                     >
                       {crossCheckResult.overallStatus === "MATCH_CLEARED" ? (
@@ -1581,17 +1939,19 @@ export default function DocumentVaultModule() {
                         <h4 className="text-sm font-extrabold text-white">
                           {crossCheckResult.overallStatus === "MATCH_CLEARED"
                             ? "DESPACHO ADUANERO AUTORIZADO - CONCILIACIÓN 100% LIMPIA"
-                            : crossCheckResult.overallStatus === "DISCREPANCY_WARNING"
-                            ? "ALERTA DOCUMENTAL - DISCREPANCIAS MENORES DETECTADAS"
-                            : "DISCREPANCIA CRÍTICA - RIESGO DE EMBARGO PRECAUTORIO / RECTIFICACIÓN"}
+                            : crossCheckResult.overallStatus ===
+                                "DISCREPANCY_WARNING"
+                              ? "ALERTA DOCUMENTAL - DISCREPANCIAS MENORES DETECTADAS"
+                              : "DISCREPANCIA CRÍTICA - RIESGO DE EMBARGO PRECAUTORIO / RECTIFICACIÓN"}
                         </h4>
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide ${
                             crossCheckResult.overallStatus === "MATCH_CLEARED"
                               ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                              : crossCheckResult.overallStatus === "DISCREPANCY_WARNING"
-                              ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                              : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                              : crossCheckResult.overallStatus ===
+                                  "DISCREPANCY_WARNING"
+                                ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                           }`}
                         >
                           SCORE: {crossCheckResult.complianceScore}%
@@ -1614,7 +1974,11 @@ export default function DocumentVaultModule() {
                           {crossCheckResult.releaseCertificateId}
                         </span>
                         <button
-                          onClick={() => copyToClipboard(crossCheckResult.releaseCertificateId!)}
+                          onClick={() =>
+                            copyToClipboard(
+                              crossCheckResult.releaseCertificateId!,
+                            )
+                          }
                           className="text-slate-400 hover:text-white p-1"
                           title="Copiar Certificado"
                         >
@@ -1622,7 +1986,10 @@ export default function DocumentVaultModule() {
                         </button>
                       </div>
                       <span className="text-[9px] text-slate-500 font-mono">
-                        Evaluado: {new Date(crossCheckResult.evaluatedAt).toLocaleTimeString()}
+                        Evaluado:{" "}
+                        {new Date(
+                          crossCheckResult.evaluatedAt,
+                        ).toLocaleTimeString()}
                       </span>
                     </div>
                   )}
@@ -1643,21 +2010,32 @@ export default function DocumentVaultModule() {
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
                       {crossCheckResult.checks.map((check, idx) => (
-                        <tr key={idx} className="hover:bg-slate-950/30 transition-colors">
+                        <tr
+                          key={idx}
+                          className="hover:bg-slate-950/30 transition-colors"
+                        >
                           <td className="py-3.5 px-3 font-sans font-bold text-white">
                             {check.parameter}
                           </td>
                           <td className="py-3.5 px-3 text-slate-300">
-                            {check.invoiceValue !== undefined ? String(check.invoiceValue) : "—"}
+                            {check.invoiceValue !== undefined
+                              ? String(check.invoiceValue)
+                              : "—"}
                           </td>
                           <td className="py-3.5 px-3 text-slate-300">
-                            {check.packingListValue !== undefined ? String(check.packingListValue) : "—"}
+                            {check.packingListValue !== undefined
+                              ? String(check.packingListValue)
+                              : "—"}
                           </td>
                           <td className="py-3.5 px-3 text-slate-300">
-                            {check.transportValue !== undefined ? String(check.transportValue) : "—"}
+                            {check.transportValue !== undefined
+                              ? String(check.transportValue)
+                              : "—"}
                           </td>
                           <td className="py-3.5 px-3 text-slate-300">
-                            {check.declarationValue !== undefined ? String(check.declarationValue) : "—"}
+                            {check.declarationValue !== undefined
+                              ? String(check.declarationValue)
+                              : "—"}
                           </td>
                           <td className="py-3.5 px-3 font-sans">
                             <div className="flex items-center gap-2">
@@ -1666,8 +2044,8 @@ export default function DocumentVaultModule() {
                                   check.isMatch
                                     ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                                     : check.severity === "WARNING"
-                                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                                    : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                      : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                                 }`}
                               >
                                 {check.isMatch ? "MATCH" : check.severity}
@@ -1685,10 +2063,19 @@ export default function DocumentVaultModule() {
 
                 {/* Regulatory Footnote Box */}
                 <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/5 flex items-start gap-3 text-xs text-slate-400">
-                  <ShieldAlert size={18} className="text-indigo-400 shrink-0 mt-0.5" />
+                  <ShieldAlert
+                    size={18}
+                    className="text-indigo-400 shrink-0 mt-0.5"
+                  />
                   <div>
-                    <span className="font-bold text-slate-200">Gobernanza Aduanera Automatizada: </span>
-                    La conciliación cruzada tripartita valida el cumplimiento del Art. 89 de la Ley Aduanera (rectificación de pedimentos), directivas de valoración OMA/GATT y concordancia física con el manifiesto IATA/IMO antes del arribo al recinto fiscalizado.
+                    <span className="font-bold text-slate-200">
+                      Gobernanza Aduanera Automatizada:{" "}
+                    </span>
+                    La conciliación cruzada tripartita valida el cumplimiento
+                    del Art. 89 de la Ley Aduanera (rectificación de
+                    pedimentos), directivas de valoración OMA/GATT y
+                    concordancia física con el manifiesto IATA/IMO antes del
+                    arribo al recinto fiscalizado.
                   </div>
                 </div>
               </div>
@@ -1701,7 +2088,10 @@ export default function DocumentVaultModule() {
                   Esperando extracción de los 4 documentos para validar
                 </h4>
                 <p className="text-xs text-slate-500 max-w-md">
-                  Para emitir el Certificado Pre-Despacho se requiere extraer la Factura Comercial, Packing List y Pedimento Aduanal. Haz clic en "Cargar Demo 4-en-1 & Validar" para ejecutar una simulación completa en 1 clic.
+                  Para emitir el Certificado Pre-Despacho se requiere extraer la
+                  Factura Comercial, Packing List y Pedimento Aduanal. Haz clic
+                  en "Cargar Demo 4-en-1 & Validar" para ejecutar una simulación
+                  completa en 1 clic.
                 </p>
                 <Button
                   onClick={handleLoadAllDemoAndCrossCheck}
@@ -1734,11 +2124,18 @@ export default function DocumentVaultModule() {
                     {getTypeIcon(activeModalDoc.type)}
                   </span>
                   <div>
-                    <h2 className="text-sm font-bold text-white">{activeModalDoc.name}</h2>
+                    <h2 className="text-sm font-bold text-white">
+                      {activeModalDoc.name}
+                    </h2>
                     <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
-                      <span>Ref: {activeModalDoc.documentReference || activeModalDoc.id}</span>
+                      <span>
+                        Ref:{" "}
+                        {activeModalDoc.documentReference || activeModalDoc.id}
+                      </span>
                       <span>•</span>
-                      <span className="text-emerald-400 font-bold uppercase">{activeModalDoc.status}</span>
+                      <span className="text-emerald-400 font-bold uppercase">
+                        {activeModalDoc.status}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1746,7 +2143,11 @@ export default function DocumentVaultModule() {
                 <div className="flex items-center gap-2">
                   <Button
                     onClick={() =>
-                      window.open(modalPdfUrl || `/api/documents/${activeModalDoc.id}/pdf`, "_blank")
+                      window.open(
+                        modalPdfUrl ||
+                          `/api/documents/${activeModalDoc.id}/pdf`,
+                        "_blank",
+                      )
                     }
                     variant="ghost"
                     className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5"
@@ -1774,7 +2175,9 @@ export default function DocumentVaultModule() {
                       className="w-full h-full border-none"
                     />
                   ) : (
-                    <div className="text-slate-500 text-xs">Cargando previsualizador PDF...</div>
+                    <div className="text-slate-500 text-xs">
+                      Cargando previsualizador PDF...
+                    </div>
                   )}
                 </div>
 
@@ -1804,8 +2207,12 @@ export default function DocumentVaultModule() {
                       {activeModalDoc.signedBy && (
                         <div className="flex flex-col gap-1 border-t border-slate-800 pt-2 text-[11px]">
                           <div className="text-slate-400">Firmado por:</div>
-                          <div className="font-bold text-white">{activeModalDoc.signedBy}</div>
-                          <div className="text-[10px] text-slate-500">{activeModalDoc.signerTitle}</div>
+                          <div className="font-bold text-white">
+                            {activeModalDoc.signedBy}
+                          </div>
+                          <div className="text-[10px] text-slate-500">
+                            {activeModalDoc.signerTitle}
+                          </div>
                           <div className="text-[9px] font-mono text-emerald-400 mt-1">
                             {activeModalDoc.signerCertificate}
                           </div>
@@ -1822,7 +2229,9 @@ export default function DocumentVaultModule() {
                         <div className="p-2.5 rounded-xl bg-slate-950 border border-white/5 text-[10px] font-mono text-emerald-400 break-all flex items-center justify-between gap-2">
                           <span>{activeModalDoc.sha256Hash}</span>
                           <button
-                            onClick={() => copyToClipboard(activeModalDoc.sha256Hash!)}
+                            onClick={() =>
+                              copyToClipboard(activeModalDoc.sha256Hash!)
+                            }
                             className="text-slate-400 hover:text-white shrink-0"
                             title="Copiar Hash"
                           >
@@ -1844,20 +2253,30 @@ export default function DocumentVaultModule() {
                             onChange={(e) => {
                               setSelectedSigner(e.target.value);
                               if (e.target.value === "Carlos Mendoza")
-                                setSignerTitle("Director de Operaciones & Tráfico");
+                                setSignerTitle(
+                                  "Director de Operaciones & Tráfico",
+                                );
                               if (e.target.value === "Mateo Ortiz")
-                                setSignerTitle("Representante Aduanero Colegiado OEA");
+                                setSignerTitle(
+                                  "Representante Aduanero Colegiado OEA",
+                                );
                               if (e.target.value === "Elena Vega")
                                 setSignerTitle("Gestor de Tráfico Terrestre");
                               if (e.target.value === "Lucía Domínguez")
-                                setSignerTitle("Agente de Carga IATA Acreditado");
+                                setSignerTitle(
+                                  "Agente de Carga IATA Acreditado",
+                                );
                             }}
                             className="bg-slate-950 border border-slate-800 text-xs text-white rounded-xl p-2.5 focus:outline-none"
                           >
-                            <option value="Carlos Mendoza">Carlos Mendoza</option>
+                            <option value="Carlos Mendoza">
+                              Carlos Mendoza
+                            </option>
                             <option value="Mateo Ortiz">Mateo Ortiz</option>
                             <option value="Elena Vega">Elena Vega</option>
-                            <option value="Lucía Domínguez">Lucía Domínguez</option>
+                            <option value="Lucía Domínguez">
+                              Lucía Domínguez
+                            </option>
                           </select>
                         </div>
 
@@ -1867,7 +2286,9 @@ export default function DocumentVaultModule() {
                           </label>
                           <Input
                             value={signerTitle}
-                            onChange={(e: any) => setSignerTitle(e.target.value)}
+                            onChange={(e: any) =>
+                              setSignerTitle(e.target.value)
+                            }
                             className="bg-slate-950 border-slate-800 text-xs"
                           />
                         </div>
@@ -1878,7 +2299,9 @@ export default function DocumentVaultModule() {
                           className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 text-xs mt-1"
                         >
                           <Lock size={14} />
-                          {isSigning ? "Firmando..." : "Firmar & Estampar Sello"}
+                          {isSigning
+                            ? "Firmando..."
+                            : "Firmar & Estampar Sello"}
                         </Button>
                       </div>
                     )}

@@ -554,6 +554,9 @@ export default function ContainerPlannerModule() {
           </div>
 
           <select
+            id="selected-container-type"
+            name="selectedContainerType"
+            aria-label="Tipo de Contenedor"
             value={selectedContainerKey}
             onChange={(e) =>
               handleSelectContainer(e.target.value as ContainerTypeKey)

@@ -404,6 +404,9 @@ export default function FuelEuMaritimeModule() {
           <div className="w-full lg:w-1/3 flex flex-col bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl min-h-[400px] lg:min-h-0">
             <div className="p-4 border-b border-white/10 space-y-3">
               <Input
+                id="fueleu-search-input"
+                name="fueleuSearch"
+                aria-label="Buscar Travesía, Puerto, IMO, Verificador"
                 type="text"
                 placeholder="Buscar Travesía, Puerto, IMO, Verificador..."
                 value={searchQuery}
@@ -819,10 +822,15 @@ export default function FuelEuMaritimeModule() {
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="text-slate-300 block mb-1">
+                  <label
+                    htmlFor="fueleu-sim-scope"
+                    className="text-slate-300 block mb-1"
+                  >
                     Ámbito Geográfico
                   </label>
                   <select
+                    id="fueleu-sim-scope"
+                    name="simScope"
                     value={simScope}
                     onChange={(e: any) => setSimScope(e.target.value)}
                     className="w-full bg-slate-800/80 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
@@ -841,16 +849,30 @@ export default function FuelEuMaritimeModule() {
 
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="text-slate-400 block mb-1">CO2 (t)</label>
+                    <label
+                      htmlFor="fueleu-sim-co2"
+                      className="text-slate-400 block mb-1"
+                    >
+                      CO2 (t)
+                    </label>
                     <Input
+                      id="fueleu-sim-co2"
+                      name="simCo2Tonnes"
                       type="number"
                       value={simCo2Tonnes}
                       onChange={(e) => setSimCo2Tonnes(Number(e.target.value))}
                     />
                   </div>
                   <div>
-                    <label className="text-slate-400 block mb-1">CH4 (t)</label>
+                    <label
+                      htmlFor="fueleu-sim-ch4"
+                      className="text-slate-400 block mb-1"
+                    >
+                      CH4 (t)
+                    </label>
                     <Input
+                      id="fueleu-sim-ch4"
+                      name="simCh4Tonnes"
                       type="number"
                       step="0.01"
                       value={simCh4Tonnes}
@@ -858,8 +880,15 @@ export default function FuelEuMaritimeModule() {
                     />
                   </div>
                   <div>
-                    <label className="text-slate-400 block mb-1">N2O (t)</label>
+                    <label
+                      htmlFor="fueleu-sim-n2o"
+                      className="text-slate-400 block mb-1"
+                    >
+                      N2O (t)
+                    </label>
                     <Input
+                      id="fueleu-sim-n2o"
+                      name="simN2oTonnes"
                       type="number"
                       step="0.01"
                       value={simN2oTonnes}
@@ -870,20 +899,30 @@ export default function FuelEuMaritimeModule() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-slate-400 block mb-1">
+                    <label
+                      htmlFor="fueleu-sim-eua-price"
+                      className="text-slate-400 block mb-1"
+                    >
                       Precio EUA (€/t)
                     </label>
                     <Input
+                      id="fueleu-sim-eua-price"
+                      name="simEuaPrice"
                       type="number"
                       value={simEuaPrice}
                       onChange={(e) => setSimEuaPrice(Number(e.target.value))}
                     />
                   </div>
                   <div>
-                    <label className="text-slate-400 block mb-1">
+                    <label
+                      htmlFor="fueleu-sim-teus"
+                      className="text-slate-400 block mb-1"
+                    >
                       TEUs Transportados
                     </label>
                     <Input
+                      id="fueleu-sim-teus"
+                      name="simCarriedTeus"
                       type="number"
                       value={simCarriedTeus}
                       onChange={(e) =>
@@ -894,10 +933,15 @@ export default function FuelEuMaritimeModule() {
                 </div>
 
                 <div>
-                  <label className="text-slate-400 block mb-1">
+                  <label
+                    htmlFor="fueleu-sim-impact"
+                    className="text-slate-400 block mb-1"
+                  >
                     Impacto/Penalización FuelEU (€)
                   </label>
                   <Input
+                    id="fueleu-sim-impact"
+                    name="simFueleuImpact"
                     type="number"
                     value={simFueleuImpact}
                     onChange={(e) => setSimFueleuImpact(Number(e.target.value))}
@@ -1058,10 +1102,15 @@ export default function FuelEuMaritimeModule() {
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="text-slate-300 block mb-1">
+                  <label
+                    htmlFor="fueleu-sim-fuel-code"
+                    className="text-slate-300 block mb-1"
+                  >
                     Tipo de Combustible Principal
                   </label>
                   <select
+                    id="fueleu-sim-fuel-code"
+                    name="simFuelCode"
                     value={simFuelCode}
                     onChange={(e: any) => setSimFuelCode(e.target.value)}
                     className="w-full bg-slate-800/80 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
@@ -1076,20 +1125,30 @@ export default function FuelEuMaritimeModule() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-slate-400 block mb-1">
+                    <label
+                      htmlFor="fueleu-sim-fuel-tonnes"
+                      className="text-slate-400 block mb-1"
+                    >
                       Consumo Combustible (t)
                     </label>
                     <Input
+                      id="fueleu-sim-fuel-tonnes"
+                      name="simFuelTonnes"
                       type="number"
                       value={simFuelTonnes}
                       onChange={(e) => setSimFuelTonnes(Number(e.target.value))}
                     />
                   </div>
                   <div>
-                    <label className="text-slate-400 block mb-1">
+                    <label
+                      htmlFor="fueleu-sim-ops-kwh"
+                      className="text-slate-400 block mb-1"
+                    >
                       Electricidad OPS Muelle (kWh)
                     </label>
                     <Input
+                      id="fueleu-sim-ops-kwh"
+                      name="simOpsKwh"
                       type="number"
                       value={simOpsKwh}
                       onChange={(e) => setSimOpsKwh(Number(e.target.value))}
@@ -1243,10 +1302,15 @@ export default function FuelEuMaritimeModule() {
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">
+                  <label
+                    htmlFor="fueleu-status-input"
+                    className="text-xs text-slate-400 block mb-1"
+                  >
                     Estado de Auditoría
                   </label>
                   <select
+                    id="fueleu-status-input"
+                    name="statusInput"
                     value={statusInput}
                     onChange={(e: any) => setStatusInput(e.target.value)}
                     className="w-full bg-slate-800/80 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
@@ -1267,10 +1331,15 @@ export default function FuelEuMaritimeModule() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">
+                  <label
+                    htmlFor="fueleu-verifier-input"
+                    className="text-xs text-slate-400 block mb-1"
+                  >
                     Auditor Verificador Acreditado
                   </label>
                   <Input
+                    id="fueleu-verifier-input"
+                    name="verifierInput"
                     type="text"
                     value={verifierInput}
                     onChange={(e) => setVerifierInput(e.target.value)}

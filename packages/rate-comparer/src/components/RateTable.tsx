@@ -178,6 +178,9 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
               <div className="px-4 py-2 bg-slate-900/80 border border-slate-700/50 rounded-xl flex items-center gap-2 backdrop-blur-md">
                 <DollarSignIcon className="w-4 h-4 text-indigo-400" />
                 <select
+                  id="table-active-currency"
+                  name="activeCurrency"
+                  aria-label="Select Currency"
                   value={activeCurrency}
                   onChange={(e) => setCurrency(e.target.value)}
                   className="bg-transparent text-sm font-bold text-slate-200 focus:outline-none cursor-pointer"
@@ -193,6 +196,9 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
               <div className="px-4 py-2 bg-slate-900/80 border border-slate-700/50 rounded-xl flex items-center gap-2 backdrop-blur-md">
                 <Globe className="w-4 h-4 text-indigo-400" />
                 <select
+                  id="table-active-language"
+                  name="activeLanguage"
+                  aria-label="Select Language"
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
                   className="bg-transparent text-sm font-bold text-slate-200 focus:outline-none cursor-pointer"
@@ -224,6 +230,9 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
             <div className="flex items-center w-full lg:w-auto flex-1 px-3 py-2 lg:py-0">
               <Filter className="w-4 h-4 text-slate-500 mr-2 shrink-0" />
               <input
+                id="table-filter-origin"
+                name="filterPol"
+                aria-label="Filter Origin (POL)"
                 type="text"
                 placeholder="Origin (POL)..."
                 value={filterPol}
@@ -234,6 +243,9 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
             <div className="w-full lg:w-px h-px lg:h-6 bg-slate-700"></div>
             <div className="flex items-center w-full lg:w-auto flex-1 px-3 py-2 lg:py-0">
               <input
+                id="table-filter-destination"
+                name="filterPod"
+                aria-label="Filter Destination (POD)"
                 type="text"
                 placeholder="Destination (POD)..."
                 value={filterPod}
@@ -244,6 +256,9 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
             <div className="w-full lg:w-px h-px lg:h-6 bg-slate-700"></div>
             <div className="flex items-center w-full lg:w-auto flex-1 px-3 py-2 lg:py-0">
               <input
+                id="table-filter-carrier"
+                name="filterCarrier"
+                aria-label="Filter Carrier"
                 type="text"
                 placeholder="Carrier..."
                 value={filterCarrier}

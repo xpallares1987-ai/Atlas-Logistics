@@ -14,6 +14,7 @@ export function useNotificationsWebSocket() {
     let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+    let initTimer: ReturnType<typeof setTimeout> | null = null;
     let reconnectAttempts = 0;
 
     const cleanupSocket = () => {
@@ -22,19 +23,28 @@ export function useNotificationsWebSocket() {
         heartbeatTimer = null;
       }
       if (ws) {
-        ws.onopen = null;
-        ws.onmessage = null;
-        ws.onclose = null;
-        ws.onerror = null;
-        if (
-          ws.readyState === WebSocket.OPEN ||
-          ws.readyState === WebSocket.CONNECTING
-        ) {
+        const targetWs = ws;
+        targetWs.onopen = null;
+        targetWs.onmessage = null;
+        targetWs.onclose = null;
+        targetWs.onerror = null;
+
+        if (targetWs.readyState === WebSocket.OPEN) {
           try {
-            ws.close();
+            targetWs.close(1000, "Clean cleanup");
           } catch {
             // Safe cleanup
           }
+        } else if (targetWs.readyState === WebSocket.CONNECTING) {
+          // Defer closing until open to eliminate browser-internal
+          // "WebSocket is closed before the connection is established" warning
+          targetWs.onopen = () => {
+            try {
+              targetWs.close(1000, "Unmounted during connect");
+            } catch {
+              // Ignore
+            }
+          };
         }
         ws = null;
       }
@@ -43,7 +53,10 @@ export function useNotificationsWebSocket() {
     const scheduleReconnect = () => {
       if (!isMounted || reconnectTimer) return;
       reconnectAttempts++;
-      const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 10000);
+      const delay = Math.min(
+        1500 * Math.pow(1.5, reconnectAttempts - 1),
+        10000,
+      );
       reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         connect();
@@ -130,10 +143,21 @@ export function useNotificationsWebSocket() {
       }
     };
 
-    connect();
+    // Debounce initial connection by 50ms so StrictMode double-mount in dev
+    // cancels the initial throwaway attempt without triggering browser socket closure warnings
+    initTimer = setTimeout(() => {
+      initTimer = null;
+      if (isMounted) {
+        connect();
+      }
+    }, 50);
 
     return () => {
       isMounted = false;
+      if (initTimer) {
+        clearTimeout(initTimer);
+        initTimer = null;
+      }
       if (reconnectTimer) {
         clearTimeout(reconnectTimer);
         reconnectTimer = null;

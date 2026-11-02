@@ -72,6 +72,9 @@ function MultiSelectChecklist({
       {placeholder && (
         <div className="relative mb-1">
           <input
+            id={`filter-search-${title.toLowerCase().replace(/\s+/g, "-")}`}
+            name={`filterSearch_${title.toLowerCase().replace(/\s+/g, "_")}`}
+            aria-label={placeholder}
             type="text"
             placeholder={placeholder}
             value={searchQuery}
@@ -85,6 +88,9 @@ function MultiSelectChecklist({
         {/* Option 'Show All' */}
         <label className="flex items-center gap-2 px-1.5 py-0.5 hover:bg-slate-700/40 rounded cursor-pointer text-xs select-none text-left">
           <input
+            id={`filter-all-${title.toLowerCase().replace(/\s+/g, "-")}`}
+            name={`filterAll_${title.toLowerCase().replace(/\s+/g, "_")}`}
+            aria-label={`Select all ${title}`}
             type="checkbox"
             checked={isAllSelected}
             onChange={() => onToggle("all")}
@@ -105,6 +111,9 @@ function MultiSelectChecklist({
               className="flex items-center gap-2 px-1.5 py-0.5 hover:bg-slate-700/40 rounded cursor-pointer text-xs select-none text-left"
             >
               <input
+                id={`filter-opt-${title.toLowerCase().replace(/\s+/g, "-")}-${opt.toLowerCase().replace(/\s+/g, "-")}`}
+                name={`filterOpt_${title.toLowerCase().replace(/\s+/g, "_")}`}
+                aria-label={opt}
                 type="checkbox"
                 checked={isChecked}
                 onChange={() => onToggle(opt)}
@@ -345,6 +354,7 @@ export default function FilterBar({
           <div className="relative">
             <select
               id="filter-mes"
+              name="filterMes"
               value={filters.mes}
               onChange={(e) => handleSelect("mes", e.target.value)}
               className="w-full bg-slate-700 border border-slate-600/80 rounded px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-400 cursor-pointer appearance-none text-left"
@@ -378,6 +388,8 @@ export default function FilterBar({
               </span>
               <input
                 id="filter-start-date"
+                name="filterStartDate"
+                aria-label="Start Date"
                 type="date"
                 value={filters.startDate || ""}
                 onChange={(e) =>
@@ -392,6 +404,8 @@ export default function FilterBar({
               </span>
               <input
                 id="filter-end-date"
+                name="filterEndDate"
+                aria-label="End Date"
                 type="date"
                 value={filters.endDate || ""}
                 onChange={(e) =>
@@ -437,6 +451,7 @@ export default function FilterBar({
           <div className="relative">
             <select
               id="filter-sheet"
+              name="filterSheet"
               value={filters.sheetSource}
               onChange={(e) => handleSelect("sheetSource", e.target.value)}
               className="w-full bg-slate-700 border border-slate-600/80 rounded px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-400 cursor-pointer appearance-none text-left"
