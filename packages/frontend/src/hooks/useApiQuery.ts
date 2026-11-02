@@ -37,6 +37,8 @@ export function useApiQuery<T>(
   path: string,
   options?: Omit<UseQueryOptions<T, Error>, "queryKey" | "queryFn">,
 ) {
+  const isEnabled =
+    Boolean(path && path.trim().length > 0) && options?.enabled !== false;
   return useQuery<T, Error>({
     queryKey: key,
     queryFn: () => apiFetch<T>(path),
@@ -44,6 +46,7 @@ export function useApiQuery<T>(
     retry: 2,
     refetchOnWindowFocus: true,
     ...options,
+    enabled: isEnabled,
   });
 }
 

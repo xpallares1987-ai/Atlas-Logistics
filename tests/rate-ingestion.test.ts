@@ -9,7 +9,9 @@ import {
 
 // Use test-specific secrets for tests (guaranteed to be >= 32 chars)
 const TEST_JWT_SECRET =
-  process.env.TEST_JWT_SECRET || "test-jwt-secret-minimum-32-characters-long";
+  process.env.JWT_SECRET ||
+  process.env.TEST_JWT_SECRET ||
+  "atlas-logistics-jwt-secret-key-super-secure";
 
 describe("Rate Ingestion Engine — Unit & Integration Tests", () => {
   let authHeader: { authorization: string };

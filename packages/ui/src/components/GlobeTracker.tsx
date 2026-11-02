@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Globe, { GlobeMethods } from "react-globe.gl";
 
-interface Marker {
+export interface Marker {
   lat: number;
   lng: number;
   name: string;
@@ -11,7 +11,7 @@ interface Marker {
   size?: number;
 }
 
-interface Arc {
+export interface Arc {
   startLat: number;
   startLng: number;
   endLat: number;
@@ -19,11 +19,14 @@ interface Arc {
   color?: string;
 }
 
-interface GlobeTrackerProps {
+export interface GlobeTrackerProps {
   markers?: Marker[];
   arcs?: Arc[];
   width?: number;
   height?: number;
+  className?: string;
+  onGlobeReady?: (methods: GlobeMethods) => void;
+  autoRotateSpeed?: number;
 }
 
 export function GlobeTracker({
@@ -31,16 +34,46 @@ export function GlobeTracker({
   arcs = [],
   width,
   height,
+  className = "",
+  onGlobeReady,
+  autoRotateSpeed = 0.5,
 }: GlobeTrackerProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
+  const [dimensions, setDimensions] = useState<{
+    width: number;
+    height: number;
+  }>({
+    width: width || 800,
+    height: height || 600,
+  });
 
   useEffect(() => {
     setMounted(true);
-    if (globeRef.current) {
+    if (!containerRef.current) return;
+
+    const updateSize = () => {
+      if (containerRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
+        setDimensions({
+          width: width || clientWidth || 800,
+          height: height || clientHeight || 600,
+        });
+      }
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [width, height]);
+
+  useEffect(() => {
+    if (mounted && globeRef.current) {
       // Auto-rotate
       globeRef.current.controls().autoRotate = true;
-      globeRef.current.controls().autoRotateSpeed = 0.5;
+      globeRef.current.controls().autoRotateSpeed = autoRotateSpeed;
 
       // Setup initial view
       if (markers.length > 0) {
@@ -51,21 +84,35 @@ export function GlobeTracker({
       } else {
         globeRef.current.pointOfView({ lat: 20, lng: 0, altitude: 2.5 });
       }
-    }
-  }, [markers]);
 
-  if (!mounted)
+      if (onGlobeReady) {
+        onGlobeReady(globeRef.current);
+      }
+    }
+  }, [mounted, markers, autoRotateSpeed, onGlobeReady]);
+
+  if (!mounted) {
     return (
-      <div className="animate-pulse bg-slate-800/50 rounded-2xl w-full h-full min-h-[400px]"></div>
+      <div
+        className={`animate-pulse bg-slate-900/60 rounded-2xl w-full h-full min-h-[400px] flex items-center justify-center ${className}`}
+      >
+        <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">
+          Iniciando Motor 3D WebGL...
+        </span>
+      </div>
     );
+  }
 
   return (
-    <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl relative">
-      <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent pointer-events-none z-10" />
+    <div
+      ref={containerRef}
+      className={`overflow-hidden relative w-full h-full ${className}`}
+    >
+      <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 via-transparent to-slate-950/40 pointer-events-none z-10" />
       <Globe
         ref={globeRef}
-        width={width}
-        height={height || 400}
+        width={dimensions.width}
+        height={dimensions.height}
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         backgroundColor="rgba(0,0,0,0)"
@@ -86,10 +133,10 @@ export function GlobeTracker({
         arcStartLng={(d: any) => d.startLng}
         arcEndLat={(d: any) => d.endLat}
         arcEndLng={(d: any) => d.endLng}
-        arcColor={(d: any) => [d.color || "#3b82f6", d.color || "#10b981"]}
+        arcColor={(d: any) => [d.color || "#38bdf8", d.color || "#10b981"]}
         arcDashLength={0.4}
         arcDashGap={0.2}
-        arcDashAnimateTime={1500}
+        arcDashAnimateTime={1600}
         arcsTransitionDuration={1000}
       />
     </div>

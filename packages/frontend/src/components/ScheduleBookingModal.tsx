@@ -29,7 +29,7 @@ export function ScheduleBookingModal({
   onSuccess,
 }: ScheduleBookingModalProps) {
   const [commodity, setCommodity] = useState("General Cargo");
-  const [weight, setWeight] = useState("");
+  const [weight, setWeight] = useState("18500");
   const [equipment, setEquipment] = useState("40HC");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

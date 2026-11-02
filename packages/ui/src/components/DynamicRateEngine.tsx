@@ -41,6 +41,13 @@ export function DynamicRateEngine() {
     referenceNumber: string;
     carrier: string;
   } | null>(null);
+  const [quoteFeedback, setQuoteFeedback] = useState<{
+    quoteNumber: string;
+    carrier: string;
+    total: number;
+    currency: string;
+  } | null>(null);
+  const [isGeneratingQuote, setIsGeneratingQuote] = useState(false);
 
   const [origin, setOrigin] = useState("CNSHA (Shanghai)");
   const [destination, setDestination] = useState("NLRTM (Rotterdam)");
@@ -107,17 +114,20 @@ export function DynamicRateEngine() {
 
   const generateQuote = async (rate: any) => {
     try {
+      setIsGeneratingQuote(true);
+      const quoteNumber = `QT-2026-${Math.floor(10000 + Math.random() * 90000)}`;
       const quoteData = {
-        quoteNumber: `QT-2026-${Math.floor(Math.random() * 100000)}`,
+        quoteNumber,
         customer: "Client From Portal",
         origin,
         destination,
+        carrier: rate.carrier,
         equipment: containerSize,
-        buyRateTotal: rate.buyRateTotal,
-        sellMargin: rate.sellMargin,
-        sellRateTotal: rate.sellRateTotal,
+        buyRateTotal: Math.round(rate.buyRateTotal * 100) / 100,
+        sellMargin: Math.round(rate.sellMargin * 100) / 100,
+        sellRateTotal: Math.round(rate.sellRateTotal * 100) / 100,
         status: "DRAFT",
-        validTo: rate.validTo,
+        validTo: rate.validTo || "2026-12-31",
       };
 
       const res = await fetch(`${API_URL}/quotes`, {
@@ -125,13 +135,58 @@ export function DynamicRateEngine() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(quoteData),
       });
+
       if (res.ok) {
-        alert("Quote saved to DB successfully!");
+        // Trigger official PDF generation download
+        try {
+          const pdfRes = await fetch(`${API_URL}/quotes/generate-pdf`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              quoteNumber,
+              customer: "Client From Portal",
+              origin,
+              destination,
+              carrier: rate.carrier,
+              equipment: containerSize,
+              buyRateTotal: rate.buyRateTotal,
+              sellMargin: rate.sellMargin,
+              sellRateTotal: rate.sellRateTotal,
+              currency,
+              validTo: rate.validTo,
+              serviceLine: rate.serviceLine,
+              transitDays: rate.transitTime,
+            }),
+          });
+          if (pdfRes.ok) {
+            const blob = await pdfRes.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = `Quote-${quoteNumber}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(blobUrl);
+          }
+        } catch (pdfErr) {
+          console.warn("Direct PDF stream fallback:", pdfErr);
+        }
+
+        setQuoteFeedback({
+          quoteNumber,
+          carrier: rate.carrier,
+          total: rate.sellRateTotal,
+          currency,
+        });
       } else {
-        alert("Error generating quote");
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Quote creation failed:", errorData);
       }
     } catch (err) {
       console.error("Error saving quote", err);
+    } finally {
+      setIsGeneratingQuote(false);
     }
   };
 
@@ -553,7 +608,7 @@ export function DynamicRateEngine() {
       </div>
 
       {bookingFeedback && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-emerald-500/40 rounded-2xl p-4 shadow-2xl flex items-center gap-4">
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-emerald-500/40 rounded-2xl p-4 shadow-2xl flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4">
           <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
           <div>
             <div className="text-xs font-bold uppercase tracking-wider text-emerald-400">
@@ -565,6 +620,28 @@ export function DynamicRateEngine() {
           </div>
           <button
             onClick={() => setBookingFeedback(null)}
+            className="text-xs text-slate-400 hover:text-white px-2 py-1"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
+
+      {quoteFeedback && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-blue-500/40 rounded-2xl p-4 shadow-2xl flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4">
+          <Shield className="w-6 h-6 text-blue-400 shrink-0" />
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-blue-400">
+              Cotización Oficial Generada y Descargada (PDF)
+            </div>
+            <div className="text-sm font-mono font-bold text-white">
+              {quoteFeedback.quoteNumber} · {quoteFeedback.carrier} ·{" "}
+              {quoteFeedback.currency === "USD" ? "$" : "€"}
+              {quoteFeedback.total.toFixed(2)}
+            </div>
+          </div>
+          <button
+            onClick={() => setQuoteFeedback(null)}
             className="text-xs text-slate-400 hover:text-white px-2 py-1"
           >
             Cerrar

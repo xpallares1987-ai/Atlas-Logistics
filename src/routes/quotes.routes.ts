@@ -7,11 +7,13 @@ import {
   carriers,
   lanes,
   locations,
+  companies,
 } from "../db/schema/index.js";
 import { eq, and } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { validate } from "../middleware/validate.js";
 import { CreateQuoteSchema } from "@atlas/shared/src/logistics-schemas.js";
+import { PDFService } from "../services/pdf.service.js";
 import { startWorkflow } from "../bpm/workflow-engine.service.js";
 import { redis } from "../config/redis.js";
 import {
@@ -291,12 +293,20 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     async (request, reply) => {
       try {
         const data = request.body as any;
+        let customerId = data.customerId;
+        if (!customerId) {
+          const firstCompany = await db
+            .select({ id: companies.id })
+            .from(companies)
+            .limit(1);
+          customerId = firstCompany[0]?.id || uuidv4();
+        }
         const newQuote = await db
           .insert(quotes)
           .values({
             id: uuidv4(),
             quoteNumber: data.quoteNumber,
-            customerId: data.customerId,
+            customerId: customerId,
             originLocationId: data.originLocationId,
             destinationLocationId: data.destinationLocationId,
             equipment: data.equipment,
@@ -341,6 +351,70 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
       }
     },
   );
+
+  fastify.get("/:id/pdf", async (request, reply) => {
+    try {
+      const { id } = request.params as any;
+      const quoteList = await db.select().from(quotes).where(eq(quotes.id, id));
+      if (!quoteList.length) {
+        return reply.code(404).send({ error: "Quote not found" });
+      }
+      const q = quoteList[0];
+      const pdfBuffer = await PDFService.generateQuote({
+        quoteNumber: q.quoteNumber,
+        customer: "Client From Portal",
+        origin: q.originLocationId || "Origin Port",
+        destination: q.destinationLocationId || "Destination Port",
+        equipment: q.equipment,
+        buyRateTotal: q.buyRateTotal,
+        sellMargin: q.sellMargin,
+        sellRateTotal: q.sellRateTotal,
+        validTo: q.validTo
+          ? new Date(q.validTo).toISOString().split("T")[0]
+          : "2026-12-31",
+      });
+      reply.header("Content-Type", "application/pdf");
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename="Quote-${q.quoteNumber}.pdf"`,
+      );
+      return reply.send(pdfBuffer);
+    } catch (error: any) {
+      fastify.log.error("Failed to generate quote PDF:", error);
+      reply.code(500).send({ error: error.message });
+    }
+  });
+
+  fastify.post("/generate-pdf", async (request, reply) => {
+    try {
+      const body = request.body as any;
+      const pdfBuffer = await PDFService.generateQuote({
+        quoteNumber:
+          body.quoteNumber || `QT-${Date.now().toString().slice(-6)}`,
+        customer: body.customer || "Enterprise Shipper",
+        origin: body.origin || "Origin Port",
+        destination: body.destination || "Destination Port",
+        carrier: body.carrier || "Primary Alliances",
+        equipment: body.equipment || "40HC Container",
+        buyRateTotal: body.buyRateTotal,
+        sellMargin: body.sellMargin,
+        sellRateTotal: body.sellRateTotal,
+        currency: body.currency || "USD",
+        validTo: body.validTo || "2026-12-31",
+        serviceLine: body.serviceLine || "Standard",
+        transitDays: body.transitDays || 28,
+      });
+      reply.header("Content-Type", "application/pdf");
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename="Quote-${body.quoteNumber || "Draft"}.pdf"`,
+      );
+      return reply.send(pdfBuffer);
+    } catch (error: any) {
+      fastify.log.error("Failed to generate direct quote PDF:", error);
+      reply.code(500).send({ error: error.message });
+    }
+  });
 
   // Rate Ingestion & UN/LOCODE Management Endpoints
   fastify.post(

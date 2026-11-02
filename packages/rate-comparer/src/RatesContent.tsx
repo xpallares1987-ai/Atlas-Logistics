@@ -4,7 +4,7 @@
  * Used when this package is embedded inside a host app that already provides navigation
  * (e.g. @atlas/frontend AppLayout). App.tsx retains the full-page standalone version.
  */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAppStore } from "./store";
 import RateTable from "./components/RateTable";
 import LocationAutocomplete from "./components/LocationAutocomplete";
@@ -24,6 +24,7 @@ import {
   Check,
   SlidersHorizontal,
   FileSpreadsheet,
+  Compass,
 } from "lucide-react";
 import { useAuth } from "./components";
 import { RateIngestionModal } from "@atlas/ui/src/components/RateIngestionModal";
@@ -79,50 +80,95 @@ export default function RatesContent() {
     return true;
   });
 
-  const handleSearch = async () => {
-    if (!origin || !destination) return;
+  const POPULAR_CORRIDORS = [
+    {
+      label: "Barcelona (ESBCN) → Rotterdam (NLRTM)",
+      origin: { locode: "ESBCN", name: "Barcelona (ESBCN), Spain" },
+      destination: { locode: "NLRTM", name: "Rotterdam (NLRTM), Netherlands" },
+    },
+    {
+      label: "Shanghai (CNSHA) → Rotterdam (NLRTM)",
+      origin: { locode: "CNSHA", name: "Shanghai (CNSHA), China" },
+      destination: { locode: "NLRTM", name: "Rotterdam (NLRTM), Netherlands" },
+    },
+    {
+      label: "Valencia (ESVLC) → New York (USNYC)",
+      origin: { locode: "ESVLC", name: "Valencia (ESVLC), Spain" },
+      destination: { locode: "USNYC", name: "New York (USNYC), USA" },
+    },
+    {
+      label: "Ningbo (CNNGB) → Barcelona (ESBCN)",
+      origin: { locode: "CNNGB", name: "Ningbo (CNNGB), China" },
+      destination: { locode: "ESBCN", name: "Barcelona (ESBCN), Spain" },
+    },
+  ];
 
+  const loadRates = async (
+    targetOrigin = origin,
+    targetDestination = destination,
+    targetEquipment = equipment,
+  ) => {
     setIsLoading(true);
     setError(null);
-    setQuotes([]);
     setSelectedCarriers([]);
     setMaxTransitTime(null);
 
     try {
+      const origCode = targetOrigin?.locode || targetOrigin?.name || "";
+      const destCode =
+        targetDestination?.locode || targetDestination?.name || "";
       const rates = await drizzleRateService.fetchRates(
-        origin.locode || origin.name,
-        destination.locode || destination.name,
-        equipment,
+        origCode,
+        destCode,
+        targetEquipment,
       );
 
       if (rates && rates.length > 0) {
-        // Map Drizzle Rate schema to match the expected RateTable format
         const mappedQuotes = rates.map((r) => {
           const numId = parseInt(r.id?.substring(0, 8) || "0", 16) || 0;
           return {
             id: r.id,
             carrier: r.carrier || "Unknown",
-            rate: r.baseOceanFreight + r.baf + r.pss + r.thc,
+            rate:
+              r.baseOceanFreight + (r.baf || 0) + (r.pss || 0) + (r.thc || 0),
             transit: r.transitTime,
             currency: "USD",
-            origin: origin.locode || origin.name,
-            destination: destination.locode || destination.name,
+            origin: r.originLocode || origCode || "Global",
+            destination: r.destinationLocode || destCode || "Global",
             containerType: r.containerType,
             baseFreightCost: r.baseOceanFreight,
-            totalCost: r.baseOceanFreight + r.baf + r.pss + r.thc,
+            totalCost:
+              r.baseOceanFreight + (r.baf || 0) + (r.pss || 0) + (r.thc || 0),
             isDirect: numId % 3 === 0,
-            co2Emissions: 1000 + (numId % 2000), // Mock CO2 emissions
+            co2Emissions: 1000 + (numId % 2000),
           };
         });
         setQuotes(mappedQuotes);
       } else {
-        setError("No rates found for the selected route.");
+        setQuotes([]);
+        if (origCode && destCode) {
+          setError("No se encontraron tarifas para la ruta seleccionada.");
+        }
       }
     } catch (err: any) {
-      setError(err.message || "Failed to fetch from Drizzle API");
+      setError(err.message || "Error al conectar con el motor de tarifas");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    loadRates();
+  }, []);
+
+  const handleSearch = () => {
+    loadRates(origin, destination, equipment);
+  };
+
+  const selectCorridor = (c: (typeof POPULAR_CORRIDORS)[0]) => {
+    setOrigin(c.origin);
+    setDestination(c.destination);
+    loadRates(c.origin, c.destination, equipment);
   };
 
   const swapLocations = () => {
@@ -308,6 +354,35 @@ export default function RatesContent() {
                   Search
                 </button>
               </div>
+            </div>
+
+            {/* Quick-Access Popular Corridors */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+                <Compass className="w-3.5 h-3.5 text-indigo-400" /> Corredores
+                Frecuentes:
+              </span>
+              {POPULAR_CORRIDORS.map((c) => (
+                <button
+                  key={c.label}
+                  onClick={() => selectCorridor(c)}
+                  className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800/80 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700/60 hover:border-indigo-500/50 transition-all flex items-center gap-1.5"
+                >
+                  {c.label}
+                </button>
+              ))}
+              {(origin || destination) && (
+                <button
+                  onClick={() => {
+                    setOrigin(null);
+                    setDestination(null);
+                    loadRates(null, null, equipment);
+                  }}
+                  className="ml-auto text-xs text-indigo-400 hover:text-indigo-300 underline font-semibold"
+                >
+                  Ver todas las tarifas del mercado
+                </button>
+              )}
             </div>
           </div>
         </div>

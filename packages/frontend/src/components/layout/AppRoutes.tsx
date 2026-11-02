@@ -20,12 +20,15 @@ const ControlPlaneModule = React.lazy(
   () => import("../../pages/ControlPlaneModule"),
 );
 
+const loadRemoteRates = () => import("rates/RateComparer");
+const loadFallbackRates = () => import("@atlas/rate-comparer");
+
 const RateComparerContainer = () => (
   <SafeRemoteLoader
     moduleName="Rate Comparer"
     remoteUrl={getMfeRemoteUrl("rates")}
-    remoteLoader={() => import("rates/RateComparer")}
-    fallbackLoader={() => import("@atlas/rate-comparer")}
+    remoteLoader={loadRemoteRates}
+    fallbackLoader={loadFallbackRates}
   />
 );
 
@@ -56,17 +59,19 @@ const DynamicPricingModule = React.lazy(
 const DocumentVaultModule = React.lazy(
   () => import("../../pages/DocumentVaultModule"),
 );
+const loadRemoteWarehouse = () => import("warehouse/WarehouseOps");
+const loadFallbackWarehouse = () =>
+  // @ts-ignore
+  import("@atlas/mfe-warehouse/src/WarehouseOps").then((m) => ({
+    default: m.default,
+  }));
+
 const WarehouseOpsContainer = () => (
   <SafeRemoteLoader
     moduleName="Warehouse Operations"
     remoteUrl={getMfeRemoteUrl("warehouse")}
-    remoteLoader={() => import("warehouse/WarehouseOps")}
-    fallbackLoader={() =>
-      // @ts-ignore
-      import("@atlas/mfe-warehouse/src/WarehouseOps").then((m) => ({
-        default: m.default,
-      }))
-    }
+    remoteLoader={loadRemoteWarehouse}
+    fallbackLoader={loadFallbackWarehouse}
   />
 );
 const SailingSchedulesModule = React.lazy(

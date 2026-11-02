@@ -26,6 +26,7 @@ import {
   InvoiceData,
   AgentSettlementData,
   BookingConfirmationData,
+  QuotePdfData,
 } from "./pdf/generators/core-operations.pdf.js";
 
 export type {
@@ -33,6 +34,7 @@ export type {
   InvoiceData,
   AgentSettlementData,
   BookingConfirmationData,
+  QuotePdfData,
   CustomsData,
 };
 
@@ -64,6 +66,14 @@ export class PDFService {
   /**
    * Generates a Booking Confirmation PDF in memory.
    */
+
+  /**
+   * Generates an official Commercial Freight Quotation PDF in memory.
+   */
+  public static async generateQuote(data: QuotePdfData): Promise<Buffer> {
+    return CoreOperationsPdfGenerator.generateQuote(data);
+  }
+
   public static async generateBookingConfirmation(
     data: BookingConfirmationData,
   ): Promise<Buffer> {

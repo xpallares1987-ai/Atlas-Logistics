@@ -101,7 +101,7 @@ export default function SailingSchedulesModule() {
   const [origin, setOrigin] = useState("Shanghai");
   const [destination, setDestination] = useState("Rotterdam");
   const [date, setDate] = useState("2026-08-15");
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(true);
   const [sortBy, setSortBy] = useState<"departure" | "transit">("departure");
   const [bookingState, setBookingState] = useState<{
     schedule: Schedule;
@@ -215,6 +215,34 @@ export default function SailingSchedulesModule() {
               <Search className="w-5 h-5" />
               Find Routes
             </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-white/5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Corredores Principales:
+            </span>
+            {[
+              { o: "Shanghai", d: "Rotterdam", label: "Shanghai → Rotterdam" },
+              { o: "Ningbo", d: "Los Angeles", label: "Ningbo → Los Angeles" },
+              { o: "Singapore", d: "Valencia", label: "Singapore → Valencia" },
+              {
+                o: "Long Beach",
+                d: "New York",
+                label: "Long Beach → New York",
+              },
+            ].map((c) => (
+              <button
+                key={c.label}
+                onClick={() => {
+                  setOrigin(c.o);
+                  setDestination(c.d);
+                  setHasSearched(true);
+                }}
+                className="px-2.5 py-1 bg-white/5 hover:bg-indigo-500/20 text-slate-300 hover:text-indigo-300 border border-white/10 hover:border-indigo-500/30 rounded-lg text-xs font-medium transition-colors"
+              >
+                {c.label}
+              </button>
+            ))}
           </div>
         </motion.div>
       </div>

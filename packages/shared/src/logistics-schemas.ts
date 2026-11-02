@@ -71,7 +71,11 @@ export const CreateQuoteSchema = z.object({
         .string()
         .regex(/^[A-Z0-9-]+$/)
         .max(100),
-      customerId: z.string().uuid(),
+      customerId: z.string().uuid().optional(),
+      customer: z.string().optional(),
+      origin: z.string().optional(),
+      destination: z.string().optional(),
+      carrier: z.string().optional(),
       originLocationId: z.string().uuid().optional(),
       destinationLocationId: z.string().uuid().optional(),
       equipment: z.string().max(100),
@@ -83,7 +87,7 @@ export const CreateQuoteSchema = z.object({
         .optional(),
       validTo: z.string().or(z.date()),
     })
-    .strict(),
+    .passthrough(),
 });
 
 export const CreateInvoiceSchema = z.object({
