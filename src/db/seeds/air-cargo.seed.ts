@@ -473,6 +473,382 @@ export async function seedAirCargo(): Promise<void> {
     })
     .onConflictDoNothing();
 
+  // MAWB 4 (Emirates SkyCargo BCN -> DXB)
+  const mawb4Id = "mawb_ek_17629104";
+  await db
+    .insert(schema.airwayBills)
+    .values({
+      id: mawb4Id,
+      type: "MAWB",
+      awbNumber: "176-17629104",
+      airlinePrefix: "176",
+      airlineName: "Emirates SkyCargo",
+      originAirport: "BCN",
+      destinationAirport: "DXB",
+      flightNumber: "EK0186",
+      flightDate: new Date(Date.now() + 86400000 * 3),
+      shipperData: {
+        name: "Atlas Air Cargo Barcelona Forwarding",
+        address: "ZAL Puerto de Barcelona, 08820 El Prat de Llobregat",
+        country: "ES",
+        contact: "+34 93 478 9900",
+        accountNo: "ATLAS-BCN-02",
+      },
+      consigneeData: {
+        name: "Emirates Logistics Hub LLC",
+        address: "Dubai Cargo Village, Terminal 2, Dubai",
+        country: "AE",
+        contact: "+971 4 216 1111",
+        accountNo: "EMIRATES-DXB-88",
+      },
+      issuingAgentData: {
+        name: "ATLAS AIR CARGO SPAIN SL",
+        city: "BARCELONA",
+        iataCode: "78-4-8812/0019",
+        cassAddress: "ES-CASS-8819",
+      },
+      pieces: 18,
+      grossWeightKg: 1450,
+      volumeCbm: 9.6,
+      volumetricWeightKg: 1600,
+      chargeableWeightKg: 1600,
+      rateClass: "Q",
+      ratePerKg: 3.15,
+      freightCharge: 5040.0,
+      otherCharges: [
+        { code: "MYC", name: "Fuel Surcharge", amount: 1520.0 },
+        { code: "SCC", name: "Security Surcharge", amount: 240.0 },
+        { code: "AWC", name: "AWB Fee", amount: 25.0 },
+        { code: "CGC", name: "Terminal Handling Charge", amount: 240.0 },
+      ],
+      totalPrepaid: 7065.0,
+      totalCollect: 0,
+      currency: "EUR",
+      natureOfGoods:
+        "CONSOLIDATION AS PER MANIFEST: HIGH-END TEXTILES & AVIONICS SENSORS",
+      specialHandlingCodes: ["VAL", "SPX"],
+      handlingInfo:
+        "SECURE AIR CARGO. DO NOT TOP LOAD. VALUABLE CARGO PROTOCOL.",
+      status: "RCS",
+      eAwbCertified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // HAWB 3 (under MAWB 4)
+  await db
+    .insert(schema.airwayBills)
+    .values({
+      id: "hawb_bcn_001",
+      type: "HAWB",
+      awbNumber: "HAWB-BCN-1762-01",
+      airlinePrefix: "176",
+      airlineName: "Emirates SkyCargo",
+      parentMawbId: mawb4Id,
+      originAirport: "BCN",
+      destinationAirport: "DXB",
+      flightNumber: "EK0186",
+      flightDate: new Date(Date.now() + 86400000 * 3),
+      shipperData: {
+        name: "Catalana Fashion Couture SL",
+        address: "Passeig de Gràcia 92, 08008 Barcelona",
+        country: "ES",
+        contact: "+34 93 215 4400",
+      },
+      consigneeData: {
+        name: "Dubai Luxury Retail Group PJSC",
+        address: "Dubai Mall Fashion Avenue, Downtown Dubai",
+        country: "AE",
+        contact: "+971 4 362 7500",
+      },
+      pieces: 10,
+      grossWeightKg: 850,
+      volumeCbm: 6.0,
+      volumetricWeightKg: 1000,
+      chargeableWeightKg: 1000,
+      rateClass: "Q",
+      ratePerKg: 3.4,
+      freightCharge: 3400.0,
+      otherCharges: [
+        { code: "MYC", name: "Fuel Surcharge", amount: 950.0 },
+        { code: "SCC", name: "Security Surcharge", amount: 150.0 },
+        { code: "AWC", name: "AWB Fee", amount: 25.0 },
+      ],
+      totalPrepaid: 4525.0,
+      totalCollect: 0,
+      currency: "EUR",
+      natureOfGoods: "LUXURY APPAREL & LEATHER ACCESSORIES",
+      specialHandlingCodes: ["VAL"],
+      status: "RCS",
+      eAwbCertified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // HAWB 4 (under MAWB 4)
+  await db
+    .insert(schema.airwayBills)
+    .values({
+      id: "hawb_bcn_002",
+      type: "HAWB",
+      awbNumber: "HAWB-BCN-1762-02",
+      airlinePrefix: "176",
+      airlineName: "Emirates SkyCargo",
+      parentMawbId: mawb4Id,
+      originAirport: "BCN",
+      destinationAirport: "DXB",
+      flightNumber: "EK0186",
+      flightDate: new Date(Date.now() + 86400000 * 3),
+      shipperData: {
+        name: "Barna Avionics Solutions SL",
+        address: "Parc Tecnològic del Vallès, Cerdanyola del Vallès",
+        country: "ES",
+        contact: "+34 93 582 0100",
+      },
+      consigneeData: {
+        name: "Gulf Aerospace MRO Technologies",
+        address: "Dubai South Aviation District, DWC",
+        country: "AE",
+        contact: "+971 4 814 3000",
+      },
+      pieces: 8,
+      grossWeightKg: 600,
+      volumeCbm: 3.6,
+      volumetricWeightKg: 600,
+      chargeableWeightKg: 600,
+      rateClass: "Q",
+      ratePerKg: 3.8,
+      freightCharge: 2280.0,
+      otherCharges: [
+        { code: "MYC", name: "Fuel Surcharge", amount: 570.0 },
+        { code: "SCC", name: "Security Surcharge", amount: 90.0 },
+        { code: "AWC", name: "AWB Fee", amount: 25.0 },
+      ],
+      totalPrepaid: 2965.0,
+      totalCollect: 0,
+      currency: "EUR",
+      natureOfGoods: "AIRCRAFT NAVIGATION SENSORS & ACCELEROMETERS",
+      specialHandlingCodes: ["SPX"],
+      status: "RCS",
+      eAwbCertified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // Direct MAWB 5 (Qatar Airways Cargo MAD -> DOH)
+  await db
+    .insert(schema.airwayBills)
+    .values({
+      id: "mawb_qr_15738291",
+      type: "DIRECT",
+      awbNumber: "157-15738291",
+      airlinePrefix: "157",
+      airlineName: "Qatar Airways Cargo",
+      originAirport: "MAD",
+      destinationAirport: "DOH",
+      flightNumber: "QR8162",
+      flightDate: new Date(Date.now() + 86400000 * 2),
+      shipperData: {
+        name: "Galicia Seafood Export Corp",
+        address: "Muelle de Reparaciones, Puerto de Vigo, 36208 Vigo",
+        country: "ES",
+        contact: "+34 986 211 400",
+      },
+      consigneeData: {
+        name: "Doha Fresh Foods Logistics WLL",
+        address: "Hamad International Airport Cargo Complex, Doha",
+        country: "QA",
+        contact: "+974 4499 6600",
+      },
+      pieces: 12,
+      grossWeightKg: 4200,
+      volumeCbm: 18.0,
+      volumetricWeightKg: 3000,
+      chargeableWeightKg: 4200,
+      rateClass: "Q",
+      ratePerKg: 2.85,
+      freightCharge: 11970.0,
+      otherCharges: [
+        { code: "MYC", name: "Fuel Surcharge", amount: 3990.0 },
+        { code: "SCC", name: "Security Surcharge", amount: 630.0 },
+        { code: "AWC", name: "AWB Fee", amount: 25.0 },
+      ],
+      totalPrepaid: 16615.0,
+      totalCollect: 0,
+      currency: "EUR",
+      natureOfGoods: "LIVE SEAFOOD / CRUSTACEANS IN OXYGENATED BINS",
+      specialHandlingCodes: ["AVI", "PER", "COL"],
+      handlingInfo: "MAINTAIN +4C. LIVE CRUSTACEANS. PRIORITY APRON TRANSFER.",
+      status: "DEP",
+      eAwbCertified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // MAWB 6 (Air France Cargo MAD -> ORD via CDG)
+  const mawb6Id = "mawb_af_05749281";
+  await db
+    .insert(schema.airwayBills)
+    .values({
+      id: mawb6Id,
+      type: "MAWB",
+      awbNumber: "057-05749281",
+      airlinePrefix: "057",
+      airlineName: "Air France Cargo",
+      originAirport: "MAD",
+      destinationAirport: "ORD",
+      flightNumber: "AF6730",
+      flightDate: new Date(Date.now() + 86400000 * 4),
+      shipperData: {
+        name: "Atlas Freight Solutions Madrid",
+        address: "Centro de Carga Aérea Barajas, 28042 Madrid",
+        country: "ES",
+        contact: "+34 91 748 0000",
+      },
+      consigneeData: {
+        name: "Atlas Global Air Hub Midwest",
+        address: "O'Hare International Airport Cargo Area, Chicago, IL 60666",
+        country: "US",
+        contact: "+1 773 686 2200",
+      },
+      pieces: 28,
+      grossWeightKg: 2850,
+      volumeCbm: 16.5,
+      volumetricWeightKg: 2750,
+      chargeableWeightKg: 2850,
+      rateClass: "Q",
+      ratePerKg: 3.2,
+      freightCharge: 9120.0,
+      otherCharges: [
+        { code: "MYC", name: "Fuel Surcharge", amount: 2707.5 },
+        { code: "SCC", name: "Security Surcharge", amount: 427.5 },
+        { code: "AWC", name: "AWB Fee", amount: 25.0 },
+      ],
+      totalPrepaid: 12280.0,
+      totalCollect: 0,
+      currency: "EUR",
+      natureOfGoods: "CONSOLIDATION: ROBOTIC DRIVE UNITS & PRECISION GEARBOXES",
+      specialHandlingCodes: ["GEN", "SPX"],
+      handlingInfo:
+        "HIGH DENSITY CARGO. FORK POCKETS PROVIDED. TIE DOWN SECURE.",
+      status: "BOOKED",
+      eAwbCertified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // Direct MAWB 7 (Atlas Air 747 Freighter JFK -> FRA)
+  await db
+    .insert(schema.airwayBills)
+    .values({
+      id: "mawb_5y_40391820",
+      type: "DIRECT",
+      awbNumber: "369-40391820",
+      airlinePrefix: "369",
+      airlineName: "Atlas Air Worldwide",
+      originAirport: "JFK",
+      destinationAirport: "FRA",
+      flightNumber: "5Y8821",
+      flightDate: new Date(Date.now() + 86400000 * 5),
+      shipperData: {
+        name: "GE Aerospace Propulsion Systems",
+        address: "1 Neumann Way, Evendale, OH 45215",
+        country: "US",
+        contact: "+1 513 243 2000",
+      },
+      consigneeData: {
+        name: "Lufthansa Technik Engine Overhaul Hub",
+        address: "Frankfurt Airport MRO Base, 60549 Frankfurt",
+        country: "DE",
+        contact: "+49 69 6960",
+      },
+      pieces: 2,
+      grossWeightKg: 14200,
+      volumeCbm: 42.0,
+      volumetricWeightKg: 7000,
+      chargeableWeightKg: 14200,
+      rateClass: "Q",
+      ratePerKg: 4.1,
+      freightCharge: 58220.0,
+      otherCharges: [
+        { code: "MYC", name: "Fuel Surcharge", amount: 13490.0 },
+        { code: "SCC", name: "Security Surcharge", amount: 2130.0 },
+        { code: "AWC", name: "AWB Fee", amount: 50.0 },
+        { code: "CGC", name: "Heavy Lift Apron Crane Fee", amount: 1850.0 },
+      ],
+      totalPrepaid: 75740.0,
+      totalCollect: 0,
+      currency: "EUR",
+      natureOfGoods:
+        "CFM LEAP-1B TURBOFAN COMMERCIAL AIRCRAFT ENGINES ON STANDS",
+      specialHandlingCodes: ["BIG", "CAO", "HEAVY"],
+      handlingInfo:
+        "MAIN DECK ONLY. HEAVY LIFT SPREADER BEAM REQUIRED FOR CRANE TRANSFER.",
+      status: "MANIFESTED",
+      eAwbCertified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // Direct MAWB 8 (Cathay Cargo HKG -> BCN)
+  await db
+    .insert(schema.airwayBills)
+    .values({
+      id: "mawb_cx_16049281",
+      type: "DIRECT",
+      awbNumber: "160-16049281",
+      airlinePrefix: "160",
+      airlineName: "Cathay Cargo",
+      originAirport: "HKG",
+      destinationAirport: "BCN",
+      flightNumber: "CX0315",
+      flightDate: new Date(Date.now() + 86400000 * 2),
+      shipperData: {
+        name: "Kowloon Precision Microelectronics Ltd",
+        address: "Science & Technology Park, Sha Tin, Hong Kong",
+        country: "HK",
+        contact: "+852 2607 8888",
+      },
+      consigneeData: {
+        name: "Barcelona Semiconductor Distribution SL",
+        address: "Carrer de la Marina 16, 08005 Barcelona",
+        country: "ES",
+        contact: "+34 93 309 8811",
+      },
+      pieces: 45,
+      grossWeightKg: 3100,
+      volumeCbm: 14.2,
+      volumetricWeightKg: 2366,
+      chargeableWeightKg: 3100,
+      rateClass: "Q",
+      ratePerKg: 4.5,
+      freightCharge: 13950.0,
+      otherCharges: [
+        { code: "MYC", name: "Fuel Surcharge", amount: 2945.0 },
+        { code: "SCC", name: "Security Surcharge", amount: 465.0 },
+        { code: "AWC", name: "AWB Fee", amount: 25.0 },
+      ],
+      totalPrepaid: 17385.0,
+      totalCollect: 0,
+      currency: "EUR",
+      natureOfGoods:
+        "SILICON WAFERS & INTEGRATED CIRCUITS (CLASS 9 LITHIUM COIN CELLS UN 3091)",
+      specialHandlingCodes: ["ELM", "VAL"],
+      handlingInfo:
+        "ESD SENSITIVE. TEMPERATURE MONITORED +15C TO +25C. DO NOT DROP.",
+      status: "ARR",
+      eAwbCertified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
   console.log(
     "✅ Creados Airway Bills maestros, consolidaciones HAWB y vuelos de carga.",
   );

@@ -144,6 +144,34 @@ export async function seedCbam(): Promise<void> {
         verifierName: "DNV GL Business Assurance UK",
         verificationCertificateId: "DNV-CBAM-GB-2026-3390",
       },
+      {
+        id: "inst_posco_kr",
+        installationName: "POSCO Pohang Integrated Steelworks",
+        operatorName: "POSCO Holdings Inc",
+        countryCode: "KR",
+        unLocode: "KRKPO",
+        latitude: 36.019,
+        longitude: 129.385,
+        verifiedDirectEmissionFactor: 1.88,
+        verifiedIndirectEmissionFactor: 0.45,
+        gridEmissionFactorCountry: 0.48,
+        verifierName: "Korean Foundation for Quality (KFQ)",
+        verificationCertificateId: "KFQ-CBAM-KR-2026-8812",
+      },
+      {
+        id: "inst_tata_in",
+        installationName: "Tata Steel Jamshedpur Works",
+        operatorName: "Tata Steel Limited",
+        countryCode: "IN",
+        unLocode: "INIXR",
+        latitude: 22.804,
+        longitude: 86.202,
+        verifiedDirectEmissionFactor: 2.25,
+        verifiedIndirectEmissionFactor: 0.65,
+        gridEmissionFactorCountry: 0.72,
+        verifierName: "SGS India Industrial Services",
+        verificationCertificateId: "SGS-CBAM-IN-2026-4401",
+      },
     ])
     .onConflictDoNothing();
 
@@ -198,6 +226,54 @@ export async function seedCbam(): Promise<void> {
           "Carlos Vega (Responsable Técnico de Aduanas & CBAM)",
         remarks:
           "Presentada telemáticamente ante el Registro Transitorio CBAM de la Comisión Europea.",
+      },
+      {
+        id: "cbam_dec_2026_q1_03",
+        declarationNumber: "CBAM-2026-Q1-003",
+        reportingPeriod: "2026-Q1",
+        declarantVat: "ESA88992211",
+        declarantName:
+          "Atlas Logistics Forwarding SL (Declarante Autorizado CBAM)",
+        importerVat: "ESA50112233",
+        importerName: "Zaragoza Intermodal Machinery SA",
+        totalGrossMassTonnes: 6400.0,
+        totalNetMassTonnes: 6350.0,
+        totalDirectEmissionsTco2e: 11938.0,
+        totalIndirectEmissionsTco2e: 2857.5,
+        totalEmbeddedEmissionsTco2e: 14795.5,
+        euEtsBenchmarkPriceEur: 80.5,
+        grossCarbonLiabilityEur: 1191037.75,
+        carbonPricePaidForeignEur: 0.0,
+        netCarbonLiabilityEur: 1191037.75,
+        status: "VALIDATED",
+        responsibleDeclarant:
+          "Carlos Vega (Responsable Técnico de Aduanas & CBAM)",
+        remarks:
+          "Importación de bobinas de acero de POSCO (Corea del Sur) con factores certificados.",
+      },
+      {
+        id: "cbam_dec_2025_q4_04",
+        declarationNumber: "CBAM-2025-Q4-004",
+        reportingPeriod: "2025-Q4",
+        declarantVat: "ESA88992211",
+        declarantName:
+          "Atlas Logistics Forwarding SL (Declarante Autorizado CBAM)",
+        importerVat: "ESA11223344",
+        importerName: "Iberian Industrial Metals SL",
+        totalGrossMassTonnes: 9200.0,
+        totalNetMassTonnes: 9100.0,
+        totalDirectEmissionsTco2e: 17290.0,
+        totalIndirectEmissionsTco2e: 3640.0,
+        totalEmbeddedEmissionsTco2e: 20930.0,
+        euEtsBenchmarkPriceEur: 78.2,
+        grossCarbonLiabilityEur: 1636726.0,
+        carbonPricePaidForeignEur: 0.0,
+        netCarbonLiabilityEur: 1636726.0,
+        status: "SUBMITTED_REGISTRY",
+        responsibleDeclarant:
+          "Carlos Vega (Responsable Técnico de Aduanas & CBAM)",
+        remarks:
+          "Cierre anual 2025 presentado al registro transitorio de la DG TAXUD.",
       },
     ])
     .onConflictDoNothing();
@@ -265,6 +341,68 @@ export async function seedCbam(): Promise<void> {
         effectiveForeignPricePaidEur: 180000.0, // Compensación acreditada UK ETS
         lineGrossLiabilityEur: 218025.0, // 2550 * 85.50
         lineNetLiabilityEur: 38025.0, // 218025 - 180000
+      },
+      {
+        id: "cbam_line_04",
+        declarationId: "cbam_dec_2026_q1_03",
+        shipmentId: "shp_004",
+        duaNumber: "26ES00461110112233",
+        duaBox33HsCode: "7208 38 00",
+        goodDescription:
+          "Bobinas de acero POSCO laminadas en caliente (3.500 t)",
+        originCountry: "KR",
+        installationId: "inst_posco_kr",
+        netWeightTonnes: 3500.0,
+        useDefaultFactors: false,
+        directEmissionsTco2e: 6580.0, // 3500 * 1.88
+        indirectEmissionsTco2e: 1575.0, // 3500 * 0.45
+        precursorEmissionsTco2e: 0.0,
+        totalLineEmissionsTco2e: 8155.0,
+        foreignCarbonPricePerTco2e: 0.0,
+        effectiveForeignPricePaidEur: 0.0,
+        lineGrossLiabilityEur: 656477.5,
+        lineNetLiabilityEur: 656477.5,
+      },
+      {
+        id: "cbam_line_05",
+        declarationId: "cbam_dec_2026_q1_03",
+        shipmentId: "shp_005",
+        duaNumber: "26ES00461110114455",
+        duaBox33HsCode: "7214 20 00",
+        goodDescription:
+          "Barras corrugadas de acero para hormigón armado (2.850 t)",
+        originCountry: "IN",
+        installationId: "inst_tata_in",
+        netWeightTonnes: 2850.0,
+        useDefaultFactors: false,
+        directEmissionsTco2e: 6412.5, // 2850 * 2.25
+        indirectEmissionsTco2e: 1852.5, // 2850 * 0.65
+        precursorEmissionsTco2e: 0.0,
+        totalLineEmissionsTco2e: 8265.0,
+        foreignCarbonPricePerTco2e: 0.0,
+        effectiveForeignPricePaidEur: 0.0,
+        lineGrossLiabilityEur: 665332.5,
+        lineNetLiabilityEur: 665332.5,
+      },
+      {
+        id: "cbam_line_06",
+        declarationId: "cbam_dec_2025_q4_04",
+        shipmentId: "shp_006",
+        duaNumber: "25ES00461110098822",
+        duaBox33HsCode: "3102 10 00",
+        goodDescription: "Fertilizante granulado Urea 46% N (4.500 t)",
+        originCountry: "MA",
+        installationId: "inst_ocp_ma",
+        netWeightTonnes: 4500.0,
+        useDefaultFactors: false,
+        directEmissionsTco2e: 5940.0, // 4500 * 1.32
+        indirectEmissionsTco2e: 1260.0, // 4500 * 0.28
+        precursorEmissionsTco2e: 0.0,
+        totalLineEmissionsTco2e: 7200.0,
+        foreignCarbonPricePerTco2e: 0.0,
+        effectiveForeignPricePaidEur: 0.0,
+        lineGrossLiabilityEur: 563040.0,
+        lineNetLiabilityEur: 563040.0,
       },
     ])
     .onConflictDoNothing();
