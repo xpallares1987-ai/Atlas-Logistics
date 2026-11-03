@@ -15,6 +15,7 @@ import tasksRoutes from "./tasks.routes.js";
 import exceptionsRoutes from "./exceptions.routes.js";
 import aiRoutes from "./ai.routes.js";
 import adminDbRoutes from "./admin-db.routes.js";
+import adminSeedRoutes from "./admin-seed.routes.js";
 import adminRoutes from "./admin.routes.js";
 import settingsRoutes from "./settings.routes.js";
 import customsRoutes from "./customs.routes.js";
@@ -137,6 +138,7 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(adminRoutes);
   await fastify.register(settingsRoutes, { prefix: "/api/settings" });
   await fastify.register(adminDbRoutes, { prefix: "/api/admin/db" });
+  await fastify.register(adminSeedRoutes, { prefix: "/api/admin/seed" });
   await fastify.register(operationsRoutes, { prefix: "/api/operations" });
   await fastify.register(trackingRoutes, { prefix: "/api/tracking" });
   await fastify.register(schedulesRoutes, { prefix: "/api/schedules" });

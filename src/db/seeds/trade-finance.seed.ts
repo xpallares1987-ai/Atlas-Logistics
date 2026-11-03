@@ -156,6 +156,78 @@ export async function seedTradeFinance(): Promise<void> {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
+      {
+        id: "lc_hamb_2026_05",
+        instrumentReference: "LC-2026-HAM-0219",
+        instrumentType: "COMMERCIAL_LC_CONFIRMED",
+        applicableRules: "UCP600",
+        applicantCompanyId: null,
+        applicantName: "Bavarian Precision Tools GmbH",
+        beneficiaryName: "Iberica Heavy Industry Components SA",
+        beneficiaryCountry: "ES",
+        issuingBankBic: "DEUTDEDDXXX",
+        issuingBankName: "Deutsche Bank AG Frankfurt",
+        confirmingBankBic: "BNPAESMMXXX",
+        confirmingBankName: "BNP Paribas SA Madrid",
+        currency: "EUR",
+        creditAmount: 680000.0,
+        tolerancePercentage: 5.0,
+        issueDate: "2026-08-15",
+        latestShipmentDate: "2026-09-30",
+        expiryDate: "2026-10-21",
+        expiryPlace: "Counters of Confirming Bank, Madrid",
+        portOfLoading: "DEHAM - Port of Hamburg",
+        portOfDischarge: "ESBIO - Port of Bilbao",
+        goodsDescriptionSummary:
+          "HEAVY INDUSTRIAL CNC MILLING CENTERS & PRECISION ROBOTIC HEADS CIF BILBAO INCOTERMS 2020",
+        partialShipmentsAllowed: false,
+        transhipmentAllowed: false,
+        presentationPeriodDays: 21,
+        confirmationInstructions: "CONFIRM",
+        paymentTerms: "SIGHT",
+        tenorDays: 0,
+        status: "DOCUMENTS_PRESENTED",
+        remarks:
+          "Crédito documentario plenamente conforme. Documentos aprobados para pago por BNP Paribas.",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "lc_shang_2026_06",
+        instrumentReference: "LC-2026-SHA-0402",
+        instrumentType: "COMMERCIAL_LC_IRREVOCABLE",
+        applicableRules: "UCP600",
+        applicantCompanyId: null,
+        applicantName: "Valencia Solar Green Energy SL",
+        beneficiaryName: "Shanghai Jinko Clean Energy Co Ltd",
+        beneficiaryCountry: "CN",
+        issuingBankBic: "BSCHESMMXXX",
+        issuingBankName: "Banco Santander SA Valencia",
+        confirmingBankBic: "BKCHCNBJXXX",
+        confirmingBankName: "Bank of China Ltd Shanghai",
+        currency: "USD",
+        creditAmount: 890000.0,
+        tolerancePercentage: 5.0,
+        issueDate: "2026-08-10",
+        latestShipmentDate: "2026-09-20",
+        expiryDate: "2026-10-15",
+        expiryPlace: "Shanghai, China",
+        portOfLoading: "CNSHA - Port of Shanghai",
+        portOfDischarge: "ESVLC - Port of Valencia",
+        goodsDescriptionSummary:
+          "12,000 MONOCRYSTALLINE BIFACIAL SOLAR PV MODULES 650W CIF VALENCIA INCOTERMS 2020",
+        partialShipmentsAllowed: true,
+        transhipmentAllowed: true,
+        presentationPeriodDays: 21,
+        confirmationInstructions: "WITHOUT",
+        paymentTerms: "ACCEPTANCE_USANCE",
+        tenorDays: 90,
+        status: "DISCREPANCIES_FOUND",
+        remarks:
+          "Discrepancia detectada: Diferencia en la descripción de bultos en Bill of Lading (Art. 18c) y presentación con fecha posterior a 21 días (Art. 14c).",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
     ])
     .onConflictDoNothing();
 
@@ -296,6 +368,97 @@ export async function seedTradeFinance(): Promise<void> {
           "Infraseguro: póliza suscrita al 100% CIF ($320,000) en lugar del mínimo reglamentario del 110% CIF ($352,000) Art. 28f UCP 600.",
         createdAt: new Date().toISOString(),
       },
+
+      // Documents for LC-2026-HAM-0219 (Compliant CNC Machinery)
+      {
+        id: "doc_ham_inv_01",
+        instrumentId: "lc_hamb_2026_05",
+        documentType: "COMMERCIAL_INVOICE",
+        originalCopiesRequired: 3,
+        originalCopiesPresented: 3,
+        documentReferenceNumber: "INV-BAV-2026-9901",
+        documentDate: "2026-08-22",
+        issuerName: "Bavarian Precision Tools GmbH",
+        shippedOnBoardDate: null,
+        cleanOnBoardStatus: true,
+        freightPaymentClause: "PREPAID",
+        invoiceAmount: 680000.0,
+        invoiceCurrency: "EUR",
+        goodsDescriptionExactMatch: true,
+        insuredAmount: null,
+        insuredPercentageOfCif: null,
+        complianceStatus: "COMPLIANT",
+        remarks:
+          "Factura comercial conforme con desglose arancelario de maquinaria CNC.",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "doc_ham_bl_02",
+        instrumentId: "lc_hamb_2026_05",
+        documentType: "OCEAN_BILL_OF_LADING",
+        originalCopiesRequired: 3,
+        originalCopiesPresented: 3,
+        documentReferenceNumber: "MSK-HAM-BIO-9941",
+        documentDate: "2026-08-25",
+        issuerName: "Maersk Line Agency Deutschland",
+        shippedOnBoardDate: "2026-08-25",
+        cleanOnBoardStatus: true,
+        freightPaymentClause: "PREPAID",
+        invoiceAmount: null,
+        invoiceCurrency: null,
+        goodsDescriptionExactMatch: true,
+        insuredAmount: null,
+        insuredPercentageOfCif: null,
+        complianceStatus: "COMPLIANT",
+        remarks:
+          "B/L marítimo Shipped on Board limpio de cláusulas desfavorables.",
+        createdAt: new Date().toISOString(),
+      },
+
+      // Documents for LC-2026-SHA-0402 (Discrepant Solar Modules)
+      {
+        id: "doc_sha_inv_01",
+        instrumentId: "lc_shang_2026_06",
+        documentType: "COMMERCIAL_INVOICE",
+        originalCopiesRequired: 3,
+        originalCopiesPresented: 3,
+        documentReferenceNumber: "INV-JIN-2026-440",
+        documentDate: "2026-08-18",
+        issuerName: "Shanghai Jinko Clean Energy Co Ltd",
+        shippedOnBoardDate: null,
+        cleanOnBoardStatus: true,
+        freightPaymentClause: "PREPAID",
+        invoiceAmount: 890000.0,
+        invoiceCurrency: "USD",
+        goodsDescriptionExactMatch: true,
+        insuredAmount: null,
+        insuredPercentageOfCif: null,
+        complianceStatus: "COMPLIANT",
+        remarks: "Factura comercial coincidente con el importe del crédito.",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "doc_sha_bl_02",
+        instrumentId: "lc_shang_2026_06",
+        documentType: "OCEAN_BILL_OF_LADING",
+        originalCopiesRequired: 3,
+        originalCopiesPresented: 3,
+        documentReferenceNumber: "ONE-SHA-VLC-7721",
+        documentDate: "2026-08-21",
+        issuerName: "Ocean Network Express (ONE) Shanghai",
+        shippedOnBoardDate: "2026-08-21",
+        cleanOnBoardStatus: true,
+        freightPaymentClause: "PREPAID",
+        invoiceAmount: null,
+        invoiceCurrency: null,
+        goodsDescriptionExactMatch: false,
+        insuredAmount: null,
+        insuredPercentageOfCif: null,
+        complianceStatus: "DISCREPANT",
+        remarks:
+          "Discrepancia Art. 18(c) UCP 600: El conocimiento de embarque indica 'POLYCRYSTALLINE SOLAR MODULES' en contradicción con la especificación de 'MONOCRYSTALLINE BIFACIAL'.",
+        createdAt: new Date().toISOString(),
+      },
     ])
     .onConflictDoNothing();
 
@@ -327,6 +490,20 @@ export async function seedTradeFinance(): Promise<void> {
           "Infraseguro de mercancías: la póliza cubre USD 320,000.00 (100% CIF) cuando el Artículo 28(f)(ii) de la UCP 600 exige una cobertura mínima del 110% del valor CIF (USD 352,000.00).",
         suggestedRemedy:
           "Aportar suplemento o certificado complementario de la aseguradora cubriendo el 10% adicional o solicitar waiver.",
+        status: "OPEN",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "disc_sha_01",
+        instrumentId: "lc_shang_2026_06",
+        documentId: "doc_sha_bl_02",
+        discrepancyRuleCode: "UCP600_ART_18_GOODS_DESCRIPTION_MISMATCH",
+        articleReference: "UCP 600 Art. 18(c) & ISBP 745 Para E5",
+        severity: "CRITICAL_REFUSAL",
+        description:
+          "Discrepancia en la designación de las mercancías: el Conocimiento de Embarque declara 'POLYCRYSTALLINE SOLAR MODULES', en conflicto con la descripción del crédito 'MONOCRYSTALLINE BIFACIAL SOLAR PV MODULES'.",
+        suggestedRemedy:
+          "Emitir Swift MT734 al banco presentador (Bank of China) y recabar autorización expresa de pago (waiver) de Valencia Solar Green Energy SL.",
         status: "OPEN",
         createdAt: new Date().toISOString(),
       },
@@ -492,6 +669,94 @@ POLIGONO MALPICA CALLE E 12, ZARAGOZA, SPAIN
 :79:LATEST SHIPMENT DATE EXTENDED TO 261105 DUE TO OCEAN CARRIER BLANK SAILING.
 -}`,
         transmissionStatus: "ACKNOWLEDGED",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "swift_ham_mt700",
+        instrumentId: "lc_hamb_2026_05",
+        messageType: "MT700_ISSUE",
+        senderBic: "DEUTDEDDXXX",
+        receiverBic: "BNPAESMMXXX",
+        rawSwiftMessage: `{1:F01DEUTDEDDAXXX0000000000}{2:I700BNPAESMMXXXXN}{4:
+:27:1/1
+:40A:IRREVOCABLE
+:20:LC-2026-HAM-0219
+:31C:260815
+:40E:UCP LATEST VERSION
+:31D:261021COUNTERS OF CONFIRMING BANK, MADRID
+:50:BAVARIAN PRECISION TOOLS GMBH
+MAX-PLANCK-STRASSE 12, MUNICH, GERMANY
+:59:IBERICA HEAVY INDUSTRY COMPONENTS SA
+POL. IND. ARRIETA PARC. 4, BILBAO, SPAIN
+:32B:EUR680000,00
+:39A:05/05
+:41A:BNPAESMMXXX BY PAYMENT
+:42C:AT SIGHT
+:43P:NOT ALLOWED
+:43T:NOT ALLOWED
+:44E:DEHAM
+:44F:ESBIO
+:44C:260930
+:45A:HEAVY INDUSTRIAL CNC MILLING CENTERS & PRECISION ROBOTIC HEADS CIF BILBAO INCOTERMS 2020
+:46A:1. SIGNED COMMERCIAL INVOICE IN 3 ORIGINALS
+2. FULL SET CLEAN ON BOARD OCEAN BILLS OF LADING CONSIGNED TO ORDER
+3. PACKING LIST AND MANUFACTURER CE DECLARATION OF CONFORMITY
+:49:CONFIRM
+-}`,
+        transmissionStatus: "ACKNOWLEDGED",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "swift_sha_mt700",
+        instrumentId: "lc_shang_2026_06",
+        messageType: "MT700_ISSUE",
+        senderBic: "BSCHESMMXXX",
+        receiverBic: "BKCHCNBJXXX",
+        rawSwiftMessage: `{1:F01BSCHESMMAXXX0000000000}{2:I700BKCHCNBJXXXXN}{4:
+:27:1/1
+:40A:IRREVOCABLE
+:20:LC-2026-SHA-0402
+:31C:260810
+:40E:UCP LATEST VERSION
+:31D:261015COUNTERS OF ADVISING BANK, SHANGHAI
+:50:VALENCIA SOLAR GREEN ENERGY SL
+CALLE PINTOR SOROLLA 15, VALENCIA, SPAIN
+:59:SHANGHAI JINKO CLEAN ENERGY CO LTD
+PUDONG CENTURY BLVD 800, SHANGHAI, CHINA
+:32B:USD890000,00
+:39A:05/05
+:41A:BKCHCNBJXXX BY NEGOTIATION
+:42C:90 DAYS AFTER BILL OF LADING DATE
+:43P:ALLOWED
+:43T:ALLOWED
+:44E:CNSHA
+:44F:ESVLC
+:44C:260920
+:45A:12,000 MONOCRYSTALLINE BIFACIAL SOLAR PV MODULES 650W CIF VALENCIA INCOTERMS 2020
+:46A:1. SIGNED COMMERCIAL INVOICE IN 3 ORIGINALS
+2. FULL SET CLEAN ON BOARD OCEAN BILLS OF LADING CONSIGNED TO ORDER OF BANCO SANTANDER
+3. CERTIFICATE OF ORIGIN ISSUED BY CCPIT
+:47A:+ DOCUMENTS TO BE PRESENTED WITHIN 21 DAYS AFTER SHIPMENT DATE
+:49:WITHOUT
+-}`,
+        transmissionStatus: "ACKNOWLEDGED",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "swift_sha_mt734",
+        instrumentId: "lc_shang_2026_06",
+        messageType: "MT734_REFUSAL",
+        senderBic: "BSCHESMMXXX",
+        receiverBic: "BKCHCNBJXXX",
+        rawSwiftMessage: `{1:F01BSCHESMMAXXX0000000000}{2:I734BKCHCNBJXXXXN}{4:
+:20:LC-2026-SHA-0402
+:21:DISC-2026-SHA-01
+:32A:260829USD890000,00
+:77J:DISCREPANCY OBSERVED PURSUANT TO UCP 600 ARTICLE 18(C):
+BILL OF LADING ONE-SHA-VLC-7721 STIPULATES 'POLYCRYSTALLINE SOLAR MODULES', WHICH DOES NOT CORRESPOND WITH CREDIT REQUIREMENT 'MONOCRYSTALLINE BIFACIAL SOLAR PV MODULES'.
+:77B:HOLDING DOCUMENTS PENDING APPLICANT FORMAL WAIVER ACCEPTANCE.
+-}`,
+        transmissionStatus: "TRANSMITTED",
         createdAt: new Date().toISOString(),
       },
     ])

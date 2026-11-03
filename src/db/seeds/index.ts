@@ -62,37 +62,137 @@ import { seedDocuments } from "./documents.seed.js";
 import { seedControlTower } from "./control_tower.seed.js";
 import { seedAddressesAndBookings } from "./addresses.seed.js";
 import { seedDrayageOrders } from "./drayage.seed.js";
+import { db } from "../index.js";
+import * as schema from "../schema/index.js";
 
-export async function runAllSeeds(): Promise<void> {
+export interface SeedContext {
+  companyIds: string[];
+  userIds: string[];
+  shipmentIds: string[];
+}
+
+/**
+ * Phase 1: Core Multimodal Operations & Control Tower
+ * (Shipments, Containers, AIS Telemetry, Drayage Orders, Incidents, Incoterms, Air/Rail/Road/Bulk/Chartering)
+ */
+export async function seedPhase1(): Promise<SeedContext> {
+  console.log(
+    "🚀 [PHASE 1] Inyectando Operaciones Multimodales, Fletes y Control Tower...",
+  );
   await seedTriggers();
   const coreCtx = await seedCore();
   const shipmentIds = await seedOperations(coreCtx);
-  const fullCtx = { ...coreCtx, shipmentIds };
+  await seedAddressesAndBookings();
+  await seedDrayageOrders();
+  await seedTelemetry();
+  await seedControlTower();
+  await seedEdi();
+  await seedIncoterms();
+  await seedRoadFreight();
+  await seedRail();
+  await seedAirCargo();
+  await seedBulkOperations();
+  await seedChartering();
+  console.log(
+    "✅ [PHASE 1] Operaciones Multimodales y Control Tower completadas con éxito.",
+  );
+  return {
+    companyIds: coreCtx.companyIds,
+    userIds: coreCtx.userIds,
+    shipmentIds,
+  };
+}
+
+/**
+ * Phase 2: Specialized Cargo & Regulatory Compliance
+ * (Pharma Cold Chain GDP, IMDG Hazmat DGR, EU CBAM, Bonded Customs Warehouse, FuelEU Maritime, Carbon Footprint, AEO)
+ */
+export async function seedPhase2(): Promise<void> {
+  console.log(
+    "🌿 [PHASE 2] Inyectando Carga Especializada, Cadena de Frío, Mercancías Peligrosas y Cumplimiento CBAM/FuelEU...",
+  );
+  await seedColdChain();
+  await seedDangerousGoods();
+  await seedCbam();
+  await seedCustomsWarehouse();
+  await seedFuelEu();
+  await seedCarbon();
+  await seedAeoSecurity();
+  console.log(
+    "✅ [PHASE 2] Carga Especializada y Cumplimiento Regulatorio completadas con éxito.",
+  );
+}
+
+/**
+ * Phase 3: Finance, Trade Finance & Digital Document Vault
+ * (Multi-currency AR/AP Invoices, CASS Airline Netting, UCP 600 Letters of Credit, Treasury, Claims, e-BL / MLETR Vault)
+ */
+export async function seedPhase3(ctx?: Partial<SeedContext>): Promise<void> {
+  console.log(
+    "💰 [PHASE 3] Inyectando Facturación Comercial, Financiación UCP 600, Tesorería y Bóveda Documental...",
+  );
+  let activeCtx = ctx;
+
+  if (
+    !activeCtx ||
+    !activeCtx.shipmentIds ||
+    activeCtx.shipmentIds.length === 0
+  ) {
+    const existingCompanies = await db
+      .select({ id: schema.companies.id })
+      .from(schema.companies)
+      .limit(10);
+    const existingUsers = await db
+      .select({ id: schema.users.id })
+      .from(schema.users)
+      .limit(10);
+    const existingShipments = await db
+      .select({ id: schema.shipments.id })
+      .from(schema.shipments)
+      .limit(100);
+
+    if (existingCompanies.length > 0 && existingShipments.length > 0) {
+      activeCtx = {
+        companyIds: existingCompanies.map((c) => c.id),
+        userIds: existingUsers.map((u) => u.id),
+        shipmentIds: existingShipments.map((s) => s.id),
+      };
+    } else {
+      console.log(
+        "⚠️ Prerrequisitos de Fase 1 ausentes en BD. Inicializando Fase 1 previa...",
+      );
+      const p1 = await seedPhase1();
+      activeCtx = p1;
+    }
+  }
+
+  const fullCtx = {
+    companyIds: activeCtx.companyIds || [],
+    userIds: activeCtx.userIds || [],
+    shipmentIds: activeCtx.shipmentIds || [],
+  };
 
   await seedFinance(fullCtx);
   await seedBookingsWarehouse(fullCtx);
-  await seedAirCargo();
-  await seedIncoterms();
-  await seedClaims();
-  await seedRoadFreight();
   await seedTreasury();
-  await seedColdChain();
-  await seedCbam();
-  await seedRail();
-  await seedCustomsWarehouse();
-  await seedFuelEu();
   await seedTradeFinance();
-  await seedAeoSecurity();
-  await seedChartering();
+  await seedClaims();
   await seedGeneralAverage();
-  await seedDangerousGoods();
   await seedCargoInsurance();
-  await seedBulkOperations();
-  await seedCarbon();
-  await seedTelemetry();
-  await seedEdi();
   await seedDocuments();
-  await seedControlTower();
-  await seedAddressesAndBookings();
-  await seedDrayageOrders();
+  console.log(
+    "✅ [PHASE 3] Finanzas, Créditos Documentarios y Bóveda completadas con éxito.",
+  );
+}
+
+/**
+ * Master Runner: Executes all 3 phases sequentially.
+ */
+export async function runAllSeeds(): Promise<void> {
+  const p1 = await seedPhase1();
+  await seedPhase2();
+  await seedPhase3(p1);
+  console.log(
+    "✨ Las 3 Fases de Datos Enterprise han sido inyectadas exitosamente.",
+  );
 }

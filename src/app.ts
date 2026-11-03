@@ -126,6 +126,7 @@ app.addHook("onRequest", async (request, reply) => {
     request.url.startsWith("/api/tracking/") ||
     request.url.startsWith("/api/auth/") ||
     request.url.startsWith("/admin/") ||
+    request.url.startsWith("/api/admin/seed") ||
     request.url.startsWith("/api/warehouse/ws") ||
     request.url.startsWith("/api/dashboard/live") ||
     request.url.startsWith("/api/edi/inbound") ||

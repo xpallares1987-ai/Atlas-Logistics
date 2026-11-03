@@ -24,7 +24,7 @@ export async function seedFinance(ctx: {
 
   let invIndex = 1;
   for (const shipmentId of shipmentIds) {
-    if (invIndex > 35) break;
+    if (invIndex > 60) break;
 
     const invoiceId = `inv_seed_${String(invIndex).padStart(3, "0")}`;
     const invType = types[(invIndex - 1) % types.length];

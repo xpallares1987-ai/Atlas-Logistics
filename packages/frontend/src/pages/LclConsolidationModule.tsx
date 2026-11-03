@@ -24,13 +24,18 @@ export default function LclConsolidationModule() {
 
   useEffect(() => {
     fetch("/api/operations/lcl/cargo")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         if (data && data.length > 0) {
           setCargoPool(data);
         }
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.warn("Could not load LCL cargo pool:", err.message || err);
+      });
   }, []);
 
   const toggleSelection = (id: string) => {

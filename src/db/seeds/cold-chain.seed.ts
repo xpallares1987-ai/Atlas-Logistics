@@ -263,6 +263,80 @@ export async function seedColdChain(): Promise<void> {
         departureTime: "2026-08-25T11:00:00Z",
         estimatedArrivalTime: "2026-08-29T14:00:00Z",
       },
+      {
+        id: "cc_insulin_9908",
+        trackingNumber: "CC-2026-9908",
+        batchNumber: "BATCH-HUMIRA-2026-09",
+        productDescription:
+          "Adalimumab 40mg/0.8ml Solución Inyectable (2.000 jeringas precargadas)",
+        pharmaClassification: "BIOLOGICS_VACCINES",
+        profileId: "prof_pharma_cold",
+        packagingType: "INSULATED_EPS_GEL_PACKS",
+        setpointTempCelsius: 4.0,
+        loggerSerialNumber: "TT-GEO-993210",
+        loggerModel: "TempTale GEO Ultra 4G Real-Time",
+        mktCalculatedCelsius: 4.65,
+        excursionDurationMinutes: 0,
+        excursionStatus: "COMPLIANT",
+        gdpReleaseVerdict: "RELEASED_FOR_DISTRIBUTION",
+        responsiblePersonName:
+          "Dra. Elena Ruiz (Directora Técnica Farmacéutica QP/RP)",
+        qualityAuditNotes:
+          "Transporte multimodal directo Barcelona - Milán. Cadena de frío preservada estrictamente entre 3.8°C y 5.4°C.",
+        originLocation: "Barcelona BioPharma Park (BCN)",
+        destinationLocation: "Milano Logistics Hub (MXP)",
+        departureTime: "2026-08-28T06:00:00Z",
+        estimatedArrivalTime: "2026-08-30T06:00:00Z",
+      },
+      {
+        id: "cc_vaccine_9909",
+        trackingNumber: "CC-2026-9909",
+        batchNumber: "BATCH-HEXA-2026-11B",
+        productDescription:
+          "Vacuna Hexavalente Pediátrica DTPa-VHB-PIV-Hib (1.500 dosis)",
+        pharmaClassification: "BIOLOGICS_VACCINES",
+        profileId: "prof_pharma_cold",
+        packagingType: "INSULATED_EPS_GEL_PACKS",
+        setpointTempCelsius: 5.0,
+        loggerSerialNumber: "TT-BLE-771920",
+        loggerModel: "Sensitech TempTale Ultra BLE",
+        mktCalculatedCelsius: 5.42,
+        excursionDurationMinutes: 20,
+        excursionStatus: "MINOR_EXCURSION",
+        gdpReleaseVerdict: "RELEASED_FOR_DISTRIBUTION",
+        responsiblePersonName: "Dr. Marc Torres (Persona Responsable GDP)",
+        qualityAuditNotes:
+          "Excursión transitoria de 20 min a 8.4°C en plataforma de carga de Madrid Barajas. MKT final de 5.42°C dentro del rango de estabilidad autorizado.",
+        originLocation: "Madrid Barajas Pharma Cargo Hub",
+        destinationLocation: "Lisboa Aeroporto Terminal Carga",
+        departureTime: "2026-08-29T08:00:00Z",
+        estimatedArrivalTime: "2026-08-30T14:00:00Z",
+      },
+      {
+        id: "cc_perishable_9910",
+        trackingNumber: "CC-2026-9910",
+        batchNumber: "BATCH-AGRO-CITRUS-04",
+        productDescription:
+          "Naranjas Valencianas IGP Selección Exportación (1x40' High Cube Reefer)",
+        pharmaClassification: "PERISHABLES_FOOD",
+        profileId: "prof_perishable",
+        packagingType: "ACTIVE_REEFER_CONTAINER",
+        setpointTempCelsius: 3.0,
+        loggerSerialNumber: "TT-REEF-883011",
+        loggerModel: "Carrier Transicold DataCOLD 600",
+        mktCalculatedCelsius: 3.12,
+        excursionDurationMinutes: 0,
+        excursionStatus: "COMPLIANT",
+        gdpReleaseVerdict: "RELEASED_FOR_DISTRIBUTION",
+        responsiblePersonName:
+          "Ing. Agrónomo Fernando Soler (QA Quality Fruit)",
+        qualityAuditNotes:
+          "Temperatura de pulpa y ambiente de contenedor mantenida en 3.0°C ± 0.3°C. Ventilación de aire fresco a 25 m³/h.",
+        originLocation: "Puerto de Valencia (Muelle de la Xina)",
+        destinationLocation: "Hamburg Fruit Terminal (Burchardkai)",
+        departureTime: "2026-08-27T10:00:00Z",
+        estimatedArrivalTime: "2026-08-31T18:00:00Z",
+      },
     ])
     .onConflictDoNothing();
 
@@ -515,6 +589,91 @@ export async function seedColdChain(): Promise<void> {
       },
     ])
     .onConflictDoNothing();
+
+  // Generate 48-Hour Continuous High-Resolution Datalogger Curves (EN 12830)
+  const continuousTelemetryReadings: Array<{
+    id: string;
+    coldChainShipmentId: string;
+    recordedAt: string;
+    probeTemperatureCelsius: number;
+    ambientTemperatureCelsius: number;
+    relativeHumidityPct: number;
+    isExcursion: boolean;
+    powerSupplyMode: "GENSET_DIESEL" | "MAINS_ELECTRIC" | "BATTERY_PASSIVE";
+  }> = [];
+
+  // 1. 48 Hours continuous for Adalimumab Humira (cc_insulin_9908, 2°C to 8°C)
+  const startHumira = Date.parse("2026-08-28T06:00:00Z");
+  for (let h = 0; h <= 48; h++) {
+    const recordedAt = new Date(startHumira + h * 3600 * 1000).toISOString();
+    const probe = Number(
+      (4.3 + Math.sin(h / 3) * 0.4 + (h % 5) * 0.05).toFixed(1),
+    );
+    const ambient = Number((21.0 + Math.sin(h / 4) * 4.5).toFixed(1));
+    const humidity = Number((46.0 + Math.cos(h / 3) * 5.0).toFixed(1));
+    continuousTelemetryReadings.push({
+      id: `rd_humira_${String(h).padStart(2, "0")}`,
+      coldChainShipmentId: "cc_insulin_9908",
+      recordedAt,
+      probeTemperatureCelsius: probe,
+      ambientTemperatureCelsius: ambient,
+      relativeHumidityPct: humidity,
+      isExcursion: false,
+      powerSupplyMode: "BATTERY_PASSIVE",
+    });
+  }
+
+  // 2. 24 Hours continuous for Hexavalent Vaccine (cc_vaccine_9909, with 20min apron excursion)
+  const startHexa = Date.parse("2026-08-29T08:00:00Z");
+  for (let h = 0; h <= 24; h++) {
+    const recordedAt = new Date(startHexa + h * 3600 * 1000).toISOString();
+    const isExcursion = h === 6; // Hour 6 transfer on tarmac
+    const probe = isExcursion
+      ? 8.4
+      : Number((4.9 + Math.cos(h / 2.5) * 0.35).toFixed(1));
+    const ambient = isExcursion
+      ? 33.5
+      : Number((22.0 + Math.sin(h / 3) * 3.5).toFixed(1));
+    const humidity = Number((48.0 + (h % 4) * 1.2).toFixed(1));
+    continuousTelemetryReadings.push({
+      id: `rd_hexa_${String(h).padStart(2, "0")}`,
+      coldChainShipmentId: "cc_vaccine_9909",
+      recordedAt,
+      probeTemperatureCelsius: probe,
+      ambientTemperatureCelsius: ambient,
+      relativeHumidityPct: humidity,
+      isExcursion,
+      powerSupplyMode: "BATTERY_PASSIVE",
+    });
+  }
+
+  // 3. 48 Hours continuous for Citrus Export 40' Reefer (cc_perishable_9910, 0°C to 4°C)
+  const startCitrus = Date.parse("2026-08-27T10:00:00Z");
+  for (let h = 0; h <= 48; h++) {
+    const recordedAt = new Date(startCitrus + h * 3600 * 1000).toISOString();
+    const probe = Number((3.0 + Math.sin(h / 5) * 0.22).toFixed(1));
+    const ambient = Number((24.0 + Math.sin(h / 4) * 5.0).toFixed(1));
+    const humidity = Number((90.0 + Math.cos(h / 4) * 2.5).toFixed(1));
+    continuousTelemetryReadings.push({
+      id: `rd_citrus_${String(h).padStart(2, "0")}`,
+      coldChainShipmentId: "cc_perishable_9910",
+      recordedAt,
+      probeTemperatureCelsius: probe,
+      ambientTemperatureCelsius: ambient,
+      relativeHumidityPct: humidity,
+      isExcursion: false,
+      powerSupplyMode: h < 30 ? "MAINS_ELECTRIC" : "GENSET_DIESEL",
+    });
+  }
+
+  // Insert in batches of 50 to maintain optimal SQLite query plan performance
+  for (let i = 0; i < continuousTelemetryReadings.length; i += 50) {
+    const batch = continuousTelemetryReadings.slice(i, i + 50);
+    await db
+      .insert(schema.temperatureReadings)
+      .values(batch)
+      .onConflictDoNothing();
+  }
 
   console.log(
     "✅ Creados Perfiles Térmicos, Expediciones Farmacéuticas GDP y Telemetría de Dataloggers.",

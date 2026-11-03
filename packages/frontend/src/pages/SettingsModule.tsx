@@ -1037,18 +1037,18 @@ function SecuritySettings() {
   // Fetch credentials and policy from backend on mount
   useEffect(() => {
     fetch("/api/passkeys/credentials")
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data.success && data.devices) {
+        if (data && data.success && data.devices) {
           setPasskeys(data.devices);
         }
       })
       .catch(() => {});
 
     fetch("/api/passkeys/policy")
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data.success && data.policy) {
+        if (data && data.success && data.policy) {
           setStepUpPolicy(data.policy);
         }
       })
