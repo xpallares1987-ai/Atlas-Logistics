@@ -15,6 +15,7 @@ import {
   companies,
   addresses,
   addressContacts,
+  drayageTransportOrders,
 } from "../src/db/schema/index.js";
 import { eq, inArray } from "drizzle-orm";
 
@@ -127,6 +128,15 @@ describe("Container Drayage Road Haulage & Carbon Engine (GLEC v3.0)", () => {
 
   afterAll(async () => {
     // Cleanup
+    await db
+      .delete(drayageTransportOrders)
+      .where(
+        inArray(drayageTransportOrders.originAddressId, [
+          testOriginAddressId,
+          testTerminalAddressId,
+          testHaulierAddressId,
+        ]),
+      );
     await db
       .delete(addressContacts)
       .where(eq(addressContacts.addressId, testHaulierAddressId));

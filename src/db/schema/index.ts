@@ -29,6 +29,7 @@ export * from "./iot_telemetry.js";
 export * from "./edi.js";
 export * from "./dcsa.js";
 export * from "./control_tower.js";
+export * from "./drayage.js";
 export * from "./scm_foundation.js";
 export * from "./scm_entities_sqlite.js";
 export * from "./scm_workflow_engine_sqlite.js";

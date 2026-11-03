@@ -26,9 +26,12 @@ import {
   Ship,
   Sparkles,
   Trees,
+  Truck,
   Unlock,
   Zap,
 } from "lucide-react";
+import { ResolutionJustificationSelect } from "../components/common/ResolutionJustificationSelect";
+import { ShipmentDrayageDrawer } from "../components/drayage/ShipmentDrayageDrawer";
 
 // ============================================================================
 // DOMAIN TYPES MATCHING OPERATIONAL BFF READ MODELS
@@ -346,6 +349,7 @@ export default function ShipmentWorkspace360Module() {
   const [actionSuccessMessage, setActionSuccessMessage] = useState<
     string | null
   >(null);
+  const [showDrayageDrawer, setShowDrayageDrawer] = useState(false);
 
   // Raise Exception Modal
   const [showRaiseExceptionModal, setShowRaiseExceptionModal] = useState(false);
@@ -949,6 +953,15 @@ export default function ShipmentWorkspace360Module() {
                   className={`w-3.5 h-3.5 ${downloadingHBL ? "animate-spin" : ""}`}
                 />
                 {downloadingHBL ? "Generando..." : "Descargar HBL"}
+              </button>
+
+              <button
+                onClick={() => setShowDrayageDrawer(true)}
+                className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 border border-indigo-500/40 flex items-center gap-1.5 transition"
+                title="Dispatch Port Drayage & Container Haulage (GLEC v3.0)"
+              >
+                <Truck className="w-3.5 h-3.5 text-indigo-400" />
+                Dispatch Drayage
               </button>
 
               <button
@@ -2845,36 +2858,19 @@ export default function ShipmentWorkspace360Module() {
 
                   {activeActionModal.type === "RESOLVE_EXCEPTION" ? (
                     <div className="space-y-4">
-                      <div>
-                        <label
-                          htmlFor="modal-resolution-note"
-                          className="block text-xs font-semibold text-slate-300 mb-1"
-                        >
-                          Resolution Justification Note{" "}
-                          <span className="text-rose-400">*</span>
-                        </label>
-                        <textarea
-                          id="modal-resolution-note"
-                          name="resolutionNote"
-                          aria-label="Resolution Justification Note"
-                          required
-                          rows={4}
-                          value={
-                            activeActionModal.inputs["resolutionNote"] || ""
-                          }
-                          onChange={(e) =>
-                            setActiveActionModal({
-                              ...activeActionModal,
-                              inputs: {
-                                ...activeActionModal.inputs,
-                                resolutionNote: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="E.g., Rolled booking accommodated on feeder vessel CMA CGM LOUVRE ETA +24h, customs clearance certified..."
-                          className="w-full p-3 text-xs rounded-xl bg-slate-950 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                        />
-                      </div>
+                      <ResolutionJustificationSelect
+                        id="modal-resolution-note"
+                        value={activeActionModal.inputs["resolutionNote"] || ""}
+                        onChange={(val) =>
+                          setActiveActionModal({
+                            ...activeActionModal,
+                            inputs: {
+                              ...activeActionModal.inputs,
+                              resolutionNote: val,
+                            },
+                          })
+                        }
+                      />
 
                       <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -3096,6 +3092,19 @@ export default function ShipmentWorkspace360Module() {
             </form>
           </div>
         </div>
+      )}
+
+      {showDrayageDrawer && (
+        <ShipmentDrayageDrawer
+          isOpen={showDrayageDrawer}
+          onClose={() => setShowDrayageDrawer(false)}
+          shipment={shipmentDetail}
+          onOrderCreated={() => {
+            if (selectedShipmentId) {
+              fetchShipmentDetail(selectedShipmentId);
+            }
+          }}
+        />
       )}
     </div>
   );

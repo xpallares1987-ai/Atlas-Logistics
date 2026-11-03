@@ -15,6 +15,7 @@ import {
   UserCheck,
   Zap,
 } from "lucide-react";
+import { ResolutionJustificationSelect } from "../components/common/ResolutionJustificationSelect";
 
 export interface OperationalExceptionRecord {
   exceptionId: string;
@@ -605,25 +606,11 @@ export default function ExceptionCenterModule() {
 
             {/* Step 2: Decide & Act */}
             <form onSubmit={handleResolveSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label
-                  htmlFor="resolve-justification"
-                  className="block text-xs font-semibold text-slate-300"
-                >
-                  Resolution Justification (Required)
-                </label>
-                <textarea
-                  id="resolve-justification"
-                  name="resolutionNote"
-                  aria-label="Resolution Justification"
-                  required
-                  rows={3}
-                  value={resolutionNote}
-                  onChange={(e) => setResolutionNote(e.target.value)}
-                  placeholder="E.g., Rolled cargo rebooked on vessel MSC PALOMA ETA +18h, updated customer and unlocked customs..."
-                  className="w-full p-2.5 text-xs rounded-xl bg-slate-800 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
+              <ResolutionJustificationSelect
+                id="resolve-justification"
+                value={resolutionNote}
+                onChange={setResolutionNote}
+              />
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
                 <button

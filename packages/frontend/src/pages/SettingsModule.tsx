@@ -25,7 +25,13 @@ import {
   Trash2,
   Sparkles,
   Clock,
+  Sliders,
 } from "lucide-react";
+import {
+  useResolutionNotesStore,
+  ResolutionCategory,
+} from "../store/useResolutionNotesStore";
+import { Link } from "react-router-dom";
 import type {
   RegisteredPasskeyDevice,
   PasskeyDeviceType,
@@ -66,6 +72,8 @@ export default function SettingsModule() {
     if (hash === "security") return "Security";
     if (hash === "apikeys") return "API";
     if (hash === "database") return "Database";
+    if (hash === "resolutions") return "Resolutions";
+    if (hash === "system") return "System Administration";
     return "Appearance";
   };
 
@@ -101,8 +109,21 @@ export default function SettingsModule() {
     { id: "Devices", icon: Smartphone, label: t("settings.devices") },
   ];
 
+  if (user?.role === "ADMIN" || user?.role === "MANAGER") {
+    tabs.push({
+      id: "Resolutions",
+      icon: CheckCircle2,
+      label: "Resolution Protocols",
+    });
+  }
+
   if (user?.role === "ADMIN") {
     tabs.push({ id: "Database", icon: Database, label: "Database" });
+    tabs.push({
+      id: "System Administration",
+      icon: Sliders,
+      label: "System Panel",
+    });
   }
 
   return (
@@ -441,6 +462,36 @@ export default function SettingsModule() {
             {activeTab === "Database" && user?.role === "ADMIN" && (
               <DatabaseManager />
             )}
+
+            {activeTab === "Resolutions" &&
+              (user?.role === "ADMIN" || user?.role === "MANAGER") && (
+                <ResolutionProtocolsSettings />
+              )}
+
+            {activeTab === "System Administration" &&
+              user?.role === "ADMIN" && (
+                <div className="space-y-6">
+                  <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/30 border border-indigo-200 dark:border-indigo-800 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-base font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-2">
+                        <Sliders className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                        Consolidated System Administration Panel
+                      </h3>
+                      <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-1 max-w-xl">
+                        Centralized administrative governance managing
+                        Resolution Protocols, RBAC Matrix, ERP Connectors,
+                        Platform Governance (CQRS), and e.firma Security Vault.
+                      </p>
+                    </div>
+                    <Link
+                      to="/system-panel"
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-indigo-600/20 shrink-0"
+                    >
+                      <Sliders size={16} /> Open Full System Panel
+                    </Link>
+                  </div>
+                </div>
+              )}
           </div>
         </div>
       </div>
@@ -933,26 +984,41 @@ function SecuritySettings() {
   const [loadingPassword, setLoadingPassword] = useState(false);
 
   // Passkeys FIDO2 State
-  const [passkeys, setPasskeys] = useState<RegisteredPasskeyDevice[]>(SAMPLE_REGISTERED_PASSKEYS);
+  const [passkeys, setPasskeys] = useState<RegisteredPasskeyDevice[]>(
+    SAMPLE_REGISTERED_PASSKEYS,
+  );
   const [isAddingPasskey, setIsAddingPasskey] = useState(false);
-  const [newDeviceName, setNewDeviceName] = useState("YubiKey 5 NFC (Personal)");
-  const [newDeviceType, setNewDeviceType] = useState<PasskeyDeviceType>("YUBIKEY_FIPS");
+  const [newDeviceName, setNewDeviceName] = useState(
+    "YubiKey 5 NFC (Personal)",
+  );
+  const [newDeviceType, setNewDeviceType] =
+    useState<PasskeyDeviceType>("YUBIKEY_FIPS");
   const [handshakeTesting, setHandshakeTesting] = useState(false);
-  const [handshakeResult, setHandshakeResult] = useState<{ success: boolean; deviceModel: string; timestamp: string } | null>(null);
+  const [handshakeResult, setHandshakeResult] = useState<{
+    success: boolean;
+    deviceModel: string;
+    timestamp: string;
+  } | null>(null);
 
   // TOTP State
   const [is2FaEnabled, setIs2FaEnabled] = useState(true);
   const [totpSecret, setTotpSecret] = useState(() => generateBase32Secret(16));
-  const [currentTotpCode, setCurrentTotpCode] = useState(() => generateTOTP(totpSecret));
+  const [currentTotpCode, setCurrentTotpCode] = useState(() =>
+    generateTOTP(totpSecret),
+  );
   const [totpSecondsRemaining, setTotpSecondsRemaining] = useState(30);
   const [totpInputCode, setTotpInputCode] = useState("");
-  const [totpVerifiedStatus, setTotpVerifiedStatus] = useState<boolean | null>(null);
+  const [totpVerifiedStatus, setTotpVerifiedStatus] = useState<boolean | null>(
+    null,
+  );
   const [backupCodes] = useState<string[]>(() => generateBackupCodes(5));
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [copiedBackupCodes, setCopiedBackupCodes] = useState(false);
 
   // Step-Up Policy State
-  const [stepUpPolicy, setStepUpPolicy] = useState<StepUpSecurityPolicy>(DEFAULT_STEP_UP_POLICY);
+  const [stepUpPolicy, setStepUpPolicy] = useState<StepUpSecurityPolicy>(
+    DEFAULT_STEP_UP_POLICY,
+  );
   const [savingPolicy, setSavingPolicy] = useState(false);
 
   // Timer for live TOTP code
@@ -1083,7 +1149,7 @@ function SecuritySettings() {
       const result = await authenticateWithHardwareToken(
         "TEST-MANIFEST-884",
         user?.email || "admin@atlas-logistics.com",
-        { simulatedDelayMs: 600, deviceModel: "YubiKey 5 NFC / Windows Hello" }
+        { simulatedDelayMs: 600, deviceModel: "YubiKey 5 NFC / Windows Hello" },
       );
       const isValid = verifyHardwareSignature(result, "TEST-MANIFEST-884");
       if (isValid) {
@@ -1227,7 +1293,8 @@ function SecuritySettings() {
               Centro de Llaves Passkeys & Tokens de Seguridad (FIDO2)
             </h3>
             <p className="text-xs text-slate-500">
-              Inicio de sesión y autorización resistente a phishing mediante YubiKey, TouchID o Windows Hello.
+              Inicio de sesión y autorización resistente a phishing mediante
+              YubiKey, TouchID o Windows Hello.
             </p>
           </div>
           <Button
@@ -1247,7 +1314,9 @@ function SecuritySettings() {
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div>
-                <label className="block text-slate-500 mb-1 font-medium">Nombre de la Llave:</label>
+                <label className="block text-slate-500 mb-1 font-medium">
+                  Nombre de la Llave:
+                </label>
                 <Input
                   value={newDeviceName}
                   onChange={(e) => setNewDeviceName(e.target.value)}
@@ -1255,16 +1324,26 @@ function SecuritySettings() {
                 />
               </div>
               <div>
-                <label className="block text-slate-500 mb-1 font-medium">Tipo de Autenticador:</label>
+                <label className="block text-slate-500 mb-1 font-medium">
+                  Tipo de Autenticador:
+                </label>
                 <Select
                   value={newDeviceType}
-                  onChange={(e) => setNewDeviceType(e.target.value as PasskeyDeviceType)}
+                  onChange={(e) =>
+                    setNewDeviceType(e.target.value as PasskeyDeviceType)
+                  }
                 >
-                  <option value="YUBIKEY_FIPS">YubiKey 5 Series (Hardware FIPS)</option>
-                  <option value="TOUCH_ID">Apple TouchID / FaceID (Secure Enclave)</option>
+                  <option value="YUBIKEY_FIPS">
+                    YubiKey 5 Series (Hardware FIPS)
+                  </option>
+                  <option value="TOUCH_ID">
+                    Apple TouchID / FaceID (Secure Enclave)
+                  </option>
                   <option value="WINDOWS_HELLO">Windows Hello (TPM 2.0)</option>
                   <option value="TITAN_KEY">Google Titan Security Key</option>
-                  <option value="SECURITY_KEY_GENERIC">Llave de Seguridad Genérica FIDO2</option>
+                  <option value="SECURITY_KEY_GENERIC">
+                    Llave de Seguridad Genérica FIDO2
+                  </option>
                 </Select>
               </div>
             </div>
@@ -1295,7 +1374,8 @@ function SecuritySettings() {
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-                  {dev.deviceType.includes("TOUCH") || dev.deviceType.includes("WINDOWS") ? (
+                  {dev.deviceType.includes("TOUCH") ||
+                  dev.deviceType.includes("WINDOWS") ? (
                     <Fingerprint className="w-5 h-5" />
                   ) : (
                     <KeyRound className="w-5 h-5" />
@@ -1311,7 +1391,9 @@ function SecuritySettings() {
                     </span>
                   </div>
                   <span className="text-[11px] text-slate-400 block font-mono">
-                    Registrado: {new Date(dev.registeredAt).toLocaleDateString()} • Credential: {dev.credentialId.slice(0, 20)}...
+                    Registrado:{" "}
+                    {new Date(dev.registeredAt).toLocaleDateString()} •
+                    Credential: {dev.credentialId.slice(0, 20)}...
                   </span>
                 </div>
               </div>
@@ -1334,7 +1416,8 @@ function SecuritySettings() {
               Prueba de Handshake Biométrico (Simulación Local)
             </span>
             <span className="text-slate-500 text-[11px]">
-              Verifique el sensor y el certificado de hardware sin iniciar una transacción real.
+              Verifique el sensor y el certificado de hardware sin iniciar una
+              transacción real.
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -1344,7 +1427,11 @@ function SecuritySettings() {
               variant="outline"
               className="text-xs flex items-center gap-1.5"
             >
-              {handshakeTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-indigo-500" />}
+              {handshakeTesting ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              )}
               Probar Handshake
             </Button>
           </div>
@@ -1354,7 +1441,9 @@ function SecuritySettings() {
           <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 text-xs flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
             <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
             <span>
-              ¡Handshake exitoso! Dispositivo: <b>{handshakeResult.deviceModel}</b> a las {handshakeResult.timestamp}.
+              ¡Handshake exitoso! Dispositivo:{" "}
+              <b>{handshakeResult.deviceModel}</b> a las{" "}
+              {handshakeResult.timestamp}.
             </span>
           </div>
         )}
@@ -1369,7 +1458,8 @@ function SecuritySettings() {
               Autenticación en Dos Pasos (TOTP RFC 6238)
             </h3>
             <p className="text-xs text-slate-500">
-              Generación de códigos de un solo uso compatibles con Google Authenticator y Microsoft Authenticator.
+              Generación de códigos de un solo uso compatibles con Google
+              Authenticator y Microsoft Authenticator.
             </p>
           </div>
           <Switch
@@ -1384,7 +1474,9 @@ function SecuritySettings() {
               {/* Clave Secreta y Cuenta Regresiva */}
               <div className="space-y-3">
                 <div>
-                  <span className="text-slate-500 text-[11px] block font-medium">Clave Secreta Base32:</span>
+                  <span className="text-slate-500 text-[11px] block font-medium">
+                    Clave Secreta Base32:
+                  </span>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="font-mono text-sm font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800 flex-1">
                       {totpSecret}
@@ -1406,7 +1498,11 @@ function SecuritySettings() {
                       onClick={handleCopySecret}
                       className="text-xs flex items-center gap-1"
                     >
-                      {copiedSecret ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedSecret ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -1414,13 +1510,17 @@ function SecuritySettings() {
                 {/* Código En Vivo y Reloj */}
                 <div className="p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Código de Prueba en Vivo</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">
+                      Código de Prueba en Vivo
+                    </span>
                     <span className="font-mono text-xl font-black text-indigo-600 dark:text-indigo-400 tracking-wider">
                       {currentTotpCode.slice(0, 3)} {currentTotpCode.slice(3)}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 block font-semibold">Expiración</span>
+                    <span className="text-[10px] text-slate-400 block font-semibold">
+                      Expiración
+                    </span>
                     <span className="font-mono text-xs font-bold text-amber-500 flex items-center gap-1">
                       <Clock className="w-3 h-3" /> {totpSecondsRemaining}s
                     </span>
@@ -1437,7 +1537,9 @@ function SecuritySettings() {
                   <Input
                     maxLength={6}
                     value={totpInputCode}
-                    onChange={(e) => setTotpInputCode(e.target.value.replace(/[^0-9]/g, ""))}
+                    onChange={(e) =>
+                      setTotpInputCode(e.target.value.replace(/[^0-9]/g, ""))
+                    }
                     placeholder="123456"
                     className="font-mono text-sm tracking-widest text-center"
                   />
@@ -1449,8 +1551,12 @@ function SecuritySettings() {
                   </Button>
                 </div>
                 {totpVerifiedStatus !== null && (
-                  <p className={`text-xs font-medium ${totpVerifiedStatus ? "text-emerald-500" : "text-rose-500"}`}>
-                    {totpVerifiedStatus ? "✓ Código verificado correctamente." : "✕ Código incorrecto o desfasado."}
+                  <p
+                    className={`text-xs font-medium ${totpVerifiedStatus ? "text-emerald-500" : "text-rose-500"}`}
+                  >
+                    {totpVerifiedStatus
+                      ? "✓ Código verificado correctamente."
+                      : "✕ Código incorrecto o desfasado."}
                   </p>
                 )}
               </div>
@@ -1460,14 +1566,20 @@ function SecuritySettings() {
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  Códigos de Recuperación de Emergencia (5 Códigos de Un Solo Uso)
+                  Códigos de Recuperación de Emergencia (5 Códigos de Un Solo
+                  Uso)
                 </span>
                 <Button
                   variant="ghost"
                   onClick={handleCopyBackupCodes}
                   className="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1 h-auto p-0"
                 >
-                  {copiedBackupCodes ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} Copiar Todos
+                  {copiedBackupCodes ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}{" "}
+                  Copiar Todos
                 </Button>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -1493,7 +1605,8 @@ function SecuritySettings() {
             Políticas de Autorización Biométrica Reforzada (Step-Up)
           </h3>
           <p className="text-xs text-slate-500">
-            Exigir confirmación obligatoria mediante Passkey / FIDO2 para operaciones de alto riesgo aduanal o financiero.
+            Exigir confirmación obligatoria mediante Passkey / FIDO2 para
+            operaciones de alto riesgo aduanal o financiero.
           </p>
         </div>
 
@@ -1504,13 +1617,17 @@ function SecuritySettings() {
                 Despacho y Pedimentos Aduanales (SAT / VUCEM)
               </p>
               <p className="text-slate-500 text-[11px]">
-                Requerir huella o token YubiKey antes de certificar el desaduanamiento de contenedores.
+                Requerir huella o token YubiKey antes de certificar el
+                desaduanamiento de contenedores.
               </p>
             </div>
             <Switch
               checked={stepUpPolicy.requirePasskeyForCustomsClearance}
               onChange={(e) =>
-                setStepUpPolicy({ ...stepUpPolicy, requirePasskeyForCustomsClearance: e.target.checked })
+                setStepUpPolicy({
+                  ...stepUpPolicy,
+                  requirePasskeyForCustomsClearance: e.target.checked,
+                })
               }
             />
           </div>
@@ -1521,13 +1638,17 @@ function SecuritySettings() {
                 Endoso y Transferencia de Conocimientos de Embarque (e-BL MLETR)
               </p>
               <p className="text-slate-500 text-[11px]">
-                Requerir clave criptográfica hardware antes de ceder la titularidad legal de la carga.
+                Requerir clave criptográfica hardware antes de ceder la
+                titularidad legal de la carga.
               </p>
             </div>
             <Switch
               checked={stepUpPolicy.requirePasskeyForEblRelease}
               onChange={(e) =>
-                setStepUpPolicy({ ...stepUpPolicy, requirePasskeyForEblRelease: e.target.checked })
+                setStepUpPolicy({
+                  ...stepUpPolicy,
+                  requirePasskeyForEblRelease: e.target.checked,
+                })
               }
             />
           </div>
@@ -1538,19 +1659,25 @@ function SecuritySettings() {
                 Liquidaciones y Pagos de Tesorería Superiores a Umbral
               </p>
               <p className="text-slate-500 text-[11px]">
-                Exigir token de seguridad para autorizar desembolsos de fletes o pagos a navieras.
+                Exigir token de seguridad para autorizar desembolsos de fletes o
+                pagos a navieras.
               </p>
             </div>
             <Switch
               checked={stepUpPolicy.requirePasskeyForHighValuePayouts}
               onChange={(e) =>
-                setStepUpPolicy({ ...stepUpPolicy, requirePasskeyForHighValuePayouts: e.target.checked })
+                setStepUpPolicy({
+                  ...stepUpPolicy,
+                  requirePasskeyForHighValuePayouts: e.target.checked,
+                })
               }
             />
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-            <span className="text-slate-500">Umbral de Liquidación en Euros (€):</span>
+            <span className="text-slate-500">
+              Umbral de Liquidación en Euros (€):
+            </span>
             <div className="w-32">
               <Input
                 type="number"
@@ -1572,11 +1699,273 @@ function SecuritySettings() {
               disabled={savingPolicy}
               className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5"
             >
-              {savingPolicy ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              {savingPolicy ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Check className="w-3.5 h-3.5" />
+              )}
               Guardar Políticas de Seguridad
             </Button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ResolutionProtocolsSettings() {
+  const { notes, addNote, deleteNote, resetToDefaults } =
+    useResolutionNotesStore();
+  const [selectedCategory, setSelectedCategory] = useState<
+    ResolutionCategory | "ALL"
+  >("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [category, setCategory] = useState<ResolutionCategory>("GENERAL");
+  const [label, setLabel] = useState("");
+  const [text, setText] = useState("");
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!label.trim() || !text.trim()) return;
+
+    addNote({
+      category,
+      label: label.trim(),
+      text: text.trim(),
+    });
+
+    setLabel("");
+    setText("");
+    setIsAdding(false);
+  };
+
+  const filtered = notes.filter((n) => {
+    const matchesCat =
+      selectedCategory === "ALL" || n.category === selectedCategory;
+    const matchesSearch =
+      n.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      n.text.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
+
+  const getCategoryColor = (cat: ResolutionCategory) => {
+    switch (cat) {
+      case "ROUTING":
+        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
+      case "CUSTOMS":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+      case "COLD_CHAIN":
+        return "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20";
+      case "DOCUMENTATION":
+        return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20";
+      case "CARRIER":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+      case "GENERAL":
+      default:
+        return "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            Predefined Resolution Justification Notes
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Pre-approved regulatory justifications enforced in Shipment 360,
+            Exception Center, and Control Tower.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={resetToDefaults}
+            className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900"
+          >
+            Reset Defaults
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setIsAdding(!isAdding)}
+            className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            {isAdding ? "Cancel" : "Add Justification Note"}
+          </Button>
+        </div>
+      </div>
+
+      {isAdding && (
+        <form
+          onSubmit={handleCreate}
+          className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-indigo-200 dark:border-indigo-900/50 space-y-4"
+        >
+          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-indigo-500" />
+            New Predefined Resolution Protocol
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+                Operational Domain / Category
+              </label>
+              <select
+                value={category}
+                onChange={(e) =>
+                  setCategory(e.target.value as ResolutionCategory)
+                }
+                className="w-full text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 p-2.5 text-slate-800 dark:text-slate-200"
+              >
+                <option value="ROUTING">ROUTING (Reroute, Intermodal)</option>
+                <option value="CUSTOMS">CUSTOMS (Inspections, DUA)</option>
+                <option value="COLD_CHAIN">
+                  COLD_CHAIN (GDP, Temperature)
+                </option>
+                <option value="DOCUMENTATION">
+                  DOCUMENTATION (e-CMR, UCP 600)
+                </option>
+                <option value="CARRIER">
+                  CARRIER (Demurrage, Freight Audit)
+                </option>
+                <option value="GENERAL">
+                  GENERAL (Force Majeure, Security)
+                </option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+                Short Protocol Title / Label
+              </label>
+              <Input
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="e.g. Carrier Terminal Waiver Approved"
+                className="text-xs"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+              Authorized Standard Justification Text (Will be placed in audit
+              logs)
+            </label>
+            <textarea
+              rows={3}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="e.g. Demurrage charges waived per carrier management agreement due to terminal crane breakdown."
+              className="w-full text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 p-3 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsAdding(false)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5"
+            >
+              <Check className="w-3.5 h-3.5" /> Save Predefined Note
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1">
+          {(
+            [
+              "ALL",
+              "ROUTING",
+              "CUSTOMS",
+              "COLD_CHAIN",
+              "DOCUMENTATION",
+              "CARRIER",
+              "GENERAL",
+            ] as const
+          ).map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                selectedCategory === cat
+                  ? "bg-indigo-600 text-white"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+        <div className="w-full sm:w-64">
+          <Input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search justifications..."
+            className="text-xs"
+          />
+        </div>
+      </div>
+
+      {/* List of notes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {filtered.map((item) => (
+          <div
+            key={item.id}
+            className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 flex flex-col justify-between gap-3 shadow-xs"
+          >
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getCategoryColor(item.category)}`}
+                >
+                  {item.category}
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">
+                  {item.isSystemDefault ? "SYSTEM DEFAULT" : "CUSTOM ADMIN"}
+                </span>
+              </div>
+              <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                {item.label}
+              </h5>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                "{item.text}"
+              </p>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] text-slate-400 font-mono">
+                ID: {item.id}
+              </span>
+              {!item.isSystemDefault && (
+                <button
+                  type="button"
+                  onClick={() => deleteNote(item.id)}
+                  className="text-rose-500 hover:text-rose-600 p-1 rounded-md text-xs flex items-center gap-1 transition-colors"
+                  title="Delete Custom Justification"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

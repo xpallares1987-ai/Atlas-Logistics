@@ -31,6 +31,7 @@ export * from "./edi.seed.js";
 export * from "./documents.seed.js";
 export * from "./control_tower.seed.js";
 export * from "./addresses.seed.js";
+export * from "./drayage.seed.js";
 
 import { seedTriggers } from "./triggers.seed.js";
 import { seedCore } from "./core.seed.js";
@@ -60,6 +61,7 @@ import { seedEdi } from "./edi.seed.js";
 import { seedDocuments } from "./documents.seed.js";
 import { seedControlTower } from "./control_tower.seed.js";
 import { seedAddressesAndBookings } from "./addresses.seed.js";
+import { seedDrayageOrders } from "./drayage.seed.js";
 
 export async function runAllSeeds(): Promise<void> {
   await seedTriggers();
@@ -92,4 +94,5 @@ export async function runAllSeeds(): Promise<void> {
   await seedDocuments();
   await seedControlTower();
   await seedAddressesAndBookings();
+  await seedDrayageOrders();
 }

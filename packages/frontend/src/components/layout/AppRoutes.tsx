@@ -173,6 +173,12 @@ const IataOneRecordModule = React.lazy(
 const WorkflowManagerModule = React.lazy(
   () => import("../../pages/WorkflowManagerModule"),
 );
+const DrayageHaulageModule = React.lazy(
+  () => import("../../pages/DrayageHaulageModule"),
+);
+const SystemPanelModule = React.lazy(
+  () => import("../../pages/SystemPanelModule"),
+);
 const SettingsModule = React.lazy(() => import("../../pages/SettingsModule"));
 const PrivacyPolicy = React.lazy(() => import("../../pages/PrivacyPolicy"));
 const TermsOfService = React.lazy(() => import("../../pages/TermsOfService"));
@@ -861,6 +867,37 @@ export const AppRoutes = () => {
           }
         />
         <Route path="/track/:referenceNumber?" element={<PublicTracking />} />
+
+        {/* Multimodal Drayage & Port Haulage */}
+        <Route
+          path="/drayage"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "ADMIN",
+                "EXECUTIVE",
+                "MANAGER",
+                "SALES",
+                "OPERATIONS",
+                "CUSTOMER",
+              ]}
+            >
+              <DrayageHaulageModule />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* System Administration Panel */}
+        <Route
+          path="/system-panel"
+          element={
+            <ProtectedRoute
+              allowedRoles={["ADMIN", "MANAGER", "EXECUTIVE", "OPERATIONS"]}
+            >
+              <SystemPanelModule />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Global Settings & Wiki Knowledge Hub */}
         <Route path="/wiki" element={<WikiHubModule />} />

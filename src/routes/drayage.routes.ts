@@ -6,8 +6,12 @@ import {
   DrayageQuoteRequest,
 } from "../services/drayage-engine.service.js";
 import { db } from "../db/index.js";
-import { addresses, addressContacts } from "../db/schema/index.js";
-import { eq } from "drizzle-orm";
+import {
+  addresses,
+  addressContacts,
+  drayageTransportOrders,
+} from "../db/schema/index.js";
+import { eq, desc, and } from "drizzle-orm";
 
 const drayageRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/drayage/quote - Calculate road drayage distance, costs and GLEC v3.0 emissions
@@ -93,7 +97,184 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // POST /api/drayage/orders - Generate and dispatch a Drayage Transport Order
+  // GET /api/drayage/orders - List dispatched orders with parties & quote details
+  fastify.get("/orders", async (request, reply) => {
+    try {
+      const query = request.query as any;
+      const conditions: any[] = [];
+
+      if (query.status && query.status !== "ALL") {
+        conditions.push(eq(drayageTransportOrders.status, query.status));
+      }
+      if (query.shipmentId) {
+        conditions.push(
+          eq(drayageTransportOrders.shipmentId, query.shipmentId),
+        );
+      }
+
+      const orders = await db
+        .select()
+        .from(drayageTransportOrders)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(drayageTransportOrders.createdAt));
+
+      // Enrich with parties
+      const enrichedOrders = await Promise.all(
+        orders.map(async (o) => {
+          const [haulier] = await db
+            .select()
+            .from(addresses)
+            .where(eq(addresses.id, o.haulierAddressId))
+            .limit(1);
+
+          const [origin] = await db
+            .select()
+            .from(addresses)
+            .where(eq(addresses.id, o.originAddressId))
+            .limit(1);
+
+          const [destination] = await db
+            .select()
+            .from(addresses)
+            .where(eq(addresses.id, o.destinationAddressId))
+            .limit(1);
+
+          return {
+            ...o,
+            haulier: haulier
+              ? {
+                  id: haulier.id,
+                  companyName: haulier.companyName,
+                  city: haulier.city,
+                  taxId: haulier.taxId,
+                }
+              : null,
+            origin: origin
+              ? {
+                  id: origin.id,
+                  companyName: origin.companyName,
+                  street1: origin.street1,
+                  city: origin.city,
+                  zipCode: origin.zipCode,
+                  country: origin.country,
+                  unLocode: origin.unLocode,
+                  lat: origin.lat,
+                  lon: origin.lon,
+                }
+              : null,
+            destination: destination
+              ? {
+                  id: destination.id,
+                  companyName: destination.companyName,
+                  street1: destination.street1,
+                  city: destination.city,
+                  zipCode: destination.zipCode,
+                  country: destination.country,
+                  unLocode: destination.unLocode,
+                  lat: destination.lat,
+                  lon: destination.lon,
+                }
+              : null,
+          };
+        }),
+      );
+
+      return reply.send(enrichedOrders);
+    } catch (err: any) {
+      fastify.log.error(err, "Failed to list drayage transport orders");
+      return reply.code(500).send({ error: err.message });
+    }
+  });
+
+  // GET /api/drayage/orders/:id - Get single order details
+  fastify.get("/orders/:id", async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const [order] = await db
+        .select()
+        .from(drayageTransportOrders)
+        .where(eq(drayageTransportOrders.id, id))
+        .limit(1);
+
+      if (!order) {
+        return reply.code(404).send({ error: "Drayage order not found" });
+      }
+
+      const [haulier] = await db
+        .select()
+        .from(addresses)
+        .where(eq(addresses.id, order.haulierAddressId))
+        .limit(1);
+
+      const [origin] = await db
+        .select()
+        .from(addresses)
+        .where(eq(addresses.id, order.originAddressId))
+        .limit(1);
+
+      const [destination] = await db
+        .select()
+        .from(addresses)
+        .where(eq(addresses.id, order.destinationAddressId))
+        .limit(1);
+
+      return reply.send({
+        ...order,
+        haulier,
+        origin,
+        destination,
+      });
+    } catch (err: any) {
+      fastify.log.error(err, "Failed to retrieve drayage order");
+      return reply.code(500).send({ error: err.message });
+    }
+  });
+
+  // PATCH /api/drayage/orders/:id/status - Update order lifecycle state
+  fastify.patch("/orders/:id/status", async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const body = request.body as { status: string };
+
+      const validStatuses = [
+        "DRAFT",
+        "DISPATCHED",
+        "ACCEPTED",
+        "GATE_IN",
+        "IN_TRANSIT",
+        "DELIVERED",
+        "CANCELLED",
+      ];
+
+      if (!body.status || !validStatuses.includes(body.status)) {
+        return reply.code(400).send({
+          error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+        });
+      }
+
+      const now = new Date().toISOString();
+      await db
+        .update(drayageTransportOrders)
+        .set({
+          status: body.status as any,
+          updatedAt: now,
+        })
+        .where(eq(drayageTransportOrders.id, id));
+
+      const [updated] = await db
+        .select()
+        .from(drayageTransportOrders)
+        .where(eq(drayageTransportOrders.id, id))
+        .limit(1);
+
+      return reply.send(updated);
+    } catch (err: any) {
+      fastify.log.error(err, "Failed to update drayage order status");
+      return reply.code(500).send({ error: err.message });
+    }
+  });
+
+  // POST /api/drayage/orders - Generate, persist and dispatch a Drayage Transport Order
   fastify.post("/orders", async (request, reply) => {
     try {
       const body = request.body as any;
@@ -146,7 +327,68 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
         requiresGenset: body.requiresGenset,
       });
 
+      const driverPickupPin = String(Math.floor(1000 + Math.random() * 9000));
+      const qrDigest = crypto
+        .createHash("sha256")
+        .update(
+          `${orderNumber}:${haulier.companyName}:${quote.costs.totalGross}:${driverPickupPin}`,
+        )
+        .digest("hex");
+
+      const windowStart = body.appointmentWindowStart || now.toISOString();
+      const windowEnd =
+        body.appointmentWindowEnd ||
+        new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
+
+      await db.insert(drayageTransportOrders).values({
+        id: orderId,
+        orderNumber,
+        status: "DISPATCHED",
+        shipmentId: body.shipmentId || null,
+        bookingReference: body.bookingReference || null,
+        containerNumber: body.containerNumber || null,
+        containerType: body.containerType || "40HC",
+        cargoWeightKg: body.cargoWeightKg || 18500,
+        isDangerousGoods: !!body.isDangerousGoods,
+        requiresGenset: !!body.requiresGenset,
+        haulierAddressId: haulier.id,
+        originAddressId: origin.id,
+        destinationAddressId: dest.id,
+        distanceKm: quote.distanceKm,
+        baseRate: quote.costs.baseRate,
+        fuelSurcharge: quote.costs.fuelSurcharge,
+        tollsCost: quote.costs.tollsEurovignette,
+        extraSurcharges:
+          quote.costs.equipmentSurcharge +
+          quote.costs.dangerousGoodsSurcharge +
+          quote.costs.heavyWeightSurcharge,
+        subtotalCost: quote.costs.subtotalNet,
+        profitMargin: Number((quote.costs.subtotalNet * 0.15).toFixed(2)),
+        totalGrossCost: quote.costs.totalGross,
+        currency: quote.costs.currency,
+        co2WtwKg: quote.emissions.conventionalDieselKgCO2e,
+        co2TtwKg: quote.emissions.hvo100RenewableKgCO2e,
+        co2WteKg: quote.emissions.co2eSavingsKg,
+        emissionsIntensityFactor:
+          quote.emissions.tonnesKm > 0
+            ? Number(
+                (
+                  quote.emissions.conventionalDieselKgCO2e /
+                  quote.emissions.tonnesKm
+                ).toFixed(4),
+              )
+            : 0.085,
+        driverPickupPin,
+        qrDigest,
+        appointmentWindowStart: windowStart,
+        appointmentWindowEnd: windowEnd,
+        notes: body.notes || null,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      });
+
       const orderPayload = {
+        id: orderId,
         orderId,
         orderNumber,
         status: "DISPATCHED",
@@ -164,6 +406,8 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
           zipCode: origin.zipCode,
           country: origin.country,
           unLocode: origin.unLocode,
+          lat: origin.lat,
+          lon: origin.lon,
         },
         destination: {
           id: dest.id,
@@ -173,25 +417,19 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
           zipCode: dest.zipCode,
           country: dest.country,
           unLocode: dest.unLocode,
+          lat: dest.lat,
+          lon: dest.lon,
         },
         bookingReference: body.bookingReference || null,
         containerNumber: body.containerNumber || null,
         containerType: body.containerType || "40HC",
         cargoWeightKg: body.cargoWeightKg || 18500,
-        appointmentWindowStart:
-          body.appointmentWindowStart || now.toISOString(),
-        appointmentWindowEnd:
-          body.appointmentWindowEnd ||
-          new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString(),
+        appointmentWindowStart: windowStart,
+        appointmentWindowEnd: windowEnd,
         quote,
-        driverPickupPin: String(Math.floor(1000 + Math.random() * 9000)),
+        driverPickupPin,
         notes: body.notes || null,
-        qrDigest: crypto
-          .createHash("sha256")
-          .update(
-            `${orderNumber}:${haulier.companyName}:${quote.costs.totalGross}`,
-          )
-          .digest("hex"),
+        qrDigest,
         createdAt: now.toISOString(),
       };
 

@@ -18,7 +18,6 @@ import {
   BookOpen,
   Briefcase,
   ShieldAlert,
-  Server,
   Landmark,
   Users,
   X,
@@ -36,11 +35,10 @@ import {
   ArrowLeftRight,
   Radio,
   FileCode2,
-  BellRing,
-  Key,
-  Network,
   Compass,
   Coins,
+  Sliders,
+  CheckCircle2,
 } from "lucide-react";
 
 import { useAuth } from "../../contexts/AuthContext";
@@ -310,6 +308,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
+                to="/drayage"
+                icon={Truck}
+              >
+                Drayage & Port Haulage
+              </NavLink>
+              <NavLink
+                onClick={() => setMobileMenuOpen(false)}
                 to="/cold-chain"
                 icon={Snowflake}
               >
@@ -359,31 +364,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
-                to="/notifications"
-                icon={BellRing}
-              >
-                Omnichannel Alerts (Teams / TG)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
                 to="/cross-border-usmca"
                 icon={Truck}
               >
                 T-MEC & Carta Porte 3.1
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/efirma-hub"
-                icon={Key}
-              >
-                e.firma Hub (WebCrypto)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/erp-integrations"
-                icon={Network}
-              >
-                ERP Connectors (SAP / NetSuite)
               </NavLink>
               <NavLink
                 onClick={() => setMobileMenuOpen(false)}
@@ -551,17 +535,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </NavLink>
         </div>
 
-        {isAdminOrFF && (
+        {(isAdminOrFF || isCustomsBroker) && (
           <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">
-              System Control
+            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1 px-3 flex items-center justify-between">
+              <span>System Administration</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono">
+                {role}
+              </span>
             </span>
             <NavLink
               onClick={() => setMobileMenuOpen(false)}
-              to="/control-plane"
-              icon={Server}
+              to="/system-panel"
+              icon={Sliders}
             >
-              Platform Control Plane
+              System Governance Panel
+            </NavLink>
+            <NavLink
+              onClick={() => setMobileMenuOpen(false)}
+              to="/settings#resolutions"
+              icon={CheckCircle2}
+            >
+              Resolution Protocols
             </NavLink>
           </div>
         )}

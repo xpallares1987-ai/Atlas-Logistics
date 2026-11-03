@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { ResolutionJustificationSelect } from "../components/common/ResolutionJustificationSelect";
 
 export default function ControlTowerModule() {
   const { user } = useAuth();
@@ -281,8 +282,7 @@ export default function ControlTowerModule() {
             onClick={() => setShowNewIncidentModal(true)}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-600/30 transition-colors"
           >
-            <ShieldAlert size={15} />
-            + Nueva Incidencia
+            <ShieldAlert size={15} />+ Nueva Incidencia
           </button>
 
           <button
@@ -847,8 +847,7 @@ export default function ControlTowerModule() {
               onClick={() => setShowNewIcs2Modal(true)}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow transition-colors"
             >
-              <PlusCircle size={14} />
-              + Presentar Declaración ENS
+              <PlusCircle size={14} />+ Presentar Declaración ENS
             </button>
           </div>
 
@@ -1307,25 +1306,21 @@ export default function ControlTowerModule() {
               </div>
             </div>
 
-            {/* Custom Resolution Form */}
-            <div className="flex flex-col gap-2 pt-2 border-t border-slate-800">
-              <label className="text-slate-400 font-medium">
-                Acción Manual de Resolución:
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Ej: Autorizado servicio nocturno prioritario de grúa..."
-                  value={resolutionNote}
-                  onChange={(e) => setResolutionNote(e.target.value)}
-                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                />
+            {/* Predefined Resolution Protocol Form */}
+            <div className="flex flex-col gap-3 pt-3 border-t border-slate-800">
+              <ResolutionJustificationSelect
+                id="control-tower-resolution"
+                value={resolutionNote}
+                onChange={setResolutionNote}
+              />
+              <div className="flex justify-end">
                 <button
                   onClick={() => handleResolveIncident()}
-                  disabled={isResolving}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors"
+                  disabled={isResolving || !resolutionNote}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-emerald-600/20"
                 >
-                  Resolver
+                  <CheckCircle2 size={16} />
+                  <span>Resolver Incidencia</span>
                 </button>
               </div>
             </div>
@@ -1498,7 +1493,9 @@ export default function ControlTowerModule() {
                     Rotura Cadena de Frío
                   </option>
                   <option value="CUSTOMS_HOLD">Retención Aduanera</option>
-                  <option value="ROAD_ACCIDENT">Avería / Tráfico Terrestre</option>
+                  <option value="ROAD_ACCIDENT">
+                    Avería / Tráfico Terrestre
+                  </option>
                 </select>
               </div>
 
