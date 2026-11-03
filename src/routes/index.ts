@@ -57,6 +57,7 @@ import carbonInsettingRoutes from "../modules/carbon-insetting/carbon-insetting.
 import iataOneRecordRoutes from "../modules/iata-one-record/iata-one-record.routes.js";
 import scmV1Routes from "./scm-v1.routes.js";
 import addressesRoutes from "./addresses.routes.js";
+import drayageRoutes from "./drayage.routes.js";
 
 export {
   shipmentsRoutes,
@@ -219,6 +220,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(addressesRoutes, {
     prefix: "/api/addresses",
+  });
+  await fastify.register(drayageRoutes, {
+    prefix: "/api/drayage",
   });
   await fastify.register(scmV1Routes, {
     prefix: "/api/scm/v1",

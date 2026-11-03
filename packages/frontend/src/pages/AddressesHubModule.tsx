@@ -27,6 +27,7 @@ import {
   Button,
   AddressModal,
   BlCardPreview,
+  DrayageCalculatorModal,
   Modal,
   Toast,
   ADDRESS_TYPES,
@@ -126,6 +127,10 @@ export default function AddressesHubModule() {
     null,
   );
   const [previewBlAddress, setPreviewBlAddress] = useState<any | null>(null);
+  const [isDrayageModalOpen, setIsDrayageModalOpen] = useState(false);
+  const [selectedDrayageOriginId, setSelectedDrayageOriginId] = useState<
+    string | undefined
+  >(undefined);
 
   // Fetch addresses from backend
   const fetchAddresses = useCallback(async () => {
@@ -534,16 +539,32 @@ export default function AddressesHubModule() {
 
                 {/* Card Action Footer */}
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setPreviewBlAddress(item)}
-                    className="text-xs flex items-center gap-1 h-8 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>Ver B/L</span>
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPreviewBlAddress(item)}
+                      className="text-xs flex items-center gap-1 h-8 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Ver B/L</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedDrayageOriginId(item.id);
+                        setIsDrayageModalOpen(true);
+                      }}
+                      className="text-xs flex items-center gap-1 h-8 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                    >
+                      <Truck className="w-3.5 h-3.5" />
+                      <span>Acarreo</span>
+                    </Button>
+                  </div>
 
                   <div className="flex items-center gap-1">
                     <Button
@@ -627,6 +648,15 @@ export default function AddressesHubModule() {
           </div>
         </Modal>
       )}
+      {/* Drayage Road Haulage Calculator Modal */}
+      <DrayageCalculatorModal
+        isOpen={isDrayageModalOpen}
+        onClose={() => {
+          setIsDrayageModalOpen(false);
+          setSelectedDrayageOriginId(undefined);
+        }}
+        preSelectedOriginId={selectedDrayageOriginId}
+      />
     </div>
   );
 }

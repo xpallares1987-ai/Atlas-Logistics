@@ -20,3 +20,4 @@ export * from "./AddressModal";
 export * from "./AddressSelector";
 export * from "./DuplicateWarningModal";
 export * from "./BlCardPreview";
+export * from "./DrayageCalculatorModal";

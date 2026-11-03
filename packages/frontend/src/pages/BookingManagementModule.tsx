@@ -22,9 +22,10 @@ import {
   Package,
   Plus,
   Building2,
+  Truck,
   X,
 } from "lucide-react";
-import { Button, AddressSelector } from "@atlas/ui";
+import { Button, AddressSelector, DrayageCalculatorModal } from "@atlas/ui";
 import {
   OCEAN_BOOKING_PRESETS,
   CARRIER_METADATA,
@@ -75,6 +76,17 @@ export default function BookingManagementModule() {
   const [lastConversionResult, setLastConversionResult] = useState<any | null>(
     null,
   );
+  // Drayage Road Haulage Calculator Modal State
+  const [isDrayageModalOpen, setIsDrayageModalOpen] = useState(false);
+  const [selectedDrayageOriginId, setSelectedDrayageOriginId] = useState<
+    string | undefined
+  >(undefined);
+  const [drayageBookingRef, setDrayageBookingRef] = useState<
+    string | undefined
+  >(undefined);
+  const [drayageContainerNum, setDrayageContainerNum] = useState<
+    string | undefined
+  >(undefined);
   const [newBookingForm, setNewBookingForm] = useState({
     customerName: "Atlas Global Imports S.L.",
     carrier: "Maersk",
@@ -922,6 +934,24 @@ export default function BookingManagementModule() {
                           {isPending && (
                             <div className="flex items-center justify-end gap-1.5">
                               <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDrayageOriginId(
+                                    bkg.shipperAddressId || undefined,
+                                  );
+                                  setDrayageBookingRef(bkg.referenceNumber);
+                                  setDrayageContainerNum(
+                                    details.containerNumber || undefined,
+                                  );
+                                  setIsDrayageModalOpen(true);
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-700/50 text-xs transition-colors flex items-center gap-1"
+                                title="Cotizar Acarreo Terrestre (Drayage)"
+                              >
+                                <Truck className="w-3.5 h-3.5" />
+                                Acarreo
+                              </button>
+                              <button
                                 onClick={() => handleOpenConfirmModal(bkg)}
                                 className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm transition-colors flex items-center gap-1"
                               >
@@ -938,45 +968,66 @@ export default function BookingManagementModule() {
                             </div>
                           )}
                           {isConfirmed && (
-                            <button
-                              onClick={() =>
-                                generateLifecycleBlPdf({
-                                  blReference:
-                                    details.blReference ||
-                                    `BL-${details.shipmentTrackingNumber || bkg.referenceNumber}`,
-                                  bookingReference: bkg.referenceNumber,
-                                  carrierBookingNumber:
-                                    details.carrierBookingNumber ||
-                                    `CR-${bkg.referenceNumber}`,
-                                  trackingNumber:
-                                    details.shipmentTrackingNumber ||
-                                    "ATLS-BOOKED",
-                                  carrier: details.carrier || "Ocean Carrier",
-                                  shipperName:
-                                    details.customerName ||
-                                    "Atlas Global Imports S.L.",
-                                  consigneeName:
-                                    "European Distribution Hub B.V.",
-                                  vesselName: bkg.vessel || "MV ATLAS HORIZON",
-                                  voyageNumber: bkg.voyage || "VY-2026E",
-                                  origin: bkg.origin,
-                                  destination: bkg.destination,
-                                  equipment: bkg.equipment || "40HC",
-                                  containerNumber:
-                                    details.containerNumber || "ATLU4928174",
-                                  sealNumber:
-                                    details.sealNumber || "SL-ATLS-90124",
-                                  commodity:
-                                    details.commodity || "General Cargo",
-                                  weightKg: Number(details.weight) || 18000,
-                                  incoterm: details.incoterm || "FOB",
-                                })
-                              }
-                              className="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 font-semibold text-xs transition-colors inline-flex items-center gap-1"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              Descargar B/L (PDF)
-                            </button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDrayageOriginId(
+                                    bkg.shipperAddressId || undefined,
+                                  );
+                                  setDrayageBookingRef(bkg.referenceNumber);
+                                  setDrayageContainerNum(
+                                    details.containerNumber || undefined,
+                                  );
+                                  setIsDrayageModalOpen(true);
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-700/50 text-xs transition-colors flex items-center gap-1"
+                                title="Cotizar Acarreo Terrestre (Drayage)"
+                              >
+                                <Truck className="w-3.5 h-3.5" />
+                                Acarreo
+                              </button>
+                              <button
+                                onClick={() =>
+                                  generateLifecycleBlPdf({
+                                    blReference:
+                                      details.blReference ||
+                                      `BL-${details.shipmentTrackingNumber || bkg.referenceNumber}`,
+                                    bookingReference: bkg.referenceNumber,
+                                    carrierBookingNumber:
+                                      details.carrierBookingNumber ||
+                                      `CR-${bkg.referenceNumber}`,
+                                    trackingNumber:
+                                      details.shipmentTrackingNumber ||
+                                      "ATLS-BOOKED",
+                                    carrier: details.carrier || "Ocean Carrier",
+                                    shipperName:
+                                      details.customerName ||
+                                      "Atlas Global Imports S.L.",
+                                    consigneeName:
+                                      "European Distribution Hub B.V.",
+                                    vesselName:
+                                      bkg.vessel || "MV ATLAS HORIZON",
+                                    voyageNumber: bkg.voyage || "VY-2026E",
+                                    origin: bkg.origin,
+                                    destination: bkg.destination,
+                                    equipment: bkg.equipment || "40HC",
+                                    containerNumber:
+                                      details.containerNumber || "ATLU4928174",
+                                    sealNumber:
+                                      details.sealNumber || "SL-ATLS-90124",
+                                    commodity:
+                                      details.commodity || "General Cargo",
+                                    weightKg: Number(details.weight) || 18000,
+                                    incoterm: details.incoterm || "FOB",
+                                  })
+                                }
+                                className="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 font-semibold text-xs transition-colors inline-flex items-center gap-1"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                Descargar B/L (PDF)
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -1834,6 +1885,23 @@ export default function BookingManagementModule() {
                         Introducir este PIN de 4 dígitos en el quiosco de
                         entrada de la terminal para liberar los contenedores.
                       </div>
+                      <div className="pt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setDrayageBookingRef(
+                              activeBooking.bookingNumber ||
+                                activeBooking.referenceNumber,
+                            );
+                            setIsDrayageModalOpen(true);
+                          }}
+                          className="text-xs flex items-center gap-1.5 text-indigo-300 border-indigo-500/40 hover:bg-indigo-950/40"
+                        >
+                          <Truck className="w-3.5 h-3.5" />
+                          Cotizar / Asignar Acarreo Terrestre
+                        </Button>
+                      </div>
                     </div>
                     <div className="px-6 py-2 rounded-xl bg-blue-600 text-white font-mono font-bold text-2xl tracking-widest text-center shadow-lg shadow-blue-600/30">
                       {activeBooking.equipmentRelease.pickupPin}
@@ -1995,12 +2063,35 @@ export default function BookingManagementModule() {
 
                 {/* Addresses Hub Integration: B/L 4 Party Boxes */}
                 <div className="pt-3 border-t border-slate-800 space-y-4">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400">
-                    <Building2 className="w-4 h-4 text-indigo-400" />
-                    <span>
-                      Partes Documentales del Conocimiento de Embarque
-                      (Addresses Hub)
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400">
+                      <Building2 className="w-4 h-4 text-indigo-400" />
+                      <span>
+                        Partes Documentales del Conocimiento de Embarque
+                        (Addresses Hub)
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedDrayageOriginId(
+                          confirmForm.shipperAddressId || undefined,
+                        );
+                        setDrayageBookingRef(
+                          confirmingBooking?.referenceNumber,
+                        );
+                        setDrayageContainerNum(
+                          confirmForm.containerNumber || undefined,
+                        );
+                        setIsDrayageModalOpen(true);
+                      }}
+                      className="text-xs flex items-center gap-1.5 text-emerald-400 border-emerald-500/40 hover:bg-emerald-950/40 h-7"
+                    >
+                      <Truck className="w-3.5 h-3.5" />
+                      <span>Cotizar Acarreo</span>
+                    </Button>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2291,6 +2382,19 @@ export default function BookingManagementModule() {
             </div>
           </div>
         )}
+        {/* Drayage Road Haulage Calculator Modal */}
+        <DrayageCalculatorModal
+          isOpen={isDrayageModalOpen}
+          onClose={() => {
+            setIsDrayageModalOpen(false);
+            setSelectedDrayageOriginId(undefined);
+            setDrayageBookingRef(undefined);
+            setDrayageContainerNum(undefined);
+          }}
+          preSelectedOriginId={selectedDrayageOriginId}
+          bookingReference={drayageBookingRef}
+          containerNumber={drayageContainerNum}
+        />
       </div>
     </div>
   );
