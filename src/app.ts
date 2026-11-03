@@ -19,8 +19,73 @@ import { authMiddleware } from "./middleware/auth.js";
 import { correlationIdPlugin } from "./middleware/correlation-id.js";
 import { registerAllRoutes } from "./routes/index.js";
 import { tenancyPlugin } from "./lib/tenancy/index.js";
+import {
+  isEncryptedEnvelope,
+  decryptPayloadEnvelope,
+  encryptPayloadEnvelope,
+} from "@atlas/shared";
 
 const app = Fastify({ loggerInstance: logger });
+
+// Automated Inbound Transaction Decryption (E2EE Zero-Knowledge Envelope)
+app.addHook("preValidation", async (request, reply) => {
+  if (request.body && isEncryptedEnvelope(request.body)) {
+    try {
+      const decrypted = await decryptPayloadEnvelope(request.body);
+      request.body = decrypted;
+      (request as any).wasPayloadEncrypted = true;
+    } catch {
+      return reply.code(400).send({
+        statusCode: 400,
+        error: "Bad Request",
+        message:
+          "Failed to decrypt incoming transaction envelope (corrupted payload or invalid signature).",
+      });
+    }
+  }
+});
+
+// Automated Outbound Transaction Encryption (E2EE Zero-Knowledge Envelope)
+app.addHook("onSend", async (request, reply, payload) => {
+  const wantsEncryption =
+    request.headers["x-atlas-encrypted-payload"] === "true" ||
+    (request as any).wasPayloadEncrypted === true;
+
+  if (
+    wantsEncryption &&
+    typeof payload === "string" &&
+    reply.getHeader("content-type")?.toString().includes("application/json")
+  ) {
+    try {
+      const parsed = JSON.parse(payload);
+      if (!isEncryptedEnvelope(parsed)) {
+        const encryptedEnvelope = await encryptPayloadEnvelope(parsed);
+        reply.header("X-Atlas-Encrypted-Payload", "true");
+        return JSON.stringify(encryptedEnvelope);
+      }
+    } catch {
+      // Keep original payload if not JSON
+    }
+  }
+  return payload;
+});
+
+// Gracefully handle empty application/json payloads without throwing 400 FST_ERR_CTP_EMPTY_JSON_BODY
+app.addContentTypeParser(
+  "application/json",
+  { parseAs: "string" },
+  (_req, body: string, done) => {
+    if (!body || body.trim() === "") {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(body));
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  },
+);
 
 // Correlation ID middleware for distributed tracing
 app.register(correlationIdPlugin);

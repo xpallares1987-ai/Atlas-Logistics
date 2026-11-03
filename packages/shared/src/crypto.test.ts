@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { encryptToken, decryptToken } from "./crypto";
+import {
+  encryptToken,
+  decryptToken,
+  encryptPayloadEnvelope,
+  decryptPayloadEnvelope,
+  isEncryptedEnvelope,
+} from "./crypto";
 
 describe("crypto utilities", () => {
   it("should encrypt and decrypt a token correctly", async () => {
@@ -27,5 +33,37 @@ describe("crypto utilities", () => {
     await expect(decryptToken(corrupted, pin)).rejects.toThrow(
       "Invalid PIN or corrupted data",
     );
+  });
+
+  it("should encrypt and decrypt an end-to-end transaction payload envelope", async () => {
+    const sensitivePayload = {
+      shipmentId: "shp-9921",
+      carrier: "Maersk",
+      freightCost: 4520.5,
+      parties: {
+        shipper: "Global Freight Solutions",
+        consignee: "European Distribution Center",
+      },
+    };
+
+    const envelope = await encryptPayloadEnvelope(sensitivePayload);
+    expect(isEncryptedEnvelope(envelope)).toBe(true);
+    expect(envelope._encrypted).toBe(true);
+    expect(envelope.alg).toBe("AES-GCM-256");
+    expect(typeof envelope.ciphertext).toBe("string");
+    expect(typeof envelope.iv).toBe("string");
+    expect(typeof envelope.salt).toBe("string");
+
+    const decrypted =
+      await decryptPayloadEnvelope<typeof sensitivePayload>(envelope);
+    expect(decrypted).toEqual(sensitivePayload);
+  });
+
+  it("should reject decryption when ciphertext is tampered", async () => {
+    const payload = { sensitive: "data" };
+    const envelope = await encryptPayloadEnvelope(payload);
+    envelope.ciphertext = envelope.ciphertext.slice(0, -4) + "AAAA";
+
+    await expect(decryptPayloadEnvelope(envelope)).rejects.toThrow();
   });
 });

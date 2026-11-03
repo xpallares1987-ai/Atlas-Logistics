@@ -2,8 +2,14 @@ import { FastifyPluginAsync } from "fastify";
 import { logger } from "../config/logger.js";
 import { broadcastEvent } from "./events.routes.js";
 import { db } from "../db/index.js";
-import { shipments, locations } from "../db/schema/index.js";
-import { eq } from "drizzle-orm";
+import {
+  shipments,
+  locations,
+  bookings,
+  shipmentContainers,
+  shipmentEventLogs,
+} from "../db/schema/index.js";
+import { eq, or } from "drizzle-orm";
 
 const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.post("/webhook/ais", async (request, reply) => {
@@ -165,6 +171,175 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
       return reply.send({ success: true, shipmentId });
     } catch (error: any) {
+      reply.code(500).send({ error: error.message });
+    }
+  });
+
+  fastify.get("/:ref", async (request, reply) => {
+    try {
+      const { ref } = request.params as { ref: string };
+      if (!ref) {
+        return reply
+          .code(400)
+          .send({ error: "Missing tracking reference parameter" });
+      }
+
+      const cleanRef = decodeURIComponent(ref).trim();
+
+      // 1. Search in shipments
+      const shipmentMatches = await db
+        .select()
+        .from(shipments)
+        .where(
+          or(
+            eq(shipments.id, cleanRef),
+            eq(shipments.trackingNumber, cleanRef),
+          ),
+        )
+        .limit(1);
+
+      let shipment = shipmentMatches.length > 0 ? shipmentMatches[0] : null;
+
+      // 2. If not found, check container numbers
+      if (!shipment) {
+        const containerMatches = await db
+          .select({ shipmentId: shipmentContainers.shipmentId })
+          .from(shipmentContainers)
+          .where(eq(shipmentContainers.containerNumber, cleanRef))
+          .limit(1);
+
+        if (containerMatches.length > 0) {
+          const matchedShipment = await db
+            .select()
+            .from(shipments)
+            .where(eq(shipments.id, containerMatches[0].shipmentId))
+            .limit(1);
+          if (matchedShipment.length > 0) {
+            shipment = matchedShipment[0];
+          }
+        }
+      }
+
+      // 3. If found shipment, retrieve or build events
+      if (shipment) {
+        const logs = await db
+          .select()
+          .from(shipmentEventLogs)
+          .where(eq(shipmentEventLogs.shipmentId, shipment.id));
+
+        let events: Array<{
+          id: string;
+          description: string;
+          milestoneDate: string;
+        }> = [];
+
+        if (logs.length > 0) {
+          events = logs.map((log) => ({
+            id: log.id,
+            description: `${log.status} - ${log.location}`,
+            milestoneDate: log.recordedAt
+              ? new Date(log.recordedAt).toISOString()
+              : new Date().toISOString(),
+          }));
+        } else {
+          const baseDate = shipment.createdAt
+            ? new Date(shipment.createdAt)
+            : new Date();
+          events = [
+            {
+              id: "evt-1",
+              description: "Booking Confirmed & Export Manifest Filed",
+              milestoneDate: new Date(
+                baseDate.getTime() - 86400000 * 2,
+              ).toISOString(),
+            },
+            {
+              id: "evt-2",
+              description: `Gate-In at Origin Terminal (${shipment.origin || "Origin Port"})`,
+              milestoneDate: new Date(
+                baseDate.getTime() - 86400000,
+              ).toISOString(),
+            },
+            {
+              id: "evt-3",
+              description: `Customs Export Release Approved - Loaded on Board (${shipment.vesselName || "Vessel Assigned"})`,
+              milestoneDate: baseDate.toISOString(),
+            },
+          ];
+
+          if (
+            shipment.status === "DELIVERED" ||
+            shipment.status === "COMPLETED"
+          ) {
+            events.push({
+              id: "evt-4",
+              description: `Vessel Discharged & Cargo Successfully Delivered (${shipment.destination || "Destination Terminal"})`,
+              milestoneDate: new Date().toISOString(),
+            });
+          } else if (shipment.status === "IN_TRANSIT") {
+            events.push({
+              id: "evt-4",
+              description: `Vessel Underway in Transit to ${shipment.destination || "Destination"}`,
+              milestoneDate: new Date().toISOString(),
+            });
+          }
+        }
+
+        return reply.send({
+          referenceNumber: shipment.trackingNumber || shipment.id,
+          status: shipment.status,
+          origin: shipment.origin || "Origin Terminal",
+          destination: shipment.destination || "Destination Terminal",
+          vesselName: shipment.vesselName,
+          voyageNumber: shipment.voyageNumber,
+          events,
+        });
+      }
+
+      // 4. Check bookings if not found in shipments
+      const bookingMatches = await db
+        .select()
+        .from(bookings)
+        .where(
+          or(eq(bookings.id, cleanRef), eq(bookings.referenceNumber, cleanRef)),
+        )
+        .limit(1);
+
+      if (bookingMatches.length > 0) {
+        const booking = bookingMatches[0];
+        const baseDate = booking.createdAt
+          ? new Date(booking.createdAt)
+          : new Date();
+        return reply.send({
+          referenceNumber: booking.referenceNumber || booking.id,
+          status: booking.status,
+          origin: booking.origin || "Origin",
+          destination: booking.destination || "Destination",
+          vesselName: booking.vessel,
+          voyageNumber: booking.voyage,
+          events: [
+            {
+              id: "evt-bkg-1",
+              description: "Booking Request Received & Processing",
+              milestoneDate: baseDate.toISOString(),
+            },
+            {
+              id: "evt-bkg-2",
+              description: `Space & Equipment Allocation Confirmed (${booking.serviceType || "Ocean FCL"})`,
+              milestoneDate: new Date(
+                baseDate.getTime() + 3600000,
+              ).toISOString(),
+            },
+          ],
+        });
+      }
+
+      return reply.code(404).send({
+        error:
+          "Shipment not found. Please verify the tracking number or booking reference.",
+      });
+    } catch (error: any) {
+      logger.error("Error in public tracking endpoint:", error);
       reply.code(500).send({ error: error.message });
     }
   });

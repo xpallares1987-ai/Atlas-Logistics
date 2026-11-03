@@ -6,6 +6,7 @@ import { useAppStore } from "../../store/useAppStore";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { ApiStatusIndicator } from "../ApiStatusIndicator";
+import { SecurityStatusBadge } from "../SecurityStatusBadge";
 import { Button } from "@atlas/ui";
 
 interface TopNavbarProps {
@@ -57,6 +58,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
       </div>
       <div className="flex items-center gap-4 ml-4">
         <ApiStatusIndicator />
+        <SecurityStatusBadge />
         <div className="relative">
           <Button
             onClick={toggleNotifications}

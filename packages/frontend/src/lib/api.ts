@@ -1,3 +1,9 @@
+import {
+  encryptPayloadEnvelope,
+  decryptPayloadEnvelope,
+  isEncryptedEnvelope,
+} from "@atlas/shared";
+
 export function getAuthHeaders(
   extraHeaders: Record<string, string> = {},
 ): Record<string, string> {
@@ -13,15 +19,63 @@ export function getAuthHeaders(
   };
 }
 
+// Configurable global flag for automatic transaction envelope encryption
+export const TRANSACTION_ENCRYPTION_ENABLED = true;
+
 export async function authFetch(
   url: string,
   options: RequestInit = {},
 ): Promise<Response> {
-  const headers = getAuthHeaders(
-    (options.headers as Record<string, string>) || {},
-  );
-  return fetch(url, {
+  const customHeaders = (options.headers as Record<string, string>) || {};
+  const headers = getAuthHeaders(customHeaders);
+
+  let body = options.body;
+
+  // Automated Request Payload Encryption
+  if (
+    TRANSACTION_ENCRYPTION_ENABLED &&
+    body !== undefined &&
+    typeof body === "string" &&
+    headers["Content-Type"]?.includes("application/json")
+  ) {
+    try {
+      const parsed = JSON.parse(body);
+      if (!isEncryptedEnvelope(parsed)) {
+        const envelope = await encryptPayloadEnvelope(parsed);
+        body = JSON.stringify(envelope);
+        headers["X-Atlas-Encrypted-Payload"] = "true";
+      }
+    } catch {
+      // Body is not JSON, proceed as-is
+    }
+  } else if (
+    TRANSACTION_ENCRYPTION_ENABLED &&
+    (options.method === "GET" || !options.method)
+  ) {
+    // Request server to encrypt sensitive response payload
+    headers["X-Atlas-Encrypted-Payload"] = "true";
+  }
+
+  // If no body is provided and caller didn't explicitly request Content-Type, strip it
+  if (body === undefined && !customHeaders["Content-Type"]) {
+    delete headers["Content-Type"];
+  }
+
+  const response = await fetch(url, {
     ...options,
     headers,
+    body,
   });
+
+  // Intercept and automatically decrypt response.json() if an encrypted envelope was received
+  const originalJson = response.json.bind(response);
+  response.json = async () => {
+    const rawData = await originalJson();
+    if (isEncryptedEnvelope(rawData)) {
+      return await decryptPayloadEnvelope(rawData);
+    }
+    return rawData;
+  };
+
+  return response;
 }

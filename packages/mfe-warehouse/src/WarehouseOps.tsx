@@ -17,6 +17,15 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
+const formatEta = (eta?: string) => {
+  if (!eta) return "";
+  const d = new Date(eta);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  return eta;
+};
+
 // Custom Isometric Grid View
 const IsometricWarehouse = ({
   traffic,
@@ -351,7 +360,7 @@ export default function WarehouseOpsModule() {
                                 </div>
                                 {t.eta && (
                                   <div className="text-xs text-slate-500">
-                                    {new Date(t.eta).toLocaleTimeString()}
+                                    {formatEta(t.eta)}
                                   </div>
                                 )}
                               </td>

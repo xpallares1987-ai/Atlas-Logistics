@@ -12,8 +12,18 @@ import {
   MapIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { authFetch } from "../lib/api";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
+
+const formatEta = (eta?: string) => {
+  if (!eta) return "";
+  const d = new Date(eta);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  return eta;
+};
 
 // Custom Isometric Grid View
 const IsometricWarehouse = ({
@@ -99,7 +109,7 @@ export default function WarehouseOpsModule() {
   const { data: trafficRes, isLoading: loadingTraffic } = useQuery({
     queryKey: ["warehouse-traffic"],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/operations/warehouse/traffic`);
+      const res = await authFetch(`/api/operations/warehouse/traffic`);
       if (!res.ok) throw new Error("Failed to load traffic");
       return res.json();
     },
@@ -108,7 +118,7 @@ export default function WarehouseOpsModule() {
   const { data: inventoryRes, isLoading: loadingInventory } = useQuery({
     queryKey: ["warehouse-inventory"],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/operations/warehouse/inventory`);
+      const res = await authFetch(`/api/operations/warehouse/inventory`);
       if (!res.ok) throw new Error("Failed to load inventory");
       return res.json();
     },
@@ -333,7 +343,7 @@ export default function WarehouseOpsModule() {
                                 </div>
                                 {t.eta && (
                                   <div className="text-xs text-slate-500">
-                                    {new Date(t.eta).toLocaleTimeString()}
+                                    {formatEta(t.eta)}
                                   </div>
                                 )}
                               </td>
