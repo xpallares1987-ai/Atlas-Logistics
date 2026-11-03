@@ -33,6 +33,7 @@ import {
   ADDRESS_TYPES,
   type AddressFormData,
 } from "@atlas/ui";
+import { authFetch } from "../lib/api";
 
 const TYPE_CONFIG: Record<
   string,
@@ -140,7 +141,7 @@ export default function AddressesHubModule() {
       if (selectedType !== "ALL") params.append("type", selectedType);
       if (searchQuery.trim()) params.append("search", searchQuery.trim());
 
-      const res = await fetch(`/api/addresses?${params.toString()}`);
+      const res = await authFetch(`/api/addresses?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setAddresses(data);
@@ -167,7 +168,7 @@ export default function AddressesHubModule() {
     }
 
     try {
-      const res = await fetch(`/api/addresses/${id}`, { method: "DELETE" });
+      const res = await authFetch(`/api/addresses/${id}`, { method: "DELETE" });
       if (res.ok) {
         Toast.show("Dirección eliminada correctamente", "success");
         fetchAddresses();

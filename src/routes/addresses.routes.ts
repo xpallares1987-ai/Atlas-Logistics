@@ -58,7 +58,7 @@ function calculateSimilarity(str1: string, str2: string): number {
 
 let tablesEnsured = false;
 export async function ensureAddressesTables() {
-  if (tablesEnsured) return;
+  if (tablesEnsured || !client?.execute) return;
   await client.execute(`CREATE TABLE IF NOT EXISTS addresses (
     id TEXT PRIMARY KEY,
     company_id TEXT NOT NULL REFERENCES companies(id),
@@ -215,16 +215,12 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const tenant = getCurrentTenant();
       const query = (request.query as any) || {};
 
-      let tenantId = query.companyId || tenant?.organizationId;
-      if (!tenantId) {
-        const firstCompany = await db
-          .select({ id: companies.id })
-          .from(companies)
-          .limit(1);
-        tenantId = firstCompany[0]?.id || "c-1";
+      const conditions: any[] = [];
+      if (query.companyId) {
+        conditions.push(eq(addresses.companyId, query.companyId));
+      } else if (tenant?.organizationId) {
+        conditions.push(eq(addresses.companyId, tenant.organizationId));
       }
-
-      const conditions: any[] = [eq(addresses.companyId, tenantId)];
 
       if (query.type) {
         conditions.push(eq(addresses.addressType, query.type));

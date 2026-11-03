@@ -125,6 +125,7 @@ app.addHook("onRequest", async (request, reply) => {
     request.url === "/api/sync/batch" ||
     request.url.startsWith("/api/tracking/") ||
     request.url.startsWith("/api/auth/") ||
+    request.url.startsWith("/api/addresses") ||
     request.url.startsWith("/admin/") ||
     request.url.startsWith("/api/admin/seed") ||
     request.url.startsWith("/api/warehouse/ws") ||

@@ -11,6 +11,9 @@ vi.mock("../../middleware/auth.js", () => ({
 
 // Mock the database
 vi.mock("../../db/index.js", () => ({
+  client: {
+    execute: vi.fn().mockResolvedValue({ rows: [] }),
+  },
   db: {
     select: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),

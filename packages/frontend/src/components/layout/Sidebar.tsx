@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
@@ -50,6 +50,8 @@ interface SidebarProps {
   setMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+type Persona = "all" | "ops" | "finance" | "compliance";
+
 export const Sidebar: React.FC<SidebarProps> = ({
   isMobileMenuOpen,
   setMobileMenuOpen,
@@ -57,9 +59,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { user } = useAuth();
   const { t } = useTranslation();
 
-  const role = user?.role || "USER";
+  const [persona, setPersona] = useState<Persona>(() => {
+    try {
+      const saved = localStorage.getItem("atlas_sidebar_persona");
+      if (
+        saved === "ops" ||
+        saved === "finance" ||
+        saved === "compliance" ||
+        saved === "all"
+      ) {
+        return saved;
+      }
+    } catch {}
+    return "all";
+  });
 
-  const isShipper = role === "CUSTOMER";
+  const handleSelectPersona = (p: Persona) => {
+    setPersona(p);
+    try {
+      localStorage.setItem("atlas_sidebar_persona", p);
+    } catch {}
+  };
+
+  const role = user?.role || "USER";
   const isCustomsBroker = role === "OPERATIONS";
   const isAdminOrFF =
     role === "ADMIN" ||
@@ -67,491 +89,1022 @@ export const Sidebar: React.FC<SidebarProps> = ({
     role === "EXECUTIVE" ||
     role === "SALES";
 
+  const closeMobile = () => setMobileMenuOpen(false);
+
   return (
     <>
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div
           className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
+          onClick={closeMobile}
         />
       )}
 
       {/* Sidebar Shell */}
       <aside
-        className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0 transition duration-200 ease-in-out w-72 shrink-0 bg-slate-950 text-slate-300 p-6 flex flex-col gap-8 z-50 shadow-2xl border-r border-slate-800/60 overflow-y-auto`}
+        className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0 transition duration-200 ease-in-out w-72 shrink-0 bg-slate-950 text-slate-300 p-5 flex flex-col gap-5 z-50 shadow-2xl border-r border-slate-800/60 overflow-y-auto`}
       >
+        {/* Brand Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Globe2 size={24} className="text-white" />
             </div>
-            <h1 className="text-2xl font-black tracking-widest text-white">
-              ATLAS<span className="text-indigo-500">.</span>
-            </h1>
+            <div>
+              <h1 className="text-xl font-black tracking-widest text-white leading-none">
+                ATLAS<span className="text-indigo-500">.</span>
+              </h1>
+              <span className="text-[10px] font-medium text-slate-400 tracking-wider uppercase">
+                Enterprise Logistics
+              </span>
+            </div>
           </div>
           <Button
             className="md:hidden text-slate-400 hover:text-white p-0 h-auto"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={closeMobile}
             variant="ghost"
           >
             <X size={24} />
           </Button>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">
-            Core
-          </span>
-          {(isAdminOrFF || isCustomsBroker || isShipper) && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/"
-              icon={LayoutDashboard}
+        {/* Persona Switcher (Option C) */}
+        <div className="bg-slate-900/90 p-1 rounded-xl border border-slate-800/80 shadow-inner">
+          <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider px-2 py-0.5 mb-0.5 flex items-center justify-between">
+            <span>Navigation View</span>
+            <span className="text-[8px] font-mono text-indigo-400">
+              {persona.toUpperCase()}
+            </span>
+          </div>
+          <div className="grid grid-cols-4 gap-1">
+            <button
+              type="button"
+              onClick={() => handleSelectPersona("all")}
+              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all text-center ${
+                persona === "all"
+                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 font-semibold"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
             >
-              {t("sidebar.dashboard")}
-            </NavLink>
-          )}
-          {(isAdminOrFF || isCustomsBroker) && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/cockpit"
-              icon={Zap}
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectPersona("ops")}
+              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all text-center ${
+                persona === "ops"
+                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 font-semibold"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
             >
-              Operations Cockpit 2.0
-            </NavLink>
-          )}
-          {(isAdminOrFF || isCustomsBroker) && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/shipment-360"
-              icon={Compass}
+              Ops
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectPersona("finance")}
+              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all text-center ${
+                persona === "finance"
+                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 font-semibold"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
             >
-              Shipment 360 Command Center
-            </NavLink>
-          )}
-          {(isAdminOrFF || isCustomsBroker) && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/exceptions"
-              icon={ShieldAlert}
+              Finance
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectPersona("compliance")}
+              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all text-center ${
+                persona === "compliance"
+                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 font-semibold"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
             >
-              Exception Center
-            </NavLink>
-          )}
-          {(isAdminOrFF || isShipper) && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/quotes"
-              icon={BadgeDollarSign}
-            >
-              {t("sidebar.rateComparer")}
-            </NavLink>
-          )}
-          {isAdminOrFF && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/pricing"
-              icon={Activity}
-            >
-              {t("sidebar.pricing")}
-            </NavLink>
-          )}
-          {(isAdminOrFF || isShipper) && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/globe"
-              icon={Globe2}
-            >
-              {t("sidebar.globeTracker")}
-            </NavLink>
-          )}
-          {(isAdminOrFF || isCustomsBroker) && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/control-tower"
-              icon={Radio}
-            >
-              Torre de Control Ops
-            </NavLink>
-          )}
-          {isAdminOrFF && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/schedules"
-              icon={Calendar}
-            >
-              {t("sidebar.schedules")}
-            </NavLink>
-          )}
-          {isAdminOrFF && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/bookings"
-              icon={Book}
-            >
-              {t("sidebar.bookings")}
-            </NavLink>
-          )}
+              Comp
+            </button>
+          </div>
         </div>
 
-        {(isAdminOrFF || isCustomsBroker) && (
-          <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">
-              Finance & Compliance
-            </span>
-            {isAdminOrFF && (
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/invoices"
-                icon={Landmark}
-              >
-                {t("sidebar.invoicing")}
+        {/* ========================================================================= */}
+        {/* VIEW: OPERATIONS PERSONA                                                  */}
+        {/* ========================================================================= */}
+        {persona === "ops" && (
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Mission Control
+              </span>
+              <NavLink onClick={closeMobile} to="/" icon={LayoutDashboard}>
+                {t("sidebar.dashboard")}
               </NavLink>
-            )}
-            {isAdminOrFF && (
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/settlements"
-                icon={Briefcase}
-              >
-                Agent Settlements
+              {(isAdminOrFF || isCustomsBroker) && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/cockpit"
+                    icon={Zap}
+                    badge="Inbox"
+                  >
+                    Operations Cockpit
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/shipment-360"
+                    icon={Compass}
+                    badge="360°"
+                  >
+                    Shipment 360
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/control-tower"
+                    icon={Radio}
+                    badge="AI Ops"
+                  >
+                    Control Tower
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/exceptions"
+                    icon={ShieldAlert}
+                  >
+                    Exception Center
+                  </NavLink>
+                </>
+              )}
+              <NavLink onClick={closeMobile} to="/globe" icon={Globe2}>
+                Globe Tracker
               </NavLink>
-            )}
-            {isAdminOrFF && (
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Freight & Multimodal
+              </span>
+              {isAdminOrFF && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/schedules"
+                    icon={Calendar}
+                  >
+                    Sailing Schedules
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/bookings" icon={Book}>
+                    Booking & B/L
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/planner" icon={Package}>
+                    Container Planner
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/lcl" icon={Cuboid}>
+                    LCL Consolidation
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/air-freight"
+                    icon={Plane}
+                    badge="e-AWB"
+                  >
+                    Air Freight
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/road-freight"
+                    icon={Truck}
+                    badge="e-CMR"
+                  >
+                    Road Freight
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/drayage"
+                    icon={Truck}
+                    badge="GLEC"
+                  >
+                    Port Drayage
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/rail-freight"
+                    icon={TrainTrack}
+                    badge="TEN-T"
+                  >
+                    Rail Freight
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/bulk-operations"
+                    icon={Anchor}
+                    badge="IMSBC"
+                  >
+                    Bulk Operations
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/chartering-laytime"
+                    icon={Anchor}
+                    badge="BIMCO"
+                  >
+                    Chartering & Laytime
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/warehouse" icon={Boxes}>
+                    Warehouse 3D
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/tasks" icon={ListTodo}>
+                    Tasklist
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/port-congestion"
+                    icon={Compass}
+                    badge="AIS"
+                  >
+                    Port & AIS Radar
+                  </NavLink>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Directory & Docs
+              </span>
               <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/treasury"
-                icon={BadgeDollarSign}
+                onClick={closeMobile}
+                to="/addresses"
+                icon={Building2}
+                badge="Directory"
               >
-                Treasury & CASS
+                Addresses & B/L Hub
               </NavLink>
-            )}
-            {(isAdminOrFF || isCustomsBroker) && (
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/customs"
-                icon={ShieldAlert}
-              >
-                {t("sidebar.customs")}
+              <NavLink onClick={closeMobile} to="/documents" icon={FileText}>
+                Document Vault
               </NavLink>
-            )}
+              <NavLink onClick={closeMobile} to="/wiki" icon={BookOpen}>
+                Knowledge Wiki
+              </NavLink>
+            </div>
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">
-            Analytics
-          </span>
-          {isAdminOrFF && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/profitability"
-              icon={Activity}
-            >
-              {t("sidebar.profitability")}
-            </NavLink>
-          )}
-          {(isAdminOrFF || isShipper) && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/esg-tracker"
-              icon={Leaf}
-            >
-              {t("sidebar.carbonTracker")}
-            </NavLink>
-          )}
-          {(isAdminOrFF || isCustomsBroker) && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/demurrage"
-              icon={Clock}
-            >
-              {t("sidebar.demurrage")}
-            </NavLink>
-          )}
-        </div>
+        {/* ========================================================================= */}
+        {/* VIEW: FINANCE PERSONA                                                     */}
+        {/* ========================================================================= */}
+        {persona === "finance" && (
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Commercial & P&L
+              </span>
+              <NavLink onClick={closeMobile} to="/" icon={LayoutDashboard}>
+                {t("sidebar.dashboard")}
+              </NavLink>
+              {isAdminOrFF && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/profitability"
+                    icon={Activity}
+                    badge="P&L"
+                  >
+                    Profitability
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/quotes"
+                    icon={BadgeDollarSign}
+                  >
+                    Rate Comparer
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/pricing" icon={Activity}>
+                    Dynamic Pricing
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/demurrage"
+                    icon={Clock}
+                    badge="D&D"
+                  >
+                    Demurrage Alerts
+                  </NavLink>
+                </>
+              )}
+            </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">
-            Operations
-          </span>
-          {isAdminOrFF && (
-            <>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Invoicing & Settlements
+              </span>
+              {isAdminOrFF && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/invoices"
+                    icon={Landmark}
+                    badge="AR/AP"
+                  >
+                    Invoicing & Billing
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/settlements"
+                    icon={Briefcase}
+                  >
+                    Agent Settlements
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/treasury"
+                    icon={BadgeDollarSign}
+                    badge="IATA"
+                  >
+                    Treasury & CASS
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/trade-finance"
+                    icon={Landmark}
+                    badge="UCP 600"
+                  >
+                    Trade Finance
+                  </NavLink>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Legal & Contracts
+              </span>
+              {isAdminOrFF && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/cargo-insurance"
+                    icon={ShieldCheck}
+                    badge="ICC"
+                  >
+                    Cargo Insurance
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/claims"
+                    icon={ShieldAlert}
+                    badge="Claims"
+                  >
+                    Cargo Claims
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/general-average"
+                    icon={Flame}
+                    badge="YAR"
+                  >
+                    General Average
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/contracts"
+                    icon={FileSignature}
+                    badge="2020"
+                  >
+                    Incoterms Contracts
+                  </NavLink>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Directory & Docs
+              </span>
               <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/planner"
-                icon={Package}
-              >
-                {t("sidebar.planner")}
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/lcl"
-                icon={Cuboid}
-              >
-                {t("sidebar.lclEngine")}
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/air-freight"
-                icon={Plane}
-              >
-                Air Freight (e-AWB)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/road-freight"
-                icon={Truck}
-              >
-                Road Freight (e-CMR)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/drayage"
-                icon={Truck}
-              >
-                Drayage & Port Haulage
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/cold-chain"
-                icon={Snowflake}
-              >
-                Cold Chain (Pharma GDP)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/cbam"
-                icon={Leaf}
-              >
-                CBAM & Carbon (EU ETS)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/rail-freight"
-                icon={TrainTrack}
-              >
-                Rail Freight (CIM / TEN-T)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/customs-warehouse"
+                onClick={closeMobile}
+                to="/addresses"
                 icon={Building2}
+                badge="Directory"
               >
-                Customs Warehouse (DA/DDA/ADT)
+                Addresses & B/L Hub
               </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/fueleu-maritime"
-                icon={Ship}
-              >
-                FuelEU Maritime (EU ETS)
+              <NavLink onClick={closeMobile} to="/documents" icon={FileText}>
+                Document Vault
               </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/trade-finance"
-                icon={Landmark}
-              >
-                Trade Finance (UCP 600)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/smart-contracts"
-                icon={FileCode2}
-              >
-                Smart Contracts & e-BL (MLETR)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/cross-border-usmca"
-                icon={Truck}
-              >
-                T-MEC & Carta Porte 3.1
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/aeo-security"
-                icon={ShieldCheck}
-              >
-                AEO & Security (OEA / C-TPAT)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/security-risk"
-                icon={ShieldAlert}
-              >
-                Security, Risk & Resilience
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/port-congestion"
-                icon={Compass}
-              >
-                Port Congestion & AIS Radar
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/carbon-insetting"
-                icon={Coins}
-              >
-                Carbon Insetting & Digital Twin
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/iata-one-record"
-                icon={Plane}
-              >
-                IATA ONE Record Hub
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/chartering-laytime"
-                icon={Anchor}
-              >
-                Chartering & Laytime (BIMCO)
-              </NavLink>
+            </div>
+          </div>
+        )}
 
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/general-average"
-                icon={Flame}
-              >
-                General Average (YAR 2016)
+        {/* ========================================================================= */}
+        {/* VIEW: COMPLIANCE PERSONA                                                  */}
+        {/* ========================================================================= */}
+        {persona === "compliance" && (
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Surveillance & Ops
+              </span>
+              <NavLink onClick={closeMobile} to="/" icon={LayoutDashboard}>
+                {t("sidebar.dashboard")}
               </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/dangerous-goods"
-                icon={Zap}
-              >
-                Dangerous Goods (IMDG/ADR)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/cargo-insurance"
-                icon={ShieldCheck}
-              >
-                Cargo Insurance (ICC/LMA)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/bulk-operations"
-                icon={Anchor}
-              >
-                Bulk Operations (IMSBC/Draft)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/edi"
-                icon={ArrowLeftRight}
-              >
-                B2B EDI Hub (UN/X12)
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/contracts"
-                icon={FileSignature}
-              >
-                Incoterms & Contracts
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/claims"
-                icon={ShieldAlert}
-              >
-                Claims & Subrogation
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/warehouse"
-                icon={Boxes}
-              >
-                {t("sidebar.warehouse")}
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/tasks"
-                icon={ListTodo}
-              >
-                {t("sidebar.tasklist")}
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/documents"
-                icon={FileText}
-              >
-                {t("sidebar.documents")}
-              </NavLink>
-              <NavLink
-                onClick={() => setMobileMenuOpen(false)}
-                to="/workflows"
-                icon={Settings}
-              >
-                Workflows Modeler
-              </NavLink>
-            </>
-          )}
-          {(isAdminOrFF || isCustomsBroker) && (
-            <NavLink
-              onClick={() => setMobileMenuOpen(false)}
-              to="/bookings"
-              icon={FileText}
-            >
-              EDI/XML Parser
-            </NavLink>
-          )}
-        </div>
+              {(isAdminOrFF || isCustomsBroker) && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/control-tower"
+                    icon={Radio}
+                    badge="AI Ops"
+                  >
+                    Control Tower
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/exceptions"
+                    icon={ShieldAlert}
+                  >
+                    Exception Center
+                  </NavLink>
+                </>
+              )}
+            </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">
-            Directory & Standards
-          </span>
-          <NavLink
-            onClick={() => setMobileMenuOpen(false)}
-            to="/addresses"
-            icon={Building2}
-          >
-            Addresses & B/L Hub
-          </NavLink>
-          <NavLink
-            onClick={() => setMobileMenuOpen(false)}
-            to="/wiki"
-            icon={BookOpen}
-          >
-            Wiki & Knowledge Hub
-          </NavLink>
-        </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Customs & Security
+              </span>
+              {(isAdminOrFF || isCustomsBroker) && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/customs"
+                    icon={ShieldAlert}
+                    badge="DUA"
+                  >
+                    Customs Clearance
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/customs-warehouse"
+                    icon={Building2}
+                    badge="Bonded"
+                  >
+                    Customs Warehouse
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/cross-border-usmca"
+                    icon={Truck}
+                    badge="T-MEC"
+                  >
+                    USMCA Cross-Border
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/aeo-security"
+                    icon={ShieldCheck}
+                    badge="C-TPAT"
+                  >
+                    AEO & Cargo Security
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/security-risk"
+                    icon={ShieldAlert}
+                    badge="PKI"
+                  >
+                    Security & Resilience
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/smart-contracts"
+                    icon={FileCode2}
+                    badge="MLETR"
+                  >
+                    e-BL & Smart Contracts
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/iata-one-record"
+                    icon={Plane}
+                    badge="1Record"
+                  >
+                    IATA ONE Record
+                  </NavLink>
+                </>
+              )}
+            </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-[10px] font-bold text-slate-500/80 uppercase tracking-widest mb-1 px-3">
-            External Views
-          </span>
-          <NavLink
-            onClick={() => setMobileMenuOpen(false)}
-            to="/portal"
-            icon={Users}
-          >
-            {t("sidebar.customerPortal")}
-          </NavLink>
-        </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Regulated Cargo
+              </span>
+              {isAdminOrFF && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/cold-chain"
+                    icon={Snowflake}
+                    badge="GDP"
+                  >
+                    Cold Chain
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/dangerous-goods"
+                    icon={Zap}
+                    badge="IMDG"
+                  >
+                    Dangerous Goods
+                  </NavLink>
+                </>
+              )}
+            </div>
 
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Decarbonization (EU ETS)
+              </span>
+              {isAdminOrFF && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/cbam"
+                    icon={Leaf}
+                    badge="CBAM"
+                  >
+                    CBAM Emissions
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/fueleu-maritime"
+                    icon={Ship}
+                    badge="FuelEU"
+                  >
+                    FuelEU Maritime
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/carbon-insetting"
+                    icon={Coins}
+                    badge="Twin"
+                  >
+                    Carbon Insetting
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/esg-tracker"
+                    icon={Leaf}
+                    badge="GLEC"
+                  >
+                    Carbon Tracker
+                  </NavLink>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Directory & Docs
+              </span>
+              <NavLink
+                onClick={closeMobile}
+                to="/addresses"
+                icon={Building2}
+                badge="Directory"
+              >
+                Addresses & B/L Hub
+              </NavLink>
+              <NavLink onClick={closeMobile} to="/documents" icon={FileText}>
+                Document Vault
+              </NavLink>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VIEW: ALL (FULL ENTERPRISE HIERARCHY)                                     */}
+        {/* ========================================================================= */}
+        {persona === "all" && (
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Mission Control
+              </span>
+              <NavLink onClick={closeMobile} to="/" icon={LayoutDashboard}>
+                {t("sidebar.dashboard")}
+              </NavLink>
+              {(isAdminOrFF || isCustomsBroker) && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/cockpit"
+                    icon={Zap}
+                    badge="Inbox"
+                  >
+                    Operations Cockpit
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/shipment-360"
+                    icon={Compass}
+                    badge="360°"
+                  >
+                    Shipment 360
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/control-tower"
+                    icon={Radio}
+                    badge="AI Ops"
+                  >
+                    Control Tower
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/exceptions"
+                    icon={ShieldAlert}
+                  >
+                    Exception Center
+                  </NavLink>
+                </>
+              )}
+              <NavLink onClick={closeMobile} to="/globe" icon={Globe2}>
+                Globe Tracker
+              </NavLink>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Multimodal Transport
+              </span>
+              {isAdminOrFF && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/schedules"
+                    icon={Calendar}
+                  >
+                    Sailing Schedules
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/bookings" icon={Book}>
+                    Booking & B/L
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/planner" icon={Package}>
+                    Container Planner
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/lcl" icon={Cuboid}>
+                    LCL Consolidation
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/air-freight"
+                    icon={Plane}
+                    badge="e-AWB"
+                  >
+                    Air Freight
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/road-freight"
+                    icon={Truck}
+                    badge="e-CMR"
+                  >
+                    Road Freight
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/drayage"
+                    icon={Truck}
+                    badge="GLEC"
+                  >
+                    Port Drayage
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/rail-freight"
+                    icon={TrainTrack}
+                    badge="TEN-T"
+                  >
+                    Rail Freight
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/bulk-operations"
+                    icon={Anchor}
+                    badge="IMSBC"
+                  >
+                    Bulk Operations
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/chartering-laytime"
+                    icon={Anchor}
+                    badge="BIMCO"
+                  >
+                    Chartering & Laytime
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/warehouse" icon={Boxes}>
+                    Warehouse 3D
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/port-congestion"
+                    icon={Compass}
+                    badge="AIS"
+                  >
+                    Port & AIS Radar
+                  </NavLink>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Customs & Security
+              </span>
+              {(isAdminOrFF || isCustomsBroker) && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/customs"
+                    icon={ShieldAlert}
+                    badge="DUA"
+                  >
+                    Customs Clearance
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/customs-warehouse"
+                    icon={Building2}
+                    badge="Bonded"
+                  >
+                    Customs Warehouse
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/cross-border-usmca"
+                    icon={Truck}
+                    badge="T-MEC"
+                  >
+                    USMCA Cross-Border
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/aeo-security"
+                    icon={ShieldCheck}
+                    badge="C-TPAT"
+                  >
+                    AEO & Cargo Security
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/security-risk"
+                    icon={ShieldAlert}
+                    badge="PKI"
+                  >
+                    Security & Resilience
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/smart-contracts"
+                    icon={FileCode2}
+                    badge="MLETR"
+                  >
+                    e-BL & Smart Contracts
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/iata-one-record"
+                    icon={Plane}
+                    badge="1Record"
+                  >
+                    IATA ONE Record
+                  </NavLink>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Regulated Cargo & Green
+              </span>
+              {isAdminOrFF && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/cold-chain"
+                    icon={Snowflake}
+                    badge="GDP"
+                  >
+                    Cold Chain
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/dangerous-goods"
+                    icon={Zap}
+                    badge="IMDG"
+                  >
+                    Dangerous Goods
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/cbam"
+                    icon={Leaf}
+                    badge="CBAM"
+                  >
+                    CBAM Emissions
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/fueleu-maritime"
+                    icon={Ship}
+                    badge="FuelEU"
+                  >
+                    FuelEU Maritime
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/carbon-insetting"
+                    icon={Coins}
+                    badge="Twin"
+                  >
+                    Carbon Insetting
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/esg-tracker"
+                    icon={Leaf}
+                    badge="GLEC"
+                  >
+                    Carbon Tracker
+                  </NavLink>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Finance & Legal
+              </span>
+              {isAdminOrFF && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/invoices"
+                    icon={Landmark}
+                    badge="AR/AP"
+                  >
+                    Invoicing & Billing
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/settlements"
+                    icon={Briefcase}
+                  >
+                    Agent Settlements
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/treasury"
+                    icon={BadgeDollarSign}
+                    badge="IATA"
+                  >
+                    Treasury & CASS
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/trade-finance"
+                    icon={Landmark}
+                    badge="UCP 600"
+                  >
+                    Trade Finance
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/quotes"
+                    icon={BadgeDollarSign}
+                  >
+                    Rate Comparer
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/pricing" icon={Activity}>
+                    Dynamic Pricing
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/cargo-insurance"
+                    icon={ShieldCheck}
+                    badge="ICC"
+                  >
+                    Cargo Insurance
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/claims"
+                    icon={ShieldAlert}
+                    badge="Claims"
+                  >
+                    Cargo Claims
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/general-average"
+                    icon={Flame}
+                    badge="YAR"
+                  >
+                    General Average
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/contracts"
+                    icon={FileSignature}
+                    badge="2020"
+                  >
+                    Incoterms Contracts
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/demurrage"
+                    icon={Clock}
+                    badge="D&D"
+                  >
+                    Demurrage Alerts
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/profitability"
+                    icon={Activity}
+                    badge="P&L"
+                  >
+                    Profitability
+                  </NavLink>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+                Directory & Standards
+              </span>
+              <NavLink
+                onClick={closeMobile}
+                to="/addresses"
+                icon={Building2}
+                badge="Directory"
+              >
+                Addresses & B/L Hub
+              </NavLink>
+              <NavLink onClick={closeMobile} to="/documents" icon={FileText}>
+                Document Vault
+              </NavLink>
+              {isAdminOrFF && (
+                <>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/edi"
+                    icon={ArrowLeftRight}
+                    badge="EDI"
+                  >
+                    B2B EDI Hub
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/workflows"
+                    icon={Settings}
+                  >
+                    Workflows Modeler
+                  </NavLink>
+                  <NavLink onClick={closeMobile} to="/tasks" icon={ListTodo}>
+                    Tasklist
+                  </NavLink>
+                </>
+              )}
+              <NavLink onClick={closeMobile} to="/wiki" icon={BookOpen}>
+                Knowledge Wiki
+              </NavLink>
+              <NavLink onClick={closeMobile} to="/portal" icon={Users}>
+                Customer Portal
+              </NavLink>
+            </div>
+          </div>
+        )}
+
+        {/* System Administration - Always accessible to authorized roles */}
         {(isAdminOrFF || isCustomsBroker) && (
-          <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1 px-3 flex items-center justify-between">
-              <span>System Administration</span>
+          <div className="flex flex-col gap-1 pt-3 border-t border-slate-800/80 mt-auto">
+            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest px-2.5 mb-1 flex items-center justify-between">
+              <span>Administration</span>
               <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono">
                 {role}
               </span>
             </span>
             <NavLink
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={closeMobile}
               to="/system-panel"
               icon={Sliders}
+              badge="Admin"
             >
-              System Governance Panel
+              System Governance
             </NavLink>
             <NavLink
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={closeMobile}
               to="/settings#resolutions"
               icon={CheckCircle2}
             >
