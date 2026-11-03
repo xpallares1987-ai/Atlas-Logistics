@@ -102,6 +102,26 @@ export const addressTypeEnum = [
 
 export type AddressType = (typeof addressTypeEnum)[number];
 
+export const addressVerificationStatusEnum = [
+  "NOT_CHECKED",
+  "VERIFIED",
+  "MANUAL_UNVERIFIED",
+  "AMBIGUOUS",
+] as const;
+
+export type AddressVerificationStatus =
+  (typeof addressVerificationStatusEnum)[number];
+
+export const addressVerificationProviderEnum = [
+  "GOOGLE_MAPS",
+  "NOMINATIM",
+  "PHOTON",
+  "MANUAL",
+] as const;
+
+export type AddressVerificationProvider =
+  (typeof addressVerificationProviderEnum)[number];
+
 export const contactRoleCategoryEnum = [
   "OPERATIONS",
   "CUSTOMS",
@@ -138,6 +158,15 @@ export const addresses = sqliteTable("addresses", {
     false,
   ),
   notes: text("notes"),
+  lat: real("lat"),
+  lon: real("lon"),
+  formattedAddress: text("formatted_address"),
+  verificationStatus: text("verification_status", {
+    enum: addressVerificationStatusEnum,
+  }).default("NOT_CHECKED"),
+  verificationProvider: text("verification_provider", {
+    enum: addressVerificationProviderEnum,
+  }),
   ...commonAuditFields,
 });
 

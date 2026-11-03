@@ -7,6 +7,8 @@ import {
   companies,
   AddressType,
   ContactRoleCategory,
+  AddressVerificationStatus,
+  AddressVerificationProvider,
 } from "../db/schema/index.js";
 import { eq, and, or, like, desc } from "drizzle-orm";
 import {
@@ -15,6 +17,7 @@ import {
   DEFAULT_UNLOCODE_HUBS,
 } from "@atlas/shared";
 import { getCurrentTenant } from "../lib/tenancy/tenancy-context.js";
+import { addressGeocodingService } from "../services/address-geocoding.service.js";
 
 /**
  * Clean & normalize string for fuzzy duplicate comparison
@@ -98,6 +101,27 @@ export async function ensureAddressesTables() {
   try {
     await client.execute(`ALTER TABLE addresses ADD COLUMN tags TEXT;`);
   } catch {}
+  try {
+    await client.execute(`ALTER TABLE addresses ADD COLUMN lat REAL;`);
+  } catch {}
+  try {
+    await client.execute(`ALTER TABLE addresses ADD COLUMN lon REAL;`);
+  } catch {}
+  try {
+    await client.execute(
+      `ALTER TABLE addresses ADD COLUMN formatted_address TEXT;`,
+    );
+  } catch {}
+  try {
+    await client.execute(
+      `ALTER TABLE addresses ADD COLUMN verification_status TEXT DEFAULT 'NOT_CHECKED';`,
+    );
+  } catch {}
+  try {
+    await client.execute(
+      `ALTER TABLE addresses ADD COLUMN verification_provider TEXT;`,
+    );
+  } catch {}
 
   await client.execute(`CREATE TABLE IF NOT EXISTS address_contacts (
     id TEXT PRIMARY KEY,
@@ -151,6 +175,35 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
       }
       const results = searchUnlocodes(q, undefined, 20);
       return results;
+    } catch (err: any) {
+      return reply.code(500).send({ error: err.message });
+    }
+  });
+
+  // Smart Autocomplete Address Search (Hybrid: Google Maps + OSM Nominatim / Photon)
+  fastify.get("/autocomplete", async (request, reply) => {
+    try {
+      const q = ((request.query as any)?.q || "").trim();
+      const country = (request.query as any)?.country;
+      if (!q || q.length < 2) {
+        return [];
+      }
+      const results = await addressGeocodingService.searchAutocomplete(
+        q,
+        country,
+      );
+      return results;
+    } catch (err: any) {
+      return reply.code(500).send({ error: err.message });
+    }
+  });
+
+  // Geocode address structured fields
+  fastify.post("/geocode", async (request, reply) => {
+    try {
+      const body = (request.body as any) || {};
+      const result = await addressGeocodingService.geocodeAddress(body);
+      return result || { error: "Address could not be geocoded", found: false };
     } catch (err: any) {
       return reply.code(500).send({ error: err.message });
     }
@@ -289,6 +342,66 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const addressId = body.id || `addr_${uuidv4().substring(0, 8)}`;
       const now = new Date();
 
+      // Geocoding & Verification Handling
+      let lat =
+        body.lat !== undefined && body.lat !== null && body.lat !== ""
+          ? Number(body.lat)
+          : null;
+      let lon =
+        body.lon !== undefined && body.lon !== null && body.lon !== ""
+          ? Number(body.lon)
+          : null;
+      let formattedAddress = body.formattedAddress || null;
+      let verificationStatus: AddressVerificationStatus =
+        body.verificationStatus || "NOT_CHECKED";
+      let verificationProvider: AddressVerificationProvider | null =
+        body.verificationProvider || null;
+
+      // If coordinates not already supplied from UI, attempt backend geocoding (with strict timeout)
+      if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) {
+        if (process.env.NODE_ENV === "test") {
+          verificationStatus = "MANUAL_UNVERIFIED";
+          verificationProvider = "MANUAL";
+        } else {
+          try {
+            const timeoutPromise = new Promise<null>((_, reject) =>
+              setTimeout(() => reject(new Error("Geocode timeout")), 1200),
+            );
+            const geo = await Promise.race([
+              addressGeocodingService.geocodeAddress({
+                street1: body.street1,
+                zipCode: body.zipCode,
+                city: body.city,
+                federalState: body.federalState,
+                country: body.country,
+              }),
+              timeoutPromise,
+            ]);
+            if (geo && !isNaN(geo.lat) && !isNaN(geo.lon)) {
+              lat = geo.lat;
+              lon = geo.lon;
+              formattedAddress = formattedAddress || geo.formattedAddress;
+              verificationStatus = "VERIFIED";
+              verificationProvider =
+                geo.provider as AddressVerificationProvider;
+            } else {
+              verificationStatus = "MANUAL_UNVERIFIED";
+              verificationProvider = "MANUAL";
+            }
+          } catch {
+            verificationStatus = "MANUAL_UNVERIFIED";
+            verificationProvider = "MANUAL";
+          }
+        }
+      } else {
+        if (!verificationStatus || verificationStatus === "NOT_CHECKED") {
+          verificationStatus = "VERIFIED";
+        }
+        if (!verificationProvider) {
+          verificationProvider = "MANUAL";
+        }
+      }
+
       const inserted = await db
         .insert(addresses)
         .values({
@@ -309,6 +422,11 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           isDefaultConsignee: Boolean(body.isDefaultConsignee),
           isDefaultNotify: Boolean(body.isDefaultNotify),
           notes: body.notes || null,
+          lat,
+          lon,
+          formattedAddress,
+          verificationStatus,
+          verificationProvider,
           createdAt: now,
           updatedAt: now,
         })
@@ -471,6 +589,27 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           isDefaultConsignee: Boolean(body.isDefaultConsignee),
           isDefaultNotify: Boolean(body.isDefaultNotify),
           notes: body.notes || null,
+          lat:
+            body.lat !== undefined
+              ? body.lat !== null && body.lat !== ""
+                ? Number(body.lat)
+                : null
+              : undefined,
+          lon:
+            body.lon !== undefined
+              ? body.lon !== null && body.lon !== ""
+                ? Number(body.lon)
+                : null
+              : undefined,
+          formattedAddress:
+            body.formattedAddress !== undefined
+              ? body.formattedAddress
+              : undefined,
+          verificationStatus:
+            (body.verificationStatus as AddressVerificationStatus) || undefined,
+          verificationProvider:
+            (body.verificationProvider as AddressVerificationProvider) ||
+            undefined,
           updatedAt: new Date(),
         })
         .where(eq(addresses.id, id))

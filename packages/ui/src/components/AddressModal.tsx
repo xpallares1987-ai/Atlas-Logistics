@@ -11,6 +11,9 @@ import {
   Loader2,
   FileText,
   Shield,
+  ExternalLink,
+  Globe,
+  Sparkles,
 } from "lucide-react";
 import { Modal } from "./Modal";
 import { Button } from "./Button";
@@ -73,6 +76,11 @@ export interface AddressFormData {
   isDefaultConsignee?: boolean;
   isDefaultNotify?: boolean;
   notes?: string;
+  lat?: number | null;
+  lon?: number | null;
+  formattedAddress?: string | null;
+  verificationStatus?: string | null;
+  verificationProvider?: string | null;
   contacts?: ContactFormItem[];
 }
 
@@ -107,6 +115,26 @@ export const AddressModal: React.FC<AddressModalProps> = ({
   const [isDefaultConsignee, setIsDefaultConsignee] = useState<boolean>(false);
   const [isDefaultNotify, setIsDefaultNotify] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>("");
+
+  // Geolocation & Verification State
+  const [lat, setLat] = useState<number | null>(null);
+  const [lon, setLon] = useState<number | null>(null);
+  const [formattedAddress, setFormattedAddress] = useState<string>("");
+  const [verificationStatus, setVerificationStatus] = useState<
+    "VERIFIED" | "MANUAL_UNVERIFIED" | "NOT_CHECKED"
+  >("NOT_CHECKED");
+  const [verificationProvider, setVerificationProvider] = useState<
+    string | null
+  >(null);
+
+  // Smart Search Autocomplete State
+  const [smartSearchQuery, setSmartSearchQuery] = useState("");
+  const [smartSuggestions, setSmartSuggestions] = useState<any[]>([]);
+  const [isSearchingSmart, setIsSearchingSmart] = useState(false);
+  const [showSmartDropdown, setShowSmartDropdown] = useState(false);
+  const [isValidatingManual, setIsValidatingManual] = useState(false);
+  const smartSearchRef = useRef<HTMLDivElement>(null);
+  const smartSearchTimerRef = useRef<any>(null);
 
   // Contacts (1:N)
   const [contacts, setContacts] = useState<ContactFormItem[]>([
@@ -153,6 +181,17 @@ export const AddressModal: React.FC<AddressModalProps> = ({
       setIsDefaultConsignee(!!addressToEdit.isDefaultConsignee);
       setIsDefaultNotify(!!addressToEdit.isDefaultNotify);
       setNotes(addressToEdit.notes || "");
+      setLat(addressToEdit.lat ?? null);
+      setLon(addressToEdit.lon ?? null);
+      setFormattedAddress(addressToEdit.formattedAddress || "");
+      setVerificationStatus(
+        (addressToEdit.verificationStatus as any) ||
+          (addressToEdit.lat ? "VERIFIED" : "NOT_CHECKED"),
+      );
+      setVerificationProvider(addressToEdit.verificationProvider || null);
+      setSmartSearchQuery("");
+      setSmartSuggestions([]);
+      setShowSmartDropdown(false);
       if (addressToEdit.contacts && addressToEdit.contacts.length > 0) {
         setContacts(
           addressToEdit.contacts.map((c) => ({
@@ -190,6 +229,14 @@ export const AddressModal: React.FC<AddressModalProps> = ({
       setIsDefaultConsignee(false);
       setIsDefaultNotify(false);
       setNotes("");
+      setLat(null);
+      setLon(null);
+      setFormattedAddress("");
+      setVerificationStatus("NOT_CHECKED");
+      setVerificationProvider(null);
+      setSmartSearchQuery("");
+      setSmartSuggestions([]);
+      setShowSmartDropdown(false);
       setContacts([
         {
           fullName: "",
@@ -207,7 +254,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
     setActiveTab("FORM");
   }, [addressToEdit, isOpen]);
 
-  // Handle outside click for UN/LOCODE dropdown
+  // Handle outside click for UN/LOCODE and Smart Search dropdowns
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -216,10 +263,114 @@ export const AddressModal: React.FC<AddressModalProps> = ({
       ) {
         setShowUnlocodeDropdown(false);
       }
+      if (
+        smartSearchRef.current &&
+        !smartSearchRef.current.contains(event.target as Node)
+      ) {
+        setShowSmartDropdown(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Smart Search Autocomplete (Google Maps + OSM) with Debounce
+  const handleSmartSearchChange = (val: string) => {
+    setSmartSearchQuery(val);
+    if (smartSearchTimerRef.current) {
+      clearTimeout(smartSearchTimerRef.current);
+    }
+
+    if (!val || val.trim().length < 2) {
+      setSmartSuggestions([]);
+      setShowSmartDropdown(false);
+      return;
+    }
+
+    smartSearchTimerRef.current = setTimeout(async () => {
+      try {
+        setIsSearchingSmart(true);
+        const countryParam = country
+          ? `&country=${encodeURIComponent(country)}`
+          : "";
+        const res = await fetch(
+          `/api/addresses/autocomplete?q=${encodeURIComponent(val)}${countryParam}`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setSmartSuggestions(Array.isArray(data) ? data : []);
+          setShowSmartDropdown(true);
+        }
+      } catch (err) {
+        console.error("Error fetching smart address suggestions:", err);
+      } finally {
+        setIsSearchingSmart(false);
+      }
+    }, 350);
+  };
+
+  // Select Smart Suggestion and auto-distribute fields
+  const handleSelectSmartSuggestion = (item: any) => {
+    if (item.street1) setStreet1(item.street1);
+    else if (item.title) setStreet1(item.title);
+
+    if (item.zipCode) setZipCode(item.zipCode);
+    if (item.city) setCity(item.city);
+    if (item.federalState) setFederalState(item.federalState);
+    if (item.country) setCountry(item.country);
+
+    setLat(item.lat ?? null);
+    setLon(item.lon ?? null);
+    setFormattedAddress(item.formattedAddress || item.title || "");
+    setVerificationStatus("VERIFIED");
+    setVerificationProvider(item.provider || "NOMINATIM");
+    setShowSmartDropdown(false);
+    setSmartSearchQuery("");
+  };
+
+  // On-demand validation for current manual fields
+  const handleValidateCurrentAddress = async () => {
+    if (!street1.trim() && !city.trim()) {
+      setErrorMessage(
+        "Introduzca al menos Calle y Ciudad para validar en el mapa.",
+      );
+      return;
+    }
+    try {
+      setIsValidatingManual(true);
+      const res = await fetch("/api/addresses/geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          street1,
+          zipCode,
+          city,
+          federalState,
+          country,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.lat && data.lon) {
+          setLat(data.lat);
+          setLon(data.lon);
+          setFormattedAddress(data.formattedAddress || "");
+          setVerificationStatus("VERIFIED");
+          setVerificationProvider(data.provider || "NOMINATIM");
+        } else {
+          setVerificationStatus("MANUAL_UNVERIFIED");
+          setVerificationProvider("MANUAL");
+        }
+      } else {
+        setVerificationStatus("MANUAL_UNVERIFIED");
+      }
+    } catch {
+      setVerificationStatus("MANUAL_UNVERIFIED");
+    } finally {
+      setIsValidatingManual(false);
+    }
+  };
 
   // Search UN/LOCODE
   const handleUnlocodeSearch = async (term: string) => {
@@ -340,6 +491,11 @@ export const AddressModal: React.FC<AddressModalProps> = ({
       isDefaultConsignee,
       isDefaultNotify,
       notes: notes.trim() || undefined,
+      lat,
+      lon,
+      formattedAddress: formattedAddress || undefined,
+      verificationStatus,
+      verificationProvider: verificationProvider || undefined,
       contacts: validContacts,
       overrideWarning,
     };
@@ -565,9 +721,159 @@ export const AddressModal: React.FC<AddressModalProps> = ({
 
               {/* Physical Geographic Address */}
               <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                  <MapPin className="w-4 h-4 text-emerald-500" />
-                  <span>Ubicación Geográfica y UN/LOCODE</span>
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-emerald-500" />
+                    <span>Ubicación Geográfica y Normalización Postal</span>
+                  </div>
+                  <span className="text-[11px] font-normal normal-case text-slate-400 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                    Google Maps & OpenStreetMap
+                  </span>
+                </div>
+
+                {/* Smart Autocomplete Search Input */}
+                <div className="relative" ref={smartSearchRef}>
+                  <label
+                    htmlFor="smart-address-search-input"
+                    className="block text-xs font-medium text-indigo-600 dark:text-indigo-400 mb-1"
+                  >
+                    Buscador Inteligente (Autocompleta Calle, CP, Ciudad y
+                    Coordenadas)
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      id="smart-address-search-input"
+                      name="smartAddressSearch"
+                      aria-label="Buscar dirección con Google Maps u OpenStreetMap"
+                      type="text"
+                      placeholder="Buscar por calle, muelle, polígono o lugar (ej: Moll de Ponent, Barcelona)..."
+                      value={smartSearchQuery}
+                      onChange={(e) => handleSmartSearchChange(e.target.value)}
+                      onFocus={() => {
+                        if (smartSuggestions.length > 0)
+                          setShowSmartDropdown(true);
+                      }}
+                      className="w-full px-3 py-2 pl-9 pr-10 text-sm bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/60 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                    />
+                    <div className="absolute left-3 text-indigo-500">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div className="absolute right-3 text-slate-400">
+                      {isSearchingSmart ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+                      ) : (
+                        <Search className="w-4 h-4" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dropdown Suggestions */}
+                  {showSmartDropdown && smartSuggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-2xl z-30 text-sm">
+                      {smartSuggestions.map((item, idx) => (
+                        <button
+                          key={`${item.id}-${idx}`}
+                          type="button"
+                          onClick={() => handleSelectSmartSuggestion(item)}
+                          className="w-full text-left px-3 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 flex items-start justify-between border-b border-slate-100 dark:border-slate-800 last:border-b-0 gap-3"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                              {item.title}
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              {item.subtitle || item.formattedAddress}
+                            </div>
+                          </div>
+                          <span
+                            className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded shrink-0 font-medium ${
+                              item.provider === "GOOGLE_MAPS"
+                                ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                                : "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                            }`}
+                          >
+                            {item.provider === "GOOGLE_MAPS"
+                              ? "Google Maps"
+                              : "OpenStreetMap"}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Geolocation Verification Status Banner */}
+                <div
+                  className={`p-3 rounded-lg border text-xs flex flex-wrap items-center justify-between gap-3 ${
+                    verificationStatus === "VERIFIED"
+                      ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200"
+                      : verificationStatus === "MANUAL_UNVERIFIED"
+                        ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200"
+                        : "bg-slate-100 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {verificationStatus === "VERIFIED" ? (
+                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    ) : verificationStatus === "MANUAL_UNVERIFIED" ? (
+                      <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    ) : (
+                      <Globe className="w-4 h-4 text-slate-400 shrink-0" />
+                    )}
+                    <div>
+                      <div className="font-semibold flex items-center gap-1.5">
+                        <span>
+                          {verificationStatus === "VERIFIED"
+                            ? `Dirección Verificada (${
+                                verificationProvider === "GOOGLE_MAPS"
+                                  ? "Google Maps"
+                                  : "OpenStreetMap"
+                              })`
+                            : verificationStatus === "MANUAL_UNVERIFIED"
+                              ? "Dirección Manual / No Verificada"
+                              : "Ubicación sin verificar en mapa"}
+                        </span>
+                      </div>
+                      {lat !== null && lon !== null ? (
+                        <div className="font-mono text-[11px] opacity-80">
+                          Lat: {lat.toFixed(5)}, Lon: {lon.toFixed(5)}
+                          {formattedAddress ? ` — ${formattedAddress}` : ""}
+                        </div>
+                      ) : (
+                        <div className="text-[11px] opacity-75">
+                          Sin coordenadas geográficas asignadas
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {lat !== null && lon !== null && (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 text-[11px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-700 transition flex items-center gap-1 font-medium text-slate-700 dark:text-slate-200"
+                      >
+                        <ExternalLink className="w-3 h-3 text-indigo-500" />
+                        <span>Ver en Mapa</span>
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleValidateCurrentAddress}
+                      disabled={isValidatingManual}
+                      className="px-2.5 py-1 text-[11px] bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 transition flex items-center gap-1 font-medium"
+                    >
+                      {isValidatingManual ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3" />
+                      )}
+                      <span>Validar en Mapa</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* UN/LOCODE Autocomplete */}
@@ -649,7 +955,12 @@ export const AddressModal: React.FC<AddressModalProps> = ({
                       required
                       placeholder="Ej: Moll de Ponent s/n, Terminal Port"
                       value={street1}
-                      onChange={(e) => setStreet1(e.target.value)}
+                      onChange={(e) => {
+                        setStreet1(e.target.value);
+                        if (verificationStatus === "VERIFIED") {
+                          setVerificationStatus("MANUAL_UNVERIFIED");
+                        }
+                      }}
                       className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
                   </div>
@@ -691,7 +1002,12 @@ export const AddressModal: React.FC<AddressModalProps> = ({
                       required
                       placeholder="08039"
                       value={zipCode}
-                      onChange={(e) => setZipCode(e.target.value)}
+                      onChange={(e) => {
+                        setZipCode(e.target.value);
+                        if (verificationStatus === "VERIFIED") {
+                          setVerificationStatus("MANUAL_UNVERIFIED");
+                        }
+                      }}
                       className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
                   </div>
@@ -711,7 +1027,12 @@ export const AddressModal: React.FC<AddressModalProps> = ({
                       required
                       placeholder="Barcelona"
                       value={city}
-                      onChange={(e) => setCity(e.target.value)}
+                      onChange={(e) => {
+                        setCity(e.target.value);
+                        if (verificationStatus === "VERIFIED") {
+                          setVerificationStatus("MANUAL_UNVERIFIED");
+                        }
+                      }}
                       className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
                   </div>

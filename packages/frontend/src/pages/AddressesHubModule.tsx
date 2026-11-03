@@ -19,6 +19,9 @@ import {
   Layers,
   Loader2,
   Star,
+  Check,
+  ExternalLink,
+  AlertCircle,
 } from "lucide-react";
 import {
   Button,
@@ -421,18 +424,59 @@ export default function AddressesHubModule() {
                     )}
                   </div>
 
-                  {/* Physical Address */}
-                  <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
-                    <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div>
-                      <div>{item.street1}</div>
-                      {item.street2 && <div>{item.street2}</div>}
-                      <div className="font-medium text-slate-800 dark:text-slate-200">
-                        {item.zipCode} {item.city}
-                        {item.federalState
-                          ? `, ${item.federalState}`
-                          : ""}, {item.country}
+                  {/* Physical Address & Geolocation */}
+                  <div className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                      <div>
+                        <div>{item.street1}</div>
+                        {item.street2 && <div>{item.street2}</div>}
+                        <div className="font-medium text-slate-800 dark:text-slate-200">
+                          {item.zipCode} {item.city}
+                          {item.federalState
+                            ? `, ${item.federalState}`
+                            : ""}, {item.country}
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Verification status and map link */}
+                    <div className="pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px]">
+                      {item.verificationStatus === "VERIFIED" ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>
+                            {item.verificationProvider === "GOOGLE_MAPS"
+                              ? "Google Maps"
+                              : "OpenStreetMap"}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>Manual</span>
+                        </span>
+                      )}
+
+                      {item.lat && item.lon ? (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lon}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline font-mono"
+                          title={`Lat: ${item.lat}, Lon: ${item.lon}`}
+                        >
+                          <span>
+                            {Number(item.lat).toFixed(3)},{" "}
+                            {Number(item.lon).toFixed(3)}
+                          </span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 italic">
+                          Sin coords
+                        </span>
+                      )}
                     </div>
                   </div>
 

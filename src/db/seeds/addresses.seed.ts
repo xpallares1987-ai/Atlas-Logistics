@@ -638,6 +638,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
       .insert(addresses)
       .values({
         ...addressFields,
+        addressType: addressFields.addressType as any,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
