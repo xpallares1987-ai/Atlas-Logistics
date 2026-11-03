@@ -9,47 +9,88 @@ export async function seedFinance(ctx: {
   userIds: string[];
 }): Promise<void> {
   const { companyIds, shipmentIds, userIds } = ctx;
-  // 8. INVOICES
+  // 8. INVOICES (Rich AR / AP Multi-Currency Freight Invoices)
+  const invoiceConcepts = [
+    { desc: "Flete Marítimo Internacional FCL 40HC", pct: 0.6 },
+    { desc: "Recargo por Combustible (BAF / Bunker Adjustment)", pct: 0.15 },
+    { desc: "Gastos de Manipulación Portuaria (THC Terminal)", pct: 0.12 },
+    { desc: "Acarreo Terrestre Portuario (Drayage Haulage)", pct: 0.08 },
+    { desc: "Despacho Aduanero y Emisión de DUA", pct: 0.05 },
+  ];
+
+  const currencies = ["EUR", "USD", "EUR", "USD", "GBP"];
+  const statuses = ["PAID", "PAID", "ISSUED", "OVERDUE", "DRAFT"];
+  const types = ["AR", "AR", "AP", "AR", "AP"];
+
+  let invIndex = 1;
   for (const shipmentId of shipmentIds) {
-    if (Math.random() > 0.2) {
-      const invoiceId = faker.string.uuid();
-      const amount = faker.number.int({ min: 1000, max: 15000 });
-      await db.insert(schema.invoices).values({
+    if (invIndex > 35) break;
+
+    const invoiceId = `inv_seed_${String(invIndex).padStart(3, "0")}`;
+    const invType = types[(invIndex - 1) % types.length];
+    const curr = currencies[(invIndex - 1) % currencies.length];
+    const status = statuses[(invIndex - 1) % statuses.length];
+    const amount = faker.number.int({ min: 1450, max: 8900 });
+    const taxRate = curr === "EUR" ? 0.21 : 0.0;
+    const taxAmount = Math.round(amount * taxRate * 100) / 100;
+
+    const dueDate =
+      status === "OVERDUE"
+        ? new Date(
+            Date.now() - faker.number.int({ min: 5, max: 45 }) * 86400000,
+          )
+        : new Date(
+            Date.now() + faker.number.int({ min: 10, max: 60 }) * 86400000,
+          );
+
+    const paidDate =
+      status === "PAID"
+        ? new Date(
+            Date.now() - faker.number.int({ min: 1, max: 15 }) * 86400000,
+          )
+        : null;
+
+    const invNumber = `INV-2026-${invType}-${String(1000 + invIndex)}`;
+
+    await db
+      .insert(schema.invoices)
+      .values({
         id: invoiceId,
-        invoiceNumber: "INV-" + faker.string.numeric(6),
+        invoiceNumber: invNumber,
+        type: invType,
         shipmentId,
         companyId: faker.helpers.arrayElement(companyIds),
         amount,
-        currency: "USD",
-        status: faker.helpers.arrayElement([
-          "ISSUED",
-          "PARTIAL",
-          "PAID",
-          "OVERDUE",
-        ]),
-        dueDate: faker.date.future(),
-      });
+        taxAmount,
+        taxRate,
+        currency: curr,
+        status,
+        dueDate,
+        paidDate,
+      })
+      .onConflictDoNothing();
 
-      // Invoice Items
-      await db.insert(schema.invoiceItems).values({
-        id: faker.string.uuid(),
-        invoiceId,
-        description: "Ocean Freight",
-        quantity: 1,
-        unitPrice: amount * 0.8,
-        total: amount * 0.8,
-      });
-      await db.insert(schema.invoiceItems).values({
-        id: faker.string.uuid(),
-        invoiceId,
-        description: "Bunker Adjustment Factor (BAF)",
-        quantity: 1,
-        unitPrice: amount * 0.2,
-        total: amount * 0.2,
-      });
+    // Insert structured realistic line items
+    for (const concept of invoiceConcepts) {
+      const lineTotal = Math.round(amount * concept.pct * 100) / 100;
+      await db
+        .insert(schema.invoiceItems)
+        .values({
+          id: `item_${invoiceId}_${faker.string.alphanumeric(4)}`,
+          invoiceId,
+          description: concept.desc,
+          quantity: 1,
+          unitPrice: lineTotal,
+          total: lineTotal,
+        })
+        .onConflictDoNothing();
     }
+
+    invIndex++;
   }
-  console.log(`✅ Creadas facturas financieras y conceptos.`);
+  console.log(
+    `✅ Creadas facturas financieras (AR/AP) y conceptos desglosados.`,
+  );
 
   // 9. BPMN DIAGRAMS
   const diagramIds = [];

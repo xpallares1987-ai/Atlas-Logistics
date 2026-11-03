@@ -90,7 +90,7 @@ export default function InvoicingModule() {
         activeFilter === "All"
           ? true
           : activeFilter === "Overdue"
-            ? inv.status === "Overdue"
+            ? (inv.status || "").toUpperCase() === "OVERDUE"
             : inv.type === activeFilter;
       return matchesSearch && matchesFilter;
     });
@@ -118,12 +118,13 @@ export default function InvoicingModule() {
     .filter((i) => i.type === "AP")
     .reduce((acc, curr) => acc + Number(curr.amount), 0);
   const totalOverdue = invoices
-    .filter((i) => i.status === "Overdue")
+    .filter((i) => (i.status || "").toUpperCase() === "OVERDUE")
     .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
   const getStatusVisuals = (status: string) => {
-    switch (status) {
-      case "Paid":
+    const s = (status || "").toUpperCase();
+    switch (s) {
+      case "PAID":
         return {
           icon: CheckCircle2,
           color: "text-emerald-400",
@@ -131,7 +132,7 @@ export default function InvoicingModule() {
           border: "border-emerald-500/20",
           glow: "shadow-[0_0_15px_rgba(16,185,129,0.15)]",
         };
-      case "Overdue":
+      case "OVERDUE":
         return {
           icon: AlertCircle,
           color: "text-rose-400",
@@ -139,8 +140,9 @@ export default function InvoicingModule() {
           border: "border-rose-500/20",
           glow: "shadow-[0_0_15px_rgba(244,63,94,0.15)]",
         };
-      case "Pending":
-      case "Issued":
+      case "PENDING":
+      case "ISSUED":
+      case "PARTIAL":
         return {
           icon: Clock,
           color: "text-amber-400",

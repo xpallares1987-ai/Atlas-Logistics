@@ -16,7 +16,7 @@ export interface DrayageCoordinates {
 
 export interface DrayagePricingParams {
   distanceKm: number;
-  transitMinutes: number;
+  transitMinutes?: number;
   containerType: DrayageContainerType;
   cargoWeightKg: number;
   isDangerousGoods?: boolean;
