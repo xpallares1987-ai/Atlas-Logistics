@@ -34,57 +34,132 @@ export function DashboardModule() {
   const { dateRange } = useDashboardStore();
 
   useEffect(() => {
+    let isMounted = true;
+    let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let initTimer: ReturnType<typeof setTimeout> | null = null;
+    let reconnectAttempts = 0;
+
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = import.meta.env.VITE_API_URL
-      ? import.meta.env.VITE_API_URL.replace(/^http/, "ws") + "/dashboard/live"
+      ? import.meta.env.VITE_API_URL.replace(/^http/, "ws") +
+        "/api/dashboard/live"
       : `${protocol}//${window.location.host}/api/dashboard/live`;
 
-    const ws = new WebSocket(wsUrl);
-    let isMounted = true;
-
-    ws.onmessage = (event) => {
-      if (!isMounted) return;
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === "STATS_UPDATE") {
-          queryClient.setQueryData(
-            ["dashboard", dateRange],
-            (oldData: unknown) => {
-              if (!oldData || typeof oldData !== "object") return oldData;
-              const data = oldData as any;
-              return {
-                ...data,
-                data: {
-                  ...data.data,
-                  stats: {
-                    ...data.data.stats,
-                    activeShipments: msg.data.activeShipments,
-                  },
-                },
-              };
-            },
-          );
+    const cleanupSocket = () => {
+      if (ws) {
+        const targetWs = ws;
+        targetWs.onopen = null;
+        targetWs.onmessage = null;
+        targetWs.onclose = null;
+        targetWs.onerror = null;
+        if (targetWs.readyState === WebSocket.OPEN) {
+          try {
+            targetWs.close(1000, "Clean cleanup");
+          } catch {
+            // Safe cleanup
+          }
+        } else if (targetWs.readyState === WebSocket.CONNECTING) {
+          targetWs.onopen = () => {
+            try {
+              targetWs.close(1000, "Unmounted during connect");
+            } catch {
+              // Safe cleanup
+            }
+          };
         }
-      } catch (err) {
-        console.error("Live update error", err);
+        ws = null;
       }
     };
 
-    ws.onerror = () => {
-      // Graceful fallback if WebSocket is temporarily unavailable
+    const scheduleReconnect = () => {
+      if (!isMounted || reconnectTimer) return;
+      reconnectAttempts++;
+      const delay = Math.min(
+        1500 * Math.pow(1.5, reconnectAttempts - 1),
+        10000,
+      );
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, delay);
     };
+
+    const connect = () => {
+      if (!isMounted) return;
+      cleanupSocket();
+
+      try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          if (!isMounted) return;
+          reconnectAttempts = 0;
+        };
+
+        ws.onmessage = (event) => {
+          if (!isMounted) return;
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === "STATS_UPDATE") {
+              queryClient.setQueryData(
+                ["dashboard", dateRange],
+                (oldData: unknown) => {
+                  if (!oldData || typeof oldData !== "object") return oldData;
+                  const data = oldData as any;
+                  return {
+                    ...data,
+                    data: {
+                      ...data.data,
+                      stats: {
+                        ...data.data.stats,
+                        activeShipments: msg.data.activeShipments,
+                      },
+                    },
+                  };
+                },
+              );
+            }
+          } catch (err) {
+            console.error("Live update error", err);
+          }
+        };
+
+        ws.onclose = () => {
+          if (!isMounted) return;
+          scheduleReconnect();
+        };
+
+        ws.onerror = () => {
+          if (!isMounted) return;
+          // Graceful fallback if WebSocket is temporarily unavailable
+        };
+      } catch {
+        if (!isMounted) return;
+        scheduleReconnect();
+      }
+    };
+
+    // Debounce initial connection by 50ms so StrictMode double-mount in dev
+    // cancels the initial throwaway attempt without triggering browser socket closure warnings
+    initTimer = setTimeout(() => {
+      initTimer = null;
+      if (isMounted) {
+        connect();
+      }
+    }, 50);
 
     return () => {
       isMounted = false;
-      ws.onmessage = null;
-      ws.onerror = null;
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      } else if (ws.readyState === WebSocket.CONNECTING) {
-        ws.onopen = () => {
-          ws.close();
-        };
+      if (initTimer) {
+        clearTimeout(initTimer);
+        initTimer = null;
       }
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      cleanupSocket();
     };
   }, [queryClient, dateRange]);
 

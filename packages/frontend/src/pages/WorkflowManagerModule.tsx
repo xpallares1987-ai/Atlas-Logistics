@@ -23,38 +23,54 @@ export default function WorkflowManagerModule() {
   const containerRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<any>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [workflowName, setWorkflowName] = useState("Exportación Marítima FCL - ESVLC");
+  const [workflowName, setWorkflowName] = useState(
+    "Exportación Marítima FCL - ESVLC",
+  );
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const [activeTemplate, setActiveTemplate] = useState<MaritimeTemplate>(MARITIME_TEMPLATES[0]);
+  const [activeTemplate, setActiveTemplate] = useState<MaritimeTemplate>(
+    MARITIME_TEMPLATES[0],
+  );
   const [sopGenerated, setSopGenerated] = useState(false);
 
   useEffect(() => {
+    let isDisposed = false;
+    let modeler: any = null;
+
     if (containerRef.current) {
-      modelerRef.current = new BpmnModeler({
+      containerRef.current.innerHTML = "";
+
+      modeler = new BpmnModeler({
         container: containerRef.current,
-        keyboard: {
-          bindTo: window,
-        },
+      });
+      modelerRef.current = modeler;
+
+      modeler.on("import.done", () => {
+        if (isDisposed) return;
+        const canvas = modeler?.get("canvas");
+        if (canvas) {
+          canvas.zoom("fit-viewport", "auto");
+        }
       });
 
       // Load initial FCL template by default
-      modelerRef.current.importXML(MARITIME_TEMPLATES[0].xml).catch((err: any) => {
-        console.error("Error al importar diagrama BPMN inicial:", err);
-      });
-
-      modelerRef.current.on("import.done", () => {
-        const canvas = modelerRef.current?.get("canvas");
-        if (canvas) {
-          canvas.zoom("fit-viewport", "auto");
+      modeler.importXML(MARITIME_TEMPLATES[0].xml).catch((err: any) => {
+        if (!isDisposed) {
+          console.error("Error al importar diagrama BPMN inicial:", err);
         }
       });
     }
 
     return () => {
-      if (modelerRef.current) {
-        modelerRef.current.destroy();
+      isDisposed = true;
+      if (modeler) {
+        try {
+          modeler.destroy();
+        } catch {
+          // Ignore destroy errors during fast unmount
+        }
       }
+      modelerRef.current = null;
     };
   }, []);
 
@@ -79,7 +95,9 @@ export default function WorkflowManagerModule() {
   };
 
   const handleResetDiagram = () => {
-    if (window.confirm("¿Deseas reiniciar el diagrama a la plantilla FCL base?")) {
+    if (
+      window.confirm("¿Deseas reiniciar el diagrama a la plantilla FCL base?")
+    ) {
       handleSelectTemplate(MARITIME_TEMPLATES[0]);
     }
   };
@@ -204,9 +222,14 @@ ${activeTemplate.milestones.map((m, i) => `${i + 1}. **${m}**`).join("\n")}
             BPMN MODELER - EXPORTACIÓN MARÍTIMA
           </h1>
           <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
-            <span>España: Valencia (VLC) · Algeciras (ALG) · Barcelona (BCN) · Bilbao (BIO)</span>
+            <span>
+              España: Valencia (VLC) · Algeciras (ALG) · Barcelona (BCN) ·
+              Bilbao (BIO)
+            </span>
             <span className="w-1 h-1 rounded-full bg-slate-600" />
-            <span className="text-emerald-400 font-medium">SOLAS VGM & DUA AEAT Compliance</span>
+            <span className="text-emerald-400 font-medium">
+              SOLAS VGM & DUA AEAT Compliance
+            </span>
           </p>
         </div>
 
@@ -352,7 +375,8 @@ ${activeTemplate.milestones.map((m, i) => `${i + 1}. **${m}**`).join("\n")}
                     Catálogo de Plantillas Marítimas Españolas
                   </h2>
                   <p className="text-xs text-slate-400">
-                    Selecciona un flujo de trabajo preconfigurado para tu operativa de transitario
+                    Selecciona un flujo de trabajo preconfigurado para tu
+                    operativa de transitario
                   </p>
                 </div>
               </div>
@@ -384,13 +408,15 @@ ${activeTemplate.milestones.map((m, i) => `${i + 1}. **${m}**`).join("\n")}
                             tmpl.category === "FCL"
                               ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
                               : tmpl.category === "LCL"
-                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                              : "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                                : "bg-amber-500/20 text-amber-400 border border-amber-500/40"
                           }`}
                         >
                           {tmpl.category}
                         </span>
-                        <h3 className="text-sm font-bold text-white">{tmpl.name}</h3>
+                        <h3 className="text-sm font-bold text-white">
+                          {tmpl.name}
+                        </h3>
                       </div>
                       <p className="text-xs text-slate-300 mt-1 leading-relaxed">
                         {tmpl.description}
@@ -414,7 +440,10 @@ ${activeTemplate.milestones.map((m, i) => `${i + 1}. **${m}**`).join("\n")}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Calendar size={12} className="text-emerald-400 shrink-0" />
+                      <Calendar
+                        size={12}
+                        className="text-emerald-400 shrink-0"
+                      />
                       <span>
                         <strong className="text-slate-300">Tiempo:</strong>{" "}
                         {tmpl.estimatedTransitTime}
@@ -440,7 +469,10 @@ ${activeTemplate.milestones.map((m, i) => `${i + 1}. **${m}**`).join("\n")}
 
             {/* Modal Footer */}
             <div className="px-6 py-3 bg-slate-950/60 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-              <span>Haga clic en cualquier plantilla para transferirla al modelador visual activo.</span>
+              <span>
+                Haga clic en cualquier plantilla para transferirla al modelador
+                visual activo.
+              </span>
               <button
                 onClick={() => setIsTemplateModalOpen(false)}
                 className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white transition"
