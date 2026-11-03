@@ -430,7 +430,7 @@ export default function DangerousGoodsModule() {
               <CardHeader className="pb-3 border-b border-slate-800">
                 <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-amber-400" />
-                  Simulador de Segregación en Contenedor (IMDG 7.2.4)
+                  Matriz de Segregación en Contenedor (IMDG 7.2.4)
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-4 text-xs">

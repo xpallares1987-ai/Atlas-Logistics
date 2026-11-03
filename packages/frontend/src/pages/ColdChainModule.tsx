@@ -271,7 +271,7 @@ export default function ColdChainModule() {
               className="px-4 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-cyan-600/25 transition-all flex items-center gap-2"
             >
               <Calculator className="w-4 h-4" />
-              Simuladores Térmicos
+              Cálculo Térmico & Autonomía (MKT / Hielo Seco)
             </button>
           </div>
         </div>

@@ -308,7 +308,7 @@ export default function TradeFinanceModule() {
               },
               {
                 id: "FEE_SIMULATOR",
-                label: "Simulador de Comisiones Bancarias & Coste Financiero",
+                label: "Calculadora de Comisiones Bancarias & Coste Financiero",
               },
             ] as const
           ).map((tab) => (
@@ -842,7 +842,7 @@ export default function TradeFinanceModule() {
             <div className="p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 space-y-4">
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Calculator size={18} className="text-emerald-400" />
-                Simulador de Comisiones Bancarias
+                Calculadora de Comisiones Bancarias
               </h3>
               <p className="text-xs text-slate-400">
                 Calcula costes de apertura trimestral, diferencial de

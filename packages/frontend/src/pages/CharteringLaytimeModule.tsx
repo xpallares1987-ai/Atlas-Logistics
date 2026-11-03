@@ -290,7 +290,7 @@ export default function CharteringLaytimeModule() {
           },
           {
             id: "sof_laytime",
-            label: "Estado de Hechos (SOF) & Simulador de Plancha",
+            label: "Estado de Hechos (SOF) & Cómputo de Plancha",
             icon: Clock,
           },
           {
@@ -502,7 +502,7 @@ export default function CharteringLaytimeModule() {
               <CardHeader className="pb-3 border-b border-slate-800">
                 <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
                   <Play className="w-4 h-4 text-sky-400" />
-                  Simulador de Plancha, Lluvia y Demoras
+                  Cómputo de Plancha, Lluvia y Demoras
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-3.5 text-xs">

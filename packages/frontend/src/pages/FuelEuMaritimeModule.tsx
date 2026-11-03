@@ -377,8 +377,7 @@ export default function FuelEuMaritimeModule() {
               },
               {
                 id: "POOLING_FUELS",
-                label:
-                  "Pooling de Flota (Art. 21) & Simulador Multicombustible",
+                label: "Pooling de Flota (Art. 21) & Balance Multicombustible",
               },
             ] as const
           ).map((tab) => (
@@ -813,7 +812,7 @@ export default function FuelEuMaritimeModule() {
             <div className="p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 space-y-4">
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Calculator size={18} className="text-cyan-400" />
-                Simulador EU ETS & Recargo Green BAF
+                Cálculo EU ETS & Recargo Green BAF
               </h3>
               <p className="text-xs text-slate-400">
                 Calcula la entrega de derechos EUA y el recargo ecológico
@@ -1093,7 +1092,7 @@ export default function FuelEuMaritimeModule() {
             <div className="p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 space-y-4">
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Flame size={18} className="text-cyan-400" />
-                Simulador de Combustibles Verdes & Balance FuelEU
+                Balance de Combustibles Verdes & Cumplimiento FuelEU
               </h3>
               <p className="text-xs text-slate-400">
                 Evalúa el impacto de combustibles alternativos (E-Metanol,
@@ -1160,7 +1159,7 @@ export default function FuelEuMaritimeModule() {
                   onClick={handleRunFuelSim}
                   className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-md shadow-cyan-600/20"
                 >
-                  Simular Intensidad GEI & Balance
+                  Calcular Intensidad GEI & Balance
                 </button>
 
                 {fuelSimResult && (

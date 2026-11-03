@@ -707,7 +707,7 @@ export default function BookingManagementModule() {
             </div>
           </div>
 
-          {/* Actions & Scenario Presets Selector */}
+          {/* Actions */}
           <div className="flex flex-wrap items-center gap-2.5">
             <Button
               onClick={() => setShowNewBookingModal(true)}
@@ -716,26 +716,16 @@ export default function BookingManagementModule() {
               <Plus className="w-3.5 h-3.5" />
               New Booking
             </Button>
-            <span className="text-xs text-slate-400 font-medium mr-1">
-              Corredores Activos:
-            </span>
-            {OCEAN_BOOKING_PRESETS.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => handleSelectPreset(p.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                  selectedPresetId === p.id
-                    ? "bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-600/20"
-                    : "bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700"
-                }`}
-              >
-                {p.id === "bkg-transpac-01"
-                  ? "🇺🇸 Transpacífico (Shanghai -> LA)"
-                  : p.id === "bkg-asiaeu-02"
-                    ? "🇪🇺 Asia-Europa (Singapur -> RTM)"
-                    : "🇪🇸 Atlántico Norte (BCN -> NYC Express)"}
-              </button>
-            ))}
+            <Button
+              onClick={() =>
+                queryClient.invalidateQueries({ queryKey: ["/api/bookings"] })
+              }
+              variant="outline"
+              className="text-xs text-slate-300 border-slate-700 hover:bg-slate-800 flex items-center gap-1.5 py-1.5 px-3"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Actualizar Bandeja
+            </Button>
           </div>
         </div>
 

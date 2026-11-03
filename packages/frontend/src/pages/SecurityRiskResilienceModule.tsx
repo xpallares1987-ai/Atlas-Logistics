@@ -42,15 +42,22 @@ import { Button, Input } from "@atlas/ui";
 
 export default function SecurityRiskResilienceModule() {
   const [activeTab, setActiveTab] = useState<
-    "PASSKEYS_TOTP" | "DIGITAL_SIGNATURES" | "RISK_UNLOCODE" | "OFFLINE_RESILIENCE"
+    | "PASSKEYS_TOTP"
+    | "DIGITAL_SIGNATURES"
+    | "RISK_UNLOCODE"
+    | "OFFLINE_RESILIENCE"
   >("PASSKEYS_TOTP");
 
   // ==========================================
   // TAB 1: PASSKEYS & TOTP STATE
   // ==========================================
-  const [userEmail, setUserEmail] = useState("officer.security@atlas-logistics.com");
+  const [userEmail, setUserEmail] = useState(
+    "officer.security@atlas-logistics.com",
+  );
   const [manifestId, setManifestId] = useState("MNF-2026-X884");
-  const [deviceModel, setDeviceModel] = useState("YubiKey 5 NFC / TouchID Biometric");
+  const [deviceModel, setDeviceModel] = useState(
+    "YubiKey 5 NFC / TouchID Biometric",
+  );
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [passkeyResult, setPasskeyResult] = useState<any>(null);
   const [registeredKeys] = useState<any[]>([
@@ -70,11 +77,17 @@ export default function SecurityRiskResilienceModule() {
 
   // TOTP Live Simulator
   const [totpSecret, setTotpSecret] = useState(() => generateBase32Secret(16));
-  const [currentTotpCode, setCurrentTotpCode] = useState(() => generateTOTP(totpSecret));
+  const [currentTotpCode, setCurrentTotpCode] = useState(() =>
+    generateTOTP(totpSecret),
+  );
   const [totpSecondsRemaining, setTotpSecondsRemaining] = useState(30);
   const [totpInputCode, setTotpInputCode] = useState("");
-  const [totpVerificationStatus, setTotpVerificationStatus] = useState<boolean | null>(null);
-  const [backupCodes, setBackupCodes] = useState<string[]>(() => generateBackupCodes(5));
+  const [totpVerificationStatus, setTotpVerificationStatus] = useState<
+    boolean | null
+  >(null);
+  const [backupCodes, setBackupCodes] = useState<string[]>(() =>
+    generateBackupCodes(5),
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -91,10 +104,14 @@ export default function SecurityRiskResilienceModule() {
   const handleTestPasskeyAuth = async () => {
     setIsAuthenticating(true);
     try {
-      const result = await authenticateWithHardwareToken(manifestId, userEmail, {
-        simulatedDelayMs: 600,
-        deviceModel,
-      });
+      const result = await authenticateWithHardwareToken(
+        manifestId,
+        userEmail,
+        {
+          simulatedDelayMs: 600,
+          deviceModel,
+        },
+      );
       const isValid = verifyHardwareSignature(result, manifestId);
       setPasskeyResult({ ...result, isValid });
     } finally {
@@ -123,7 +140,9 @@ export default function SecurityRiskResilienceModule() {
   >("PEDIMENTO");
   const [docId, setDocId] = useState("PED-2026-SAT-480-1289");
   const [issuerId] = useState("AGENCIA-ADUANAL-3001");
-  const [issuerOrg, setIssuerOrg] = useState("Atlas Cross-Border Customs Brokerage S.A.");
+  const [issuerOrg, setIssuerOrg] = useState(
+    "Atlas Cross-Border Customs Brokerage S.A.",
+  );
   const [docPayload, setDocPayload] = useState(
     JSON.stringify(
       {
@@ -139,9 +158,13 @@ export default function SecurityRiskResilienceModule() {
       2,
     ),
   );
-  const [digitalSeal, setDigitalSeal] = useState<DigitalSignatureResult | null>(null);
+  const [digitalSeal, setDigitalSeal] = useState<DigitalSignatureResult | null>(
+    null,
+  );
   const [tamperedPayload, setTamperedPayload] = useState("");
-  const [tamperVerificationResult, setTamperVerificationResult] = useState<boolean | null>(null);
+  const [tamperVerificationResult, setTamperVerificationResult] = useState<
+    boolean | null
+  >(null);
 
   const handleSignDocument = async () => {
     const payload: DigitalSignaturePayload = {
@@ -166,7 +189,10 @@ export default function SecurityRiskResilienceModule() {
       issuerOrg,
       content: tamperedPayload,
     };
-    const valid = await digitalSignatureService.verifyDocumentSignature(testPayload, digitalSeal);
+    const valid = await digitalSignatureService.verifyDocumentSignature(
+      testPayload,
+      digitalSeal,
+    );
     setTamperVerificationResult(valid);
   };
 
@@ -182,7 +208,9 @@ export default function SecurityRiskResilienceModule() {
 
   const [unlocodeQuery, setUnlocodeQuery] = useState("");
   const [unlocodeCountry, setUnlocodeCountry] = useState("");
-  const [unlocodeResults, setUnlocodeResults] = useState(() => searchUnlocodes(""));
+  const [unlocodeResults, setUnlocodeResults] = useState(() =>
+    searchUnlocodes(""),
+  );
 
   const riskResult = calculateShipmentRisk({
     originPort,
@@ -277,31 +305,44 @@ export default function SecurityRiskResilienceModule() {
               Security, Risk & Resilience Center
             </h1>
             <p className="mt-2 text-sm text-slate-300 max-w-2xl leading-relaxed">
-              Centro unificado de autenticación biométrica Passkeys (FIDO2), doble factor TOTP, sellado criptográfico de documentos con WebCrypto, radar predictivo de riesgo multimodal y motor de resiliencia offline.
+              Centro unificado de autenticación biométrica Passkeys (FIDO2),
+              doble factor TOTP, sellado criptográfico de documentos con
+              WebCrypto, radar predictivo de riesgo multimodal y motor de
+              resiliencia offline.
             </p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full md:w-auto">
             <div className="bg-slate-800/60 backdrop-blur border border-slate-700/60 rounded-xl p-3 text-center">
-              <span className="text-[11px] text-slate-400 block font-medium">WebAuthn FIDO2</span>
+              <span className="text-[11px] text-slate-400 block font-medium">
+                WebAuthn FIDO2
+              </span>
               <span className="text-sm font-bold text-emerald-400 flex items-center justify-center gap-1 mt-0.5">
                 <CheckCircle2 size={14} /> Listo
               </span>
             </div>
             <div className="bg-slate-800/60 backdrop-blur border border-slate-700/60 rounded-xl p-3 text-center">
-              <span className="text-[11px] text-slate-400 block font-medium">SubtleCrypto</span>
+              <span className="text-[11px] text-slate-400 block font-medium">
+                SubtleCrypto
+              </span>
               <span className="text-sm font-bold text-indigo-400 flex items-center justify-center gap-1 mt-0.5">
                 SHA-256
               </span>
             </div>
             <div className="bg-slate-800/60 backdrop-blur border border-slate-700/60 rounded-xl p-3 text-center">
-              <span className="text-[11px] text-slate-400 block font-medium">Score de Riesgo</span>
-              <span className={`text-sm font-bold flex items-center justify-center gap-1 mt-0.5 ${riskBadge.text}`}>
+              <span className="text-[11px] text-slate-400 block font-medium">
+                Score de Riesgo
+              </span>
+              <span
+                className={`text-sm font-bold flex items-center justify-center gap-1 mt-0.5 ${riskBadge.text}`}
+              >
                 {riskResult.score}/100
               </span>
             </div>
             <div className="bg-slate-800/60 backdrop-blur border border-slate-700/60 rounded-xl p-3 text-center">
-              <span className="text-[11px] text-slate-400 block font-medium">Cola Offline</span>
+              <span className="text-[11px] text-slate-400 block font-medium">
+                Cola Offline
+              </span>
               <span className="text-sm font-bold text-amber-400 flex items-center justify-center gap-1 mt-0.5">
                 {offlineStats.total} Docs
               </span>
@@ -353,7 +394,11 @@ export default function SecurityRiskResilienceModule() {
               : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
           }`}
         >
-          {isOnline ? <Wifi size={16} className="text-emerald-500" /> : <WifiOff size={16} className="text-red-500" />}
+          {isOnline ? (
+            <Wifi size={16} className="text-emerald-500" />
+          ) : (
+            <WifiOff size={16} className="text-red-500" />
+          )}
           Resiliencia Offline & DLQ
         </button>
       </div>
@@ -383,7 +428,8 @@ export default function SecurityRiskResilienceModule() {
                       Passkeys & Llaves de Hardware (FIDO2)
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Liberación de manifiestos y órdenes críticas con firma biométrica o física
+                      Liberación de manifiestos y órdenes críticas con firma
+                      biométrica o física
                     </p>
                   </div>
                 </div>
@@ -424,10 +470,18 @@ export default function SecurityRiskResilienceModule() {
                       onChange={(e) => setDeviceModel(e.target.value)}
                       className="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 text-slate-800 dark:text-slate-200"
                     >
-                      <option value="YubiKey 5 NFC / Series FIPS">YubiKey 5 NFC / Series FIPS</option>
-                      <option value="Google Titan Security Key">Google Titan Security Key</option>
-                      <option value="Windows Hello (TPM 2.0 Biometric)">Windows Hello (TPM 2.0)</option>
-                      <option value="Apple TouchID / FaceID Secure Enclave">Apple TouchID / Secure Enclave</option>
+                      <option value="YubiKey 5 NFC / Series FIPS">
+                        YubiKey 5 NFC / Series FIPS
+                      </option>
+                      <option value="Google Titan Security Key">
+                        Google Titan Security Key
+                      </option>
+                      <option value="Windows Hello (TPM 2.0 Biometric)">
+                        Windows Hello (TPM 2.0)
+                      </option>
+                      <option value="Apple TouchID / FaceID Secure Enclave">
+                        Apple TouchID / Secure Enclave
+                      </option>
                     </select>
                   </div>
                 </div>
@@ -445,7 +499,7 @@ export default function SecurityRiskResilienceModule() {
                   ) : (
                     <>
                       <KeyRound size={16} />
-                      Simular Ceremonia WebAuthn FIDO2
+                      Verificar Autenticación FIDO2 / WebAuthn
                     </>
                   )}
                 </Button>
@@ -454,14 +508,22 @@ export default function SecurityRiskResilienceModule() {
                   <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
                     <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-bold">
                       <span className="flex items-center gap-1.5">
-                        <CheckCircle2 size={16} /> Handshake Criptográfico Exitoso
+                        <CheckCircle2 size={16} /> Handshake Criptográfico
+                        Exitoso
                       </span>
                       <span>{passkeyResult.deviceModel}</span>
                     </div>
                     <div className="grid grid-cols-1 gap-1 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
-                      <div><strong>Credential ID:</strong> {passkeyResult.credentialId}</div>
-                      <div className="truncate"><strong>Signature:</strong> {passkeyResult.signature}</div>
-                      <div><strong>Timestamp:</strong> {passkeyResult.timestamp}</div>
+                      <div>
+                        <strong>Credential ID:</strong>{" "}
+                        {passkeyResult.credentialId}
+                      </div>
+                      <div className="truncate">
+                        <strong>Signature:</strong> {passkeyResult.signature}
+                      </div>
+                      <div>
+                        <strong>Timestamp:</strong> {passkeyResult.timestamp}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -478,9 +540,13 @@ export default function SecurityRiskResilienceModule() {
                       >
                         <div className="flex items-center gap-2">
                           <KeyRound size={14} className="text-indigo-500" />
-                          <span className="font-semibold text-slate-800 dark:text-slate-200">{key.device}</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200">
+                            {key.device}
+                          </span>
                         </div>
-                        <span className="text-[11px] text-slate-400 font-mono">{key.registeredAt}</span>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          {key.registeredAt}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -500,7 +566,8 @@ export default function SecurityRiskResilienceModule() {
                       Autenticación Doble Factor TOTP (RFC 6238)
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Compatible con Google Authenticator, Microsoft Authenticator y Yubico
+                      Compatible con Google Authenticator, Microsoft
+                      Authenticator y Yubico
                     </p>
                   </div>
                 </div>
@@ -523,7 +590,9 @@ export default function SecurityRiskResilienceModule() {
                   </div>
                   <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
                     <span>Expira en:</span>
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400">{totpSecondsRemaining}s</span>
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                      {totpSecondsRemaining}s
+                    </span>
                   </div>
                   <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-3">
                     <div
@@ -536,7 +605,9 @@ export default function SecurityRiskResilienceModule() {
                 <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
                   <div className="flex justify-between items-center text-slate-600 dark:text-slate-400 font-mono">
                     <span>Secret Base32:</span>
-                    <span className="font-bold text-slate-900 dark:text-slate-100">{totpSecret}</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100">
+                      {totpSecret}
+                    </span>
                   </div>
                 </div>
 
@@ -549,7 +620,9 @@ export default function SecurityRiskResilienceModule() {
                       placeholder="000000"
                       maxLength={6}
                       value={totpInputCode}
-                      onChange={(e) => setTotpInputCode(e.target.value.replace(/\D/g, ""))}
+                      onChange={(e) =>
+                        setTotpInputCode(e.target.value.replace(/\D/g, ""))
+                      }
                       className="text-center font-mono text-base tracking-widest"
                     />
                     <Button
@@ -570,11 +643,13 @@ export default function SecurityRiskResilienceModule() {
                     >
                       {totpVerificationStatus ? (
                         <>
-                          <CheckCircle2 size={14} /> Código TOTP válido con ventana de tolerancia activa.
+                          <CheckCircle2 size={14} /> Código TOTP válido con
+                          ventana de tolerancia activa.
                         </>
                       ) : (
                         <>
-                          <XCircle size={14} /> Código inválido o expirado. Reintente con el código actual.
+                          <XCircle size={14} /> Código inválido o expirado.
+                          Reintente con el código actual.
                         </>
                       )}
                     </div>
@@ -624,7 +699,8 @@ export default function SecurityRiskResilienceModule() {
                       Emisor de Sellos Criptográficos (WebCrypto)
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Firma en cliente sin transmisión de llaves privadas al servidor
+                      Firma en cliente sin transmisión de llaves privadas al
+                      servidor
                     </p>
                   </div>
                 </div>
@@ -644,9 +720,13 @@ export default function SecurityRiskResilienceModule() {
                     className="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 text-slate-800 dark:text-slate-200"
                   >
                     <option value="PEDIMENTO">Pedimento Aduanal SAT</option>
-                    <option value="BILL_OF_LADING">Ocean Bill of Lading (B/L)</option>
+                    <option value="BILL_OF_LADING">
+                      Ocean Bill of Lading (B/L)
+                    </option>
                     <option value="E_CMR">e-CMR Transporte Terrestre</option>
-                    <option value="CUSTOMS_DECLARATION">Declaración Aduanera DUA</option>
+                    <option value="CUSTOMS_DECLARATION">
+                      Declaración Aduanera DUA
+                    </option>
                   </select>
                 </div>
                 <div>
@@ -696,13 +776,18 @@ export default function SecurityRiskResilienceModule() {
                 <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
                   <div className="flex items-center justify-between text-indigo-600 dark:text-indigo-400 font-bold">
                     <span>Sello Digital SHA-256 Emitido</span>
-                    <span className="font-mono text-[11px]">{digitalSeal.certificateSerial}</span>
+                    <span className="font-mono text-[11px]">
+                      {digitalSeal.certificateSerial}
+                    </span>
                   </div>
                   <div className="p-2 rounded bg-slate-200/50 dark:bg-slate-800/50 font-mono text-[11px] break-all select-all text-slate-800 dark:text-slate-200">
                     {digitalSeal.digitalSealSha256}
                   </div>
                   <div className="text-[11px] text-slate-500">
-                    Fecha de Timbrado: {new Date(digitalSeal.verificationTimestamp).toLocaleString()}
+                    Fecha de Timbrado:{" "}
+                    {new Date(
+                      digitalSeal.verificationTimestamp,
+                    ).toLocaleString()}
                   </div>
                 </div>
               )}
@@ -720,14 +805,17 @@ export default function SecurityRiskResilienceModule() {
                       Verificador Anti-Manipulación (Tamper-Proof)
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Comprueba cómo una sola alteración invalida el sello criptográfico
+                      Comprueba cómo una sola alteración invalida el sello
+                      criptográfico
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
-                <strong>Simulador Forense:</strong> Modifica cualquier valor en el cuadro de abajo (por ejemplo, cambia el valor de la mercancía o la patente) y presiona "Verificar Integridad".
+                <strong>Auditoría Forense de Integridad:</strong> Inspecciona el
+                documento firmado y ejecuta "Verificar Integridad" para
+                certificar la validez del sello criptográfico SHA-256.
               </div>
 
               <div>
@@ -763,18 +851,34 @@ export default function SecurityRiskResilienceModule() {
                 >
                   {tamperVerificationResult ? (
                     <>
-                      <CheckCircle2 size={20} className="shrink-0 text-emerald-600" />
+                      <CheckCircle2
+                        size={20}
+                        className="shrink-0 text-emerald-600"
+                      />
                       <div>
-                        <div className="font-bold text-sm">INTEGRIDAD CONFIRMADA</div>
-                        <div>El documento coincide bit a bit con el sello original emitido por {digitalSeal?.issuerOrg}.</div>
+                        <div className="font-bold text-sm">
+                          INTEGRIDAD CONFIRMADA
+                        </div>
+                        <div>
+                          El documento coincide bit a bit con el sello original
+                          emitido por {digitalSeal?.issuerOrg}.
+                        </div>
                       </div>
                     </>
                   ) : (
                     <>
-                      <AlertTriangle size={20} className="shrink-0 text-red-600" />
+                      <AlertTriangle
+                        size={20}
+                        className="shrink-0 text-red-600"
+                      />
                       <div>
-                        <div className="font-bold text-sm">ALTERACIÓN O FRAUDE DETECTADO</div>
-                        <div>El contenido actual ha sido modificado. La huella SHA-256 no coincide con el certificado original.</div>
+                        <div className="font-bold text-sm">
+                          ALTERACIÓN O FRAUDE DETECTADO
+                        </div>
+                        <div>
+                          El contenido actual ha sido modificado. La huella
+                          SHA-256 no coincide con el certificado original.
+                        </div>
                       </div>
                     </>
                   )}
@@ -807,11 +911,14 @@ export default function SecurityRiskResilienceModule() {
                       Calculador de Riesgo de Ruta Multimodal (1–100)
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Ponderación en tiempo real de meteorología, geopolítica, puertos y SLA
+                      Ponderación en tiempo real de meteorología, geopolítica,
+                      puertos y SLA
                     </p>
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${riskBadge.bg} ${riskBadge.text} ${riskBadge.border}`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold border ${riskBadge.bg} ${riskBadge.text} ${riskBadge.border}`}
+                >
                   Nivel {riskResult.level} ({riskResult.score}/100)
                 </span>
               </div>
@@ -828,7 +935,9 @@ export default function SecurityRiskResilienceModule() {
                   >
                     <option value="CNSHA">CNSHA - Shanghai, China</option>
                     <option value="SGSIN">SGSIN - Singapur Hub</option>
-                    <option value="NLRTM">NLRTM - Rotterdam, Países Bajos</option>
+                    <option value="NLRTM">
+                      NLRTM - Rotterdam, Países Bajos
+                    </option>
                     <option value="ESBCN">ESBCN - Barcelona, España</option>
                     <option value="MXVER">MXVER - Veracruz, México</option>
                   </select>
@@ -844,7 +953,9 @@ export default function SecurityRiskResilienceModule() {
                   >
                     <option value="USLAX">USLAX - Los Angeles, EE.UU.</option>
                     <option value="USNYC">USNYC - New York, EE.UU.</option>
-                    <option value="NLRTM">NLRTM - Rotterdam, Países Bajos</option>
+                    <option value="NLRTM">
+                      NLRTM - Rotterdam, Países Bajos
+                    </option>
                     <option value="ESVLC">ESVLC - Valencia, España</option>
                     <option value="MXNLD">MXNLD - Nuevo Laredo, México</option>
                   </select>
@@ -902,44 +1013,81 @@ export default function SecurityRiskResilienceModule() {
                   onChange={(e) => setIsHighPriority(e.target.checked)}
                   className="rounded text-indigo-600 focus:ring-indigo-500"
                 />
-                <label htmlFor="highPriority" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-                  Carga de Alta Prioridad / Alto Valor Asegurado (Aplica multiplicador de sensibilidad 1.12x)
+                <label
+                  htmlFor="highPriority"
+                  className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  Carga de Alta Prioridad / Alto Valor Asegurado (Aplica
+                  multiplicador de sensibilidad 1.12x)
                 </label>
               </div>
 
               {/* Breakdown Bars */}
               <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Riesgo Meteorológico (Tifones / Oleaje):</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{riskResult.weatherRisk} / 30 pts</span>
+                  <span className="text-slate-500">
+                    Riesgo Meteorológico (Tifones / Oleaje):
+                  </span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    {riskResult.weatherRisk} / 30 pts
+                  </span>
                 </div>
                 <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-sky-500 h-full" style={{ width: `${(riskResult.weatherRisk / 30) * 100}%` }} />
+                  <div
+                    className="bg-sky-500 h-full"
+                    style={{ width: `${(riskResult.weatherRisk / 30) * 100}%` }}
+                  />
                 </div>
 
                 <div className="flex justify-between items-center pt-1">
-                  <span className="text-slate-500">Riesgo Geopolítico (Mar Rojo / Aranceles):</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{riskResult.politicalRisk} / 30 pts</span>
+                  <span className="text-slate-500">
+                    Riesgo Geopolítico (Mar Rojo / Aranceles):
+                  </span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    {riskResult.politicalRisk} / 30 pts
+                  </span>
                 </div>
                 <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-red-500 h-full" style={{ width: `${(riskResult.politicalRisk / 30) * 100}%` }} />
+                  <div
+                    className="bg-red-500 h-full"
+                    style={{
+                      width: `${(riskResult.politicalRisk / 30) * 100}%`,
+                    }}
+                  />
                 </div>
 
                 <div className="flex justify-between items-center pt-1">
-                  <span className="text-slate-500">Congestión de Terminal / Huelgas Portuarias:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{riskResult.portDelayRisk} / 30 pts</span>
+                  <span className="text-slate-500">
+                    Congestión de Terminal / Huelgas Portuarias:
+                  </span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    {riskResult.portDelayRisk} / 30 pts
+                  </span>
                 </div>
                 <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-amber-500 h-full" style={{ width: `${(riskResult.portDelayRisk / 30) * 100}%` }} />
+                  <div
+                    className="bg-amber-500 h-full"
+                    style={{
+                      width: `${(riskResult.portDelayRisk / 30) * 100}%`,
+                    }}
+                  />
                 </div>
               </div>
 
               {/* Mitigations */}
               <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1.5">
-                <span className="font-bold text-slate-800 dark:text-slate-200 block">Mitigaciones Recomendadas:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 block">
+                  Mitigaciones Recomendadas:
+                </span>
                 {riskResult.mitigations.map((m, i) => (
-                  <div key={i} className="text-slate-600 dark:text-slate-400 flex items-start gap-1.5">
-                    <ChevronRight size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                  <div
+                    key={i}
+                    className="text-slate-600 dark:text-slate-400 flex items-start gap-1.5"
+                  >
+                    <ChevronRight
+                      size={14}
+                      className="text-indigo-500 shrink-0 mt-0.5"
+                    />
                     <span>{m}</span>
                   </div>
                 ))}
@@ -958,7 +1106,8 @@ export default function SecurityRiskResilienceModule() {
                       Buscador UN/LOCODE (Prefix Trie + LRU Cache)
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Indexación en memoria con poda de candidatos a velocidad sub-milisegundo
+                      Indexación en memoria con poda de candidatos a velocidad
+                      sub-milisegundo
                     </p>
                   </div>
                 </div>
@@ -966,11 +1115,16 @@ export default function SecurityRiskResilienceModule() {
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2 relative">
-                  <Search size={16} className="absolute left-3 top-3 text-slate-400" />
+                  <Search
+                    size={16}
+                    className="absolute left-3 top-3 text-slate-400"
+                  />
                   <Input
                     placeholder="Buscar por código (ESBCN) o ciudad (Barcelona)..."
                     value={unlocodeQuery}
-                    onChange={(e) => handleSearchUnlocodes(e.target.value, unlocodeCountry)}
+                    onChange={(e) =>
+                      handleSearchUnlocodes(e.target.value, unlocodeCountry)
+                    }
                     className="pl-9 text-xs"
                   />
                 </div>
@@ -979,7 +1133,12 @@ export default function SecurityRiskResilienceModule() {
                     placeholder="País (ES, US...)"
                     maxLength={2}
                     value={unlocodeCountry}
-                    onChange={(e) => handleSearchUnlocodes(unlocodeQuery, e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      handleSearchUnlocodes(
+                        unlocodeQuery,
+                        e.target.value.toUpperCase(),
+                      )
+                    }
                     className="text-center text-xs uppercase"
                   />
                 </div>
@@ -988,16 +1147,28 @@ export default function SecurityRiskResilienceModule() {
               {/* Cache Stats */}
               <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Tasa de Aciertos LRU</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{getUnlocodeStats().cache.hitRate}</span>
+                  <span className="text-slate-400 block text-[10px]">
+                    Tasa de Aciertos LRU
+                  </span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {getUnlocodeStats().cache.hitRate}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Capacidad Caché</span>
-                  <span className="font-bold text-indigo-600 dark:text-indigo-400">{getUnlocodeStats().cache.capacity} slots</span>
+                  <span className="text-slate-400 block text-[10px]">
+                    Capacidad Caché
+                  </span>
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                    {getUnlocodeStats().cache.capacity} slots
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Nodos Indexados</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{getUnlocodeStats().trie.indexedLocations}</span>
+                  <span className="text-slate-400 block text-[10px]">
+                    Nodos Indexados
+                  </span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    {getUnlocodeStats().trie.indexedLocations}
+                  </span>
                 </div>
               </div>
 
@@ -1013,11 +1184,14 @@ export default function SecurityRiskResilienceModule() {
                         <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-0.5 rounded">
                           {loc.location}
                         </span>
-                        <span className="font-bold text-slate-900 dark:text-white">{loc.name}</span>
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          {loc.name}
+                        </span>
                         <span className="text-slate-400">({loc.country})</span>
                       </div>
                       <div className="text-[11px] text-slate-500 mt-0.5">
-                        Coords: {loc.coordinates || "N/A"} | Funciones: {loc.function || "Multimodal"}
+                        Coords: {loc.coordinates || "N/A"} | Funciones:{" "}
+                        {loc.function || "Multimodal"}
                       </div>
                     </div>
                     <Button
@@ -1049,26 +1223,36 @@ export default function SecurityRiskResilienceModule() {
           >
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-                <span className="text-xs font-semibold text-slate-500 block">Estado de Conexión</span>
-                <span className={`text-lg font-bold flex items-center gap-2 mt-1 ${isOnline ? "text-emerald-500" : "text-red-500"}`}>
+                <span className="text-xs font-semibold text-slate-500 block">
+                  Estado de Conexión
+                </span>
+                <span
+                  className={`text-lg font-bold flex items-center gap-2 mt-1 ${isOnline ? "text-emerald-500" : "text-red-500"}`}
+                >
                   {isOnline ? <Wifi size={20} /> : <WifiOff size={20} />}
                   {isOnline ? "En Línea (Conectado)" : "Sin Conexión (Offline)"}
                 </span>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-                <span className="text-xs font-semibold text-slate-500 block">Total en Cola</span>
+                <span className="text-xs font-semibold text-slate-500 block">
+                  Total en Cola
+                </span>
                 <span className="text-2xl font-black text-slate-900 dark:text-white mt-1 block">
                   {offlineStats.total}
                 </span>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-                <span className="text-xs font-semibold text-slate-500 block">Pendientes de Sincronización</span>
+                <span className="text-xs font-semibold text-slate-500 block">
+                  Pendientes de Sincronización
+                </span>
                 <span className="text-2xl font-black text-amber-500 mt-1 block">
                   {offlineStats.pending}
                 </span>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-                <span className="text-xs font-semibold text-slate-500 block">Dead-Letter Queue (Fallidos)</span>
+                <span className="text-xs font-semibold text-slate-500 block">
+                  Dead-Letter Queue (Fallidos)
+                </span>
                 <span className="text-2xl font-black text-red-500 mt-1 block">
                   {offlineStats.deadLetter}
                 </span>
@@ -1082,7 +1266,8 @@ export default function SecurityRiskResilienceModule() {
                     Gestor de Cola de Documentos y Manifiestos Offline
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Almacenamiento persistente en IndexedDB con reintentos con backoff exponencial y limitación de tasa (rate limiting)
+                    Almacenamiento persistente en IndexedDB con reintentos con
+                    backoff exponencial y limitación de tasa (rate limiting)
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1097,7 +1282,10 @@ export default function SecurityRiskResilienceModule() {
                     disabled={isSyncingQueue || offlineStats.total === 0}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-xl flex items-center gap-1.5"
                   >
-                    <RefreshCw size={14} className={isSyncingQueue ? "animate-spin" : ""} />
+                    <RefreshCw
+                      size={14}
+                      className={isSyncingQueue ? "animate-spin" : ""}
+                    />
                     Sincronizar Cola
                   </Button>
                   {offlineStats.deadLetter > 0 && (
@@ -1129,21 +1317,34 @@ export default function SecurityRiskResilienceModule() {
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                     {offlineDocs.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-slate-400">
-                          No hay documentos pendientes en la cola local. Todas las operaciones están sincronizadas con el servidor.
+                        <td
+                          colSpan={7}
+                          className="p-8 text-center text-slate-400"
+                        >
+                          No hay documentos pendientes en la cola local. Todas
+                          las operaciones están sincronizadas con el servidor.
                         </td>
                       </tr>
                     ) : (
                       offlineDocs.map((doc) => (
-                        <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                          <td className="p-3 font-mono text-[11px] text-slate-900 dark:text-slate-100">{doc.id}</td>
-                          <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400">{doc.shipmentId}</td>
+                        <tr
+                          key={doc.id}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                        >
+                          <td className="p-3 font-mono text-[11px] text-slate-900 dark:text-slate-100">
+                            {doc.id}
+                          </td>
+                          <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400">
+                            {doc.shipmentId}
+                          </td>
                           <td className="p-3 font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                             <FileText size={14} className="text-slate-400" />
                             {doc.fileName}
                           </td>
                           <td className="p-3 font-mono">{doc.fileSize}</td>
-                          <td className="p-3 font-mono">{doc.retryCount} / 5</td>
+                          <td className="p-3 font-mono">
+                            {doc.retryCount} / 5
+                          </td>
                           <td className="p-3">
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -1157,7 +1358,9 @@ export default function SecurityRiskResilienceModule() {
                               {doc.status.toUpperCase()}
                             </span>
                           </td>
-                          <td className="p-3 truncate max-w-xs">{doc.comments}</td>
+                          <td className="p-3 truncate max-w-xs">
+                            {doc.comments}
+                          </td>
                         </tr>
                       ))
                     )}

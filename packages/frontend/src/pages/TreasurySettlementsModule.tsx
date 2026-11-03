@@ -227,7 +227,7 @@ export default function TreasurySettlementsModule() {
               className="px-4 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-600 to-sky-600 hover:from-emerald-500 hover:to-sky-500 text-white shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-2"
             >
               <Calculator className="w-4 h-4" />
-              Simulador 3-Way Match
+              Motor de Casación 3-Way Match
             </button>
           </div>
         </div>
@@ -860,7 +860,7 @@ export default function TreasurySettlementsModule() {
             >
               <div className="flex justify-between items-center border-b border-white/10 pb-3">
                 <h3 className="text-base font-black text-white">
-                  Simulador de Casación 3-Way Match
+                  Motor de Casación 3-Way Match
                 </h3>
                 <button
                   onClick={() => setShowSimModal(false)}

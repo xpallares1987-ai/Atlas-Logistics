@@ -292,7 +292,7 @@ export default function GeneralAverageModule() {
           },
           {
             id: "adjuster_simulator",
-            label: "Masa Activa & Pasiva (Simulador de Prorrateo)",
+            label: "Masa Activa & Pasiva (Liquidación de Prorrateo)",
             icon: Scale,
           },
           {
@@ -493,7 +493,7 @@ export default function GeneralAverageModule() {
               <CardHeader className="pb-3 border-b border-slate-800">
                 <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
                   <Play className="w-4 h-4 text-rose-400" />
-                  Simulador de Masa Activa & Pasiva (YAR 2016)
+                  Liquidación de Masa Activa & Pasiva (YAR 2016)
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-3.5 text-xs">

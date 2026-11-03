@@ -287,7 +287,7 @@ export default function CarbonEmissionsModule() {
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-600/30 flex items-center gap-2"
             >
               <Calculator size={16} />
-              Simular Corredor Verde
+              Calcular Corredor Verde
             </Button>
           </div>
         </div>
@@ -381,7 +381,7 @@ export default function CarbonEmissionsModule() {
           }`}
         >
           <Calculator size={15} />
-          Simulador Multimodal GLEC v3
+          Calculadora Multimodal GLEC v3
         </button>
 
         <button

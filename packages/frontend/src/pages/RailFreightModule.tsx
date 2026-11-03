@@ -271,7 +271,7 @@ export default function RailFreightModule() {
               className="px-4 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/25 transition-all flex items-center gap-2"
             >
               <Calculator className="w-4 h-4" />
-              Simulador de Composición & Frenado
+              Cálculo de Composición & Frenado
             </button>
           </div>
         </div>
@@ -744,7 +744,7 @@ export default function RailFreightModule() {
             <div className="p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 space-y-4">
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Gauge size={18} className="text-blue-400" />
-                Simulador de Convoy Ferroviario (TEN-T 750m)
+                Cálculo de Convoy Ferroviario (TEN-T 750m)
               </h3>
               <p className="text-xs text-slate-400">
                 Calcula la longitud del tren bloque, peso bruto total y

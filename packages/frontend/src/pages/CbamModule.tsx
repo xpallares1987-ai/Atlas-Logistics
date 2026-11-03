@@ -241,7 +241,7 @@ export default function CbamModule() {
               className="px-4 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-2"
             >
               <Calculator className="w-4 h-4" />
-              Simuladores de Emisiones
+              Calculadora de Emisiones & Deuda CBAM
             </button>
           </div>
         </div>
@@ -662,7 +662,7 @@ export default function CbamModule() {
             <div className="p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 space-y-4">
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Factory size={18} className="text-emerald-400" />
-                Simulador de Emisiones Integradas (SE)
+                Cálculo de Emisiones Específicas Integradas (SE)
               </h3>
               <p className="text-xs text-slate-400">
                 Calcula las emisiones específicas directas (Alcance 1) e
@@ -901,7 +901,7 @@ export default function CbamModule() {
             <div className="p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 space-y-4">
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <DollarSign size={18} className="text-emerald-400" />
-                Simulador de Deuda de Certificados CBAM & Deducción Art. 9
+                Liquidación de Deuda de Certificados CBAM & Deducción Art. 9
               </h3>
               <p className="text-xs text-slate-400">
                 Calcula la liquidación neta monetaria tras acreditar precios de

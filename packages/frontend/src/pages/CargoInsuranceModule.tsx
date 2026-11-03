@@ -870,7 +870,7 @@ export default function CargoInsuranceModule() {
                 <div className="pt-3 border-t border-slate-800 space-y-3">
                   <h4 className="font-bold text-slate-300 flex items-center gap-2">
                     <Scale className="w-4 h-4 text-rose-400" />
-                    Simulador & Liquidación Pericial de Siniestro (Avería
+                    Tasación & Liquidación Pericial de Siniestro (Avería
                     Particular):
                   </h4>
                   <div className="grid grid-cols-3 gap-3">

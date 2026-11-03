@@ -2004,7 +2004,7 @@ export default function ShipmentWorkspace360Module() {
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-bold text-white flex items-center gap-2">
                                 <Trees className="w-4 h-4 text-emerald-400" />
-                                Simulador Neutralidad de Carbono
+                                Compensación & Neutralidad de Carbono
                               </h4>
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                                 Gold Standard

@@ -870,8 +870,8 @@ export default function EdiIntegrationModule() {
                       No hay eventos DCSA registrados en este filtro.
                     </span>
                     <span className="text-[11px] text-slate-600">
-                      Utilice el simulador a la derecha para emitir un evento
-                      con firma HMAC.
+                      Emita un evento telemático a la derecha para generar una
+                      transmisión con firma HMAC.
                     </span>
                   </div>
                 ) : (
@@ -1028,7 +1028,7 @@ export default function EdiIntegrationModule() {
                 <div className="flex items-center gap-2">
                   <Play size={18} className="text-indigo-400" />
                   <span className="text-sm font-bold text-white">
-                    Simulador de Telemetría Carrier
+                    Emisor Telemático Carrier (DCSA 3.0)
                   </span>
                 </div>
                 <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
@@ -1170,7 +1170,7 @@ export default function EdiIntegrationModule() {
                     className="text-xs font-bold text-slate-300 flex items-center gap-1.5 cursor-pointer"
                   >
                     <AlertTriangle size={14} className="text-amber-400" />
-                    Simular Disrupción Operativa / Rollover
+                    Registrar Disrupción Operativa / Rollover
                   </label>
                   <input
                     id="sim-is-disruption"

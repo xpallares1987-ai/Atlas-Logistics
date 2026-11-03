@@ -585,11 +585,11 @@ export default function SmartContractsModule() {
               </div>
             )}
 
-            {/* 1-Click Oracle Simulator Action Buttons */}
+            {/* Oracle Gateway Trigger Buttons */}
             {escrow.status === "MILESTONES_IN_PROGRESS" && (
               <div className="pt-3 border-t border-slate-800 space-y-2">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Simulador de Oráculos en 1 Clic
+                  Disparo de Hito por Oráculo Criptográfico (MLETR / IoT)
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <Button

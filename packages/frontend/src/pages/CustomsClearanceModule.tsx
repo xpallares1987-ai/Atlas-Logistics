@@ -261,8 +261,8 @@ export default function CustomsClearanceModule() {
               }}
               className="flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-lg shadow-rose-600/30 transition-all active:scale-95"
             >
-              <Calculator className="w-4 h-4" /> Simulador TARIC / Nuevo
-              Despacho
+              <Calculator className="w-4 h-4" /> Calculador Arancelario TARIC /
+              Alta Despacho
             </button>
           </div>
         </div>
@@ -827,7 +827,7 @@ export default function CustomsClearanceModule() {
                 <div className="flex items-center gap-2.5">
                   <Calculator className="w-5 h-5 text-rose-400" />
                   <h3 className="text-lg font-bold text-white">
-                    Simulador Arancelario TARIC y Nuevo Despacho
+                    Calculador Arancelario TARIC y Alta de Despacho
                   </h3>
                 </div>
                 <button

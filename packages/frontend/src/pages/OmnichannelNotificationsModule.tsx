@@ -50,7 +50,7 @@ export default function OmnichannelNotificationsModule() {
   // Studio State
   const [selectedAnomaly, setSelectedAnomaly] =
     useState<OperationalAnomalyType>("COLD_CHAIN_TEMP_BREACH");
-  const [targetWebhookUrl, setTargetWebhookUrl] = useState("SIMULATED");
+  const [targetWebhookUrl, setTargetWebhookUrl] = useState("");
   const [activeContext, setActiveContext] = useState<AnomalyPayloadContext>(
     getSampleAnomalyContext("COLD_CHAIN_TEMP_BREACH"),
   );
@@ -414,7 +414,7 @@ export default function OmnichannelNotificationsModule() {
                     URL de Webhook Entrante MS Teams
                   </label>
                   <Input
-                    placeholder="https://outlook.office.com/webhook/... o SIMULATED"
+                    placeholder="https://outlook.office.com/webhook/... o canal interno"
                     value={targetWebhookUrl}
                     onChange={(e) => setTargetWebhookUrl(e.target.value)}
                     className="bg-slate-950 border-slate-800 text-xs font-mono text-slate-300"
@@ -426,7 +426,7 @@ export default function OmnichannelNotificationsModule() {
                     dispatchMutation.mutate({
                       anomalyType: selectedAnomaly,
                       context: activeContext,
-                      targetWebhookUrl,
+                      targetWebhookUrl: targetWebhookUrl || "INTERNAL_BUS",
                     })
                   }
                   disabled={dispatchMutation.isPending}
@@ -437,7 +437,7 @@ export default function OmnichannelNotificationsModule() {
                   />
                   {dispatchMutation.isPending
                     ? "Despachando..."
-                    : "Despachar a MS Teams / Simular Webhook"}
+                    : "Despachar Notificación a MS Teams"}
                 </Button>
               </div>
             </div>
@@ -621,7 +621,7 @@ export default function OmnichannelNotificationsModule() {
                     className="bg-sky-600 hover:bg-sky-500 text-white text-xs flex items-center gap-1"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Simular Reporte de Chofer
+                    Registrar Parte de Chofer
                   </Button>
                 </div>
               </div>
@@ -843,7 +843,7 @@ export default function OmnichannelNotificationsModule() {
               <div className="flex items-center gap-2 mb-3">
                 <Truck className="w-5 h-5 text-sky-400" />
                 <h3 className="text-base font-bold">
-                  Simular Reporte de Chofer (Telegram)
+                  Registrar Parte de Chofer (Telegram)
                 </h3>
               </div>
 

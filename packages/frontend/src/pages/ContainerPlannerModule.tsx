@@ -499,42 +499,26 @@ export default function ContainerPlannerModule() {
           </p>
         </div>
 
-        {/* 1-Click Demo Presets & Optimizer Trigger */}
+        {/* Operational Optimizer Actions */}
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={() => handleLoadPreset("balanced_40hc")}
-            variant="ghost"
-            className="text-xs text-slate-300 hover:text-white border border-slate-800 rounded-xl px-3 py-1.5"
-          >
-            40' HC Balanceado
-          </Button>
-          <Button
-            onClick={() => handleLoadPreset("heavy_axle_warning")}
-            variant="ghost"
-            className="text-xs text-amber-300 hover:text-white border border-amber-500/30 bg-amber-500/10 rounded-xl px-3 py-1.5"
-          >
-            Alerta Sobrecarga Eje
-          </Button>
-          <Button
-            onClick={() => handleLoadPreset("imdg_segregation_alert")}
-            variant="ghost"
-            className="text-xs text-rose-300 hover:text-white border border-rose-500/30 bg-rose-500/10 rounded-xl px-3 py-1.5"
-          >
-            Conflicto IMDG
-          </Button>
-          <Button
-            onClick={() => handleLoadPreset("megatrailer_eu_33pallets")}
-            variant="ghost"
-            className="text-xs text-indigo-300 hover:text-white border border-indigo-500/30 bg-indigo-500/10 rounded-xl px-3 py-1.5"
-          >
-            Megatrailer 33 Europallets
-          </Button>
+          {cargoList.length > 0 && (
+            <Button
+              onClick={() => {
+                setCargoList([]);
+                setOptResult(null);
+              }}
+              variant="ghost"
+              className="text-xs text-slate-400 hover:text-rose-400 border border-slate-800 rounded-xl px-3 py-1.5"
+            >
+              Vaciar Carga
+            </Button>
+          )}
           <Button
             onClick={() => handleRunOptimizer()}
             className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-1.5"
           >
             <RefreshCw size={14} />
-            Optimizar Estiba 3D
+            Calcular Estiba Heurística 3D
           </Button>
         </div>
       </div>

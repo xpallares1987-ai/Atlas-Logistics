@@ -226,7 +226,7 @@ export default function IncotermsContractsModule() {
               className="px-4 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white shadow-lg shadow-sky-600/25 hover:shadow-sky-600/40 transition-all flex items-center gap-2"
             >
               <Calculator className="w-4 h-4" />
-              Simulador & Validador
+              Matriz & Validador
             </button>
           </div>
         </div>
@@ -741,7 +741,7 @@ export default function IncotermsContractsModule() {
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-white">
-                      Simulador y Validador Incoterms® 2020
+                      Matriz y Validador Incoterms® 2020
                     </h3>
                     <p className="text-xs text-slate-400">
                       Normalización Aduanera DUA Box 46 / TARIC y validación de

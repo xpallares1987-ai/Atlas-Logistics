@@ -31,9 +31,11 @@ type PresetKey = "sap_automotive_tier1" | "netsuite_retail_hightech";
 
 export default function ErpIntegrationsModule() {
   const [activeTab, setActiveTab] = useState<TabKey>("TOPOLOGY");
-  const [selectedPresetKey, setSelectedPresetKey] = useState<PresetKey>("sap_automotive_tier1");
+  const [selectedPresetKey, setSelectedPresetKey] = useState<PresetKey>(
+    "sap_automotive_tier1",
+  );
   const [copiedResponse, setCopiedResponse] = useState(false);
-  const [isSimulatedOffline, setIsSimulatedOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [activeConsoleLog, setActiveConsoleLog] = useState<any>(null);
   const [queueItems, setQueueItems] = useState<ErpQueuedMutation[]>([]);
 
@@ -41,7 +43,8 @@ export default function ErpIntegrationsModule() {
   const [connectors] = useState<ErpConnectorStatus[]>([
     {
       system: "SAP_S4HANA",
-      endpoint: "https://s4hana-api.corp.internal/sap/opu/odata4/sap/api_purchaseorder_process_srv/srvd_a2x/sap/purchaseorder/0001",
+      endpoint:
+        "https://s4hana-api.corp.internal/sap/opu/odata4/sap/api_purchaseorder_process_srv/srvd_a2x/sap/purchaseorder/0001",
       status: "ONLINE",
       circuitBreaker: "CLOSED",
       latencyMs: 115,
@@ -97,7 +100,7 @@ export default function ErpIntegrationsModule() {
           data: res.data,
         });
       },
-    }
+    },
   );
 
   const postSapDeliveryMutation = useApiMutation<any, any>(
@@ -113,7 +116,7 @@ export default function ErpIntegrationsModule() {
           data: res.data,
         });
       },
-    }
+    },
   );
 
   const postNetSuiteReceiptMutation = useApiMutation<any, any>(
@@ -129,7 +132,7 @@ export default function ErpIntegrationsModule() {
           data: res.landedCost,
         });
       },
-    }
+    },
   );
 
   const batchQueueMutation = useApiMutation<any, { mutations: any[] }>(
@@ -147,7 +150,7 @@ export default function ErpIntegrationsModule() {
           data: res.results,
         });
       },
-    }
+    },
   );
 
   // Handlers
@@ -156,17 +159,19 @@ export default function ErpIntegrationsModule() {
   };
 
   const handleExecuteSapPoSync = () => {
-    if (isSimulatedOffline) {
+    if (isOffline) {
       handleEnqueueOffline("SAP_S4HANA", "SYNC_PO", {
         poNumber: currentPreset.sampleInput.referenceNumber,
       });
       return;
     }
-    syncSapPoMutation.mutate({ poNumber: currentPreset.sampleInput.referenceNumber });
+    syncSapPoMutation.mutate({
+      poNumber: currentPreset.sampleInput.referenceNumber,
+    });
   };
 
   const handleExecuteSapDelivery = () => {
-    if (isSimulatedOffline) {
+    if (isOffline) {
       handleEnqueueOffline("SAP_S4HANA", "POST_INBOUND_DELIVERY", {
         poNumber: currentPreset.sampleInput.referenceNumber,
         billOfLading: "MSCUBCN992811",
@@ -186,7 +191,7 @@ export default function ErpIntegrationsModule() {
   };
 
   const handleExecuteNetSuiteReceipt = () => {
-    if (isSimulatedOffline) {
+    if (isOffline) {
       handleEnqueueOffline("ORACLE_NETSUITE", "POST_ITEM_RECEIPT", {
         orderNumber: currentPreset.sampleInput.referenceNumber,
         totalFreight: currentPreset.sampleInput.freightChargesUsd,
@@ -205,13 +210,17 @@ export default function ErpIntegrationsModule() {
   const handleEnqueueOffline = async (
     erpSystem: "SAP_S4HANA" | "ORACLE_NETSUITE",
     operation: any,
-    payload: any
+    payload: any,
   ) => {
     const item = await erpQueueManager.enqueue({
       erpSystem,
       operation,
       payloadJson: JSON.stringify(payload),
-      idempotencyKey: erpQueueManager.generateIdempotencyKey(erpSystem, operation, "MOCK"),
+      idempotencyKey: erpQueueManager.generateIdempotencyKey(
+        erpSystem,
+        operation,
+        "MOCK",
+      ),
     });
     await refreshQueue();
     setActiveConsoleLog({
@@ -224,7 +233,9 @@ export default function ErpIntegrationsModule() {
   };
 
   const handleFlushDexieQueue = () => {
-    const pending = queueItems.filter((q) => q.status === "PENDING" || q.status === "FAILED");
+    const pending = queueItems.filter(
+      (q) => q.status === "PENDING" || q.status === "FAILED",
+    );
     if (pending.length === 0) return;
     batchQueueMutation.mutate({
       mutations: pending.map((p) => ({
@@ -264,7 +275,9 @@ export default function ErpIntegrationsModule() {
                 </span>
               </h1>
               <p className="text-sm text-slate-400 mt-0.5">
-                Orquestación bidireccional de Órdenes de Compra (PO), Entregas Entrantes (ASN), Recepción y Landed Cost con resiliencia IndexedDB
+                Orquestación bidireccional de Órdenes de Compra (PO), Entregas
+                Entrantes (ASN), Recepción y Landed Cost con resiliencia
+                IndexedDB
               </p>
             </div>
           </div>
@@ -273,52 +286,29 @@ export default function ErpIntegrationsModule() {
         {/* Action Pills & Network Status */}
         <div className="flex flex-wrap items-center gap-3">
           <div
-            onClick={() => setIsSimulatedOffline(!isSimulatedOffline)}
-            className={`cursor-pointer px-3 py-1.5 rounded-xl border text-xs flex items-center gap-2 transition-all ${
-              isSimulatedOffline
+            className={`px-3 py-1.5 rounded-xl border text-xs flex items-center gap-2 ${
+              isOffline
                 ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
                 : "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
             }`}
           >
-            {isSimulatedOffline ? <WifiOff className="w-4 h-4 text-rose-400" /> : <Wifi className="w-4 h-4 text-emerald-400" />}
-            <span className="font-semibold">{isSimulatedOffline ? "Modo Offline (Simulado)" : "Conectividad Online"}</span>
+            {isOffline ? (
+              <WifiOff className="w-4 h-4 text-rose-400" />
+            ) : (
+              <Wifi className="w-4 h-4 text-emerald-400" />
+            )}
+            <span className="font-semibold">
+              {isOffline ? "Modo Offline" : "Conectividad Online"}
+            </span>
           </div>
 
           <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs flex items-center gap-2">
             <Database className="w-4 h-4 text-cyan-400" />
-            <span className="text-slate-400">Cola Dexie:</span>
-            <span className="font-mono text-cyan-300 font-bold">{queueItems.length} Registros</span>
+            <span className="text-slate-400">Cola SCM Dexie:</span>
+            <span className="font-mono text-cyan-300 font-bold">
+              {queueItems.length} Registros
+            </span>
           </div>
-        </div>
-      </div>
-
-      {/* 2. Preset Selector Banner */}
-      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400" />
-          <span className="text-xs font-semibold text-slate-300">Escenarios Demostrativos ERP:</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => handleSelectPreset("sap_automotive_tier1")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
-              selectedPresetKey === "sap_automotive_tier1"
-                ? "bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-600/30"
-                : "bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-200"
-            }`}
-          >
-            SAP S/4HANA (Automotriz Alemania)
-          </button>
-          <button
-            onClick={() => handleSelectPreset("netsuite_retail_hightech")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
-              selectedPresetKey === "netsuite_retail_hightech"
-                ? "bg-amber-600 text-white border-amber-500 shadow-md shadow-amber-600/30"
-                : "bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-200"
-            }`}
-          >
-            Oracle NetSuite (High-Tech Taiwán)
-          </button>
         </div>
       </div>
 
@@ -357,7 +347,7 @@ export default function ErpIntegrationsModule() {
           }`}
         >
           <Activity className="w-4 h-4" />
-          Simulador de Telemetría & Sandbox en Vivo
+          Consola de Ejecución & Sincronización ERP
         </button>
 
         <button
@@ -390,8 +380,12 @@ export default function ErpIntegrationsModule() {
                     SAP
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">SAP S/4HANA Cloud Gateway</h3>
-                    <span className="text-xs text-slate-400">OData v4 REST / BAPI Business Object Pipeline</span>
+                    <h3 className="text-base font-bold text-white">
+                      SAP S/4HANA Cloud Gateway
+                    </h3>
+                    <span className="text-xs text-slate-400">
+                      OData v4 REST / BAPI Business Object Pipeline
+                    </span>
                   </div>
                 </div>
                 <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1">
@@ -407,8 +401,12 @@ export default function ErpIntegrationsModule() {
                   </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Autenticación / Handshake:</span>
-                  <span className="text-blue-300 font-mono font-semibold">OAuth 2.0 + CSRF Token (x-csrf-token)</span>
+                  <span className="text-slate-400">
+                    Autenticación / Handshake:
+                  </span>
+                  <span className="text-blue-300 font-mono font-semibold">
+                    OAuth 2.0 + CSRF Token (x-csrf-token)
+                  </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-800/60">
                   <span className="text-slate-400">Circuit Breaker:</span>
@@ -417,12 +415,18 @@ export default function ErpIntegrationsModule() {
                   </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Latencia Ping Promedio:</span>
-                  <span className="font-mono text-slate-200">{connectors[0].latencyMs} ms</span>
+                  <span className="text-slate-400">
+                    Latencia Ping Promedio:
+                  </span>
+                  <span className="font-mono text-slate-200">
+                    {connectors[0].latencyMs} ms
+                  </span>
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-slate-400">Transacciones Hoy:</span>
-                  <span className="font-mono text-emerald-400 font-bold">148 Transacciones (100% Éxito)</span>
+                  <span className="font-mono text-emerald-400 font-bold">
+                    148 Transacciones (100% Éxito)
+                  </span>
                 </div>
               </div>
             </div>
@@ -435,8 +439,12 @@ export default function ErpIntegrationsModule() {
                     NS
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">Oracle NetSuite ERP Production</h3>
-                    <span className="text-xs text-slate-400">SuiteTalk REST Web Services & Landed Cost Engine</span>
+                    <h3 className="text-base font-bold text-white">
+                      Oracle NetSuite ERP Production
+                    </h3>
+                    <span className="text-xs text-slate-400">
+                      SuiteTalk REST Web Services & Landed Cost Engine
+                    </span>
                   </div>
                 </div>
                 <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1">
@@ -452,8 +460,12 @@ export default function ErpIntegrationsModule() {
                   </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Autenticación / Handshake:</span>
-                  <span className="text-amber-300 font-mono font-semibold">TBA (OAuth 1.0a HMAC-SHA256)</span>
+                  <span className="text-slate-400">
+                    Autenticación / Handshake:
+                  </span>
+                  <span className="text-amber-300 font-mono font-semibold">
+                    TBA (OAuth 1.0a HMAC-SHA256)
+                  </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-800/60">
                   <span className="text-slate-400">Circuit Breaker:</span>
@@ -462,12 +474,18 @@ export default function ErpIntegrationsModule() {
                   </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Latencia Ping Promedio:</span>
-                  <span className="font-mono text-slate-200">{connectors[1].latencyMs} ms</span>
+                  <span className="text-slate-400">
+                    Latencia Ping Promedio:
+                  </span>
+                  <span className="font-mono text-slate-200">
+                    {connectors[1].latencyMs} ms
+                  </span>
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-slate-400">Transacciones Hoy:</span>
-                  <span className="font-mono text-emerald-400 font-bold">92 Transacciones (100% Éxito)</span>
+                  <span className="font-mono text-emerald-400 font-bold">
+                    92 Transacciones (100% Éxito)
+                  </span>
                 </div>
               </div>
             </div>
@@ -490,7 +508,8 @@ export default function ErpIntegrationsModule() {
                 Matriz de Transformación y Equivalencia de Campos
               </h3>
               <p className="text-xs text-slate-400">
-                Transformación canónica entre entidades de Atlas-Logistics y estructuras BAPI OData / SuiteTalk
+                Transformación canónica entre entidades de Atlas-Logistics y
+                estructuras BAPI OData / SuiteTalk
               </p>
             </div>
           </div>
@@ -507,34 +526,70 @@ export default function ErpIntegrationsModule() {
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 <tr>
-                  <td className="p-3 font-mono text-indigo-300 font-semibold">shipment.referenceNumber</td>
-                  <td className="p-3 font-mono text-blue-300">PurchaseOrder (EBELN)</td>
+                  <td className="p-3 font-mono text-indigo-300 font-semibold">
+                    shipment.referenceNumber
+                  </td>
+                  <td className="p-3 font-mono text-blue-300">
+                    PurchaseOrder (EBELN)
+                  </td>
                   <td className="p-3 font-mono text-amber-300">tranId</td>
-                  <td className="p-3 text-slate-400">Mapeo directo bidireccional</td>
+                  <td className="p-3 text-slate-400">
+                    Mapeo directo bidireccional
+                  </td>
                 </tr>
                 <tr>
-                  <td className="p-3 font-mono text-indigo-300 font-semibold">shipment.bolNumber</td>
-                  <td className="p-3 font-mono text-blue-300">BillOfLading (BOLNR)</td>
-                  <td className="p-3 font-mono text-amber-300">package.packageTrackingNumber</td>
-                  <td className="p-3 text-slate-400">Inyección en manifiesto de transporte</td>
+                  <td className="p-3 font-mono text-indigo-300 font-semibold">
+                    shipment.bolNumber
+                  </td>
+                  <td className="p-3 font-mono text-blue-300">
+                    BillOfLading (BOLNR)
+                  </td>
+                  <td className="p-3 font-mono text-amber-300">
+                    package.packageTrackingNumber
+                  </td>
+                  <td className="p-3 text-slate-400">
+                    Inyección en manifiesto de transporte
+                  </td>
                 </tr>
                 <tr>
-                  <td className="p-3 font-mono text-indigo-300 font-semibold">shipment.incoterm</td>
-                  <td className="p-3 font-mono text-blue-300">IncotermsClassification (INCO1)</td>
+                  <td className="p-3 font-mono text-indigo-300 font-semibold">
+                    shipment.incoterm
+                  </td>
+                  <td className="p-3 font-mono text-blue-300">
+                    IncotermsClassification (INCO1)
+                  </td>
                   <td className="p-3 font-mono text-amber-300">incoterm</td>
-                  <td className="p-3 text-slate-400">Normalización Incoterms 2020 (ICC)</td>
+                  <td className="p-3 text-slate-400">
+                    Normalización Incoterms 2020 (ICC)
+                  </td>
                 </tr>
                 <tr>
-                  <td className="p-3 font-mono text-indigo-300 font-semibold">cargo.weightKg</td>
-                  <td className="p-3 font-mono text-blue-300">GrossWeight (BRGEW / KGM)</td>
-                  <td className="p-3 font-mono text-amber-300">packageWeight (Lbs / Kg)</td>
-                  <td className="p-3 text-slate-400">Conversión métrica e ISO UoM (KGM)</td>
+                  <td className="p-3 font-mono text-indigo-300 font-semibold">
+                    cargo.weightKg
+                  </td>
+                  <td className="p-3 font-mono text-blue-300">
+                    GrossWeight (BRGEW / KGM)
+                  </td>
+                  <td className="p-3 font-mono text-amber-300">
+                    packageWeight (Lbs / Kg)
+                  </td>
+                  <td className="p-3 text-slate-400">
+                    Conversión métrica e ISO UoM (KGM)
+                  </td>
                 </tr>
                 <tr>
-                  <td className="p-3 font-mono text-indigo-300 font-semibold">finance.freightAccrual</td>
-                  <td className="p-3 font-mono text-blue-300">ServiceEntrySheet (SES)</td>
-                  <td className="p-3 font-mono text-amber-300">landedCost.allocatedAmount</td>
-                  <td className="p-3 text-slate-400">Prorrateo por Volumen CBM o Valor</td>
+                  <td className="p-3 font-mono text-indigo-300 font-semibold">
+                    finance.freightAccrual
+                  </td>
+                  <td className="p-3 font-mono text-blue-300">
+                    ServiceEntrySheet (SES)
+                  </td>
+                  <td className="p-3 font-mono text-amber-300">
+                    landedCost.allocatedAmount
+                  </td>
+                  <td className="p-3 text-slate-400">
+                    Prorrateo por Volumen CBM o Valor
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -553,12 +608,34 @@ export default function ErpIntegrationsModule() {
           {/* Controls Left Column */}
           <div className="lg:col-span-5 space-y-6">
             <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Activity className="w-4 h-4 text-amber-400" />
-                Acciones de Disparo & Sincronización
-              </h3>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-amber-400" />
+                  Perfil de Conexión & Sincronización
+                </h3>
+              </div>
 
-              <div className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1.5 font-medium">
+                  Sistema ERP Destino / Flujo de Negocio:
+                </label>
+                <select
+                  value={selectedPresetKey}
+                  onChange={(e) =>
+                    handleSelectPreset(e.target.value as PresetKey)
+                  }
+                  className="w-full bg-slate-950 border border-slate-800 text-white font-semibold text-xs rounded-xl p-2.5 focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="sap_automotive_tier1">
+                    SAP S/4HANA (Automotriz Alemania · OData v4)
+                  </option>
+                  <option value="netsuite_retail_hightech">
+                    Oracle NetSuite (High-Tech Taiwán · SuiteTalk REST)
+                  </option>
+                </select>
+              </div>
+
+              <div className="space-y-3 pt-2">
                 <Button
                   onClick={handleExecuteSapPoSync}
                   disabled={syncSapPoMutation.isPending}
@@ -568,7 +645,9 @@ export default function ErpIntegrationsModule() {
                     <Send className="w-3.5 h-3.5" />
                     1. Ingestar Orden de Compra SAP (OData v4)
                   </span>
-                  {syncSapPoMutation.isPending && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  {syncSapPoMutation.isPending && (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  )}
                 </Button>
 
                 <Button
@@ -580,7 +659,9 @@ export default function ErpIntegrationsModule() {
                     <Package className="w-3.5 h-3.5" />
                     2. Generar Entrega Entrante SAP (ASN / BAPI)
                   </span>
-                  {postSapDeliveryMutation.isPending && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  {postSapDeliveryMutation.isPending && (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  )}
                 </Button>
 
                 <Button
@@ -592,7 +673,9 @@ export default function ErpIntegrationsModule() {
                     <DollarSign className="w-3.5 h-3.5" />
                     3. Postear Item Receipt & Landed Cost en NetSuite
                   </span>
-                  {postNetSuiteReceiptMutation.isPending && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  {postNetSuiteReceiptMutation.isPending && (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -614,7 +697,11 @@ export default function ErpIntegrationsModule() {
                       onClick={handleCopyJson}
                       className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-mono"
                     >
-                      {copiedResponse ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedResponse ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
                       {copiedResponse ? "Copiado" : "Copiar JSON"}
                     </button>
                   )}
@@ -625,7 +712,8 @@ export default function ErpIntegrationsModule() {
                     <pre>{JSON.stringify(activeConsoleLog, null, 2)}</pre>
                   ) : (
                     <span className="text-slate-600 italic">
-                      Presione una acción de sincronización para ver el payload OData o SuiteTalk en tiempo real.
+                      Presione una acción de sincronización para ver el payload
+                      OData o SuiteTalk en tiempo real.
                     </span>
                   )}
                 </div>
@@ -650,7 +738,8 @@ export default function ErpIntegrationsModule() {
                 Bandeja de Mutaciones Offline (Dexie.js / IndexedDB)
               </h3>
               <p className="text-xs text-slate-400">
-                Almacenamiento local desacoplado de transacciones pendientes con drenaje garantizado al restaurar red
+                Almacenamiento local desacoplado de transacciones pendientes con
+                drenaje garantizado al restaurar red
               </p>
             </div>
 
@@ -669,11 +758,17 @@ export default function ErpIntegrationsModule() {
               </Button>
               <Button
                 onClick={handleFlushDexieQueue}
-                disabled={batchQueueMutation.isPending || queueItems.length === 0}
+                disabled={
+                  batchQueueMutation.isPending || queueItems.length === 0
+                }
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs flex items-center gap-1.5"
               >
-                {batchQueueMutation.isPending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                {batchQueueMutation.isPending ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5" />
+                )}
                 Drenar Cola hacia el Servidor
               </Button>
             </div>
@@ -700,7 +795,9 @@ export default function ErpIntegrationsModule() {
                   {queueItems.map((q) => (
                     <tr key={q.id}>
                       <td className="p-3 text-slate-300">{q.id}</td>
-                      <td className="p-3 text-blue-300 font-bold">{q.erpSystem}</td>
+                      <td className="p-3 text-blue-300 font-bold">
+                        {q.erpSystem}
+                      </td>
                       <td className="p-3 text-slate-200">{q.operation}</td>
                       <td className="p-3">
                         <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 font-bold">
@@ -708,7 +805,9 @@ export default function ErpIntegrationsModule() {
                         </span>
                       </td>
                       <td className="p-3 text-slate-400">{q.retryCount}</td>
-                      <td className="p-3 text-[10px] text-slate-500">{q.idempotencyKey}</td>
+                      <td className="p-3 text-[10px] text-slate-500">
+                        {q.idempotencyKey}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

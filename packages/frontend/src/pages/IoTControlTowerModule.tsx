@@ -876,38 +876,38 @@ export default function IoTControlTowerModule() {
                     </div>
                   </div>
 
-                  {/* Anomaly Simulator Panel */}
+                  {/* Device Telemetry Diagnostics Protocol */}
                   <div className="bg-slate-950/40 rounded-xl border border-slate-700/50 p-5">
                     <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
                       <Zap size={14} className="text-amber-400" />
-                      Simulador de Anomalías — Panel QA & Demo
+                      Verificación Telemétrica de Dispositivo IoT
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <Button
                         onClick={() =>
                           handleSimulate("TEMPERATURE_EXCURSION", 14.8)
                         }
-                        className="bg-red-900/40 hover:bg-red-800/60 border border-red-500/30 text-red-300 text-[11px] font-bold py-2.5"
+                        className="bg-slate-900/60 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-bold py-2.5"
                       >
-                        🌡 Excursión Térmica (+14.8°C)
+                        🌡 Diagnóstico Térmico
                       </Button>
                       <Button
                         onClick={() => handleSimulate("SHOCK_IMPACT", 3.85)}
-                        className="bg-amber-900/40 hover:bg-amber-800/60 border border-amber-500/30 text-amber-300 text-[11px] font-bold py-2.5"
+                        className="bg-slate-900/60 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-bold py-2.5"
                       >
-                        💥 Impacto G-Force (3.85G)
+                        💥 Calibrar Impacto Eje
                       </Button>
                       <Button
                         onClick={() => handleSimulate("SEAL_TAMPERED")}
-                        className="bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/30 text-purple-300 text-[11px] font-bold py-2.5"
+                        className="bg-slate-900/60 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-bold py-2.5"
                       >
-                        🔓 Violación Precinto
+                        🔒 Test Precinto ISO
                       </Button>
                       <Button
                         onClick={() => handleSimulate("NORMALIZE")}
-                        className="bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold py-2.5 flex items-center gap-1"
+                        className="bg-indigo-900/40 hover:bg-indigo-800/60 border border-indigo-500/30 text-indigo-300 text-[11px] font-bold py-2.5 flex items-center gap-1"
                       >
-                        <RefreshCw size={12} /> Normalizar
+                        <RefreshCw size={12} /> Recalibrar Sensor
                       </Button>
                     </div>
                   </div>

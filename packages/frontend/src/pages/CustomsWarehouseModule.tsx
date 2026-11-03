@@ -695,7 +695,7 @@ export default function CustomsWarehouseModule() {
             <div className="p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 space-y-4">
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Calculator size={18} className="text-amber-400" />
-                Simulador de Salida & Despacho Fiscal
+                Liquidación de Salida & Despacho Fiscal
               </h3>
               <p className="text-xs text-slate-400">
                 Calcula los tributos a liquidar y el importe liberado del aval

@@ -324,7 +324,7 @@ export default function CarbonInsettingModule() {
           }`}
         >
           <Ship className="w-4 h-4" />
-          <span>Simulador de Pooling FuelEU Maritime</span>
+          <span>Motor de Pooling FuelEU Maritime</span>
           <span className="bg-cyan-900/60 text-cyan-300 text-xs px-1.5 py-0.5 rounded-full font-mono">
             {SEED_FUELEU_POOL_VESSELS.length} buques
           </span>
@@ -746,7 +746,7 @@ export default function CarbonInsettingModule() {
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Ship className="w-5 h-5 text-indigo-400" />
                 <span>
-                  Simulador de Pooling de Flota FuelEU Maritime (Reglamento UE
+                  Motor de Pooling de Flota FuelEU Maritime (Reglamento UE
                   2023/1805)
                 </span>
               </h3>
