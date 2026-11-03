@@ -65,7 +65,9 @@ export default function InvoicingModule() {
     "All" | "AR" | "AP" | "Overdue"
   >("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(
+    null,
+  );
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const queryClient = useQueryClient();
@@ -75,12 +77,6 @@ export default function InvoicingModule() {
     "/invoices",
   );
   const invoices = Array.isArray(invoicesData) ? invoicesData : [];
-
-  const { data: selectedInvoiceDetails } = useApiQuery<any>(
-    ["invoice", selectedInvoice?.id || "none"],
-    `/invoices/${selectedInvoice?.id}`,
-    { enabled: !!selectedInvoice },
-  );
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {
@@ -100,14 +96,20 @@ export default function InvoicingModule() {
     });
   }, [invoices, searchQuery, activeFilter]);
 
-  // Set initial selected invoice
-  useMemo(() => {
-    if (!selectedInvoice && filteredInvoices.length > 0) {
-      setSelectedInvoice(filteredInvoices[0]);
-    } else if (filteredInvoices.length === 0) {
-      setSelectedInvoice(null);
+  // Derived selected invoice without side-effects or infinite render loops
+  const selectedInvoice = useMemo(() => {
+    if (selectedInvoiceId) {
+      const found = invoices.find((inv) => inv.id === selectedInvoiceId);
+      if (found) return found;
     }
-  }, [filteredInvoices, selectedInvoice]);
+    return filteredInvoices[0] || null;
+  }, [invoices, filteredInvoices, selectedInvoiceId]);
+
+  const { data: selectedInvoiceDetails } = useApiQuery<any>(
+    ["invoice", selectedInvoice?.id || "none"],
+    `/invoices/${selectedInvoice?.id}`,
+    { enabled: !!selectedInvoice },
+  );
 
   const totalAR = invoices
     .filter((i) => i.type === "AR")
@@ -175,8 +177,7 @@ export default function InvoicingModule() {
       });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["agent-settlements"] });
-      // Optimitically update local selection
-      setSelectedInvoice({ ...inv, status: "Paid" });
+      setSelectedInvoiceId(inv.id);
     } catch (err) {
       console.error("Failed to update status");
     }
@@ -364,7 +365,7 @@ export default function InvoicingModule() {
                       <motion.button
                         key={inv.id}
                         variants={itemVariants}
-                        onClick={() => setSelectedInvoice(inv)}
+                        onClick={() => setSelectedInvoiceId(inv.id)}
                         className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
                           isSelected
                             ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.1)]"
