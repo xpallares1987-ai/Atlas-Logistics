@@ -101,7 +101,7 @@ export class DemurrageDisputeService {
       carrierScac: "HLCU",
       billOfLading: "HLCU482910300",
       pod: "ESBCN",
-      terminalName: "BEST Hutchison Port Barcelona / Can Tunis Intermodal",
+      terminalName: "BEST Hutchison Port Barcelona / Rail Intermodal",
       dischargeDate: "2026-09-26",
       availableDate: "2026-09-27",
       freeTimeDays: 5,

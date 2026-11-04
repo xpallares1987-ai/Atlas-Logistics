@@ -24,6 +24,7 @@ import {
   Building2,
   Truck,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { Button, AddressSelector, DrayageCalculatorModal } from "@atlas/ui";
 import {
@@ -146,71 +147,117 @@ export default function BookingManagementModule() {
       format: "a4",
     });
 
+    // Background Watermark: DRAFT - NON-NEGOTIABLE
+    doc.saveGraphicsState?.();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(38);
+    doc.setTextColor(230, 235, 245);
+    doc.text("DRAFT - NON-NEGOTIABLE", 105, 145, {
+      align: "center",
+      angle: 45,
+    });
+    doc.restoreGraphicsState?.();
+
+    // Official Header Banner
     doc.setFillColor(15, 23, 42);
-    doc.rect(0, 0, 210, 34, "F");
+    doc.rect(0, 0, 210, 32, "F");
 
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
     doc.text(
-      `ATLAS LOGISTICS - DRAFT BILL OF LADING (${payload.blReference})`,
+      `ATLAS LOGISTICS ENTERPRISE - MULTIMODAL DRAFT BILL OF LADING`,
       14,
-      14,
+      12,
     );
 
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(148, 163, 184);
     doc.text(
-      `Shipment Tracking: ${payload.trackingNumber} | Booking Ref: ${payload.bookingReference} | Carrier Ref: ${payload.carrierBookingNumber}`,
+      `DCSA Transport Document Standard v2.0 / FIATA FBL Specification • Ref: ${payload.blReference}`,
       14,
-      22,
+      18,
     );
+
+    doc.setFontSize(8);
+    doc.setTextColor(226, 232, 240);
+    doc.text(
+      `Shipment Tracking: ${payload.trackingNumber} | Booking: ${payload.bookingReference} | Carrier Booking Ref: ${payload.carrierBookingNumber}`,
+      14,
+      25,
+    );
+
     if (payload.sha256Hash) {
-      doc.setFontSize(7);
-      doc.text(`SHA-256 Digital Audit: ${payload.sha256Hash}`, 14, 28);
+      doc.setFontSize(6.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text(
+        `MLETR Verification Hash (SHA-256): ${payload.sha256Hash}`,
+        14,
+        30,
+      );
     }
 
     autoTable(doc, {
-      startY: 40,
-      head: [["Field", "Party / Operational Detail", "Routing & Terms"]],
+      startY: 36,
+      head: [
+        [
+          "Transport & Party Box",
+          "Legal Entity / Address",
+          "Terms & References",
+        ],
+      ],
       body: [
         [
-          "Shipper / Exporter",
+          "Shipper / Consignor",
           payload.shipperName,
-          `Incoterm: ${payload.incoterm}`,
+          `Incoterm: ${payload.incoterm || "FOB"} (Incoterms® 2020)`,
         ],
-        ["Consignee", payload.consigneeName, "Order of Consignee"],
+        [
+          "Consignee",
+          payload.consigneeName || "TO ORDER OF SHIPPER",
+          "Negotiable Title Document (Draft Stage)",
+        ],
+        [
+          "Notify Party",
+          "Same as Consignee / Destination Forwarding Agent",
+          "Port Clearance & Transit Notice",
+        ],
         [
           "Ocean Carrier",
           payload.carrier,
-          `Carrier Booking: ${payload.carrierBookingNumber}`,
+          `Carrier Ref: ${payload.carrierBookingNumber}`,
         ],
         [
           "Vessel & Voyage",
           `${payload.vesselName} / ${payload.voyageNumber}`,
-          `POL: ${payload.origin} -> POD: ${payload.destination}`,
+          `Port of Loading (POL): ${payload.origin} -> Port of Discharge (POD): ${payload.destination}`,
         ],
       ],
       theme: "striped",
-      styles: { fontSize: 8, cellPadding: 2.5 },
+      styles: { fontSize: 7.5, cellPadding: 2.2 },
       headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
     });
 
-    const nextY = (doc as any).lastAutoTable.finalY + 8;
-    doc.setFontSize(10);
+    const nextY = (doc as any).lastAutoTable.finalY + 6;
+    doc.setFontSize(9.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(30, 41, 59);
-    doc.text("CONTAINER & CARGO PARTICULARS", 14, nextY);
+    doc.text(
+      "CONTAINER PARTICULARS & VERIFIED GROSS MASS (SOLAS VGM)",
+      14,
+      nextY,
+    );
 
     autoTable(doc, {
-      startY: nextY + 4,
+      startY: nextY + 3,
       head: [
         [
-          "Container No.",
-          "Seal No.",
+          "Container No. (ISO 6346)",
+          "Seal No. (ISO 17712)",
           "Equipment",
-          "Gross Weight",
-          "Commodity Description",
+          "VGM Gross Weight",
+          "Commodity Description & HS Code",
         ],
       ],
       body: [
@@ -218,14 +265,35 @@ export default function BookingManagementModule() {
           payload.containerNumber,
           payload.sealNumber,
           payload.equipment,
-          `${Number(payload.weightKg || 18000).toLocaleString()} KG`,
+          `${Number(payload.weightKg || 18000).toLocaleString()} KG (VGM Verified)`,
           payload.commodity,
         ],
       ],
       theme: "grid",
-      styles: { fontSize: 8, cellPadding: 2.5 },
+      styles: { fontSize: 7.5, cellPadding: 2.2 },
       headStyles: { fillColor: [51, 65, 85], textColor: [255, 255, 255] },
     });
+
+    // Legal Paramount Clause & Disclaimer
+    const finalY = (doc as any).lastAutoTable.finalY + 8;
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    doc.text(
+      "PARAMOUNT CLAUSE: Taken in charge in apparent good order and condition. Subject to Hague-Visby Rules (1968/1979) and FIATA Multimodal Transport Bill of Lading conditions. One original bill of lading must be surrendered duly endorsed in exchange for the goods or delivery order. This draft copy is non-negotiable.",
+      14,
+      finalY,
+      { maxWidth: 182, align: "justify" },
+    );
+
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text(
+      `SIGNED FOR AND ON BEHALF OF ATLAS LOGISTICS AS CARRIER • ISSUED AT: ${payload.origin.split(" ")[0] || "MADRID"} • DATE: ${new Date().toISOString().split("T")[0]}`,
+      14,
+      finalY + 12,
+    );
 
     doc.save(`Draft_BL_${payload.blReference}.pdf`);
   };
@@ -1751,7 +1819,8 @@ export default function BookingManagementModule() {
                   siMutation.mutate({
                     bookingId: activeBooking.id,
                     shipperName: "Iberian Logistics Solutions S.A.",
-                    shipperAddress: "Can Tunis Ferroviaria, Barcelona",
+                    shipperAddress:
+                      "Barcelona Intermodal Rail Depot, Barcelona",
                     consigneeName: "Atlantic Container Corp (New York)",
                     consigneeAddress: "Port Newark Container Terminal (PNCT)",
                     notifyPartyName: "Atlas Logistics Lead (System Admin)",
@@ -1912,10 +1981,10 @@ export default function BookingManagementModule() {
                     onClick={() => {
                       releaseMutation.mutate({
                         bookingId: activeBooking.id,
-                        depotCode: "ESBCN-CANTUNIS",
-                        depotName: "Can Tunis Logistainer Intermodal Depot",
+                        depotCode: "ESBCN-RAIL-DEPOT",
+                        depotName: "Barcelona Intermodal Rail Depot",
                         depotAddress:
-                          "Carrer del Port, Can Tunis Ferroviaria, Barcelona",
+                          "Muelle Portuario, Terminal Ferroviaria, Barcelona",
                       });
                     }}
                     className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"

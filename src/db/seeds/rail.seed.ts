@@ -64,7 +64,7 @@ export async function seedRail(): Promise<void> {
       {
         id: "term_can_tunis",
         uicStationCode: "71004",
-        name: "Terminal Intermodal Barcelona Can Tunis",
+        name: "Terminal Intermodal Ferroviaria Portuaria Barcelona",
         city: "Barcelona",
         countryCode: "ES",
         trackGauge: "DUAL_GAUGE",
@@ -431,7 +431,7 @@ export async function seedRail(): Promise<void> {
         responsibleRailwayOfficer:
           "Dra. Elena Ruiz (Directora Técnica GDP / Ferrocarril)",
         remarks:
-          "Tracción directa en ancho estándar UIC (1.435 mm) desde Barcelona Can Tunis sin cambio de ancho.",
+          "Tracción directa en ancho estándar UIC (1.435 mm) desde Barcelona Intermodal sin cambio de ancho.",
         createdAt: new Date().toISOString(),
       },
       {

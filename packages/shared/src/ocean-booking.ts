@@ -587,7 +587,7 @@ export const OCEAN_BOOKING_PRESETS: OceanBooking[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: "bkg-bcn-cantunis-03",
+    id: "bkg-bcn-intermodal-03",
     referenceNumber: "ATL-BKG-BCN-NYC-003",
     bookingNumber: "HLC-48291030",
     carrier: "HAPAG_LLOYD",
@@ -598,7 +598,7 @@ export const OCEAN_BOOKING_PRESETS: OceanBooking[] = [
     vesselName: "AL ZUBARA",
     voyageNumber: "2611W",
     commodityDescription:
-      "Customer01 Kraft Paper Coils & Recycled Fluting Corrugated (Corridor Test 01 Can Tunis)",
+      "Customer01 Kraft Paper Coils & Recycled Fluting Corrugated (Corridor Intermodal Port Rail)",
     requestedEquipment: {
       isoType: "40HC",
       quantity: 2,
@@ -638,7 +638,7 @@ export const OCEAN_BOOKING_PRESETS: OceanBooking[] = [
       carrierScac: "HLCU",
       shipperName: "Customer01 Paper S.A. (Corredor DEPT-TEST01)",
       shipperAddress:
-        "Polígono Industrial El Espartal, Zaragoza / Can Tunis BCN",
+        "Polígono Industrial El Espartal, Zaragoza / Puerto de Barcelona",
       consigneeName: "Atlantic Packaging & Container Corporation (New York)",
       consigneeAddress:
         "Port Newark Container Terminal (PNCT), Newark, NJ 07114",
@@ -675,9 +675,9 @@ export const OCEAN_BOOKING_PRESETS: OceanBooking[] = [
       bookingNumber: "HLC-48291030",
       carrier: "HAPAG_LLOYD",
       carrierScac: "HLCU",
-      depotCode: "ESBCN-CANTUNIS-DEPOT",
-      depotName: "Terminal Intermodal Can Tunis Logistainer BCN",
-      depotAddress: "Carrer del Port, Can Tunis Ferroviaria, Barcelona",
+      depotCode: "ESBCN-INTERMODAL-DEPOT",
+      depotName: "Terminal Intermodal Ferroviaria Port BCN",
+      depotAddress: "Carrer del Port, Terminal Ferroviaria, Barcelona",
       validUntil: "2026-10-25",
       containerCount: 2,
       isoType: "40HC",

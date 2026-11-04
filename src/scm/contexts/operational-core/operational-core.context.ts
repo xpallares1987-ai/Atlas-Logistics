@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { db } from "../../../db/index.js";
+import { shipments } from "../../../db/schema/operations.js";
 import {
   scmLogicalShipments,
   scmShipmentReferences,
@@ -619,11 +620,204 @@ export async function getOperationalShipmentById(
 ): Promise<OperationalShipmentRecord> {
   await ensureScmEntityTables();
 
-  const shp = await db
+  let shp = await db
     .select()
     .from(scmLogicalShipments)
     .where(eq(scmLogicalShipments.shipmentId, shipmentId))
     .limit(1);
+
+  if (shp.length === 0) {
+    shp = await db
+      .select()
+      .from(scmLogicalShipments)
+      .where(eq(scmLogicalShipments.shipmentReference, shipmentId))
+      .limit(1);
+  }
+
+  if (shp.length === 0) {
+    const refMatch = await db
+      .select()
+      .from(scmShipmentReferences)
+      .where(eq(scmShipmentReferences.value, shipmentId))
+      .limit(1);
+    if (refMatch.length > 0) {
+      shp = await db
+        .select()
+        .from(scmLogicalShipments)
+        .where(eq(scmLogicalShipments.shipmentId, refMatch[0].shipmentId))
+        .limit(1);
+    }
+  }
+
+  if (shp.length === 0) {
+    // Check legacy shipments table for seamless cross-module interoperability
+    const legacy = await db
+      .select()
+      .from(shipments)
+      .where(
+        or(
+          eq(shipments.id, shipmentId),
+          eq(shipments.trackingNumber, shipmentId),
+        ),
+      )
+      .limit(1);
+
+    if (legacy.length > 0) {
+      const leg = legacy[0];
+      const now = new Date();
+      const logicalId = leg.id.startsWith("shp_") ? leg.id : `shp_${leg.id}`;
+      const logicalRef =
+        leg.trackingNumber || `REF-${leg.id.slice(0, 8).toUpperCase()}`;
+
+      const existing = await db
+        .select()
+        .from(scmLogicalShipments)
+        .where(eq(scmLogicalShipments.shipmentId, logicalId))
+        .limit(1);
+
+      if (existing.length > 0) {
+        shp = existing;
+      } else {
+        await db
+          .insert(scmLogicalShipments)
+          .values({
+            shipmentId: logicalId,
+            shipmentReference: logicalRef,
+            serviceType:
+              leg.serviceType === "AIR"
+                ? "AIR_EXPRESS"
+                : leg.serviceType === "ROAD"
+                  ? "ROAD_FTL"
+                  : "FCL_DOOR_TO_PORT",
+            owningOrganizationId: "org_atlas_freight",
+            lifecycle:
+              leg.status === "DELIVERED"
+                ? "DELIVERED"
+                : leg.status === "IN_TRANSIT"
+                  ? "IN_TRANSIT"
+                  : "CREATED",
+            closureStatus:
+              leg.status === "DELIVERED" ? "OPERATIONAL_CLOSED" : "OPEN",
+            createdAt: leg.createdAt ? new Date(leg.createdAt) : now,
+            updatedAt: leg.updatedAt ? new Date(leg.updatedAt) : now,
+            version: 1,
+          })
+          .onConflictDoNothing();
+
+        if (leg.trackingNumber) {
+          await db
+            .insert(scmShipmentReferences)
+            .values({
+              referenceId: `ref_${leg.id}_trk`,
+              shipmentId: logicalId,
+              type: "CARRIER_REFERENCE",
+              value: leg.trackingNumber,
+              source: "CARRIER",
+              isPrimary: true,
+            })
+            .onConflictDoNothing();
+        }
+
+        await db
+          .insert(scmShipmentReferences)
+          .values({
+            referenceId: `ref_${leg.id}_legacy`,
+            shipmentId: logicalId,
+            type: "EXTERNAL_SYSTEM_REFERENCE",
+            value: leg.id,
+            source: "INTERNAL",
+            isPrimary: false,
+          })
+          .onConflictDoNothing();
+
+        // Create initial corridor route plan if origin & dest exist
+        if (leg.origin && leg.destination) {
+          const routePlanId = `rpl_${leg.id}`;
+          const routeVersionId = `ver_${leg.id}_1`;
+          await db
+            .insert(scmLogicalRoutePlans)
+            .values({
+              routePlanId,
+              shipmentId: logicalId,
+              currentVersionId: routeVersionId,
+              status: "ACTIVE",
+              createdAt: now,
+              version: 1,
+            })
+            .onConflictDoNothing();
+
+          await db
+            .insert(scmLogicalRouteVersions)
+            .values({
+              routeVersionId,
+              routePlanId,
+              versionNumber: 1,
+              status: "PUBLISHED",
+              changeReason: "Initial freight corridor",
+              createdBy: leg.createdBy || "usr_ops_lead",
+              createdAt: now,
+              publishedAt: now.toISOString(),
+            })
+            .onConflictDoNothing();
+
+          await db
+            .insert(scmLogicalRouteStops)
+            .values([
+              {
+                stopId: `stp_${leg.id}_orig`,
+                routeVersionId,
+                sequence: 1,
+                locationId: leg.origin,
+                stopType: "ORIGIN",
+                plannedArrival: null,
+                plannedDeparture: now.toISOString(),
+              },
+              {
+                stopId: `stp_${leg.id}_dest`,
+                routeVersionId,
+                sequence: 2,
+                locationId: leg.destination,
+                stopType: "DESTINATION",
+                plannedArrival: new Date(
+                  Date.now() + 86400000 * 5,
+                ).toISOString(),
+                plannedDeparture: null,
+              },
+            ])
+            .onConflictDoNothing();
+
+          await db
+            .insert(scmLogicalTransportLegs)
+            .values({
+              legId: `leg_${leg.id}_1`,
+              routeVersionId,
+              sequence: 1,
+              originLocationId: leg.origin,
+              destinationLocationId: leg.destination,
+              transportMode:
+                leg.serviceType === "AIR"
+                  ? "AIR"
+                  : leg.serviceType === "ROAD"
+                    ? "ROAD"
+                    : "OCEAN",
+              carrierPartyId: "pty_maersk",
+              voyageOrFlightNumber: leg.voyageNumber || "V.2026",
+              vesselOrVehicleName: leg.vesselName || "Atlas Vessel",
+              status: "IN_TRANSIT",
+              plannedDeparture: now.toISOString(),
+              plannedArrival: new Date(Date.now() + 86400000 * 5).toISOString(),
+            })
+            .onConflictDoNothing();
+        }
+
+        shp = await db
+          .select()
+          .from(scmLogicalShipments)
+          .where(eq(scmLogicalShipments.shipmentId, logicalId))
+          .limit(1);
+      }
+    }
+  }
 
   assertInvariant(
     shp.length > 0,
@@ -632,19 +826,21 @@ export async function getOperationalShipmentById(
     `Shipment '${shipmentId}' not found`,
   );
 
+  const resolvedShipmentId = shp[0].shipmentId;
+
   const [refs, partyRoles, assignments] = await Promise.all([
     db
       .select()
       .from(scmShipmentReferences)
-      .where(eq(scmShipmentReferences.shipmentId, shipmentId)),
+      .where(eq(scmShipmentReferences.shipmentId, resolvedShipmentId)),
     db
       .select()
       .from(scmShipmentPartyRoles)
-      .where(eq(scmShipmentPartyRoles.shipmentId, shipmentId)),
+      .where(eq(scmShipmentPartyRoles.shipmentId, resolvedShipmentId)),
     db
       .select()
       .from(scmShipmentAssignments)
-      .where(eq(scmShipmentAssignments.shipmentId, shipmentId)),
+      .where(eq(scmShipmentAssignments.shipmentId, resolvedShipmentId)),
   ]);
 
   return {

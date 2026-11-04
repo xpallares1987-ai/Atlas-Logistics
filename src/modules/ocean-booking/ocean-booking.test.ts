@@ -29,7 +29,7 @@ describe("Ocean Booking Module: Fastify API Routes", () => {
 
     const transpac = body.find((b: any) => b.id === "bkg-transpac-01");
     const asiaEu = body.find((b: any) => b.id === "bkg-asiaeu-02");
-    const bcn = body.find((b: any) => b.id === "bkg-bcn-cantunis-03");
+    const bcn = body.find((b: any) => b.id === "bkg-bcn-intermodal-03");
 
     expect(transpac).toBeDefined();
     expect(transpac.carrier).toBe("MAERSK");

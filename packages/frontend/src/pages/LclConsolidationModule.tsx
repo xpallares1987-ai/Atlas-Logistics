@@ -6,6 +6,7 @@ import {
   INITIAL_POOL,
 } from "@atlas/ui/src/components/LclConsolidationEngine";
 import { motion } from "framer-motion";
+import { authFetch } from "../lib/api";
 
 export default function LclConsolidationModule() {
   const [cargoPool, setCargoPool] = useState<LclCargoItem[]>(INITIAL_POOL);
@@ -23,7 +24,7 @@ export default function LclConsolidationModule() {
   );
 
   useEffect(() => {
-    fetch("/api/operations/lcl/cargo")
+    authFetch("/api/operations/lcl/cargo")
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -66,7 +67,7 @@ export default function LclConsolidationModule() {
     setSelectedPoolIds(new Set());
 
     // Fire off async save to backend
-    fetch("/api/operations/lcl/consolidate", {
+    authFetch("/api/operations/lcl/consolidate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -104,7 +105,7 @@ export default function LclConsolidationModule() {
     );
 
     // Fire off async save to backend
-    fetch("/api/operations/lcl/consolidate", {
+    authFetch("/api/operations/lcl/consolidate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

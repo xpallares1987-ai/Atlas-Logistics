@@ -38,19 +38,26 @@ describe("Omnichannel Notifications & Dispatch Engine Tests", () => {
       expect(meta.headline).toBeDefined();
       expect(meta.bannerIcon).toBeDefined();
       expect(meta.description).toContain(ctx.gsid);
-      expect(["attention", "warning", "emphasis"]).toContain(meta.accentContainerColor);
+      expect(["attention", "warning", "emphasis"]).toContain(
+        meta.accentContainerColor,
+      );
     });
   });
 
   it("should construct a compliant Microsoft Teams Adaptive Card v1.5 payload", () => {
     const ctx = getSampleAnomalyContext("COLD_CHAIN_TEMP_BREACH");
-    const payload = generateAdaptiveCardPayload("COLD_CHAIN_TEMP_BREACH", ctx) as any;
+    const payload = generateAdaptiveCardPayload(
+      "COLD_CHAIN_TEMP_BREACH",
+      ctx,
+    ) as any;
 
     expect(payload.type).toBe("message");
     expect(payload.attachments).toHaveLength(1);
 
     const card = payload.attachments[0].content;
-    expect(card.$schema).toBe("http://adaptivecards.io/schemas/adaptive-card.json");
+    expect(card.$schema).toBe(
+      "http://adaptivecards.io/schemas/adaptive-card.json",
+    );
     expect(card.type).toBe("AdaptiveCard");
     expect(card.version).toBe("1.5");
     expect(card.msteams.width).toBe("Full");
@@ -70,7 +77,10 @@ describe("Omnichannel Notifications & Dispatch Engine Tests", () => {
 
   it("should format metadata facts properly inside the FactSet", () => {
     const ctx = getSampleAnomalyContext("CUSTOMS_CANAL_ROJO");
-    const payload = generateAdaptiveCardPayload("CUSTOMS_CANAL_ROJO", ctx) as any;
+    const payload = generateAdaptiveCardPayload(
+      "CUSTOMS_CANAL_ROJO",
+      ctx,
+    ) as any;
     const factSetContainer = payload.attachments[0].content.body[2];
     const facts = factSetContainer.items[0].facts;
 
@@ -78,7 +88,9 @@ describe("Omnichannel Notifications & Dispatch Engine Tests", () => {
     expect(gsidFact).toBeDefined();
     expect(gsidFact.value).toBe(ctx.gsid);
 
-    const channelFact = facts.find((f: any) => f.title.toLowerCase().includes("canal"));
+    const channelFact = facts.find((f: any) =>
+      f.title.toLowerCase().includes("canal"),
+    );
     expect(channelFact).toBeDefined();
     expect(channelFact.value).toContain("CANAL ROJO");
   });
@@ -99,9 +111,9 @@ describe("Omnichannel Notifications & Dispatch Engine Tests", () => {
       "@driver_antonio",
       "TRK-9902-ES",
       "YARD_DELAY",
-      "Demora de 45 minutos en muelle de descarga Can Tunis por saturación de grúa.",
+      "Demora de 45 minutos en muelle de descarga de terminal intermodal por saturación de grúa.",
       45,
-      "Barcelona Can Tunis (BCN)"
+      "Barcelona Intermodal Hub (BCN)",
     );
 
     expect(report.messageId).toMatch(/^TG-MSG-\d{4}$/);

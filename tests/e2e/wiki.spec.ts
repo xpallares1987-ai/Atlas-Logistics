@@ -29,7 +29,7 @@ test.describe("In-App Wiki & Knowledge Hub (/wiki)", () => {
 
     // Summary and legal baseline
     await expect(page.getByText("26.500 kg netos").first()).toBeVisible();
-    await expect(page.getByText("CANTUNIS").first()).toBeVisible();
+    await expect(page.getByText("BCN_RAIL_HUB").first()).toBeVisible();
   });
 
   test("should filter articles by search query", async ({ page }) => {

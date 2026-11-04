@@ -412,8 +412,9 @@ export class CoreOperationsPdfGenerator {
         doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(14);
         doc.text("LCL CONSOLIDATION CONTAINER MANIFEST", 50, 52);
         doc.font("Helvetica").fontSize(8).fillColor("#94a3b8");
+        const cleanRoute = (data.route || "N/A").replace(/➔/g, "->");
         doc.text(
-          `CONTAINER ID: ${data.containerId} | ROUTE: ${data.route || "N/A"}`,
+          `CONTAINER ID: ${data.containerId} | ROUTE: ${cleanRoute}`,
           50,
           70,
         );
@@ -441,13 +442,13 @@ export class CoreOperationsPdfGenerator {
         for (const item of data.cargoItems || []) {
           doc.rect(40, curY, 515, 18).strokeColor("#e2e8f0").stroke();
           doc.text(
-            item.label || item.id?.substring(0, 8) || "Item",
+            item.label || item.typeId || item.id?.substring(0, 8) || "Item",
             48,
             curY + 5,
           );
-          doc.text(item.shipmentId || "N/A", 180, curY + 5);
+          doc.text(item.shipmentId || item.clientId || "N/A", 180, curY + 5);
           doc.text(
-            `${item.length || 0} x ${item.width || 0} x ${item.height || 0}`,
+            `${item.length || item.depth || 120} x ${item.width || 80} x ${item.height || 100}`,
             310,
             curY + 5,
           );

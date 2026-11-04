@@ -215,11 +215,11 @@ describe("Predictive Port Congestion & AIS Berth Delay Early Warning Engine", ()
       expect(codes).toContain("ESALG");
 
       const bcn = IBERIAN_PORT_HUBS.find((h) => h.portCode === "ESBCN")!;
-      expect(bcn.landsideFacilities).toContain("CANTUNIS");
-      expect(bcn.landsideFacilities).toContain("TLSA");
+      expect(bcn.landsideFacilities).toContain("BCN_RAIL_HUB");
+      expect(bcn.landsideFacilities).toContain("BCN_ZAL_HUB");
 
       const vlc = IBERIAN_PORT_HUBS.find((h) => h.portCode === "ESVLC")!;
-      expect(vlc.landsideFacilities).toContain("BERRIO");
+      expect(vlc.landsideFacilities).toContain("VLC_MASSANASSA_HUB");
     });
   });
 });

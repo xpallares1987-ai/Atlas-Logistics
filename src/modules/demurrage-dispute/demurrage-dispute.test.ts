@@ -31,7 +31,7 @@ describe("Demurrage Dispute Module: Fastify API Routes", () => {
 
     const usPreset = body.find((p: any) => p.id === "us_west_coast_la_lb");
     const euPreset = body.find((p: any) => p.id === "eu_rotterdam_ect");
-    const esPreset = body.find((p: any) => p.id === "es_barcelona_cantunis");
+    const esPreset = body.find((p: any) => p.id === "es_barcelona_intermodal");
 
     expect(usPreset).toBeDefined();
     expect(usPreset.jurisdiction).toBe("US_FMC_OSRA_2022");
@@ -95,7 +95,7 @@ describe("Demurrage Dispute Module: Fastify API Routes", () => {
   });
 
   it("POST /api/demurrage-dispute/generate-pack - should build formal dispute dossier", async () => {
-    const preset = DEMURRAGE_DISPUTE_PRESETS[2]; // ES Barcelona Can Tunis
+    const preset = DEMURRAGE_DISPUTE_PRESETS[2]; // ES Barcelona Intermodal
     const auditRes = await app.inject({
       method: "POST",
       url: "/api/demurrage-dispute/audit",
@@ -126,7 +126,7 @@ describe("Demurrage Dispute Module: Fastify API Routes", () => {
     expect(pack.dossierId).toBeDefined();
     expect(pack.formalLetterSubject).toContain("FORMAL DISPUTE NOTICE");
     expect(pack.formalLetterBody).toContain("Hapag-Lloyd");
-    expect(pack.formalLetterBody).toContain("Can Tunis");
+    expect(pack.formalLetterBody).toContain("Barcelona");
     expect(pack.evidenceAttachments.length).toBeGreaterThan(0);
   });
 

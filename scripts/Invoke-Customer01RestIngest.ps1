@@ -110,7 +110,7 @@ switch ($Action) {
         $albaranPayload = @{
             albaranNumber = "ALB-TEST01-$([DateTime]::Now.ToString('yyyyMMdd-HHmm'))"
             factoryOrigin = "Plant North"
-            destinationWarehouse = "CANTUNIS"
+            destinationWarehouse = "BCN_RAIL_HUB"
             vehicleIdentifier = "31 71 4556 128-4"
             coils = @(
                 @{
@@ -120,7 +120,7 @@ switch ($Action) {
                     widthMm = 2400
                     diameterMm = 1250
                     factoryOrigin = "Plant North"
-                    destinationWarehouse = "CANTUNIS"
+                    destinationWarehouse = "BCN_RAIL_HUB"
                 },
                 @{
                     coilId = "BOB-CUST01-$([DateTime]::Now.ToString('MMdd-HHmmss'))-2"
@@ -129,7 +129,7 @@ switch ($Action) {
                     widthMm = 2400
                     diameterMm = 1250
                     factoryOrigin = "Plant North"
-                    destinationWarehouse = "CANTUNIS"
+                    destinationWarehouse = "BCN_RAIL_HUB"
                 }
             )
             targetContainerNumber = "MSKU-481920-4"
@@ -139,7 +139,7 @@ switch ($Action) {
 
     'IngestException' {
         $exceptionPayload = @{
-            warehouse = "CANTUNIS"
+            warehouse = "BCN_RAIL_HUB"
             exceptionType = "RETRASO_FERROVIARIO"
             severity = "MEDIUM"
             affectedVehicleId = "31 71 4556 128-4"
@@ -153,11 +153,11 @@ switch ($Action) {
     'SimulateBatch' {
         Write-Host "Iniciando ciclo de simulación desatendida Headless..." -ForegroundColor Cyan
         
-        # 1. Albarán Ferroviario CANTUNIS (Electric Train)
+        # 1. Albarán Ferroviario BCN_RAIL_HUB (Electric Train)
         $trainAlbaran = @{
-            albaranNumber = "ALB-TEST01-CANTUNIS-RAIL-$([DateTime]::Now.ToString('HHmm'))"
+            albaranNumber = "ALB-TEST01-RAIL-HUB-$([DateTime]::Now.ToString('HHmm'))"
             factoryOrigin = "Plant North"
-            destinationWarehouse = "CANTUNIS"
+            destinationWarehouse = "BCN_RAIL_HUB"
             vehicleIdentifier = "31 71 4556 881-0"
             coils = @(
                 @{
@@ -167,7 +167,7 @@ switch ($Action) {
                     widthMm = 2400
                     diameterMm = 1250
                     factoryOrigin = "Plant North"
-                    destinationWarehouse = "CANTUNIS"
+                    destinationWarehouse = "BCN_RAIL_HUB"
                 },
                 @{
                     coilId = "BOB-PLN-CAN-02"
@@ -176,28 +176,28 @@ switch ($Action) {
                     widthMm = 2400
                     diameterMm = 1250
                     factoryOrigin = "Plant North"
-                    destinationWarehouse = "CANTUNIS"
+                    destinationWarehouse = "BCN_RAIL_HUB"
                 }
             )
             targetContainerNumber = "CMAU-821940-2"
         }
         Send-Customer01Albaran -Url $BaseUrl -Payload $trainAlbaran | Out-Null
 
-        # 2. Albarán Camión Carretera TLSA (Curtain Trailer Euro VI)
+        # 2. Albarán Camión Carretera BCN_ZAL_HUB (Curtain Trailer Euro VI)
         $truckAlbaran = @{
-            albaranNumber = "ALB-TEST01-TLSA-ROAD-$([DateTime]::Now.ToString('HHmm'))"
+            albaranNumber = "ALB-TEST01-ZAL-ROAD-$([DateTime]::Now.ToString('HHmm'))"
             factoryOrigin = "Plant East"
-            destinationWarehouse = "TLSA"
+            destinationWarehouse = "BCN_ZAL_HUB"
             vehicleIdentifier = "5829-MZZ"
             coils = @(
                 @{
-                    coilId = "BOB-PLE-TLSA-01"
+                    coilId = "BOB-PLE-ZAL-01"
                     paperGrade = "MEDIUM 110"
                     grossWeightKg = 2550
                     widthMm = 2400
                     diameterMm = 1250
                     factoryOrigin = "Plant East"
-                    destinationWarehouse = "TLSA"
+                    destinationWarehouse = "BCN_ZAL_HUB"
                 }
             )
         }
@@ -205,10 +205,10 @@ switch ($Action) {
 
         # 3. Incidencia de Muelle gestionada por TEST01 (Operator Lead)
         $exc = @{
-            warehouse = "TLSA"
+            warehouse = "BCN_ZAL_HUB"
             exceptionType = "BOBINA_DANADA"
             severity = "LOW"
-            affectedCoilId = "BOB-PLE-TLSA-01"
+            affectedCoilId = "BOB-PLE-ZAL-01"
             description = "Pequeña raspadura en embalaje kraft exterior; precintado reforzado con fleje."
             reportedByRole = "TEST01"
             reportedByName = "Operator Lead"

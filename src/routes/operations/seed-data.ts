@@ -79,6 +79,44 @@ export async function ensureOperationsSeedData() {
       .onConflictDoNothing();
   }
 
+  // 3b. Seed Containers for sh_demo_master
+  const existingContainers = await db
+    .select()
+    .from(shipmentContainers)
+    .where(eq(shipmentContainers.shipmentId, "sh_demo_master"))
+    .limit(1);
+  if (existingContainers.length === 0) {
+    await db
+      .insert(shipmentContainers)
+      .values([
+        {
+          id: "c-1",
+          shipmentId: "sh_demo_master",
+          containerNumber: "MSCU-827491-0",
+          containerType: "40HC",
+          sealNumber: "SL-99182",
+          weight: 18450,
+        },
+        {
+          id: "c-2",
+          shipmentId: "sh_demo_master",
+          containerNumber: "CMAU-554129-3",
+          containerType: "20DC",
+          sealNumber: "SL-44102",
+          weight: 12200,
+        },
+        {
+          id: "demo-cont-1",
+          shipmentId: "sh_demo_master",
+          containerNumber: "HLCU-902811-4",
+          containerType: "40ft High Cube",
+          sealNumber: "SL-77123",
+          weight: 21000,
+        },
+      ])
+      .onConflictDoNothing();
+  }
+
   // 4. Bookings
   const existingBooking = await db.select().from(bookings).limit(1);
   if (existingBooking.length === 0) {

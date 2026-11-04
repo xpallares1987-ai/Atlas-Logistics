@@ -14,10 +14,10 @@ describe("Ocean Booking Engine (@atlas/shared)", () => {
     it("should evaluate cut-offs as SAFE when deadlines are well in advance", () => {
       const now = new Date("2026-10-12T12:00:00Z");
       const cutOffs = {
-        siCutOff: "2026-10-14T12:00:00Z",     // 48h
-        vgmCutOff: "2026-10-15T12:00:00Z",    // 72h
-        cargoCutOff: "2026-10-16T12:00:00Z",  // 96h
-        customsCutOff: "2026-10-15T18:00:00Z",// 78h
+        siCutOff: "2026-10-14T12:00:00Z", // 48h
+        vgmCutOff: "2026-10-15T12:00:00Z", // 72h
+        cargoCutOff: "2026-10-16T12:00:00Z", // 96h
+        customsCutOff: "2026-10-15T18:00:00Z", // 78h
         estimatedDeparture: "2026-10-17T00:00:00Z",
         estimatedArrival: "2026-10-30T00:00:00Z",
       };
@@ -31,15 +31,18 @@ describe("Ocean Booking Engine (@atlas/shared)", () => {
     it("should flag URGENT or CRITICAL when cut-off is approaching within thresholds", () => {
       const now = new Date("2026-10-12T12:00:00Z");
       const urgentCutOffs = {
-        siCutOff: "2026-10-13T06:00:00Z",     // 18h -> URGENT
-        vgmCutOff: "2026-10-13T18:00:00Z",    // 30h
-        cargoCutOff: "2026-10-14T12:00:00Z",  // 48h
+        siCutOff: "2026-10-13T06:00:00Z", // 18h -> URGENT
+        vgmCutOff: "2026-10-13T18:00:00Z", // 30h
+        cargoCutOff: "2026-10-14T12:00:00Z", // 48h
         customsCutOff: "2026-10-14T00:00:00Z",
         estimatedDeparture: "2026-10-15T00:00:00Z",
         estimatedArrival: "2026-10-25T00:00:00Z",
       };
 
-      const evalResult = validateCutOffDeadlines(urgentCutOffs, now.toISOString());
+      const evalResult = validateCutOffDeadlines(
+        urgentCutOffs,
+        now.toISOString(),
+      );
       expect(evalResult.overallStatus).toBe("URGENT");
       expect(evalResult.siHoursRemaining).toBe(18);
 
@@ -47,14 +50,17 @@ describe("Ocean Booking Engine (@atlas/shared)", () => {
         ...urgentCutOffs,
         siCutOff: "2026-10-12T18:00:00Z", // 6h -> CRITICAL
       };
-      const critResult = validateCutOffDeadlines(criticalCutOffs, now.toISOString());
+      const critResult = validateCutOffDeadlines(
+        criticalCutOffs,
+        now.toISOString(),
+      );
       expect(critResult.overallStatus).toBe("CRITICAL");
     });
 
     it("should flag BREACHED when a cut-off deadline has elapsed", () => {
       const now = new Date("2026-10-12T12:00:00Z");
       const expiredCutOffs = {
-        siCutOff: "2026-10-12T10:00:00Z",     // -2h -> Expired!
+        siCutOff: "2026-10-12T10:00:00Z", // -2h -> Expired!
         vgmCutOff: "2026-10-13T12:00:00Z",
         cargoCutOff: "2026-10-14T12:00:00Z",
         customsCutOff: "2026-10-13T18:00:00Z",
@@ -62,7 +68,10 @@ describe("Ocean Booking Engine (@atlas/shared)", () => {
         estimatedArrival: "2026-10-25T00:00:00Z",
       };
 
-      const evalResult = validateCutOffDeadlines(expiredCutOffs, now.toISOString());
+      const evalResult = validateCutOffDeadlines(
+        expiredCutOffs,
+        now.toISOString(),
+      );
       expect(evalResult.overallStatus).toBe("BREACHED");
       expect(evalResult.isSiExpired).toBe(true);
       expect(evalResult.siHoursRemaining).toBeLessThanOrEqual(0);
@@ -107,7 +116,9 @@ describe("Ocean Booking Engine (@atlas/shared)", () => {
       const preset = OCEAN_BOOKING_PRESETS[0];
       expect(preset.shippingInstructions).toBeDefined();
 
-      const edi304 = generateEDI304ShippingInstruction(preset.shippingInstructions!);
+      const edi304 = generateEDI304ShippingInstruction(
+        preset.shippingInstructions!,
+      );
       expect(edi304).toContain("ST*304*0001");
       expect(edi304).toContain("B2**MAEU*MSK-99201482**WAYBILL");
       expect(edi304).toContain("N1*SH*Atlas Global Electronics Ltd");
@@ -120,17 +131,17 @@ describe("Ocean Booking Engine (@atlas/shared)", () => {
 
   describe("generateEquipmentReleaseOrder", () => {
     it("should issue an Empty Equipment Release Order with PIN and QR digest", () => {
-      const preset = OCEAN_BOOKING_PRESETS[2]; // Hapag-Lloyd Can Tunis Book TEST01
+      const preset = OCEAN_BOOKING_PRESETS[2];
       const release = generateEquipmentReleaseOrder(preset, {
-        depotCode: "ESBCN-CANTUNIS",
-        depotName: "Can Tunis Logistainer Intermodal",
-        depotAddress: "Can Tunis Ferroviaria, Barcelona",
+        depotCode: "ESBCN-RAIL-DEPOT",
+        depotName: "Barcelona Intermodal Rail Depot",
+        depotAddress: "Terminal Ferroviaria, Barcelona",
       });
 
       expect(release.releaseOrderNumber).toContain("REL-HLCU-");
       expect(release.carrier).toBe("HAPAG_LLOYD");
       expect(release.carrierScac).toBe("HLCU");
-      expect(release.depotCode).toBe("ESBCN-CANTUNIS");
+      expect(release.depotCode).toBe("ESBCN-RAIL-DEPOT");
       expect(release.containerCount).toBe(2);
       expect(release.sealNumbersAllocated).toHaveLength(2);
       expect(release.pickupPin).toHaveLength(4);
@@ -154,7 +165,9 @@ describe("Ocean Booking Engine (@atlas/shared)", () => {
       const bcn = OCEAN_BOOKING_PRESETS.find((p) => p.originPort === "ESBCN");
       expect(bcn).toBeDefined();
       expect(bcn?.carrier).toBe("HAPAG_LLOYD");
-      expect(bcn?.commodityDescription).toContain("Corridor Test 01 Can Tunis");
+      expect(bcn?.commodityDescription).toContain(
+        "Corridor Intermodal Port Rail",
+      );
     });
   });
 });

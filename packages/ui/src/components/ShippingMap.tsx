@@ -96,7 +96,7 @@ export function ShippingMap({
         type: "warehouse",
       },
       {
-        name: "Spanish Warehouse (TLSA)",
+        name: "Spanish Warehouse (ZAL Hub)",
         coords: [40.4168, -3.7037],
         type: "warehouse",
       },
@@ -130,7 +130,7 @@ export function ShippingMap({
       },
       {
         from: "Valencia Port (POL)",
-        to: "Spanish Warehouse (TLSA)",
+        to: "Spanish Warehouse (ZAL Hub)",
         path: [
           [39.4699, -0.3763],
           [40.4168, -3.7037],

@@ -251,7 +251,7 @@ export async function seedDocuments(): Promise<void> {
       payloadData: {
         consignmentNumber: "CIM-ES-2026-4410",
         corridor: "RFC 6 Mediterranean Rail Corridor",
-        departureStation: "Barcelona Can Tunis (71004)",
+        departureStation: "Barcelona Intermodal Rail (71004)",
         arrivalStation: "Antwerp North C.T. (88001)",
         tractionCarrier: "Captrain España / Lineas Intermodal",
         trainNumber: "TR-48201",

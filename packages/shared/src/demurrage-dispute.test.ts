@@ -127,8 +127,8 @@ describe("Demurrage & Detention Dispute Engine (@atlas/shared)", () => {
       expect(audit.suspensionsApplied).toHaveLength(1);
     });
 
-    it("should reconcile Spanish Puertos del Estado Can Tunis dwell with AEAT & rail pause", () => {
-      const preset = DEMURRAGE_DISPUTE_PRESETS[2]; // es_barcelona_cantunis
+    it("should reconcile Spanish Puertos del Estado Intermodal Rail dwell with AEAT & rail pause", () => {
+      const preset = DEMURRAGE_DISPUTE_PRESETS[2]; // es_barcelona_intermodal
       const audit = calculateDemurrageAudit({
         invoice: preset.invoice,
         suspensions: preset.suspensions,

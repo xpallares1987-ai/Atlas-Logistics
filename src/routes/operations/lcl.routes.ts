@@ -163,9 +163,16 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
         height: p.effectiveHeightM,
         depth: p.effectiveLengthM,
         weight: p.weightKg,
-        x: Math.round((p.x + p.effectiveWidthM / 2 - container.internalWidthM / 2) * 100) / 100,
+        x:
+          Math.round(
+            (p.x + p.effectiveWidthM / 2 - container.internalWidthM / 2) * 100,
+          ) / 100,
         y: Math.round((p.z + p.effectiveHeightM / 2) * 100) / 100,
-        z: Math.round((p.y + p.effectiveLengthM / 2 - container.internalLengthM / 2) * 100) / 100,
+        z:
+          Math.round(
+            (p.y + p.effectiveLengthM / 2 - container.internalLengthM / 2) *
+              100,
+          ) / 100,
       }));
 
       return reply.send({
@@ -259,45 +266,42 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
             id: masterShipmentId,
             status: "consolidated",
             serviceType: "LCL-Master",
-            trackingNumber: `MBL-${containerId.substring(0, 6)}`,
+            trackingNumber: `MBL-${containerId.substring(0, 6).toUpperCase()}`,
             companyId: "c-1",
-            createdAt: new Date(),
-            updatedAt: new Date(),
           })
-          .onConflictDoUpdate({
-            target: shipments.id,
-            set: { updatedAt: new Date() },
-          });
+          .onConflictDoNothing();
 
         await db
           .insert(shipmentContainers)
           .values({
             id: containerId,
             shipmentId: masterShipmentId,
-            containerNumber: `CONU-${containerId.substring(0, 8)}`,
-            containerType: specId,
-            weight: totalWeight,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            containerNumber: `CONU-${containerId.substring(0, 8).toUpperCase()}`,
+            containerType: specId || "40HC",
+            weight: Number(totalWeight) || 0,
           })
-          .onConflictDoUpdate({
-            target: shipmentContainers.id,
-            set: { updatedAt: new Date(), weight: totalWeight },
-          });
+          .onConflictDoNothing();
 
-        const itemIds = reqCargoItems.map((c) => c.id);
-        await db
-          .update(cargoItems)
-          .set({ containerId, updatedAt: new Date() })
-          .where(inArray(cargoItems.id, itemIds));
+        const validItemIds = reqCargoItems
+          .map((c: any) => c.id)
+          .filter(
+            (id: any): id is string => typeof id === "string" && id.length > 0,
+          );
+
+        if (validItemIds.length > 0) {
+          await db
+            .update(cargoItems)
+            .set({ containerId, updatedAt: new Date() })
+            .where(inArray(cargoItems.id, validItemIds));
+        }
       }
 
       const pdfBuffer = await PDFService.generateLclManifest({
         containerId,
-        specId,
-        route,
-        cargoItems: reqCargoItems,
-        totalWeight,
+        specId: specId || "40ft Dry Van",
+        route: route || "CNSHA -> ESBCN",
+        cargoItems: reqCargoItems || [],
+        totalWeight: Number(totalWeight) || 0,
       });
 
       reply.header("Content-Type", "application/pdf");
@@ -307,6 +311,7 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
       );
       return reply.send(pdfBuffer);
     } catch (error: any) {
+      fastify.log.error(error);
       return reply.code(500).send({ error: error.message });
     }
   });
@@ -314,7 +319,32 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/lcl/consolidate", async (request, reply) => {
     try {
       const { masterContainerId, assignedCargoIds } = request.body as any;
-      if (assignedCargoIds && assignedCargoIds.length > 0) {
+      if (
+        assignedCargoIds &&
+        Array.isArray(assignedCargoIds) &&
+        assignedCargoIds.length > 0 &&
+        masterContainerId
+      ) {
+        // Ensure container exists in shipmentContainers to satisfy foreign key constraint
+        const existingContainer = await db
+          .select()
+          .from(shipmentContainers)
+          .where(eq(shipmentContainers.id, masterContainerId))
+          .limit(1);
+
+        if (existingContainer.length === 0) {
+          await db
+            .insert(shipmentContainers)
+            .values({
+              id: masterContainerId,
+              shipmentId: "sh_demo_master",
+              containerNumber: `MSCU-${masterContainerId.toUpperCase()}-7`,
+              containerType: "40HC",
+              sealNumber: `SL-${Math.floor(100000 + Math.random() * 900000)}`,
+            })
+            .onConflictDoNothing();
+        }
+
         await db
           .update(cargoItems)
           .set({ containerId: masterContainerId, updatedAt: new Date() })
@@ -327,6 +357,7 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
         assignedCargoIds,
       });
     } catch (error: any) {
+      fastify.log.error(error);
       return reply.code(500).send({ error: error.message });
     }
   });

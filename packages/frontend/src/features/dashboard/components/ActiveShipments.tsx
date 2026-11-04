@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Box, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -13,6 +14,7 @@ import { useApiQuery } from "../../../hooks/useApiQuery";
 import { useDashboardStore } from "../store";
 
 export function ActiveShipments() {
+  const navigate = useNavigate();
   const { dateRange } = useDashboardStore();
   const queryStr = dateRange
     ? `?start=${dateRange.start}&end=${dateRange.end}`
@@ -31,6 +33,7 @@ export function ActiveShipments() {
     const progress = s.status === "Completed" ? 100 : isTransit ? 65 : 20;
 
     return {
+      rawId: s.id || s.referenceNumber,
       id: s.referenceNumber || s.id?.substring(0, 8).toUpperCase(),
       origin: s.origin || "Unknown",
       destination: s.destination || "Unknown",
@@ -47,7 +50,11 @@ export function ActiveShipments() {
         <h2 className="text-xl font-bold text-white tracking-tight">
           Active Shipments
         </h2>
-        <button className="text-indigo-400 text-sm font-medium hover:text-indigo-300 transition-colors flex items-center gap-1">
+        <button
+          onClick={() => navigate("/cockpit")}
+          title="Open Operations Cockpit to view all active shipments"
+          className="text-indigo-400 text-sm font-medium hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer"
+        >
           View All <ArrowRight className="w-4 h-4" />
         </button>
       </div>
@@ -61,7 +68,12 @@ export function ActiveShipments() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 + 0.4 }}
-              className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-4"
+              onClick={() =>
+                navigate(
+                  `/shipment-360?id=${encodeURIComponent(shipment.rawId)}`,
+                )
+              }
+              className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-4 cursor-pointer hover:border-indigo-500/40 transition-colors"
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
@@ -163,6 +175,12 @@ export function ActiveShipments() {
               {activeShipments.map((shipment: any) => (
                 <TableRow
                   key={shipment.id}
+                  onClick={() =>
+                    navigate(
+                      `/shipment-360?id=${encodeURIComponent(shipment.rawId)}`,
+                    )
+                  }
+                  title={`Open 360° View for ${shipment.id}`}
                   className="hover:bg-white/5 transition-colors group cursor-pointer border-white/5"
                 >
                   <TableCell>

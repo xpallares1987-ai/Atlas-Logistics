@@ -310,7 +310,7 @@ export async function seedTelemetry(): Promise<void> {
       currentSpeedKnots: 55.0,
       currentHeadingDeg: 45,
       currentAltitudeMeters: 45,
-      originName: "Barcelona Can Tunis Railhub (ESP)",
+      originName: "Barcelona Intermodal Railhub (ESP)",
       destinationName: "Lyon Saint-Exupéry Logistics (FRA)",
       cargoDescription: "Chasis & Baterías de Litio para Automoción Eléctrica",
       cargoCategory: "HAZMAT",

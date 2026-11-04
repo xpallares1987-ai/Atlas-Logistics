@@ -698,10 +698,12 @@ export function LclConsolidationEngine({
                       route: activeContainer.route,
                       totalWeight: packingResult.totalWeight,
                       cargoItems: activeAssignedItems.map((item) => ({
+                        id: item.id,
+                        label: CARGO_TYPES[item.typeId]?.name || item.typeId,
                         clientId: item.clientId,
                         clientName: item.clientName,
-                        typeId: CARGO_TYPES[item.typeId].name,
-                        weight: CARGO_TYPES[item.typeId].weight,
+                        typeId: CARGO_TYPES[item.typeId]?.name || item.typeId,
+                        weight: CARGO_TYPES[item.typeId]?.weight || 500,
                       })),
                     };
                     const res = await fetch(

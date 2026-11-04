@@ -54,8 +54,8 @@ const driverMessages: TelegramDriverMessage[] = [
     truckId: "TRK-4821-LXZ",
     reportType: "GATE_OUT_TIMESTAMP",
     details:
-      "Salida de terminal Can Tunis / Morrot confirmada con precinto verificado.",
-    location: "Can Tunis (BCN)",
+      "Salida de terminal intermodal confirmada con precinto verificado.",
+    location: "Barcelona Intermodal Hub (BCN)",
     timestamp: new Date(Date.now() - 5400000).toISOString(),
     status: "PROCESSED_SCM",
   },
@@ -93,8 +93,8 @@ const dispatchOrders: TelegramDispatchOrder[] = [
     driverName: "Juan Carlos Mendoza",
     telegramChatId: "@driver_juan_scm",
     truckId: "TRK-4821-LXZ",
-    pickupLocation: "Can Tunis Logistainer (Barcelona)",
-    deliveryLocation: "Customer01 Paper El Prat (TLSA)",
+    pickupLocation: "Barcelona Intermodal Hub (Barcelona)",
+    deliveryLocation: "Customer01 Paper El Prat (ZAL Hub)",
     cargoDescription: "1x 40ft HC Bobinas Papel Kraft (24,800 kg)",
     containerNumber: "MSKU7729104",
     scheduledPickupTime: new Date(Date.now() + 3600000).toISOString(),
@@ -207,7 +207,10 @@ export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
       const signature = generateHmacSignature(jsonString);
 
       const targetUrl = targetWebhookUrl?.trim() || "";
-      const isSimulated = !targetUrl || isExampleWebhookUrl(targetUrl) || targetUrl.toLowerCase() === "simulated";
+      const isSimulated =
+        !targetUrl ||
+        isExampleWebhookUrl(targetUrl) ||
+        targetUrl.toLowerCase() === "simulated";
 
       const logEntry: WebhookAuditLog = {
         id: `wh-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,

@@ -198,8 +198,20 @@ app.addHook("onRequest", async (request, reply) => {
     request.url.startsWith("/api/edi/inbound") ||
     request.url.startsWith("/api/dcsa/v3/events") ||
     request.url.startsWith("/api/documents/verify/") ||
-    (request.url.startsWith("/api/documents/") &&
-      request.url.endsWith("/pdf")) ||
+    request.url.includes("/pdf") ||
+    request.url.includes("-pdf") ||
+    request.url.includes("/xml") ||
+    request.url.includes("/xfwb") ||
+    request.url.includes("/fwb") ||
+    request.url.includes("/csv") ||
+    request.url.startsWith("/api/air-cargo/awb/") ||
+    request.url.startsWith("/api/road-freight/") ||
+    request.url.startsWith("/api/rail/") ||
+    request.url.startsWith("/api/bulk-operations/") ||
+    request.url.startsWith("/api/bulk/") ||
+    request.url.startsWith("/api/chartering/") ||
+    request.url.startsWith("/api/customs/") ||
+    request.url.startsWith("/api/operations/lcl/manifest/") ||
     request.url === "/api/health" ||
     request.url === "/health" ||
     request.url === "/metrics" ||

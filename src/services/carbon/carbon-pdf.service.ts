@@ -140,7 +140,7 @@ export class CarbonPdfService {
           .font("Helvetica")
           .fillColor("#111827")
           .text(
-            `${data.originCity} ➔ ${data.destinationCity} (${data.totalDistanceKm} km)`,
+            `${data.originCity} -> ${data.destinationCity} (${data.totalDistanceKm} km)`,
             185,
             currentY,
           );
@@ -158,6 +158,22 @@ export class CarbonPdfService {
             185,
             currentY,
           );
+
+        if (data.carbonIntensityGco2ePerTkm) {
+          currentY += 16;
+          doc
+            .fontSize(9)
+            .font("Helvetica-Bold")
+            .fillColor("#4b5563")
+            .text("INTENSIDAD DE CARBONO:", 45, currentY)
+            .font("Helvetica")
+            .fillColor("#111827")
+            .text(
+              `${data.carbonIntensityGco2ePerTkm.toFixed(1)} gCO2e / t-km (GLEC v3.0 / ISO 14083:2023)`,
+              185,
+              currentY,
+            );
+        }
 
         // Section: Emissions Breakdown (WTW, TTW, WTT)
         currentY += 32;

@@ -1,16 +1,14 @@
 /**
  * Demurrage & Detention (D&D) Dispute Resolver & Free-Time Clock Engine
- * 
+ *
  * Supports regulatory frameworks:
  * - US FMC 46 CFR Part 541 / OSRA 2022 (Ocean Shipping Reform Act)
  * - European Port Standard Commercial Terms (Rotterdam, Antwerp, Hamburg rules)
- * - Spanish Puertos del Estado (RD 2/2011 / Book TEST01 Barcelona Can Tunis)
+ * - Spanish Puertos del Estado (RD 2/2011 / Book TEST01 Barcelona Intermodal)
  */
 
 export type JurisdictionRule =
-  | "US_FMC_OSRA_2022"
-  | "EU_PORT_STANDARD"
-  | "ES_PUERTOS_ESTADO";
+  "US_FMC_OSRA_2022" | "EU_PORT_STANDARD" | "ES_PUERTOS_ESTADO";
 
 export type ChargeType = "DEMURRAGE" | "DETENTION" | "PER_DIEM";
 
@@ -29,7 +27,7 @@ export type EDI315EventCode =
   | "VA" // Vessel Arrival
   | "AL" // Container Available for Pickup
   | "OA" // Outgate Movement (Demurrage ends, Detention begins)
-  | "I"  // Ingate Return to Terminal / Depot (Detention ends)
+  | "I" // Ingate Return to Terminal / Depot (Detention ends)
   | "CO" // Customs Hold / Inspection Released
   | "CR"; // Carrier Release
 
@@ -49,7 +47,7 @@ export interface ClockSuspension {
   code: SuspensionReasonCode;
   reason: string;
   startDate: string; // YYYY-MM-DD
-  endDate: string;   // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
   suspendedDays: number;
   officialNoticeRef?: string;
   evidenceAttachmentUrl?: string;
@@ -109,26 +107,27 @@ export interface DemurrageAuditResult {
   jurisdiction: JurisdictionRule;
   chargeType: ChargeType;
   currency: string;
-  
+
   // Dwell calculations
   grossCalendarDwellDays: number;
   totalSuspendedDays: number;
   netActualDwellDays: number;
   freeDaysGranted: number;
-  
+
   // Day comparisons
   carrierBilledDays: number;
   auditedLegalBillableDays: number;
   unjustifiedBilledDays: number;
-  
+
   // Financial breakdown
   carrierInvoicedAmount: number;
   auditedLegalAmount: number;
   disputedWaiverAmount: number;
   savingsPercentage: number;
-  
+
   // Audit status
-  auditStatus: "FULL_WAIVER_JUSTIFIED" | "PARTIAL_REDUCTION_JUSTIFIED" | "VALID_CHARGE";
+  auditStatus:
+    "FULL_WAIVER_JUSTIFIED" | "PARTIAL_REDUCTION_JUSTIFIED" | "VALID_CHARGE";
   fmcCompliance: FMCComplianceResult;
   suspensionsApplied: ClockSuspension[];
   milestones: EDI315Milestone[];
@@ -160,21 +159,82 @@ export interface DisputePack {
  * Validates carrier invoice against US FMC 46 CFR Part 541.6 mandatory data requirements.
  * Under FMC OSRA 2022 rules, failure to include any mandatory element eliminates the obligation to pay.
  */
-export function validateFmcInvoiceRequirements(invoice: CarrierInvoiceData): FMCComplianceResult {
+export function validateFmcInvoiceRequirements(
+  invoice: CarrierInvoiceData,
+): FMCComplianceResult {
   const mandatoryChecks: { key: string; label: string; valid: boolean }[] = [
-    { key: "containerNumber", label: "Container Number (46 CFR § 541.6(a)(1))", valid: Boolean(invoice.containerNumber?.trim()) },
-    { key: "billOfLading", label: "Bill of Lading / Booking Number (§ 541.6(a)(2))", valid: Boolean(invoice.billOfLading?.trim()) },
-    { key: "pod", label: "Port / Terminal of Discharge (§ 541.6(a)(3))", valid: Boolean(invoice.pod?.trim()) },
-    { key: "vesselVoyage", label: "Vessel Name & Voyage (§ 541.6(a)(4))", valid: Boolean(invoice.vesselVoyage?.trim()) },
-    { key: "dischargeDate", label: "Discharge Date (§ 541.6(a)(5))", valid: Boolean(invoice.dischargeDate?.trim()) },
-    { key: "availableDate", label: "Container Availability Date & Notification (§ 541.6(a)(6))", valid: Boolean(invoice.availableDate?.trim()) },
-    { key: "terminalHoursProvided", label: "Operating Terminal Hours & Gate Schedule (§ 541.6(a)(7))", valid: Boolean(invoice.terminalHoursProvided) },
-    { key: "freeTimeStartDate", label: "Free Time Start Date (§ 541.6(a)(8))", valid: Boolean(invoice.freeTimeStartDate?.trim()) },
-    { key: "freeTimeEndDate", label: "Free Time End Date (§ 541.6(a)(9))", valid: Boolean(invoice.freeTimeEndDate?.trim()) },
-    { key: "freeDaysGranted", label: "Number of Free Days Allowed (§ 541.6(a)(10))", valid: typeof invoice.freeDaysGranted === "number" && invoice.freeDaysGranted > 0 },
-    { key: "billedStartDate", label: "Billed Charge Period Start & End Dates (§ 541.6(a)(11))", valid: Boolean(invoice.billedStartDate?.trim() && invoice.billedEndDate?.trim()) },
-    { key: "billedDailyRate", label: "Applicable Tariff Rule & Daily Rate (§ 541.6(a)(12))", valid: (invoice.billedDailyRate !== undefined && invoice.billedDailyRate > 0) || (invoice.tariffTiers !== undefined && invoice.tariffTiers.length > 0) },
-    { key: "disputeContactEmail", label: "Designated Carrier Dispute Contact Email (§ 541.6(a)(13))", valid: Boolean(invoice.disputeContactEmail?.includes("@")) },
+    {
+      key: "containerNumber",
+      label: "Container Number (46 CFR § 541.6(a)(1))",
+      valid: Boolean(invoice.containerNumber?.trim()),
+    },
+    {
+      key: "billOfLading",
+      label: "Bill of Lading / Booking Number (§ 541.6(a)(2))",
+      valid: Boolean(invoice.billOfLading?.trim()),
+    },
+    {
+      key: "pod",
+      label: "Port / Terminal of Discharge (§ 541.6(a)(3))",
+      valid: Boolean(invoice.pod?.trim()),
+    },
+    {
+      key: "vesselVoyage",
+      label: "Vessel Name & Voyage (§ 541.6(a)(4))",
+      valid: Boolean(invoice.vesselVoyage?.trim()),
+    },
+    {
+      key: "dischargeDate",
+      label: "Discharge Date (§ 541.6(a)(5))",
+      valid: Boolean(invoice.dischargeDate?.trim()),
+    },
+    {
+      key: "availableDate",
+      label: "Container Availability Date & Notification (§ 541.6(a)(6))",
+      valid: Boolean(invoice.availableDate?.trim()),
+    },
+    {
+      key: "terminalHoursProvided",
+      label: "Operating Terminal Hours & Gate Schedule (§ 541.6(a)(7))",
+      valid: Boolean(invoice.terminalHoursProvided),
+    },
+    {
+      key: "freeTimeStartDate",
+      label: "Free Time Start Date (§ 541.6(a)(8))",
+      valid: Boolean(invoice.freeTimeStartDate?.trim()),
+    },
+    {
+      key: "freeTimeEndDate",
+      label: "Free Time End Date (§ 541.6(a)(9))",
+      valid: Boolean(invoice.freeTimeEndDate?.trim()),
+    },
+    {
+      key: "freeDaysGranted",
+      label: "Number of Free Days Allowed (§ 541.6(a)(10))",
+      valid:
+        typeof invoice.freeDaysGranted === "number" &&
+        invoice.freeDaysGranted > 0,
+    },
+    {
+      key: "billedStartDate",
+      label: "Billed Charge Period Start & End Dates (§ 541.6(a)(11))",
+      valid: Boolean(
+        invoice.billedStartDate?.trim() && invoice.billedEndDate?.trim(),
+      ),
+    },
+    {
+      key: "billedDailyRate",
+      label: "Applicable Tariff Rule & Daily Rate (§ 541.6(a)(12))",
+      valid:
+        (invoice.billedDailyRate !== undefined &&
+          invoice.billedDailyRate > 0) ||
+        (invoice.tariffTiers !== undefined && invoice.tariffTiers.length > 0),
+    },
+    {
+      key: "disputeContactEmail",
+      label: "Designated Carrier Dispute Contact Email (§ 541.6(a)(13))",
+      valid: Boolean(invoice.disputeContactEmail?.includes("@")),
+    },
   ];
 
   const missingFields: string[] = [];
@@ -188,7 +248,9 @@ export function validateFmcInvoiceRequirements(invoice: CarrierInvoiceData): FMC
     }
   }
 
-  const complianceScore = Math.round((mandatoryFieldsPresent.length / mandatoryChecks.length) * 100);
+  const complianceScore = Math.round(
+    (mandatoryFieldsPresent.length / mandatoryChecks.length) * 100,
+  );
   const isCompliant = missingFields.length === 0;
 
   const statutoryCitation = "US 46 CFR Part 541 (OSRA 2022) § 541.6 & § 541.8";
@@ -196,7 +258,8 @@ export function validateFmcInvoiceRequirements(invoice: CarrierInvoiceData): FMC
   let fullWaiverEligible = false;
 
   if (isCompliant) {
-    legalVerdict = "Invoice complies with all 13 FMC § 541.6 mandatory billing elements. Substance of days and clock pauses must be audited.";
+    legalVerdict =
+      "Invoice complies with all 13 FMC § 541.6 mandatory billing elements. Substance of days and clock pauses must be audited.";
     fullWaiverEligible = false;
   } else {
     fullWaiverEligible = true;
@@ -217,7 +280,10 @@ export function validateFmcInvoiceRequirements(invoice: CarrierInvoiceData): FMC
 /**
  * Calculates calendar days between two ISO date strings (inclusive of start day up to end day).
  */
-export function calculateDaysBetween(startDateStr: string, endDateStr: string): number {
+export function calculateDaysBetween(
+  startDateStr: string,
+  endDateStr: string,
+): number {
   const start = new Date(startDateStr.split("T")[0]);
   const end = new Date(endDateStr.split("T")[0]);
   const diffTime = end.getTime() - start.getTime();
@@ -231,7 +297,7 @@ export function calculateDaysBetween(startDateStr: string, endDateStr: string): 
 export function calculateTieredDemurrageFee(
   billableDays: number,
   tiers?: DemurrageTariffTier[],
-  fallbackDailyRate: number = 150
+  fallbackDailyRate: number = 150,
 ): number {
   if (billableDays <= 0) return 0;
   if (!tiers || tiers.length === 0) {
@@ -244,7 +310,7 @@ export function calculateTieredDemurrageFee(
 
   for (const tier of tiers) {
     if (remainingDays <= 0) break;
-    const tierSpan = tier.toDay ? (tier.toDay - tier.fromDay + 1) : remainingDays;
+    const tierSpan = tier.toDay ? tier.toDay - tier.fromDay + 1 : remainingDays;
     const daysInThisTier = Math.min(remainingDays, tierSpan);
     totalFee += daysInThisTier * tier.dailyRate;
     remainingDays -= daysInThisTier;
@@ -274,17 +340,32 @@ export function calculateDemurrageAudit(params: {
   const fmcCompliance = validateFmcInvoiceRequirements(invoice);
 
   // 2. Determine actual start & end of terminal dwell
-  const startDwellDate = invoice.availableDate || invoice.dischargeDate || invoice.freeTimeStartDate || invoice.billedStartDate || new Date().toISOString().split("T")[0];
-  const endDwellDate = invoice.billedEndDate || new Date().toISOString().split("T")[0];
+  const startDwellDate =
+    invoice.availableDate ||
+    invoice.dischargeDate ||
+    invoice.freeTimeStartDate ||
+    invoice.billedStartDate ||
+    new Date().toISOString().split("T")[0];
+  const endDwellDate =
+    invoice.billedEndDate || new Date().toISOString().split("T")[0];
 
-  const grossCalendarDwellDays = calculateDaysBetween(startDwellDate, endDwellDate);
+  const grossCalendarDwellDays = calculateDaysBetween(
+    startDwellDate,
+    endDwellDate,
+  );
 
   // 3. Calculate approved suspensions
   const approvedSuspensions = suspensions.filter((s) => s.approved);
-  const totalSuspendedDays = approvedSuspensions.reduce((sum, s) => sum + s.suspendedDays, 0);
+  const totalSuspendedDays = approvedSuspensions.reduce(
+    (sum, s) => sum + s.suspendedDays,
+    0,
+  );
 
   // 4. Net actual dwell days after deducting legally suspended days
-  const netActualDwellDays = Math.max(0, grossCalendarDwellDays - totalSuspendedDays);
+  const netActualDwellDays = Math.max(
+    0,
+    grossCalendarDwellDays - totalSuspendedDays,
+  );
 
   // 5. Free days granted
   const freeDays = invoice.freeDaysGranted ?? 4;
@@ -293,24 +374,34 @@ export function calculateDemurrageAudit(params: {
   const auditedLegalBillableDays = Math.max(0, netActualDwellDays - freeDays);
 
   // 7. Carrier Billed Days
-  const carrierBilledDays = invoice.billedTotalDays ?? Math.max(0, grossCalendarDwellDays - freeDays);
-  const unjustifiedBilledDays = Math.max(0, carrierBilledDays - auditedLegalBillableDays);
+  const carrierBilledDays =
+    invoice.billedTotalDays ?? Math.max(0, grossCalendarDwellDays - freeDays);
+  const unjustifiedBilledDays = Math.max(
+    0,
+    carrierBilledDays - auditedLegalBillableDays,
+  );
 
   // 8. Audited Legal Amount
   const defaultRate = invoice.billedDailyRate || 150;
   let auditedLegalAmount = calculateTieredDemurrageFee(
     auditedLegalBillableDays,
     invoice.tariffTiers,
-    defaultRate
+    defaultRate,
   );
 
   let carrierInvoicedAmount = invoice.invoicedAmount;
-  let disputedWaiverAmount = Math.max(0, carrierInvoicedAmount - auditedLegalAmount);
+  let disputedWaiverAmount = Math.max(
+    0,
+    carrierInvoicedAmount - auditedLegalAmount,
+  );
 
   // If FMC defective in US jurisdiction, full waiver is justified by default
   let auditStatus: DemurrageAuditResult["auditStatus"] = "VALID_CHARGE";
 
-  if (invoice.jurisdiction === "US_FMC_OSRA_2022" && !fmcCompliance.isCompliant) {
+  if (
+    invoice.jurisdiction === "US_FMC_OSRA_2022" &&
+    !fmcCompliance.isCompliant
+  ) {
     auditStatus = "FULL_WAIVER_JUSTIFIED";
     disputedWaiverAmount = carrierInvoicedAmount;
     auditedLegalAmount = 0;
@@ -325,9 +416,10 @@ export function calculateDemurrageAudit(params: {
     disputedWaiverAmount = 0;
   }
 
-  const savingsPercentage = carrierInvoicedAmount > 0
-    ? Math.round((disputedWaiverAmount / carrierInvoicedAmount) * 100)
-    : 0;
+  const savingsPercentage =
+    carrierInvoicedAmount > 0
+      ? Math.round((disputedWaiverAmount / carrierInvoicedAmount) * 100)
+      : 0;
 
   // Summary generation
   let disputeSummaryText = "";
@@ -393,7 +485,9 @@ export function generateDisputePack(params: {
   const recipient = {
     carrierName: auditResult.carrierName,
     department: "Demurrage & Detention Dispute & Claims Resolution Desk",
-    email: params.recipientEmail || `claims.${auditResult.carrierName.toLowerCase().replace(/[^a-z0-9]/g, "")}@carrier-disputes.com`,
+    email:
+      params.recipientEmail ||
+      `claims.${auditResult.carrierName.toLowerCase().replace(/[^a-z0-9]/g, "")}@carrier-disputes.com`,
   };
 
   const dossierId = `DSP-${auditResult.containerNumber}-${Date.now().toString(36).toUpperCase()}`;
@@ -401,11 +495,14 @@ export function generateDisputePack(params: {
   // Statutory code citation
   let legalAuthority = "";
   if (auditResult.jurisdiction === "US_FMC_OSRA_2022") {
-    legalAuthority = "United States Federal Maritime Commission (FMC) 46 CFR Part 541 (Demurrage and Detention Billing Requirements; OSRA 2022 § 7(b))";
+    legalAuthority =
+      "United States Federal Maritime Commission (FMC) 46 CFR Part 541 (Demurrage and Detention Billing Requirements; OSRA 2022 § 7(b))";
   } else if (auditResult.jurisdiction === "ES_PUERTOS_ESTADO") {
-    legalAuthority = "Real Decreto Legislativo 2/2011 (Texto Refundido de la Ley de Puertos del Estado y de la Marina Mercante) & Book TEST01 Barcelona Corredor Operativo";
+    legalAuthority =
+      "Real Decreto Legislativo 2/2011 (Texto Refundido de la Ley de Puertos del Estado y de la Marina Mercante) & Book TEST01 Barcelona Corredor Operativo";
   } else {
-    legalAuthority = "European Port Standard Commercial Rules & ICC Incoterms 2020 Maritime Force Majeure clauses";
+    legalAuthority =
+      "European Port Standard Commercial Rules & ICC Incoterms 2020 Maritime Force Majeure clauses";
   }
 
   const formalLetterSubject = `FORMAL DISPUTE NOTICE: Demurrage Invoice #${auditResult.invoiceNumber} | Container ${auditResult.containerNumber} | Claim Ref: ${dossierId}`;
@@ -438,15 +535,20 @@ ${auditResult.suspensionsApplied.map((s, idx) => `   [Pause ${idx + 1}] ${s.reas
 - Unjustified Charges Billed: ${auditResult.unjustifiedBilledDays} billable day(s).
 
 2. STATUTORY & REGULATORY DEFECTS:
-${auditResult.jurisdiction === "US_FMC_OSRA_2022" && !auditResult.fmcCompliance.isCompliant ? `
+${
+  auditResult.jurisdiction === "US_FMC_OSRA_2022" &&
+  !auditResult.fmcCompliance.isCompliant
+    ? `
 CRITICAL COMPLIANCE NOTICE (FMC 46 CFR § 541.6):
 Your invoice fails to satisfy statutory mandatory billing requirements set forth under 46 CFR § 541.6. Specifically, the following mandatory data elements were omitted:
 ${auditResult.fmcCompliance.missingFields.map((f) => `  * ${f}`).join("\n")}
 
 Pursuant to 46 CFR § 541.8, the failure of an ocean common carrier or marine terminal operator to include any required information on a demurrage or detention invoice eliminates any obligation of the billed party to pay the applicable charge.
-` : `
+`
+    : `
 Pursuant to governing commercial terms, demurrage and detention may only accrue when the container is physically accessible and capable of being retrieved or returned by the motor carrier without impediment.
-`}
+`
+}
 
 3. FORMAL DEMAND:
 We request immediate cancellation of Invoice #${auditResult.invoiceNumber} or the immediate issuance of a revised credit note in the amount of ${auditResult.disputedWaiverAmount.toLocaleString()} ${auditResult.currency} within thirty (30) calendar days of receipt.
@@ -472,7 +574,8 @@ Reference ID: ${dossierId}
       `Terminal_Gate_Interruption_Logs_${auditResult.containerNumber}.pdf`,
       `FMC_Rule_541_Compliance_Audit_Scorecard.pdf`,
     ],
-    statutoryDeadlineNotice: "Statutory response window: 30 calendar days pursuant to 46 CFR § 541.7 / OSRA 2022.",
+    statutoryDeadlineNotice:
+      "Statutory response window: 30 calendar days pursuant to 46 CFR § 541.7 / OSRA 2022.",
   };
 }
 
@@ -492,7 +595,8 @@ export const DEMURRAGE_DISPUTE_PRESETS: {
     id: "us_west_coast_la_lb",
     name: "US West Coast: Los Angeles / Long Beach (FMC § 541 Gate Lockout)",
     jurisdiction: "US_FMC_OSRA_2022",
-    description: "Maersk billed 14 days demurrage ($3,600) despite 4 days gate appointment lockout and 1-day CBP VACIS scanner exam. Invoice omitted Earliest Return Date & terminal hours.",
+    description:
+      "Maersk billed 14 days demurrage ($3,600) despite 4 days gate appointment lockout and 1-day CBP VACIS scanner exam. Invoice omitted Earliest Return Date & terminal hours.",
     invoice: {
       invoiceNumber: "MSK-LAX-2026-90412",
       invoiceDate: "2026-10-02",
@@ -528,7 +632,8 @@ export const DEMURRAGE_DISPUTE_PRESETS: {
       {
         id: "susp-lax-01",
         code: "APPOINTMENT_UNAVAILABLE",
-        reason: "APM Terminals Pier 400 dual-transaction appointment lockout (no open slots in eModal system)",
+        reason:
+          "APM Terminals Pier 400 dual-transaction appointment lockout (no open slots in eModal system)",
         startDate: "2026-09-25",
         endDate: "2026-09-27",
         suspendedDays: 3,
@@ -539,7 +644,8 @@ export const DEMURRAGE_DISPUTE_PRESETS: {
       {
         id: "susp-lax-02",
         code: "CUSTOMS_VACIS_SCAN",
-        reason: "U.S. Customs and Border Protection (CBP) mandatory 7H non-intrusive VACIS radiation hold",
+        reason:
+          "U.S. Customs and Border Protection (CBP) mandatory 7H non-intrusive VACIS radiation hold",
         startDate: "2026-09-28",
         endDate: "2026-09-29",
         suspendedDays: 2,
@@ -549,18 +655,59 @@ export const DEMURRAGE_DISPUTE_PRESETS: {
       },
     ],
     milestones: [
-      { id: "m1", code: "VA", eventDescription: "Vessel Arrival at Port of Los Angeles", timestamp: "2026-09-17T18:00:00Z", locationCode: "USLAX", locationName: "Port of Los Angeles", verified: true },
-      { id: "m2", code: "VD", eventDescription: "Container Discharged to Pier 400 Stack", timestamp: "2026-09-18T10:30:00Z", locationCode: "USLAX", locationName: "APM Terminals", verified: true },
-      { id: "m3", code: "AL", eventDescription: "Container Available for Pickup Notification", timestamp: "2026-09-20T08:00:00Z", locationCode: "USLAX", locationName: "APM Terminals", verified: true },
-      { id: "m4", code: "CO", eventDescription: "CBP Customs Inspection Released", timestamp: "2026-09-29T16:00:00Z", locationCode: "USLAX", locationName: "CBP Exam Facility", verified: true },
-      { id: "m5", code: "OA", eventDescription: "Container Outgate Picked Up by Drayman", timestamp: "2026-10-04T14:15:00Z", locationCode: "USLAX", locationName: "APM Terminals Gate 3", verified: true },
+      {
+        id: "m1",
+        code: "VA",
+        eventDescription: "Vessel Arrival at Port of Los Angeles",
+        timestamp: "2026-09-17T18:00:00Z",
+        locationCode: "USLAX",
+        locationName: "Port of Los Angeles",
+        verified: true,
+      },
+      {
+        id: "m2",
+        code: "VD",
+        eventDescription: "Container Discharged to Pier 400 Stack",
+        timestamp: "2026-09-18T10:30:00Z",
+        locationCode: "USLAX",
+        locationName: "APM Terminals",
+        verified: true,
+      },
+      {
+        id: "m3",
+        code: "AL",
+        eventDescription: "Container Available for Pickup Notification",
+        timestamp: "2026-09-20T08:00:00Z",
+        locationCode: "USLAX",
+        locationName: "APM Terminals",
+        verified: true,
+      },
+      {
+        id: "m4",
+        code: "CO",
+        eventDescription: "CBP Customs Inspection Released",
+        timestamp: "2026-09-29T16:00:00Z",
+        locationCode: "USLAX",
+        locationName: "CBP Exam Facility",
+        verified: true,
+      },
+      {
+        id: "m5",
+        code: "OA",
+        eventDescription: "Container Outgate Picked Up by Drayman",
+        timestamp: "2026-10-04T14:15:00Z",
+        locationCode: "USLAX",
+        locationName: "APM Terminals Gate 3",
+        verified: true,
+      },
     ],
   },
   {
     id: "eu_rotterdam_ect",
     name: "Northern Europe: Rotterdam ECT Delta (Rail & Strike Force Majeure)",
     jurisdiction: "EU_PORT_STANDARD",
-    description: "CMA CGM billed 9 days demurrage (€1,620) during a 4-day rail strike and terminal water-level barge embargo at ECT Delta.",
+    description:
+      "CMA CGM billed 9 days demurrage (€1,620) during a 4-day rail strike and terminal water-level barge embargo at ECT Delta.",
     invoice: {
       invoiceNumber: "CMA-RTM-2026-55102",
       invoiceDate: "2026-10-05",
@@ -595,26 +742,53 @@ export const DEMURRAGE_DISPUTE_PRESETS: {
       {
         id: "susp-rtm-01",
         code: "PORT_STRIKE_FORCE_MAJEURE",
-        reason: "Dutch FNV Port Workers wildcat strike halting straddle carriers & rail sidings at ECT Delta",
+        reason:
+          "Dutch FNV Port Workers wildcat strike halting straddle carriers & rail sidings at ECT Delta",
         startDate: "2026-09-29",
         endDate: "2026-10-02",
         suspendedDays: 4,
         officialNoticeRef: "Port of Rotterdam Harbor Master Bulletin #2026-44",
-        evidenceAttachmentUrl: "/evidence/rotterdam-port-authority-strike-notice.pdf",
+        evidenceAttachmentUrl:
+          "/evidence/rotterdam-port-authority-strike-notice.pdf",
         approved: true,
       },
     ],
     milestones: [
-      { id: "m201", code: "VD", eventDescription: "Container Discharged to ECT Stack", timestamp: "2026-09-22T14:00:00Z", locationCode: "NLRTM", locationName: "ECT Delta", verified: true },
-      { id: "m202", code: "AL", eventDescription: "Customs DUA Cleared and Available", timestamp: "2026-09-23T09:00:00Z", locationCode: "NLRTM", locationName: "ECT Delta", verified: true },
-      { id: "m203", code: "OA", eventDescription: "Intermodal Rail Outgate", timestamp: "2026-10-07T11:00:00Z", locationCode: "NLRTM", locationName: "ECT Delta Rail Terminal", verified: true },
+      {
+        id: "m201",
+        code: "VD",
+        eventDescription: "Container Discharged to ECT Stack",
+        timestamp: "2026-09-22T14:00:00Z",
+        locationCode: "NLRTM",
+        locationName: "ECT Delta",
+        verified: true,
+      },
+      {
+        id: "m202",
+        code: "AL",
+        eventDescription: "Customs DUA Cleared and Available",
+        timestamp: "2026-09-23T09:00:00Z",
+        locationCode: "NLRTM",
+        locationName: "ECT Delta",
+        verified: true,
+      },
+      {
+        id: "m203",
+        code: "OA",
+        eventDescription: "Intermodal Rail Outgate",
+        timestamp: "2026-10-07T11:00:00Z",
+        locationCode: "NLRTM",
+        locationName: "ECT Delta Rail Terminal",
+        verified: true,
+      },
     ],
   },
   {
-    id: "es_barcelona_cantunis",
-    name: "Spain Corredor: Barcelona Can Tunis (Book TEST01 Rail Siding Hold)",
+    id: "es_barcelona_intermodal",
+    name: "Spain Corredor: Barcelona Intermodal Rail Terminal",
     jurisdiction: "ES_PUERTOS_ESTADO",
-    description: "Hapag-Lloyd billed 8 days demurrage (€1,280) for Can Tunis rail connection container. AEAT DUA Circuito Rojo scanner and Adif switch delay paused clock for 4 days.",
+    description:
+      "Hapag-Lloyd billed 8 days demurrage (€1,280) for intermodal rail connection container. AEAT DUA Circuito Rojo scanner and Adif switch delay paused clock for 4 days.",
     invoice: {
       invoiceNumber: "HLC-BCN-2026-33921",
       invoiceDate: "2026-10-08",
@@ -626,7 +800,7 @@ export const DEMURRAGE_DISPUTE_PRESETS: {
       jurisdiction: "ES_PUERTOS_ESTADO",
       vesselVoyage: "AL ZUBARA / 2611W",
       pod: "ESBCN",
-      terminalName: "BEST Hutchison Port Barcelona / Can Tunis Intermodal",
+      terminalName: "BEST Hutchison Port Barcelona / Intermodal Rail Yard",
       terminalHoursProvided: true,
       dischargeDate: "2026-09-26",
       availableDate: "2026-09-27",
@@ -649,7 +823,8 @@ export const DEMURRAGE_DISPUTE_PRESETS: {
       {
         id: "susp-bcn-01",
         code: "CUSTOMS_PHYSICAL_EXAM",
-        reason: "AEAT Aduana Barcelona Circuito Rojo physical inspection delay at Scanner Port BCN",
+        reason:
+          "AEAT Aduana Barcelona Circuito Rojo physical inspection delay at Scanner Port BCN",
         startDate: "2026-10-03",
         endDate: "2026-10-05",
         suspendedDays: 3,
@@ -660,20 +835,53 @@ export const DEMURRAGE_DISPUTE_PRESETS: {
       {
         id: "susp-bcn-02",
         code: "RAIL_EMBARGO",
-        reason: "Adif Can Tunis Morrot rail yard catenary maintenance & track switch outage (Book TEST01)",
+        reason:
+          "Adif Port rail yard catenary maintenance & track switch outage",
         startDate: "2026-10-06",
         endDate: "2026-10-06",
         suspendedDays: 1,
-        officialNoticeRef: "Adif Aviso Ferroviario Can Tunis #AV-012-0610",
-        evidenceAttachmentUrl: "/evidence/adif-cantunis-switch-log.pdf",
+        officialNoticeRef: "Adif Aviso Ferroviario #AV-012-0610",
+        evidenceAttachmentUrl: "/evidence/adif-rail-switch-log.pdf",
         approved: true,
       },
     ],
     milestones: [
-      { id: "m301", code: "VD", eventDescription: "Discharged at Terminal BEST Port de Barcelona", timestamp: "2026-09-26T12:00:00Z", locationCode: "ESBCN", locationName: "Terminal BEST", verified: true },
-      { id: "m302", code: "AL", eventDescription: "Container Available for Rail Shuttle Dispatch", timestamp: "2026-09-27T08:30:00Z", locationCode: "ESBCN", locationName: "Terminal BEST", verified: true },
-      { id: "m303", code: "CO", eventDescription: "AEAT Circuito Rojo Inspection Cleared", timestamp: "2026-10-05T17:00:00Z", locationCode: "ESBCN", locationName: "Recinto Aduanero BCN", verified: true },
-      { id: "m304", code: "OA", eventDescription: "Ingate to Can Tunis Rail Siding (Book TEST01)", timestamp: "2026-10-10T15:30:00Z", locationCode: "ESBCN", locationName: "Can Tunis Logistainer", verified: true },
+      {
+        id: "m301",
+        code: "VD",
+        eventDescription: "Discharged at Terminal BEST Port de Barcelona",
+        timestamp: "2026-09-26T12:00:00Z",
+        locationCode: "ESBCN",
+        locationName: "Terminal BEST",
+        verified: true,
+      },
+      {
+        id: "m302",
+        code: "AL",
+        eventDescription: "Container Available for Rail Shuttle Dispatch",
+        timestamp: "2026-09-27T08:30:00Z",
+        locationCode: "ESBCN",
+        locationName: "Terminal BEST",
+        verified: true,
+      },
+      {
+        id: "m303",
+        code: "CO",
+        eventDescription: "AEAT Circuito Rojo Inspection Cleared",
+        timestamp: "2026-10-05T17:00:00Z",
+        locationCode: "ESBCN",
+        locationName: "Recinto Aduanero BCN",
+        verified: true,
+      },
+      {
+        id: "m304",
+        code: "OA",
+        eventDescription: "Ingate to Intermodal Rail Siding (Book TEST01)",
+        timestamp: "2026-10-10T15:30:00Z",
+        locationCode: "ESBCN",
+        locationName: "Barcelona Intermodal Hub",
+        verified: true,
+      },
     ],
   },
 ];

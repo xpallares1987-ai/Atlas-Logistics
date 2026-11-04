@@ -64,10 +64,12 @@ export default function OmnichannelNotificationsModule() {
     "GATE_OUT_TIMESTAMP" | "YARD_DELAY" | "FUEL_RECEIPT" | "POD_SUBMISSION"
   >("YARD_DELAY");
   const [driverDetails, setDriverDetails] = useState(
-    "Saturación en muelle de espera Can Tunis. Retraso estimado de 45 minutos.",
+    "Saturación en muelle de espera de terminal intermodal. Retraso estimado de 45 minutos.",
   );
   const [driverAmount, setDriverAmount] = useState<number | undefined>(45);
-  const [driverLocation, setDriverLocation] = useState("Can Tunis (Barcelona)");
+  const [driverLocation, setDriverLocation] = useState(
+    "Barcelona Intermodal Hub",
+  );
 
   // New Dispatch Order Modal State
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
@@ -75,10 +77,10 @@ export default function OmnichannelNotificationsModule() {
   const [orderChatId, setOrderChatId] = useState("@driver_juan_scm");
   const [orderTruckId, setOrderTruckId] = useState("TRK-4821-LXZ");
   const [orderPickup, setOrderPickup] = useState(
-    "Can Tunis Logistainer (Barcelona)",
+    "Barcelona Rail Terminal (ZAL)",
   );
   const [orderDelivery, setOrderDelivery] = useState(
-    "Barcelona Logistics Hub (TLSA)",
+    "Barcelona Logistics Hub (ZAL Prat)",
   );
   const [orderCargo, setOrderCargo] = useState(
     "1x 40ft HC Bobinas Papel Kraft (24,800 kg)",

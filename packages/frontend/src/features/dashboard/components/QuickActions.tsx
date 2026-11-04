@@ -2,8 +2,10 @@ import { Plus, Search, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { useDashboardStore } from "../store";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export function QuickActions() {
+  const navigate = useNavigate();
   const { setDateRange, clearDateRange } = useDashboardStore();
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -61,7 +63,9 @@ export function QuickActions() {
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+        onClick={() => navigate("/shipment-360")}
+        title="Search shipments (Shipment 360)"
+        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
       >
         <Search className="w-5 h-5" />
       </motion.button>
@@ -69,7 +73,9 @@ export function QuickActions() {
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-emerald-500 text-white font-medium shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 border border-white/10 flex items-center gap-2 transition-all"
+        onClick={() => navigate("/bookings")}
+        title="Create a new freight booking"
+        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-emerald-500 text-white font-medium shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 border border-white/10 flex items-center gap-2 transition-all cursor-pointer"
       >
         <Plus className="w-5 h-5" />
         New Shipment

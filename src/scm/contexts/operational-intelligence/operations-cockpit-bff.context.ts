@@ -1148,11 +1148,29 @@ export async function getShipment360View(
   await ensureOperationalBffTables();
   registerOperationalBffSubscribers();
 
-  const rows = await db
+  let rows = await db
     .select()
     .from(scmOperationalShipment360ViewsV2)
     .where(eq(scmOperationalShipment360ViewsV2.shipmentId, shipmentId))
     .limit(1);
+
+  if (rows.length === 0) {
+    rows = await db
+      .select()
+      .from(scmOperationalShipment360ViewsV2)
+      .where(eq(scmOperationalShipment360ViewsV2.shipmentReference, shipmentId))
+      .limit(1);
+  }
+
+  if (rows.length === 0 && !shipmentId.startsWith("shp_")) {
+    rows = await db
+      .select()
+      .from(scmOperationalShipment360ViewsV2)
+      .where(
+        eq(scmOperationalShipment360ViewsV2.shipmentId, `shp_${shipmentId}`),
+      )
+      .limit(1);
+  }
 
   if (rows.length > 0) {
     return JSON.parse(rows[0].viewJson) as OperationalShipment360View;
