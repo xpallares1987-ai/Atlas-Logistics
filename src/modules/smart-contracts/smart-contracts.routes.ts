@@ -163,7 +163,11 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
           scenarioId: contract.id,
           title: contract.title,
           description: contract.description,
-          ebl: parsedEbl,
+          ebl: {
+            ...parsedEbl,
+            endorsements:
+              parsedEbl?.endorsements || parsedEbl?.endorsementChain || [],
+          },
           escrow: {
             contractId: contract.id,
             eblNumber: parsedEbl.eblNumber || "BL-ATLS-2026-67116",

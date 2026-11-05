@@ -70,6 +70,12 @@ export default function SystemPanelModule() {
       cbamDeclarations: number;
     };
     phase3: { invoices: number; tradeCreditInstruments: number };
+    phase4?: {
+      cartaPorteDeclarations: number;
+      efirmaAuditStamps: number;
+      smartEscrowContracts: number;
+      erpPurchaseOrders: number;
+    };
   } | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -105,7 +111,7 @@ export default function SystemPanelModule() {
     }
   };
 
-  const triggerSeed = async (phase: "1" | "2" | "3" | "all") => {
+  const triggerSeed = async (phase: "1" | "2" | "3" | "4" | "all") => {
     setIsSeeding(true);
     setActiveSeedingPhase(phase);
     setSeedResult(null);
@@ -258,7 +264,7 @@ export default function SystemPanelModule() {
           <Database size={15} />
           <span>Database & Seeds</span>
           <span className="text-[10px] px-1.5 py-0.2 bg-cyan-950 text-cyan-400 border border-cyan-800/40 rounded-full font-bold">
-            3 Phases
+            4 Phases
           </span>
         </button>
 
@@ -619,7 +625,7 @@ export default function SystemPanelModule() {
           )}
 
           {/* Live Database Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
             {/* Phase 1 Overview */}
             <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4 shadow-xl">
               <div className="flex items-center justify-between">
@@ -807,6 +813,79 @@ export default function SystemPanelModule() {
                   <Sparkles size={14} className="mr-1.5" />
                 )}
                 Inject Phase 3
+              </Button>
+            </div>
+
+            {/* Phase 4 Overview */}
+            <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                    <Network size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                      Phase 4: Customs & ERP
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      USMCA, e-Firma, DLT & ERP
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                  Transborder
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 py-3 border-y border-slate-800/80 text-center">
+                <div>
+                  <div className="text-xl font-black text-rose-400">
+                    {seedStatus?.phase4?.cartaPorteDeclarations ?? "—"}
+                  </div>
+                  <div className="text-[10px] text-slate-400 uppercase font-medium">
+                    Carta Porte
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-emerald-400">
+                    {seedStatus?.phase4?.efirmaAuditStamps ?? "—"}
+                  </div>
+                  <div className="text-[10px] text-slate-400 uppercase font-medium">
+                    e-Firma
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-cyan-400">
+                    {seedStatus?.phase4?.smartEscrowContracts ?? "—"}
+                  </div>
+                  <div className="text-[10px] text-slate-400 uppercase font-medium">
+                    MLETR DLT
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-amber-400">
+                    {seedStatus?.phase4?.erpPurchaseOrders ?? "—"}
+                  </div>
+                  <div className="text-[10px] text-slate-400 uppercase font-medium">
+                    ERP Orders
+                  </div>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed min-h-[48px]">
+                Carta Porte 3.1 CFDI stamping, RFC 3161 audit logs, UNCITRAL
+                MLETR e-BL escrow ledger, and SAP S/4HANA & NetSuite order sync.
+              </p>
+              <Button
+                size="sm"
+                onClick={() => triggerSeed("4")}
+                disabled={!isAdmin || isSeeding}
+                className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all"
+              >
+                {isSeeding && activeSeedingPhase === "4" ? (
+                  <RefreshCw size={14} className="animate-spin mr-1.5" />
+                ) : (
+                  <Sparkles size={14} className="mr-1.5" />
+                )}
+                Inject Phase 4
               </Button>
             </div>
           </div>

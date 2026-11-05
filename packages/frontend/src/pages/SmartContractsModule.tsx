@@ -800,15 +800,16 @@ export default function SmartContractsModule() {
             {/* Endorsement History */}
             <div className="space-y-2 mb-4">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Historial de Endosos Criptográficos ({ebl.endorsements.length})
+                Historial de Endosos Criptográficos (
+                {(ebl.endorsements || []).length})
               </span>
-              {ebl.endorsements.length === 0 ? (
+              {(ebl.endorsements || []).length === 0 ? (
                 <p className="text-xs text-slate-500 italic p-2 rounded bg-slate-950/20">
                   No se han registrado endosos. El título permanece con el
                   emisor original.
                 </p>
               ) : (
-                ebl.endorsements.map((end, idx) => (
+                (ebl.endorsements || []).map((end, idx) => (
                   <div
                     key={end.endorsementId || idx}
                     className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 text-xs space-y-1"

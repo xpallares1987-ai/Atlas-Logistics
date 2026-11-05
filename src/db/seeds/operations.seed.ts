@@ -24,14 +24,17 @@ export async function seedOperations(ctx: CoreSeedContext): Promise<string[]> {
     // Rate
     const rateId = faker.string.uuid();
     rateIds.push(rateId);
-    await db.insert(schema.rates).values({
-      id: rateId,
-      carrierId,
-      laneId,
-      containerType: faker.helpers.arrayElement(["20DC", "40HC", "40NOR"]),
-      baseRate: faker.number.int({ min: 800, max: 4500 }),
-      transitDays: faker.number.int({ min: 10, max: 45 }),
-    });
+    await db
+      .insert(schema.rates)
+      .values({
+        id: rateId,
+        carrierId,
+        laneId,
+        containerType: faker.helpers.arrayElement(["20DC", "40HC", "40NOR"]),
+        baseRate: faker.number.int({ min: 800, max: 4500 }),
+        transitDays: faker.number.int({ min: 10, max: 45 }),
+      })
+      .onConflictDoNothing();
 
     // Schedule
     for (let i = 0; i < 3; i++) {
@@ -43,15 +46,18 @@ export async function seedOperations(ctx: CoreSeedContext): Promise<string[]> {
         arrival.getDate() + faker.number.int({ min: 10, max: 45 }),
       );
 
-      await db.insert(schema.schedules).values({
-        id: schedId,
-        laneId,
-        carrierId,
-        vesselName: "MV " + faker.person.lastName().toUpperCase(),
-        voyageNumber: faker.string.alphanumeric(6).toUpperCase(),
-        departureDate: departure,
-        arrivalDate: arrival,
-      });
+      await db
+        .insert(schema.schedules)
+        .values({
+          id: schedId,
+          laneId,
+          carrierId,
+          vesselName: "MV " + faker.person.lastName().toUpperCase(),
+          voyageNumber: faker.string.alphanumeric(6).toUpperCase(),
+          departureDate: departure,
+          arrivalDate: arrival,
+        })
+        .onConflictDoNothing();
     }
   }
   console.log(
@@ -226,28 +232,31 @@ export async function seedOperations(ctx: CoreSeedContext): Promise<string[]> {
       ((corridor.distanceKm * weight * 0.015) / 1000000).toFixed(2),
     );
 
-    await db.insert(schema.shipments).values({
-      id,
-      trackingNumber,
-      status,
-      incoterm: faker.helpers.arrayElement(incoterms),
-      serviceType: faker.helpers.arrayElement(["FCL", "LCL"]),
-      laneId: faker.helpers.arrayElement(laneIds),
-      scheduleId: faker.helpers.arrayElement(scheduleIds),
-      vesselName,
-      voyageNumber,
-      origin: corridor.origin,
-      destination: corridor.destination,
-      distanceKm: corridor.distanceKm,
-      weight,
-      co2eTonnes,
-      carbonFootprint: co2eTonnes,
-      currentLat,
-      currentLng,
-      clearanceStatus,
-      companyId,
-      createdBy: faker.helpers.arrayElement(userIds),
-    });
+    await db
+      .insert(schema.shipments)
+      .values({
+        id,
+        trackingNumber,
+        status,
+        incoterm: faker.helpers.arrayElement(incoterms),
+        serviceType: faker.helpers.arrayElement(["FCL", "LCL"]),
+        laneId: faker.helpers.arrayElement(laneIds),
+        scheduleId: faker.helpers.arrayElement(scheduleIds),
+        vesselName,
+        voyageNumber,
+        origin: corridor.origin,
+        destination: corridor.destination,
+        distanceKm: corridor.distanceKm,
+        weight,
+        co2eTonnes,
+        carbonFootprint: co2eTonnes,
+        currentLat,
+        currentLng,
+        clearanceStatus,
+        companyId,
+        createdBy: faker.helpers.arrayElement(userIds),
+      })
+      .onConflictDoNothing();
 
     // Route Segments (Legs)
     const departureNow = new Date();
@@ -264,37 +273,46 @@ export async function seedOperations(ctx: CoreSeedContext): Promise<string[]> {
     finalArrival.setDate(finalArrival.getDate() + 2);
 
     // Leg 1: Origin Drayage (ROAD)
-    await db.insert(schema.routeSegments).values({
-      id: faker.string.uuid(),
-      shipmentId: id,
-      sequenceOrder: 1,
-      transportMode: "ROAD",
-      departureTime: departureNow,
-      arrivalTime: new Date(departureNow.getTime() + 12 * 3600 * 1000),
-      status: "COMPLETED",
-    });
+    await db
+      .insert(schema.routeSegments)
+      .values({
+        id: faker.string.uuid(),
+        shipmentId: id,
+        sequenceOrder: 1,
+        transportMode: "ROAD",
+        departureTime: departureNow,
+        arrivalTime: new Date(departureNow.getTime() + 12 * 3600 * 1000),
+        status: "COMPLETED",
+      })
+      .onConflictDoNothing();
 
     // Leg 2: Ocean Linehaul (SEA)
-    await db.insert(schema.routeSegments).values({
-      id: faker.string.uuid(),
-      shipmentId: id,
-      sequenceOrder: 2,
-      transportMode: "SEA",
-      departureTime: new Date(departureNow.getTime() + 24 * 3600 * 1000),
-      arrivalTime: seaArrival,
-      status: status === "IN_TRANSIT" ? "IN_TRANSIT" : "COMPLETED",
-    });
+    await db
+      .insert(schema.routeSegments)
+      .values({
+        id: faker.string.uuid(),
+        shipmentId: id,
+        sequenceOrder: 2,
+        transportMode: "SEA",
+        departureTime: new Date(departureNow.getTime() + 24 * 3600 * 1000),
+        arrivalTime: seaArrival,
+        status: status === "IN_TRANSIT" ? "IN_TRANSIT" : "COMPLETED",
+      })
+      .onConflictDoNothing();
 
     // Leg 3: Destination Inland Delivery (ROAD / RAIL)
-    await db.insert(schema.routeSegments).values({
-      id: faker.string.uuid(),
-      shipmentId: id,
-      sequenceOrder: 3,
-      transportMode: corridor.origin.includes("MXMTY") ? "RAIL" : "ROAD",
-      departureTime: seaArrival,
-      arrivalTime: finalArrival,
-      status: status === "DELIVERED" ? "COMPLETED" : "PENDING",
-    });
+    await db
+      .insert(schema.routeSegments)
+      .values({
+        id: faker.string.uuid(),
+        shipmentId: id,
+        sequenceOrder: 3,
+        transportMode: corridor.origin.includes("MXMTY") ? "RAIL" : "ROAD",
+        departureTime: seaArrival,
+        arrivalTime: finalArrival,
+        status: status === "DELIVERED" ? "COMPLETED" : "PENDING",
+      })
+      .onConflictDoNothing();
 
     // Containers (1 to 3 containers per shipment)
     const numContainers = faker.number.int({ min: 1, max: 3 });
@@ -314,51 +332,57 @@ export async function seedOperations(ctx: CoreSeedContext): Promise<string[]> {
           ? "ISO-17712-H-881920"
           : `SL-${faker.string.numeric(6)}`;
 
-      await db.insert(schema.shipmentContainers).values({
-        id: containerId,
-        shipmentId: id,
-        containerNumber,
-        containerType,
-        sealNumber,
-        weight: Math.round(weight / numContainers),
-      });
+      await db
+        .insert(schema.shipmentContainers)
+        .values({
+          id: containerId,
+          shipmentId: id,
+          containerNumber,
+          containerType,
+          sealNumber,
+          weight: Math.round(weight / numContainers),
+        })
+        .onConflictDoNothing();
 
       // Cargo Items (LCL Loadout) for the first container
       if (j === 0 && Math.random() > 0.4) {
         for (let k = 0; k < faker.number.int({ min: 3, max: 6 }); k++) {
-          await db.insert(schema.cargoItems).values({
-            id: faker.string.uuid(),
-            shipmentId: id,
-            containerId,
-            label: `ORD-${faker.string.numeric(4)}`,
-            color: faker.helpers.arrayElement([
-              "#4ade80",
-              "#f43f5e",
-              "#60a5fa",
-              "#fbbf24",
-              "#a78bfa",
-              "#06b6d4",
-            ]),
-            width: faker.number.float({
-              min: 0.8,
-              max: 1.6,
-              fractionDigits: 1,
-            }),
-            height: faker.number.float({
-              min: 0.8,
-              max: 1.6,
-              fractionDigits: 1,
-            }),
-            depth: faker.number.float({
-              min: 0.8,
-              max: 1.6,
-              fractionDigits: 1,
-            }),
-            weight: faker.number.int({ min: 250, max: 1800 }),
-            x: faker.number.float({ min: -1, max: 1, fractionDigits: 2 }),
-            y: faker.number.float({ min: 0, max: 2, fractionDigits: 2 }),
-            z: faker.number.float({ min: -5, max: 5, fractionDigits: 2 }),
-          });
+          await db
+            .insert(schema.cargoItems)
+            .values({
+              id: faker.string.uuid(),
+              shipmentId: id,
+              containerId,
+              label: `ORD-${faker.string.numeric(4)}`,
+              color: faker.helpers.arrayElement([
+                "#4ade80",
+                "#f43f5e",
+                "#60a5fa",
+                "#fbbf24",
+                "#a78bfa",
+                "#06b6d4",
+              ]),
+              width: faker.number.float({
+                min: 0.8,
+                max: 1.6,
+                fractionDigits: 1,
+              }),
+              height: faker.number.float({
+                min: 0.8,
+                max: 1.6,
+                fractionDigits: 1,
+              }),
+              depth: faker.number.float({
+                min: 0.8,
+                max: 1.6,
+                fractionDigits: 1,
+              }),
+              weight: faker.number.int({ min: 250, max: 1800 }),
+              x: faker.number.float({ min: -1, max: 1, fractionDigits: 2 }),
+              y: faker.number.float({ min: 0, max: 2, fractionDigits: 2 }),
+              z: faker.number.float({ min: -5, max: 5, fractionDigits: 2 }),
+            })
+            .onConflictDoNothing();
         }
       }
     }
@@ -462,28 +486,31 @@ export async function seedOperations(ctx: CoreSeedContext): Promise<string[]> {
         box54_placeDate: `Aduanas, ${new Date().toLocaleDateString("es-ES")}`,
       });
 
-      await db.insert(schema.customsDeclarations).values({
-        id: faker.string.uuid(),
-        shipmentId: id,
-        brokerId: faker.helpers.arrayElement(brokerIds),
-        hsCodeId: hsId,
-        blNumber,
-        duaNumber,
-        type: "Import",
-        customsValue,
-        dutiesAmount: duty,
-        taxesAmount: vat,
-        totalPayable,
-        status: channelStatus,
-        riskScore,
-        riskFlags: JSON.stringify(triggeredRules),
-        eoriNumber: "ESB" + faker.string.numeric(8),
-        originCountry: origin,
-        destinationCountry: "ES",
-        duaData: sampleDuaData,
-        aiRiskScore: riskScore,
-        aiRiskFlag: triggeredRules.join(" | "),
-      });
+      await db
+        .insert(schema.customsDeclarations)
+        .values({
+          id: faker.string.uuid(),
+          shipmentId: id,
+          brokerId: faker.helpers.arrayElement(brokerIds),
+          hsCodeId: hsId,
+          blNumber,
+          duaNumber,
+          type: "Import",
+          customsValue,
+          dutiesAmount: duty,
+          taxesAmount: vat,
+          totalPayable,
+          status: channelStatus,
+          riskScore,
+          riskFlags: JSON.stringify(triggeredRules),
+          eoriNumber: "ESB" + faker.string.numeric(8),
+          originCountry: origin,
+          destinationCountry: "ES",
+          duaData: sampleDuaData,
+          aiRiskScore: riskScore,
+          aiRiskFlag: triggeredRules.join(" | "),
+        })
+        .onConflictDoNothing();
     }
   }
 

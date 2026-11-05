@@ -33,6 +33,14 @@ export async function seedSmartContracts(): Promise<void> {
       containerNumber: "MSKU9284712",
       issueDate: "2026-11-01T10:00:00Z",
       status: "ISSUED",
+      endorsements: [
+        {
+          fromParty: "MSC Mediterranean Shipping Company",
+          toParty: "Iberia Global Exports S.L.",
+          timestamp: "2026-11-01T10:00:00Z",
+          transferType: "SPECIAL_ENDORSEMENT",
+        },
+      ],
       endorsementChain: [
         {
           fromParty: "MSC Mediterranean Shipping Company",
