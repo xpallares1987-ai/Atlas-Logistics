@@ -32,6 +32,10 @@ export * from "./documents.seed.js";
 export * from "./control_tower.seed.js";
 export * from "./addresses.seed.js";
 export * from "./drayage.seed.js";
+export * from "./cross-border.seed.js";
+export * from "./efirma.seed.js";
+export * from "./smart-contracts.seed.js";
+export * from "./erp.seed.js";
 
 import { seedTriggers } from "./triggers.seed.js";
 import { seedCore } from "./core.seed.js";
@@ -62,6 +66,10 @@ import { seedDocuments } from "./documents.seed.js";
 import { seedControlTower } from "./control_tower.seed.js";
 import { seedAddressesAndBookings } from "./addresses.seed.js";
 import { seedDrayageOrders } from "./drayage.seed.js";
+import { seedCrossBorder } from "./cross-border.seed.js";
+import { seedEFirma } from "./efirma.seed.js";
+import { seedSmartContracts } from "./smart-contracts.seed.js";
+import { seedErp } from "./erp.seed.js";
 import { db } from "../index.js";
 import * as schema from "../schema/index.js";
 
@@ -186,13 +194,30 @@ export async function seedPhase3(ctx?: Partial<SeedContext>): Promise<void> {
 }
 
 /**
- * Master Runner: Executes all 3 phases sequentially.
+ * Phase 4: Cross-Border USMCA, e-Firma SAT, Smart Contracts MLETR & ERP Integrations
+ */
+export async function seedPhase4(ctx?: Partial<SeedContext>): Promise<void> {
+  console.log(
+    "🌐 [PHASE 4] Inyectando Carta Porte 3.1, e.Firma SAT, Smart Contracts MLETR y ERP...",
+  );
+  await seedCrossBorder();
+  await seedEFirma();
+  await seedSmartContracts();
+  await seedErp();
+  console.log(
+    "✅ [PHASE 4] Transfronterizo, Blockchain & ERP completadas con éxito.",
+  );
+}
+
+/**
+ * Master Runner: Executes all 4 phases sequentially.
  */
 export async function runAllSeeds(): Promise<void> {
   const p1 = await seedPhase1();
   await seedPhase2();
   await seedPhase3(p1);
+  await seedPhase4(p1);
   console.log(
-    "✨ Las 3 Fases de Datos Enterprise han sido inyectadas exitosamente.",
+    "✨ Las 4 Fases de Datos Enterprise han sido inyectadas exitosamente.",
   );
 }

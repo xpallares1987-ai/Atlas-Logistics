@@ -4,6 +4,7 @@ import {
   seedPhase1,
   seedPhase2,
   seedPhase3,
+  seedPhase4,
   runAllSeeds,
 } from "./seeds/index.js";
 import { logger } from "../config/logger.js";
@@ -27,6 +28,9 @@ async function main() {
         break;
       case "3":
         await seedPhase3();
+        break;
+      case "4":
+        await seedPhase4();
         break;
       case "all":
       default:

@@ -6,6 +6,7 @@ import {
   seedPhase1,
   seedPhase2,
   seedPhase3,
+  seedPhase4,
   runAllSeeds,
 } from "../db/seeds/index.js";
 import { logger } from "../config/logger.js";
@@ -58,6 +59,18 @@ const adminSeedRoutes: FastifyPluginAsync = async (fastify) => {
       const [tradeFinanceRow] = await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.tradeCreditInstruments);
+      const [cartaPorteRow] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.cartaPorteDeclarations);
+      const [efirmaRow] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.efirmaAuditStamps);
+      const [escrowRow] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.smartEscrowContracts);
+      const [erpOrdersRow] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.erpPurchaseOrders);
 
       return reply.send({
         success: true,
@@ -76,6 +89,12 @@ const adminSeedRoutes: FastifyPluginAsync = async (fastify) => {
           phase3: {
             invoices: invoicesRow?.count ?? 0,
             tradeCreditInstruments: tradeFinanceRow?.count ?? 0,
+          },
+          phase4: {
+            cartaPorteDeclarations: cartaPorteRow?.count ?? 0,
+            efirmaAuditStamps: efirmaRow?.count ?? 0,
+            smartEscrowContracts: escrowRow?.count ?? 0,
+            erpPurchaseOrders: erpOrdersRow?.count ?? 0,
           },
         },
       });
@@ -111,15 +130,20 @@ const adminSeedRoutes: FastifyPluginAsync = async (fastify) => {
           resultMessage =
             "Fase 3 (Facturación AR/AP, Créditos UCP 600 & Bóveda) inyectada con éxito.";
           break;
+        case "4":
+          await seedPhase4();
+          resultMessage =
+            "Fase 4 (Aduanas USMCA / Carta Porte, e.Firma SAT, Smart Contracts MLETR & ERP) inyectada con éxito.";
+          break;
         case "all":
           await runAllSeeds();
           resultMessage =
-            "Todas las fases (Fases 1, 2 y 3) inyectadas con éxito.";
+            "Todas las fases (Fases 1, 2, 3 y 4) inyectadas con éxito.";
           break;
         default:
           return reply.status(400).send({
             success: false,
-            error: `Fase desconocida: '${phase}'. Valores admitidos: 1, 2, 3, all`,
+            error: `Fase desconocida: '${phase}'. Valores admitidos: 1, 2, 3, 4, all`,
           });
       }
 
