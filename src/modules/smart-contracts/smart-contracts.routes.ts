@@ -97,17 +97,88 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
         }));
 
         const chainVerification = verifyChainIntegrity(formattedLedger);
+        const parsedMilestones = JSON.parse(contract.milestonesDataJson);
+        const parsedEbl = JSON.parse(contract.eblDataJson);
+        const conditions = Array.isArray(parsedMilestones?.conditions)
+          ? parsedMilestones.conditions
+          : [
+              {
+                milestoneKey: "EBL_ISSUED" as const,
+                description:
+                  parsedMilestones?.EBL_ISSUED?.title ||
+                  "Emisión y registro del e-BL en el Ledger DLT MLETR",
+                isCompleted: !!parsedMilestones?.EBL_ISSUED?.completed,
+                completedAt: parsedMilestones?.EBL_ISSUED?.completedAt,
+                verificationSource: "Carrier Signing Authority",
+              },
+              {
+                milestoneKey: "VESSEL_DEPARTED" as const,
+                description:
+                  parsedMilestones?.VESSEL_DEPARTED?.title ||
+                  "Zarpada de buque confirmada por telemetría AIS portuaria",
+                isCompleted: !!parsedMilestones?.VESSEL_DEPARTED?.completed,
+                completedAt: parsedMilestones?.VESSEL_DEPARTED?.completedAt,
+                verificationSource: "DCSA Port Authority Oracle",
+              },
+              {
+                milestoneKey: "SEAL_VERIFIED" as const,
+                description:
+                  parsedMilestones?.SEAL_VERIFIED?.title ||
+                  "Inspección de precinto ISO 17712 intacto sin alertas de violación",
+                isCompleted: !!parsedMilestones?.SEAL_VERIFIED?.completed,
+                completedAt: parsedMilestones?.SEAL_VERIFIED?.completedAt,
+                verificationSource: "IoT Telemetry Smart Gateway",
+              },
+              {
+                milestoneKey: "CUSTOMS_CLEARED" as const,
+                description:
+                  parsedMilestones?.CUSTOMS_CLEARED?.title ||
+                  "Despacho Aduanero con Certificado Pre-Despacho",
+                isCompleted: !!parsedMilestones?.CUSTOMS_CLEARED?.completed,
+                completedAt: parsedMilestones?.CUSTOMS_CLEARED?.completedAt,
+                verificationSource: "SAT Customs Node",
+              },
+              {
+                milestoneKey: "DISCHARGED_PORT" as const,
+                description:
+                  parsedMilestones?.DISCHARGED_PORT?.title ||
+                  "Descarga en terminal portuaria y confirmación de Gate-In / Gate-Out",
+                isCompleted: !!parsedMilestones?.DISCHARGED_PORT?.completed,
+                completedAt: parsedMilestones?.DISCHARGED_PORT?.completedAt,
+                verificationSource: "Terminal Operating System (TOS)",
+              },
+              {
+                milestoneKey: "PROOF_OF_DELIVERY" as const,
+                description:
+                  parsedMilestones?.PROOF_OF_DELIVERY?.title ||
+                  "Prueba de entrega (POD) firmada criptográficamente por consignatario",
+                isCompleted: !!parsedMilestones?.PROOF_OF_DELIVERY?.completed,
+                completedAt: parsedMilestones?.PROOF_OF_DELIVERY?.completedAt,
+                verificationSource: "Consignee Digital e-CMR",
+              },
+            ];
+
         return {
           success: true,
           scenarioId: contract.id,
           title: contract.title,
           description: contract.description,
-          ebl: JSON.parse(contract.eblDataJson),
+          ebl: parsedEbl,
           escrow: {
-            ...JSON.parse(contract.milestonesDataJson),
             contractId: contract.id,
+            eblNumber: parsedEbl.eblNumber || "BL-ATLS-2026-67116",
             totalAmountUsd: contract.escrowAmountEur,
-            status: contract.escrowStatus,
+            currency: "EUR",
+            payerName: contract.consigneeName,
+            beneficiaryName: contract.shipperName,
+            escrowBankOrVault: "Atlas Vault Smart Escrow Node (Multi-Sig 2/3)",
+            fundedAt: new Date(contract.createdAt).toISOString(),
+            status: contract.escrowStatus as any,
+            conditions,
+            releasedAmountUsd:
+              (conditions.filter((c: any) => c.isCompleted).length *
+                contract.escrowAmountEur) /
+              conditions.length,
             disputeReason: contract.disputeReason,
           },
           ledger: formattedLedger,

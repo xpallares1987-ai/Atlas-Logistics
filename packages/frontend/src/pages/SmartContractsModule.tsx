@@ -17,6 +17,8 @@ import {
   Sparkles,
   Download,
   Search,
+  Database,
+  Zap,
 } from "lucide-react";
 import { Button, Input } from "@atlas/ui";
 import {
@@ -24,6 +26,7 @@ import {
   useApiMutation,
   useQueryClient,
 } from "../hooks/useApiQuery";
+import { useShipments } from "../hooks/useShipments";
 import type {
   BlockchainBlock,
   DigitalBillOfLadingMLETR,
@@ -49,6 +52,14 @@ interface LedgerApiResponse {
 
 export default function SmartContractsModule() {
   const queryClient = useQueryClient();
+  const [selectedShipmentId, setSelectedShipmentId] =
+    useState<string>("sh_demo_01");
+
+  // Real Shipments from SQLite
+  const { data: shipments = [] } = useShipments();
+  const activeShipment =
+    shipments.find((s) => s.id === selectedShipmentId) || shipments[0];
+
   const [selectedBlock, setSelectedBlock] = useState<BlockchainBlock | null>(
     null,
   );
@@ -75,20 +86,26 @@ export default function SmartContractsModule() {
     message: string;
   } | null>(null);
 
-  // Queries
-  const { data: ledgerData, isLoading } = useApiQuery<LedgerApiResponse>(
-    ["smart-contracts-ledger"],
-    "/smart-contracts/ledger",
+  // Queries (bound to canonical shipmentId)
+  const {
+    data: ledgerData,
+    isLoading,
+    refetch: refetchLedger,
+  } = useApiQuery<LedgerApiResponse>(
+    ["smart-contracts-ledger", selectedShipmentId],
+    `/smart-contracts/ledger?shipmentId=${selectedShipmentId}`,
   );
 
-  // Mutations
-  const selectPresetMutation = useApiMutation<any, { scenarioId: string }>(
-    "/smart-contracts/select-preset",
+  // Direct Operational Deploy Action
+  const deployMutation = useApiMutation<any, { shipmentId: string }>(
+    "/smart-contracts/deploy-for-shipment",
     "POST",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["smart-contracts-ledger"] });
-        setVerificationFeedback(null);
+        queryClient.invalidateQueries({
+          queryKey: ["smart-contracts-ledger", selectedShipmentId],
+        });
+        refetchLedger();
       },
     },
   );
@@ -103,7 +120,10 @@ export default function SmartContractsModule() {
     }
   >("/smart-contracts/oracle-event", "POST", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["smart-contracts-ledger"] });
+      queryClient.invalidateQueries({
+        queryKey: ["smart-contracts-ledger", selectedShipmentId],
+      });
+      refetchLedger();
     },
   });
 
@@ -112,7 +132,10 @@ export default function SmartContractsModule() {
     { toParty: string; transferType: string; signerName?: string }
   >("/smart-contracts/endorse-title", "POST", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["smart-contracts-ledger"] });
+      queryClient.invalidateQueries({
+        queryKey: ["smart-contracts-ledger", selectedShipmentId],
+      });
+      refetchLedger();
       setIsEndorseModalOpen(false);
       setEndorseToParty("");
       setEndorseSigner("");
@@ -124,7 +147,10 @@ export default function SmartContractsModule() {
     "POST",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["smart-contracts-ledger"] });
+        queryClient.invalidateQueries({
+          queryKey: ["smart-contracts-ledger", selectedShipmentId],
+        });
+        refetchLedger();
         setIsDisputeModalOpen(false);
         setDisputeReason("");
       },
@@ -179,12 +205,14 @@ export default function SmartContractsModule() {
   }
 
   const { ebl, escrow, ledger, chainVerification } = ledgerData;
-  const completedConditionsCount = escrow.conditions.filter(
+  const conditions = escrow?.conditions || [];
+  const completedConditionsCount = conditions.filter(
     (c) => c.isCompleted,
   ).length;
-  const progressPercent = Math.round(
-    (completedConditionsCount / escrow.conditions.length) * 100,
-  );
+  const progressPercent =
+    conditions.length > 0
+      ? Math.round((completedConditionsCount / conditions.length) * 100)
+      : 0;
 
   const filteredBlocks = ledger.filter((block) => {
     const matchesSearch =
@@ -333,65 +361,60 @@ export default function SmartContractsModule() {
         )}
       </AnimatePresence>
 
-      {/* 2. Preset Scenarios Switcher */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {[
-          {
-            id: "shanghai_valencia_full_success",
-            title: "1. Shanghai ➔ Valencia ($48,500 USD)",
-            subtitle: "Liquidación Automática Exitosa",
-            desc: "6 hitos cumplidos. Fondos transferidos automáticamente al exportador tras POD.",
-            badgeColor:
-              "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
-          },
-          {
-            id: "mletr_bank_endorsement",
-            title: "2. e-BL Negociable Bancario ($112,000 USD)",
-            subtitle: "Pignoración Carta de Crédito",
-            desc: "Título MLETR cedido a Banco Santander bajo UCP 600. Hitos intermedios listos para oráculo.",
-            badgeColor: "bg-sky-500/10 text-sky-400 border-sky-500/30",
-          },
-          {
-            id: "tampered_seal_dispute",
-            title: "3. Alerta Precinto & Disputa ($76,000 USD)",
-            subtitle: "Congelamiento Smart Escrow",
-            desc: "Discrepancia de peso (-1.8 t) y precinto vulnerado. Fondos congelados en garantía.",
-            badgeColor: "bg-rose-500/10 text-rose-400 border-rose-500/30",
-          },
-        ].map((preset) => {
-          const isActive = ledgerData.scenarioId === preset.id;
-          return (
-            <button
-              key={preset.id}
-              onClick={() =>
-                selectPresetMutation.mutate({ scenarioId: preset.id })
-              }
-              disabled={selectPresetMutation.isPending}
-              className={`p-4 rounded-xl border text-left transition-all ${
-                isActive
-                  ? "bg-slate-800/90 border-indigo-500 shadow-md shadow-indigo-500/10 ring-1 ring-indigo-500"
-                  : "bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-850"
-              }`}
+      {/* 2. Relational DLT Smart Contract Status & Deployment Banner */}
+      <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Database className="w-5 h-5 text-indigo-400 shrink-0" />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider block">
+                Contrato Inteligente MLETR & DLT Ledger (SQLite)
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                {escrow.status}
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                {ledger.length} Bloques DLT
+              </span>
+            </div>
+            <span className="text-sm text-slate-200 font-medium">
+              {activeShipment
+                ? `${activeShipment.id} — ${ledgerData.title}`
+                : ledgerData.title}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400">Embarque:</span>
+            <select
+              value={selectedShipmentId}
+              onChange={(e) => setSelectedShipmentId(e.target.value)}
+              className="bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-slate-200">
-                  {preset.title}
-                </span>
-                {isActive && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">
-                    ACTIVO
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-indigo-400 font-medium mb-1">
-                {preset.subtitle}
-              </p>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                {preset.desc}
-              </p>
-            </button>
-          );
-        })}
+              {shipments.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.id} ({s.origin} ➔ {s.destination})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() =>
+              deployMutation.mutate({ shipmentId: selectedShipmentId })
+            }
+            disabled={deployMutation.isPending}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            {deployMutation.isPending
+              ? "Desplegando..."
+              : "Desplegar Smart Escrow MLETR"}
+          </Button>
+        </div>
       </div>
 
       {/* 3. Main Workspace: Two Columns */}
@@ -488,7 +511,7 @@ export default function SmartContractsModule() {
                   Hitos Contractuales Verificados
                 </span>
                 <span className="text-emerald-400 font-bold">
-                  {completedConditionsCount} / {escrow.conditions.length} (
+                  {completedConditionsCount} / {conditions.length} (
                   {progressPercent}%)
                 </span>
               </div>
@@ -510,7 +533,7 @@ export default function SmartContractsModule() {
 
             {/* Conditions List */}
             <div className="space-y-2 mb-4">
-              {escrow.conditions.map((condition) => (
+              {conditions.map((condition) => (
                 <div
                   key={condition.milestoneKey}
                   className={`p-2.5 rounded-lg border flex items-center justify-between text-xs transition-colors ${
