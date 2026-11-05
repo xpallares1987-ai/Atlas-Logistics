@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ShieldCheck, Lock, CheckCircle2, ShieldAlert } from "lucide-react";
+import { ShieldCheck, Lock, CheckCircle2 } from "lucide-react";
 import { TRANSACTION_ENCRYPTION_ENABLED } from "../lib/api";
 
 export const SecurityStatusBadge: React.FC = () => {

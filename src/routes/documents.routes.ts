@@ -55,10 +55,15 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get("/", async (request, reply) => {
     try {
-      const query = request.query as { type?: string; status?: string };
+      const query = request.query as {
+        type?: string;
+        status?: string;
+        shipmentId?: string;
+      };
       const docs = await DocumentSignerService.listDocuments(
         query.type,
         query.status,
+        query.shipmentId,
       );
       return reply.send(docs);
     } catch (error: any) {
@@ -103,7 +108,9 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
       });
     } catch (error: any) {
       fastify.log.error(error);
-      return reply.status(500).send({ error: error.message || "Failed to generate document" });
+      return reply
+        .status(500)
+        .send({ error: error.message || "Failed to generate document" });
     }
   });
 
@@ -150,7 +157,9 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
       });
     } catch (error: any) {
       fastify.log.error(error);
-      return reply.status(404).send({ error: error.message || "Failed to sign document" });
+      return reply
+        .status(404)
+        .send({ error: error.message || "Failed to sign document" });
     }
   });
 
@@ -295,7 +304,11 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
           status: "EMITTED",
         });
 
-        return reply.send({ success: true, url: fileUrl, name: fileObj.filename });
+        return reply.send({
+          success: true,
+          url: fileUrl,
+          name: fileObj.filename,
+        });
       } catch (error: any) {
         return reply.code(500).send({ error: error.message });
       }
@@ -329,7 +342,10 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
       };
-      reply.header("Content-Type", mimeTypes[ext] || "application/octet-stream");
+      reply.header(
+        "Content-Type",
+        mimeTypes[ext] || "application/octet-stream",
+      );
       return reply.send(fileBuffer);
     } catch (error: any) {
       return reply.code(500).send({ error: error.message });

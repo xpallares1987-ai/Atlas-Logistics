@@ -6,7 +6,6 @@ import {
   Activity,
   CheckCircle2,
   RefreshCw,
-  Sparkles,
   ArrowLeftRight,
   Wifi,
   WifiOff,
@@ -35,7 +34,7 @@ export default function ErpIntegrationsModule() {
     "sap_automotive_tier1",
   );
   const [copiedResponse, setCopiedResponse] = useState(false);
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isOffline] = useState(!navigator.onLine);
   const [activeConsoleLog, setActiveConsoleLog] = useState<any>(null);
   const [queueItems, setQueueItems] = useState<ErpQueuedMutation[]>([]);
 

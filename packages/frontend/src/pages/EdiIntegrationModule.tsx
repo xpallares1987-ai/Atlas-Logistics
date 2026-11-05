@@ -23,6 +23,7 @@ import {
   PlusCircle,
   DollarSign,
   Scale,
+  Database,
 } from "lucide-react";
 import { Input, Button } from "@atlas/ui";
 import { authFetch } from "../lib/api";
@@ -43,17 +44,6 @@ const itemVariants: Variants = {
     transition: { type: "spring", stiffness: 300, damping: 24 },
   },
 };
-
-interface EdiSample {
-  id: string;
-  name: string;
-  standard: string;
-  messageType: string;
-  carrier: string;
-  bookingRef: string;
-  description: string;
-  payload: string;
-}
 
 interface InterchangeRecord {
   id: string;
@@ -164,7 +154,6 @@ export default function EdiIntegrationModule() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [parseResult, setParseResult] = useState<any>(null);
   const [processResult, setProcessResult] = useState<any>(null);
-  const [samples, setSamples] = useState<EdiSample[]>([]);
   const [selectedSegment, setSelectedSegment] = useState<any>(null);
 
   // Outbound Generator State
@@ -221,7 +210,6 @@ export default function EdiIntegrationModule() {
   useEffect(() => {
     fetchDcsaEvents();
     fetchDcsaSubscriptions();
-    fetchSamples();
     fetchInterchanges();
     fetchPartners();
     fetchScmShipments();
@@ -251,27 +239,16 @@ export default function EdiIntegrationModule() {
     }
   };
 
-  const fetchSamples = async () => {
-    try {
-      const res = await fetch("/api/edi/samples");
-      if (res.ok) {
-        const data = await res.json();
-        setSamples(data.data || []);
-        if (data.data && data.data.length > 0 && !ediInput) {
-          setEdiInput(data.data[0].payload);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load EDI samples", e);
-    }
-  };
-
   const fetchInterchanges = async () => {
     try {
       const res = await fetch("/api/edi/interchanges");
       if (res.ok) {
         const data = await res.json();
-        setInterchanges(data.data || []);
+        const list = data.data || [];
+        setInterchanges(list);
+        if (list.length > 0 && !ediInput) {
+          setEdiInput(list[0].rawPayload);
+        }
       }
     } catch (e) {
       console.error("Failed to load interchanges", e);
@@ -1436,35 +1413,47 @@ export default function EdiIntegrationModule() {
                 </div>
               </div>
 
-              {/* Sample Presets Buttons */}
+              {/* Database Interchange Selector */}
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Carga Rápida de Ejemplos Multimodales:
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  {samples.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => {
-                        setEdiInput(s.payload);
-                        setParseResult(null);
-                        setProcessResult(null);
-                      }}
-                      className="text-left p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-indigo-500/40 hover:bg-indigo-500/10 transition-all text-xs"
-                    >
-                      <div className="font-bold text-slate-200 truncate">
-                        {s.name}
-                      </div>
-                      <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                        <span className="font-mono text-indigo-400">
-                          {s.standard}
-                        </span>
-                        <span>•</span>
-                        <span>{s.carrier}</span>
-                      </div>
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Database className="w-3.5 h-3.5 text-indigo-400" />
+                    Cargar Transmisión desde Libro Mayor B2B (
+                    {interchanges.length}):
+                  </span>
+                  {interchanges.length > 0 && (
+                    <span className="text-[10px] text-emerald-400 font-mono">
+                      {interchanges.length} transmisiones registradas en BD
+                    </span>
+                  )}
                 </div>
+                <select
+                  aria-label="Cargar Transmisión desde Libro Mayor B2B"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500/60 transition-all cursor-pointer"
+                  defaultValue=""
+                  onChange={(e) => {
+                    const selected = interchanges.find(
+                      (item) => item.id === e.target.value,
+                    );
+                    if (selected && selected.rawPayload) {
+                      setEdiInput(selected.rawPayload);
+                      setParseResult(null);
+                      setProcessResult(null);
+                    }
+                  }}
+                >
+                  <option value="" disabled>
+                    -- Seleccionar intercambio real (Control # / Interlocutor /
+                    Estándar) --
+                  </option>
+                  {interchanges.map((ic) => (
+                    <option key={ic.id} value={ic.id}>
+                      [{ic.direction}] {ic.standard} • Control #
+                      {ic.controlNumber} • De: {ic.senderId} → A:{" "}
+                      {ic.receiverId} ({ic.status})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Textarea */}

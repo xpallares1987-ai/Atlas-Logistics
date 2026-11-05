@@ -410,19 +410,6 @@ export default function ContainerPlannerModule() {
     setOptResult(result);
   };
 
-  // Handler: Load Preset
-  const handleLoadPreset = (presetKey: string) => {
-    const preset = STOWAGE_DEMO_PRESETS[presetKey];
-    if (!preset) return;
-    setSelectedContainerKey(preset.containerType);
-    setCargoList(preset.items);
-    const container = EQUIPMENT_CATALOG[preset.containerType];
-    const result = optimizeStowage3D(container, preset.items, {
-      centerPayload: true,
-    });
-    setOptResult(result);
-  };
-
   // Handler: Add custom item
   const handleAddCargoItem = (e: React.FormEvent) => {
     e.preventDefault();
@@ -505,7 +492,11 @@ export default function ContainerPlannerModule() {
             <Button
               onClick={() => {
                 setCargoList([]);
-                setOptResult(null);
+                setOptResult(
+                  optimizeStowage3D(activeContainer, [], {
+                    centerPayload: true,
+                  }),
+                );
               }}
               variant="ghost"
               className="text-xs text-slate-400 hover:text-rose-400 border border-slate-800 rounded-xl px-3 py-1.5"

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Ship,
   Anchor,
@@ -45,9 +46,9 @@ import { authFetch } from "../lib/api";
 type TabKey = "RATE_LOCK" | "CUTOFF_RADAR" | "SI_STUDIO" | "EQUIPMENT_RELEASE";
 
 export default function BookingManagementModule() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>("RATE_LOCK");
-  const [selectedPresetId, setSelectedPresetId] =
-    useState<string>("bkg-transpac-01");
+  const [selectedPresetId] = useState<string>("bkg-transpac-01");
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedEdi, setCopiedEdi] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(882); // ~14m 42s
@@ -415,14 +416,6 @@ export default function BookingManagementModule() {
   const [allBookings, setAllBookings] = useState<OceanBooking[]>(
     OCEAN_BOOKING_PRESETS,
   );
-
-  const handleSelectPreset = (presetId: string) => {
-    setSelectedPresetId(presetId);
-    const found = OCEAN_BOOKING_PRESETS.find((p) => p.id === presetId);
-    if (found) {
-      setActiveBooking(found);
-    }
-  };
 
   // Multi-carrier spot rates list
   const rateLockQuotes = useMemo<RateLockQuote[]>(() => {

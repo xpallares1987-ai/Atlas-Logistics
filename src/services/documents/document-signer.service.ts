@@ -444,7 +444,11 @@ export class DocumentSignerService {
   /**
    * List documents from vault
    */
-  public static async listDocuments(type?: string, status?: string) {
+  public static async listDocuments(
+    type?: string,
+    status?: string,
+    shipmentId?: string,
+  ) {
     const query = db
       .select()
       .from(documents)
@@ -453,6 +457,14 @@ export class DocumentSignerService {
     return all.filter((d) => {
       if (type && type !== "ALL" && d.type !== type) return false;
       if (status && status !== "ALL" && d.status !== status) return false;
+      if (
+        shipmentId &&
+        shipmentId !== "ALL" &&
+        d.shipmentId !== shipmentId &&
+        (d.payloadData as any)?.shipmentId !== shipmentId
+      ) {
+        return false;
+      }
       return true;
     });
   }

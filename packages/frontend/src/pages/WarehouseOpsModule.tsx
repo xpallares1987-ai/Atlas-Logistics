@@ -14,8 +14,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { authFetch } from "../lib/api";
 
-const API_URL = import.meta.env.VITE_API_URL || "";
-
 const formatEta = (eta?: string) => {
   if (!eta) return "";
   const d = new Date(eta);

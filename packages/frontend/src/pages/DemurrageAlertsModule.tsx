@@ -20,6 +20,7 @@ import {
   XCircle,
   FileWarning,
   Building2,
+  Database,
 } from "lucide-react";
 import { Button } from "@atlas/ui";
 import {
@@ -326,26 +327,19 @@ export default function DemurrageAlertsModule() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <span className="text-xs text-slate-400 font-medium mr-1">
-              Escenario Regulatorio:
-            </span>
-            {DEMURRAGE_DISPUTE_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => handleSelectPreset(preset.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                  selectedPresetId === preset.id
-                    ? "bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-600/20"
-                    : "bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700"
-                }`}
-              >
-                {preset.id === "us_west_coast_la_lb"
-                  ? "🇺🇸 US West Coast (FMC § 541)"
-                  : preset.id === "eu_rotterdam_ect"
-                    ? "🇪🇺 Rotterdam ECT (Huelga)"
-                    : "🇪🇸 Barcelona Intermodal (Book TEST01)"}
-              </button>
-            ))}
+            <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-1.5 text-xs">
+              <Database className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-slate-400 font-medium">
+                Contenedor en Foco:
+              </span>
+              <span className="font-mono font-bold text-white">
+                {currentInvoice.containerNumber}
+              </span>
+              <span className="text-slate-500">•</span>
+              <span className="text-slate-300 text-[11px]">
+                {currentInvoice.pod} {currentInvoice.terminalName}
+              </span>
+            </div>
           </div>
         </div>
 

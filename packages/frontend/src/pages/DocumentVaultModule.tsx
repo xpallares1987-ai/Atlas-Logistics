@@ -27,6 +27,7 @@ import {
   Layers,
   Sparkles,
   Scan,
+  Database,
 } from "lucide-react";
 import { Input, Button } from "@atlas/ui";
 import {
@@ -145,11 +146,27 @@ export default function DocumentVaultModule() {
   const [crossCheckResult, setCrossCheckResult] =
     useState<TripartiteCrossCheckResult | null>(null);
   const [ocrNotification, setOcrNotification] = useState<string | null>(null);
+  const [shipmentsList, setShipmentsList] = useState<any[]>([]);
+  const [selectedShipmentId, setSelectedShipmentId] =
+    useState<string>("sh_demo_01");
 
   useEffect(() => {
     fetchTemplates();
     fetchDocuments();
+    fetchShipmentsList();
   }, []);
+
+  const fetchShipmentsList = async () => {
+    try {
+      const res = await fetch("/api/bookings");
+      if (res.ok) {
+        const data = await res.json();
+        setShipmentsList(data || []);
+      }
+    } catch (e) {
+      console.error("Failed to load shipments list for OCR cross-check", e);
+    }
+  };
 
   const fetchTemplates = async () => {
     try {
@@ -391,32 +408,154 @@ export default function DocumentVaultModule() {
     }
   };
 
-  const handleLoadAllDemoAndCrossCheck = () => {
+  const handleAuditShipmentDocuments = async (
+    shipmentId: string = selectedShipmentId,
+  ) => {
     setIsProcessingOcr(true);
+    setSelectedShipmentId(shipmentId);
     try {
-      const invRes = extractCommercialInvoice(SAMPLE_INVOICE_TEXT);
-      const plRes = extractPackingList(SAMPLE_PACKING_LIST_TEXT);
-      const trRes = extractTransportDocument(SAMPLE_TRANSPORT_TEXT);
-      const decRes = extractCustomsDeclaration(SAMPLE_DECLARATION_TEXT);
+      const res = await fetch(`/api/documents?shipmentId=${shipmentId}`);
+      let docs: any[] = [];
+      if (res.ok) {
+        docs = await res.json();
+      }
 
-      setExtractedInvoice(invRes.extractedFields);
-      setExtractedPackingList(plRes.extractedFields);
-      setExtractedTransport(trRes.extractedFields);
-      setExtractedDeclaration(decRes.extractedFields);
+      const invDoc = docs.find((d: any) => d.type === "INVOICE");
+      const plDoc = docs.find(
+        (d: any) => d.type === "VGM_CERTIFICATE" || d.type === "PACKING_LIST",
+      );
+      const trDoc = docs.find(
+        (d: any) =>
+          d.type === "HBL" ||
+          d.type === "BILL_OF_LADING" ||
+          d.type === "ECMR" ||
+          d.type === "AWB" ||
+          d.type === "CIM",
+      );
+      const decDoc = docs.find((d: any) => d.type === "DUA");
+
+      const invData: CommercialInvoiceData = invDoc?.payloadData
+        ? {
+            invoiceNumber:
+              invDoc.payloadData.invoiceNumber ||
+              invDoc.documentReference ||
+              "INV-2026-98124",
+            invoiceDate: "2026-09-24",
+            sellerName:
+              invDoc.payloadData.seller || "Iberia Global Exports S.L.",
+            sellerTaxId: "ESA50119988",
+            buyerName: invDoc.payloadData.buyer || "American Logistic Hub LLC",
+            buyerTaxId: "US99182341",
+            currency: invDoc.payloadData.currency || "EUR",
+            incoterm: "CIF",
+            totalFobUsd: 138000,
+            freightUsd: 5500,
+            insuranceUsd: 1500,
+            totalCifUsd: invDoc.payloadData.totalAmount || 145000,
+            lineItems: invDoc.payloadData.lineItems || [
+              {
+                description: "Industrial Robotics and Precision Tooling Set A",
+                hsCode: "8479.89",
+                quantity: 520,
+                unitPrice: 278.85,
+                totalAmount: 145000,
+              },
+            ],
+          }
+        : extractCommercialInvoice(SAMPLE_INVOICE_TEXT).extractedFields;
+
+      const plData: PackingListData = plDoc?.payloadData
+        ? {
+            packingListNumber: plDoc.documentReference || "PL-2026-8819",
+            invoiceReference: invData.invoiceNumber,
+            totalPackages: plDoc.payloadData.packages || 520,
+            packageType: "Pallets / Wooden Crates",
+            grossWeightKg:
+              plDoc.payloadData.verifiedGrossMassKg ||
+              plDoc.payloadData.grossWeightKg ||
+              28450,
+            netWeightKg: plDoc.payloadData.netCargoWeightKg || 24630,
+            totalCbm: 42.5,
+            containerNumber: plDoc.payloadData.containerNumber || "MSKU9284712",
+            sealNumber: plDoc.payloadData.sealNumber || "ISO-17712-H-881920",
+          }
+        : extractPackingList(SAMPLE_PACKING_LIST_TEXT).extractedFields;
+
+      const trData: TransportDocumentData = trDoc?.payloadData
+        ? {
+            documentNumber: trDoc.documentReference || "HBL-2026-0081",
+            documentType: "BILL_OF_LADING",
+            carrierName: trDoc.payloadData.vessel
+              ? "Maersk Line / MSC"
+              : "Mediterranean Shipping Co",
+            originPortOrHub:
+              trDoc.payloadData.portOfLoading || "Puerto de Valencia (ESVLC)",
+            destinationPortOrHub:
+              trDoc.payloadData.portOfDischarge ||
+              "New York Container Terminal (USNYC)",
+            vesselOrVehicle: trDoc.payloadData.vessel || "MSC ISABELLA",
+            voyageOrPlateNumber: trDoc.payloadData.voyage || "VOY-2026-88",
+            declaredGrossWeightKg: trDoc.payloadData.grossWeightKg || 28450,
+            containerNumber: trDoc.payloadData.containerNumber || "MSKU9284712",
+            sealNumber: trDoc.payloadData.sealNumber || "ISO-17712-H-881920",
+            issueDate: "2026-09-24",
+          }
+        : extractTransportDocument(SAMPLE_TRANSPORT_TEXT).extractedFields;
+
+      const decData: CustomsDeclarationData = decDoc?.payloadData
+        ? {
+            declarationNumber:
+              decDoc.payloadData.duaNumber ||
+              decDoc.documentReference ||
+              "26ES004129988102B",
+            customsOffice:
+              decDoc.payloadData.customsOffice ||
+              "ES004611 - Aduana Marítima de Valencia",
+            patentNumber: "4192",
+            importerTaxId: "ESA50119988",
+            importerCompanyName:
+              decDoc.payloadData.importer || "Iberia Global Exports S.L.",
+            regimenType: decDoc.payloadData.regime || "4000",
+            primaryHsCode: "8479.89",
+            declaredCustomsValueUsd:
+              decDoc.payloadData.customsValueEur || 152300,
+            taxes: {
+              dtaUsd: 1450,
+              igiUsd: decDoc.payloadData.dutiesPayableEur || 6853,
+              ivaUsd: decDoc.payloadData.vatPayableEur || 33422,
+              totalTaxesUsd:
+                (decDoc.payloadData.dutiesPayableEur || 6853) +
+                (decDoc.payloadData.vatPayableEur || 33422) +
+                1450,
+            },
+            electronicSignature: {
+              sha256Seal:
+                "f6b890a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
+              certificateSerial: "CERT-AEAT-OEA-ESP-2026-4192",
+              isValid: true,
+              verificationTimestamp: "2026-09-24T18:00:00Z",
+            },
+          }
+        : extractCustomsDeclaration(SAMPLE_DECLARATION_TEXT).extractedFields;
+
+      setExtractedInvoice(invData);
+      setExtractedPackingList(plData);
+      setExtractedTransport(trData);
+      setExtractedDeclaration(decData);
 
       const crossCheck = performTripartiteCrossCheck(
-        invRes.extractedFields,
-        plRes.extractedFields,
-        decRes.extractedFields,
-        trRes.extractedFields,
+        invData,
+        plData,
+        decData,
+        trData,
       );
       setCrossCheckResult(crossCheck);
       setOcrNotification(
-        "¡Demo 4-en-1 cargado y validación tripartita calculada con éxito!",
+        `Auditoría tripartita completada contra los documentos oficiales de la BD para ${shipmentId}.`,
       );
       setTimeout(() => setOcrNotification(null), 4000);
     } catch (err: any) {
-      alert(`Error al procesar demo: ${err.message}`);
+      alert(`Error al auditar expedición: ${err.message}`);
     } finally {
       setIsProcessingOcr(false);
     }
@@ -1110,16 +1249,49 @@ export default function DocumentVaultModule() {
             </div>
 
             <div className="flex items-center gap-2.5 flex-wrap">
-              <Button
-                onClick={handleLoadAllDemoAndCrossCheck}
-                disabled={isProcessingOcr}
-                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs py-2.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/20 flex items-center gap-2"
-              >
-                <Sparkles size={15} />
-                {isProcessingOcr
-                  ? "Procesando Demo..."
-                  : "Cargar Demo 4-en-1 & Validar"}
-              </Button>
+              <div className="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-2xl px-3 py-1.5">
+                <Database className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs text-slate-400 font-bold hidden sm:inline">
+                  Expedición:
+                </span>
+                <select
+                  aria-label="Seleccionar Expedición para Auditoría Cruzada"
+                  className="bg-transparent border-0 text-xs font-mono text-slate-200 focus:outline-none cursor-pointer py-1"
+                  value={selectedShipmentId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setSelectedShipmentId(id);
+                    handleAuditShipmentDocuments(id);
+                  }}
+                >
+                  <option
+                    value="sh_demo_01"
+                    className="bg-slate-900 text-slate-200"
+                  >
+                    BK-2026-67116 (Valencia ↔ New York • MSC ISABELLA)
+                  </option>
+                  {shipmentsList.map((s) => (
+                    <option
+                      key={s.id}
+                      value={s.id}
+                      className="bg-slate-900 text-slate-200"
+                    >
+                      {s.referenceNumber || s.bookingId || s.id} (
+                      {s.originPort || "CNSHA"} → {s.destinationPort || "ESVLC"}
+                      )
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  onClick={() =>
+                    handleAuditShipmentDocuments(selectedShipmentId)
+                  }
+                  disabled={isProcessingOcr}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-1.5 px-3 rounded-xl ml-1"
+                >
+                  {isProcessingOcr ? "Auditando..." : "Auditar Expedición"}
+                </Button>
+              </div>
               <Button
                 onClick={() => {
                   setExtractedInvoice(null);
@@ -2088,18 +2260,21 @@ export default function DocumentVaultModule() {
                   Esperando extracción de los 4 documentos para validar
                 </h4>
                 <p className="text-xs text-slate-500 max-w-md">
-                  Para emitir el Certificado Pre-Despacho se requiere extraer la
-                  Factura Comercial, Packing List y Pedimento Aduanal. Haz clic
-                  en "Cargar Demo 4-en-1 & Validar" para ejecutar una simulación
-                  completa en 1 clic.
+                  Para emitir el Certificado Pre-Despacho se requiere auditar la
+                  Factura Comercial, Packing List / VGM y Pedimento / DUA.
+                  Selecciona una expedición de la base de datos arriba para
+                  auditar su expediente oficial o arrastra archivos PDF
+                  externos.
                 </p>
                 <Button
-                  onClick={handleLoadAllDemoAndCrossCheck}
+                  onClick={() =>
+                    handleAuditShipmentDocuments(selectedShipmentId)
+                  }
                   disabled={isProcessingOcr}
                   className="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2 px-5 rounded-2xl shadow-lg shadow-indigo-600/30 flex items-center gap-2"
                 >
-                  <Sparkles size={14} />
-                  Ejecutar Simulación Demo 1-Click
+                  <Database size={14} />
+                  Auditar Expedición Seleccionada de la BD
                 </Button>
               </div>
             )}

@@ -799,11 +799,9 @@ export async function getOperationalShipmentById(
                   ? "AIR"
                   : leg.serviceType === "ROAD"
                     ? "ROAD"
-                    : "OCEAN",
-              carrierPartyId: "pty_maersk",
-              voyageOrFlightNumber: leg.voyageNumber || "V.2026",
-              vesselOrVehicleName: leg.vesselName || "Atlas Vessel",
-              status: "IN_TRANSIT",
+                    : "SEA",
+              providerPartyId: "pty_maersk",
+              externalTransportReference: `${leg.vesselName || "Atlas Vessel"} / ${leg.voyageNumber || "V.2026"}`,
               plannedDeparture: now.toISOString(),
               plannedArrival: new Date(Date.now() + 86400000 * 5).toISOString(),
             })

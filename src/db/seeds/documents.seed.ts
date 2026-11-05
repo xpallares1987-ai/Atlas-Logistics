@@ -63,6 +63,7 @@ export async function seedDocuments(): Promise<void> {
       name: "House Bill of Lading (HBL-2026-0081)",
       type: "HBL",
       documentReference: "HBL-2026-0081",
+      shipmentId: "sh_demo_01",
       sha256Hash: crypto
         .createHash("sha256")
         .update("ATLAS_OFFICIAL_HBL_2026_0081_BYTES_PAYLOAD")
@@ -82,11 +83,15 @@ export async function seedDocuments(): Promise<void> {
         portOfDischarge: "New York Container Terminal (USNYC)",
         vessel: "MSC ISABELLA",
         voyage: "VOY-2026-88",
+        containerNumber: "MSKU9284712",
+        sealNumber: "ISO-17712-H-881920",
+        packages: 520,
+        grossWeightKg: 28450,
         commodities: [
           {
             description: "Industrial Machinery Parts & Robotics",
-            pieces: 14,
-            grossWeightKg: 18500,
+            pieces: 520,
+            grossWeightKg: 28450,
             volumeCbm: 42,
           },
         ],
@@ -97,6 +102,7 @@ export async function seedDocuments(): Promise<void> {
       name: "Documento Único Administrativo (DUA-ES-2026-00412)",
       type: "DUA",
       documentReference: "DUA-ES-2026-00412",
+      shipmentId: "sh_demo_01",
       sha256Hash: crypto
         .createHash("sha256")
         .update("ATLAS_OFFICIAL_DUA_2026_00412_BYTES_PAYLOAD")
@@ -109,15 +115,88 @@ export async function seedDocuments(): Promise<void> {
       fileSize: 188400,
       url: "/api/documents/doc_dua_0412/pdf",
       payloadData: {
+        shipmentId: "sh_demo_01",
         duaNumber: "26ES004129988102B",
         regime: "4000 - Importación a Libre Práctica",
         customsOffice: "ES004611 - Aduana Marítima de Valencia",
         declarant: "Atlas Logistics Customs Brokerage SL",
         importer: "Iberia Global Exports S.L.",
+        containerNumber: "MSKU9284712",
+        packages: 520,
+        grossWeightKg: 28450,
         totalInvoiceEur: 145000,
         customsValueEur: 152300,
         dutiesPayableEur: 6853.5,
         vatPayableEur: 33422.24,
+      },
+    },
+    {
+      id: "doc_inv_ap_01",
+      name: "Factura Comercial de Exportación (INV-2026-98124)",
+      type: "INVOICE",
+      documentReference: "INV-2026-98124",
+      shipmentId: "sh_demo_01",
+      sha256Hash: crypto
+        .createHash("sha256")
+        .update("ATLAS_OFFICIAL_INV_2026_98124_BYTES_PAYLOAD")
+        .digest("hex"),
+      status: "SIGNED",
+      signedBy: "Raquel Soria",
+      signerTitle: "Directora Financiera (Iberia Global Exports)",
+      signerCertificate: "CERT-FNMT-CORP-ESP-2026-9912",
+      signedAt: new Date(Date.now() - 3600000 * 20),
+      fileSize: 135200,
+      url: "/api/documents/doc_inv_ap_01/pdf",
+      payloadData: {
+        shipmentId: "sh_demo_01",
+        invoiceNumber: "INV-2026-98124",
+        seller: "Iberia Global Exports S.L.",
+        buyer: "American Logistic Hub LLC",
+        currency: "EUR",
+        totalAmount: 145000,
+        containerNumber: "MSKU9284712",
+        packages: 520,
+        grossWeightKg: 28450,
+        incoterm: "CIF Valencia",
+        lineItems: [
+          {
+            description: "Industrial Robotics and Precision Tooling Set A",
+            quantity: 520,
+            unitPriceEur: 278.85,
+            totalEur: 145000,
+          },
+        ],
+      },
+    },
+    {
+      id: "doc_vgm_01",
+      name: "Certificado de Pesaje Verificado SOLAS VGM (VGM-VLC-2026-8819)",
+      type: "VGM_CERTIFICATE",
+      documentReference: "VGM-VLC-2026-8819",
+      shipmentId: "sh_demo_01",
+      sha256Hash: crypto
+        .createHash("sha256")
+        .update("ATLAS_OFFICIAL_VGM_2026_8819_BYTES_PAYLOAD")
+        .digest("hex"),
+      status: "SIGNED",
+      signedBy: "Báscula Certificada Terminal Valencia Port",
+      signerTitle: "Operador de Báscula Calibrada ENAC",
+      signerCertificate: "CERT-ENAC-WEIGHBRIDGE-VLC-44",
+      signedAt: new Date(Date.now() - 3600000 * 22),
+      fileSize: 118300,
+      url: "/api/documents/doc_vgm_01/pdf",
+      payloadData: {
+        shipmentId: "sh_demo_01",
+        certificateNumber: "VGM-VLC-2026-8819",
+        containerNumber: "MSKU9284712",
+        sealNumber: "ISO-17712-H-881920",
+        method: "SOLAS Method 1 (Calibrated Weighbridge)",
+        verifiedGrossMassKg: 28450,
+        tareWeightKg: 3820,
+        netCargoWeightKg: 24630,
+        scaleId: "SCALE-VALENCIA-GATE-04",
+        calibrationCertificate: "ENAC-CAL-2026-0901",
+        authorizedSignatory: "Terminal Maritime Inspector",
       },
     },
     {
@@ -450,6 +529,10 @@ export async function seedDocuments(): Promise<void> {
       .insert(documents)
       .values({
         id: doc.id,
+        shipmentId:
+          (doc as any).shipmentId ||
+          (doc.payloadData as any)?.shipmentId ||
+          null,
         name: doc.name,
         type: doc.type,
         documentReference: doc.documentReference,
