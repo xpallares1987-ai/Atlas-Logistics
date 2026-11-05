@@ -67,7 +67,8 @@ describe("Cross-Border USMCA & SAT Carta Porte 3.1 Routes Integration Tests", ()
       mercancias: [
         {
           claveProdServ: "25171500",
-          descripcion: "Arneses eléctricos y piezas de transmisión para automotores",
+          descripcion:
+            "Arneses eléctricos y piezas de transmisión para automotores",
           cantidad: 1400,
           claveUnidad: "H87",
           pesoKg: 18500,
@@ -110,7 +111,9 @@ describe("Cross-Border USMCA & SAT Carta Porte 3.1 Routes Integration Tests", ()
     expect(json.data.idCCP.startsWith("CCC")).toBe(true);
     expect(json.data.uuid).toBeDefined();
     expect(json.data.stampedXml).toContain(`IdCCP="${json.data.idCCP}"`);
-    expect(json.data.qrCodeSatUrl).toContain("verificacfdi.facturaelectronica.sat.gob.mx");
+    expect(json.data.qrCodeSatUrl).toContain(
+      "verificacfdi.facturaelectronica.sat.gob.mx",
+    );
   });
 
   it("POST /api/cross-border/carta-porte/stamp should return 400 when missing required fields", async () => {
@@ -202,5 +205,31 @@ describe("Cross-Border USMCA & SAT Carta Porte 3.1 Routes Integration Tests", ()
     expect(json.data.confidenceScorePercent).toBe(94);
     expect(json.data.riskCategory).toBe("LOW_RISK");
     expect(json.data.keyPredictors).toHaveLength(2);
+  });
+
+  it("GET /api/cross-border/declarations?shipmentId=sh_demo_01 should return the authentic database record", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/cross-border/declarations?shipmentId=sh_demo_01",
+    });
+    expect(res.statusCode).toBe(200);
+    const data = JSON.parse(res.payload);
+    expect(data.success).toBe(true);
+    expect(data.declaration).toBeDefined();
+    expect(data.declaration.shipmentId).toBe("sh_demo_01");
+    expect(data.declaration.idCcp).toMatch(/^CCC/);
+  });
+
+  it("POST /api/cross-border/carta-porte/generate-for-shipment should derive and stamp Carta Porte for an existing shipment", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/cross-border/carta-porte/generate-for-shipment",
+      payload: { shipmentId: "sh_demo_01" },
+    });
+    expect(res.statusCode).toBe(200);
+    const data = JSON.parse(res.payload);
+    expect(data.success).toBe(true);
+    expect(data.declaration).toBeDefined();
+    expect(data.stamping.idCCP).toBeDefined();
   });
 });
