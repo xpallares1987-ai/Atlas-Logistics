@@ -176,7 +176,8 @@ export async function seedOperations(ctx: CoreSeedContext): Promise<string[]> {
   const totalShipments = 75;
 
   for (let i = 0; i < totalShipments; i++) {
-    const id = faker.string.uuid();
+    const isDemoShipment = i === 0;
+    const id = isDemoShipment ? "sh_demo_01" : faker.string.uuid();
     shipmentIds.push(id);
     const companyId = faker.helpers.arrayElement(companyIds);
     const corridor = realisticCorridors[i % realisticCorridors.length];
@@ -209,10 +210,18 @@ export async function seedOperations(ctx: CoreSeedContext): Promise<string[]> {
       currentLng = coord.lng + (Math.random() - 0.5) * 0.1;
     }
 
-    const trackingNumber = `${corridor.carrierPrefix}${faker.string.numeric(7)}`;
-    const vesselName = faker.helpers.arrayElement(corridor.vessels);
-    const voyageNumber = `${faker.number.int({ min: 2601, max: 2612 })}${faker.helpers.arrayElement(["E", "W", "N", "S"])}`;
-    const weight = faker.number.int({ min: 14000, max: 28500 });
+    const trackingNumber = isDemoShipment
+      ? "BK-2026-67116"
+      : `${corridor.carrierPrefix}${faker.string.numeric(7)}`;
+    const vesselName = isDemoShipment
+      ? "MSC ISABELLA"
+      : faker.helpers.arrayElement(corridor.vessels);
+    const voyageNumber = isDemoShipment
+      ? "VOY-2026-88"
+      : `${faker.number.int({ min: 2601, max: 2612 })}${faker.helpers.arrayElement(["E", "W", "N", "S"])}`;
+    const weight = isDemoShipment
+      ? 28450
+      : faker.number.int({ min: 14000, max: 28500 });
     const co2eTonnes = Number(
       ((corridor.distanceKm * weight * 0.015) / 1000000).toFixed(2),
     );
@@ -290,20 +299,27 @@ export async function seedOperations(ctx: CoreSeedContext): Promise<string[]> {
     // Containers (1 to 3 containers per shipment)
     const numContainers = faker.number.int({ min: 1, max: 3 });
     for (let j = 0; j < numContainers; j++) {
-      const containerId = faker.string.uuid();
-      const containerType = faker.helpers.arrayElement([
-        "20DC",
-        "40HC",
-        "40RH",
-      ]);
-      const containerNumber = `${corridor.carrierPrefix}${faker.string.numeric(7)}`;
+      const containerId =
+        isDemoShipment && j === 0 ? "cnt_msku_9284712" : faker.string.uuid();
+      const containerType =
+        isDemoShipment && j === 0
+          ? "40HC"
+          : faker.helpers.arrayElement(["20DC", "40HC", "40RH"]);
+      const containerNumber =
+        isDemoShipment && j === 0
+          ? "MSKU9284712"
+          : `${corridor.carrierPrefix}${faker.string.numeric(7)}`;
+      const sealNumber =
+        isDemoShipment && j === 0
+          ? "ISO-17712-H-881920"
+          : `SL-${faker.string.numeric(6)}`;
 
       await db.insert(schema.shipmentContainers).values({
         id: containerId,
         shipmentId: id,
         containerNumber,
         containerType,
-        sealNumber: `SL-${faker.string.numeric(6)}`,
+        sealNumber,
         weight: Math.round(weight / numContainers),
       });
 

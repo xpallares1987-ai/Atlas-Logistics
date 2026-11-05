@@ -110,7 +110,10 @@ export default function SystemPanelModule() {
     setActiveSeedingPhase(phase);
     setSeedResult(null);
     try {
-      const res = await fetch(`/api/admin/seed/${phase}`, { method: "POST" });
+      const res = await fetch(`/api/admin/seed/${phase}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
       const data = await res.json();
       if (res.ok && data.success) {
         setSeedResult({

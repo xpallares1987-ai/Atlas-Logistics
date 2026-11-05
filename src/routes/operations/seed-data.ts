@@ -79,7 +79,32 @@ export async function ensureOperationsSeedData() {
       .onConflictDoNothing();
   }
 
-  // 3b. Seed Containers for sh_demo_master
+  // 3a. Canonical Demo Shipment sh_demo_01 (BK-2026-67116)
+  const existingDemo01 = await db
+    .select()
+    .from(shipments)
+    .where(eq(shipments.id, "sh_demo_01"))
+    .limit(1);
+  if (existingDemo01.length === 0) {
+    await db
+      .insert(shipments)
+      .values({
+        id: "sh_demo_01",
+        trackingNumber: "BK-2026-67116",
+        status: "IN_TRANSIT",
+        incoterm: "CIF",
+        serviceType: "FCL",
+        vesselName: "MSC ISABELLA",
+        voyageNumber: "VOY-2026-88",
+        origin: "Puerto de Valencia (ESVLC)",
+        destination: "New York Container Terminal (USNYC)",
+        weight: 28450,
+        companyId: "c-1",
+      })
+      .onConflictDoNothing();
+  }
+
+  // 3b. Seed Containers for sh_demo_master and sh_demo_01
   const existingContainers = await db
     .select()
     .from(shipmentContainers)
@@ -114,6 +139,48 @@ export async function ensureOperationsSeedData() {
           weight: 21000,
         },
       ])
+      .onConflictDoNothing();
+  }
+
+  // Ensure MSKU9284712 container for sh_demo_01
+  await db
+    .insert(shipmentContainers)
+    .values({
+      id: "cnt_msku_9284712",
+      shipmentId: "sh_demo_01",
+      containerNumber: "MSKU9284712",
+      containerType: "40HC",
+      sealNumber: "ISO-17712-H-881920",
+      weight: 28450,
+    })
+    .onConflictDoNothing();
+
+  // Ensure BK-2026-67116 booking
+  const existingBk = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.referenceNumber, "BK-2026-67116"))
+    .limit(1);
+  if (existingBk.length === 0) {
+    await db
+      .insert(bookings)
+      .values({
+        id: "bk_demo_01",
+        referenceNumber: "BK-2026-67116",
+        customerId: "c-1",
+        status: "Confirmed",
+        origin: "Puerto de Valencia (ESVLC)",
+        destination: "New York Container Terminal (USNYC)",
+        serviceType: "FCL",
+        vessel: "MSC ISABELLA",
+        voyage: "VOY-2026-88",
+        cargoDetails: JSON.stringify([
+          {
+            description: "Industrial Robotics & Tooling",
+            grossWeightKg: 28450,
+          },
+        ]),
+      })
       .onConflictDoNothing();
   }
 

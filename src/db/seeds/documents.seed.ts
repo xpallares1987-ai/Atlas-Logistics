@@ -1,6 +1,12 @@
 import { db } from "../index.js";
-import { documents } from "../schema/index.js";
-import { sql } from "drizzle-orm";
+import {
+  documents,
+  shipments,
+  companies,
+  shipmentContainers,
+  bookings,
+} from "../schema/index.js";
+import { sql, eq } from "drizzle-orm";
 import crypto from "crypto";
 
 export async function seedDocuments(): Promise<void> {
@@ -56,7 +62,84 @@ export async function seedDocuments(): Promise<void> {
     }
   }
 
-  // 2. Pre-seed 5 Official Multimodal Signed Documents
+  // 1b. Ensure company and canonical multimodal shipment (sh_demo_01) exist
+  // to satisfy FOREIGN KEY (shipment_id) REFERENCES shipments(id)
+  const existingComp = await db
+    .select({ id: companies.id })
+    .from(companies)
+    .limit(1);
+
+  let companyId = existingComp[0]?.id;
+  if (!companyId) {
+    companyId = "comp_atlas_seed";
+    await db
+      .insert(companies)
+      .values({
+        id: companyId,
+        name: "Atlas Logistics Global S.L.",
+        taxId: "ESA99281920",
+      })
+      .onConflictDoNothing();
+  }
+
+  const existingShipment = await db
+    .select({ id: shipments.id })
+    .from(shipments)
+    .where(eq(shipments.id, "sh_demo_01"))
+    .limit(1);
+
+  if (existingShipment.length === 0) {
+    await db
+      .insert(shipments)
+      .values({
+        id: "sh_demo_01",
+        trackingNumber: "BK-2026-67116",
+        status: "IN_TRANSIT",
+        incoterm: "CIF",
+        serviceType: "FCL",
+        vesselName: "MSC ISABELLA",
+        voyageNumber: "VOY-2026-88",
+        origin: "Puerto de Valencia (ESVLC)",
+        destination: "New York Container Terminal (USNYC)",
+        weight: 28450,
+        companyId,
+      })
+      .onConflictDoNothing();
+  }
+
+  await db
+    .insert(shipmentContainers)
+    .values({
+      id: "cnt_msku_9284712",
+      shipmentId: "sh_demo_01",
+      containerNumber: "MSKU9284712",
+      containerType: "40HC",
+      sealNumber: "ISO-17712-H-881920",
+      weight: 28450,
+    })
+    .onConflictDoNothing();
+
+  await db
+    .insert(bookings)
+    .values({
+      id: "bk_demo_01",
+      referenceNumber: "BK-2026-67116",
+      customerId: companyId,
+      status: "Confirmed",
+      origin: "Puerto de Valencia (ESVLC)",
+      destination: "New York Container Terminal (USNYC)",
+      serviceType: "FCL",
+      vessel: "MSC ISABELLA",
+      voyage: "VOY-2026-88",
+      cargoDetails: JSON.stringify({
+        description: "Industrial Robotics & Tooling",
+        weight: 28450,
+        containerNumber: "MSKU9284712",
+      }),
+    })
+    .onConflictDoNothing();
+
+  // 2. Pre-seed Official Multimodal Signed Documents
   const sampleDocs = [
     {
       id: "doc_hbl_0081",
@@ -525,28 +608,45 @@ export async function seedDocuments(): Promise<void> {
   ];
 
   for (const doc of sampleDocs) {
+    const docValues = {
+      id: doc.id,
+      shipmentId:
+        (doc as any).shipmentId || (doc.payloadData as any)?.shipmentId || null,
+      name: doc.name,
+      type: doc.type,
+      documentReference: doc.documentReference,
+      sha256Hash: doc.sha256Hash,
+      status: doc.status,
+      signedBy: doc.signedBy,
+      signerTitle: doc.signerTitle,
+      signerCertificate: doc.signerCertificate,
+      signedAt: doc.signedAt,
+      payloadData: doc.payloadData,
+      fileSize: doc.fileSize,
+      url: doc.url,
+    };
+
     await db
       .insert(documents)
-      .values({
-        id: doc.id,
-        shipmentId:
-          (doc as any).shipmentId ||
-          (doc.payloadData as any)?.shipmentId ||
-          null,
-        name: doc.name,
-        type: doc.type,
-        documentReference: doc.documentReference,
-        sha256Hash: doc.sha256Hash,
-        status: doc.status,
-        signedBy: doc.signedBy,
-        signerTitle: doc.signerTitle,
-        signerCertificate: doc.signerCertificate,
-        signedAt: doc.signedAt,
-        payloadData: doc.payloadData,
-        fileSize: doc.fileSize,
-        url: doc.url,
-      })
-      .onConflictDoNothing();
+      .values(docValues)
+      .onConflictDoUpdate({
+        target: documents.id,
+        set: {
+          shipmentId: docValues.shipmentId,
+          name: docValues.name,
+          type: docValues.type,
+          documentReference: docValues.documentReference,
+          sha256Hash: docValues.sha256Hash,
+          status: docValues.status,
+          signedBy: docValues.signedBy,
+          signerTitle: docValues.signerTitle,
+          signerCertificate: docValues.signerCertificate,
+          signedAt: docValues.signedAt,
+          payloadData: docValues.payloadData,
+          fileSize: docValues.fileSize,
+          url: docValues.url,
+        },
+      });
   }
 
   console.log(
