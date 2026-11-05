@@ -8,7 +8,9 @@ describe("ERP Integrations Module: Fastify API Routes", () => {
 
   beforeAll(async () => {
     app = Fastify();
-    await app.register(erpIntegrationsRoutes, { prefix: "/api/erp-integrations" });
+    await app.register(erpIntegrationsRoutes, {
+      prefix: "/api/erp-integrations",
+    });
     await app.ready();
   });
 
@@ -29,7 +31,9 @@ describe("ERP Integrations Module: Fastify API Routes", () => {
     expect(body.connectors.length).toBe(2);
 
     const sap = body.connectors.find((c: any) => c.system === "SAP_S4HANA");
-    const netSuite = body.connectors.find((c: any) => c.system === "ORACLE_NETSUITE");
+    const netSuite = body.connectors.find(
+      (c: any) => c.system === "ORACLE_NETSUITE",
+    );
 
     expect(sap).toBeDefined();
     expect(sap.status).toBe("ONLINE");
@@ -79,9 +83,7 @@ describe("ERP Integrations Module: Fastify API Routes", () => {
         billOfLading: "MSCUBCN881920",
         carrierName: "MSC Mediterranean Shipping",
         containerId: "MSCU9918201",
-        items: [
-          { material: "MAT-AUTO-ENG-V6", quantity: 40 },
-        ],
+        items: [{ material: "MAT-AUTO-ENG-V6", quantity: 40 }],
       },
     });
 
@@ -191,5 +193,40 @@ describe("ERP Integrations Module: Fastify API Routes", () => {
     expect(body.success).toBe(true);
     expect(Array.isArray(body.logs)).toBe(true);
     expect(body.logs.length).toBeGreaterThan(0);
+  });
+
+  it("GET /api/erp-integrations/orders - should return orders filtered by shipmentId", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/erp-integrations/orders?shipmentId=sh_demo_01",
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.orders)).toBe(true);
+    expect(body.orders.length).toBeGreaterThanOrEqual(2);
+    const sapOrder = body.orders.find((o: any) => o.erpSystem === "SAP_S4HANA");
+    expect(sapOrder).toBeDefined();
+    expect(sapOrder.poNumber).toBe("4500891234");
+    expect(Array.isArray(sapOrder.items)).toBe(true);
+  });
+
+  it("POST /api/erp-integrations/sync - should trigger direct operational sync against SQLite", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/erp-integrations/sync",
+      payload: {
+        poNumber: "4500891234",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.success).toBe(true);
+    expect(body.order).toBeDefined();
+    expect(body.order.syncStatus).toBe("SYNCED");
+    expect(body.syncLog).toBeDefined();
+    expect(body.syncLog.referenceDocument).toBe("4500891234");
   });
 });
