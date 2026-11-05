@@ -1,5 +1,8 @@
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
+import { db } from "../../db/index.js";
+import * as schema from "../../db/schema/index.js";
+import { eq, asc } from "drizzle-orm";
 import {
   BlockchainBlock,
   DigitalBillOfLadingMLETR,
@@ -62,8 +65,57 @@ const TriggerDisputeSchema = z.object({
 });
 
 export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
-  // GET /api/smart-contracts/ledger
-  fastify.get("/ledger", async () => {
+  // GET /api/smart-contracts/ledger (supports ?shipmentId=...)
+  fastify.get("/ledger", async (request) => {
+    const { shipmentId } = request.query as { shipmentId?: string };
+
+    if (shipmentId) {
+      const [contract] = await db
+        .select()
+        .from(schema.smartEscrowContracts)
+        .where(eq(schema.smartEscrowContracts.shipmentId, shipmentId))
+        .limit(1);
+
+      if (contract) {
+        const blocks = await db
+          .select()
+          .from(schema.blockchainBlocks)
+          .where(eq(schema.blockchainBlocks.contractId, contract.id))
+          .orderBy(asc(schema.blockchainBlocks.blockNumber));
+
+        const formattedLedger: BlockchainBlock[] = blocks.map((b) => ({
+          blockNumber: b.blockNumber,
+          timestamp: b.timestamp,
+          prevHash: b.previousHash,
+          txHash: b.blockHash,
+          merkleRoot:
+            "0000000000000000000000000000000000000000000000000000000000000000",
+          payload: JSON.parse(b.payloadDataJson),
+          signature: `ecdsa:${b.signer}`,
+          gasUsed: 21000,
+          nonce: 1000 + b.blockNumber,
+        }));
+
+        const chainVerification = verifyChainIntegrity(formattedLedger);
+        return {
+          success: true,
+          scenarioId: contract.id,
+          title: contract.title,
+          description: contract.description,
+          ebl: JSON.parse(contract.eblDataJson),
+          escrow: {
+            ...JSON.parse(contract.milestonesDataJson),
+            contractId: contract.id,
+            totalAmountUsd: contract.escrowAmountEur,
+            status: contract.escrowStatus,
+            disputeReason: contract.disputeReason,
+          },
+          ledger: formattedLedger,
+          chainVerification,
+        };
+      }
+    }
+
     const chainVerification = verifyChainIntegrity(activeState.ledger);
     return {
       success: true,
@@ -75,6 +127,156 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
       ledger: activeState.ledger,
       chainVerification,
     };
+  });
+
+  // POST /api/smart-contracts/deploy-for-shipment (Direct Operational Action)
+  fastify.post("/deploy-for-shipment", async (request, reply) => {
+    const { shipmentId, escrowAmountEur } = request.body as {
+      shipmentId: string;
+      escrowAmountEur?: number;
+    };
+    if (!shipmentId) {
+      return reply.status(400).send({ error: "shipmentId is required" });
+    }
+
+    const [shipment] = await db
+      .select()
+      .from(schema.shipments)
+      .where(eq(schema.shipments.id, shipmentId))
+      .limit(1);
+
+    if (!shipment) {
+      return reply
+        .status(404)
+        .send({ error: `Shipment not found: ${shipmentId}` });
+    }
+
+    const contractId = `sc_${shipment.id}`;
+    const amount = escrowAmountEur || 145000;
+
+    const eblData = {
+      eblNumber: `BL-ATLS-2026-${shipment.id.replace(/\D/g, "") || "67116"}`,
+      carrier: "MSC Mediterranean Shipping Company",
+      carrierScac: "MSCU",
+      shipper: "Iberia Global Exports S.L.",
+      consignee: "American Logistic Hub LLC",
+      titleHolder: "Iberia Global Exports S.L.",
+      vesselName: shipment.vesselName || "MSC OSCAR",
+      voyageNumber: shipment.voyageNumber || "VOY-2026-88",
+      portOfLoading: shipment.origin || "CNSHA",
+      portOfDischarge: shipment.destination || "ESVLC",
+      containerNumber: "MSKU9284712",
+      issueDate: new Date().toISOString(),
+      status: "ISSUED",
+      endorsementChain: [
+        {
+          fromParty: "MSC Mediterranean Shipping Company",
+          toParty: "Iberia Global Exports S.L.",
+          timestamp: new Date().toISOString(),
+          transferType: "SPECIAL_ENDORSEMENT",
+        },
+      ],
+    };
+
+    const milestonesData = {
+      EBL_ISSUED: {
+        title: "Emisión de Conocimiento Digital (e-BL)",
+        percentage: 20,
+        amountEur: amount * 0.2,
+        completed: true,
+        completedAt: new Date().toISOString(),
+      },
+      VESSEL_DEPARTED: {
+        title: "Zarpe del Buque de Origen (DCSA 315 / VD)",
+        percentage: 30,
+        amountEur: amount * 0.3,
+        completed: false,
+      },
+      SEAL_VERIFIED: {
+        title: "Verificación Telemática de Precinto IoT",
+        percentage: 15,
+        amountEur: amount * 0.15,
+        completed: false,
+      },
+      CUSTOMS_CLEARED: {
+        title: "Levante Aduanero de Importación (Circuito Verde DUA)",
+        percentage: 15,
+        amountEur: amount * 0.15,
+        completed: false,
+      },
+      DISCHARGED_PORT: {
+        title: "Descarga en Muelle y Entrada en Terminal",
+        percentage: 10,
+        amountEur: amount * 0.1,
+        completed: false,
+      },
+      PROOF_OF_DELIVERY: {
+        title: "Entrega Final y Cierre e-CMR / e-BL",
+        percentage: 10,
+        amountEur: amount * 0.1,
+        completed: false,
+      },
+    };
+
+    const contractRecord = {
+      id: contractId,
+      shipmentId: shipment.id,
+      title: `Contrato Escrow Inteligente MLETR - ${shipment.origin || "CNSHA"} a ${shipment.destination || "ESVLC"}`,
+      description:
+        "Liquidacion automatizada de flete sujeta a oraculos DCSA y despacho DUA.",
+      carrierScac: "MSCU",
+      shipperName: "Iberia Global Exports S.L.",
+      consigneeName: "American Logistic Hub LLC",
+      escrowAmountEur: amount,
+      escrowStatus: "FUNDED" as const,
+      disputeReason: null,
+      eblDataJson: JSON.stringify(eblData),
+      milestonesDataJson: JSON.stringify(milestonesData),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    await db
+      .insert(schema.smartEscrowContracts)
+      .values(contractRecord)
+      .onConflictDoUpdate({
+        target: schema.smartEscrowContracts.id,
+        set: contractRecord,
+      });
+
+    const genesisBlockRecord = {
+      id: `blk_${shipment.id}_0`,
+      contractId: contractId,
+      blockNumber: 0,
+      timestamp: new Date().toISOString(),
+      previousHash:
+        "0000000000000000000000000000000000000000000000000000000000000000",
+      blockHash:
+        "e4a2c9183d719280b1e42847c92b8d00923184912839b1a0942c718293849182",
+      eventType: "EBL_ISSUED",
+      payloadDataJson: JSON.stringify({
+        milestone: "EBL_ISSUED",
+        actor: "MSC Mediterranean Shipping Company",
+        details:
+          "Conocimiento de embarque electrónico emitido bajo ley modelo MLETR.",
+      }),
+      signer: "MSCU-OFFICIAL-KEY-2026",
+      createdAt: Date.now(),
+    };
+
+    await db
+      .insert(schema.blockchainBlocks)
+      .values(genesisBlockRecord)
+      .onConflictDoUpdate({
+        target: schema.blockchainBlocks.id,
+        set: genesisBlockRecord,
+      });
+
+    return reply.status(200).send({
+      success: true,
+      contract: contractRecord,
+      genesisBlock: genesisBlockRecord,
+    });
   });
 
   // GET /api/smart-contracts/presets

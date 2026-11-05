@@ -52,7 +52,9 @@ describe("Smart Contracts, e-BL MLETR & Escrow Routes Integration Tests", () => 
     expect(json.success).toBe(true);
     expect(json.data.scenarioId).toBe("mletr_bank_endorsement");
     expect(json.data.escrow.totalAmountUsd).toBe(112000);
-    expect(json.data.ebl.currentTitleHolder).toBe("Banco Santander S.A. (Trade Finance)");
+    expect(json.data.ebl.currentTitleHolder).toBe(
+      "Banco Santander S.A. (Trade Finance)",
+    );
   });
 
   it("GET /api/smart-contracts/ledger should return the updated scenario state with valid chain", async () => {
@@ -82,8 +84,12 @@ describe("Smart Contracts, e-BL MLETR & Escrow Routes Integration Tests", () => 
     expect(response.statusCode).toBe(200);
     const json = JSON.parse(response.payload);
     expect(json.success).toBe(true);
-    expect(json.data.ebl.currentTitleHolder).toBe("CMA CGM Freight Forwarding France");
-    expect(json.data.endorsement.fromParty).toBe("Banco Santander S.A. (Trade Finance)");
+    expect(json.data.ebl.currentTitleHolder).toBe(
+      "CMA CGM Freight Forwarding France",
+    );
+    expect(json.data.endorsement.fromParty).toBe(
+      "Banco Santander S.A. (Trade Finance)",
+    );
     expect(json.data.block.payload.event).toBe("TITLE_ENDORSED");
     expect(json.data.block.txHash).toBeDefined();
   });
@@ -154,7 +160,8 @@ describe("Smart Contracts, e-BL MLETR & Escrow Routes Integration Tests", () => 
       payload: {
         milestoneKey: "PROOF_OF_DELIVERY",
         sender: "Catalana de Energías Renovables Terminal Hub",
-        details: "Contenedor recibido y validado en planta solar con firma digital e.firma.",
+        details:
+          "Contenedor recibido y validado en planta solar con firma digital e.firma.",
       },
     });
 
@@ -179,7 +186,8 @@ describe("Smart Contracts, e-BL MLETR & Escrow Routes Integration Tests", () => 
       method: "POST",
       url: "/api/smart-contracts/trigger-dispute",
       payload: {
-        reason: "Discrepancia en peso de tara (-1,800 kg) y reporte de precinto forzado en escáner aduanero.",
+        reason:
+          "Discrepancia en peso de tara (-1,800 kg) y reporte de precinto forzado en escáner aduanero.",
       },
     });
 
@@ -187,7 +195,35 @@ describe("Smart Contracts, e-BL MLETR & Escrow Routes Integration Tests", () => 
     const json = JSON.parse(response.payload);
     expect(json.success).toBe(true);
     expect(json.data.escrow.status).toBe("DISPUTED");
-    expect(json.data.escrow.disputeReason).toContain("Discrepancia en peso de tara");
+    expect(json.data.escrow.disputeReason).toContain(
+      "Discrepancia en peso de tara",
+    );
     expect(json.data.block.payload.event).toBe("ESCROW_DISPUTED");
+  });
+
+  it("GET /api/smart-contracts/ledger?shipmentId=sh_demo_01 should return persisted blockchain blocks and verify integrity", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/smart-contracts/ledger?shipmentId=sh_demo_01",
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.payload);
+    expect(body.success).toBe(true);
+    expect(body.chainVerification.isValid).toBe(true);
+    expect(body.ledger.length).toBeGreaterThanOrEqual(1);
+    expect(body.scenarioId).toBe("sc_sh_demo_01");
+  });
+
+  it("POST /api/smart-contracts/deploy-for-shipment should initialize escrow and genesis block in SQLite", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/smart-contracts/deploy-for-shipment",
+      payload: { shipmentId: "sh_demo_01" },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.payload);
+    expect(body.success).toBe(true);
+    expect(body.contract).toBeDefined();
+    expect(body.genesisBlock).toBeDefined();
   });
 });

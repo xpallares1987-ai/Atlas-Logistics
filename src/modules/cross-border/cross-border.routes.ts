@@ -293,7 +293,7 @@ export const crossBorderRoutes: FastifyPluginAsync = async (fastify) => {
       origen: {
         tipoUbicacion: "Origen",
         rfc: "TLM010101XYZ",
-        nombre: `Hub Fronterizo Origen (${shipment.originPort || "Laredo"})`,
+        nombre: `Hub Fronterizo Origen (${shipment.origin || "Laredo"})`,
         direccion: "Parque Industrial Transfronterizo 100",
         codigoPostal: "88275",
         fechaHora: new Date().toISOString(),
@@ -301,7 +301,7 @@ export const crossBorderRoutes: FastifyPluginAsync = async (fastify) => {
       destino: {
         tipoUbicacion: "Destino",
         rfc: "AME981012ABC",
-        nombre: `Terminal Destino (${shipment.destinationPort || "San Antonio"})`,
+        nombre: `Terminal Destino (${shipment.destination || "San Antonio"})`,
         direccion: "Logistics Boulevard 500",
         codigoPostal: "78219",
         fechaHora: new Date(Date.now() + 86400000).toISOString(),
