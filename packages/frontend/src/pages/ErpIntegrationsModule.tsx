@@ -15,6 +15,7 @@ import {
   Send,
   Copy,
   Check,
+  Zap,
 } from "lucide-react";
 import { Button } from "@atlas/ui";
 import {
@@ -23,13 +24,18 @@ import {
   type ErpConnectorStatus,
   type ErpQueuedMutation,
 } from "@atlas/shared";
-import { useApiMutation } from "../hooks/useApiQuery";
+import { useApiMutation, useApiQuery } from "../hooks/useApiQuery";
+import { useShipments } from "../hooks/useShipments";
 
 type TabKey = "TOPOLOGY" | "MAPPING" | "SANDBOX" | "QUEUE";
 type PresetKey = "sap_automotive_tier1" | "netsuite_retail_hightech";
 
 export default function ErpIntegrationsModule() {
   const [activeTab, setActiveTab] = useState<TabKey>("TOPOLOGY");
+  const [selectedShipmentId, setSelectedShipmentId] =
+    useState<string>("sh_demo_01");
+  const [selectedPoNumber, setSelectedPoNumber] =
+    useState<string>("4500891234");
   const [selectedPresetKey, setSelectedPresetKey] = useState<PresetKey>(
     "sap_automotive_tier1",
   );
@@ -37,6 +43,31 @@ export default function ErpIntegrationsModule() {
   const [isOffline] = useState(!navigator.onLine);
   const [activeConsoleLog, setActiveConsoleLog] = useState<any>(null);
   const [queueItems, setQueueItems] = useState<ErpQueuedMutation[]>([]);
+
+  // Real Shipments from SQLite
+  const { data: shipments = [] } = useShipments();
+  const activeShipment =
+    shipments.find((s) => s.id === selectedShipmentId) || shipments[0];
+
+  // Real ERP Purchase Orders for this shipment from SQLite
+  const { data: ordersData, refetch: refetchOrders } = useApiQuery<{
+    success: boolean;
+    orders: any[];
+  }>(
+    ["erp-orders", selectedShipmentId],
+    `/erp-integrations/orders?shipmentId=${selectedShipmentId}`,
+  );
+  const orders = ordersData?.orders || [];
+
+  // Synchronize selectedPoNumber when orders change
+  useEffect(() => {
+    if (
+      orders.length > 0 &&
+      !orders.some((o) => o.poNumber === selectedPoNumber)
+    ) {
+      setSelectedPoNumber(orders[0].poNumber);
+    }
+  }, [orders]);
 
   // Telemetry status state
   const [connectors] = useState<ErpConnectorStatus[]>([
@@ -85,12 +116,31 @@ export default function ErpIntegrationsModule() {
     refreshQueue();
   }, []);
 
+  // Direct Operational Sync Mutation against SQLite
+  const syncOrderMutation = useApiMutation<any, { poNumber: string }>(
+    "/erp-integrations/sync",
+    "POST",
+    {
+      onSuccess: (res) => {
+        refetchOrders();
+        setActiveConsoleLog({
+          title: "Sincronización Bidireccional SQLite / ERP Exitosa",
+          system: res.order?.erpSystem || "SAP_S4HANA",
+          protocol: "Relational Operational Sync",
+          order: res.order,
+          syncLog: res.syncLog,
+        });
+      },
+    },
+  );
+
   // API Mutations
   const syncSapPoMutation = useApiMutation<any, { poNumber: string }>(
     "/erp-integrations/sap/sync-po",
     "POST",
     {
       onSuccess: (res) => {
+        refetchOrders();
         setActiveConsoleLog({
           title: "SAP S/4HANA PO Sincronizado Exitosamente",
           system: "SAP_S4HANA",
@@ -107,6 +157,7 @@ export default function ErpIntegrationsModule() {
     "POST",
     {
       onSuccess: (res) => {
+        refetchOrders();
         setActiveConsoleLog({
           title: "Entrega Entrante (ASN) Generada en SAP",
           system: "SAP_S4HANA",
@@ -123,6 +174,7 @@ export default function ErpIntegrationsModule() {
     "POST",
     {
       onSuccess: (res) => {
+        refetchOrders();
         setActiveConsoleLog({
           title: "Item Receipt & Landed Cost Generado en NetSuite",
           system: "ORACLE_NETSUITE",
@@ -160,19 +212,19 @@ export default function ErpIntegrationsModule() {
   const handleExecuteSapPoSync = () => {
     if (isOffline) {
       handleEnqueueOffline("SAP_S4HANA", "SYNC_PO", {
-        poNumber: currentPreset.sampleInput.referenceNumber,
+        poNumber: selectedPoNumber,
       });
       return;
     }
-    syncSapPoMutation.mutate({
-      poNumber: currentPreset.sampleInput.referenceNumber,
+    syncOrderMutation.mutate({
+      poNumber: selectedPoNumber,
     });
   };
 
   const handleExecuteSapDelivery = () => {
     if (isOffline) {
       handleEnqueueOffline("SAP_S4HANA", "POST_INBOUND_DELIVERY", {
-        poNumber: currentPreset.sampleInput.referenceNumber,
+        poNumber: selectedPoNumber,
         billOfLading: "MSCUBCN992811",
         carrierName: "MSC",
         containerId: "MSCU119920",
@@ -181,7 +233,7 @@ export default function ErpIntegrationsModule() {
       return;
     }
     postSapDeliveryMutation.mutate({
-      poNumber: currentPreset.sampleInput.referenceNumber,
+      poNumber: selectedPoNumber,
       billOfLading: "MSCUBCN992811",
       carrierName: "MSC Mediterranean Shipping",
       containerId: "MSCU119920",
@@ -192,13 +244,13 @@ export default function ErpIntegrationsModule() {
   const handleExecuteNetSuiteReceipt = () => {
     if (isOffline) {
       handleEnqueueOffline("ORACLE_NETSUITE", "POST_ITEM_RECEIPT", {
-        orderNumber: currentPreset.sampleInput.referenceNumber,
+        orderNumber: selectedPoNumber,
         totalFreight: currentPreset.sampleInput.freightChargesUsd,
       });
       return;
     }
     postNetSuiteReceiptMutation.mutate({
-      orderNumber: currentPreset.sampleInput.referenceNumber,
+      orderNumber: selectedPoNumber,
       bolNumber: "HLCUTPE88192",
       totalFreight: currentPreset.sampleInput.freightChargesUsd,
       method: "VOLUME",
@@ -308,6 +360,61 @@ export default function ErpIntegrationsModule() {
               {queueItems.length} Registros
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* 2. Relational Shipment & ERP Orders Selector Banner */}
+      <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Database className="w-5 h-5 text-blue-400 shrink-0" />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider block">
+                Órdenes de Compra ERP Relacionales (SQLite)
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                {orders.length} Órdenes
+              </span>
+            </div>
+            <span className="text-sm text-slate-200 font-medium">
+              {activeShipment
+                ? `${activeShipment.id} — ${activeShipment.origin || "CNSHA"} ➔ ${activeShipment.destination || "ESVLC"} (${orders.map((o) => `${o.erpSystem === "SAP_S4HANA" ? "SAP" : "NetSuite"}: ${o.poNumber}`).join(" · ") || "Sin órdenes"})`
+                : "Cargando embarques..."}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400">Embarque:</span>
+            <select
+              value={selectedShipmentId}
+              onChange={(e) => setSelectedShipmentId(e.target.value)}
+              className="bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              {shipments.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.id} ({s.origin} ➔ {s.destination})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() => {
+              const po =
+                selectedPoNumber || orders[0]?.poNumber || "4500891234";
+              syncOrderMutation.mutate({ poNumber: po });
+            }}
+            disabled={syncOrderMutation.isPending}
+            className="bg-blue-600 hover:bg-blue-500 text-white text-xs flex items-center gap-1.5 shadow-lg shadow-blue-600/20"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            {syncOrderMutation.isPending
+              ? "Sincronizando..."
+              : "Sincronizar Pedido con ERP"}
+          </Button>
         </div>
       </div>
 
@@ -616,7 +723,33 @@ export default function ErpIntegrationsModule() {
 
               <div>
                 <label className="text-xs text-slate-400 block mb-1.5 font-medium">
-                  Sistema ERP Destino / Flujo de Negocio:
+                  Orden de Compra Relacional (SQLite):
+                </label>
+                <select
+                  value={selectedPoNumber}
+                  onChange={(e) => setSelectedPoNumber(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 text-white font-semibold text-xs rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
+                >
+                  {orders.map((o) => (
+                    <option key={o.id} value={o.poNumber}>
+                      {o.erpSystem === "SAP_S4HANA" ? "SAP" : "NetSuite"}:{" "}
+                      {o.poNumber} — {o.vendorName} (
+                      {o.totalAmount.toLocaleString()} {o.currency}) [{o.status}
+                      ]
+                    </option>
+                  ))}
+                  <option value="4500891234">
+                    SAP S/4HANA: 4500891234 (Automotriz)
+                  </option>
+                  <option value="SO-2026-9912">
+                    Oracle NetSuite: SO-2026-9912 (High-Tech)
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1.5 font-medium">
+                  Perfil de Protocolo ERP:
                 </label>
                 <select
                   value={selectedPresetKey}
