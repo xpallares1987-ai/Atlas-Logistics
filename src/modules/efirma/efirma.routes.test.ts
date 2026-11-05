@@ -42,8 +42,10 @@ describe("EFirma Zero-Knowledge API Routes Integration Tests", () => {
 
   it("POST /api/efirma/verify should validate a correctly formatted digital seal and cadena original", async () => {
     const payload = {
-      cadenaOriginal: "||4.0|PEDIMENTO_ADUANAL|26-24-3019-1002931|2026-10-15T12:00:00Z|AAN940112XX1|TEX840211XY9|145000.00|CONTENT||",
-      selloDigitalBase64: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0Y9x8uL1uK8V0b9X8yZa1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef=",
+      cadenaOriginal:
+        "||4.0|PEDIMENTO_ADUANAL|26-24-3019-1002931|2026-10-15T12:00:00Z|AAN940112XX1|TEX840211XY9|145000.00|CONTENT||",
+      selloDigitalBase64:
+        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0Y9x8uL1uK8V0b9X8yZa1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef=",
       certificateSerial: "30001000000508192011",
       rfcTitular: "AAN940112XX1",
     };
@@ -68,7 +70,8 @@ describe("EFirma Zero-Knowledge API Routes Integration Tests", () => {
       url: "/api/efirma/verify",
       payload: {
         cadenaOriginal: "MALFORMED_WITHOUT_DOUBLE_PIPES",
-        selloDigitalBase64: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0Y9x8uL1uK8V0b9X8yZa1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef=",
+        selloDigitalBase64:
+          "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0Y9x8uL1uK8V0b9X8yZa1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef=",
         certificateSerial: "30001000000508192011",
         rfcTitular: "AAN940112XX1",
       },
@@ -84,9 +87,12 @@ describe("EFirma Zero-Knowledge API Routes Integration Tests", () => {
       documentId: "26-24-3019-1002931",
       documentType: "PEDIMENTO_ADUANAL",
       sealResult: {
-        selloDigitalBase64: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0Y9x8uL1uK8V0b9X8yZa1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef=",
-        cadenaOriginal: "||4.0|PEDIMENTO_ADUANAL|26-24-3019-1002931|2026-10-15T12:00:00Z|AAN940112XX1|TEX840211XY9|145000.00|CONTENT||",
-        cadenaOriginalSha256: "8f7a6c5b4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a",
+        selloDigitalBase64:
+          "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0Y9x8uL1uK8V0b9X8yZa1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef=",
+        cadenaOriginal:
+          "||4.0|PEDIMENTO_ADUANAL|26-24-3019-1002931|2026-10-15T12:00:00Z|AAN940112XX1|TEX840211XY9|145000.00|CONTENT||",
+        cadenaOriginalSha256:
+          "8f7a6c5b4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a",
         certificateSerial: "30001000000508192011",
         rfcTitular: "AAN940112XX1",
         razonSocial: "AGENCIA ADUANAL TRANSFRONTERIZA DEL NORTE S.C.",
@@ -123,5 +129,18 @@ describe("EFirma Zero-Knowledge API Routes Integration Tests", () => {
     expect(json.success).toBe(true);
     expect(Array.isArray(json.stamps)).toBe(true);
     expect(json.stamps.length).toBeGreaterThan(0);
+  });
+
+  it("GET /api/efirma/stamps?shipmentId=sh_demo_01 should retrieve persisted audit stamps from SQLite", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/efirma/stamps?shipmentId=sh_demo_01",
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.payload);
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.stamps)).toBe(true);
+    expect(body.stamps.length).toBeGreaterThanOrEqual(1);
+    expect(body.stamps[0].shipmentId).toBe("sh_demo_01");
   });
 });

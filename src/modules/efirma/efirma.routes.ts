@@ -1,5 +1,8 @@
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
+import { db } from "../../db/index.js";
+import * as schema from "../../db/schema/index.js";
+import { eq, desc } from "drizzle-orm";
 import {
   EFirmaDocumentType,
   EFirmaAuditStamp,
@@ -17,10 +20,12 @@ const auditStampLedger: EFirmaAuditStamp[] = [
     documentType: "PEDIMENTO_ADUANAL",
     certificateSerial: "30001000000508192011",
     rfcTitular: "AAN940112XX1",
-    cadenaOriginalSha256: "8f7a6c5b4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a",
+    cadenaOriginalSha256:
+      "8f7a6c5b4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a",
     selloDigitalBase64: "c2VsbG9fZGlnaXRhbF9tb2NrX3Nhbl9yZXF1aXJlZF8wMDE=",
     rfc3161TimestampToken: "TSA-RFC3161-1791807000000-08192011",
-    tamperSealHash: "a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
+    tamperSealHash:
+      "a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
     status: "VALIDATED_AND_SEALED",
     verifiedAt: new Date(Date.now() - 7200000).toISOString(),
   },
@@ -36,6 +41,7 @@ export const VerifyDigitalSealSchema = z.object({
 });
 
 export const AuditStampRequestSchema = z.object({
+  shipmentId: z.string().optional(),
   documentId: z.string().min(1),
   documentType: z.enum([
     "PEDIMENTO_ADUANAL",
@@ -77,11 +83,19 @@ export const efirmaRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    const { cadenaOriginal, selloDigitalBase64, certificateSerial, rfcTitular } = parseResult.data;
+    const {
+      cadenaOriginal,
+      selloDigitalBase64,
+      certificateSerial,
+      rfcTitular,
+    } = parseResult.data;
 
     // Check basic structural integrity and Base64 format
-    const isValidBase64 = /^[A-Za-z0-9+/=]+$/.test(selloDigitalBase64) && selloDigitalBase64.length >= 64;
-    const isWellFormedCadena = cadenaOriginal.startsWith("||") && cadenaOriginal.endsWith("||");
+    const isValidBase64 =
+      /^[A-Za-z0-9+/=]+$/.test(selloDigitalBase64) &&
+      selloDigitalBase64.length >= 64;
+    const isWellFormedCadena =
+      cadenaOriginal.startsWith("||") && cadenaOriginal.endsWith("||");
 
     if (!isValidBase64 || !isWellFormedCadena) {
       return reply.status(400).send({
@@ -117,12 +131,104 @@ export const efirmaRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const { documentId, documentType, sealResult } = parseResult.data;
+    const incomingShipmentId = parseResult.data.shipmentId;
 
     try {
-      const stamp = await createEFirmaAuditStamp(documentId, documentType, sealResult);
-      auditStampLedger.unshift(stamp);
+      const stamp = await createEFirmaAuditStamp(
+        documentId,
+        documentType,
+        sealResult,
+      );
 
-      // Keep recent 50 stamps
+      let resolvedShipmentId: string | null = incomingShipmentId ?? null;
+      let validDocId: string | null = null;
+      let validCartaPorteId: string | null = null;
+
+      const [existingDoc] = await db
+        .select({
+          id: schema.documents.id,
+          shipmentId: schema.documents.shipmentId,
+        })
+        .from(schema.documents)
+        .where(eq(schema.documents.id, documentId))
+        .limit(1);
+
+      if (existingDoc) {
+        validDocId = existingDoc.id;
+        if (!resolvedShipmentId && existingDoc.shipmentId) {
+          resolvedShipmentId = existingDoc.shipmentId;
+        }
+      }
+
+      const [existingCp] = await db
+        .select({
+          id: schema.cartaPorteDeclarations.id,
+          shipmentId: schema.cartaPorteDeclarations.shipmentId,
+        })
+        .from(schema.cartaPorteDeclarations)
+        .where(eq(schema.cartaPorteDeclarations.id, documentId))
+        .limit(1);
+
+      if (existingCp) {
+        validCartaPorteId = existingCp.id;
+        if (!resolvedShipmentId && existingCp.shipmentId) {
+          resolvedShipmentId = existingCp.shipmentId;
+        }
+      }
+
+      if (resolvedShipmentId) {
+        const [existingShipment] = await db
+          .select({ id: schema.shipments.id })
+          .from(schema.shipments)
+          .where(eq(schema.shipments.id, resolvedShipmentId))
+          .limit(1);
+        if (!existingShipment) {
+          resolvedShipmentId = null;
+        }
+      }
+
+      const dbStampRecord = {
+        id: stamp.auditId,
+        shipmentId: resolvedShipmentId,
+        documentId: validDocId,
+        cartaPorteId: validCartaPorteId,
+        documentType: stamp.documentType,
+        certificateSerial: stamp.certificateSerial,
+        rfcTitular: stamp.rfcTitular,
+        razonSocial: sealResult.razonSocial,
+        cadenaOriginal: sealResult.cadenaOriginal,
+        cadenaOriginalSha256: stamp.cadenaOriginalSha256,
+        selloDigitalBase64: stamp.selloDigitalBase64,
+        rfc3161TimestampToken: stamp.rfc3161TimestampToken,
+        tamperSealHash: stamp.tamperSealHash,
+        status: stamp.status,
+        verifiedAt: stamp.verifiedAt,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      await db
+        .insert(schema.efirmaAuditStamps)
+        .values(dbStampRecord)
+        .onConflictDoUpdate({
+          target: schema.efirmaAuditStamps.id,
+          set: dbStampRecord,
+        });
+
+      if (validDocId) {
+        await db
+          .update(schema.documents)
+          .set({
+            status: "SIGNED",
+            signedBy: sealResult.razonSocial,
+            signerCertificate: stamp.certificateSerial,
+            signedAt: new Date(),
+            sha256Hash: stamp.cadenaOriginalSha256,
+          })
+          .where(eq(schema.documents.id, validDocId));
+      }
+
+      auditStampLedger.unshift(stamp);
       if (auditStampLedger.length > 50) {
         auditStampLedger.pop();
       }
@@ -139,12 +245,47 @@ export const efirmaRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // 4. Retrieve audit history
+  // 4. Retrieve audit history from SQLite
   fastify.get("/audit-log", async (_request, reply) => {
+    const dbStamps = await db
+      .select()
+      .from(schema.efirmaAuditStamps)
+      .orderBy(desc(schema.efirmaAuditStamps.createdAt))
+      .limit(50);
     return reply.status(200).send({
       success: true,
-      stamps: auditStampLedger,
+      stamps: dbStamps.length > 0 ? dbStamps : auditStampLedger,
     });
+  });
+
+  // 5. Query persisted stamps by shipmentId or documentId
+  fastify.get("/stamps", async (request, reply) => {
+    const { shipmentId, documentId } = request.query as {
+      shipmentId?: string;
+      documentId?: string;
+    };
+    if (shipmentId) {
+      const stamps = await db
+        .select()
+        .from(schema.efirmaAuditStamps)
+        .where(eq(schema.efirmaAuditStamps.shipmentId, shipmentId))
+        .orderBy(desc(schema.efirmaAuditStamps.createdAt));
+      return reply.send({ success: true, stamps });
+    }
+    if (documentId) {
+      const stamps = await db
+        .select()
+        .from(schema.efirmaAuditStamps)
+        .where(eq(schema.efirmaAuditStamps.documentId, documentId))
+        .orderBy(desc(schema.efirmaAuditStamps.createdAt));
+      return reply.send({ success: true, stamps });
+    }
+    const all = await db
+      .select()
+      .from(schema.efirmaAuditStamps)
+      .orderBy(desc(schema.efirmaAuditStamps.createdAt))
+      .limit(50);
+    return reply.send({ success: true, stamps: all });
   });
 };
 
