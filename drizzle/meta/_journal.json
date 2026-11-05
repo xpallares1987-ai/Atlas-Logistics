@@ -169,6 +169,13 @@
       "when": 1793728149161,
       "tag": "0023_chubby_toad",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1793865406171,
+      "tag": "0024_wonderful_prowler",
+      "breakpoints": true
     }
   ]
 }
