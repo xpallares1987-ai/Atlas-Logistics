@@ -18,3 +18,9 @@
 ## 3. Arquitectura y Verificación
 - **Fastify & API Contracts**: Todos los endpoints que sirvan datos a la UI deben priorizar entidades relacionales reales de SQLite sobre mocks en memoria.
 - **TDD y Verificación**: Ejecutar siempre pruebas unitarias (`pnpm vitest run ...`) antes de dar una tarea por finalizada.
+
+## 4. UI/Frontend: Enlace de Datos en Vivo y Cero Mocks (Zero Mocks)
+- **Consumo Exclusivo de SQLite/Fastify**: Toda acción, mutación o visualización en la UI debe consultar y enviar datos a los endpoints reales de Fastify respaldados por Drizzle y SQLite.
+- **Eliminación de Botoneras de Simulación**: Prohibido añadir o mantener botones de datos artificiales/mock cuando el endpoint operativo ya existe.
+- **Selectores Dinámicos de Entidades**: Las vistas que requieran una expedición o entidad operativa deben proveer selectores dinámicos poblados desde la base de datos (con fallback predeterminado a la expedición canónica `sh_demo_01`), en lugar de IDs hardcodeados o estados estáticos.
+
