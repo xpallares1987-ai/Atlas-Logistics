@@ -16,10 +16,11 @@ import {
   ShieldAlert,
   Scale,
   Zap,
-  Compass,
+  Database,
 } from "lucide-react";
 import { Button, Input } from "@atlas/ui";
 import { useApiMutation, useApiQuery } from "../hooks/useApiQuery";
+import { useShipments } from "../hooks/useShipments";
 import type {
   EFirmaCertificateMetadata,
   EFirmaSigningPayload,
@@ -32,22 +33,53 @@ import {
   verifyDigitalSealWebCrypto,
   generateSandboxRsaKeyPair,
   extractCertificateMetadata,
-  EFIRMA_DEMO_PRESETS,
 } from "@atlas/shared";
 
-type PresetKey =
-  | "pedimento_a1_general"
-  | "pedimento_af_immex"
-  | "carta_porte_31_transfronteriza"
-  | "ebl_mletr_maritimo";
-
 export default function EFirmaHubModule() {
-  const [activeTab, setActiveTab] = useState<"VAULT_CERT" | "SIGNING_STUDIO" | "PUBLIC_VERIFIER">("SIGNING_STUDIO");
-  const [selectedPresetKey, setSelectedPresetKey] = useState<PresetKey>("pedimento_a1_general");
+  const [activeTab, setActiveTab] = useState<
+    "VAULT_CERT" | "SIGNING_STUDIO" | "PUBLIC_VERIFIER"
+  >("SIGNING_STUDIO");
+  const [selectedShipmentId, setSelectedShipmentId] =
+    useState<string>("sh_demo_01");
+  const [selectedDocId, setSelectedDocId] = useState<string>("");
+
+  // Real Shipments from SQLite
+  const { data: shipments = [] } = useShipments();
+  const activeShipment =
+    shipments.find((s) => s.id === selectedShipmentId) || shipments[0];
+
+  // Real Documents for selected shipment from SQLite
+  const { data: documentsData, refetch: refetchDocuments } = useApiQuery<{
+    success: boolean;
+    data: any[];
+  }>(
+    ["documents-shipment", selectedShipmentId],
+    `/documents?shipmentId=${selectedShipmentId}`,
+  );
+  const documents = documentsData?.data || [];
+  const activeDocument =
+    documents.find((d) => d.id === selectedDocId) || documents[0];
+
+  // Real Audit Stamps from SQLite
+  const { data: stampsData, refetch: refetchStamps } = useApiQuery<{
+    success: boolean;
+    stamps: any[];
+  }>(
+    ["efirma-stamps", selectedShipmentId],
+    `/efirma/stamps?shipmentId=${selectedShipmentId}`,
+  );
+  const stamps = stampsData?.stamps || [];
+  const matchingStamp = stamps.find(
+    (s: any) => s.documentId === activeDocument?.id,
+  );
 
   // Volatile In-Memory Key & Certificate State (Never persisted to localStorage)
-  const [cryptoKeyPair, setCryptoKeyPair] = useState<{ publicKey: CryptoKey; privateKey: CryptoKey } | null>(null);
-  const [activeCertificate, setActiveCertificate] = useState<EFirmaCertificateMetadata | null>(null);
+  const [cryptoKeyPair, setCryptoKeyPair] = useState<{
+    publicKey: CryptoKey;
+    privateKey: CryptoKey;
+  } | null>(null);
+  const [activeCertificate, setActiveCertificate] =
+    useState<EFirmaCertificateMetadata | null>(null);
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
   const [vaultExpiresInMinutes, setVaultExpiresInMinutes] = useState(15);
 
@@ -58,22 +90,22 @@ export default function EFirmaHubModule() {
   const [loadingUnlock, setLoadingUnlock] = useState(false);
 
   // Signing Studio State
-  const currentPreset = EFIRMA_DEMO_PRESETS[selectedPresetKey];
   const [signingPayload, setSigningPayload] = useState<EFirmaSigningPayload>({
-    documentType: currentPreset.documentType,
-    documentId: currentPreset.documentId,
-    rfcEmisor: currentPreset.rfcEmisor,
-    rfcReceptor: currentPreset.rfcReceptor,
-    declaredAmountUsd: (currentPreset as any).declaredAmountUsd,
-    declaredAmountMxn: (currentPreset as any).declaredAmountMxn,
-    rawContent: currentPreset.rawContent,
+    documentType: "PEDIMENTO_ADUANAL",
+    documentId: "doc_dua_demo_01",
+    rfcEmisor: "IGE260101XYZ",
+    rfcReceptor: "ALH260202ABC",
+    declaredAmountUsd: 145000,
+    declaredAmountMxn: 2610000,
+    rawContent: "Documento oficial aduanero para despacho de importación",
   });
 
-  const [generatedCadenaOriginal, setGeneratedCadenaOriginal] = useState<string>(
-    generateCanonicalCadenaOriginal(signingPayload)
-  );
-  const [activeSealResult, setActiveSealResult] = useState<EFirmaDigitalSealResult | null>(null);
-  const [activeAuditStamp, setActiveAuditStamp] = useState<EFirmaAuditStamp | null>(null);
+  const [generatedCadenaOriginal, setGeneratedCadenaOriginal] =
+    useState<string>(generateCanonicalCadenaOriginal(signingPayload));
+  const [activeSealResult, setActiveSealResult] =
+    useState<EFirmaDigitalSealResult | null>(null);
+  const [activeAuditStamp, setActiveAuditStamp] =
+    useState<EFirmaAuditStamp | null>(null);
   const [isSigning, setIsSigning] = useState(false);
 
   // Clipboard copies
@@ -91,27 +123,22 @@ export default function EFirmaHubModule() {
     message: string;
   } | null>(null);
 
-  // Queries & Mutations
-  const { data: auditLogData, refetch: refetchAuditLog } = useApiQuery<{ success: boolean; stamps: EFirmaAuditStamp[] }>(
-    ["efirma-audit-log"],
-    "/efirma/audit-log"
-  );
+  // Mutations
+  const verifyMutation = useApiMutation<
+    { success: boolean; isValid: boolean },
+    any
+  >("/efirma/verify", "POST");
 
-  const verifyMutation = useApiMutation<{ success: boolean; isValid: boolean }, any>(
-    "/efirma/verify",
-    "POST"
-  );
-
-  const auditStampMutation = useApiMutation<{ success: boolean; auditStamp: EFirmaAuditStamp }, any>(
-    "/efirma/audit-stamp",
-    "POST",
-    {
-      onSuccess: (res) => {
-        setActiveAuditStamp(res.auditStamp);
-        refetchAuditLog();
-      },
-    }
-  );
+  const auditStampMutation = useApiMutation<
+    { success: boolean; auditStamp: EFirmaAuditStamp },
+    any
+  >("/efirma/audit-stamp", "POST", {
+    onSuccess: (res) => {
+      setActiveAuditStamp(res.auditStamp);
+      refetchStamps();
+      refetchDocuments();
+    },
+  });
 
   // Auto-load Sandbox credentials on mount so the user has an immediate functioning zero-knowledge sandbox
   useEffect(() => {
@@ -124,12 +151,50 @@ export default function EFirmaHubModule() {
     setGeneratedCadenaOriginal(cadena);
   }, [signingPayload]);
 
+  // Synchronize signing payload when active document or matching stamp changes
+  useEffect(() => {
+    if (activeDocument) {
+      const docTypeMapping: Record<string, any> = {
+        CUSTOMS_DECLARATION: "PEDIMENTO_ADUANAL",
+        CARTA_PORTE: "CARTA_PORTE",
+        BILL_OF_LADING: "BILL_OF_LADING",
+        INSURANCE: "POLIZA_SEGURO",
+        INVOICE: "PEDIMENTO_ADUANAL",
+      };
+      const mappedType =
+        docTypeMapping[activeDocument.type] || "PEDIMENTO_ADUANAL";
+      const newPayload: EFirmaSigningPayload = {
+        documentType: mappedType,
+        documentId: activeDocument.id,
+        rfcEmisor: "IGE260101XYZ",
+        rfcReceptor: "ALH260202ABC",
+        declaredAmountUsd: 145000,
+        declaredAmountMxn: 2610000,
+        rawContent: activeDocument.payloadData || activeDocument.name,
+      };
+      setSigningPayload(newPayload);
+      setGeneratedCadenaOriginal(generateCanonicalCadenaOriginal(newPayload));
+
+      if (matchingStamp) {
+        setActiveAuditStamp(matchingStamp);
+        setVerifierCadena(matchingStamp.cadenaOriginalSha256 || "");
+        setVerifierSello(matchingStamp.selloDigitalBase64 || "");
+      } else {
+        setActiveSealResult(null);
+        setActiveAuditStamp(null);
+      }
+    }
+  }, [activeDocument, matchingStamp]);
+
   // Handler: Load Official Sandbox SAT Credentials into client RAM
   const handleLoadSandboxCredentials = async () => {
     try {
       setLoadingUnlock(true);
       const sandbox = await generateSandboxRsaKeyPair();
-      setCryptoKeyPair({ publicKey: sandbox.publicKey, privateKey: sandbox.privateKey });
+      setCryptoKeyPair({
+        publicKey: sandbox.publicKey,
+        privateKey: sandbox.privateKey,
+      });
       setActiveCertificate(sandbox.metadata);
       setIsVaultUnlocked(true);
       setCerFileName("SAT_SANDBOX_AAN940112XX1.cer");
@@ -148,25 +213,6 @@ export default function EFirmaHubModule() {
     setActiveSealResult(null);
   };
 
-  // Handler: Select Preset
-  const handleSelectPreset = (key: PresetKey) => {
-    setSelectedPresetKey(key);
-    const p = EFIRMA_DEMO_PRESETS[key];
-    const newPayload: EFirmaSigningPayload = {
-      documentType: p.documentType,
-      documentId: p.documentId,
-      rfcEmisor: p.rfcEmisor,
-      rfcReceptor: p.rfcReceptor,
-      declaredAmountUsd: (p as any).declaredAmountUsd,
-      declaredAmountMxn: (p as any).declaredAmountMxn,
-      rawContent: p.rawContent,
-    };
-    setSigningPayload(newPayload);
-    setGeneratedCadenaOriginal(generateCanonicalCadenaOriginal(newPayload));
-    setActiveSealResult(null);
-    setActiveAuditStamp(null);
-  };
-
   // Handler: Execute WebCrypto Client-Side Signing
   const handleExecuteSign = async () => {
     if (!cryptoKeyPair?.privateKey || !activeCertificate) {
@@ -180,15 +226,16 @@ export default function EFirmaHubModule() {
       const seal = await signCadenaOriginalWebCrypto(
         cadena,
         cryptoKeyPair.privateKey,
-        activeCertificate
+        activeCertificate,
       );
 
       setActiveSealResult(seal);
       setVerifierCadena(cadena);
       setVerifierSello(seal.selloDigitalBase64);
 
-      // Register audit stamp in backend Fastify (Zero-knowledge: sends only public seal + metadata)
+      // Register audit stamp in backend Fastify and persist to SQLite
       auditStampMutation.mutate({
+        shipmentId: selectedShipmentId,
         documentId: signingPayload.documentId,
         documentType: signingPayload.documentType,
         sealResult: seal,
@@ -221,7 +268,8 @@ export default function EFirmaHubModule() {
       setVerificationFeedback({
         tested: true,
         valid: false,
-        message: "Por favor proporcione la Cadena Original y el Sello Digital a validar.",
+        message:
+          "Por favor proporcione la Cadena Original y el Sello Digital a validar.",
       });
       return;
     }
@@ -231,14 +279,15 @@ export default function EFirmaHubModule() {
       const isValid = await verifyDigitalSealWebCrypto(
         verifierCadena,
         verifierSello,
-        cryptoKeyPair.publicKey
+        cryptoKeyPair.publicKey,
       );
 
       if (isValid) {
         setVerificationFeedback({
           tested: true,
           valid: true,
-          message: "¡Sello Digital Auténtico! La firma coincide matemáticamente con la clave pública del certificado.",
+          message:
+            "¡Sello Digital Auténtico! La firma coincide matemáticamente con la clave pública del certificado.",
         });
         return;
       }
@@ -266,10 +315,11 @@ export default function EFirmaHubModule() {
           setVerificationFeedback({
             tested: true,
             valid: false,
-            message: "Error al verificar la firma. El formato de la cadena o el sello es inválido.",
+            message:
+              "Error al verificar la firma. El formato de la cadena o el sello es inválido.",
           });
         },
-      }
+      },
     );
   };
 
@@ -293,7 +343,8 @@ export default function EFirmaHubModule() {
                 </span>
               </h1>
               <p className="text-sm text-slate-400 mt-0.5">
-                Sellado Digital RSA-SHA256 en memoria volátil de navegador para Pedimentos, Carta Porte 3.1 y e-BLs (Cero fuga de llave privada)
+                Sellado Digital RSA-SHA256 en memoria volátil de navegador para
+                Pedimentos, Carta Porte 3.1 y e-BLs (Cero fuga de llave privada)
               </p>
             </div>
           </div>
@@ -308,15 +359,21 @@ export default function EFirmaHubModule() {
               }`}
             />
             <span className="text-slate-400">Bóveda RAM:</span>
-            <span className={`font-semibold ${isVaultUnlocked ? "text-emerald-400" : "text-rose-400"}`}>
-              {isVaultUnlocked ? `Desbloqueada (${vaultExpiresInMinutes}m)` : "Bloqueada"}
+            <span
+              className={`font-semibold ${isVaultUnlocked ? "text-emerald-400" : "text-rose-400"}`}
+            >
+              {isVaultUnlocked
+                ? `Desbloqueada (${vaultExpiresInMinutes}m)`
+                : "Bloqueada"}
             </span>
           </div>
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
             <span className="text-slate-400">Algoritmo:</span>
-            <span className="font-semibold text-cyan-400">RSASSA-PKCS1-v1_5</span>
+            <span className="font-semibold text-cyan-400">
+              RSASSA-PKCS1-v1_5
+            </span>
           </div>
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs">
@@ -327,39 +384,75 @@ export default function EFirmaHubModule() {
         </div>
       </div>
 
-      {/* Preset Scenario Selector Banner */}
-      <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Relational Shipment & Document Selector Banner */}
+      <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Compass className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+          <Database className="w-5 h-5 text-indigo-400 flex-shrink-0" />
           <div>
-            <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider block">
-              Documentos Oficiales Preconfigurados para Firma
-            </span>
-            <span className="text-sm text-slate-300 font-medium">
-              {currentPreset.title} (ID: {currentPreset.documentId})
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider block">
+                Expediente Digital Relacional (SQLite)
+              </span>
+              {matchingStamp ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Firmado e.firma SAT
+                </span>
+              ) : (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  Pendiente de Firma
+                </span>
+              )}
+            </div>
+            <span className="text-sm text-slate-200 font-medium">
+              {activeDocument
+                ? `${activeDocument.name} (${activeDocument.documentReference || activeDocument.id})`
+                : activeShipment
+                  ? `Embarque ${activeShipment.id} (${activeShipment.origin} ➔ ${activeShipment.destination}) — Sin documentos`
+                  : "Cargando..."}
             </span>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {(["pedimento_a1_general", "pedimento_af_immex", "carta_porte_31_transfronteriza", "ebl_mletr_maritimo"] as PresetKey[]).map(
-            (key) => {
-              const p = EFIRMA_DEMO_PRESETS[key];
-              const isSelected = selectedPresetKey === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => handleSelectPreset(key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    isSelected
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
-                      : "bg-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-                  }`}
-                >
-                  {p.title.split(". ")[1].split(" (")[0]}
-                </button>
-              );
-            }
-          )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400">Embarque:</span>
+            <select
+              value={selectedShipmentId}
+              onChange={(e) => setSelectedShipmentId(e.target.value)}
+              className="bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              {shipments.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.id} ({s.origin} ➔ {s.destination})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400">Documento:</span>
+            <select
+              value={selectedDocId}
+              onChange={(e) => setSelectedDocId(e.target.value)}
+              className="bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-xs truncate"
+            >
+              {documents.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.type}: {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={handleExecuteSign}
+            disabled={isSigning || !isVaultUnlocked}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            {isSigning ? "Firmando con SAT..." : "Firmar con e.firma SAT"}
+          </Button>
         </div>
       </div>
 
@@ -428,34 +521,57 @@ export default function EFirmaHubModule() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <label className="text-slate-400 block mb-1 font-medium">Folio / Identificador</label>
+                    <label className="text-slate-400 block mb-1 font-medium">
+                      Folio / Identificador
+                    </label>
                     <Input
                       value={signingPayload.documentId}
-                      onChange={(e) => setSigningPayload({ ...signingPayload, documentId: e.target.value })}
+                      onChange={(e) =>
+                        setSigningPayload({
+                          ...signingPayload,
+                          documentId: e.target.value,
+                        })
+                      }
                       className="bg-slate-950 border-slate-800 font-mono text-xs"
                     />
                   </div>
 
                   <div>
-                    <label className="text-slate-400 block mb-1 font-medium">RFC Emisor / Firmante</label>
+                    <label className="text-slate-400 block mb-1 font-medium">
+                      RFC Emisor / Firmante
+                    </label>
                     <Input
                       value={signingPayload.rfcEmisor}
-                      onChange={(e) => setSigningPayload({ ...signingPayload, rfcEmisor: e.target.value })}
+                      onChange={(e) =>
+                        setSigningPayload({
+                          ...signingPayload,
+                          rfcEmisor: e.target.value,
+                        })
+                      }
                       className="bg-slate-950 border-slate-800 font-mono text-xs text-emerald-400"
                     />
                   </div>
 
                   <div>
-                    <label className="text-slate-400 block mb-1 font-medium">RFC Receptor / Cliente</label>
+                    <label className="text-slate-400 block mb-1 font-medium">
+                      RFC Receptor / Cliente
+                    </label>
                     <Input
                       value={signingPayload.rfcReceptor}
-                      onChange={(e) => setSigningPayload({ ...signingPayload, rfcReceptor: e.target.value })}
+                      onChange={(e) =>
+                        setSigningPayload({
+                          ...signingPayload,
+                          rfcReceptor: e.target.value,
+                        })
+                      }
                       className="bg-slate-950 border-slate-800 font-mono text-xs text-cyan-400"
                     />
                   </div>
 
                   <div>
-                    <label className="text-slate-400 block mb-1 font-medium">Valor Declarado</label>
+                    <label className="text-slate-400 block mb-1 font-medium">
+                      Valor Declarado
+                    </label>
                     <Input
                       value={
                         signingPayload.declaredAmountUsd != null
@@ -474,7 +590,9 @@ export default function EFirmaHubModule() {
                     Contenido Estructurado de la Transacción
                   </span>
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-slate-300 max-h-36 overflow-y-auto">
-                    <pre>{JSON.stringify(signingPayload.rawContent, null, 2)}</pre>
+                    <pre>
+                      {JSON.stringify(signingPayload.rawContent, null, 2)}
+                    </pre>
                   </div>
                 </div>
               </div>
@@ -490,7 +608,11 @@ export default function EFirmaHubModule() {
                     onClick={handleCopyCadena}
                     className="flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition-colors"
                   >
-                    {copiedCadena ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedCadena ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
                     {copiedCadena ? "Copiada" : "Copiar"}
                   </button>
                 </div>
@@ -516,7 +638,11 @@ export default function EFirmaHubModule() {
                     disabled={isSigning || !isVaultUnlocked}
                     className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/20"
                   >
-                    {isSigning ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                    {isSigning ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Zap className="w-3.5 h-3.5" />
+                    )}
                     Firmar Documento con e.firma (WebCrypto)
                   </Button>
                 </div>
@@ -547,7 +673,11 @@ export default function EFirmaHubModule() {
                         onClick={handleCopySello}
                         className="text-slate-400 hover:text-white text-[10px] flex items-center gap-1"
                       >
-                        {copiedSello ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        {copiedSello ? (
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
                         {copiedSello ? "Copiado" : "Copiar Sello"}
                       </button>
                     </div>
@@ -559,13 +689,17 @@ export default function EFirmaHubModule() {
                   {/* Cryptographic Proof Details */}
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80">
-                      <span className="text-slate-500 text-[10px] block">No. Serie Certificado</span>
+                      <span className="text-slate-500 text-[10px] block">
+                        No. Serie Certificado
+                      </span>
                       <span className="font-mono text-slate-200 text-[11px] truncate block">
                         {activeSealResult.certificateSerial}
                       </span>
                     </div>
                     <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80">
-                      <span className="text-slate-500 text-[10px] block">RFC Titular Firmante</span>
+                      <span className="text-slate-500 text-[10px] block">
+                        RFC Titular Firmante
+                      </span>
                       <span className="font-mono text-emerald-400 text-[11px] truncate block">
                         {activeSealResult.rfcTitular}
                       </span>
@@ -611,9 +745,13 @@ export default function EFirmaHubModule() {
                     <Key className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-white">Listo para Generar Sello Digital</h4>
+                    <h4 className="text-sm font-semibold text-white">
+                      Listo para Generar Sello Digital
+                    </h4>
                     <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-                      Al presionar el botón de firmado, el motor WebCrypto ejecutará la firma RSASSA-PKCS1-v1_5 sobre la Cadena Original en su navegador.
+                      Al presionar el botón de firmado, el motor WebCrypto
+                      ejecutará la firma RSASSA-PKCS1-v1_5 sobre la Cadena
+                      Original en su navegador.
                     </p>
                   </div>
                 </div>
@@ -640,7 +778,10 @@ export default function EFirmaHubModule() {
                       <Lock className="w-4 h-4 text-emerald-400" />
                       Gestión de Llaves y Bóveda Criptográfica
                     </h3>
-                    <p className="text-xs text-slate-400">Zero-Knowledge: La clave privada reside estrictamente en memoria RAM</p>
+                    <p className="text-xs text-slate-400">
+                      Zero-Knowledge: La clave privada reside estrictamente en
+                      memoria RAM
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     {isVaultUnlocked ? (
@@ -659,7 +800,9 @@ export default function EFirmaHubModule() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   {/* .cer File */}
                   <div className="p-4 rounded-xl border border-dashed border-slate-700 bg-slate-950/60 text-center space-y-2">
-                    <span className="font-semibold text-slate-300 block">Certificado Público (.cer)</span>
+                    <span className="font-semibold text-slate-300 block">
+                      Certificado Público (.cer)
+                    </span>
                     <input
                       type="file"
                       accept=".cer"
@@ -668,7 +811,11 @@ export default function EFirmaHubModule() {
                         if (file) {
                           setCerFileName(file.name);
                           setActiveCertificate(
-                            extractCertificateMetadata(file.name, "AAN940112XX1", "AGENCIA ADUANAL DEL NORTE S.C.")
+                            extractCertificateMetadata(
+                              file.name,
+                              "AAN940112XX1",
+                              "AGENCIA ADUANAL DEL NORTE S.C.",
+                            ),
                           );
                         }
                       }}
@@ -683,7 +830,9 @@ export default function EFirmaHubModule() {
 
                   {/* .key File */}
                   <div className="p-4 rounded-xl border border-dashed border-slate-700 bg-slate-950/60 text-center space-y-2">
-                    <span className="font-semibold text-slate-300 block">Llave Privada PKCS#8 (.key)</span>
+                    <span className="font-semibold text-slate-300 block">
+                      Llave Privada PKCS#8 (.key)
+                    </span>
                     <input
                       type="file"
                       accept=".key"
@@ -705,7 +854,9 @@ export default function EFirmaHubModule() {
 
                 {/* Password field */}
                 <div>
-                  <label className="text-slate-400 block mb-1 text-xs font-medium">Contraseña de e.firma (SAT):</label>
+                  <label className="text-slate-400 block mb-1 text-xs font-medium">
+                    Contraseña de e.firma (SAT):
+                  </label>
                   <Input
                     type="password"
                     value={passphrase}
@@ -722,7 +873,11 @@ export default function EFirmaHubModule() {
                     disabled={loadingUnlock}
                     className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs flex items-center gap-2"
                   >
-                    {loadingUnlock ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
+                    {loadingUnlock ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    )}
                     Cargar Credenciales Sandbox SAT (Demo)
                   </Button>
 
@@ -763,39 +918,69 @@ export default function EFirmaHubModule() {
 
                   <div className="space-y-3 text-xs">
                     <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80">
-                      <span className="text-slate-500 text-[10px] block">Titular (Razón Social)</span>
-                      <span className="font-semibold text-white block text-sm">{activeCertificate.razonSocial}</span>
+                      <span className="text-slate-500 text-[10px] block">
+                        Titular (Razón Social)
+                      </span>
+                      <span className="font-semibold text-white block text-sm">
+                        {activeCertificate.razonSocial}
+                      </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80">
-                        <span className="text-slate-500 text-[10px] block">RFC Titular</span>
-                        <span className="font-mono font-bold text-emerald-400">{activeCertificate.rfcTitular}</span>
+                        <span className="text-slate-500 text-[10px] block">
+                          RFC Titular
+                        </span>
+                        <span className="font-mono font-bold text-emerald-400">
+                          {activeCertificate.rfcTitular}
+                        </span>
                       </div>
                       <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80">
-                        <span className="text-slate-500 text-[10px] block">Número de Serie (20 Dígitos)</span>
-                        <span className="font-mono text-cyan-400">{activeCertificate.certificateSerial}</span>
+                        <span className="text-slate-500 text-[10px] block">
+                          Número de Serie (20 Dígitos)
+                        </span>
+                        <span className="font-mono text-cyan-400">
+                          {activeCertificate.certificateSerial}
+                        </span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80">
-                        <span className="text-slate-500 text-[10px] block">Válido Desde</span>
-                        <span className="text-slate-300">{new Date(activeCertificate.validFrom).toLocaleDateString()}</span>
+                        <span className="text-slate-500 text-[10px] block">
+                          Válido Desde
+                        </span>
+                        <span className="text-slate-300">
+                          {new Date(
+                            activeCertificate.validFrom,
+                          ).toLocaleDateString()}
+                        </span>
                       </div>
                       <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80">
-                        <span className="text-slate-500 text-[10px] block">Válido Hasta</span>
-                        <span className="text-slate-300">{new Date(activeCertificate.validUntil).toLocaleDateString()}</span>
+                        <span className="text-slate-500 text-[10px] block">
+                          Válido Hasta
+                        </span>
+                        <span className="text-slate-300">
+                          {new Date(
+                            activeCertificate.validUntil,
+                          ).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
 
                     <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80">
-                      <span className="text-slate-500 text-[10px] block">Autoridad Certificadora (Emisor SAT)</span>
-                      <span className="text-slate-300">{activeCertificate.issuer}</span>
+                      <span className="text-slate-500 text-[10px] block">
+                        Autoridad Certificadora (Emisor SAT)
+                      </span>
+                      <span className="text-slate-300">
+                        {activeCertificate.issuer}
+                      </span>
                     </div>
 
                     <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80">
-                      <span className="text-slate-500 text-[10px] block">Huella Digital SHA-256</span>
+                      <span className="text-slate-500 text-[10px] block">
+                        Huella Digital SHA-256
+                      </span>
                       <span className="font-mono text-[10px] text-slate-400 break-all">
                         {activeCertificate.certificateSha256Fingerprint}
                       </span>
@@ -806,7 +991,8 @@ export default function EFirmaHubModule() {
                 <div className="p-8 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-3">
                   <ShieldAlert className="w-8 h-8 text-slate-500 mx-auto" />
                   <span className="text-xs text-slate-400 block">
-                    No hay ningún certificado cargado. Cargue archivos o active Sandbox.
+                    No hay ningún certificado cargado. Cargue archivos o active
+                    Sandbox.
                   </span>
                 </div>
               )}
@@ -831,12 +1017,16 @@ export default function EFirmaHubModule() {
                     <Scale className="w-4 h-4 text-cyan-400" />
                     Verificador Criptográfico Independiente de Sellos SAT
                   </h3>
-                  <span className="text-xs text-cyan-400 font-mono">Auditoría Dual</span>
+                  <span className="text-xs text-cyan-400 font-mono">
+                    Auditoría Dual
+                  </span>
                 </div>
 
                 <div className="space-y-4 text-xs">
                   <div>
-                    <label className="text-slate-400 block mb-1 font-medium">Cadena Original a Validar:</label>
+                    <label className="text-slate-400 block mb-1 font-medium">
+                      Cadena Original a Validar:
+                    </label>
                     <textarea
                       rows={3}
                       value={verifierCadena}
@@ -847,7 +1037,9 @@ export default function EFirmaHubModule() {
                   </div>
 
                   <div>
-                    <label className="text-slate-400 block mb-1 font-medium">Sello Digital en Base64:</label>
+                    <label className="text-slate-400 block mb-1 font-medium">
+                      Sello Digital en Base64:
+                    </label>
                     <textarea
                       rows={3}
                       value={verifierSello}
@@ -859,7 +1051,9 @@ export default function EFirmaHubModule() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-slate-400 block mb-1 font-medium">Número de Serie del Certificado:</label>
+                      <label className="text-slate-400 block mb-1 font-medium">
+                        Número de Serie del Certificado:
+                      </label>
                       <Input
                         value={verifierSerial}
                         onChange={(e) => setVerifierSerial(e.target.value)}
@@ -867,7 +1061,9 @@ export default function EFirmaHubModule() {
                       />
                     </div>
                     <div>
-                      <label className="text-slate-400 block mb-1 font-medium">RFC Titular Declarado:</label>
+                      <label className="text-slate-400 block mb-1 font-medium">
+                        RFC Titular Declarado:
+                      </label>
                       <Input
                         value={verifierRfc}
                         onChange={(e) => setVerifierRfc(e.target.value)}
@@ -907,7 +1103,9 @@ export default function EFirmaHubModule() {
                       )}
                       <div className="text-xs">
                         <span className="font-bold block">
-                          {verificationFeedback.valid ? "FIRMA VÁLIDA Y AUTÉNTICA" : "FIRMA INVÁLIDA"}
+                          {verificationFeedback.valid
+                            ? "FIRMA VÁLIDA Y AUTÉNTICA"
+                            : "FIRMA INVÁLIDA"}
                         </span>
                         <span>{verificationFeedback.message}</span>
                       </div>
@@ -926,29 +1124,40 @@ export default function EFirmaHubModule() {
                     Historial de Sellos y Acuses RFC 3161
                   </h3>
                   <span className="text-xs text-slate-400 font-mono">
-                    {auditLogData?.stamps?.length || 0} Registros
+                    {stampsData?.stamps?.length || 0} Registros
                   </span>
                 </div>
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {auditLogData?.stamps && auditLogData.stamps.length > 0 ? (
-                    auditLogData.stamps.map((stamp) => (
+                  {stampsData?.stamps && stampsData.stamps.length > 0 ? (
+                    stampsData.stamps.map((stamp: any) => (
                       <div
-                        key={stamp.auditId}
+                        key={stamp.id || stamp.auditId}
                         className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5 text-xs hover:border-slate-700 transition-colors"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-white">{stamp.documentId}</span>
+                          <span className="font-semibold text-white">
+                            {stamp.documentId || stamp.id}
+                          </span>
                           <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">
                             {stamp.documentType}
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-400 font-mono truncate">
-                          Token: {stamp.rfc3161TimestampToken}
+                          Token:{" "}
+                          {stamp.rfc3161TimestampToken || stamp.signatureDigest}
                         </p>
                         <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1">
-                          <span>RFC: {stamp.rfcTitular}</span>
-                          <span>{new Date(stamp.verifiedAt).toLocaleTimeString()}</span>
+                          <span>
+                            RFC: {stamp.signerRfc || stamp.rfcTitular}
+                          </span>
+                          <span>
+                            {stamp.verifiedAt || stamp.stampedAt
+                              ? new Date(
+                                  stamp.verifiedAt || stamp.stampedAt,
+                                ).toLocaleTimeString()
+                              : "Validado"}
+                          </span>
                         </div>
                       </div>
                     ))
