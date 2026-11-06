@@ -6,6 +6,10 @@
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { demurrageDisputeService } from "./demurrage-dispute.service.js";
+import { db } from "../../db/index.js";
+import * as schema from "../../db/schema/index.js";
+import { eq, and } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 const TariffTierSchema = z.object({
   fromDay: z.number(),
@@ -54,7 +58,11 @@ const CarrierInvoiceSchema = z.object({
   billOfLading: z.string().min(1),
   containerNumber: z.string().min(1),
   chargeType: z.enum(["DEMURRAGE", "DETENTION", "PER_DIEM"]),
-  jurisdiction: z.enum(["US_FMC_OSRA_2022", "EU_PORT_STANDARD", "ES_PUERTOS_ESTADO"]),
+  jurisdiction: z.enum([
+    "US_FMC_OSRA_2022",
+    "EU_PORT_STANDARD",
+    "ES_PUERTOS_ESTADO",
+  ]),
   vesselVoyage: z.string().optional(),
   pod: z.string().optional(),
   terminalName: z.string().optional(),
@@ -103,6 +111,186 @@ const DispatchEmailRequestSchema = z.object({
 
 export const demurrageDisputeRoutes: FastifyPluginAsync = async (fastify) => {
   /**
+   * GET /api/demurrage-dispute/invoices
+   * Retrieves relational invoices with nested suspensions and disputes from SQLite.
+   */
+  fastify.get("/invoices", async (request, reply) => {
+    try {
+      const { shipmentId, containerNumber } = request.query as {
+        shipmentId?: string;
+        containerNumber?: string;
+      };
+
+      const query = db.select().from(schema.demurrageInvoices);
+      const conditions = [];
+      if (shipmentId) {
+        conditions.push(eq(schema.demurrageInvoices.shipmentId, shipmentId));
+      }
+      if (containerNumber) {
+        conditions.push(
+          eq(schema.demurrageInvoices.containerNumber, containerNumber),
+        );
+      }
+
+      const invoices =
+        conditions.length > 0
+          ? await query.where(and(...conditions))
+          : await query;
+
+      // Populate child suspensions and disputes for each invoice
+      const enrichedInvoices = await Promise.all(
+        invoices.map(async (inv) => {
+          const suspensions = await db
+            .select()
+            .from(schema.demurrageSuspensions)
+            .where(eq(schema.demurrageSuspensions.invoiceId, inv.id));
+
+          const disputes = await db
+            .select()
+            .from(schema.demurrageDisputes)
+            .where(eq(schema.demurrageDisputes.invoiceId, inv.id));
+
+          return {
+            ...inv,
+            tariffTiers: inv.tariffTiersJson
+              ? JSON.parse(inv.tariffTiersJson)
+              : [],
+            suspensions,
+            disputes,
+          };
+        }),
+      );
+
+      return reply.status(200).send(enrichedInvoices);
+    } catch (err: any) {
+      request.log.error(err, "Failed to fetch demurrage invoices");
+      return reply.status(500).send({
+        error: "FAILED_FETCH_INVOICES",
+        message: err.message,
+      });
+    }
+  });
+
+  /**
+   * POST /api/demurrage-dispute/suspension
+   * Registers a clock-pause suspension for an invoice in SQLite.
+   */
+  fastify.post("/suspension", async (request, reply) => {
+    try {
+      const {
+        invoiceId,
+        startDate,
+        endDate,
+        daysSuspended,
+        reason,
+        justificationText,
+        evidenceDocumentId,
+      } = request.body as any;
+
+      if (
+        !invoiceId ||
+        !startDate ||
+        !endDate ||
+        daysSuspended == null ||
+        !reason
+      ) {
+        return reply.status(400).send({
+          error: "MISSING_REQUIRED_FIELDS",
+          message:
+            "invoiceId, startDate, endDate, daysSuspended, and reason are required.",
+        });
+      }
+
+      const suspensionId = `dsusp_${randomUUID().substring(0, 8)}`;
+      const newSuspension = {
+        id: suspensionId,
+        invoiceId,
+        startDate,
+        endDate,
+        daysSuspended: Number(daysSuspended),
+        reason,
+        justificationText: justificationText || null,
+        evidenceDocumentId: evidenceDocumentId || null,
+        approved: true,
+      };
+
+      await db.insert(schema.demurrageSuspensions).values(newSuspension);
+
+      return reply.status(201).send({
+        success: true,
+        suspension: newSuspension,
+      });
+    } catch (err: any) {
+      request.log.error(err, "Failed to register demurrage suspension");
+      return reply.status(500).send({
+        error: "FAILED_CREATE_SUSPENSION",
+        message: err.message,
+      });
+    }
+  });
+
+  /**
+   * POST /api/demurrage-dispute/dispute
+   * Submits a formal FMC statutory dispute for an invoice in SQLite.
+   */
+  fastify.post("/dispute", async (request, reply) => {
+    try {
+      const {
+        invoiceId,
+        disputedAmountUsd,
+        revisedPayableUsd,
+        fmcRuleClause,
+        formalLetterPayload,
+      } = request.body as any;
+
+      if (
+        !invoiceId ||
+        disputedAmountUsd == null ||
+        revisedPayableUsd == null ||
+        !fmcRuleClause
+      ) {
+        return reply.status(400).send({
+          error: "MISSING_REQUIRED_FIELDS",
+          message:
+            "invoiceId, disputedAmountUsd, revisedPayableUsd, and fmcRuleClause are required.",
+        });
+      }
+
+      const disputeId = `ddisp_${randomUUID().substring(0, 8)}`;
+      const newDispute = {
+        id: disputeId,
+        invoiceId,
+        disputedAmountUsd: Number(disputedAmountUsd),
+        revisedPayableUsd: Number(revisedPayableUsd),
+        fmcRuleClause,
+        status: "SUBMITTED" as const,
+        formalLetterPayload: formalLetterPayload
+          ? JSON.stringify(formalLetterPayload)
+          : null,
+        submittedAt: Math.floor(Date.now() / 1000),
+      };
+
+      await db.insert(schema.demurrageDisputes).values(newDispute);
+
+      // Update invoice status to DISPUTED
+      await db
+        .update(schema.demurrageInvoices)
+        .set({ status: "DISPUTED" })
+        .where(eq(schema.demurrageInvoices.id, invoiceId));
+
+      return reply.status(201).send({
+        success: true,
+        dispute: newDispute,
+      });
+    } catch (err: any) {
+      request.log.error(err, "Failed to submit demurrage dispute");
+      return reply.status(500).send({
+        error: "FAILED_CREATE_DISPUTE",
+        message: err.message,
+      });
+    }
+  });
+  /**
    * GET /api/demurrage-dispute/presets
    * Retrieves high-impact dispute regulatory demo presets.
    */
@@ -138,7 +326,9 @@ export const demurrageDisputeRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(200).send(result);
     } catch (err: any) {
       request.log.error(err, "Demurrage audit failed");
-      return reply.status(500).send({ error: "AUDIT_EXECUTION_FAILED", message: err.message });
+      return reply
+        .status(500)
+        .send({ error: "AUDIT_EXECUTION_FAILED", message: err.message });
     }
   });
 
@@ -160,7 +350,9 @@ export const demurrageDisputeRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(200).send(pack);
     } catch (err: any) {
       request.log.error(err, "Failed to generate dispute pack");
-      return reply.status(500).send({ error: "PACK_GENERATION_FAILED", message: err.message });
+      return reply
+        .status(500)
+        .send({ error: "PACK_GENERATION_FAILED", message: err.message });
     }
   });
 
@@ -182,7 +374,9 @@ export const demurrageDisputeRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(200).send(receipt);
     } catch (err: any) {
       request.log.error(err, "Failed to dispatch dispute email");
-      return reply.status(500).send({ error: "EMAIL_DISPATCH_FAILED", message: err.message });
+      return reply
+        .status(500)
+        .send({ error: "EMAIL_DISPATCH_FAILED", message: err.message });
     }
   });
 
