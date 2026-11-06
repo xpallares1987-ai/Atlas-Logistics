@@ -1,0 +1,63 @@
+ARG NODE_VERSION=22
+ARG PNPM_VERSION=11.5.1
+
+# ============================================================================
+# STAGE 1: BASE — Minimal dependencies with pnpm setup
+# ============================================================================
+FROM node:${NODE_VERSION}-alpine AS base
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV HUSKY=0
+ENV CI=true
+
+RUN apk add --no-cache git python3 make g++ && \
+    corepack enable && \
+    corepack prepare pnpm@${PNPM_VERSION} --activate
+
+WORKDIR /app
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
+COPY packages ./packages
+
+# ============================================================================
+# STAGE 2: PRODUCTION DEPENDENCIES — Install only runtime deps
+# ============================================================================
+FROM base AS prod-deps
+
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prod --ignore-scripts
+
+# ============================================================================
+# STAGE 3: PRODUCTION — Lightweight Worker runtime
+# ============================================================================
+FROM node:${NODE_VERSION}-alpine AS production
+
+ENV NODE_ENV="production"
+ENV NODE_OPTIONS="--max-old-space-size=1024"
+
+WORKDIR /app
+
+# Copy production node_modules
+COPY --from=prod-deps /app/node_modules /app/node_modules
+COPY --from=prod-deps /app/packages /app/packages
+COPY src ./src
+COPY drizzle ./drizzle
+COPY package.json pnpm-lock.yaml ./
+
+# Create data directory for any local persistence
+RUN mkdir -p /app/data && chmod 755 /app/data
+
+# Run as non-root for security
+RUN addgroup -g 1000 node && \
+    adduser -D -u 1000 -G node node && \
+    chown -R node:node /app
+
+USER node
+
+# Workers don't expose ports, but signal readiness via logs
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
+    CMD ["/bin/sh", "-c", "ps aux | grep 'worker-node' | grep -v grep || exit 1"]
+
+# Start worker in watch mode for zero-downtime redeploys
+CMD ["node", "--import", "tsx/esm", "src/worker-node.ts"]

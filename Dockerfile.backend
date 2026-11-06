@@ -21,7 +21,43 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
 COPY packages ./packages
 
 # ============================================================================
-# STAGE 2: PRODUCTION DEPENDENCIES — Install workspace runtime dependencies
+# STAGE 2: DEPENDENCIES — Install all dependencies (for both dev & prod)
+# ============================================================================
+FROM base AS dependencies
+
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts
+
+# ============================================================================
+# STAGE 3: DEVELOPMENT — Hot-reload with volumes
+# ============================================================================
+FROM dependencies AS development
+
+ENV NODE_ENV="development"
+ENV NODE_OPTIONS="--max-old-space-size=1024 --enable-source-maps"
+ENV LOG_LEVEL="debug"
+
+WORKDIR /app
+
+# Dependencies already cached from previous stage
+COPY src ./src
+COPY drizzle ./drizzle
+COPY package.json pnpm-lock.yaml tsconfig*.json ./
+
+# Create data directory for SQLite
+RUN mkdir -p /app/data && chmod 777 /app/data
+
+EXPOSE 3001
+
+# Healthcheck for dev environment
+HEALTHCHECK --interval=15s --timeout=10s --retries=3 --start-period=15s \
+    CMD ["/bin/sh", "-c", "node -e \"fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\" || exit 1"]
+
+# Watch mode with tsx for fast reloads
+CMD ["pnpm", "start:backend"]
+
+# ============================================================================
+# STAGE 4: PRODUCTION DEPENDENCIES — Install only runtime deps
 # ============================================================================
 FROM base AS prod-deps
 
@@ -29,7 +65,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # ============================================================================
-# STAGE 3: PRODUCTION — Lightweight Fastify runtime
+# STAGE 5: PRODUCTION — Lightweight Fastify runtime
 # ============================================================================
 FROM node:${NODE_VERSION}-alpine AS production
 
@@ -41,17 +77,23 @@ WORKDIR /app
 # Copy production node_modules and packages with pre-built artifacts
 COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=prod-deps /app/packages /app/packages
-COPY packages ./packages
 COPY src ./src
 COPY drizzle ./drizzle
 COPY package.json pnpm-lock.yaml ./
 
-# Create data directory for SQLite
-RUN mkdir -p /app/data
+# Create data directory for SQLite (production use)
+RUN mkdir -p /app/data && chmod 755 /app/data
+
+# Run as non-root for security (create node user with home dir)
+RUN addgroup -g 1000 node && \
+    adduser -D -u 1000 -G node node && \
+    chown -R node:node /app
+
+USER node
 
 EXPOSE 3001
 
-# Healthcheck using native Node fetch
+# Production healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
     CMD ["/bin/sh", "-c", "node -e \"fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\" || exit 1"]
 

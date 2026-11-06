@@ -1,10 +1,25 @@
-name: atlas-logistics
+# ==============================================================================
+# ATLAS LOGISTICS — DOCKER COMPOSE FOR PRODUCTION DEPLOYMENT
+# ==============================================================================
+# Single-host production deployment with proper resource limits, networking,
+# restart policies, and comprehensive healthchecks.
+#
+# For multi-node deployments, use Docker Swarm or Kubernetes.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d                 # Deploy
+#   docker compose -f docker-compose.prod.yml logs -f backend       # Tail logs
+#   docker compose -f docker-compose.prod.yml down                  # Stop
+#
+# ==============================================================================
 
-x-common-security: &common_security
-  security_opt:
-    - no-new-privileges:true
+version: '3.8'
 
-x-common-healthcheck: &default_healthcheck
+x-common-variables: &common_env
+  NODE_ENV: production
+  LOG_LEVEL: info
+
+x-health-check: &default_healthcheck
   interval: 30s
   timeout: 10s
   retries: 3
@@ -12,7 +27,7 @@ x-common-healthcheck: &default_healthcheck
 
 services:
   # ============================================================================
-  # BACKEND SERVICE (Node.js + Fastify)
+  # BACKEND SERVICE (Node.js + Fastify + SQLite + BullMQ)
   # ============================================================================
   backend:
     build:
@@ -22,22 +37,21 @@ services:
       args:
         NODE_VERSION: 22
         PNPM_VERSION: 11.5.1
-    image: atlas-logistics:backend-prod
     container_name: atlas-backend-prod
+    image: atlas-logistics:backend-prod
     restart: always
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      LOG_LEVEL: info
-      JWT_SECRET: ${JWT_SECRET}
-      COOKIE_SECRET: ${COOKIE_SECRET}
-    expose:
-      - "3001"
     ports:
       - "3001:3001"
+    env_file:
+      - .env.production
+    environment:
+      <<: *common_env
+      DATABASE_URL: ${DATABASE_URL:-file:/app/data/prod.db}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
     volumes:
-      - ./data:/app/data
+      # Data persistence for SQLite database
+      - backend_data:/app/data
     depends_on:
       redis:
         condition: service_healthy
@@ -45,22 +59,29 @@ services:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       <<: *default_healthcheck
     networks:
-      atlas-network:
+      default:
         aliases:
           - api
           - backend
-    <<: *common_security
+    # Resource limits prevent memory leaks and runaway processes
     deploy:
       resources:
         limits:
           cpus: '2'
-          memory: 2G
+          memory: 2.5G
         reservations:
           cpus: '1'
-          memory: 1G
+          memory: 1.5G
+    security_opt:
+      - no-new-privileges:true
+    read_only_root_filesystem: false  # Allow writes to /app/data
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
 
   # ============================================================================
-  # FRONTEND SERVICE (Nginx reverse proxy)
+  # FRONTEND SERVICE (Nginx SPA + API reverse proxy)
   # ============================================================================
   frontend:
     build:
@@ -70,21 +91,24 @@ services:
       args:
         NODE_VERSION: 22
         PNPM_VERSION: 11.5.1
-        VITE_API_URL: ${VITE_API_URL}
-    image: atlas-logistics:frontend-prod
     container_name: atlas-frontend-prod
+    image: atlas-logistics:frontend-prod
     restart: always
     ports:
       - "80:8080"
+      - "443:8443"  # Enable TLS termination (configure with cert volumes)
     depends_on:
       backend:
         condition: service_healthy
-    networks:
-      - atlas-network
     healthcheck:
-      test: ["CMD", "sh", "-c", "wget --quiet --tries=1 --spider http://localhost:8080/healthz || exit 1"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
       <<: *default_healthcheck
-    <<: *common_security
+    networks:
+      - default
+    volumes:
+      # Optional: TLS certificates for HTTPS
+      # - /etc/letsencrypt/live/example.com:/etc/nginx/certs:ro
+      # - /etc/letsencrypt/live/example.com:/etc/ssl/certs:ro
     deploy:
       resources:
         limits:
@@ -93,6 +117,65 @@ services:
         reservations:
           cpus: '0.5'
           memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+  # ============================================================================
+  # WORKER SERVICE (BullMQ Background Jobs)
+  # ============================================================================
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+      target: production
+      args:
+        NODE_VERSION: 22
+        PNPM_VERSION: 11.5.1
+    container_name: atlas-worker-prod
+    image: atlas-logistics:worker-prod
+    restart: always
+    env_file:
+      - .env.production
+    environment:
+      <<: *common_env
+      DATABASE_URL: ${DATABASE_URL:-file:/app/data/prod.db}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      ENABLE_WORKERS: "true"
+    volumes:
+      # Shared data directory for SQLite
+      - backend_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ps aux | grep 'worker-node' | grep -v grep || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - default
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1.5G
+        reservations:
+          cpus: '0.75'
+          memory: 1G
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
 
   # ============================================================================
   # REDIS (Message Queue & Cache)
@@ -102,34 +185,166 @@ services:
     pull_policy: if_not_present
     container_name: atlas-redis-prod
     restart: always
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    expose:
-      - "6379"
+    ports:
+      - "6379:6379"
     volumes:
+      # Persistent RDB snapshots + AOF log
       - redis_data:/data
-    networks:
-      - atlas-network
+    command:
+      - redis-server
+      - "--appendonly"
+      - "yes"
+      - "--appendfsync"
+      - "everysec"
+      - "--save"
+      - "900 1"
+      - "--save"
+      - "300 10"
+      - "--save"
+      - "60 10000"
+      - "--maxmemory"
+      - "512mb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 5s
-      timeout: 3s
+      interval: 10s
+      timeout: 5s
       retries: 5
-      start_period: 10s
-    <<: *common_security
+      start_period: 15s
+    networks:
+      - default
     deploy:
       resources:
         limits:
+          cpus: '1'
+          memory: 768M
+        reservations:
           cpus: '0.5'
           memory: 512M
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================================================
+  # PROMETHEUS (Metrics Collection & Alerting) — Optional
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    pull_policy: if_not_present
+    container_name: atlas-prometheus-prod
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./grafana/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./grafana/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      <<: *default_healthcheck
+    networks:
+      - default
+    profiles:
+      - observability
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
         reservations:
+          cpus: '0.5'
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================================================
+  # GRAFANA (Visualization & Dashboards) — Optional
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    pull_policy: if_not_present
+    container_name: atlas-grafana-prod
+    restart: always
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      GF_SECURITY_ADMIN_USER: admin
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3002}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      <<: *default_healthcheck
+    networks:
+      - default
+    profiles:
+      - observability
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================================================
+  # NODE EXPORTER (System Metrics Collection) — Optional
+  # ============================================================================
+  node-exporter:
+    image: prom/node-exporter:latest
+    pull_policy: if_not_present
+    container_name: atlas-node-exporter-prod
+    restart: always
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.netdev.device-exclude=^(docker[0-9a-f]+|veth[0-9a-f]+)$$'
+    networks:
+      - default
+    profiles:
+      - observability
+    deploy:
+      resources:
+        limits:
           cpus: '0.25'
-          memory: 256M
+          memory: 128M
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
+  backend_data:
+    driver: local
   redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local
 
 networks:
-  atlas-network:
+  default:
     name: atlas-network
     driver: bridge

@@ -1,32 +1,68 @@
 # ============================================================================
-# ATLAS LOGISTICS — FRONTEND PRODUCTION DOCKERFILE
-# Multi-stage optimized: Pre-built production assets served via Nginx Alpine
+# ATLAS LOGISTICS — FRONTEND DOCKERFILE
+# Multi-stage: Build (Node) → Production (Nginx Alpine)
+# Optimized for: CI/CD, container registries, production deployments
 # ============================================================================
 ARG NODE_VERSION=22
 ARG PNPM_VERSION=11.5.1
 
+# ============================================================================
+# STAGE 1: BUILDER — Monorepo build with Turbo caching
+# ============================================================================
+FROM node:${NODE_VERSION}-alpine AS builder
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV HUSKY=0
+ENV CI=true
+
+RUN apk add --no-cache git python3 make g++ && \
+    corepack enable && \
+    corepack prepare pnpm@${PNPM_VERSION} --activate
+
+WORKDIR /app
+
+# Copy monorepo config + dependencies lock
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
+COPY packages ./packages
+COPY tsconfig*.json ./
+
+# Install dependencies with cache mounts (BuildKit optimization)
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts
+
+# Copy shared packages for build context
+COPY packages/shared ./packages/shared
+COPY packages/ui ./packages/ui
+COPY packages/frontend ./packages/frontend
+
+# Build frontend assets with Turbo caching
+RUN pnpm run build --filter @atlas/frontend
+
+# ============================================================================
+# STAGE 2: PRODUCTION — Nginx reverse proxy for SPA + API gateway
+# ============================================================================
 FROM nginx:alpine AS production
 
-# Copy nginx configuration
+# Non-root user already exists in nginx:alpine (uid 101)
+RUN apk add --no-cache ca-certificates
+
+# Nginx configuration (API reverse proxy, SPA routing, security headers)
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy pre-built frontend distribution
-COPY packages/frontend/dist /usr/share/nginx/html
+# Copy built frontend SPA from builder
+COPY --from=builder --chown=nginx:nginx /app/packages/frontend/dist /usr/share/nginx/html
 
-# Create non-root user for security
-RUN addgroup -g 101 -S nginx && \
-    adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx && \
-    chown -R nginx:nginx /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d
+# Create required nginx directories with proper permissions
+RUN mkdir -p /var/cache/nginx /var/run && \
+    chown -R nginx:nginx /var/cache/nginx /var/run /etc/nginx/conf.d
 
 USER nginx
 
 EXPOSE 8080
 
-# Healthcheck with built-in wget
+# Healthcheck: Validate Nginx is responsive
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s \
-    CMD ["/bin/sh", "-c", "wget --quiet --tries=1 --spider http://localhost:8080/healthz || exit 1"]
+    CMD ["wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
 
 CMD ["nginx", "-g", "daemon off;"]
