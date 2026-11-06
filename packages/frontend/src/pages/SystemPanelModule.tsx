@@ -151,9 +151,134 @@ export default function SystemPanelModule() {
     }
   };
 
+  // Google Gemini AI Studio (Free-Tier On-Demand) State
+  const [aiStatus, setAiStatus] = useState<{
+    configured: boolean;
+    maskedKey: string | null;
+    defaultModel: string;
+    liteModel: string;
+    mode: string;
+    freeTierGuardrails: {
+      maxRpm: number;
+      maxRpd: number;
+      cacheTtlSeconds: number;
+      maxOutputTokens: number;
+    };
+    quota: {
+      rpmUsed: number;
+      rpmLimit: number;
+      rpdUsed: number;
+      rpdLimit: number;
+    };
+    cache: {
+      keys: number;
+      hits: number;
+      misses: number;
+    };
+  } | null>(null);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [isSavingKey, setIsSavingKey] = useState(false);
+  const [keySaveFeedback, setKeySaveFeedback] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+  const [copilotPrompt, setCopilotPrompt] = useState(
+    "Analiza el estado operativo actual de la expedición sh_demo_01 (BK-2026-67116) y resume riesgos aduaneros o de demurrage.",
+  );
+  const [isRunningCopilot, setIsRunningCopilot] = useState(false);
+  const [copilotResponse, setCopilotResponse] = useState<{
+    reply: string;
+    source: string;
+    model: string;
+    latencyMs: number;
+    quotaRemainingRpm: number;
+  } | null>(null);
+
+  const fetchAiStatus = async () => {
+    try {
+      const res = await fetch("/api/ai/config-status");
+      if (res.ok) {
+        const data = await res.json();
+        setAiStatus(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Gemini AI status:", err);
+    }
+  };
+
+  const handleConfigureGeminiKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!apiKeyInput.trim()) return;
+    setIsSavingKey(true);
+    setKeySaveFeedback(null);
+    try {
+      const res = await fetch("/api/ai/configure-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKey: apiKeyInput.trim(),
+          persistToEnvLocal: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setKeySaveFeedback({
+          success: true,
+          message: data.message,
+        });
+        setApiKeyInput("");
+        if (data.status) setAiStatus(data.status);
+      } else {
+        setKeySaveFeedback({
+          success: false,
+          message: data.error || "Error al vincular GEMINI_API_KEY",
+        });
+      }
+    } catch (err: any) {
+      setKeySaveFeedback({
+        success: false,
+        message: err.message || "Error de red al configurar GEMINI_API_KEY",
+      });
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
+
+  const handleRunOnDemandCopilot = async () => {
+    if (!copilotPrompt.trim()) return;
+    setIsRunningCopilot(true);
+    try {
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: copilotPrompt.trim(),
+          context: { shipmentId: "sh_demo_01" },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCopilotResponse({
+          reply: data.reply,
+          source: data.source,
+          model: data.model,
+          latencyMs: data.latencyMs,
+          quotaRemainingRpm: data.quotaRemainingRpm,
+        });
+        await fetchAiStatus();
+      }
+    } catch (err) {
+      console.error("Error running On-Demand Gemini Copilot:", err);
+    } finally {
+      setIsRunningCopilot(false);
+    }
+  };
+
   useEffect(() => {
     if (activeSubTab === "DATABASE_SEED") {
       fetchSeedStatus();
+    } else if (activeSubTab === "INTEGRATIONS") {
+      fetchAiStatus();
     }
   }, [activeSubTab]);
 
@@ -1001,69 +1126,223 @@ export default function SystemPanelModule() {
         </div>
       )}
 
-      {/* SUBTAB 3: ERP & B2B EDI CONNECTORS */}
+      {/* SUBTAB 3: ERP, B2B EDI & GOOGLE GEMINI AI STUDIO CONNECTORS */}
       {activeSubTab === "INTEGRATIONS" && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                Enterprise ERP
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                CONNECTED
-              </span>
+        <div className="space-y-6">
+          {/* Google AI Studio (Gemini Free-Tier On-Demand) Gateway Card */}
+          <div className="bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 space-y-5 shadow-xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  <Cpu size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-base font-bold text-white">
+                      Google AI Studio · Gemini API (Free-Tier On-Demand)
+                    </h4>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                        aiStatus?.configured
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                      }`}
+                    >
+                      {aiStatus?.configured
+                        ? `ACTIVE (${aiStatus.maskedKey})`
+                        : "FALLBACK DETERMINÍSTICO (SIN CLAVE)"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Ejecución estrictamente bajo petición directa del usuario (0
+                    llamadas en segundo plano). Protegido con límite de 12 RPM,
+                    caché SHA-256 (30 min) y fallback determinístico.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+                <span className="px-3 py-1 rounded-xl bg-slate-950 border border-slate-800 text-indigo-300">
+                  Modelo: {aiStatus?.defaultModel || "gemini-2.5-flash"}
+                </span>
+                <span className="px-3 py-1 rounded-xl bg-slate-950 border border-slate-800 text-emerald-300">
+                  RPM: {aiStatus?.quota.rpmUsed ?? 0}/
+                  {aiStatus?.quota.rpmLimit ?? 12}
+                </span>
+                <span className="px-3 py-1 rounded-xl bg-slate-950 border border-slate-800 text-cyan-300">
+                  RPD: {aiStatus?.quota.rpdUsed ?? 0}/
+                  {aiStatus?.quota.rpdLimit ?? 1400}
+                </span>
+                <span className="px-3 py-1 rounded-xl bg-slate-950 border border-slate-800 text-amber-300">
+                  Cache Hits: {aiStatus?.cache.hits ?? 0}
+                </span>
+              </div>
             </div>
-            <h4 className="text-base font-bold text-white">
-              SAP S/4HANA OData / IDoc
-            </h4>
-            <p className="text-xs text-slate-400">
-              Synchronizes purchase orders, sales bills, and billing documents
-              with central corporate SAP enterprise instance.
-            </p>
-            <div className="text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-800">
-              Endpoint: https://sap.atlas-logistics.internal/odata/v4/
+
+            {/* Key Linking & On-Demand Copilot Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left: API Key Configuration (.env.local) */}
+              <form
+                onSubmit={handleConfigureGeminiKey}
+                className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <Key size={14} className="text-indigo-400" />
+                    Vincular API Key de Google AI Studio (Gratuita)
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    Persistencia local: .env.local (Ignorado en Git)
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Introduce tu clave generada en Google AI Studio (comienza por{" "}
+                  <code className="text-indigo-300">AIzaSy...</code>) para
+                  activar respuestas en vivo en los botones On-Demand de la
+                  aplicación.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
+                    placeholder="AIzaSy..."
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isSavingKey || !apiKeyInput.trim()}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4"
+                  >
+                    {isSavingKey ? "Vinculando..." : "Vincular Clave"}
+                  </Button>
+                </div>
+                {keySaveFeedback && (
+                  <div
+                    className={`p-2.5 rounded-xl text-xs border ${
+                      keySaveFeedback.success
+                        ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-300"
+                        : "bg-rose-950/40 border-rose-500/30 text-rose-300"
+                    }`}
+                  >
+                    {keySaveFeedback.message}
+                  </div>
+                )}
+              </form>
+
+              {/* Right: Interactive On-Demand Test Copilot */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <Sparkles size={14} className="text-emerald-400" />
+                    Consola On-Demand: Copiloto Operativo SQLite
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-mono">
+                    Contexto: sh_demo_01 (BK-2026-67116)
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={copilotPrompt}
+                    onChange={(e) => setCopilotPrompt(e.target.value)}
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleRunOnDemandCopilot}
+                    disabled={isRunningCopilot}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 flex items-center gap-1.5 shrink-0"
+                  >
+                    <Sparkles size={13} />
+                    {isRunningCopilot ? "Consultando..." : "Ejecutar On-Demand"}
+                  </Button>
+                </div>
+                {copilotResponse && (
+                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                      <span className="text-emerald-400 font-bold">
+                        Origen: {copilotResponse.source} (
+                        {copilotResponse.model})
+                      </span>
+                      <span>
+                        {copilotResponse.latencyMs}ms · RPM libre:{" "}
+                        {copilotResponse.quotaRemainingRpm}/12
+                      </span>
+                    </div>
+                    <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">
+                      {copilotResponse.reply}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
-                Cloud Financials
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                ACTIVE
-              </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                  Enterprise ERP
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  CONNECTED
+                </span>
+              </div>
+              <h4 className="text-base font-bold text-white">
+                SAP S/4HANA OData / IDoc
+              </h4>
+              <p className="text-xs text-slate-400">
+                Synchronizes purchase orders, sales bills, and billing documents
+                with central corporate SAP enterprise instance.
+              </p>
+              <div className="text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-800">
+                Endpoint: https://sap.atlas-logistics.internal/odata/v4/
+              </div>
             </div>
-            <h4 className="text-base font-bold text-white">
-              Oracle NetSuite SuiteTalk
-            </h4>
-            <p className="text-xs text-slate-400">
-              Real-time multi-currency exchange rates, carrier AP invoices, and
-              general ledger journal posting.
-            </p>
-            <div className="text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-800">
-              REST Web Services: Token-Based Auth (TBA)
-            </div>
-          </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-                B2B Interchanges
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                5 PARTNERS
-              </span>
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                  Cloud Financials
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  ACTIVE
+                </span>
+              </div>
+              <h4 className="text-base font-bold text-white">
+                Oracle NetSuite SuiteTalk
+              </h4>
+              <p className="text-xs text-slate-400">
+                Real-time multi-currency exchange rates, carrier AP invoices,
+                and general ledger journal posting.
+              </p>
+              <div className="text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-800">
+                REST Web Services: Token-Based Auth (TBA)
+              </div>
             </div>
-            <h4 className="text-base font-bold text-white">
-              ANSI X12 & UN/EDIFACT Hub
-            </h4>
-            <p className="text-xs text-slate-400">
-              EDI 300 (Booking Request), EDI 301 (Confirmation), EDI 310 (Vessel
-              Manifest), and IFTMIN instructions.
-            </p>
-            <div className="text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-800">
-              Protocol: AS2 Encrypted / SFTP Mailbox
+
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                  B2B Interchanges
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  5 PARTNERS
+                </span>
+              </div>
+              <h4 className="text-base font-bold text-white">
+                ANSI X12 & UN/EDIFACT Hub
+              </h4>
+              <p className="text-xs text-slate-400">
+                EDI 300 (Booking Request), EDI 301 (Confirmation), EDI 310
+                (Vessel Manifest), and IFTMIN instructions.
+              </p>
+              <div className="text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-800">
+                Protocol: AS2 Encrypted / SFTP Mailbox
+              </div>
             </div>
           </div>
         </div>

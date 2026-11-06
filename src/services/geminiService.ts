@@ -103,22 +103,37 @@ function pruneAndCheckQuota(): {
 export function getGeminiServiceStatus() {
   const quota = pruneAndCheckQuota();
   const apiKey = resolveApiKey();
+  const masked = apiKey ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : null;
+  const cacheInfo = {
+    keys: responseCache.keys().length,
+    hits: responseCache.getStats().hits,
+    misses: responseCache.getStats().misses,
+  };
   return {
     configured: Boolean(apiKey),
-    keyMasked: apiKey ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : null,
+    keyMasked: masked,
+    maskedKey: masked,
     model: DEFAULT_MODEL,
+    defaultModel: DEFAULT_MODEL,
+    liteModel: "gemini-2.5-flash-lite",
+    mode: "ON_DEMAND_FREE_TIER",
     tier: "Google AI Studio Free Tier (On-Demand)",
+    freeTierGuardrails: {
+      maxRpm: FREE_TIER_MAX_RPM,
+      maxRpd: FREE_TIER_MAX_RPD,
+      cacheTtlSeconds: 1800,
+      maxOutputTokens: 650,
+    },
     quota: {
       rpmUsed: quota.rpmUsed,
       rpmLimit: FREE_TIER_MAX_RPM,
       requestsToday: quota.requestsToday,
       dailyLimit: FREE_TIER_MAX_RPD,
+      rpdUsed: quota.requestsToday,
+      rpdLimit: FREE_TIER_MAX_RPD,
     },
-    cacheStats: {
-      keys: responseCache.keys().length,
-      hits: responseCache.getStats().hits,
-      misses: responseCache.getStats().misses,
-    },
+    cache: cacheInfo,
+    cacheStats: cacheInfo,
   };
 }
 

@@ -356,6 +356,43 @@ export default function DemurrageAlertsModule() {
     },
   });
 
+  // On-Demand Gemini AI FMC Legal Draft Mutation (POST /api/ai/fmc-dispute-draft)
+  const [geminiDraftResult, setGeminiDraftResult] = useState<{
+    draftText: string;
+    source: "gemini-live" | "gemini-cache" | "deterministic-fallback";
+    model: string;
+    latencyMs: number;
+    quotaRemainingRpm: number;
+    reason?: string;
+  } | null>(null);
+
+  const generateGeminiFmcDraftMutation = useApiMutation<
+    {
+      success: boolean;
+      draftText: string;
+      source: "gemini-live" | "gemini-cache" | "deterministic-fallback";
+      model: string;
+      latencyMs: number;
+      quotaRemainingRpm: number;
+      reason?: string;
+    },
+    { invoiceId?: string; shipmentId?: string; customInstructions?: string }
+  >("/ai/fmc-dispute-draft", "POST", {
+    onSuccess: (data) => {
+      setGeminiDraftResult(data);
+    },
+  });
+
+  const handleGenerateGeminiDraft = () => {
+    generateGeminiFmcDraftMutation.mutate({
+      invoiceId: activeDbInvoice?.id || "dinv_sh_demo_01",
+      shipmentId: selectedShipmentId || "sh_demo_01",
+    });
+  };
+
+  const activeLetterBody =
+    geminiDraftResult?.draftText || disputePack.formalLetterBody;
+
   const handlePresentFmcDispute = () => {
     const invoiceId = activeDbInvoice?.id || "dinv_sh_demo_01";
     submitDisputeMutation.mutate({
@@ -368,7 +405,8 @@ export default function DemurrageAlertsModule() {
       formalLetterPayload: {
         dossierId: disputePack.dossierId,
         subject: disputePack.formalLetterSubject,
-        body: disputePack.formalLetterBody,
+        body: activeLetterBody,
+        aiSource: geminiDraftResult?.source || "static-template",
         carrier: disputePack.recipientCarrier,
       },
     });
@@ -395,12 +433,12 @@ export default function DemurrageAlertsModule() {
       dossierId: disputePack.dossierId,
       recipientEmail: dispatchEmailTo || disputePack.recipientCarrier.email,
       subject: disputePack.formalLetterSubject,
-      body: disputePack.formalLetterBody,
+      body: activeLetterBody,
     });
   };
 
   const handleCopyLetter = () => {
-    navigator.clipboard.writeText(disputePack.formalLetterBody);
+    navigator.clipboard.writeText(activeLetterBody);
     setCopiedLetter(true);
     setTimeout(() => setCopiedLetter(false), 2000);
   };
@@ -531,7 +569,7 @@ export default function DemurrageAlertsModule() {
 
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    const splitText = doc.splitTextToSize(disputePack.formalLetterBody, 182);
+    const splitText = doc.splitTextToSize(activeLetterBody, 182);
     doc.text(splitText.slice(0, 32), 14, letterY + 6);
 
     doc.save(`Demurrage_Dispute_Dossier_${auditResult.containerNumber}.pdf`);
@@ -1501,7 +1539,18 @@ export default function DemurrageAlertsModule() {
                     </span>
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleGenerateGeminiDraft}
+                    disabled={generateGeminiFmcDraftMutation.isPending}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {generateGeminiFmcDraftMutation.isPending
+                      ? "Redactando con Gemini AI..."
+                      : "Redactar Alegación con Gemini AI (On-Demand)"}
+                  </Button>
                   <Button
                     size="sm"
                     variant="secondary"
@@ -1542,8 +1591,37 @@ export default function DemurrageAlertsModule() {
                 </div>
               </div>
 
+              {geminiDraftResult && (
+                <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-emerald-300">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    <span className="font-semibold">
+                      Alegación Jurídica Generada por Google Gemini AI (Free
+                      Tier)
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200 font-mono text-[10px]">
+                      {geminiDraftResult.source} · {geminiDraftResult.model}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-slate-300 font-mono">
+                    <span>Latencia: {geminiDraftResult.latencyMs}ms</span>
+                    <span>
+                      Cuota RPM restante: {geminiDraftResult.quotaRemainingRpm}
+                      /12
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setGeminiDraftResult(null)}
+                      className="text-slate-400 hover:text-white underline font-sans"
+                    >
+                      Restaurar plantilla base
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 whitespace-pre-wrap leading-relaxed max-h-[550px] overflow-y-auto">
-                {disputePack.formalLetterBody}
+                {activeLetterBody}
               </div>
 
               <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
