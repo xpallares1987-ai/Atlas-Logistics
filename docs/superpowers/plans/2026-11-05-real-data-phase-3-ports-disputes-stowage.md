@@ -335,7 +335,7 @@ git commit -m "feat(api): connect demurrage, ocean bookings, and stowage control
 - Consumes: `GET /api/demurrage-dispute/invoices?shipmentId=...`, `POST /api/demurrage-dispute/suspension`, `POST /api/demurrage-dispute/dispute`, `GET /api/shipments`
 - Produces: Zero-mock Demurrage screen with live shipment selector (defaults to `sh_demo_01`), FMC 46 CFR Part 541 audit badges, live Clock Stop registration, and FMC Dispute generation.
 
-- [ ] **Step 1: Replace `DEMURRAGE_DISPUTE_PRESETS` with live React Query / API calls**
+- [x] **Step 1: Replace `DEMURRAGE_DISPUTE_PRESETS` with live React Query / API calls**
 
 1. Add shipment dropdown selector querying `GET /api/shipments` (default: `sh_demo_01`).
 2. Fetch invoices for active shipment via `GET /api/demurrage-dispute/invoices`.
@@ -343,12 +343,12 @@ git commit -m "feat(api): connect demurrage, ocean bookings, and stowage control
 4. Connect "Presentar Disputa Legal FMC" button to `POST /api/demurrage-dispute/dispute`.
 5. Remove static preset state and hardcoded sample arrays.
 
-- [ ] **Step 2: Verify TypeScript compilation & frontend build**
+- [x] **Step 2: Verify TypeScript compilation & frontend build**
 
 Run: `pnpm --filter @atlas/frontend build`
 Expected: Build succeeds with code 0.
 
-- [ ] **Step 3: Run leak audit and commit**
+- [x] **Step 3: Run leak audit and commit**
 
 ```bash
 pnpm run audit:leaks:staged
