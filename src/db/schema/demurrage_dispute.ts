@@ -6,7 +6,7 @@ import {
   index,
 } from "drizzle-orm/sqlite-core";
 import { shipments } from "./operations.js";
-import { documents } from "./core.js";
+import { documents } from "./support.js";
 import { commonAuditFields } from "./_common.js";
 
 export const demurrageInvoices = sqliteTable(
