@@ -171,40 +171,68 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 
   // WebSocket Live Updates
   fastify.get("/live", { websocket: true }, (connection, req) => {
+    const socket: any = (connection as any)?.socket || connection;
     req.log.info("Client connected to dashboard live stream");
 
     let active = true;
 
-    // Simulate push events every 5 seconds
-    const interval = setInterval(async () => {
-      if (!active) return;
+    if (socket && socket.readyState === 1) {
       try {
-        // Fetch real-time active shipment count
+        socket.send(
+          JSON.stringify({
+            type: "CONNECTED",
+            timestamp: new Date().toISOString(),
+          }),
+        );
+      } catch {
+        // Ignore initial frame error
+      }
+    }
+
+    // Push live shipment stats every 10 seconds
+    const interval = setInterval(async () => {
+      if (!active || !socket || socket.readyState !== 1) return;
+      try {
         const activeShipmentsResult = await db
           .select({ count: sql<number>`COUNT(*)` })
           .from(shipments)
           .where(eq(shipments.status, "IN_TRANSIT"));
         const activeShipments = activeShipmentsResult[0]?.count || 0;
 
-        connection.send(
-          JSON.stringify({
-            type: "STATS_UPDATE",
-            data: {
-              activeShipments,
-              timestamp: new Date().toISOString(),
-            },
-          }),
-        );
+        if (socket.readyState === 1) {
+          socket.send(
+            JSON.stringify({
+              type: "STATS_UPDATE",
+              data: {
+                activeShipments,
+                timestamp: new Date().toISOString(),
+              },
+            }),
+          );
+        }
       } catch (err) {
         req.log.error(err, "WebSocket broadcast error");
       }
-    }, 5000);
+    }, 10000);
 
-    connection.on("close", () => {
-      active = false;
-      clearInterval(interval);
-      req.log.info("Client disconnected from dashboard live stream");
-    });
+    if (socket && typeof socket.on === "function") {
+      socket.on("message", (rawMsg: any) => {
+        try {
+          const parsed = JSON.parse(rawMsg.toString());
+          if (parsed.type === "PING" && socket.readyState === 1) {
+            socket.send(JSON.stringify({ type: "PONG" }));
+          }
+        } catch {
+          // Ignore malformed ping
+        }
+      });
+
+      socket.on("close", () => {
+        active = false;
+        clearInterval(interval);
+        req.log.info("Client disconnected from dashboard live stream");
+      });
+    }
   });
 };
 

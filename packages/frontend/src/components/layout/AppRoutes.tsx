@@ -184,740 +184,779 @@ const PrivacyPolicy = React.lazy(() => import("../../pages/PrivacyPolicy"));
 const TermsOfService = React.lazy(() => import("../../pages/TermsOfService"));
 const PublicTracking = React.lazy(() => import("../../pages/PublicTracking"));
 
+class RouteErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 flex flex-col items-center justify-center min-h-[50vh] text-center gap-3">
+          <p className="text-sm font-bold text-slate-200">
+            El módulo se está recargando tras una actualización del servidor.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              this.setState({ hasError: false });
+              window.location.reload();
+            }}
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold"
+          >
+            Recargar Vista
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export const AppRoutes = () => {
   return (
-    <Suspense
-      fallback={
-        <div className="flex flex-col gap-4 h-full w-full">
-          <SkeletonLoader height="8rem" borderRadius="1rem" />
-          <SkeletonLoader height="3rem" borderRadius="0.5rem" count={3} />
-          <div className="flex-1">
-            <SkeletonLoader height="100%" borderRadius="1rem" />
-          </div>
-        </div>
-      }
-    >
-      <Routes>
-        {/* Public Route */}
-        <Route path="/login" element={<Login />} />
-
-        {/* Core Modules - Accessible by internal roles */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <DashboardModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/cockpit"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <OperationsCockpitModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/my-work"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <OperationsCockpitModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/shipment-360"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <ShipmentWorkspace360Module />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/exceptions"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <ExceptionCenterModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/control-plane"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER", "OPERATIONS"]}
-            >
-              <ControlPlaneModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/rate-comparer"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <RateComparerContainer />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotes"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <RateComparerContainer />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/pricing"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER", "SALES"]}
-            >
-              <DynamicPricingModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/globe"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <GlobeTrackerModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/control-tower"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <ControlTowerModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/schedules"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <SailingSchedulesModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/bookings"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <BookingManagementModule />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Master Data & Entity Directory */}
-        <Route
-          path="/addresses"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-                "CUSTOMER",
-              ]}
-            >
-              <AddressesHubModule />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Finance & Compliance - High Privilege */}
-        <Route
-          path="/invoices"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER"]}>
-              <InvoicingModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settlements"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER"]}>
-              <AgentSettlementsModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/customs"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
-              <CustomsClearanceModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/air-freight"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <AirCargoModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/contracts"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "MANAGER",
-                "OPERATIONS",
-                "EXECUTIVE",
-                "SALES",
-              ]}
-            >
-              <IncotermsContractsModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/claims"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <CargoClaimsModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/road-freight"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "MANAGER",
-                "OPERATIONS",
-                "EXECUTIVE",
-                "DRIVER",
-              ]}
-            >
-              <RoadFreightModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/treasury"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <TreasurySettlementsModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/cold-chain"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <ColdChainModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/cbam"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <CbamModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/rail-freight"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <RailFreightModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/customs-warehouse"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <CustomsWarehouseModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/fueleu-maritime"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <FuelEuMaritimeModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trade-finance"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <TradeFinanceModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/smart-contracts"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <SmartContractsModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/notifications"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <OmnichannelNotificationsModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/cross-border-usmca"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <CrossBorderUsmcaModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/efirma-hub"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <EFirmaHubModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/erp-integrations"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <ErpIntegrationsModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/aeo-security"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <AeoSecurityModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/security-risk"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "MANAGER",
-                "OPERATIONS",
-                "EXECUTIVE",
-                "SALES",
-                "CUSTOMER",
-              ]}
-            >
-              <SecurityRiskResilienceModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/chartering-laytime"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <CharteringLaytimeModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/port-congestion"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "MANAGER",
-                "OPERATIONS",
-                "EXECUTIVE",
-                "SALES",
-              ]}
-            >
-              <PortCongestionControlModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/carbon-insetting"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "MANAGER",
-                "OPERATIONS",
-                "EXECUTIVE",
-                "SALES",
-                "CUSTOMER",
-              ]}
-            >
-              <CarbonInsettingModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/iata-one-record"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "MANAGER",
-                "OPERATIONS",
-                "EXECUTIVE",
-                "SALES",
-                "CUSTOMER",
-              ]}
-            >
-              <IataOneRecordModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/general-average"
-
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <GeneralAverageModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dangerous-goods"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <DangerousGoodsModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/cargo-insurance"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <CargoInsuranceModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/bulk-operations"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <BulkOperationsModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/edi"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
-            >
-              <EdiIntegrationModule />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Analytics */}
-        <Route
-          path="/profitability"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER"]}>
-              <ProfitabilityModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/esg-tracker"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER", "OPERATIONS"]}
-            >
-              <ESGCarbonTrackerModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/demurrage"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
-              <DemurrageAlertsModule />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Operations */}
-        <Route
-          path="/planner"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
-              <ContainerPlannerModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/stowage-3d"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
-              <ContainerPlannerModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/lcl"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
-              <LclConsolidationModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/warehouse"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
-              <WarehouseOpsContainer />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/tasks"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <HumanTasklistModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/documents"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-              ]}
-            >
-              <DocumentVaultModule />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/workflows"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER"]}>
-              <WorkflowManagerModule />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* External Portal */}
-        <Route
-          path="/portal"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN", "CUSTOMER"]}>
-              <CustomerPortalModule />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/track/:referenceNumber?" element={<PublicTracking />} />
-
-        {/* Multimodal Drayage & Port Haulage */}
-        <Route
-          path="/drayage"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "ADMIN",
-                "EXECUTIVE",
-                "MANAGER",
-                "SALES",
-                "OPERATIONS",
-                "CUSTOMER",
-              ]}
-            >
-              <DrayageHaulageModule />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* System Administration Panel */}
-        <Route
-          path="/system-panel"
-          element={
-            <ProtectedRoute
-              allowedRoles={["ADMIN", "MANAGER", "EXECUTIVE", "OPERATIONS"]}
-            >
-              <SystemPanelModule />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Global Settings & Wiki Knowledge Hub */}
-        <Route path="/wiki" element={<WikiHubModule />} />
-        <Route path="/knowledge" element={<WikiHubModule />} />
-        <Route path="/settings" element={<SettingsModule />} />
-
-        {/* Legal Pages */}
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<TermsOfService />} />
-
-        {/* Fallback 404 Route */}
-        <Route
-          path="*"
-          element={
-            <div className="flex items-center justify-center h-full text-slate-500 font-medium">
-              404 - Page Not Found
+    <RouteErrorBoundary>
+      <Suspense
+        fallback={
+          <div className="flex flex-col gap-4 h-full w-full">
+            <SkeletonLoader height="8rem" borderRadius="1rem" />
+            <SkeletonLoader height="3rem" borderRadius="0.5rem" count={3} />
+            <div className="flex-1">
+              <SkeletonLoader height="100%" borderRadius="1rem" />
             </div>
-          }
-        />
-      </Routes>
-    </Suspense>
+          </div>
+        }
+      >
+        <Routes>
+          {/* Public Route */}
+          <Route path="/login" element={<Login />} />
+
+          {/* Core Modules - Accessible by internal roles */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <DashboardModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cockpit"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <OperationsCockpitModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-work"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <OperationsCockpitModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shipment-360"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <ShipmentWorkspace360Module />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/exceptions"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <ExceptionCenterModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/control-plane"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER", "OPERATIONS"]}
+              >
+                <ControlPlaneModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rate-comparer"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <RateComparerContainer />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotes"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <RateComparerContainer />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pricing"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER", "SALES"]}
+              >
+                <DynamicPricingModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/globe"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <GlobeTrackerModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/control-tower"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <ControlTowerModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/schedules"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <SailingSchedulesModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/bookings"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <BookingManagementModule />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Master Data & Entity Directory */}
+          <Route
+            path="/addresses"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                  "CUSTOMER",
+                ]}
+              >
+                <AddressesHubModule />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Finance & Compliance - High Privilege */}
+          <Route
+            path="/invoices"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER"]}>
+                <InvoicingModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settlements"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER"]}>
+                <AgentSettlementsModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customs"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
+                <CustomsClearanceModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/air-freight"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <AirCargoModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contracts"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "MANAGER",
+                  "OPERATIONS",
+                  "EXECUTIVE",
+                  "SALES",
+                ]}
+              >
+                <IncotermsContractsModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/claims"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <CargoClaimsModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/road-freight"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "MANAGER",
+                  "OPERATIONS",
+                  "EXECUTIVE",
+                  "DRIVER",
+                ]}
+              >
+                <RoadFreightModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/treasury"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <TreasurySettlementsModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cold-chain"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <ColdChainModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cbam"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <CbamModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rail-freight"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <RailFreightModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customs-warehouse"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <CustomsWarehouseModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fueleu-maritime"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <FuelEuMaritimeModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trade-finance"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <TradeFinanceModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/smart-contracts"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <SmartContractsModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <OmnichannelNotificationsModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cross-border-usmca"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <CrossBorderUsmcaModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/efirma-hub"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <EFirmaHubModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/erp-integrations"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <ErpIntegrationsModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/aeo-security"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <AeoSecurityModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/security-risk"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "MANAGER",
+                  "OPERATIONS",
+                  "EXECUTIVE",
+                  "SALES",
+                  "CUSTOMER",
+                ]}
+              >
+                <SecurityRiskResilienceModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chartering-laytime"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <CharteringLaytimeModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/port-congestion"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "MANAGER",
+                  "OPERATIONS",
+                  "EXECUTIVE",
+                  "SALES",
+                ]}
+              >
+                <PortCongestionControlModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/carbon-insetting"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "MANAGER",
+                  "OPERATIONS",
+                  "EXECUTIVE",
+                  "SALES",
+                  "CUSTOMER",
+                ]}
+              >
+                <CarbonInsettingModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/iata-one-record"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "MANAGER",
+                  "OPERATIONS",
+                  "EXECUTIVE",
+                  "SALES",
+                  "CUSTOMER",
+                ]}
+              >
+                <IataOneRecordModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/general-average"
+
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <GeneralAverageModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dangerous-goods"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <DangerousGoodsModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cargo-insurance"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <CargoInsuranceModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/bulk-operations"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <BulkOperationsModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/edi"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "OPERATIONS", "EXECUTIVE"]}
+              >
+                <EdiIntegrationModule />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Analytics */}
+          <Route
+            path="/profitability"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER"]}>
+                <ProfitabilityModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/esg-tracker"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER", "OPERATIONS"]}
+              >
+                <ESGCarbonTrackerModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/demurrage"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
+                <DemurrageAlertsModule />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Operations */}
+          <Route
+            path="/planner"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
+                <ContainerPlannerModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stowage-3d"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
+                <ContainerPlannerModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/lcl"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
+                <LclConsolidationModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/warehouse"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
+                <WarehouseOpsContainer />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tasks"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <HumanTasklistModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/documents"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                ]}
+              >
+                <DocumentVaultModule />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/workflows"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "MANAGER"]}>
+                <WorkflowManagerModule />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* External Portal */}
+          <Route
+            path="/portal"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "CUSTOMER"]}>
+                <CustomerPortalModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/track/:referenceNumber?" element={<PublicTracking />} />
+
+          {/* Multimodal Drayage & Port Haulage */}
+          <Route
+            path="/drayage"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                  "CUSTOMER",
+                ]}
+              >
+                <DrayageHaulageModule />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* System Administration Panel */}
+          <Route
+            path="/system-panel"
+            element={
+              <ProtectedRoute
+                allowedRoles={["ADMIN", "MANAGER", "EXECUTIVE", "OPERATIONS"]}
+              >
+                <SystemPanelModule />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Global Settings & Wiki Knowledge Hub */}
+          <Route path="/wiki" element={<WikiHubModule />} />
+          <Route path="/knowledge" element={<WikiHubModule />} />
+          <Route path="/settings" element={<SettingsModule />} />
+
+          {/* Legal Pages */}
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+
+          {/* Fallback 404 Route */}
+          <Route
+            path="*"
+            element={
+              <div className="flex items-center justify-center h-full text-slate-500 font-medium">
+                404 - Page Not Found
+              </div>
+            }
+          />
+        </Routes>
+      </Suspense>
+    </RouteErrorBoundary>
   );
 };

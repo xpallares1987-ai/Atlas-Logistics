@@ -7,6 +7,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { ApiStatusIndicator } from "../ApiStatusIndicator";
 import { SecurityStatusBadge } from "../SecurityStatusBadge";
+import { AiQuotaStatusBadge } from "../AiQuotaStatusBadge";
 import { Button } from "@atlas/ui";
 
 interface TopNavbarProps {
@@ -57,6 +58,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
         </div>
       </div>
       <div className="flex items-center gap-4 ml-4">
+        <AiQuotaStatusBadge />
         <ApiStatusIndicator />
         <SecurityStatusBadge />
         <div className="relative">

@@ -170,4 +170,16 @@ describe("Google Gemini AI On-Demand Routes (Free-Tier Multi-Model Suite)", () =
     expect(body.results.length).toBeGreaterThan(0);
     expect(body.results[0].id).toBe("proto-fmc-541");
   });
+
+  it("POST /api/ai/clear-cache purges L1 cache and returns updated service status", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/ai/clear-cache",
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    expect(typeof body.clearedKeys).toBe("number");
+    expect(body.status.mode).toBe("ON_DEMAND_FREE_TIER");
+  });
 });

@@ -225,23 +225,38 @@ export default function SystemPanelModule() {
     quotaRemainingRpm: number;
   } | null>(null);
 
-  const handleGenerateExecutiveBriefing = async () => {
+  const handleGenerateExecutiveBriefing = async (
+    bypassCache: boolean = false,
+  ) => {
     setIsGeneratingBriefing(true);
     try {
       const res = await fetch("/api/ai/executive-briefing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ bypassCache }),
       });
       if (res.ok) {
         const data = await res.json();
         setExecutiveBriefing(data);
         await fetchAiStatus();
+        window.dispatchEvent(new CustomEvent("atlas:ai-quota-updated"));
       }
     } catch (err) {
       console.error("Failed to generate executive briefing:", err);
     } finally {
       setIsGeneratingBriefing(false);
+    }
+  };
+
+  const handlePurgeAiCache = async () => {
+    try {
+      const res = await fetch("/api/ai/clear-cache", { method: "POST" });
+      if (res.ok) {
+        await fetchAiStatus();
+        window.dispatchEvent(new CustomEvent("atlas:ai-quota-updated"));
+      }
+    } catch (err) {
+      console.error("Failed to purge AI cache:", err);
     }
   };
 
@@ -1324,7 +1339,7 @@ export default function SystemPanelModule() {
                 <Button
                   type="button"
                   size="sm"
-                  onClick={handleGenerateExecutiveBriefing}
+                  onClick={() => handleGenerateExecutiveBriefing(false)}
                   disabled={isGeneratingBriefing}
                   className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-sans font-bold px-3 py-1 rounded-xl flex items-center gap-1.5"
                 >
@@ -1333,19 +1348,33 @@ export default function SystemPanelModule() {
                     ? "Consolidando..."
                     : "📊 Executive Briefing (1-Clic)"}
                 </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handlePurgeAiCache}
+                  className="border-rose-500/40 text-rose-300 hover:bg-rose-500/20 text-xs font-sans font-bold px-3 py-1 rounded-xl"
+                >
+                  Purgar Caché L1
+                </Button>
               </div>
             </div>
 
             {executiveBriefing && (
               <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 space-y-3 text-xs">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-500/20 pb-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Sparkles size={15} className="text-indigo-400" />
                     <span className="font-bold text-white">
                       {executiveBriefing.briefing.shiftHeadline}
                     </span>
                     <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-200 font-mono text-[10px]">
-                      {executiveBriefing.source} · {executiveBriefing.model}
+                      {executiveBriefing.source === "gemini-live"
+                        ? "Gemini Live"
+                        : executiveBriefing.source === "gemini-cache"
+                          ? "Caché SQLite/L1 (0-Tokens)"
+                          : "Fallback Determinista"}{" "}
+                      · {executiveBriefing.model}
                     </span>
                     <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">
                       Valor Protegido Est.: $
@@ -1353,13 +1382,24 @@ export default function SystemPanelModule() {
                       USD
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setExecutiveBriefing(null)}
-                    className="text-slate-400 hover:text-white underline text-[11px]"
-                  >
-                    Cerrar
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateExecutiveBriefing(true)}
+                      disabled={isGeneratingBriefing}
+                      className="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-200 font-bold text-[10px] flex items-center gap-1"
+                    >
+                      <RefreshCw size={10} />
+                      Regenerar en vivo (1 RPM)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExecutiveBriefing(null)}
+                      className="text-slate-400 hover:text-white underline text-[11px]"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
                   <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1">

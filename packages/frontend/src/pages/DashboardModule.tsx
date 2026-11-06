@@ -72,15 +72,31 @@ export function DashboardModule() {
       }
     };
 
+    const MAX_RECONNECT_ATTEMPTS = 3;
+
     const scheduleReconnect = () => {
       if (!isMounted || reconnectTimer) return;
       reconnectAttempts++;
+      if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
+        return; // Circuit breaker to prevent console spam when server is offline
+      }
       const delay = Math.min(
-        1500 * Math.pow(1.5, reconnectAttempts - 1),
-        10000,
+        2000 * Math.pow(1.8, reconnectAttempts - 1),
+        15000,
       );
-      reconnectTimer = setTimeout(() => {
+      reconnectTimer = setTimeout(async () => {
         reconnectTimer = null;
+        if (!isMounted) return;
+        try {
+          const health = await fetch("/api/health");
+          if (!health.ok) {
+            scheduleReconnect();
+            return;
+          }
+        } catch {
+          scheduleReconnect();
+          return;
+        }
         connect();
       }, delay);
     };

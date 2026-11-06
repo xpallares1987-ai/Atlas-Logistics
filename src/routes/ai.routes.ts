@@ -15,6 +15,7 @@ import {
   computeSemanticSimilarityOnDemand,
   getGeminiServiceStatus,
   setRuntimeGeminiApiKey,
+  clearGeminiMemoryCache,
   SemanticSearchCandidate,
 } from "../services/geminiService.js";
 
@@ -70,6 +71,10 @@ const ucp600AuditSchema = z.object({
 });
 
 const extractDocumentSchema = z.object({
+  docType: z
+    .enum(["INVOICE", "PACKING_LIST", "TRANSPORT", "DECLARATION"])
+    .optional(),
+  shipmentId: z.string().default("sh_demo_01"),
   rawText: z.string().optional(),
   mimeType: z.string().optional(),
   base64Data: z.string().optional(),
@@ -117,6 +122,20 @@ export default async function aiRoutes(fastify: FastifyInstance) {
     return {
       success: true,
       ...getGeminiServiceStatus(),
+    };
+  });
+
+  /**
+   * POST /api/ai/clear-cache
+   * Purges the L1 in-memory Gemini response cache so operators can force fresh evaluations or reset cache stats.
+   */
+  fastify.post("/clear-cache", async () => {
+    const res = clearGeminiMemoryCache();
+    return {
+      success: true,
+      message: `Caché L1 de Gemini purgada (${res.clearedKeys} entrada(s) eliminadas).`,
+      clearedKeys: res.clearedKeys,
+      status: res.status,
     };
   });
 
@@ -689,32 +708,61 @@ Devuelve JSON con: instrumentReference, compliantWithUcp600 (boolean), presentat
   });
 
   /**
-   * POST /api/ai/extract-document (Phase 3 — Multimodal Document/Manifest Extractor)
+   * POST /api/ai/extract-document (Phase 3 — Multimodal Document/Manifest Extractor + SQLite L2 Persistence)
    * Extracts structured shipping & billing fields from raw document text or base64 PDF/Image.
    */
   fastify.post("/extract-document", async (request, reply) => {
     try {
-      const { rawText, mimeType, base64Data, bypassCache } =
-        extractDocumentSchema.parse(request.body || {});
+      const {
+        docType,
+        shipmentId,
+        rawText,
+        mimeType,
+        base64Data,
+        bypassCache,
+      } = extractDocumentSchema.parse(request.body || {});
 
       const fallbackData = {
-        documentType: "COMMERCIAL_PACKING_LIST_AND_BL_DRAFT",
+        documentType: docType || "COMMERCIAL_PACKING_LIST_AND_BL_DRAFT",
         bookingReference: "BK-2026-67116",
+        invoiceNumber: "INV-2026-98124",
+        packingListNumber: "PL-2026-8819",
+        transportDocumentNumber: "HBL-2026-0081",
+        declarationNumber: "26ES004129988102B",
+        sellerName: "Iberia Global Exports S.L.",
+        buyerName: "American Logistic Hub LLC",
+        carrierName: "Mediterranean Shipping Co (MSC)",
+        originPort: "Puerto de Valencia (ESVLC)",
+        destinationPort: "New York Container Terminal (USNYC)",
         containerNumber: "MSKU9284712",
+        sealNumber: "ISO-17712-H-881920",
         vesselVoyage: "MSC ISABELLA / 2604W",
-        grossWeightKg: 24180,
-        packageCount: 18,
-        suggestedHsCode: "8481.80.99",
-        invoiceAmountUsd: 148500,
+        grossWeightKg: 28450,
+        netWeightKg: 24630,
+        totalCbm: 42.5,
+        packageCount: 520,
+        suggestedHsCode: "8479.89",
+        totalFobUsd: 138000,
+        freightUsd: 5500,
+        insuranceUsd: 1500,
+        invoiceAmountUsd: 145000,
+        declaredCustomsValueUsd: 145000,
         currency: "USD",
-        incoterm: "CIF USNYC",
+        incoterm: "CIF",
         extractedNotes:
-          "18 Pallets europeos tratados térmicamente (ISPM-15). Precinto naviero de alta seguridad ISO 17712 verificado.",
+          "520 Pallets europeos tratados térmicamente (ISPM-15). Precinto naviero de alta seguridad ISO 17712 verificado y coincidente con B/L y DUA.",
       };
 
-      const prompt = `Extrae los campos logísticos y aduaneros del documento comercial adjunto en formato JSON estructurado.
-Texto del documento: ${rawText || "Packing List / Bill of Lading Draft para contenedor MSKU9284712 (Booking BK-2026-67116, Buque MSC ISABELLA)."}
-Devuelve JSON con: documentType, bookingReference, containerNumber, vesselVoyage, grossWeightKg (number), packageCount (number), suggestedHsCode, invoiceAmountUsd (number), currency, incoterm, extractedNotes.`;
+      const prompt = `Extrae los campos logísticos, comerciales y aduaneros del documento (${docType || "COMERCIAL/ADUANERO"}) en formato JSON estructurado para conciliación tripartita.
+Expedición: ${shipmentId}
+Texto del documento: ${rawText || "Documento multimodal adjunto para contenedor MSKU9284712 (Booking BK-2026-67116, Buque MSC ISABELLA)."}
+Devuelve JSON con: documentType, bookingReference, invoiceNumber, packingListNumber, transportDocumentNumber, declarationNumber, sellerName, buyerName, carrierName, originPort, destinationPort, containerNumber, sealNumber, vesselVoyage, grossWeightKg (number), netWeightKg (number), totalCbm (number), packageCount (number), suggestedHsCode, totalFobUsd (number), freightUsd (number), insuranceUsd (number), invoiceAmountUsd (number), declaredCustomsValueUsd (number), currency, incoterm, extractedNotes.`;
+
+      const [existingDoc] = await db
+        .select()
+        .from(schema.documents)
+        .where(eq(schema.documents.shipmentId, shipmentId))
+        .limit(1);
 
       const result = await executeGeminiStructuredOnDemand(prompt, {
         model: "gemini-2.5-flash",
@@ -722,10 +770,25 @@ Devuelve JSON con: documentType, bookingReference, containerNumber, vesselVoyage
         fallbackData,
         inlineData:
           mimeType && base64Data ? { mimeType, data: base64Data } : undefined,
+        l2CacheWriter: async (extractedPayload) => {
+          if (!existingDoc) return;
+          const meta = parseMetadataObj(existingDoc.metadata);
+          meta.aiExtractedDocument = {
+            ...(meta.aiExtractedDocument || {}),
+            [docType || "GENERAL"]: extractedPayload,
+            updatedAt: new Date().toISOString(),
+          };
+          await db
+            .update(schema.documents)
+            .set({ metadata: meta })
+            .where(eq(schema.documents.id, existingDoc.id));
+        },
       });
 
       return {
         success: true,
+        docType: docType || "INVOICE",
+        shipmentId,
         extracted: result.data,
         source: result.source,
         model: result.model,

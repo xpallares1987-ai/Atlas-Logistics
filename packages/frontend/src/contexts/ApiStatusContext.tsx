@@ -32,18 +32,57 @@ export function ApiStatusProvider({
 
   useEffect(() => {
     let mounted = true;
+    let consecutiveFailures = 0;
+    const MAX_SILENT_FAILURES = 3;
 
-    const connect = () => {
+    const backendUrl = import.meta.env.VITE_API_URL || "";
+
+    const scheduleReconnect = () => {
+      if (!mounted) return;
+      consecutiveFailures += 1;
+      if (consecutiveFailures >= MAX_SILENT_FAILURES) {
+        setStatus("disconnected");
+        return; // Circuit breaker: stop polling until window regains focus or network returns
+      }
+      const delay = backoffRef.current;
+      backoffRef.current = Math.min(delay * 2, 30000);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      reconnectTimeoutRef.current = setTimeout(() => {
+        connect();
+      }, delay);
+    };
+
+    const connect = async () => {
       if (!mounted) return;
 
-      const backendUrl = import.meta.env.VITE_API_URL || "";
+      // Quiet preflight check so we never open EventSource against an offline server
+      try {
+        const healthRes = await fetch(`${backendUrl}/api/health`);
+        if (!healthRes.ok) {
+          scheduleReconnect();
+          return;
+        }
+        if (!mounted) return;
+        setLastHeartbeat(new Date());
+      } catch {
+        scheduleReconnect();
+        return;
+      }
+
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+
       const eventSource = new EventSource(`${backendUrl}/api/events`);
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
         if (!mounted) return;
+        consecutiveFailures = 0;
         setStatus("connected");
-        backoffRef.current = 1000;
+        backoffRef.current = 2000;
         setLastHeartbeat(new Date());
       };
 
@@ -79,30 +118,27 @@ export function ApiStatusProvider({
         if (!mounted) return;
         eventSource.close();
         setStatus("reconnecting");
-
-        // Secondary health check
-        fetch(`${backendUrl}/api/health`)
-          .then((res) => {
-            if (res.ok && mounted) {
-              setLastHeartbeat(new Date());
-            }
-          })
-          .catch(() => {});
-
-        // Schedule reconnect
-        const delay = backoffRef.current;
-        backoffRef.current = Math.min(delay * 2, 30000); // Max 30s
-
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connect();
-        }, delay);
+        scheduleReconnect();
       };
     };
 
+    const handleResume = () => {
+      if (!mounted) return;
+      if (consecutiveFailures >= MAX_SILENT_FAILURES) {
+        consecutiveFailures = 0;
+        backoffRef.current = 2000;
+        connect();
+      }
+    };
+
+    window.addEventListener("focus", handleResume);
+    window.addEventListener("online", handleResume);
     connect();
 
     return () => {
       mounted = false;
+      window.removeEventListener("focus", handleResume);
+      window.removeEventListener("online", handleResume);
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }

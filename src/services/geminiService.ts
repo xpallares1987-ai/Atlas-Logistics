@@ -211,6 +211,15 @@ export function setRuntimeGeminiApiKey(apiKey: string): void {
   runtimeApiKeyOverride = apiKey.trim();
 }
 
+export function clearGeminiMemoryCache() {
+  const keysBefore = responseCache.keys().length;
+  responseCache.flushAll();
+  return {
+    clearedKeys: keysBefore,
+    status: getGeminiServiceStatus(),
+  };
+}
+
 function pruneAndCheckModelQuota(model: GeminiFreeTierModel): {
   allowed: boolean;
   snapshot: ModelQuotaSnapshot;
