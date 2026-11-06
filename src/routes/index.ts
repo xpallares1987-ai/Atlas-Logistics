@@ -143,6 +143,7 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(trackingRoutes, { prefix: "/api/tracking" });
   await fastify.register(schedulesRoutes, { prefix: "/api/schedules" });
   await fastify.register(tasksRoutes, { prefix: "/api/tasks" });
+  await fastify.register(aiRoutes, { prefix: "/api/ai" });
   await fastify.register(aiRoutes, { prefix: "/api" });
   await fastify.register(bpmnRoutes, { prefix: "/api" });
   await fastify.register(dashboardRoutes, { prefix: "/api/dashboard" });

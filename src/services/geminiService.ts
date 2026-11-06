@@ -125,7 +125,29 @@ let runtimeApiKeyOverride: string | null = null;
 // Dynamic model alias resolution: if Google AI Studio retires a model ID for newer keys
 // (e.g. gemini-2.5-flash -> gemini-3.8-flash, gemini-2.5-flash-lite -> gemini-3.5-flash-lite,
 // text-embedding-004 -> gemini-embedding-001), remember the active upstream model ID so we never waste a retry.
-const resolvedModelAlias: Record<string, string> = {};
+const resolvedModelAlias: Record<string, string> = {
+  "gemini-2.5-flash": "gemini-3.5-flash-lite",
+  "gemini-2.5-flash-lite": "gemini-3.5-flash-lite",
+  "text-embedding-004": "gemini-embedding-001",
+};
+
+function withTimeout<T>(promise: Promise<T>, ms = 6500): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`Gemini upstream timeout (${ms}ms)`)),
+      ms,
+    );
+    promise
+      .then((val) => {
+        clearTimeout(timer);
+        resolve(val);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
 
 function resolveUpstreamModelId(requestedModel: string): string {
   return resolvedModelAlias[requestedModel] || requestedModel;
@@ -136,6 +158,13 @@ function detectReplacementModelFromError(
   err: any,
 ): string | null {
   const msg = String(err?.message || err || "");
+  if (
+    msg.includes("503") ||
+    msg.includes("UNAVAILABLE") ||
+    msg.includes("timeout")
+  ) {
+    return "gemini-3.5-flash-lite";
+  }
   if (!msg.includes("404") && !msg.includes("NOT_FOUND")) {
     return null;
   }
@@ -145,8 +174,8 @@ function detectReplacementModelFromError(
     return match[1];
   }
   if (requestedModel === "gemini-2.5-flash") {
-    resolvedModelAlias[requestedModel] = "gemini-3.8-flash";
-    return "gemini-3.8-flash";
+    resolvedModelAlias[requestedModel] = "gemini-3.5-flash-lite";
+    return "gemini-3.5-flash-lite";
   }
   if (requestedModel === "gemini-2.5-flash-lite") {
     resolvedModelAlias[requestedModel] = "gemini-3.5-flash-lite";
@@ -368,20 +397,8 @@ export async function executeGeminiOnDemand(
       let upstreamModel = resolveUpstreamModelId(model);
       let response;
       try {
-        response = await ai.models.generateContent({
-          model: upstreamModel,
-          contents,
-          config: {
-            systemInstruction,
-            maxOutputTokens: options.maxOutputTokens ?? 650,
-            temperature: options.temperature ?? 0.2,
-          },
-        });
-      } catch (firstErr: any) {
-        const replacement = detectReplacementModelFromError(model, firstErr);
-        if (replacement && replacement !== upstreamModel) {
-          upstreamModel = replacement;
-          response = await ai.models.generateContent({
+        response = await withTimeout(
+          ai.models.generateContent({
             model: upstreamModel,
             contents,
             config: {
@@ -389,7 +406,25 @@ export async function executeGeminiOnDemand(
               maxOutputTokens: options.maxOutputTokens ?? 650,
               temperature: options.temperature ?? 0.2,
             },
-          });
+          }),
+          6500,
+        );
+      } catch (firstErr: any) {
+        const replacement = detectReplacementModelFromError(model, firstErr);
+        if (replacement && replacement !== upstreamModel) {
+          upstreamModel = replacement;
+          response = await withTimeout(
+            ai.models.generateContent({
+              model: upstreamModel,
+              contents,
+              config: {
+                systemInstruction,
+                maxOutputTokens: options.maxOutputTokens ?? 650,
+                temperature: options.temperature ?? 0.2,
+              },
+            }),
+            6500,
+          );
         } else {
           throw firstErr;
         }
@@ -529,20 +564,26 @@ export async function executeGeminiStructuredOnDemand<T>(
       let upstreamModel = resolveUpstreamModelId(model);
       let response;
       try {
-        response = await ai.models.generateContent({
-          model: upstreamModel,
-          contents,
-          config,
-        });
+        response = await withTimeout(
+          ai.models.generateContent({
+            model: upstreamModel,
+            contents,
+            config,
+          }),
+          6500,
+        );
       } catch (firstErr: any) {
         const replacement = detectReplacementModelFromError(model, firstErr);
         if (replacement && replacement !== upstreamModel) {
           upstreamModel = replacement;
-          response = await ai.models.generateContent({
-            model: upstreamModel,
-            contents,
-            config,
-          });
+          response = await withTimeout(
+            ai.models.generateContent({
+              model: upstreamModel,
+              contents,
+              config,
+            }),
+            6500,
+          );
         } else {
           throw firstErr;
         }
@@ -666,18 +707,24 @@ export async function computeSemanticSimilarityOnDemand(
         let upstreamEmbModel = resolveUpstreamModelId(model);
         let embRes;
         try {
-          embRes = await ai.models.embedContent({
-            model: upstreamEmbModel,
-            contents: text,
-          });
+          embRes = await withTimeout(
+            ai.models.embedContent({
+              model: upstreamEmbModel,
+              contents: text,
+            }),
+            5000,
+          );
         } catch (firstErr: any) {
           const replacement = detectReplacementModelFromError(model, firstErr);
           if (replacement && replacement !== upstreamEmbModel) {
             upstreamEmbModel = replacement;
-            embRes = await ai.models.embedContent({
-              model: upstreamEmbModel,
-              contents: text,
-            });
+            embRes = await withTimeout(
+              ai.models.embedContent({
+                model: upstreamEmbModel,
+                contents: text,
+              }),
+              5000,
+            );
           } else {
             throw firstErr;
           }
