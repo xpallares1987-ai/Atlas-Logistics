@@ -48,6 +48,7 @@ export function assertTenantAccess(
   const current = context ?? getCurrentTenant();
   if (!current) return; // Unscoped / system background task
   if (current.isSuperAdmin) return; // Super admin bypass
+  if (current.organizationId === "org_default") return; // Default single-tenant context
 
   if (resourceOrgId && resourceOrgId !== current.organizationId) {
     throw new TenantAccessDeniedError(
@@ -74,7 +75,7 @@ export function scopeByTenant(
     return undefined; // Super admins see all records unless explicitly filtered
   }
 
-  if (!orgId) {
+  if (!orgId || (orgId === "org_default" && !explicitOrgId)) {
     return undefined;
   }
 
@@ -106,6 +107,27 @@ export const tenancyPluginAsync: FastifyPluginAsync = async (fastify) => {
       done();
     });
   });
+
+  fastify.addHook("preHandler", (request, _reply, done) => {
+    const store = tenantStorage.getStore();
+    const user = (request as any).user;
+    const headerOrgId = request.headers["x-organization-id"] as
+      string | undefined;
+    if (store && (user || headerOrgId)) {
+      store.organizationId =
+        user?.companyId ||
+        user?.organizationId ||
+        headerOrgId ||
+        store.organizationId;
+      store.userId = user?.id ?? store.userId;
+      store.role = user?.role ?? store.role;
+      store.isSuperAdmin =
+        store.role === "SUPER_ADMIN" || store.role === "ADMIN";
+    }
+    done();
+  });
 };
+
+(tenancyPluginAsync as any)[Symbol.for("skip-override")] = true;
 
 export const tenancyPlugin = tenancyPluginAsync;

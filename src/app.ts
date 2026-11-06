@@ -45,28 +45,44 @@ app.addHook("preValidation", async (request, reply) => {
   }
 });
 
-// Automated Outbound Transaction Encryption (E2EE Zero-Knowledge Envelope)
+// Automated Outbound Transaction Encryption (E2EE Zero-Knowledge Envelope) — Fail-Closed
 app.addHook("onSend", async (request, reply, payload) => {
   const wantsEncryption =
     request.headers["x-atlas-encrypted-payload"] === "true" ||
     (request as any).wasPayloadEncrypted === true;
 
+  if (!wantsEncryption) {
+    return payload;
+  }
+
   if (
-    wantsEncryption &&
     typeof payload === "string" &&
     reply.getHeader("content-type")?.toString().includes("application/json")
   ) {
     try {
       const parsed = JSON.parse(payload);
-      if (!isEncryptedEnvelope(parsed)) {
-        const encryptedEnvelope = await encryptPayloadEnvelope(parsed);
+      if (isEncryptedEnvelope(parsed)) {
         reply.header("X-Atlas-Encrypted-Payload", "true");
-        return JSON.stringify(encryptedEnvelope);
+        return payload;
       }
-    } catch {
-      // Keep original payload if not JSON
+      const encryptedEnvelope = await encryptPayloadEnvelope(parsed);
+      reply.header("X-Atlas-Encrypted-Payload", "true");
+      return JSON.stringify(encryptedEnvelope);
+    } catch (err) {
+      request.log.error(
+        { err },
+        "Fail-closed: Outbound E2EE payload encryption failed; suppressing plaintext response",
+      );
+      reply.code(500);
+      reply.header("content-type", "application/json; charset=utf-8");
+      return JSON.stringify({
+        statusCode: 500,
+        error: "Internal Server Error",
+        message: "Failed to encrypt outbound response envelope.",
+      });
     }
   }
+
   return payload;
 });
 

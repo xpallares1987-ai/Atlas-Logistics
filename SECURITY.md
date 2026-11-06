@@ -38,11 +38,12 @@ Security updates and patches are actively applied to the latest stable release l
 
 ## Continuous Auditing & CI Code Scanning
 
-Atlas Logistics mandatorily incorporates **GitHub Advanced Security** in the continuous integration pipeline:
+Atlas Logistics enforces automated security and static analysis controls in local pre-commit hooks and the CI pipeline:
 
-- **CodeQL SAST Analysis**: Every pull request and push to `main` is scanned for security vulnerabilities, path traversal, injection vectors, and tainted data flows.
-- **Dependabot**: Actively monitors all dependencies across all monorepo packages to ensure fast resolution of any CVEs.
-- **Strict ESLint & TypeScript Compilation**: TypeScript runs in strict mode (`tsc --noEmit`) to prevent runtime type errors and null-pointer dereferences.
+- **njsscan SAST & SARIF Code Scanning**: Every pull request and push to `main` runs `njsscan` across `src/` and `packages/` and uploads SARIF results to GitHub Security.
+- **Leak Prevention Guard (`audit:leaks`)**: Pre-commit and CI gates scan tracked and staged files to block sensitive identifiers, credentials, and confidential partner references.
+- **Dependabot & `pnpm audit` Overrides**: Actively monitors and constrains transitive dependencies across all monorepo packages.
+- **Strict ESLint & TypeScript Compilation**: TypeScript runs in strict mode (`tsc --noEmit`) across both the root backend (`src/`) and all workspace packages (`packages/*`).
 
 ---
 

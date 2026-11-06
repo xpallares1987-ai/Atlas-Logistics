@@ -25,7 +25,7 @@ jobs:
       - name: Checkout the code
         uses: actions/checkout@v7
       - name: nodejsscan scan
-        run: pip install njsscan && njsscan . --sarif --output results.sarif || true
+        run: pip install njsscan && njsscan src packages --sarif --output results.sarif --exit-warning
       - name: Upload njsscan report
         uses: github/codeql-action/upload-sarif@v4
         with:

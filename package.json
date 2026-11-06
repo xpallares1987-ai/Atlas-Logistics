@@ -21,7 +21,8 @@
     "lint": "pnpm run eslint",
     "test": "vitest run --fileParallelism=false",
     "test:coverage": "vitest run --coverage",
-    "type-check": "pnpm --filter @atlas/frontend type-check",
+    "type-check": "tsc --noEmit && pnpm --filter @atlas/frontend type-check",
+    "type-check:backend": "tsc --noEmit",
     "eslint": "eslint .",
     "format": "prettier --write .",
     "prepare": "husky",
@@ -160,7 +161,10 @@
     "shell-quote": ">=1.11.0",
     "source-map-js": ">=1.2.2",
     "ip-address": ">=10.7.1",
-    "pbkdf2": ">=3.1.7"
+    "pbkdf2": ">=3.1.7",
+    "joi": ">=18.3.1",
+    "glob": ">=14.0.2",
+    "minimatch": ">=11.0.1"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

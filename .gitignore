@@ -47,9 +47,15 @@ playwright-report/
 # IDE
 .vscode/launch.json.bak
 .idea/
+.vs/
 *.swp
 *.swo
 *~
+
+# Generated PWA / Dev Artifacts
+**/dev-dist/
+*.patch
+audit.json
 
 # Turbo
 .turbo/

@@ -1,0 +1,486 @@
+-- Versioned SCM Foundation & Customs Composite Index Migration
+CREATE INDEX IF NOT EXISTS customs_decl_shipment_created_idx ON customs_declarations (shipment_id, created_at);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS platform_gov_outbox_messages (
+  event_id TEXT PRIMARY KEY NOT NULL,
+  event_type TEXT NOT NULL,
+  schema_version INTEGER NOT NULL DEFAULT 1,
+  producer_context TEXT NOT NULL,
+  aggregate_type TEXT NOT NULL,
+  aggregate_id TEXT NOT NULL,
+  aggregate_version INTEGER NOT NULL,
+  correlation_id TEXT NOT NULL,
+  causation_id TEXT NOT NULL,
+  actor_context_json TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'PENDING',
+  retry_count INTEGER NOT NULL DEFAULT 0,
+  occurred_at INTEGER NOT NULL,
+  published_at INTEGER,
+  last_error TEXT
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS platform_gov_inbox_processed (
+  id TEXT PRIMARY KEY NOT NULL,
+  consumer_name TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  processed_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS platform_gov_command_idempotency_v2 (
+  command_key TEXT PRIMARY KEY NOT NULL,
+  command_name TEXT NOT NULL,
+  entity_id TEXT,
+  result_json TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS orders_customer_orders (
+  id TEXT PRIMARY KEY NOT NULL,
+  order_number TEXT NOT NULL UNIQUE,
+  customer_party_id TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  quotation_id TEXT,
+  service_mode TEXT NOT NULL,
+  incoterm TEXT NOT NULL,
+  movement_scope TEXT NOT NULL DEFAULT 'PORT_TO_PORT',
+  origin_location_id TEXT NOT NULL,
+  destination_location_id TEXT NOT NULL,
+  cargo_ready_date TEXT NOT NULL,
+  required_delivery_date TEXT,
+  status TEXT NOT NULL DEFAULT 'DRAFT',
+  cargo_requirements_json TEXT NOT NULL,
+  commercial_refs_json TEXT NOT NULL DEFAULT '[]',
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS orders_fulfilment_allocations (
+  id TEXT PRIMARY KEY NOT NULL,
+  order_id TEXT NOT NULL,
+  shipment_id TEXT NOT NULL,
+  shipment_reference TEXT NOT NULL,
+  allocated_packages INTEGER NOT NULL,
+  allocated_weight_kg REAL NOT NULL,
+  allocated_volume_cbm REAL NOT NULL,
+  allocation_type TEXT NOT NULL DEFAULT 'FULL',
+  created_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS shipment_exec_shipments (
+  id TEXT PRIMARY KEY NOT NULL,
+  shipment_reference TEXT NOT NULL UNIQUE,
+  customer_account_id TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  service_mode TEXT NOT NULL,
+  service_type TEXT NOT NULL,
+  incoterm TEXT NOT NULL,
+  direction TEXT NOT NULL DEFAULT 'IMPORT',
+  origin_location_id TEXT NOT NULL,
+  destination_location_id TEXT NOT NULL,
+  lifecycle_state TEXT NOT NULL DEFAULT 'CREATED',
+  execution_phase TEXT NOT NULL DEFAULT 'ORIGIN_PREPARATION',
+  closure_state TEXT NOT NULL DEFAULT 'OPEN',
+  health_status TEXT NOT NULL DEFAULT 'ON_TRACK',
+  health_score INTEGER NOT NULL DEFAULT 100,
+  health_reasons_json TEXT NOT NULL DEFAULT '[]',
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  owner_user_id TEXT NOT NULL,
+  order_links_json TEXT NOT NULL DEFAULT '[]',
+  party_roles_json TEXT NOT NULL DEFAULT '[]',
+  external_refs_json TEXT NOT NULL DEFAULT '[]',
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS transport_plan_route_plans (
+  id TEXT PRIMARY KEY NOT NULL,
+  shipment_id TEXT NOT NULL UNIQUE,
+  active_version_no INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'PUBLISHED',
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS transport_plan_route_versions (
+  id TEXT PRIMARY KEY NOT NULL,
+  route_plan_id TEXT NOT NULL,
+  shipment_id TEXT NOT NULL,
+  version_no INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'PUBLISHED',
+  change_reason TEXT,
+  stops_json TEXT NOT NULL,
+  legs_json TEXT NOT NULL,
+  published_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS cargo_equip_cargos (
+  id TEXT PRIMARY KEY NOT NULL,
+  shipment_id TEXT NOT NULL,
+  total_packages INTEGER NOT NULL,
+  total_gross_weight_kg REAL NOT NULL,
+  total_volume_cbm REAL NOT NULL,
+  chargeable_weight_kg REAL NOT NULL,
+  has_dangerous_goods INTEGER NOT NULL DEFAULT 0,
+  has_temperature_control INTEGER NOT NULL DEFAULT 0,
+  packages_json TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS cargo_equip_equipment_assignments (
+  id TEXT PRIMARY KEY NOT NULL,
+  shipment_id TEXT NOT NULL,
+  consolidation_id TEXT,
+  equipment_category TEXT NOT NULL,
+  iso_type_code TEXT NOT NULL,
+  equipment_number TEXT NOT NULL,
+  seals_json TEXT NOT NULL DEFAULT '[]',
+  tare_weight_kg REAL NOT NULL DEFAULT 3800,
+  max_payload_kg REAL NOT NULL DEFAULT 28000,
+  vgm_weight_kg REAL,
+  pickup_pin TEXT,
+  status TEXT NOT NULL DEFAULT 'ASSIGNED',
+  cargo_allocations_json TEXT NOT NULL DEFAULT '[]',
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS tracking_events_stream (
+  event_id TEXT PRIMARY KEY NOT NULL,
+  shipment_id TEXT NOT NULL,
+  event_code TEXT NOT NULL,
+  milestone_code TEXT NOT NULL,
+  location_locode TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  source_trust_rank INTEGER NOT NULL DEFAULT 1,
+  timestamp_kind TEXT NOT NULL,
+  event_timestamp TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  recorded_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS tracking_events_milestone_plans (
+  id TEXT PRIMARY KEY NOT NULL,
+  shipment_id TEXT NOT NULL UNIQUE,
+  route_version_no INTEGER NOT NULL DEFAULT 1,
+  milestones_json TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS exception_mgmt_exceptions (
+  id TEXT PRIMARY KEY NOT NULL,
+  dedup_key TEXT NOT NULL UNIQUE,
+  shipment_id TEXT NOT NULL,
+  reference_number TEXT NOT NULL,
+  category TEXT NOT NULL,
+  severity TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'OPEN',
+  title TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  milestone_code TEXT NOT NULL,
+  location_locode TEXT NOT NULL,
+  occurrence_count INTEGER NOT NULL DEFAULT 1,
+  incident_id TEXT,
+  incident_number TEXT,
+  linked_work_item_id TEXT,
+  evidence_log_json TEXT NOT NULL DEFAULT '[]',
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  first_detected_at TEXT NOT NULL,
+  last_occurred_at TEXT NOT NULL,
+  resolved_at TEXT
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS exception_mgmt_incidents (
+  id TEXT PRIMARY KEY NOT NULL,
+  incident_number TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  severity TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ACTIVE',
+  affected_locode TEXT NOT NULL,
+  affected_vessel_or_flight TEXT,
+  impacted_shipment_ids_json TEXT NOT NULL DEFAULT '[]',
+  summary TEXT NOT NULL,
+  organization_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS sla_mgmt_instances (
+  id TEXT PRIMARY KEY NOT NULL,
+  shipment_id TEXT NOT NULL,
+  sla_code TEXT NOT NULL,
+  sla_name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ON_TRACK',
+  started_at TEXT NOT NULL,
+  original_deadline_at TEXT NOT NULL,
+  effective_deadline_at TEXT NOT NULL,
+  paused_at TEXT,
+  pause_reason TEXT,
+  accumulated_paused_minutes INTEGER NOT NULL DEFAULT 0,
+  stop_clock_history_json TEXT NOT NULL DEFAULT '[]',
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS data_quality_assessments (
+  id TEXT PRIMARY KEY NOT NULL,
+  shipment_id TEXT NOT NULL UNIQUE,
+  active_stage TEXT NOT NULL DEFAULT 'PRE_DEPARTURE_EXPORT',
+  score INTEGER NOT NULL DEFAULT 100,
+  gate_status TEXT NOT NULL DEFAULT 'PASSED',
+  blocking_findings_count INTEGER NOT NULL DEFAULT 0,
+  warning_findings_count INTEGER NOT NULL DEFAULT 0,
+  findings_json TEXT NOT NULL DEFAULT '[]',
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  evaluated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS consolidation_consolidations (
+  id TEXT PRIMARY KEY NOT NULL,
+  consolidation_reference TEXT NOT NULL UNIQUE,
+  consolidation_type TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  origin_locode TEXT NOT NULL,
+  destination_locode TEXT NOT NULL,
+  carrier_name TEXT NOT NULL,
+  vessel_or_flight TEXT,
+  voyage_number TEXT,
+  master_document_number TEXT NOT NULL,
+  max_capacity_weight_kg REAL NOT NULL DEFAULT 26000,
+  max_capacity_volume_cbm REAL NOT NULL DEFAULT 68,
+  allocated_weight_kg REAL NOT NULL DEFAULT 0,
+  allocated_volume_cbm REAL NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'OPEN_FOR_STUFFING',
+  members_json TEXT NOT NULL DEFAULT '[]',
+  equipment_ids_json TEXT NOT NULL DEFAULT '[]',
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS document_mgmt_documents (
+  id TEXT PRIMARY KEY NOT NULL,
+  shipment_id TEXT NOT NULL,
+  owner_entity_type TEXT NOT NULL DEFAULT 'SHIPMENT',
+  owner_entity_id TEXT NOT NULL,
+  document_type TEXT NOT NULL,
+  document_reference TEXT NOT NULL,
+  title TEXT NOT NULL,
+  requires_approval INTEGER NOT NULL DEFAULT 1,
+  current_version_no INTEGER NOT NULL DEFAULT 1,
+  lifecycle_state TEXT NOT NULL DEFAULT 'DRAFT',
+  versions_json TEXT NOT NULL DEFAULT '[]',
+  approvals_json TEXT NOT NULL DEFAULT '[]',
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS customs_cases (
+  id TEXT PRIMARY KEY NOT NULL,
+  case_number TEXT NOT NULL UNIQUE,
+  shipment_id TEXT NOT NULL,
+  procedure_type TEXT NOT NULL,
+  jurisdiction_country TEXT NOT NULL,
+  customs_office_locode TEXT NOT NULL,
+  declarant_eori_or_tax_id TEXT NOT NULL,
+  exporter_party_id TEXT NOT NULL,
+  importer_of_record_party_id TEXT NOT NULL,
+  customs_broker_name TEXT NOT NULL,
+  mrn_number TEXT,
+  channel_assigned TEXT,
+  state TEXT NOT NULL DEFAULT 'CREATED',
+  tariff_items_json TEXT NOT NULL DEFAULT '[]',
+  holds_json TEXT NOT NULL DEFAULT '[]',
+  total_calculated_duty_eur REAL NOT NULL DEFAULT 0,
+  total_calculated_vat_eur REAL NOT NULL DEFAULT 0,
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS op_finance_shipment_finances (
+  id TEXT PRIMARY KEY NOT NULL,
+  shipment_id TEXT NOT NULL UNIQUE,
+  functional_currency TEXT NOT NULL DEFAULT 'EUR',
+  financial_state TEXT NOT NULL DEFAULT 'OPEN',
+  expected_cost_total_eur REAL NOT NULL DEFAULT 0,
+  confirmed_cost_total_eur REAL NOT NULL DEFAULT 0,
+  expected_revenue_total_eur REAL NOT NULL DEFAULT 0,
+  confirmed_revenue_total_eur REAL NOT NULL DEFAULT 0,
+  expected_gross_margin_eur REAL NOT NULL DEFAULT 0,
+  actual_gross_margin_eur REAL NOT NULL DEFAULT 0,
+  margin_percent REAL NOT NULL DEFAULT 0,
+  open_accrual_amount_eur REAL NOT NULL DEFAULT 0,
+  financially_ready INTEGER NOT NULL DEFAULT 0,
+  lines_json TEXT NOT NULL DEFAULT '[]',
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS billing_sales_invoices (
+  id TEXT PRIMARY KEY NOT NULL,
+  invoice_number TEXT NOT NULL UNIQUE,
+  shipment_id TEXT NOT NULL,
+  bill_to_customer_party_id TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  customer_tax_id TEXT NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'EUR',
+  net_amount_eur REAL NOT NULL,
+  tax_rate_percent REAL NOT NULL DEFAULT 21,
+  tax_amount_eur REAL NOT NULL,
+  gross_amount_eur REAL NOT NULL,
+  status TEXT NOT NULL DEFAULT 'DRAFT',
+  lines_json TEXT NOT NULL DEFAULT '[]',
+  credit_note_number TEXT,
+  credit_reason TEXT,
+  issued_at TEXT,
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS billing_purchase_invoices (
+  id TEXT PRIMARY KEY NOT NULL,
+  dedup_vendor_key TEXT NOT NULL UNIQUE,
+  supplier_party_id TEXT NOT NULL,
+  supplier_name TEXT NOT NULL,
+  supplier_invoice_number TEXT NOT NULL,
+  fiscal_year INTEGER NOT NULL,
+  shipment_id TEXT NOT NULL,
+  matched_financial_line_id TEXT NOT NULL,
+  claimed_amount_eur REAL NOT NULL,
+  expected_cost_amount_eur REAL NOT NULL,
+  variance_amount_eur REAL NOT NULL,
+  variance_percent REAL NOT NULL,
+  tolerance_percent REAL NOT NULL DEFAULT 2,
+  match_outcome TEXT NOT NULL,
+  three_way_match_status TEXT NOT NULL,
+  status TEXT NOT NULL,
+  approval_notes TEXT,
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS workflow_rt_process_definitions (
+  id TEXT PRIMARY KEY NOT NULL,
+  process_key TEXT NOT NULL,
+  version_number INTEGER NOT NULL DEFAULT 1,
+  name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ACTIVE',
+  nodes_json TEXT NOT NULL,
+  sequence_flows_json TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS workflow_rt_process_instances (
+  id TEXT PRIMARY KEY NOT NULL,
+  process_definition_id TEXT NOT NULL,
+  process_key TEXT NOT NULL,
+  version_number INTEGER NOT NULL DEFAULT 1,
+  shipment_id TEXT NOT NULL UNIQUE,
+  reference_number TEXT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'RUNNING',
+  current_node_id TEXT NOT NULL,
+  active_tokens_json TEXT NOT NULL DEFAULT '[]',
+  completed_node_ids_json TEXT NOT NULL DEFAULT '[]',
+  variables_snapshot_json TEXT NOT NULL DEFAULT '{}',
+  blocking_reason TEXT,
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  started_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  completed_at INTEGER
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS rules_decisions_definitions (
+  id TEXT PRIMARY KEY NOT NULL,
+  decision_key TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  version_number INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'ACTIVE',
+  hit_policy TEXT NOT NULL DEFAULT 'FIRST',
+  input_columns_json TEXT NOT NULL,
+  output_columns_json TEXT NOT NULL,
+  rules_rows_json TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS rules_decisions_evaluation_logs (
+  evaluation_id TEXT PRIMARY KEY NOT NULL,
+  decision_key TEXT NOT NULL,
+  version_number INTEGER NOT NULL,
+  shipment_id TEXT NOT NULL,
+  inputs_snapshot_json TEXT NOT NULL,
+  matched_row_ids_json TEXT NOT NULL,
+  rule_annotations_json TEXT NOT NULL,
+  output_snapshot_json TEXT NOT NULL,
+  caller_context TEXT NOT NULL,
+  correlation_id TEXT NOT NULL,
+  evaluated_at TEXT NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS op_intelligence_shipment_360_views (
+  shipment_id TEXT PRIMARY KEY NOT NULL,
+  reference_number TEXT NOT NULL,
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  customer_account_id TEXT NOT NULL,
+  lifecycle_state TEXT NOT NULL,
+  health_status TEXT NOT NULL,
+  projection_version INTEGER NOT NULL DEFAULT 1,
+  read_model_json TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS op_intelligence_cockpit_items (
+  work_item_id TEXT PRIMARY KEY NOT NULL,
+  work_item_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  attention_score INTEGER NOT NULL,
+  urgency_bucket TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'OPEN',
+  organization_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  assignee_user_id TEXT,
+  shipment_id TEXT,
+  reference_number TEXT NOT NULL,
+  item_model_json TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);

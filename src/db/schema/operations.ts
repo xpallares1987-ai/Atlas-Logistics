@@ -146,31 +146,40 @@ export const tradeSanctions = sqliteTable("trade_sanctions", {
   ...commonAuditFields,
 });
 
-export const customsDeclarations = sqliteTable("customs_declarations", {
-  id: text("id").primaryKey(),
-  shipmentId: text("shipment_id")
-    .notNull()
-    .references(() => shipments.id),
-  brokerId: text("broker_id").references(() => customsBrokers.id),
-  hsCodeId: text("hs_code_id").references(() => hsCodes.id),
-  blNumber: text("bl_number"),
-  duaNumber: text("dua_number"),
-  type: text("type").default("Import"),
-  customsValue: real("customs_value"),
-  dutiesAmount: real("duties_amount"),
-  taxesAmount: real("taxes_amount"),
-  totalPayable: real("total_payable"),
-  status: text("status").notNull(), // Pending, Green Channel, Orange Channel, Red Channel, Cleared, Hold
-  riskScore: integer("risk_score"),
-  riskFlags: text("risk_flags"), // JSON array of deterministic rule messages
-  eoriNumber: text("eori_number"),
-  originCountry: text("origin_country"),
-  destinationCountry: text("destination_country"),
-  duaData: text("dua_data"), // JSON representation of 54 DUA boxes
-  aiRiskScore: integer("ai_risk_score"), // legacy fallback
-  aiRiskFlag: text("ai_risk_flag"), // legacy fallback
-  ...commonAuditFields,
-});
+export const customsDeclarations = sqliteTable(
+  "customs_declarations",
+  {
+    id: text("id").primaryKey(),
+    shipmentId: text("shipment_id")
+      .notNull()
+      .references(() => shipments.id),
+    brokerId: text("broker_id").references(() => customsBrokers.id),
+    hsCodeId: text("hs_code_id").references(() => hsCodes.id),
+    blNumber: text("bl_number"),
+    duaNumber: text("dua_number"),
+    type: text("type").default("Import"),
+    customsValue: real("customs_value"),
+    dutiesAmount: real("duties_amount"),
+    taxesAmount: real("taxes_amount"),
+    totalPayable: real("total_payable"),
+    status: text("status").notNull(), // Pending, Green Channel, Orange Channel, Red Channel, Cleared, Hold
+    riskScore: integer("risk_score"),
+    riskFlags: text("risk_flags"), // JSON array of deterministic rule messages
+    eoriNumber: text("eori_number"),
+    originCountry: text("origin_country"),
+    destinationCountry: text("destination_country"),
+    duaData: text("dua_data"), // JSON representation of 54 DUA boxes
+    aiRiskScore: integer("ai_risk_score"), // legacy fallback
+    aiRiskFlag: text("ai_risk_flag"), // legacy fallback
+    ...commonAuditFields,
+  },
+  (table) => ({
+    shipmentCreatedIdx: index("customs_decl_shipment_created_idx").on(
+      table.shipmentId,
+      table.createdAt,
+    ),
+  }),
+);
 
 export const bookings = sqliteTable("bookings", {
   id: text("id").primaryKey(),

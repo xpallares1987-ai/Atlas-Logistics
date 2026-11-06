@@ -6,15 +6,17 @@ import {
   hsCodes,
   shipments,
 } from "../../db/schema/operations.js";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { PDFService, CustomsData } from "../../services/pdf.service.js";
 import { TariffService } from "./tariff.service.js";
 import { ComplianceService } from "./compliance.service.js";
-import {
-  DuaXmlService,
-  DuaXmlPayload,
-} from "./dua-xml.service.js";
+import { DuaXmlService, DuaXmlPayload } from "./dua-xml.service.js";
 import { domainEventBus } from "../../lib/events/index.js";
+import {
+  scopeByTenant,
+  assertTenantAccess,
+  TenantAccessDeniedError,
+} from "../../lib/tenancy/index.js";
 import {
   extractCommercialInvoice,
   extractPackingList,
@@ -82,17 +84,46 @@ const OcrCrossCheckSchema = z.object({
 });
 
 const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
-  // 1. List all customs declarations
+  // 1. List all customs declarations (tenant-scoped & bounded pagination)
   fastify.get("/customs-declarations", async (request, reply) => {
     try {
-      const records = await db
+      const query = request.query as {
+        limit?: string;
+        offset?: string;
+        cursor?: string;
+      };
+      const boundedLimit = Math.min(
+        Math.max(parseInt(query.limit || "100", 10) || 100, 1),
+        500,
+      );
+      const boundedOffset = Math.max(
+        parseInt(query.offset || query.cursor || "0", 10) || 0,
+        0,
+      );
+
+      const tenantCondition = scopeByTenant(shipments.companyId);
+
+      const baseQuery = db
         .select({
           decl: customsDeclarations,
           hs: hsCodes,
+          shipment: shipments,
         })
         .from(customsDeclarations)
         .leftJoin(hsCodes, eq(customsDeclarations.hsCodeId, hsCodes.id))
-        .orderBy(desc(customsDeclarations.createdAt));
+        .leftJoin(shipments, eq(customsDeclarations.shipmentId, shipments.id));
+
+      const records = await (
+        tenantCondition ? baseQuery.where(tenantCondition) : baseQuery
+      )
+        .orderBy(desc(customsDeclarations.createdAt))
+        .limit(boundedLimit)
+        .offset(boundedOffset);
+
+      reply.header("X-Total-Returned", String(records.length));
+      if (records.length === boundedLimit) {
+        reply.header("X-Next-Cursor", String(boundedOffset + records.length));
+      }
 
       const mapped = records.map(({ decl, hs }) => {
         let uiStatus = decl.status;
@@ -198,9 +229,11 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         .select({
           decl: customsDeclarations,
           hs: hsCodes,
+          shipment: shipments,
         })
         .from(customsDeclarations)
         .leftJoin(hsCodes, eq(customsDeclarations.hsCodeId, hsCodes.id))
+        .leftJoin(shipments, eq(customsDeclarations.shipmentId, shipments.id))
         .where(eq(customsDeclarations.id, id))
         .limit(1);
 
@@ -208,7 +241,8 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         return reply.code(404).send({ error: "Declaration not found" });
       }
 
-      const { decl, hs } = records[0];
+      const { decl, hs, shipment } = records[0];
+      assertTenantAccess(shipment?.companyId);
       const auditResult = await ComplianceService.auditDeclaration({
         eoriNumber: decl.eoriNumber || "ESB88492019",
         originCountry: decl.originCountry || "CN",
@@ -240,6 +274,9 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         recommendedActions: auditResult.recommendedActions,
       });
     } catch (error: any) {
+      if (error instanceof TenantAccessDeniedError) {
+        return reply.code(403).send({ error: error.message });
+      }
       reply.code(500).send({ error: error.message });
     }
   });
@@ -248,6 +285,17 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.post("/customs-declarations", async (request, reply) => {
     try {
       const body = CreateDeclarationSchema.parse(request.body);
+
+      const [parentShipment] = await db
+        .select()
+        .from(shipments)
+        .where(eq(shipments.id, body.shipmentId))
+        .limit(1);
+
+      if (parentShipment) {
+        assertTenantAccess(parentShipment.companyId);
+      }
+
       const declId = `decl_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
       const duaNumber = `26ES000811${Math.floor(10000000 + Math.random() * 90000000)}`;
 
@@ -322,7 +370,9 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
       if (audit.isCleared) {
         await domainEventBus.publish("customs:cleared", declId, {
           declarationId: declId,
-          channel: audit.channel.toUpperCase().includes("GREEN") ? "GREEN" : "ORANGE",
+          channel: audit.channel.toUpperCase().includes("GREEN")
+            ? "GREEN"
+            : "ORANGE",
           duaReference: duaNumber,
           totalDutyPayable: tariff.totalCustomsPayable,
         });
@@ -337,6 +387,9 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         audit,
       });
     } catch (error: any) {
+      if (error instanceof TenantAccessDeniedError) {
+        return reply.code(403).send({ error: error.message });
+      }
       if (error instanceof z.ZodError) {
         return reply
           .code(400)
@@ -355,9 +408,11 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         .select({
           decl: customsDeclarations,
           hs: hsCodes,
+          shipment: shipments,
         })
         .from(customsDeclarations)
         .leftJoin(hsCodes, eq(customsDeclarations.hsCodeId, hsCodes.id))
+        .leftJoin(shipments, eq(customsDeclarations.shipmentId, shipments.id))
         .where(eq(customsDeclarations.id, id))
         .limit(1);
 
@@ -365,7 +420,8 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         return reply.code(404).send({ error: "Declaration not found" });
       }
 
-      const { decl, hs } = records[0];
+      const { decl, hs, shipment } = records[0];
+      assertTenantAccess(shipment?.companyId);
       const pdfData: CustomsData = {
         declarationId: decl.id,
         duaNumber:
@@ -400,6 +456,9 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
       );
       return reply.send(pdfBuffer);
     } catch (error: any) {
+      if (error instanceof TenantAccessDeniedError) {
+        return reply.code(403).send({ error: error.message });
+      }
       fastify.log.error("PDF Generation Error:", error);
       reply.code(500).send({ error: "Failed to generate PDF" });
     }
@@ -414,9 +473,11 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         .select({
           decl: customsDeclarations,
           hs: hsCodes,
+          shipment: shipments,
         })
         .from(customsDeclarations)
         .leftJoin(hsCodes, eq(customsDeclarations.hsCodeId, hsCodes.id))
+        .leftJoin(shipments, eq(customsDeclarations.shipmentId, shipments.id))
         .where(eq(customsDeclarations.id, id))
         .limit(1);
 
@@ -424,7 +485,8 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         return reply.code(404).send({ error: "Declaration not found" });
       }
 
-      const { decl, hs } = records[0];
+      const { decl, hs, shipment } = records[0];
+      assertTenantAccess(shipment?.companyId);
       const customsVal = decl.customsValue ?? 25000;
       const duty = decl.dutiesAmount ?? 825;
       const vat = decl.taxesAmount ?? 5423.25;
@@ -504,6 +566,9 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
       );
       return reply.send(xmlString);
     } catch (error: any) {
+      if (error instanceof TenantAccessDeniedError) {
+        return reply.code(403).send({ error: error.message });
+      }
       fastify.log.error("XML Generation Error:", error);
       reply.code(500).send({ error: "Failed to generate DUA XML" });
     }

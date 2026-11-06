@@ -59,12 +59,11 @@ async function bootstrap() {
     `Starting Atlas Logistics Backend (Mode: ${process.env.NODE_ENV || "development"})...`,
   );
 
-  // Validate critical environment variables FIRST
-  validateEnvironment();
+  // Load any mounted/external secrets BEFORE validating required variables
+  await loadSecrets(process.env.GOOGLE_CLOUD_PROJECT);
 
-  if (process.env.GOOGLE_CLOUD_PROJECT) {
-    await loadSecrets(process.env.GOOGLE_CLOUD_PROJECT);
-  }
+  // Validate critical environment variables
+  validateEnvironment();
 
   if (db) {
     logger.info(`Database connection initialized: ${databaseUrl}`);

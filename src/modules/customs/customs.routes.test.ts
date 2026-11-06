@@ -176,4 +176,102 @@ describe("Customs Routes Integration Tests", () => {
     expect(json.data.complianceScore).toBe(100);
     expect(json.data.releaseCertificateId).toBeDefined();
   });
+
+  it("enforces bounded pagination (limit & cursor) on GET /api/customs-declarations", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/customs-declarations?limit=2&offset=0",
+    });
+
+    expect(response.statusCode).toBe(200);
+    const json = JSON.parse(response.payload);
+    expect(Array.isArray(json)).toBe(true);
+    expect(json.length).toBeLessThanOrEqual(2);
+    expect(response.headers["x-total-returned"]).toBe(String(json.length));
+  });
+
+  it("enforces cross-tenant isolation on customs declarations list, analyze, create, PDF, and XML", async () => {
+    // 1. Fetch a real declaration in default context
+    const listRes = await app.inject({
+      method: "GET",
+      url: "/api/customs-declarations?limit=1",
+    });
+    const allDecls = JSON.parse(listRes.payload);
+    expect(allDecls.length).toBeGreaterThan(0);
+    const targetDecl = allDecls[0];
+
+    // 2. Listing under a foreign tenant org_foreign_999 returns 0 declarations
+    const foreignListRes = await app.inject({
+      method: "GET",
+      url: "/api/customs-declarations",
+      headers: {
+        "x-organization-id": "org_foreign_999",
+      },
+    });
+    expect(foreignListRes.statusCode).toBe(200);
+    expect(JSON.parse(foreignListRes.payload)).toEqual([]);
+
+    // 3. Analyzing a declaration belonging to another tenant returns 403 Forbidden
+    const foreignAnalyzeRes = await app.inject({
+      method: "POST",
+      url: `/api/customs-declarations/${targetDecl.id}/analyze`,
+      headers: {
+        "x-organization-id": "org_foreign_999",
+      },
+    });
+    expect(foreignAnalyzeRes.statusCode).toBe(403);
+
+    // 4. Downloading PDF or XML of a declaration belonging to another tenant returns 403 Forbidden
+    const foreignPdfRes = await app.inject({
+      method: "GET",
+      url: `/api/customs-declarations/${targetDecl.id}/pdf`,
+      headers: {
+        "x-organization-id": "org_foreign_999",
+      },
+    });
+    expect(foreignPdfRes.statusCode).toBe(403);
+
+    const foreignXmlRes = await app.inject({
+      method: "GET",
+      url: `/api/customs-declarations/${targetDecl.id}/xml`,
+      headers: {
+        "x-organization-id": "org_foreign_999",
+      },
+    });
+    expect(foreignXmlRes.statusCode).toBe(403);
+
+    // 5. Creating a declaration against a shipment owned by another organization returns 403 Forbidden
+    const foreignCreateRes = await app.inject({
+      method: "POST",
+      url: "/api/customs-declarations",
+      headers: {
+        "x-organization-id": "org_foreign_999",
+      },
+      payload: {
+        shipmentId: targetDecl.shipmentId,
+        hsCode: "8504.40.90.90",
+        customsValue: 18000,
+        originCountry: "CN",
+        destinationCountry: "ES",
+      },
+    });
+    expect(foreignCreateRes.statusCode).toBe(403);
+  });
+
+  it("encrypts outbound response when x-atlas-encrypted-payload is true and never leaks plaintext", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/customs-declarations?limit=1",
+      headers: {
+        "x-atlas-encrypted-payload": "true",
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["x-atlas-encrypted-payload"]).toBe("true");
+    const envelope = JSON.parse(response.payload);
+    expect(envelope).toHaveProperty("ciphertext");
+    expect(envelope).toHaveProperty("iv");
+    expect(envelope).not.toHaveProperty("duaNumber");
+  });
 });

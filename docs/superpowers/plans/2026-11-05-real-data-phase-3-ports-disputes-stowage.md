@@ -458,22 +458,22 @@ git commit -m "feat(system-panel): integrate Phase 5 seed telemetry and executio
 **Files:**
 - All touched files
 
-- [ ] **Step 1: Run full TypeScript check**
+- [x] **Step 1: Run full TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: 0 errors.
 
-- [ ] **Step 2: Run frontend production build**
+- [x] **Step 2: Run frontend production build**
 
 Run: `pnpm --filter @atlas/frontend build`
 Expected: Vite build succeeds with code 0.
 
-- [ ] **Step 3: Run full Vitest test suite**
+- [x] **Step 3: Run full Vitest test suite**
 
 Run: `pnpm vitest run src/db/schema/__tests__/phase5_schemas.test.ts src/db/__tests__/phase5_migration.test.ts src/routes/__tests__/admin-seed-phase5.routes.test.ts src/modules/demurrage-dispute/ src/modules/ocean-booking/ src/modules/stowage/`
 Expected: All tests pass.
 
-- [ ] **Step 4: Live interactive verification via Chrome DevTools MCP**
+- [x] **Step 4: Live interactive verification via Chrome DevTools MCP**
 
 1. Navigate to `http://localhost:3100/system-panel`, click `Inject Phase 5`, verify live counts increment.
 2. Navigate to `http://localhost:3100/demurrage`, check `sh_demo_01` and `MSKU9284712`, click "Presentar Disputa Legal FMC".
@@ -481,12 +481,12 @@ Expected: All tests pass.
 4. Navigate to `http://localhost:3100/planner`, check `cnt_msku_9284712`, verify 3D boxes render, click "Calcular CoG y Certificar Plan de Carga 3D".
 5. Confirm 0 console errors in DevTools.
 
-- [ ] **Step 5: Execute security leak audit**
+- [x] **Step 5: Execute security leak audit**
 
 Run: `pnpm run audit:leaks:staged`
 Expected: Exit code 0, 0 leaks detected.
 
-- [ ] **Step 6: Final Git status check**
+- [x] **Step 6: Final Git status check**
 
 ```bash
 git status
