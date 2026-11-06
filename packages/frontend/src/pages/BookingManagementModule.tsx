@@ -26,10 +26,10 @@ import {
   Truck,
   X,
   RefreshCw,
+  Database,
 } from "lucide-react";
 import { Button, AddressSelector, DrayageCalculatorModal } from "@atlas/ui";
 import {
-  OCEAN_BOOKING_PRESETS,
   CARRIER_METADATA,
   validateCutOffDeadlines,
   generateEDI301Transaction,
@@ -40,23 +40,265 @@ import {
 } from "@atlas/shared";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { useApiMutation } from "../hooks/useApiQuery";
+import { useApiMutation, useApiQuery } from "../hooks/useApiQuery";
 import { authFetch } from "../lib/api";
 
 type TabKey = "RATE_LOCK" | "CUTOFF_RADAR" | "SI_STUDIO" | "EQUIPMENT_RELEASE";
 
+const CANONICAL_FALLBACK_OCEAN_BOOKING: OceanBooking = {
+  id: "bk_demo_01",
+  bookingNumber: "BK-2026-67116",
+  referenceNumber: "BK-2026-67116",
+  carrier: "MSC",
+  carrierScac: "MSCU",
+  originPort: "ESVLC",
+  destinationPort: "USNYC",
+  vesselName: "MSC ISABELLA",
+  voyageNumber: "VOY-2026-88",
+  commodityDescription: "Industrial Robotics & Tooling",
+  status: "CONFIRMED",
+  requestedEquipment: {
+    isoType: "40HC",
+    quantity: 1,
+  },
+  rateLock: {
+    quoteId: "QTE-MSCU-ESVLC-USNYC",
+    carrier: "MSC",
+    carrierName: "Mediterranean Shipping Company (MSC)",
+    carrierScac: "MSCU",
+    originPort: "ESVLC",
+    destPort: "USNYC",
+    containerType: "40HC",
+    oceanFreightUsd: 2080,
+    bafUsd: 340,
+    thcOriginUsd: 140,
+    thcDestUsd: 280,
+    totalSpotUsd: 2840,
+    validityExpiresAt: "2026-11-20T23:59:59Z",
+    rateLockToken: "RL-MSCU-2026-LOCK",
+    freeTimeDays: 6,
+    transitTimeDays: 15,
+  },
+  cutOffs: {
+    cargoCutOff: "2026-11-12T18:00:00Z",
+    vgmCutOff: "2026-11-13T12:00:00Z",
+    customsCutOff: "2026-11-13T16:00:00Z",
+    siCutOff: "2026-11-14T10:00:00Z",
+    estimatedDeparture: "2026-11-15T08:00:00Z",
+    estimatedArrival: "2026-11-30T14:00:00Z",
+  },
+  shippingInstructions: {
+    bookingReference: "BK-2026-67116",
+    carrierScac: "MSCU",
+    shipperName: "Atlas Global Imports S.L.",
+    shipperAddress: "Zaragoza / Barcelona Logistics Park",
+    consigneeName: "European Distribution Hub B.V.",
+    consigneeAddress: "Port Newark Container Terminal (PNCT), Gate 3",
+    notifyPartyName: "System Admin (Global Systems & Logistics Lead)",
+    blType: "WAYBILL",
+    freightPaymentTerm: "PREPAID",
+    placeOfIssue: "Valencia",
+    siStatus: "ACCEPTED",
+    containerDetails: [
+      {
+        containerNumber: "MSKU9284712",
+        sealNumber: "ISO-17712-H-881920",
+        tareWeightKg: 3880,
+        verifiedGrossMassKg: 28450,
+        packagesCount: 48,
+        packageType: "Industrial Crates",
+        cargoDescription: "Industrial Robotics & Tooling",
+        hsCode: "8479.89",
+      },
+    ],
+  },
+  equipmentRelease: {
+    releaseOrderNumber: "REL-MSCU-2026-0912",
+    bookingNumber: "BK-2026-67116",
+    carrier: "MSC",
+    carrierScac: "MSCU",
+    depotCode: "DEPOT-VLC-01",
+    depotName: "Terminal de Contenedores de Valencia (TCV)",
+    depotAddress: "Muelle de Levante s/n, 46024 Valencia",
+    containerCount: 1,
+    isoType: "40HC",
+    validUntil: "2026-11-12",
+    pickupPin: "8819",
+    qrDigest: "SHA256:881920-REL-MSCU-VALID",
+    status: "ISSUED",
+    sealNumbersAllocated: ["ISO-17712-H-881920"],
+  },
+  createdAt: "2026-11-01T08:00:00Z",
+  updatedAt: "2026-11-05T12:00:00Z",
+};
+
+function mapDbToOceanBooking(detail: any, parentBooking: any): OceanBooking {
+  if (!detail && !parentBooking) return CANONICAL_FALLBACK_OCEAN_BOOKING;
+
+  const bkg = parentBooking || detail?.booking || {};
+  let parsedCargo: any = {};
+  try {
+    parsedCargo =
+      typeof bkg.cargoDetails === "string"
+        ? JSON.parse(bkg.cargoDetails)
+        : bkg.cargoDetails || {};
+  } catch {}
+
+  const carrierScac = detail?.carrierScac || "MSCU";
+  const carrierCode: CarrierCode =
+    carrierScac === "MAEU"
+      ? "MAERSK"
+      : carrierScac === "MSCU"
+        ? "MSC"
+        : carrierScac === "CMACGM"
+          ? "CMA_CGM"
+          : carrierScac === "HLCU"
+            ? "HAPAG_LLOYD"
+            : "MSC";
+
+  const meta = CARRIER_METADATA[carrierCode] || {
+    name: "Mediterranean Shipping Company (MSC)",
+    scac: "MSCU",
+  };
+
+  const cargoCutOff = detail?.cargoCutOff || "2026-11-12T18:00:00Z";
+  const vcsCutOff = detail?.vcsCutOff || "2026-11-13T12:00:00Z";
+  const docCutOff = detail?.docCutOff || "2026-11-13T16:00:00Z";
+  const siCutOff = detail?.siCutOff || "2026-11-14T10:00:00Z";
+
+  const vgmData =
+    detail?.vgm || (detail?.vgmJson ? JSON.parse(detail.vgmJson) : null);
+  const containerNum = parsedCargo.containerNumber || "MSKU9284712";
+  const sealNum = vgmData?.sealNumber || "ISO-17712-H-881920";
+  const vgmKg =
+    vgmData?.verifiedGrossMassKg || Number(parsedCargo.weight) || 28450;
+
+  return {
+    id: detail?.bookingId || bkg.id || "bk_demo_01",
+    bookingNumber: bkg.referenceNumber || "BK-2026-67116",
+    referenceNumber: bkg.referenceNumber || "BK-2026-67116",
+    carrier: carrierCode,
+    carrierScac,
+    originPort: bkg.origin || "ESVLC",
+    destinationPort: bkg.destination || "USNYC",
+    vesselName: bkg.vessel || "MSC ISABELLA",
+    voyageNumber: bkg.voyage || "VOY-2026-88",
+    commodityDescription:
+      parsedCargo.description || "Industrial Robotics & Tooling",
+    status: (detail?.siStatus === "CONFIRMED"
+      ? "CONFIRMED"
+      : bkg.status?.toUpperCase() || "CONFIRMED") as any,
+    requestedEquipment: {
+      isoType: bkg.equipment || "40HC",
+      quantity: 1,
+    },
+    rateLock: {
+      quoteId: `QTE-${carrierScac}-${bkg.origin || "ESVLC"}-${bkg.destination || "USNYC"}`,
+      carrier: carrierCode,
+      carrierName: meta.name,
+      carrierScac,
+      originPort: bkg.origin || "ESVLC",
+      destPort: bkg.destination || "USNYC",
+      containerType: bkg.equipment || "40HC",
+      oceanFreightUsd: 2080,
+      bafUsd: 340,
+      thcOriginUsd: 140,
+      thcDestUsd: 280,
+      totalSpotUsd: 2840,
+      validityExpiresAt: "2026-11-20T23:59:59Z",
+      rateLockToken: `RL-${carrierScac}-2026-LOCK`,
+      freeTimeDays: 6,
+      transitTimeDays: 15,
+    },
+    cutOffs: {
+      cargoCutOff,
+      vgmCutOff: vcsCutOff,
+      customsCutOff: docCutOff,
+      siCutOff,
+      estimatedDeparture: "2026-11-15T08:00:00Z",
+      estimatedArrival: "2026-11-30T14:00:00Z",
+    },
+    shippingInstructions: {
+      bookingReference: bkg.referenceNumber || "BK-2026-67116",
+      carrierScac,
+      shipperName: bkg.shipperName || "Atlas Global Imports S.L.",
+      shipperAddress: "Zaragoza / Barcelona Logistics Park",
+      consigneeName: bkg.consigneeName || "European Distribution Hub B.V.",
+      consigneeAddress: "Port Newark Container Terminal (PNCT), Gate 3",
+      notifyPartyName: "System Admin (Global Systems & Logistics Lead)",
+      blType: "WAYBILL",
+      freightPaymentTerm: "PREPAID",
+      placeOfIssue: (bkg.origin || "Valencia").split(" ")[0],
+      siStatus: detail?.siStatus === "CONFIRMED" ? "ACCEPTED" : "DRAFT",
+      containerDetails: [
+        {
+          containerNumber: containerNum,
+          sealNumber: sealNum,
+          tareWeightKg: 3880,
+          verifiedGrossMassKg: vgmKg,
+          packagesCount: 48,
+          packageType: "Industrial Crates",
+          cargoDescription:
+            parsedCargo.description || "Industrial Robotics & Tooling",
+          hsCode: "8479.89",
+        },
+      ],
+    },
+    equipmentRelease: {
+      releaseOrderNumber: `REL-${carrierScac}-2026-0912`,
+      bookingNumber: bkg.referenceNumber || "BK-2026-67116",
+      carrier: carrierCode,
+      carrierScac,
+      depotCode: "DEPOT-VLC-01",
+      depotName: "Terminal de Contenedores de Valencia (TCV)",
+      depotAddress: "Muelle de Levante s/n, 46024 Valencia",
+      containerCount: 1,
+      isoType: bkg.equipment || "40HC",
+      validUntil: cargoCutOff.split("T")[0],
+      pickupPin: "8819",
+      qrDigest: `SHA256:${sealNum}-REL-VALID`,
+      status: "ISSUED",
+      sealNumbersAllocated: [sealNum],
+    },
+    createdAt: bkg.createdAt || detail?.createdAt || new Date().toISOString(),
+    updatedAt: detail?.updatedAt || bkg.updatedAt || new Date().toISOString(),
+  };
+}
+
 export default function BookingManagementModule() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>("RATE_LOCK");
-  const [selectedPresetId] = useState<string>("bkg-transpac-01");
+  const [selectedBookingId, setSelectedBookingId] =
+    useState<string>("bk_demo_01");
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedEdi, setCopiedEdi] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(882); // ~14m 42s
   const [showNewBookingModal, setShowNewBookingModal] = useState(false);
 
   // Live DB Bookings state (2-Phase Booking-to-Shipment Lifecycle)
-  const [dbBookings, setDbBookings] = useState<any[]>([]);
-  const [loadingDbBookings, setLoadingDbBookings] = useState(false);
+  const {
+    data: dbBookings = [],
+    refetch: refetchDbBookings,
+    isLoading: loadingDbBookings,
+  } = useApiQuery<any[]>(["/api/bookings"], "/bookings");
+
+  // Live DCSA Ocean Booking details from SQLite via useApiQuery
+  const {
+    data: oceanBookingDetail,
+    refetch: refetchOceanBookingDetails,
+    isLoading: loadingOceanDetails,
+  } = useApiQuery<any>(
+    ["ocean-booking-details", selectedBookingId],
+    selectedBookingId
+      ? `/ocean-booking/details?bookingId=${selectedBookingId}`
+      : "/ocean-booking/details",
+  );
+
+  const fetchDbBookings = () => {
+    refetchDbBookings();
+    refetchOceanBookingDetails();
+  };
+
   const [confirmingBooking, setConfirmingBooking] = useState<any | null>(null);
   const [confirmForm, setConfirmForm] = useState({
     carrierBookingNumber: "",
@@ -100,27 +342,6 @@ export default function BookingManagementModule() {
     weight: 18500,
     totalCost: 2650,
   });
-
-  const fetchDbBookings = async () => {
-    try {
-      setLoadingDbBookings(true);
-      const res = await authFetch("/api/bookings");
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setDbBookings(data);
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching DB bookings:", err);
-    } finally {
-      setLoadingDbBookings(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDbBookings();
-  }, []);
 
   const generateLifecycleBlPdf = (payload: {
     blReference: string;
@@ -403,19 +624,85 @@ export default function BookingManagementModule() {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  // Preset state
-  const initialPreset = useMemo(
-    () =>
-      OCEAN_BOOKING_PRESETS.find((p) => p.id === selectedPresetId) ||
-      OCEAN_BOOKING_PRESETS[0],
-    [selectedPresetId],
+  const selectedDbBooking = useMemo(() => {
+    return (
+      dbBookings.find(
+        (b) =>
+          b.id === selectedBookingId || b.referenceNumber === selectedBookingId,
+      ) ||
+      dbBookings[0] ||
+      null
+    );
+  }, [dbBookings, selectedBookingId]);
+
+  const [customActiveBooking, setCustomActiveBooking] =
+    useState<OceanBooking | null>(null);
+
+  const activeBooking = useMemo<OceanBooking>(() => {
+    if (customActiveBooking && customActiveBooking.id === selectedBookingId) {
+      return customActiveBooking;
+    }
+    return mapDbToOceanBooking(oceanBookingDetail, selectedDbBooking);
+  }, [
+    customActiveBooking,
+    selectedBookingId,
+    oceanBookingDetail,
+    selectedDbBooking,
+  ]);
+
+  const setActiveBooking = (bkg: OceanBooking) => {
+    setCustomActiveBooking(bkg);
+    if (bkg.id) setSelectedBookingId(bkg.id);
+  };
+
+  const allBookings = useMemo<OceanBooking[]>(() => {
+    if (dbBookings.length === 0) return [CANONICAL_FALLBACK_OCEAN_BOOKING];
+    return dbBookings.map((b) => mapDbToOceanBooking(null, b));
+  }, [dbBookings]);
+
+  // Operational Fastify mutations for DCSA SI and Draft B/L
+  const [siSuccessMsg, setSiSuccessMsg] = useState<string | null>(null);
+  const [draftBlSuccessMsg, setDraftBlSuccessMsg] = useState<string | null>(
+    null,
   );
 
-  const [activeBooking, setActiveBooking] =
-    useState<OceanBooking>(initialPreset);
-  const [allBookings, setAllBookings] = useState<OceanBooking[]>(
-    OCEAN_BOOKING_PRESETS,
-  );
+  const detailId = oceanBookingDetail?.id || "bkg_sh_demo_01";
+
+  const submitDcsSiMutation = useApiMutation<
+    { success: boolean; details: any },
+    { vgmKg?: number; sealNumber?: string; certifiedBy?: string }
+  >(`/ocean-booking/${detailId}/shipping-instructions`, "POST", {
+    onSuccess: () => {
+      refetchOceanBookingDetails();
+      setSiSuccessMsg(
+        "Instrucciones DCSA SI confirmadas y VGM certificado en SQLite.",
+      );
+      setTimeout(() => setSiSuccessMsg(null), 8000);
+    },
+  });
+
+  const generateDraftBlMutation = useApiMutation<
+    { success: boolean; details: any },
+    void
+  >(`/ocean-booking/${detailId}/generate-draft-bl`, "POST", {
+    onSuccess: () => {
+      refetchOceanBookingDetails();
+      setDraftBlSuccessMsg("Borrador Oficial B/L emitido con éxito en SQLite.");
+      setTimeout(() => setDraftBlSuccessMsg(null), 8000);
+    },
+  });
+
+  const handleConfirmDcsSi = () => {
+    submitDcsSiMutation.mutate({
+      vgmKg: 28450,
+      sealNumber: "ISO-17712-H-881920",
+      certifiedBy: "Atlas Weighing Station ESVLC-01",
+    });
+  };
+
+  const handleGenerateOfficialDraftBl = () => {
+    generateDraftBlMutation.mutate();
+  };
 
   // Multi-carrier spot rates list
   const rateLockQuotes = useMemo<RateLockQuote[]>(() => {
@@ -480,22 +767,10 @@ export default function BookingManagementModule() {
     "POST",
     {
       onSuccess: (newBkg) => {
-        setAllBookings((prev) => [newBkg, ...prev]);
+        refetchDbBookings();
+        refetchOceanBookingDetails();
         setActiveBooking(newBkg);
         setActiveTab("CUTOFF_RADAR");
-      },
-    },
-  );
-
-  const siMutation = useApiMutation<any, any>(
-    "/ocean-booking/submit-si",
-    "POST",
-    {
-      onSuccess: (res) => {
-        setActiveBooking(res.booking);
-        setAllBookings((prev) =>
-          prev.map((b) => (b.id === res.booking.id ? res.booking : b)),
-        );
       },
     },
   );
@@ -505,10 +780,9 @@ export default function BookingManagementModule() {
     "POST",
     {
       onSuccess: (res) => {
+        refetchDbBookings();
+        refetchOceanBookingDetails();
         setActiveBooking(res.booking);
-        setAllBookings((prev) =>
-          prev.map((b) => (b.id === res.booking.id ? res.booking : b)),
-        );
       },
     },
   );
@@ -1090,6 +1364,97 @@ export default function BookingManagementModule() {
           )}
         </div>
 
+        {/* Relational Booking Selector & SQLite Context Banner */}
+        <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Database className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider block">
+                  Reserva Relacional Activa (SQLite dev.db)
+                </span>
+                {oceanBookingDetail ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Detalle DCSA: {oceanBookingDetail.id}
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    Sin Detalle DCSA Específico
+                  </span>
+                )}
+                {oceanBookingDetail?.siStatus === "CONFIRMED" && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                    DCSA SI Confirmadas
+                  </span>
+                )}
+                {oceanBookingDetail?.draftBlStatus === "ISSUED" && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    Draft B/L Emitido
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {activeBooking.bookingNumber} ({activeBooking.originPort} →{" "}
+                {activeBooking.destinationPort}) | Buque:{" "}
+                {activeBooking.vesselName} | Contrato:{" "}
+                {oceanBookingDetail?.serviceContractNumber ||
+                  "SC-MED-2026-88192"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-slate-400 font-medium">
+                Reserva:
+              </label>
+              <select
+                value={selectedBookingId}
+                onChange={(e) => setSelectedBookingId(e.target.value)}
+                className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+              >
+                {dbBookings.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.referenceNumber || b.id} ({b.origin} → {b.destination})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                refetchOceanBookingDetails();
+                refetchDbBookings();
+              }}
+              disabled={loadingOceanDetails || loadingDbBookings}
+              className="text-xs flex items-center gap-1.5"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${
+                  loadingOceanDetails || loadingDbBookings ? "animate-spin" : ""
+                }`}
+              />
+              Refrescar DB
+            </Button>
+          </div>
+        </div>
+
+        {/* Success Alert Banners */}
+        {siSuccessMsg && (
+          <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-xs text-cyan-300 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span>{siSuccessMsg}</span>
+          </div>
+        )}
+        {draftBlSuccessMsg && (
+          <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs text-purple-300 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
+            <span>{draftBlSuccessMsg}</span>
+          </div>
+        )}
+
         {/* Global KPI Strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
@@ -1598,7 +1963,39 @@ export default function BookingManagementModule() {
                     <strong>{activeBooking.rateLock.carrierName}</strong>
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleConfirmDcsSi}
+                    disabled={
+                      submitDcsSiMutation.isPending ||
+                      oceanBookingDetail?.siStatus === "CONFIRMED"
+                    }
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs flex items-center gap-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    {submitDcsSiMutation.isPending
+                      ? "Emitiendo..."
+                      : oceanBookingDetail?.siStatus === "CONFIRMED"
+                        ? "SI Confirmadas"
+                        : "Emitir Instrucciones DCSA SI"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleGenerateOfficialDraftBl}
+                    disabled={
+                      generateDraftBlMutation.isPending ||
+                      oceanBookingDetail?.draftBlStatus === "ISSUED"
+                    }
+                    className="bg-purple-600 hover:bg-purple-500 text-white text-xs flex items-center gap-1.5"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    {generateDraftBlMutation.isPending
+                      ? "Generando..."
+                      : oceanBookingDetail?.draftBlStatus === "ISSUED"
+                        ? "B/L Oficial Emitido"
+                        : "Generar Borrador B/L Oficial"}
+                  </Button>
                   <Button
                     size="sm"
                     onClick={handleDownloadDraftBL}
@@ -1807,41 +2204,39 @@ export default function BookingManagementModule() {
                   : "Generando transacción EDI 304..."}
               </div>
 
-              <Button
-                onClick={() => {
-                  siMutation.mutate({
-                    bookingId: activeBooking.id,
-                    shipperName: "Iberian Logistics Solutions S.A.",
-                    shipperAddress:
-                      "Barcelona Intermodal Rail Depot, Barcelona",
-                    consigneeName: "Atlantic Container Corp (New York)",
-                    consigneeAddress: "Port Newark Container Terminal (PNCT)",
-                    notifyPartyName: "Atlas Logistics Lead (System Admin)",
-                    blType: "ORIGINAL",
-                    freightPaymentTerm: "PREPAID",
-                    placeOfIssue: "Barcelona",
-                    containerDetails: [
-                      {
-                        containerNumber: "SUDU4829103",
-                        sealNumber: "SL-HLCU-482911",
-                        tareWeightKg: 3900,
-                        verifiedGrossMassKg: 26500,
-                        packagesCount: 22,
-                        packageType: "Coils / Reels",
-                        cargoDescription: "Paper Reels & Industrial Packaging",
-                        hsCode: "48051100",
-                      },
-                    ],
-                  });
-                }}
-                disabled={siMutation.isPending}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 flex items-center justify-center gap-2 text-xs"
-              >
-                <Send className="w-4 h-4" />
-                {siMutation.isPending
-                  ? "Transmitiendo..."
-                  : "Enviar Instrucciones a Naviera (EDI 304)"}
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  onClick={handleConfirmDcsSi}
+                  disabled={
+                    submitDcsSiMutation.isPending ||
+                    oceanBookingDetail?.siStatus === "CONFIRMED"
+                  }
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 flex items-center justify-center gap-2 text-xs"
+                >
+                  <Send className="w-4 h-4" />
+                  {submitDcsSiMutation.isPending
+                    ? "Transmitiendo DCSA SI a Naviera..."
+                    : oceanBookingDetail?.siStatus === "CONFIRMED"
+                      ? "Instrucciones DCSA SI Confirmadas (SQLite)"
+                      : "Transmitir Instrucciones DCSA SI (SQLite)"}
+                </Button>
+
+                <Button
+                  onClick={handleGenerateOfficialDraftBl}
+                  disabled={
+                    generateDraftBlMutation.isPending ||
+                    oceanBookingDetail?.draftBlStatus === "ISSUED"
+                  }
+                  className="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-2 flex items-center justify-center gap-2 text-xs"
+                >
+                  <FileText className="w-4 h-4" />
+                  {generateDraftBlMutation.isPending
+                    ? "Generando Borrador B/L..."
+                    : oceanBookingDetail?.draftBlStatus === "ISSUED"
+                      ? "Borrador B/L Oficial Emitido (SQLite)"
+                      : "Generar Borrador B/L Oficial (SQLite)"}
+                </Button>
+              </div>
             </div>
           </div>
         )}
