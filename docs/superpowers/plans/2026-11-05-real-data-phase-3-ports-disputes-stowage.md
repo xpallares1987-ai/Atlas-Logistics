@@ -367,7 +367,7 @@ git commit -m "feat(frontend): refactor DemurrageAlertsModule to live SQLite que
 - Consumes: `GET /api/ocean-booking/details`, `POST /api/ocean-booking/:id/shipping-instructions`, `POST /api/ocean-booking/:id/generate-draft-bl`, `GET /api/bookings`
 - Produces: Zero-mock Ocean Booking screen with live booking selector (defaults to `bk_demo_01` / `BK-2026-67116`), real DCSA cut-off radar, operational DCSA Shipping Instruction submission, and Official Draft B/L issuance.
 
-- [ ] **Step 1: Replace `OCEAN_BOOKING_PRESETS` with live DB Bookings**
+- [x] **Step 1: Replace `OCEAN_BOOKING_PRESETS` with live DB Bookings**
 
 1. Add booking selector populated by `GET /api/bookings` (defaulting to `bk_demo_01`).
 2. Query live booking details from `GET /api/ocean-booking/details`.
@@ -375,12 +375,12 @@ git commit -m "feat(frontend): refactor DemurrageAlertsModule to live SQLite que
 4. Wire "Generar Borrador B/L Oficial" button to `POST /api/ocean-booking/:id/generate-draft-bl`.
 5. Render dynamic cut-offs countdown based on database timestamps (`cargoCutOff`, `docCutOff`, `vcsCutOff`).
 
-- [ ] **Step 2: Verify TypeScript compilation & frontend build**
+- [x] **Step 2: Verify TypeScript compilation & frontend build**
 
 Run: `pnpm --filter @atlas/frontend build`
 Expected: Build succeeds with code 0.
 
-- [ ] **Step 3: Run leak audit and commit**
+- [x] **Step 3: Run leak audit and commit**
 
 ```bash
 pnpm run audit:leaks:staged
@@ -399,7 +399,7 @@ git commit -m "feat(frontend): refactor BookingManagementModule to live DCSA dat
 - Consumes: `GET /api/stowage/plan?containerId=...`, `POST /api/stowage/calculate-stability`, `GET /api/shipments`
 - Produces: Zero-mock 3D container visualization loading real `cargo_items` from SQLite (`cnt_msku_9284712`), dynamic Center of Gravity rendering, axle weight distribution gauges, and "Calcular CoG y Certificar Plan de Carga 3D" operational button.
 
-- [ ] **Step 1: Replace `STOWAGE_DEMO_PRESETS` with live container data**
+- [x] **Step 1: Replace `STOWAGE_DEMO_PRESETS` with live container data**
 
 1. Add container selector querying containers for the selected shipment (defaulting to `cnt_msku_9284712`).
 2. Fetch stowage plan and items via `GET /api/stowage/plan`.
@@ -407,12 +407,12 @@ git commit -m "feat(frontend): refactor BookingManagementModule to live DCSA dat
 4. Wire "Calcular CoG y Certificar Plan de Carga 3D" action button to `POST /api/stowage/calculate-stability`.
 5. Render stability certification badge with timestamp and certifier once certified.
 
-- [ ] **Step 2: Verify TypeScript compilation & frontend build**
+- [x] **Step 2: Verify TypeScript compilation & frontend build**
 
 Run: `pnpm --filter @atlas/frontend build`
 Expected: Build succeeds with code 0.
 
-- [ ] **Step 3: Run leak audit and commit**
+- [x] **Step 3: Run leak audit and commit**
 
 ```bash
 pnpm run audit:leaks:staged
@@ -431,19 +431,19 @@ git commit -m "feat(frontend): refactor ContainerPlannerModule to live cargo_ite
 - Consumes: `GET /api/admin/seed/status`, `POST /api/admin/seed/5`
 - Produces: Updated System Panel displaying Phase 5 card with live telemetry (`demurrageInvoices`, `demurrageDisputes`, `oceanBookings`, `stowagePlans`), `Inject Phase 5` trigger button, and `5 Phases` tab badge.
 
-- [ ] **Step 1: Update `SystemPanelModule.tsx`**
+- [x] **Step 1: Update `SystemPanelModule.tsx`**
 
 1. Update `seedStatus` typing to include `phase5: { demurrageInvoices, demurrageDisputes, oceanBookings, stowagePlans }`.
 2. Update `triggerSeed` type signature to `"1" | "2" | "3" | "4" | "5" | "all"`.
 3. Update tab badge to `5 Phases` and grid layout.
 4. Add Phase 5 card ("Phase 5: FMC Demurrage, DCSA Bookings & 3D Stowage") with live count badges and `Inject Phase 5` button.
 
-- [ ] **Step 2: Verify TypeScript compilation & frontend build**
+- [x] **Step 2: Verify TypeScript compilation & frontend build**
 
 Run: `pnpm --filter @atlas/frontend build`
 Expected: Build succeeds with code 0.
 
-- [ ] **Step 3: Run leak audit and commit**
+- [x] **Step 3: Run leak audit and commit**
 
 ```bash
 pnpm run audit:leaks:staged

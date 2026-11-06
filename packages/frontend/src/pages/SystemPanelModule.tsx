@@ -76,6 +76,12 @@ export default function SystemPanelModule() {
       smartEscrowContracts: number;
       erpPurchaseOrders: number;
     };
+    phase5?: {
+      demurrageInvoices: number;
+      demurrageDisputes: number;
+      oceanBookings: number;
+      stowagePlans: number;
+    };
   } | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -111,7 +117,7 @@ export default function SystemPanelModule() {
     }
   };
 
-  const triggerSeed = async (phase: "1" | "2" | "3" | "4" | "all") => {
+  const triggerSeed = async (phase: "1" | "2" | "3" | "4" | "5" | "all") => {
     setIsSeeding(true);
     setActiveSeedingPhase(phase);
     setSeedResult(null);
@@ -264,7 +270,7 @@ export default function SystemPanelModule() {
           <Database size={15} />
           <span>Database & Seeds</span>
           <span className="text-[10px] px-1.5 py-0.2 bg-cyan-950 text-cyan-400 border border-cyan-800/40 rounded-full font-bold">
-            4 Phases
+            5 Phases
           </span>
         </button>
 
@@ -886,6 +892,80 @@ export default function SystemPanelModule() {
                   <Sparkles size={14} className="mr-1.5" />
                 )}
                 Inject Phase 4
+              </Button>
+            </div>
+
+            {/* Phase 5 Overview */}
+            <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                      Phase 5: Ports & 3D Stowage
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      FMC Demurrage, DCSA Bookings & 3D Stowage
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  Maritime
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 py-3 border-y border-slate-800/80 text-center">
+                <div>
+                  <div className="text-xl font-black text-amber-400">
+                    {seedStatus?.phase5?.demurrageInvoices ?? "—"}
+                  </div>
+                  <div className="text-[10px] text-slate-400 uppercase font-medium">
+                    FMC Invoices
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-rose-400">
+                    {seedStatus?.phase5?.demurrageDisputes ?? "—"}
+                  </div>
+                  <div className="text-[10px] text-slate-400 uppercase font-medium">
+                    FMC Disputes
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-cyan-400">
+                    {seedStatus?.phase5?.oceanBookings ?? "—"}
+                  </div>
+                  <div className="text-[10px] text-slate-400 uppercase font-medium">
+                    DCSA Bookings
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-emerald-400">
+                    {seedStatus?.phase5?.stowagePlans ?? "—"}
+                  </div>
+                  <div className="text-[10px] text-slate-400 uppercase font-medium">
+                    3D Stowage Plans
+                  </div>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed min-h-[48px]">
+                FMC 46 CFR Part 541 demurrage billing audits, clock-stop
+                suspensions, DCSA v3.0 shipping instructions & eBLs, and IMO/CSS
+                3D stowage stability certification.
+              </p>
+              <Button
+                size="sm"
+                onClick={() => triggerSeed("5")}
+                disabled={!isAdmin || isSeeding}
+                className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold transition-all"
+              >
+                {isSeeding && activeSeedingPhase === "5" ? (
+                  <RefreshCw size={14} className="animate-spin mr-1.5" />
+                ) : (
+                  <Sparkles size={14} className="mr-1.5" />
+                )}
+                Inject Phase 5
               </Button>
             </div>
           </div>
