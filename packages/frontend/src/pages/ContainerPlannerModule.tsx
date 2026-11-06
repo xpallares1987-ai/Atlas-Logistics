@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useMemo } from "react";
+import React, { Suspense, useState, useMemo, useEffect } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import {
@@ -24,6 +24,8 @@ import {
   RotateCw,
   Eye,
   Info,
+  ShieldCheck,
+  Database,
 } from "lucide-react";
 import { Button, Input } from "@atlas/ui";
 import {
@@ -32,10 +34,64 @@ import {
   ContainerSpecification,
   CargoItemInput,
   PlacedCargoItem,
-  STOWAGE_DEMO_PRESETS,
   optimizeStowage3D,
   StowageOptimizationResult,
 } from "@atlas/shared";
+import { useApiQuery } from "../hooks/useApiQuery";
+import { authFetch } from "../lib/api";
+
+const CANONICAL_FALLBACK_ITEMS: CargoItemInput[] = [
+  {
+    id: "cargo_item_01",
+    name: "Tooling Unit Alpha",
+    widthM: 1.2,
+    heightM: 1.4,
+    lengthM: 1.2,
+    weightKg: 4200,
+    stackable: true,
+    color: "#3b82f6",
+  },
+  {
+    id: "cargo_item_02",
+    name: "Precision Lathe B",
+    widthM: 1.2,
+    heightM: 1.4,
+    lengthM: 1.2,
+    weightKg: 4200,
+    stackable: true,
+    color: "#60a5fa",
+  },
+  {
+    id: "cargo_item_03",
+    name: "Hydraulic Assembly C",
+    widthM: 1.2,
+    heightM: 1.5,
+    lengthM: 1.4,
+    weightKg: 4800,
+    stackable: true,
+    color: "#4ade80",
+  },
+  {
+    id: "cargo_item_04",
+    name: "Hydraulic Assembly D",
+    widthM: 1.2,
+    heightM: 1.5,
+    lengthM: 1.4,
+    weightKg: 4800,
+    stackable: true,
+    color: "#4ade80",
+  },
+  {
+    id: "cargo_item_05",
+    name: "Robotic Arms Pallet E",
+    widthM: 2.1,
+    heightM: 1.3,
+    lengthM: 1.5,
+    weightKg: 6500,
+    stackable: false,
+    color: "#fbbf24",
+  },
+];
 
 // =========================================================================
 // ERROR BOUNDARY FOR 3D WEBGL CANVAS
@@ -351,6 +407,10 @@ const CenterOfGravityMarker3D: React.FC<CenterOfGravityMarkerProps> = ({
 // =========================================================================
 
 export default function ContainerPlannerModule() {
+  const [selectedShipmentId, setSelectedShipmentId] =
+    useState<string>("sh_demo_01");
+  const [selectedContainerId, setSelectedContainerId] =
+    useState<string>("cnt_msku_9284712");
   const [selectedContainerKey, setSelectedContainerKey] =
     useState<ContainerTypeKey>("40ft_hc");
   const activeContainer = useMemo(
@@ -358,18 +418,65 @@ export default function ContainerPlannerModule() {
     [selectedContainerKey],
   );
 
+  // Live DB Shipments & Stowage Plan from SQLite
+  const { data: shipments = [] } = useApiQuery<any[]>(
+    ["/api/shipments"],
+    "/shipments",
+  );
+
+  const {
+    data: stowagePlan,
+    refetch: refetchStowagePlan,
+    isLoading: isLoadingPlan,
+  } = useApiQuery<any>(
+    ["stowage-plan", selectedContainerId],
+    `/stowage/plan?containerId=${selectedContainerId}`,
+  );
+
+  const [isCertifying, setIsCertifying] = useState(false);
+  const [certificationFeedback, setCertificationFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
   // Active Manifest Items
   const [cargoList, setCargoList] = useState<CargoItemInput[]>(
-    STOWAGE_DEMO_PRESETS.balanced_40hc.items,
+    CANONICAL_FALLBACK_ITEMS,
   );
 
   // Optimization Result
   const [optResult, setOptResult] = useState<StowageOptimizationResult>(() =>
-    optimizeStowage3D(
-      EQUIPMENT_CATALOG["40ft_hc"],
-      STOWAGE_DEMO_PRESETS.balanced_40hc.items,
-    ),
+    optimizeStowage3D(EQUIPMENT_CATALOG["40ft_hc"], CANONICAL_FALLBACK_ITEMS),
   );
+
+  // Synchronize with live SQLite stowage plan items when loaded
+  useEffect(() => {
+    if (
+      stowagePlan?.items &&
+      Array.isArray(stowagePlan.items) &&
+      stowagePlan.items.length > 0
+    ) {
+      const dbMappedItems: CargoItemInput[] = stowagePlan.items.map(
+        (it: any) => ({
+          id: it.id,
+          name: it.label || it.name || "Cargo Item",
+          widthM: Number(it.width || it.widthM || 1.2),
+          heightM: Number(it.height || it.heightM || 1.4),
+          lengthM: Number(it.depth || it.lengthM || 1.2),
+          weightKg: Number(it.weight || it.weightKg || 1000),
+          stackable: it.stackable ?? true,
+          color: it.color || "#3b82f6",
+          hazardClass: it.hazardClass,
+        }),
+      );
+      setCargoList(dbMappedItems);
+      setOptResult(
+        optimizeStowage3D(activeContainer, dbMappedItems, {
+          centerPayload: true,
+        }),
+      );
+    }
+  }, [stowagePlan, activeContainer]);
 
   // 3D Canvas View Controls
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -398,6 +505,42 @@ export default function ContainerPlannerModule() {
       centerPayload: true,
     });
     setOptResult(result);
+  };
+
+  // Handler: Calculate CoG & Certify 3D Stowage Plan in SQLite
+  const handleCertifyStability = async () => {
+    setIsCertifying(true);
+    setCertificationFeedback(null);
+    try {
+      handleRunOptimizer(cargoList);
+      const res = await authFetch("/api/stowage/calculate-stability", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          containerId: selectedContainerId,
+          certifiedBy: "Chief Mate Roberts (Safety Officer)",
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(
+          err.message || "Error al certificar el plan de estiba.",
+        );
+      }
+      await refetchStowagePlan();
+      setCertificationFeedback({
+        type: "success",
+        message:
+          "Plan de carga 3D y Centro de Gravedad (CoG) certificados oficialmente en SQLite (IMO/CSS Code Anexo 13).",
+      });
+    } catch (err: any) {
+      setCertificationFeedback({
+        type: "error",
+        message: err.message || "Error al calcular estabilidad.",
+      });
+    } finally {
+      setIsCertifying(false);
+    }
   };
 
   // Handler: Switch container type
@@ -506,13 +649,123 @@ export default function ContainerPlannerModule() {
           )}
           <Button
             onClick={() => handleRunOptimizer()}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-1.5"
+            variant="ghost"
+            className="text-xs text-indigo-300 hover:text-white border border-indigo-500/30 bg-indigo-500/10 rounded-xl px-3 py-1.5 flex items-center gap-1.5"
           >
             <RefreshCw size={14} />
-            Calcular Estiba Heurística 3D
+            Recalcular Heurística
+          </Button>
+          <Button
+            onClick={handleCertifyStability}
+            disabled={isCertifying}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-1.5"
+          >
+            <ShieldCheck size={15} />
+            {isCertifying
+              ? "Certificando..."
+              : "Calcular CoG y Certificar Plan de Carga 3D"}
           </Button>
         </div>
       </div>
+
+      {/* Relational Container Selector & Stability Certification Banner */}
+      <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Database size={16} className="text-emerald-400" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Expedición & Contenedor SQLite:
+            </span>
+          </div>
+
+          <select
+            id="stowage-shipment-select"
+            aria-label="Seleccionar Expedición"
+            value={selectedShipmentId}
+            onChange={(e) => setSelectedShipmentId(e.target.value)}
+            className="bg-slate-950 border border-slate-700 text-xs text-white rounded-xl px-3 py-1.5 font-mono focus:outline-none focus:border-indigo-500"
+          >
+            <option value="sh_demo_01">
+              sh_demo_01 • BK-2026-67116 (MSC ISABELLA)
+            </option>
+            {shipments
+              .filter((s: any) => s.id !== "sh_demo_01")
+              .map((s: any) => (
+                <option key={s.id} value={s.id}>
+                  {s.id} • {s.trackingNumber || s.vesselName || "Expedición"}
+                </option>
+              ))}
+          </select>
+
+          <select
+            id="stowage-container-select"
+            aria-label="Seleccionar Contenedor"
+            value={selectedContainerId}
+            onChange={(e) => setSelectedContainerId(e.target.value)}
+            className="bg-slate-950 border border-indigo-500/40 text-xs text-indigo-300 rounded-xl px-3 py-1.5 font-mono focus:outline-none focus:border-indigo-500"
+          >
+            <option value="cnt_msku_9284712">
+              cnt_msku_9284712 • MSKU9284712 (40&apos; High Cube • Seal:
+              ISO-17712-H-881920)
+            </option>
+          </select>
+
+          <button
+            type="button"
+            onClick={() => refetchStowagePlan()}
+            className="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-950 border border-slate-800 px-2.5 py-1.5 rounded-xl transition"
+            title="Sincronizar con SQLite"
+          >
+            <RefreshCw
+              size={13}
+              className={isLoadingPlan ? "animate-spin text-indigo-400" : ""}
+            />
+            <span>Sincronizar DB</span>
+          </button>
+        </div>
+
+        {/* Official Marine Stability Certification Badge */}
+        {stowagePlan?.stabilityCertified && (
+          <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-2 rounded-xl">
+            <ShieldCheck size={18} className="text-emerald-400 shrink-0" />
+            <div className="text-[11px] leading-tight">
+              <div className="font-bold text-emerald-300 flex items-center gap-1.5">
+                <span>Certificado IMO/CSS Code Anexo 13</span>
+                <span className="text-[10px] font-mono bg-emerald-500/20 px-1.5 py-0.2 rounded text-emerald-200">
+                  VERIFIED
+                </span>
+              </div>
+              <div className="text-slate-400 font-mono text-[10px]">
+                Firmado: {stowagePlan.certifiedBy || "Chief Mate Roberts"} •{" "}
+                {stowagePlan.certifiedAt
+                  ? new Date(stowagePlan.certifiedAt * 1000).toLocaleString()
+                  : "Reciente"}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {certificationFeedback && (
+        <div
+          className={`p-3.5 rounded-2xl border text-xs font-medium flex items-center justify-between ${
+            certificationFeedback.type === "success"
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+              : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} />
+            <span>{certificationFeedback.message}</span>
+          </div>
+          <button
+            onClick={() => setCertificationFeedback(null)}
+            className="text-slate-400 hover:text-white text-[11px] underline"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
 
       {/* Equipment Selector & Real-Time KPI Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
