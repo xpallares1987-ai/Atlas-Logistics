@@ -21,10 +21,10 @@ import {
   FileWarning,
   Building2,
   Database,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@atlas/ui";
 import {
-  DEMURRAGE_DISPUTE_PRESETS,
   calculateDemurrageAudit,
   generateDisputePack,
   type CarrierInvoiceData,
@@ -36,47 +36,230 @@ import {
 } from "@atlas/shared";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { useApiMutation } from "../hooks/useApiQuery";
+import { useApiMutation, useApiQuery } from "../hooks/useApiQuery";
+import { useShipments } from "../hooks/useShipments";
 
 type TabKey = "RADAR" | "SUSPENSIONS" | "AUDIT" | "DOSSIER";
 
+const CANONICAL_FALLBACK_INVOICE: CarrierInvoiceData = {
+  invoiceNumber: "INV-DEM-2026-9921",
+  invoiceDate: "2026-10-25",
+  carrierName: "Maersk Line A/S",
+  carrierScac: "MAEU",
+  billOfLading: "BK-2026-67116",
+  containerNumber: "MSKU9284712",
+  chargeType: "DEMURRAGE",
+  jurisdiction: "US_FMC_OSRA_2022",
+  vesselVoyage: "MSC ISABELLA / 2604W",
+  pod: "New York Container Terminal (USNYC)",
+  terminalName: "APM Terminals Port Elizabeth",
+  terminalHoursProvided: true,
+  dischargeDate: "2026-10-25",
+  availableDate: "2026-10-25",
+  freeTimeStartDate: "2026-10-26",
+  freeTimeEndDate: "2026-10-29",
+  freeDaysGranted: 4,
+  billedStartDate: "2026-10-26",
+  billedEndDate: "2026-11-02",
+  billedTotalDays: 8,
+  billedDailyRate: 175,
+  invoicedAmount: 1400,
+  currency: "USD",
+  disputeContactEmail: "disputes.na@maersk.com",
+  tariffTiers: [
+    { fromDay: 1, toDay: 4, dailyRate: 175, currency: "USD" },
+    { fromDay: 5, toDay: 8, dailyRate: 250, currency: "USD" },
+  ],
+};
+
+function mapDbInvoiceToCarrierData(inv: any): CarrierInvoiceData {
+  if (!inv) return CANONICAL_FALLBACK_INVOICE;
+  return {
+    invoiceNumber: inv.invoiceNumber || "INV-DEM-2026-9921",
+    invoiceDate: inv.createdAt
+      ? new Date(inv.createdAt).toISOString().split("T")[0]
+      : "2026-10-25",
+    carrierName: inv.carrierName || "Maersk Line A/S",
+    carrierScac: inv.carrierScac || "MAEU",
+    billOfLading: inv.billOfLading || "BK-2026-67116",
+    containerNumber: inv.containerNumber || "MSKU9284712",
+    chargeType: "DEMURRAGE",
+    jurisdiction: "US_FMC_OSRA_2022",
+    vesselVoyage: "MSC ISABELLA / 2604W",
+    pod: inv.pod || "New York Container Terminal (USNYC)",
+    terminalName: inv.terminalName || "APM Terminals Port Elizabeth",
+    terminalHoursProvided: true,
+    dischargeDate: inv.vesselDischargeDate
+      ? inv.vesselDischargeDate.split("T")[0]
+      : "2026-10-25",
+    availableDate: inv.availableDate
+      ? inv.availableDate.split("T")[0]
+      : "2026-10-25",
+    freeTimeStartDate: inv.freeTimeStartDate
+      ? inv.freeTimeStartDate.split("T")[0]
+      : "2026-10-26",
+    freeTimeEndDate: inv.freeTimeEndDate
+      ? inv.freeTimeEndDate.split("T")[0]
+      : "2026-10-29",
+    freeDaysGranted: inv.freeDaysGranted ?? 4,
+    billedStartDate: inv.freeTimeStartDate
+      ? inv.freeTimeStartDate.split("T")[0]
+      : "2026-10-26",
+    billedEndDate: inv.freeTimeEndDate
+      ? inv.freeTimeEndDate.split("T")[0]
+      : "2026-11-02",
+    billedTotalDays: 8,
+    billedDailyRate: inv.dailyRateUsd ?? 175,
+    invoicedAmount: inv.totalInvoicedUsd ?? 1400,
+    currency: "USD",
+    disputeContactEmail: "disputes.na@maersk.com",
+    tariffTiers:
+      inv.tariffTiers && inv.tariffTiers.length > 0
+        ? inv.tariffTiers
+        : [
+            {
+              fromDay: 1,
+              toDay: 4,
+              dailyRate: inv.dailyRateUsd ?? 175,
+              currency: "USD",
+            },
+            { fromDay: 5, toDay: 8, dailyRate: 250, currency: "USD" },
+          ],
+  };
+}
+
+function mapDbSuspensionToClockSuspension(s: any): ClockSuspension {
+  return {
+    id: s.id,
+    code: (s.reason || "CUSTOMS_PHYSICAL_EXAM") as SuspensionReasonCode,
+    reason: s.justificationText || s.reason || "Suspensión reglamentaria",
+    startDate: s.startDate?.includes("T")
+      ? s.startDate.split("T")[0]
+      : s.startDate || "2026-10-27",
+    endDate: s.endDate?.includes("T")
+      ? s.endDate.split("T")[0]
+      : s.endDate || "2026-10-29",
+    suspendedDays: s.daysSuspended ?? 2,
+    officialNoticeRef: "Aviso Oficial de Autoridad Portuaria",
+    approved: s.approved !== false,
+  };
+}
+
 export default function DemurrageAlertsModule() {
   const [activeTab, setActiveTab] = useState<TabKey>("RADAR");
-  const [selectedPresetId, setSelectedPresetId] = useState<string>(
-    "us_west_coast_la_lb",
+  const [selectedShipmentId, setSelectedShipmentId] =
+    useState<string>("sh_demo_01");
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(
+    null,
   );
   const [copiedLetter, setCopiedLetter] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [disputeSuccessMessage, setDisputeSuccessMessage] = useState<
+    string | null
+  >(null);
 
-  // Current active scenario state
-  const initialPreset = useMemo(
-    () =>
-      DEMURRAGE_DISPUTE_PRESETS.find((p) => p.id === selectedPresetId) ||
-      DEMURRAGE_DISPUTE_PRESETS[0],
-    [selectedPresetId],
+  // 1. Live Shipments from SQLite
+  const { data: shipments = [] } = useShipments();
+  const activeShipment =
+    shipments.find((s) => s.id === selectedShipmentId) || shipments[0];
+
+  // 2. Live Demurrage Invoices from SQLite (filtered by active shipment)
+  const {
+    data: dbInvoices = [],
+    refetch: refetchInvoices,
+    isLoading: isLoadingInvoices,
+  } = useApiQuery<any[]>(
+    ["demurrage-invoices", selectedShipmentId],
+    selectedShipmentId
+      ? `/demurrage-dispute/invoices?shipmentId=${selectedShipmentId}`
+      : "/demurrage-dispute/invoices",
   );
 
-  const [currentInvoice, setCurrentInvoice] = useState<CarrierInvoiceData>(
-    initialPreset.invoice,
-  );
-  const [currentSuspensions, setCurrentSuspensions] = useState<
-    ClockSuspension[]
-  >(initialPreset.suspensions);
-  const [currentMilestones, setCurrentMilestones] = useState<EDI315Milestone[]>(
-    initialPreset.milestones,
-  );
-
-  // When preset changes, update local states
-  const handleSelectPreset = (presetId: string) => {
-    setSelectedPresetId(presetId);
-    const preset = DEMURRAGE_DISPUTE_PRESETS.find((p) => p.id === presetId);
-    if (preset) {
-      setCurrentInvoice(preset.invoice);
-      setCurrentSuspensions(preset.suspensions);
-      setCurrentMilestones(preset.milestones);
-      setDispatchReceipt(null);
+  // Active DB invoice
+  const activeDbInvoice = useMemo(() => {
+    if (selectedInvoiceId) {
+      const match = dbInvoices.find((inv) => inv.id === selectedInvoiceId);
+      if (match) return match;
     }
-  };
+    return dbInvoices[0] || null;
+  }, [dbInvoices, selectedInvoiceId]);
+
+  // Derived CarrierInvoiceData from active SQLite record
+  const currentInvoice = useMemo<CarrierInvoiceData>(() => {
+    return mapDbInvoiceToCarrierData(activeDbInvoice);
+  }, [activeDbInvoice]);
+
+  // Derived Suspensions from active SQLite record
+  const currentSuspensions = useMemo<ClockSuspension[]>(() => {
+    if (
+      activeDbInvoice?.suspensions &&
+      activeDbInvoice.suspensions.length > 0
+    ) {
+      return activeDbInvoice.suspensions.map(mapDbSuspensionToClockSuspension);
+    }
+    return [
+      {
+        id: "dsusp_01",
+        code: "CUSTOMS_PHYSICAL_EXAM",
+        reason:
+          "CBP vacis exam hold placed on container MSKU9284712 preventing gate-out release.",
+        startDate: "2026-10-27",
+        endDate: "2026-10-29",
+        suspendedDays: 2,
+        officialNoticeRef: "Aviso Oficial de Autoridad Portuaria",
+        approved: true,
+      },
+    ];
+  }, [activeDbInvoice]);
+
+  // EDI 315 Milestones
+  const currentMilestones = useMemo<EDI315Milestone[]>(() => {
+    return [
+      {
+        id: "m-01",
+        code: "VD",
+        eventDescription: "Descarga de buque (Vessel Discharge)",
+        timestamp:
+          activeDbInvoice?.vesselDischargeDate || "2026-10-25T08:00:00Z",
+        locationCode: "USNYC",
+        locationName:
+          activeDbInvoice?.terminalName || "APM Terminals Port Elizabeth",
+        verified: true,
+      },
+      {
+        id: "m-02",
+        code: "AL",
+        eventDescription:
+          "Contenedor Disponible en Terminal (Container Available)",
+        timestamp: activeDbInvoice?.availableDate || "2026-10-25T14:00:00Z",
+        locationCode: "USNYC",
+        locationName:
+          activeDbInvoice?.terminalName || "APM Terminals Port Elizabeth",
+        verified: true,
+      },
+      {
+        id: "m-03",
+        code: "CO",
+        eventDescription:
+          "Inspección Aduanera Notificada (Customs Physical Hold)",
+        timestamp: "2026-10-27T08:00:00Z",
+        locationCode: "USNYC",
+        locationName: "CBP Examination Station",
+        verified: true,
+      },
+      {
+        id: "m-04",
+        code: "CR",
+        eventDescription:
+          "Levante Aduanero y Liberación Naviera (Carrier Release)",
+        timestamp: "2026-10-29T18:00:00Z",
+        locationCode: "USNYC",
+        locationName:
+          activeDbInvoice?.terminalName || "APM Terminals Port Elizabeth",
+        verified: true,
+      },
+    ];
+  }, [activeDbInvoice]);
 
   // Live computed audit result
   const auditResult = useMemo<DemurrageAuditResult>(() => {
@@ -113,6 +296,25 @@ export default function DemurrageAlertsModule() {
   );
   const [newNoticeRef, setNewNoticeRef] = useState("");
 
+  // Suspension Mutation (POST /api/demurrage-dispute/suspension)
+  const addSuspensionMutation = useApiMutation<
+    { success: boolean; suspension: any },
+    {
+      invoiceId: string;
+      startDate: string;
+      endDate: string;
+      daysSuspended: number;
+      reason: string;
+      justificationText: string;
+    }
+  >("/demurrage-dispute/suspension", "POST", {
+    onSuccess: () => {
+      refetchInvoices();
+      setNewReasonText("");
+      setNewNoticeRef("");
+    },
+  });
+
   const handleAddSuspension = (e: React.FormEvent) => {
     e.preventDefault();
     const start = new Date(newStartDate);
@@ -122,26 +324,60 @@ export default function DemurrageAlertsModule() {
       Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1,
     );
 
-    const newSusp: ClockSuspension = {
-      id: `susp-${Date.now().toString(36)}`,
-      code: newReasonCode,
-      reason: newReasonText || `Suspensión reglamentaria (${newReasonCode})`,
+    const invoiceId = activeDbInvoice?.id || "dinv_sh_demo_01";
+    addSuspensionMutation.mutate({
+      invoiceId,
       startDate: newStartDate,
       endDate: newEndDate,
-      suspendedDays: days,
-      officialNoticeRef: newNoticeRef || "Aviso Oficial de Autoridad Portuaria",
-      approved: true,
-    };
+      daysSuspended: days,
+      reason: newReasonCode,
+      justificationText:
+        newReasonText || `Suspensión reglamentaria (${newReasonCode})`,
+    });
+  };
 
-    setCurrentSuspensions((prev) => [newSusp, ...prev]);
-    setNewReasonText("");
-    setNewNoticeRef("");
+  // FMC Dispute Mutation (POST /api/demurrage-dispute/dispute)
+  const submitDisputeMutation = useApiMutation<
+    { success: boolean; dispute: any },
+    {
+      invoiceId: string;
+      disputedAmountUsd: number;
+      revisedPayableUsd: number;
+      fmcRuleClause: string;
+      formalLetterPayload?: any;
+    }
+  >("/demurrage-dispute/dispute", "POST", {
+    onSuccess: (data) => {
+      refetchInvoices();
+      setDisputeSuccessMessage(
+        `Disputa legal FMC #${data.dispute.id} registrada formalmente en SQLite. Estatus: SUBMITTED.`,
+      );
+      setTimeout(() => setDisputeSuccessMessage(null), 8000);
+    },
+  });
+
+  const handlePresentFmcDispute = () => {
+    const invoiceId = activeDbInvoice?.id || "dinv_sh_demo_01";
+    submitDisputeMutation.mutate({
+      invoiceId,
+      disputedAmountUsd: auditResult.disputedWaiverAmount,
+      revisedPayableUsd: auditResult.auditedLegalAmount,
+      fmcRuleClause:
+        auditResult.fmcCompliance.statutoryCitation ||
+        "46 CFR § 541.6(a) - Inaccurate Free Time Start During Government Inspection Hold",
+      formalLetterPayload: {
+        dossierId: disputePack.dossierId,
+        subject: disputePack.formalLetterSubject,
+        body: disputePack.formalLetterBody,
+        carrier: disputePack.recipientCarrier,
+      },
+    });
   };
 
   // Email dispatch mutation
   const [dispatchReceipt, setDispatchReceipt] = useState<any>(null);
   const [dispatchEmailTo, setDispatchEmailTo] = useState(
-    disputePack.recipientCarrier.email,
+    disputePack.recipientCarrier.email || "disputes.na@maersk.com",
   );
 
   const dispatchMutation = useApiMutation<any, any>(
@@ -301,10 +537,36 @@ export default function DemurrageAlertsModule() {
     doc.save(`Demurrage_Dispute_Dossier_${auditResult.containerNumber}.pdf`);
   };
 
+  // Filtered invoices for the RADAR table
+  const displayInvoices = useMemo(() => {
+    const list =
+      dbInvoices.length > 0
+        ? dbInvoices
+        : [
+            {
+              id: "dinv_sh_demo_01",
+              shipmentId: "sh_demo_01",
+              ...CANONICAL_FALLBACK_INVOICE,
+              totalInvoicedUsd: CANONICAL_FALLBACK_INVOICE.invoicedAmount,
+              dailyRateUsd: CANONICAL_FALLBACK_INVOICE.billedDailyRate,
+              suspensions: currentSuspensions,
+              disputes: [],
+            },
+          ];
+
+    if (!searchTerm) return list;
+    return list.filter(
+      (inv) =>
+        inv.containerNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inv.billOfLading?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inv.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [dbInvoices, searchTerm, currentSuspensions]);
+
   return (
     <div className="w-full min-h-screen bg-slate-900 text-slate-100 p-4 md:p-8 font-sans">
-      {/* Top Header & Compliance Badge */}
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Top Header & Compliance Badge */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-800">
           <div>
             <div className="flex items-center gap-3">
@@ -342,6 +604,82 @@ export default function DemurrageAlertsModule() {
             </div>
           </div>
         </div>
+
+        {/* Relational Shipment Selector & SQLite Context Banner */}
+        <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Database className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider block">
+                  Expedición Relacional Activa (SQLite dev.db)
+                </span>
+                {activeDbInvoice ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Factura Vinculada: {activeDbInvoice.invoiceNumber}
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    Sin Factura D&D
+                  </span>
+                )}
+                {activeDbInvoice?.status === "DISPUTED" && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    Disputa FMC Activa
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {activeShipment
+                  ? `${activeShipment.trackingNumber} (${activeShipment.origin} → ${activeShipment.destination}) | Buque: ${activeShipment.vesselName || "MSC ISABELLA"}`
+                  : "Expedición canónica sh_demo_01 (BK-2026-67116)"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-slate-400 font-medium">
+                Expedición:
+              </label>
+              <select
+                value={selectedShipmentId}
+                onChange={(e) => {
+                  setSelectedShipmentId(e.target.value);
+                  setSelectedInvoiceId(null);
+                }}
+                className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+              >
+                {shipments.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.trackingNumber} ({s.origin} → {s.destination})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => refetchInvoices()}
+              disabled={isLoadingInvoices}
+              className="text-xs flex items-center gap-1.5"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${isLoadingInvoices ? "animate-spin" : ""}`}
+              />
+              Refrescar DB
+            </Button>
+          </div>
+        </div>
+
+        {/* Global Alert / Success Message */}
+        {disputeSuccessMessage && (
+          <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs text-purple-300 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
+            <span>{disputeSuccessMessage}</span>
+          </div>
+        )}
 
         {/* Global D&D Exposure KPI Strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -458,7 +796,7 @@ export default function DemurrageAlertsModule() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-white">
-                  Radar de Relojes de Demurrage en Tiempo Real
+                  Radar de Relojes de Demurrage en Tiempo Real (SQLite)
                 </h2>
                 <p className="text-xs text-slate-400">
                   Monitorización continua de terminales marítimas y
@@ -498,117 +836,136 @@ export default function DemurrageAlertsModule() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {DEMURRAGE_DISPUTE_PRESETS.filter(
-                    (p) =>
-                      p.invoice.containerNumber
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase()) ||
-                      p.invoice.billOfLading
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase()),
-                  ).map((preset) => {
-                    const isSelected =
-                      preset.invoice.containerNumber ===
-                      currentInvoice.containerNumber;
-                    const pAudit = calculateDemurrageAudit({
-                      invoice: preset.invoice,
-                      suspensions: preset.suspensions,
-                      milestones: preset.milestones,
-                    });
-
-                    return (
-                      <tr
-                        key={preset.id}
-                        className={`hover:bg-slate-800/60 transition-colors ${
-                          isSelected ? "bg-blue-900/20" : ""
-                        }`}
+                  {isLoadingInvoices ? (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="py-8 text-center text-slate-400 font-mono"
                       >
-                        <td className="py-3.5 px-4 font-mono font-semibold text-white">
-                          <div className="flex items-center gap-2">
-                            <span>{preset.invoice.containerNumber}</span>
-                            {isSelected && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                                Activo
+                        Cargando facturas de demurrage desde SQLite...
+                      </td>
+                    </tr>
+                  ) : (
+                    displayInvoices.map((inv) => {
+                      const invCarrierData = mapDbInvoiceToCarrierData(inv);
+                      const invSuspensions = (inv.suspensions || []).map(
+                        mapDbSuspensionToClockSuspension,
+                      );
+                      const pAudit = calculateDemurrageAudit({
+                        invoice: invCarrierData,
+                        suspensions: invSuspensions,
+                      });
+                      const isSelected =
+                        inv.id === activeDbInvoice?.id ||
+                        inv.containerNumber === currentInvoice.containerNumber;
+
+                      return (
+                        <tr
+                          key={inv.id || inv.invoiceNumber}
+                          className={`hover:bg-slate-800/60 transition-colors ${
+                            isSelected ? "bg-blue-900/20" : ""
+                          }`}
+                        >
+                          <td className="py-3.5 px-4 font-mono font-semibold text-white">
+                            <div className="flex items-center gap-2">
+                              <span>{inv.containerNumber}</span>
+                              {isSelected && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                  Activo
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-400 font-sans font-normal">
+                              B/L: {inv.billOfLading}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="text-white font-medium">
+                              {inv.carrierName}
+                            </div>
+                            <div className="text-slate-400 text-[11px]">
+                              SCAC: {inv.carrierScac}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="text-white font-medium">
+                              {inv.pod}
+                            </div>
+                            <div className="text-slate-400 text-[11px] truncate max-w-[180px]">
+                              {inv.terminalName}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 font-mono">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-slate-200">
+                                {pAudit.grossCalendarDwellDays}d brutos
+                              </span>
+                              <span className="text-amber-400 font-semibold">
+                                (-{pAudit.totalSuspendedDays}d pausa)
+                              </span>
+                              <span className="text-emerald-400 font-bold">
+                                = {pAudit.netActualDwellDays}d netos
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 font-mono">
+                            <span className="text-blue-300 font-semibold">
+                              {inv.freeDaysGranted ?? 4} días
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {inv.status === "DISPUTED" ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                <Scale className="w-3 h-3" /> Disputa FMC
+                              </span>
+                            ) : pAudit.auditStatus ===
+                              "FULL_WAIVER_JUSTIFIED" ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                <ShieldAlert className="w-3 h-3" /> Exención
+                                100%
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                <AlertTriangle className="w-3 h-3" /> Devengo
+                                Excesivo
                               </span>
                             )}
-                          </div>
-                          <div className="text-[11px] text-slate-400 font-sans font-normal">
-                            B/L: {preset.invoice.billOfLading}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="text-white font-medium">
-                            {preset.invoice.carrierName}
-                          </div>
-                          <div className="text-slate-400 text-[11px]">
-                            SCAC: {preset.invoice.carrierScac}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="text-white font-medium">
-                            {preset.invoice.pod}
-                          </div>
-                          <div className="text-slate-400 text-[11px] truncate max-w-[180px]">
-                            {preset.invoice.terminalName}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 font-mono">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-slate-200">
-                              {pAudit.grossCalendarDwellDays}d brutos
-                            </span>
-                            <span className="text-amber-400 font-semibold">
-                              (-{pAudit.totalSuspendedDays}d pausa)
-                            </span>
-                            <span className="text-emerald-400 font-bold">
-                              = {pAudit.netActualDwellDays}d netos
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 font-mono">
-                          <span className="text-blue-300 font-semibold">
-                            {preset.invoice.freeDaysGranted} días
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {pAudit.auditStatus === "FULL_WAIVER_JUSTIFIED" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                              <ShieldAlert className="w-3 h-3" /> Exención 100%
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                              <AlertTriangle className="w-3 h-3" /> Devengo
-                              Excesivo
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-white">
-                          <div>
-                            {preset.invoice.invoicedAmount.toLocaleString()}{" "}
-                            {preset.invoice.currency}
-                          </div>
-                          <div className="text-[11px] text-emerald-400 font-normal">
-                            Disputa:{" "}
-                            {pAudit.disputedWaiverAmount.toLocaleString()}{" "}
-                            {preset.invoice.currency}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => {
-                              handleSelectPreset(preset.id);
-                              setActiveTab("AUDIT");
-                            }}
-                            className="text-xs"
-                          >
-                            Auditar <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono font-bold text-white">
+                            <div>
+                              {(
+                                inv.totalInvoicedUsd ??
+                                inv.invoicedAmount ??
+                                1400
+                              ).toLocaleString()}{" "}
+                              {inv.currency || "USD"}
+                            </div>
+                            <div className="text-[11px] text-emerald-400 font-normal">
+                              Disputa:{" "}
+                              {pAudit.disputedWaiverAmount.toLocaleString()}{" "}
+                              {inv.currency || "USD"}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => {
+                                if (inv.id) setSelectedInvoiceId(inv.id);
+                                if (inv.shipmentId)
+                                  setSelectedShipmentId(inv.shipmentId);
+                                setActiveTab("AUDIT");
+                              }}
+                              className="text-xs"
+                            >
+                              Auditar{" "}
+                              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -640,7 +997,7 @@ export default function DemurrageAlertsModule() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-white">
-                    Eventos de Pausa de Reloj Registrados
+                    Eventos de Pausa de Reloj Registrados (SQLite)
                   </h2>
                   <p className="text-xs text-slate-400">
                     Días legalmente excluidos del cómputo de demurrage para el
@@ -700,7 +1057,7 @@ export default function DemurrageAlertsModule() {
               <div className="flex items-center gap-2 pb-2 border-b border-slate-700">
                 <PauseCircle className="w-5 h-5 text-amber-400" />
                 <h3 className="text-sm font-bold text-white">
-                  Declarar Nueva Suspensión de Reloj
+                  Declarar Nueva Suspensión de Reloj (SQLite)
                 </h3>
               </div>
 
@@ -803,9 +1160,13 @@ export default function DemurrageAlertsModule() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-2"
+                  disabled={addSuspensionMutation.isPending}
+                  className="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-2 flex items-center justify-center gap-2"
                 >
-                  Registrar e Incorporar a la Auditoría
+                  <PauseCircle className="w-4 h-4" />
+                  {addSuspensionMutation.isPending
+                    ? "Registrando en SQLite..."
+                    : "Registrar e Incorporar a la Auditoría"}
                 </Button>
               </form>
             </div>
@@ -923,15 +1284,33 @@ export default function DemurrageAlertsModule() {
                   </div>
                 </div>
 
-                <div className="p-3 rounded-lg bg-emerald-900/20 border border-emerald-800/40 text-xs text-emerald-300 flex items-center justify-between">
+                <div className="p-3 rounded-lg bg-emerald-900/20 border border-emerald-800/40 text-xs text-emerald-300 flex flex-wrap items-center justify-between gap-2">
                   <span>{auditResult.disputeSummaryText}</span>
-                  <Button
-                    size="sm"
-                    onClick={() => setActiveTab("DOSSIER")}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white ml-2 text-xs shrink-0"
-                  >
-                    Ver Dossier <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handlePresentFmcDispute}
+                      disabled={
+                        submitDisputeMutation.isPending ||
+                        activeDbInvoice?.status === "DISPUTED"
+                      }
+                      className="bg-purple-600 hover:bg-purple-500 text-white text-xs shrink-0 flex items-center gap-1.5"
+                    >
+                      <Scale className="w-3.5 h-3.5" />
+                      {submitDisputeMutation.isPending
+                        ? "Registrando..."
+                        : activeDbInvoice?.status === "DISPUTED"
+                          ? "Disputa FMC Presentada"
+                          : "Presentar Disputa Legal FMC"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setActiveTab("DOSSIER")}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs shrink-0"
+                    >
+                      Ver Dossier <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1143,6 +1522,22 @@ export default function DemurrageAlertsModule() {
                   >
                     <Download className="w-3.5 h-3.5" />
                     Descargar PDF Oficial
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handlePresentFmcDispute}
+                    disabled={
+                      submitDisputeMutation.isPending ||
+                      activeDbInvoice?.status === "DISPUTED"
+                    }
+                    className="bg-purple-600 hover:bg-purple-500 text-white text-xs flex items-center gap-1.5"
+                  >
+                    <Scale className="w-3.5 h-3.5" />
+                    {submitDisputeMutation.isPending
+                      ? "Registrando..."
+                      : activeDbInvoice?.status === "DISPUTED"
+                        ? "Disputa FMC Presentada"
+                        : "Presentar Disputa Legal FMC"}
                   </Button>
                 </div>
               </div>
