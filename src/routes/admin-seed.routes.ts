@@ -7,6 +7,7 @@ import {
   seedPhase2,
   seedPhase3,
   seedPhase4,
+  seedPhase5,
   runAllSeeds,
 } from "../db/seeds/index.js";
 import { logger } from "../config/logger.js";
@@ -71,6 +72,18 @@ const adminSeedRoutes: FastifyPluginAsync = async (fastify) => {
       const [erpOrdersRow] = await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.erpPurchaseOrders);
+      const [demurrageInvoicesRow] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.demurrageInvoices);
+      const [demurrageDisputesRow] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.demurrageDisputes);
+      const [oceanBookingsRow] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.oceanBookingDetails);
+      const [stowagePlansRow] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.containerStowagePlans);
 
       return reply.send({
         success: true,
@@ -95,6 +108,12 @@ const adminSeedRoutes: FastifyPluginAsync = async (fastify) => {
             efirmaAuditStamps: efirmaRow?.count ?? 0,
             smartEscrowContracts: escrowRow?.count ?? 0,
             erpPurchaseOrders: erpOrdersRow?.count ?? 0,
+          },
+          phase5: {
+            demurrageInvoices: demurrageInvoicesRow?.count ?? 0,
+            demurrageDisputes: demurrageDisputesRow?.count ?? 0,
+            oceanBookings: oceanBookingsRow?.count ?? 0,
+            stowagePlans: stowagePlansRow?.count ?? 0,
           },
         },
       });
@@ -135,15 +154,20 @@ const adminSeedRoutes: FastifyPluginAsync = async (fastify) => {
           resultMessage =
             "Fase 4 (Aduanas USMCA / Carta Porte, e.Firma SAT, Smart Contracts MLETR & ERP) inyectada con éxito.";
           break;
+        case "5":
+          await seedPhase5();
+          resultMessage =
+            "Fase 5 (Disputas FMC, Reservas DCSA & Estiba 3D) inyectada con éxito.";
+          break;
         case "all":
           await runAllSeeds();
           resultMessage =
-            "Todas las fases (Fases 1, 2, 3 y 4) inyectadas con éxito.";
+            "Todas las fases (Fases 1, 2, 3, 4 y 5) inyectadas con éxito.";
           break;
         default:
           return reply.status(400).send({
             success: false,
-            error: `Fase desconocida: '${phase}'. Valores admitidos: 1, 2, 3, 4, all`,
+            error: `Fase desconocida: '${phase}'. Valores admitidos: 1, 2, 3, 4, 5, all`,
           });
       }
 

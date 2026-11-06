@@ -36,6 +36,9 @@ export * from "./cross-border.seed.js";
 export * from "./efirma.seed.js";
 export * from "./smart-contracts.seed.js";
 export * from "./erp.seed.js";
+export * from "./demurrage-dispute.seed.js";
+export * from "./ocean-booking.seed.js";
+export * from "./stowage.seed.js";
 
 import { seedTriggers } from "./triggers.seed.js";
 import { seedCore } from "./core.seed.js";
@@ -70,6 +73,9 @@ import { seedCrossBorder } from "./cross-border.seed.js";
 import { seedEFirma } from "./efirma.seed.js";
 import { seedSmartContracts } from "./smart-contracts.seed.js";
 import { seedErp } from "./erp.seed.js";
+import { seedDemurrageDisputes } from "./demurrage-dispute.seed.js";
+import { seedOceanBookings } from "./ocean-booking.seed.js";
+import { seedStowagePlans } from "./stowage.seed.js";
 import { db } from "../index.js";
 import * as schema from "../schema/index.js";
 
@@ -210,14 +216,30 @@ export async function seedPhase4(ctx?: Partial<SeedContext>): Promise<void> {
 }
 
 /**
- * Master Runner: Executes all 4 phases sequentially.
+ * Phase 5: FMC Demurrage & Detention Disputes, DCSA Ocean Bookings & 3D Container Stowage
+ */
+export async function seedPhase5(ctx?: Partial<SeedContext>): Promise<void> {
+  console.log(
+    "⚓ [PHASE 5] Inyectando Disputas FMC, Reservas DCSA y Estiba 3D...",
+  );
+  await seedDemurrageDisputes();
+  await seedOceanBookings();
+  await seedStowagePlans();
+  console.log(
+    "✅ [PHASE 5] Disputas FMC, Reservas DCSA y Estiba 3D completadas con éxito.",
+  );
+}
+
+/**
+ * Master Runner: Executes all 5 phases sequentially.
  */
 export async function runAllSeeds(): Promise<void> {
   const p1 = await seedPhase1();
   await seedPhase2();
   await seedPhase3(p1);
   await seedPhase4(p1);
+  await seedPhase5(p1);
   console.log(
-    "✨ Las 4 Fases de Datos Enterprise han sido inyectadas exitosamente.",
+    "✨ Las 5 Fases de Datos Enterprise han sido inyectadas exitosamente.",
   );
 }
