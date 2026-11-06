@@ -591,6 +591,46 @@ export default function ContainerPlannerModule() {
     handleRunOptimizer(updatedList);
   };
 
+  // On-Demand Gemini AI CTU/IMDG Safety Audit State (POST /api/ai/stowage-safety-audit)
+  const [isAuditingGemini, setIsAuditingGemini] = useState(false);
+  const [geminiStowageAudit, setGeminiStowageAudit] = useState<{
+    audit: {
+      ctuCompliant: boolean;
+      safetyScore: number;
+      imdgCompatibilityStatus: string;
+      centerOfGravityStatus: string;
+      axleBalanceAssessment: string;
+      recommendations: string[];
+    };
+    source: string;
+    model: string;
+    latencyMs: number;
+    quotaRemainingRpm: number;
+  } | null>(null);
+
+  const handleRunGeminiStowageAudit = async (bypassCache = false) => {
+    setIsAuditingGemini(true);
+    try {
+      const res = await fetch("/api/ai/stowage-safety-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          containerId: selectedContainerId || "cnt_msku_9284712",
+          shipmentId: selectedShipmentId || "sh_demo_01",
+          bypassCache,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGeminiStowageAudit(data);
+      }
+    } catch (err) {
+      console.error("Failed to run Gemini stowage safety audit:", err);
+    } finally {
+      setIsAuditingGemini(false);
+    }
+  };
+
   // Conflicting IMDG IDs
   const conflictingItemIds = useMemo(() => {
     const ids = new Set<string>();
@@ -656,6 +696,19 @@ export default function ContainerPlannerModule() {
             Recalcular Heurística
           </Button>
           <Button
+            onClick={() => handleRunGeminiStowageAudit(false)}
+            disabled={isAuditingGemini}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-1.5"
+          >
+            <RefreshCw
+              size={14}
+              className={isAuditingGemini ? "animate-spin" : ""}
+            />
+            {isAuditingGemini
+              ? "Auditando CTU/IMDG..."
+              : "✨ Auditar Seguridad CTU/IMDG (Gemini Flash-Lite)"}
+          </Button>
+          <Button
             onClick={handleCertifyStability}
             disabled={isCertifying}
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-1.5"
@@ -667,6 +720,75 @@ export default function ContainerPlannerModule() {
           </Button>
         </div>
       </div>
+
+      {geminiStowageAudit && (
+        <div className="bg-indigo-950/30 border border-indigo-500/30 rounded-2xl p-4 space-y-3 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-500/20 pb-2">
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={16} className="text-emerald-400" />
+              <span className="font-bold text-white">
+                Dictamen Estructurado CTU Code & Segregación IMDG (Gemini Free
+                Tier)
+              </span>
+              <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-200 font-mono text-[10px]">
+                {geminiStowageAudit.source} · {geminiStowageAudit.model}
+              </span>
+              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">
+                Safety Score: {geminiStowageAudit.audit.safetyScore}/100
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-[11px] font-mono text-slate-300">
+              <span>{geminiStowageAudit.latencyMs}ms</span>
+              <span>RPM Libre: {geminiStowageAudit.quotaRemainingRpm}/15</span>
+              <button
+                type="button"
+                onClick={() => setGeminiStowageAudit(null)}
+                className="text-slate-400 hover:text-white underline font-sans"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px]">
+            <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-2.5">
+              <div className="text-slate-400 font-semibold mb-0.5">
+                Compatibilidad IMDG:
+              </div>
+              <div className="text-emerald-300">
+                {geminiStowageAudit.audit.imdgCompatibilityStatus}
+              </div>
+            </div>
+            <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-2.5">
+              <div className="text-slate-400 font-semibold mb-0.5">
+                Centro de Gravedad (CTU Anexo 7):
+              </div>
+              <div className="text-indigo-200">
+                {geminiStowageAudit.audit.centerOfGravityStatus}
+              </div>
+            </div>
+            <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-2.5">
+              <div className="text-slate-400 font-semibold mb-0.5">
+                Balance de Ejes (EU 96/53/EC):
+              </div>
+              <div className="text-cyan-200">
+                {geminiStowageAudit.audit.axleBalanceAssessment}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-1 text-[11px] text-slate-300">
+            <span className="font-semibold text-indigo-300">
+              Recomendaciones Técnicas de Trincaje:
+            </span>
+            <ul className="list-disc list-inside space-y-0.5">
+              {geminiStowageAudit.audit.recommendations.map((rec, i) => (
+                <li key={i}>{rec}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Relational Container Selector & Stability Certification Banner */}
       <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">

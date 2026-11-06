@@ -58,7 +58,7 @@ function validateEnv() {
   // Check if file exists
   if (!fs.existsSync(envPath)) {
     log("yellow", `⚠️  ${ENV_FILE} not found`);
-    log("blue", `   Create from template: cp .env.local.example ${ENV_FILE}\n`);
+    log("blue", `   Create from template: cp .env.example ${ENV_FILE}\n`);
     return false;
   }
 

@@ -194,6 +194,87 @@ export default function SystemPanelModule() {
     quotaRemainingRpm: number;
   } | null>(null);
 
+  // Executive Briefing (Phase 3) & Semantic Protocol Search (Phase 4) State
+  const [isGeneratingBriefing, setIsGeneratingBriefing] = useState(false);
+  const [executiveBriefing, setExecutiveBriefing] = useState<{
+    briefing: {
+      shiftHeadline: string;
+      overallRiskLevel: string;
+      estimatedProtectedValueUsd: number;
+      topPriorities: string[];
+      immediateActions: string[];
+    };
+    source: string;
+    model: string;
+    latencyMs: number;
+    quotaRemainingRpm: number;
+  } | null>(null);
+
+  const [isSearchingSemantic, setIsSearchingSemantic] = useState(false);
+  const [semanticResults, setSemanticResults] = useState<{
+    results: Array<{
+      id: string;
+      title: string;
+      category?: string;
+      text: string;
+      score: number;
+    }>;
+    source: string;
+    model: string;
+    latencyMs: number;
+    quotaRemainingRpm: number;
+  } | null>(null);
+
+  const handleGenerateExecutiveBriefing = async () => {
+    setIsGeneratingBriefing(true);
+    try {
+      const res = await fetch("/api/ai/executive-briefing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setExecutiveBriefing(data);
+        await fetchAiStatus();
+      }
+    } catch (err) {
+      console.error("Failed to generate executive briefing:", err);
+    } finally {
+      setIsGeneratingBriefing(false);
+    }
+  };
+
+  const handleSemanticProtocolSearch = async () => {
+    const query =
+      noteSearch.trim() || "inspección aduanera CBP demora contenedor";
+    setIsSearchingSemantic(true);
+    try {
+      const res = await fetch("/api/ai/semantic-protocol-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query,
+          candidates: notes.map((n) => ({
+            id: n.id,
+            title: n.label,
+            category: n.category,
+            text: n.text,
+          })),
+          topK: 3,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSemanticResults(data);
+      }
+    } catch (err) {
+      console.error("Failed to run semantic protocol search:", err);
+    } finally {
+      setIsSearchingSemantic(false);
+    }
+  };
+
   const fetchAiStatus = async () => {
     try {
       const res = await fetch("/api/ai/config-status");
@@ -488,17 +569,81 @@ export default function SystemPanelModule() {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3.5 top-3 text-slate-500 w-4 h-4" />
-            <input
-              type="text"
-              value={noteSearch}
-              onChange={(e) => setNoteSearch(e.target.value)}
-              placeholder="Search predefined justification by category, label, or text content..."
-              className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-            />
+          {/* Search Bar + Semantic Search (text-embedding-004) */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-3 text-slate-500 w-4 h-4" />
+              <input
+                type="text"
+                value={noteSearch}
+                onChange={(e) => setNoteSearch(e.target.value)}
+                placeholder="Search predefined justification by category, label, or text content..."
+                className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={handleSemanticProtocolSearch}
+              disabled={isSearchingSemantic}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 rounded-2xl flex items-center gap-1.5 shrink-0"
+            >
+              <Sparkles size={14} />
+              {isSearchingSemantic
+                ? "Calculando Embeddings..."
+                : "🔍 Ranking Semántico IA (Embedding-004)"}
+            </Button>
           </div>
+
+          {semanticResults && (
+            <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4 space-y-2.5 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-500/20 pb-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={15} className="text-emerald-400" />
+                  <span className="font-bold text-white">
+                    Top Protocolos por Similitud Semántica (Cuota independiente
+                    text-embedding-004)
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200 font-mono text-[10px]">
+                    {semanticResults.source} · {semanticResults.model}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 font-mono text-[11px] text-slate-300">
+                  <span>{semanticResults.latencyMs}ms</span>
+                  <span>
+                    RPM Embedding Libre: {semanticResults.quotaRemainingRpm}/100
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSemanticResults(null)}
+                    className="text-slate-400 hover:text-white underline font-sans"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {semanticResults.results.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase text-indigo-400">
+                        {item.category || "PROTOCOL"}
+                      </span>
+                      <span className="font-mono text-[10px] text-emerald-400 font-bold">
+                        Similitud: {(item.score * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="font-bold text-white">{item.title}</div>
+                    <p className="text-[11px] text-slate-300 line-clamp-2">
+                      {item.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Notes Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1176,8 +1321,72 @@ export default function SystemPanelModule() {
                 <span className="px-3 py-1 rounded-xl bg-slate-950 border border-slate-800 text-amber-300">
                   Cache Hits: {aiStatus?.cache.hits ?? 0}
                 </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleGenerateExecutiveBriefing}
+                  disabled={isGeneratingBriefing}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-sans font-bold px-3 py-1 rounded-xl flex items-center gap-1.5"
+                >
+                  <Sparkles size={13} />
+                  {isGeneratingBriefing
+                    ? "Consolidando..."
+                    : "📊 Executive Briefing (1-Clic)"}
+                </Button>
               </div>
             </div>
+
+            {executiveBriefing && (
+              <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 space-y-3 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-500/20 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={15} className="text-indigo-400" />
+                    <span className="font-bold text-white">
+                      {executiveBriefing.briefing.shiftHeadline}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-200 font-mono text-[10px]">
+                      {executiveBriefing.source} · {executiveBriefing.model}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">
+                      Valor Protegido Est.: $
+                      {executiveBriefing.briefing.estimatedProtectedValueUsd.toLocaleString()}{" "}
+                      USD
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExecutiveBriefing(null)}
+                    className="text-slate-400 hover:text-white underline text-[11px]"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1">
+                    <div className="font-bold text-indigo-300">
+                      3 Focos Críticos del Turno:
+                    </div>
+                    <ul className="list-disc list-inside text-slate-300 space-y-0.5">
+                      {executiveBriefing.briefing.topPriorities.map((p, i) => (
+                        <li key={i}>{p}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1">
+                    <div className="font-bold text-emerald-300">
+                      3 Acciones Inmediatas Recomendadas:
+                    </div>
+                    <ul className="list-disc list-inside text-slate-300 space-y-0.5">
+                      {executiveBriefing.briefing.immediateActions.map(
+                        (a, i) => (
+                          <li key={i}>{a}</li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Key Linking & On-Demand Copilot Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

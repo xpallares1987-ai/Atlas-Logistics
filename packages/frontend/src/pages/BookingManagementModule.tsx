@@ -704,6 +704,90 @@ export default function BookingManagementModule() {
     generateDraftBlMutation.mutate();
   };
 
+  // On-Demand Gemini AI DCSA & HS/CBAM Audit + Multimodal Document Extractor State
+  const [isCheckingDcsaAi, setIsCheckingDcsaAi] = useState(false);
+  const [dcsaAiAudit, setDcsaAiAudit] = useState<{
+    audit: {
+      suggestedHsCode: string;
+      hsDescription: string;
+      cbamApplicable: boolean;
+      cbamCategory: string;
+      usmcaEligible: boolean;
+      dcsaValidationStatus: string;
+      missingFields: string[];
+      complianceRecommendations: string[];
+    };
+    source: string;
+    model: string;
+    latencyMs: number;
+    quotaRemainingRpm: number;
+  } | null>(null);
+
+  const [isExtractingDocAi, setIsExtractingDocAi] = useState(false);
+  const [extractedDocAi, setExtractedDocAi] = useState<{
+    extracted: {
+      documentType: string;
+      bookingReference: string;
+      containerNumber: string;
+      vesselVoyage: string;
+      grossWeightKg: number;
+      packageCount: number;
+      suggestedHsCode: string;
+      invoiceAmountUsd: number;
+      currency: string;
+      incoterm: string;
+      extractedNotes: string;
+    };
+    source: string;
+    model: string;
+    latencyMs: number;
+    quotaRemainingRpm: number;
+  } | null>(null);
+
+  const handleRunDcsaCustomsCheck = async () => {
+    setIsCheckingDcsaAi(true);
+    try {
+      const res = await fetch("/api/ai/dcsa-customs-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: selectedBookingId || "bk_demo_01",
+          shipmentId: "sh_demo_01",
+          commodityDescription: activeBooking.commodityDescription,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDcsaAiAudit(data);
+      }
+    } catch (err) {
+      console.error("Failed to run DCSA & Customs AI check:", err);
+    } finally {
+      setIsCheckingDcsaAi(false);
+    }
+  };
+
+  const handleRunMultimodalExtract = async () => {
+    setIsExtractingDocAi(true);
+    try {
+      const res = await fetch("/api/ai/extract-document", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rawText: `COMMERCIAL PACKING LIST & SHIPPING INSTRUCTIONS - Booking: ${activeBooking.bookingNumber || "BK-2026-67116"} - Vessel: ${activeBooking.vesselName} / ${activeBooking.voyageNumber} - Container: MSKU9284712 - Commodity: ${activeBooking.commodityDescription}`,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setExtractedDocAi(data);
+      }
+    } catch (err) {
+      console.error("Failed to run multimodal document extractor:", err);
+    } finally {
+      setIsExtractingDocAi(false);
+    }
+  };
+
   // Multi-carrier spot rates list
   const rateLockQuotes = useMemo<RateLockQuote[]>(() => {
     const carriers: CarrierCode[] = [
@@ -1966,6 +2050,28 @@ export default function BookingManagementModule() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"
+                    onClick={handleRunDcsaCustomsCheck}
+                    disabled={isCheckingDcsaAi}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {isCheckingDcsaAi
+                      ? "Clasificando HS/CBAM..."
+                      : "✨ Pre-Validar SI & HS/CBAM (Flash-Lite)"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleRunMultimodalExtract}
+                    disabled={isExtractingDocAi}
+                    className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs flex items-center gap-1.5"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    {isExtractingDocAi
+                      ? "Extrayendo..."
+                      : "📄 Extraer Packing List (Multimodal IA)"}
+                  </Button>
+                  <Button
+                    size="sm"
                     onClick={handleConfirmDcsSi}
                     disabled={
                       submitDcsSiMutation.isPending ||
@@ -2006,6 +2112,129 @@ export default function BookingManagementModule() {
                   </Button>
                 </div>
               </div>
+
+              {dcsaAiAudit && (
+                <div className="p-4 rounded-xl bg-indigo-950/30 border border-indigo-500/30 space-y-2.5 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-500/20 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-indigo-400" />
+                      <span className="font-bold text-white">
+                        Dictamen DCSA v3.0 & Clasificación Arancelaria HS / CBAM
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-200 font-mono text-[10px]">
+                        {dcsaAiAudit.source} · {dcsaAiAudit.model}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 font-mono text-[11px] text-slate-300">
+                      <span>{dcsaAiAudit.latencyMs}ms</span>
+                      <span>RPM Libre: {dcsaAiAudit.quotaRemainingRpm}/15</span>
+                      <button
+                        type="button"
+                        onClick={() => setDcsaAiAudit(null)}
+                        className="text-slate-400 hover:text-white underline font-sans"
+                      >
+                        Cerrar
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px]">
+                    <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                      <div className="text-slate-400">HS Code Sugerido:</div>
+                      <div className="font-mono font-bold text-emerald-400 text-sm">
+                        {dcsaAiAudit.audit.suggestedHsCode}
+                      </div>
+                      <div className="text-slate-300 mt-0.5">
+                        {dcsaAiAudit.audit.hsDescription}
+                      </div>
+                    </div>
+                    <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                      <div className="text-slate-400">
+                        Sujeción EU CBAM (2023/956):
+                      </div>
+                      <div className="font-bold text-amber-300">
+                        {dcsaAiAudit.audit.cbamApplicable
+                          ? "SÍ — Sujeto a Reporte CBAM"
+                          : "Exento"}
+                      </div>
+                      <div className="text-slate-300 mt-0.5">
+                        {dcsaAiAudit.audit.cbamCategory}
+                      </div>
+                    </div>
+                    <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                      <div className="text-slate-400">Estado DCSA SI:</div>
+                      <div className="font-mono font-bold text-cyan-300">
+                        {dcsaAiAudit.audit.dcsaValidationStatus}
+                      </div>
+                      <ul className="list-disc list-inside text-slate-300 mt-1 space-y-0.5">
+                        {dcsaAiAudit.audit.complianceRecommendations.map(
+                          (r, i) => (
+                            <li key={i}>{r}</li>
+                          ),
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {extractedDocAi && (
+                <div className="p-4 rounded-xl bg-cyan-950/30 border border-cyan-500/30 space-y-2 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-500/20 pb-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-cyan-400" />
+                      <span className="font-bold text-white">
+                        Extracción Multimodal de Manifiesto / Packing List
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-mono text-[10px]">
+                        {extractedDocAi.source} · {extractedDocAi.model}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExtractedDocAi(null)}
+                      className="text-slate-400 hover:text-white underline text-[11px]"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 font-mono text-[11px]">
+                    <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
+                      <span className="text-slate-400 block">Contenedor:</span>
+                      <strong className="text-white">
+                        {extractedDocAi.extracted.containerNumber}
+                      </strong>
+                    </div>
+                    <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
+                      <span className="text-slate-400 block">
+                        Peso Bruto / Bultos:
+                      </span>
+                      <strong className="text-emerald-400">
+                        {extractedDocAi.extracted.grossWeightKg.toLocaleString()}{" "}
+                        kg ({extractedDocAi.extracted.packageCount} plts)
+                      </strong>
+                    </div>
+                    <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
+                      <span className="text-slate-400 block">
+                        Valor Factura / Incoterm:
+                      </span>
+                      <strong className="text-amber-300">
+                        $
+                        {extractedDocAi.extracted.invoiceAmountUsd.toLocaleString()}{" "}
+                        {extractedDocAi.extracted.currency} (
+                        {extractedDocAi.extracted.incoterm})
+                      </strong>
+                    </div>
+                    <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
+                      <span className="text-slate-400 block">
+                        HS Code Detectado:
+                      </span>
+                      <strong className="text-cyan-300">
+                        {extractedDocAi.extracted.suggestedHsCode}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Parties Details Card */}
               <div className="p-5 rounded-xl bg-slate-800/50 border border-slate-700/80 space-y-4 text-xs">

@@ -24,7 +24,7 @@ export const getDatabaseUrl = (): string => {
   }
 
   // In development, fall back to local SQLite
-  return "file:atlas-erp-v2.db";
+  return "file:./data/dev.db";
 };
 
 export const databaseUrl = getDatabaseUrl();

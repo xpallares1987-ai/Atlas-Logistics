@@ -60,6 +60,50 @@ export default function TradeFinanceModule() {
   const [auditResult, setAuditResult] = useState<any>(null);
   const [isAuditing, setIsAuditing] = useState(false);
 
+  // On-Demand Gemini AI UCP 600 Audit State (POST /api/ai/ucp600-lc-audit)
+  const [isAuditingGeminiUcp, setIsAuditingGeminiUcp] = useState(false);
+  const [geminiUcpAudit, setGeminiUcpAudit] = useState<{
+    instrumentReference: string;
+    audit: {
+      instrumentReference: string;
+      compliantWithUcp600: boolean;
+      presentationRiskLevel: string;
+      discrepanciesFound: Array<{
+        article: string;
+        field: string;
+        status: string;
+        detail: string;
+      }>;
+      recommendedActions: string[];
+    };
+    source: string;
+    model: string;
+    latencyMs: number;
+    quotaRemainingRpm: number;
+  } | null>(null);
+
+  const handleRunGeminiUcpAudit = async () => {
+    setIsAuditingGeminiUcp(true);
+    try {
+      const res = await fetch("/api/ai/ucp600-lc-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instrumentId: selectedInstrument?.id,
+          shipmentId: "sh_demo_01",
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGeminiUcpAudit(data);
+      }
+    } catch (err) {
+      console.error("Failed to run Gemini UCP 600 audit:", err);
+    } finally {
+      setIsAuditingGeminiUcp(false);
+    }
+  };
+
   // Fetch Instruments
   const {
     data: instruments = [],
@@ -192,7 +236,18 @@ export default function TradeFinanceModule() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleRunGeminiUcpAudit}
+              disabled={isAuditingGeminiUcp}
+              className="px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-2"
+            >
+              <Scale className="w-4 h-4" />
+              {isAuditingGeminiUcp
+                ? "Auditando UCP 600 con Gemini..."
+                : "✨ Pre-Auditar Discrepancias UCP 600 (Gemini AI)"}
+            </button>
             {currentInst && (
               <a
                 href={`/api/trade-finance/instruments/${currentInst.id}/presentation-dossier-pdf`}
@@ -206,6 +261,56 @@ export default function TradeFinanceModule() {
             )}
           </div>
         </div>
+
+        {geminiUcpAudit && (
+          <div className="mb-6 p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 space-y-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-500/20 pb-2">
+              <div className="flex items-center gap-2">
+                <Scale className="w-4 h-4 text-emerald-400" />
+                <span className="font-bold text-white">
+                  Pre-Auditoría Bancaria ICC UCP 600 — Ref:{" "}
+                  {geminiUcpAudit.instrumentReference}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200 font-mono text-[10px]">
+                  {geminiUcpAudit.source} · {geminiUcpAudit.model}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-200 font-mono text-[10px]">
+                  Riesgo Presentación:{" "}
+                  {geminiUcpAudit.audit.presentationRiskLevel}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 font-mono text-[11px] text-slate-300">
+                <span>{geminiUcpAudit.latencyMs}ms</span>
+                <span>RPM Libre: {geminiUcpAudit.quotaRemainingRpm}/12</span>
+                <button
+                  type="button"
+                  onClick={() => setGeminiUcpAudit(null)}
+                  className="text-slate-400 hover:text-white underline font-sans"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {geminiUcpAudit.audit.discrepanciesFound.map((d, i) => (
+                <div
+                  key={i}
+                  className="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-1"
+                >
+                  <div className="flex items-center justify-between font-mono text-[11px]">
+                    <span className="text-emerald-400 font-bold">
+                      {d.article} · {d.field}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200">
+                      {d.status}
+                    </span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">{d.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Top KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
