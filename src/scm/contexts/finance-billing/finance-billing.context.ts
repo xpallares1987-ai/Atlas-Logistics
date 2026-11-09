@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { randomInt } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
 import { db } from "../../../db/index.js";
 import {
@@ -585,7 +586,7 @@ export async function issueSalesInvoice(
   const grossAmountEur = Math.round((netAmountEur + taxAmountEur) * 100) / 100;
 
   const invoiceId = `sinv_${uuidv4()}`;
-  const randomSeq = Math.floor(100000 + Math.random() * 900000);
+  const randomSeq = randomInt(100000, 1000000);
   const invoiceNumber = `INV-2026-${randomSeq}`;
   const now = new Date();
 
@@ -741,7 +742,7 @@ export async function issueSalesCreditNote(
   );
 
   const inv = rows[0];
-  const randomSeq = Math.floor(100000 + Math.random() * 900000);
+  const randomSeq = randomInt(100000, 1000000);
   const creditNoteNumber = `CN-2026-${randomSeq}`;
   const now = new Date();
 

@@ -93,38 +93,69 @@ class DrayageEngineService {
 
     // 1. Try OSRM OpenStreetMap Road Network API with 2.0s timeout
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=false`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const oLon = Number(origin.lon);
+      const oLat = Number(origin.lat);
+      const dLon = Number(destination.lon);
+      const dLat = Number(destination.lat);
 
-      const res = await fetch(url, {
-        headers: { "User-Agent": "AtlasLogistics-DrayageEngine/1.0" },
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+      // Validate finite numbers and legitimate WGS84 coordinate boundaries
+      if (
+        Number.isFinite(oLon) &&
+        Number.isFinite(oLat) &&
+        Number.isFinite(dLon) &&
+        Number.isFinite(dLat) &&
+        oLat >= -90 &&
+        oLat <= 90 &&
+        dLat >= -90 &&
+        dLat <= 90 &&
+        oLon >= -180 &&
+        oLon <= 180 &&
+        dLon >= -180 &&
+        dLon <= 180
+      ) {
+        const fixedBase = "https://router.project-osrm.org";
+        const sanitizedPath = `/route/v1/driving/${encodeURIComponent(oLon.toFixed(6))},${encodeURIComponent(oLat.toFixed(6))};${encodeURIComponent(dLon.toFixed(6))},${encodeURIComponent(dLat.toFixed(6))}`;
+        const targetUrl = new URL(sanitizedPath, fixedBase);
+        targetUrl.searchParams.set("overview", "false");
 
-      if (res.ok) {
-        const json = (await res.json()) as OSRMRouteResponse;
-        if (json.code === "Ok" && json.routes && json.routes.length > 0) {
-          const r = json.routes[0];
-          const distanceKm = Math.round((r.distance / 1000) * 10) / 10;
-          // Add 15 mins for terminal gate-in / maneuver
-          const transitMinutes = Math.round(r.duration / 60) + 15;
+        // Verify hostname and protocol to protect against SSRF (CWE-918)
+        if (
+          targetUrl.protocol === "https:" &&
+          targetUrl.hostname === "router.project-osrm.org"
+        ) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-          const entry: RouteCacheEntry = {
-            distanceKm,
-            transitMinutes,
-            routingEngine: "OSRM_ROAD_NETWORK",
-            expiresAt: Date.now() + this.CACHE_TTL_MS,
-          };
-          this.routeCache.set(cacheKey, entry);
+          const res = await fetch(targetUrl.href, {
+            headers: { "User-Agent": "AtlasLogistics-DrayageEngine/1.0" },
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
 
-          return {
-            distanceKm,
-            transitMinutes,
-            transitFormatted: formatTransitMinutes(transitMinutes),
-            routingEngine: "OSRM_ROAD_NETWORK",
-          };
+          if (res.ok) {
+            const json = (await res.json()) as OSRMRouteResponse;
+            if (json.code === "Ok" && json.routes && json.routes.length > 0) {
+              const r = json.routes[0];
+              const distanceKm = Math.round((r.distance / 1000) * 10) / 10;
+              // Add 15 mins for terminal gate-in / maneuver
+              const transitMinutes = Math.round(r.duration / 60) + 15;
+
+              const entry: RouteCacheEntry = {
+                distanceKm,
+                transitMinutes,
+                routingEngine: "OSRM_ROAD_NETWORK",
+                expiresAt: Date.now() + this.CACHE_TTL_MS,
+              };
+              this.routeCache.set(cacheKey, entry);
+
+              return {
+                distanceKm,
+                transitMinutes,
+                transitFormatted: formatTransitMinutes(transitMinutes),
+                routingEngine: "OSRM_ROAD_NETWORK",
+              };
+            }
+          }
         }
       }
     } catch {
