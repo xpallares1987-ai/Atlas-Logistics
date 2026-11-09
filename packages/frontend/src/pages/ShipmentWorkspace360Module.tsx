@@ -17,6 +17,7 @@ import {
   Layers,
   Leaf,
   Lock,
+  Plane,
   PlusCircle,
   RefreshCw,
   Scale,
@@ -295,8 +296,9 @@ export default function ShipmentWorkspace360Module() {
   const urlHighlight = searchParams.get("highlight") || "";
   const urlAction = searchParams.get("action") || "";
 
-  const [selectedShipmentId, setSelectedShipmentId] =
-    useState<string>(urlShipmentId);
+  const [selectedShipmentId, setSelectedShipmentId] = useState<string>(
+    urlShipmentId || "sh_demo_01",
+  );
   const [activeTab, setActiveTab] = useState<TabKey>(
     urlTab &&
       [
@@ -378,12 +380,35 @@ export default function ShipmentWorkspace360Module() {
           : [];
       setShipmentsList(items);
 
-      // If no shipment selected yet, pick the first or keep URL one
+      // Deterministic canonical fallback: prefer sh_demo_01 or keep URL/selected shipment
       if (items.length > 0) {
+        if (
+          !selectedShipmentId ||
+          !items.some((i) => i.shipmentId === selectedShipmentId)
+        ) {
+          const canonical = items.find(
+            (i) =>
+              i.shipmentId === "sh_demo_01" ||
+              i.shipmentReference === "BK-2026-67116",
+          );
+          const targetId = canonical
+            ? canonical.shipmentId
+            : items[0].shipmentId;
+          setSelectedShipmentId(targetId);
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.set("id", targetId);
+            return next;
+          });
+        }
+      } else {
         if (!selectedShipmentId) {
-          const firstId = items[0].shipmentId;
-          setSelectedShipmentId(firstId);
-          setSearchParams({ id: firstId });
+          setSelectedShipmentId("sh_demo_01");
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.set("id", "sh_demo_01");
+            return next;
+          });
         }
       }
     } catch (err: unknown) {
@@ -916,6 +941,14 @@ export default function ShipmentWorkspace360Module() {
     }
   };
 
+  const getServiceIcon = (serviceType: string) => {
+    if (serviceType.includes("AIR"))
+      return <Plane className="w-3.5 h-3.5 text-sky-400 shrink-0" />;
+    if (serviceType.includes("ROAD"))
+      return <Truck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />;
+    return <Ship className="w-3.5 h-3.5 text-indigo-400 shrink-0" />;
+  };
+
   return (
     <div className="flex flex-col h-full min-h-screen bg-slate-950 text-slate-100">
       {/* Top Header / Bar */}
@@ -941,6 +974,40 @@ export default function ShipmentWorkspace360Module() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Dynamic Shipment Selector with Canonical Fallback */}
+          <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-1.5 shadow-sm">
+            <span className="text-xs font-semibold text-slate-400">
+              Expedición:
+            </span>
+            <select
+              aria-label="Seleccionar expedición activa"
+              value={selectedShipmentId || "sh_demo_01"}
+              onChange={(e) => handleSelectShipment(e.target.value)}
+              className="bg-transparent text-xs font-bold text-indigo-300 focus:outline-none cursor-pointer pr-2"
+            >
+              {shipmentsList.length === 0 ? (
+                <option
+                  value="sh_demo_01"
+                  className="bg-slate-900 text-slate-200"
+                >
+                  BK-2026-67116 (sh_demo_01)
+                </option>
+              ) : (
+                shipmentsList.map((s) => (
+                  <option
+                    key={s.shipmentId}
+                    value={s.shipmentId}
+                    className="bg-slate-900 text-slate-200"
+                  >
+                    {s.shipmentReference || s.shipmentId} •{" "}
+                    {s.serviceType || "OCEAN"} • {s.health?.status || "HEALTHY"}
+                  </option>
+                ))
+              )}
+            </select>
+            {shipmentDetail && getHealthBadge(shipmentDetail.health)}
+          </div>
+
           {shipmentDetail && (
             <>
               <button
@@ -1049,7 +1116,8 @@ export default function ShipmentWorkspace360Module() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                      {getServiceIcon(shp.serviceType || "OCEAN_FCL")}
                       <span>{shp.serviceType || "OCEAN_FCL"}</span>
                       <span>•</span>
                       <span>{shp.lifecycle || "IN_TRANSIT"}</span>
@@ -1885,7 +1953,7 @@ export default function ShipmentWorkspace360Module() {
                     </div>
                   ) : (
                     <>
-                      {/* Grid 1: GLEC Scope 3 & Insetting Simulator */}
+                      {/* Grid 1: Operational Calculation (GLEC v3.0 Scope 3 & Insetting) */}
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Scope 3 Footprint Breakdown */}
                         <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
@@ -1998,7 +2066,7 @@ export default function ShipmentWorkspace360Module() {
                           </div>
                         </div>
 
-                        {/* Insetting & Carbon Neutrality Simulator */}
+                        {/* Operational Insetting & Carbon Neutrality Calculation */}
                         <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-emerald-950/30 border border-emerald-500/30 space-y-4 flex flex-col justify-between">
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">

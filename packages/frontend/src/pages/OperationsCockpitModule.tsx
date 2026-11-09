@@ -103,6 +103,9 @@ export default function OperationsCockpitModule() {
   });
 
   const [selectedBucket, setSelectedBucket] = useState<string>("ALL");
+  const [modeFilter, setModeFilter] = useState<
+    "ALL" | "OCEAN" | "AIR" | "ROAD"
+  >("ALL");
   const [statusFilter, setStatusFilter] = useState<"OPEN" | "COMPLETED">(
     "OPEN",
   );
@@ -256,6 +259,137 @@ export default function OperationsCockpitModule() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const getModeFamily = (serviceType?: string): "OCEAN" | "AIR" | "ROAD" => {
+    const st = (serviceType || "").toUpperCase();
+    if (st.includes("AIR")) return "AIR";
+    if (st.includes("ROAD")) return "ROAD";
+    return "OCEAN";
+  };
+
+  const countAll = items.length;
+  const countOcean = items.filter(
+    (i) => getModeFamily(i.serviceType) === "OCEAN",
+  ).length;
+  const countAir = items.filter(
+    (i) => getModeFamily(i.serviceType) === "AIR",
+  ).length;
+  const countRoad = items.filter(
+    (i) => getModeFamily(i.serviceType) === "ROAD",
+  ).length;
+
+  const displayedItems =
+    modeFilter === "ALL"
+      ? items
+      : items.filter((i) => getModeFamily(i.serviceType) === modeFilter);
+
+  const handleModeFilterChange = (
+    newMode: "ALL" | "OCEAN" | "AIR" | "ROAD",
+  ) => {
+    setModeFilter(newMode);
+    if (
+      newMode !== "ALL" &&
+      selectedItem &&
+      getModeFamily(selectedItem.serviceType) !== newMode
+    ) {
+      const nextItem = items.find(
+        (i) => getModeFamily(i.serviceType) === newMode,
+      );
+      if (nextItem) {
+        handleSelectItem(nextItem);
+      } else {
+        setSelectedItem(null);
+      }
+    }
+  };
+
+  const getModeTaskBadge = (item: CockpitWorkItem) => {
+    const mode = getModeFamily(item.serviceType);
+    const taskCode = (item.taskTypeCode || "").toUpperCase();
+
+    if (
+      mode === "AIR" ||
+      taskCode.includes("AWB") ||
+      taskCode.includes("AIR")
+    ) {
+      if (
+        taskCode === "VERIFY_AWB_SECURITY_WEIGHT" ||
+        taskCode.includes("SECURITY_WEIGHT")
+      ) {
+        return (
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-950 text-sky-300 border border-sky-700/60 flex items-center gap-1">
+            <Plane className="w-3 h-3 text-sky-400" /> AWB Security
+          </span>
+        );
+      }
+      if (taskCode === "ISSUE_AIR_WAYBILL" || taskCode.includes("WAYBILL")) {
+        return (
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-950 text-sky-300 border border-sky-700/60 flex items-center gap-1">
+            <Plane className="w-3 h-3 text-sky-400" /> e-AWB Cargo
+          </span>
+        );
+      }
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-950/70 text-sky-300 border border-sky-800/50 flex items-center gap-1">
+          <Plane className="w-3 h-3 text-sky-400" /> Aéreo
+        </span>
+      );
+    }
+
+    if (
+      mode === "ROAD" ||
+      taskCode.includes("CMR") ||
+      taskCode.includes("AXLE") ||
+      taskCode.includes("ROAD")
+    ) {
+      if (
+        taskCode === "VERIFY_VEHICLE_AXLE_WEIGHT" ||
+        taskCode.includes("AXLE_WEIGHT")
+      ) {
+        return (
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-700/60 flex items-center gap-1">
+            <Truck className="w-3 h-3 text-amber-400" /> Axle Weight
+          </span>
+        );
+      }
+      if (taskCode === "ISSUE_ECMR_WAYBILL" || taskCode.includes("CMR")) {
+        return (
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60 flex items-center gap-1">
+            <Truck className="w-3 h-3 text-emerald-400" /> e-CMR
+          </span>
+        );
+      }
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/70 text-emerald-300 border border-emerald-800/50 flex items-center gap-1">
+          <Truck className="w-3 h-3 text-emerald-400" /> Terrestre
+        </span>
+      );
+    }
+
+    // Ocean
+    if (taskCode === "VERIFY_VGM_CUTOFF" || taskCode.includes("VGM")) {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-700/60 flex items-center gap-1">
+          <Ship className="w-3 h-3 text-blue-400" /> SOLAS VGM
+        </span>
+      );
+    }
+    if (
+      taskCode === "ISSUE_BILL_OF_LADING" ||
+      taskCode.includes("BILL_OF_LADING")
+    ) {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-700/60 flex items-center gap-1">
+          <Ship className="w-3 h-3 text-blue-400" /> Ocean B/L
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950/70 text-blue-300 border border-blue-800/50 flex items-center gap-1">
+        <Ship className="w-3 h-3 text-blue-400" /> Marítimo
+      </span>
+    );
   };
 
   const getServiceIcon = (serviceType: string) => {
@@ -449,7 +583,71 @@ export default function OperationsCockpitModule() {
         </div>
       </div>
 
-      {/* 2. Filters & Search Strip */}
+      {/* 2. Multimodal Transport Mode Filters */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-slate-400 mr-1 flex items-center gap-1.5">
+            <Compass className="w-4 h-4 text-indigo-400" /> Modo de Transporte:
+          </span>
+          <button
+            onClick={() => handleModeFilterChange("ALL")}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${
+              modeFilter === "ALL"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                : "bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+            }`}
+          >
+            <span>Todos</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 text-slate-300">
+              {countAll}
+            </span>
+          </button>
+          <button
+            onClick={() => handleModeFilterChange("OCEAN")}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${
+              modeFilter === "OCEAN"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                : "bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+            }`}
+          >
+            <Ship className="w-3.5 h-3.5 text-blue-400" />
+            <span>Marítimo</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 text-slate-300">
+              {countOcean}
+            </span>
+          </button>
+          <button
+            onClick={() => handleModeFilterChange("AIR")}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${
+              modeFilter === "AIR"
+                ? "bg-sky-600 text-white shadow-md shadow-sky-600/30"
+                : "bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+            }`}
+          >
+            <Plane className="w-3.5 h-3.5 text-sky-400" />
+            <span>Aéreo</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 text-slate-300">
+              {countAir}
+            </span>
+          </button>
+          <button
+            onClick={() => handleModeFilterChange("ROAD")}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${
+              modeFilter === "ROAD"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                : "bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+            }`}
+          >
+            <Truck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Terrestre</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/60 text-slate-300">
+              {countRoad}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* 3. Urgency & Search Strip */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
         <div className="flex flex-wrap items-center gap-2">
           {["ALL", "IMMEDIATE_ACTION", "DUE_TODAY", "UPCOMING", "BLOCKED"].map(
@@ -592,18 +790,20 @@ export default function OperationsCockpitModule() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Work Item Cards */}
         <div className="lg:col-span-5 flex flex-col gap-3">
-          {loading && items.length === 0 ? (
+          {loading && displayedItems.length === 0 ? (
             <div className="p-12 text-center text-slate-500 text-sm bg-slate-900/30 rounded-xl border border-slate-800">
               <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-400" />
               Loading prioritized operational items...
             </div>
-          ) : items.length === 0 ? (
+          ) : displayedItems.length === 0 ? (
             <div className="p-12 text-center text-slate-400 text-sm bg-slate-900/30 rounded-xl border border-slate-800">
               <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-400" />
-              No work items in this category. Queue is clear!
+              {modeFilter === "ALL"
+                ? "No work items in this category. Queue is clear!"
+                : `No work items for ${modeFilter.toLowerCase()} transport in this category.`}
             </div>
           ) : (
-            items.map((item) => {
+            displayedItems.map((item) => {
               const isSelected = selectedItem?.workItemId === item.workItemId;
               const isException = item.itemType === "EXCEPTION";
 
@@ -637,6 +837,7 @@ export default function OperationsCockpitModule() {
                       <span className="text-xs font-mono text-slate-400">
                         {item.taskTypeCode}
                       </span>
+                      {getModeTaskBadge(item)}
                     </div>
 
                     <div className="flex items-center gap-1.5">
@@ -758,6 +959,7 @@ export default function OperationsCockpitModule() {
                     <span className="text-xs font-mono text-slate-400">
                       ID: {selectedItem.workItemId}
                     </span>
+                    {getModeTaskBadge(selectedItem)}
                   </div>
                   <h2 className="text-xl font-bold text-white mt-1">
                     {selectedItem.title}
