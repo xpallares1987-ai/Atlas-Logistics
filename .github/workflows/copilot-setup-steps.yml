@@ -1,0 +1,98 @@
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+
+  push:
+    paths:
+      - ".github/workflows/copilot-setup-steps.yml"
+      - ".nvmrc"
+      - ".npmrc"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+
+  pull_request:
+    paths:
+      - ".github/workflows/copilot-setup-steps.yml"
+      - ".nvmrc"
+      - ".npmrc"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+
+jobs:
+  copilot-setup-steps:
+    name: Prepare Atlas Logistics
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+
+    env:
+      # CI environment
+      CI: "true"
+      NODE_ENV: "development"
+
+      # pnpm
+      PNPM_HOME: "${{ runner.temp }}/pnpm"
+
+      # Turborepo local caching
+      TURBO_CACHE_DIR: ".turbo"
+
+      # Disable unnecessary telemetry during agent setup
+      TURBO_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Show environment versions
+        run: |
+          echo "Node:"
+          node --version
+
+          echo "pnpm:"
+          pnpm --version
+
+          echo "Corepack:"
+          corepack --version || true
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore Turborepo cache
+        uses: actions/cache@v5.1.0
+        with:
+          path: |
+            .turbo
+            packages/*/.turbo
+          key: >-
+            ${{ runner.os }}-node-${{ hashFiles('.nvmrc') }}-turbo-${{
+            hashFiles('pnpm-lock.yaml', 'turbo.json', 'pnpm-workspace.yaml')
+            }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ hashFiles('.nvmrc') }}-turbo-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'pnpm-workspace.yaml') }}-
+            ${{ runner.os }}-node-${{ hashFiles('.nvmrc') }}-turbo-
+            ${{ runner.os }}-turbo-
+
+      - name: Verify Turborepo
+        run: pnpm exec turbo --version
+
+      - name: Build Atlas Logistics
+        run: pnpm exec turbo run build --cache-dir="${TURBO_CACHE_DIR}"

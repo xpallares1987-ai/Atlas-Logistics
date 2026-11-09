@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "../../db/index.js";
 import * as schema from "../../db/schema/index.js";
 import { eq, asc } from "drizzle-orm";
+import { MletrLedgerService } from "../../services/mletr/mletr-ledger.service.js";
 import {
   BlockchainBlock,
   DigitalBillOfLadingMLETR,
@@ -64,7 +65,185 @@ const TriggerDisputeSchema = z.object({
   reason: z.string().min(5),
 });
 
+const MletrIssueSchema = z.object({
+  documentId: z.string().optional(),
+  shipmentId: z.string().min(1),
+  registryType: z
+    .enum([
+      "ELECTRONIC_BILL_OF_LADING",
+      "ELECTRONIC_AIR_WAYBILL",
+      "ELECTRONIC_CMR",
+    ])
+    .optional(),
+  documentReference: z.string().min(1),
+  issuerName: z.string().min(1),
+  consigneeName: z.string().min(1),
+  signerName: z.string().optional(),
+  signerTitle: z.string().optional(),
+  details: z.string().optional(),
+});
+
+const MletrEndorseSchema = z.object({
+  recordId: z.string().min(1),
+  toParty: z.string().min(1),
+  toRole: z
+    .enum(["SHIPPER", "BANK", "CONSIGNEE", "CARRIER"])
+    .default("CONSIGNEE"),
+  transferType: z
+    .enum([
+      "ORIGINAL_ISSUE",
+      "PLEDGE_TO_BANK",
+      "SPECIAL_ENDORSEMENT",
+      "SURRENDER_FOR_RELEASE",
+      "VOID_RECORD",
+    ])
+    .default("SPECIAL_ENDORSEMENT"),
+  signerName: z.string().optional(),
+  signerTitle: z.string().optional(),
+  details: z.string().optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
+});
+
+const MletrSurrenderSchema = z.object({
+  recordId: z.string().min(1),
+  carrierName: z.string().optional(),
+  signerName: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
+  // GET /api/smart-contracts/mletr
+  fastify.get("/mletr", async (request, reply) => {
+    try {
+      const { shipmentId, recordId } = request.query as {
+        shipmentId?: string;
+        recordId?: string;
+      };
+
+      if (recordId) {
+        const data = await MletrLedgerService.getRecordWithLedger(recordId);
+        if (!data)
+          return reply
+            .code(404)
+            .send({ success: false, error: "Record not found" });
+        return reply.send({ success: true, data });
+      }
+
+      const targetShipmentId = shipmentId || "sh_demo_01";
+      let data =
+        await MletrLedgerService.findRecordByShipmentId(targetShipmentId);
+
+      // Defensive auto-seed for sh_demo_01 if not yet created
+      if (!data && targetShipmentId === "sh_demo_01") {
+        const created = await MletrLedgerService.createTransferableRecord({
+          shipmentId: "sh_demo_01",
+          documentReference: "HBL-BK-2026-67116",
+          registryType: "ELECTRONIC_BILL_OF_LADING",
+          issuerName: "Global Industrial Exporter S.L.",
+          consigneeName: "Atlas International Consignee Corp",
+          signerName: "Carlos Delgado (Export Compliance Officer)",
+          signerTitle: "LEGAL_REPRESENTATIVE_EXPORTER",
+          details:
+            "Genesis e-BL issued under UNCITRAL MLETR Model Law. Initial holder: Global Industrial Exporter S.L.",
+        });
+
+        // Automatically pledge to Banco Santander
+        await MletrLedgerService.endorseRecord({
+          recordId: created.recordId,
+          toParty: "Banco Santander S.A. - Trade Finance Operations",
+          toRole: "BANK",
+          transferType: "PLEDGE_TO_BANK",
+          signerName: "Carlos Delgado",
+          signerTitle: "EXPORTER_TRADE_DIRECTOR",
+          details:
+            "Title pledged in escrow under UCP 600 Letter of Credit LC-2026-BCN9921.",
+        });
+
+        data = await MletrLedgerService.findRecordByShipmentId("sh_demo_01");
+      }
+
+      return reply.send({ success: true, data });
+    } catch (err: any) {
+      return reply.code(500).send({ success: false, error: err.message });
+    }
+  });
+
+  // POST /api/smart-contracts/mletr/issue
+  fastify.post("/mletr/issue", async (request, reply) => {
+    try {
+      const parsed = MletrIssueSchema.parse(request.body);
+      const user = (request as any).user;
+      const signer =
+        parsed.signerName || user?.username || user?.id || parsed.issuerName;
+      const result = await MletrLedgerService.createTransferableRecord({
+        ...parsed,
+        signerName: signer,
+      });
+      return reply.code(201).send({ success: true, data: result });
+    } catch (err: any) {
+      return reply.code(400).send({ success: false, error: err.message });
+    }
+  });
+
+  // POST /api/smart-contracts/mletr/endorse
+  fastify.post("/mletr/endorse", async (request, reply) => {
+    try {
+      const parsed = MletrEndorseSchema.parse(request.body);
+      const user = (request as any).user;
+      const signer =
+        parsed.signerName ||
+        user?.username ||
+        user?.id ||
+        "Trade Finance Specialist";
+      const result = await MletrLedgerService.endorseRecord({
+        recordId: parsed.recordId,
+        toParty: parsed.toParty,
+        toRole: parsed.toRole,
+        transferType: parsed.transferType,
+        signerName: signer,
+        signerTitle: parsed.signerTitle,
+        details: parsed.details,
+        metadata: parsed.metadata,
+      });
+      return reply.send({ success: true, data: result });
+    } catch (err: any) {
+      return reply.code(400).send({ success: false, error: err.message });
+    }
+  });
+
+  // POST /api/smart-contracts/mletr/surrender
+  fastify.post("/mletr/surrender", async (request, reply) => {
+    try {
+      const parsed = MletrSurrenderSchema.parse(request.body);
+      const user = (request as any).user;
+      const signer =
+        parsed.signerName ||
+        user?.username ||
+        user?.id ||
+        "Consignee Clearing Agent";
+      const result = await MletrLedgerService.surrenderRecord(
+        parsed.recordId,
+        parsed.carrierName || "MSC Mediterranean Shipping Co.",
+        signer,
+        parsed.notes,
+      );
+      return reply.send({ success: true, data: result });
+    } catch (err: any) {
+      return reply.code(400).send({ success: false, error: err.message });
+    }
+  });
+
+  // GET /api/smart-contracts/mletr/verify/:recordId
+  fastify.get("/mletr/verify/:recordId", async (request, reply) => {
+    try {
+      const { recordId } = request.params as { recordId: string };
+      const verification =
+        await MletrLedgerService.verifyChainIntegrity(recordId);
+      return reply.send({ success: true, data: verification });
+    } catch (err: any) {
+      return reply.code(400).send({ success: false, error: err.message });
+    }
+  });
   // GET /api/smart-contracts/ledger (supports ?shipmentId=...)
   fastify.get("/ledger", async (request) => {
     const { shipmentId } = request.query as { shipmentId?: string };
@@ -158,16 +337,51 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
               },
             ];
 
+        const mletrData =
+          await MletrLedgerService.findRecordByShipmentId(shipmentId);
+        const eblEndorsements =
+          mletrData && mletrData.blocks.length > 0
+            ? mletrData.blocks.map((b) => ({
+                endorsementId: b.id,
+                fromParty: b.fromParty,
+                toParty: b.toParty,
+                timestamp: b.createdAt
+                  ? new Date(b.createdAt).toISOString()
+                  : new Date().toISOString(),
+                transferType: b.transferType as any,
+                digitalSignature: b.signature,
+                transactionHash: b.txHash,
+              }))
+            : parsedEbl?.endorsements || parsedEbl?.endorsementChain || [];
+
+        const enrichedEbl = mletrData
+          ? {
+              ...parsedEbl,
+              eblNumber:
+                mletrData.record.documentReference || parsedEbl.eblNumber,
+              currentTitleHolder:
+                mletrData.record.currentHolder || parsedEbl.currentTitleHolder,
+              status:
+                mletrData.record.status === "SURRENDERED"
+                  ? "SURRENDERED"
+                  : mletrData.record.totalEndorsements > 0
+                    ? "ENDORSED"
+                    : "ISSUED",
+              endorsements: eblEndorsements,
+              electronicRecordHash:
+                mletrData.record.genesisHash || parsedEbl.electronicRecordHash,
+            }
+          : {
+              ...parsedEbl,
+              endorsements: eblEndorsements,
+            };
+
         return {
           success: true,
           scenarioId: contract.id,
           title: contract.title,
           description: contract.description,
-          ebl: {
-            ...parsedEbl,
-            endorsements:
-              parsedEbl?.endorsements || parsedEbl?.endorsementChain || [],
-          },
+          ebl: enrichedEbl,
           escrow: {
             contractId: contract.id,
             eblNumber: parsedEbl.eblNumber || "BL-ATLS-2026-67116",
@@ -494,6 +708,26 @@ export const smartContractsRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       activeState.ledger.push(endorsementBlock);
+
+      // Synchronize persistence into SQLite MLETR transferable ledger
+      try {
+        const shipmentId = (request.query as any)?.shipmentId || "sh_demo_01";
+        const existingMletr =
+          await MletrLedgerService.findRecordByShipmentId(shipmentId);
+        if (existingMletr) {
+          await MletrLedgerService.endorseRecord({
+            recordId: existingMletr.record.id,
+            toParty: parsed.toParty,
+            toRole:
+              parsed.transferType === "PLEDGE_TO_BANK" ? "BANK" : "CONSIGNEE",
+            transferType: parsed.transferType as any,
+            signerName: parsed.signerName || existingMletr.record.currentHolder,
+            details: `Endoso de título e-BL MLETR transmitido a favor de: ${parsed.toParty}.`,
+          });
+        }
+      } catch {
+        // Defensive synchronization fallback
+      }
 
       return reply.send({
         success: true,

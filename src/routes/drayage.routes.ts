@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from "fastify";
 import { v4 as uuidv4 } from "uuid";
 import crypto from "node:crypto";
+import { z } from "zod";
 import {
   drayageEngineService,
   DrayageQuoteRequest,
@@ -13,12 +14,32 @@ import {
 } from "../db/schema/index.js";
 import { eq, desc, and } from "drizzle-orm";
 
+const CoordinatesSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lon: z.number().min(-180).max(180),
+});
+
+const DrayageQuoteRequestSchema = z.object({
+  originAddressId: z.string().optional(),
+  originCoords: CoordinatesSchema.optional(),
+  destinationAddressId: z.string().optional(),
+  destinationCoords: CoordinatesSchema.optional(),
+  containerType: z.any().optional(),
+  cargoWeightKg: z.number().nonnegative().optional(),
+  isDangerousGoods: z.boolean().optional(),
+  requiresGenset: z.boolean().optional(),
+  baseRateEuro: z.number().nonnegative().optional(),
+  perKmRateEuro: z.number().nonnegative().optional(),
+});
+
 const drayageRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/drayage/quote - Calculate road drayage distance, costs and GLEC v3.0 emissions
   fastify.post("/quote", async (request, reply) => {
     try {
-      const body = request.body as DrayageQuoteRequest;
-      const quote = await drayageEngineService.calculateQuote(body);
+      const body = DrayageQuoteRequestSchema.parse(request.body || {});
+      const quote = await drayageEngineService.calculateQuote(
+        body as DrayageQuoteRequest,
+      );
       return reply.send(quote);
     } catch (err: any) {
       fastify.log.error(err, "Failed to calculate drayage quote");

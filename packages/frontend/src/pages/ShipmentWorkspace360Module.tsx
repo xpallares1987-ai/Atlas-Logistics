@@ -10,6 +10,7 @@ import {
   Compass,
   Download,
   FileCode,
+  FileSignature,
   FileText,
   GitBranch,
   History,
@@ -347,6 +348,15 @@ export default function ShipmentWorkspace360Module() {
       createdAt: string;
     }>
   >([]);
+  const [mletrRecord, setMletrRecord] = useState<{
+    id: string;
+    registryType: string;
+    status: string;
+    currentHolder: string;
+    currentHolderRole: string;
+    totalEndorsements: number;
+    isSurrendered: boolean;
+  } | null>(null);
   const [offsetPercentage, setOffsetPercentage] = useState<number>(100);
   const [searchFilter, setSearchFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -466,6 +476,26 @@ export default function ShipmentWorkspace360Module() {
       }
     } catch (err) {
       console.error("Failed to load shipment documents", err);
+    }
+  }, []);
+
+  // Fetch MLETR e-Title Transferable Record
+  const fetchMletrRecord = useCallback(async (id: string) => {
+    if (!id) return;
+    try {
+      const res = await authFetch(
+        `/api/smart-contracts/mletr?shipmentId=${id}`,
+      );
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data?.record) {
+          setMletrRecord(json.data.record);
+        } else {
+          setMletrRecord(null);
+        }
+      }
+    } catch {
+      setMletrRecord(null);
     }
   }, []);
 
@@ -599,6 +629,7 @@ export default function ShipmentWorkspace360Module() {
     if (selectedShipmentId) {
       fetchShipmentDetail(selectedShipmentId);
       fetchShipmentDocuments(selectedShipmentId);
+      fetchMletrRecord(selectedShipmentId);
       fetchGreenCompliance(selectedShipmentId);
       if (activeTab === "journey") {
         fetchTimeline(selectedShipmentId);
@@ -615,6 +646,7 @@ export default function ShipmentWorkspace360Module() {
     activeTab,
     fetchShipmentDetail,
     fetchShipmentDocuments,
+    fetchMletrRecord,
     fetchTimeline,
     fetchAuditTrail,
     fetchGreenCompliance,
@@ -784,6 +816,7 @@ export default function ShipmentWorkspace360Module() {
       await Promise.all([
         fetchShipmentDetail(shipmentDetail.shipmentId),
         fetchShipmentDocuments(shipmentDetail.shipmentId),
+        fetchMletrRecord(shipmentDetail.shipmentId),
       ]);
       if (activeTab === "journey")
         await fetchTimeline(shipmentDetail.shipmentId);
@@ -1988,6 +2021,34 @@ export default function ShipmentWorkspace360Module() {
                           </span>
                         );
                       })()}
+
+                      {/* UNCITRAL MLETR Negotiable e-Title Transferable Record Chip */}
+                      {mletrRecord ? (
+                        <a
+                          href="/smart-contracts"
+                          className="px-2.5 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition"
+                          title={`UNCITRAL MLETR e-Title: ${mletrRecord.status} | Tenedor Legal: ${mletrRecord.currentHolder} | Endosos: ${mletrRecord.totalEndorsements}`}
+                        >
+                          <FileSignature className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>e-Título MLETR ({mletrRecord.status})</span>
+                          <span className="text-[10px] bg-indigo-500/20 text-indigo-200 px-1.5 py-0.5 rounded font-mono">
+                            {mletrRecord.currentHolderRole}:{" "}
+                            {mletrRecord.currentHolder.length > 18
+                              ? mletrRecord.currentHolder.slice(0, 18) + "..."
+                              : mletrRecord.currentHolder}
+                          </span>
+                          <ShieldCheck className="w-3 h-3 text-emerald-400 ml-0.5" />
+                        </a>
+                      ) : (
+                        <a
+                          href="/smart-contracts"
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-800/40 text-slate-400 hover:text-slate-200 border border-slate-700/40 text-xs font-medium flex items-center gap-1.5 transition"
+                          title="Gestionar emisión y endoso de títulos negociables en Smart Contracts"
+                        >
+                          <FileSignature className="w-3.5 h-3.5 text-slate-400" />
+                          e-Título MLETR
+                        </a>
+                      )}
 
                       {/* Other Emitted Vault Documents */}
                       {shipmentDocuments
