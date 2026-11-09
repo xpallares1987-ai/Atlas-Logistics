@@ -21,6 +21,40 @@ import {
   ensureScmFoundationTables,
   outboxBus,
 } from "../../kernel/outbox-bus.js";
+import {
+  isSolasVgmApplicable,
+  resolveTransportModeFamily,
+} from "../../kernel/transport-mode.js";
+
+/**
+ * Node 4 of the canonical freight process is the pre-departure weight/cut-off
+ * checkpoint. Its wording is SOLAS VGM for Ocean only; Air and Ground receive
+ * their own regulatory checkpoint text (the node id stays stable).
+ */
+function resolveModeAwareNodeText(
+  node: { nodeId: string; label: string; description: string },
+  serviceMode?: string | null,
+): { label: string; description: string } {
+  if (node.nodeId !== "NODE_WAIT_VGM_GATEIN") {
+    return { label: node.label, description: node.description };
+  }
+  const family = resolveTransportModeFamily(serviceMode);
+  if (family === "AIR") {
+    return {
+      label: "4. Lodge-In & Security Screening (e-AWB)",
+      description:
+        "Espera aceptación en terminal aérea, peso tasable IATA y screening de seguridad (SPX). SOLAS VGM no aplica.",
+    };
+  }
+  if (family === "ROAD") {
+    return {
+      label: "4. Carga de Vehículo & Peso Bruto / Ejes (e-CMR)",
+      description:
+        "Espera confirmación de carga, peso bruto vehicular y por eje, y emisión de e-CMR. SOLAS VGM no aplica.",
+    };
+  }
+  return { label: node.label, description: node.description };
+}
 
 let automationSubscribersRegistered = false;
 let automationDefsSeeded = false;
@@ -743,7 +777,8 @@ export async function initializeWorkflowForShipment(
     mandatoryChecklistCode: evalRecord.outputSnapshot.mandatoryChecklistCode,
     routePublished: false,
     cargoDeclared: false,
-    vgmVerified: false,
+    vgmApplicable: isSolasVgmApplicable(params.serviceMode),
+    vgmVerified: !isSolasVgmApplicable(params.serviceMode),
     dataQualityGate: "PASSED",
     customsReleased: false,
   };
@@ -813,16 +848,19 @@ export function buildWorkflowStateReadModel(
       nodeId: n.nodeId,
       sequenceOrder: n.sequenceOrder,
       nodeType: n.nodeType,
-      label: n.label,
-      description: n.description,
+      ...resolveModeAwareNodeText(n, variables.serviceMode),
       decisionKey: n.decisionKey,
       status,
     };
   });
 
-  const currentNode =
+  const currentNodeDef =
     CANONICAL_WORKFLOW_NODES.find((n) => n.nodeId === row.currentNodeId) ||
     CANONICAL_WORKFLOW_NODES[0];
+  const currentNode = {
+    ...currentNodeDef,
+    ...resolveModeAwareNodeText(currentNodeDef, variables.serviceMode),
+  };
 
   const availableUserCommands: string[] = ["EvaluateDecisionTables"];
   if (row.state === "SUSPENDED") {
@@ -1059,7 +1097,9 @@ export async function advanceWorkflowTokenForShipment(
     (m) => m.milestoneCode === "VGM_CUTOFF" && m.status === "COMPLETED",
   );
   const vgmFromEquip = equipRows.some((e) => (e.vgmWeightKg || 0) > 0);
-  const vgmVerified = vgmMilestoneDone || vgmFromEquip;
+  // SOLAS VGM is Ocean-only: Air & Ground shipments are exempt (non-applicable)
+  const vgmApplicable = isSolasVgmApplicable(shp.serviceMode);
+  const vgmVerified = !vgmApplicable || vgmMilestoneDone || vgmFromEquip;
 
   const customsReleased = milestones.some(
     (m) => m.milestoneCode === "CUSTOMS_CLEARANCE" && m.status === "COMPLETED",
@@ -1072,6 +1112,7 @@ export async function advanceWorkflowTokenForShipment(
   variables.routePublished = hasRoute;
   variables.cargoDeclared = hasCargo;
   variables.vgmVerified = vgmVerified;
+  variables.vgmApplicable = vgmApplicable;
   variables.dataQualityGate = dqGateStatus;
   variables.customsReleased = customsReleased;
 

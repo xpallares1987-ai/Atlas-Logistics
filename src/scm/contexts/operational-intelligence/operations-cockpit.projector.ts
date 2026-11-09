@@ -466,7 +466,7 @@ export async function ensureScmDemoSeedData(): Promise<void> {
       equipmentNumber: "RKN40912LH",
       seals: ["SL-GDP-77109"],
       tareWeightKg: 265,
-      vgmWeightKg: 2105,
+      // Air ULD: SOLAS VGM does not apply (IATA chargeable weight governs)
       status: "GATED_IN",
       cargoAllocations: [
         {

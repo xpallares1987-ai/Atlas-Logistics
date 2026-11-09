@@ -14,6 +14,10 @@ import {
   ensureScmFoundationTables,
   outboxBus,
 } from "../../kernel/outbox-bus.js";
+import {
+  resolveModeFromLegs,
+  resolvePreDepartureCutoffMilestone,
+} from "../../kernel/transport-mode.js";
 
 export type TrackingSourceType =
   | "TERMINAL_PORT_CUSTOMS"
@@ -61,6 +65,8 @@ export interface IngestTrackingEventInput {
     | "DELIVERED";
   milestoneCode:
     | "VGM_CUTOFF"
+    | "AWB_SECURITY_CUTOFF"
+    | "CMR_LOADING_CHECK"
     | "ETD_POL"
     | "TRANSSHIPMENT"
     | "ETA_POD"
@@ -117,9 +123,15 @@ export async function syncMilestonePlanFromRouteVersion(
   const nowIso = new Date().toISOString();
   const generated: MilestoneItem[] = [];
 
-  // 1. VGM / Cargo Cut-Off at POL
+  // 1. Pre-departure Cargo Cut-Off at POL (mode-aware: SOLAS VGM only for Ocean;
+  //    Air -> e-AWB & security lodge-in; Road/Rail -> vehicle loading & e-CMR)
+  const cutoff = resolvePreDepartureCutoffMilestone(
+    resolveModeFromLegs(payload.legs),
+  );
   const vgmPlanned =
-    firstStop?.cutOffs?.vgmCutOffAt ||
+    (cutoff.milestoneCode === "VGM_CUTOFF"
+      ? firstStop?.cutOffs?.vgmCutOffAt
+      : firstStop?.cutOffs?.gateInCutOffAt) ||
     (firstLeg?.plannedDepartureAt
       ? new Date(
           new Date(firstLeg.plannedDepartureAt).getTime() - 48 * 3600 * 1000,
@@ -127,8 +139,8 @@ export async function syncMilestonePlanFromRouteVersion(
       : undefined);
 
   generated.push({
-    milestoneCode: "VGM_CUTOFF",
-    label: `Cut-Off VGM & Gate-In (${firstStop?.locationId || firstLeg?.originLocode || "POL"})`,
+    milestoneCode: cutoff.milestoneCode,
+    label: `${cutoff.label} (${firstStop?.locationId || firstLeg?.originLocode || "POL"})`,
     locationLocode: firstStop?.locationId || firstLeg?.originLocode || "POL",
     plannedAt: vgmPlanned,
     status: "PLANNED",

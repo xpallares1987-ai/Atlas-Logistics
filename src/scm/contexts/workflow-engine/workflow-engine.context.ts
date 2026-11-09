@@ -859,90 +859,181 @@ export async function getWorkflowInstanceById(
 }
 
 // ============================================================================
-// 3. SEED DEFAULT FREIGHT FORWARDING WORKFLOW DEFINITION
+// 3. SEED DEFAULT FREIGHT FORWARDING WORKFLOW DEFINITIONS (MODE-AWARE CATALOG)
+// SOLAS VGM is scoped exclusively to Ocean. Air uses IATA e-AWB + security
+// screening; Road/Ground uses gross vehicle/axle weight + e-CMR.
 // ============================================================================
 
-export async function seedStandardWorkflowDefinitions(): Promise<WorkflowDefinitionRecord> {
-  await ensureWorkflowEngineTables();
+interface StandardWorkflowSeedSpec {
+  definitionKey: string;
+  name: string;
+  description: string;
+  serviceMode: string;
+  matchServiceType: string;
+  tasks: Array<{
+    taskTypeCode: string;
+    title: string;
+    defaultPriority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+    defaultCandidateRole: string;
+    slaDurationMinutes: number;
+  }>;
+}
 
-  const existing = await db
-    .select()
-    .from(scmWorkflowDefinitions)
-    .where(eq(scmWorkflowDefinitions.definitionKey, "OCEAN_EXPORT_STANDARD"))
-    .limit(1);
-
-  if (existing.length > 0 && existing[0].activeVersionId) {
-    const row = existing[0];
-    return {
-      ...row,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    };
-  }
-
-  // 1. Definition
-  const def = await createWorkflowDefinition({
+export const STANDARD_WORKFLOW_SEED_SPECS: StandardWorkflowSeedSpec[] = [
+  {
     definitionKey: "OCEAN_EXPORT_STANDARD",
     name: "Standard Ocean FCL Export Operations",
     description: "End-to-end operational task pipeline for Ocean FCL exports.",
-    category: "EXPORT",
     serviceMode: "OCEAN",
-  });
+    matchServiceType: "OCEAN_FCL",
+    tasks: [
+      {
+        taskTypeCode: "CONFIRM_CARRIER_BOOKING",
+        title: "Confirm Carrier Booking & Container Release",
+        defaultPriority: "HIGH",
+        defaultCandidateRole: "OPERATIONS_COORDINATOR",
+        slaDurationMinutes: 120,
+      },
+      {
+        taskTypeCode: "VERIFY_VGM_CUTOFF",
+        title: "Verify SOLAS VGM & Terminal Cut-off",
+        defaultPriority: "HIGH",
+        defaultCandidateRole: "OPERATIONS_COORDINATOR",
+        slaDurationMinutes: 240,
+      },
+      {
+        taskTypeCode: "ISSUE_BILL_OF_LADING",
+        title: "Issue Bill of Lading (Transport Document)",
+        defaultPriority: "MEDIUM",
+        defaultCandidateRole: "DOCUMENTATION_SPECIALIST",
+        slaDurationMinutes: 480,
+      },
+    ],
+  },
+  {
+    definitionKey: "AIR_EXPORT_STANDARD",
+    name: "Standard Air Freight Export Operations",
+    description:
+      "End-to-end operational task pipeline for Air exports (IATA e-AWB, chargeable weight & security screening).",
+    serviceMode: "AIR",
+    matchServiceType: "AIR_FREIGHT",
+    tasks: [
+      {
+        taskTypeCode: "CONFIRM_CARRIER_BOOKING",
+        title: "Confirm Airline Booking & ULD Allocation",
+        defaultPriority: "HIGH",
+        defaultCandidateRole: "OPERATIONS_COORDINATOR",
+        slaDurationMinutes: 90,
+      },
+      {
+        taskTypeCode: "VERIFY_AWB_SECURITY_WEIGHT",
+        title: "Verify IATA Chargeable Weight & Security Screening (SPX)",
+        defaultPriority: "HIGH",
+        defaultCandidateRole: "OPERATIONS_COORDINATOR",
+        slaDurationMinutes: 180,
+      },
+      {
+        taskTypeCode: "ISSUE_AIR_WAYBILL",
+        title: "Issue Master/House Air Waybill (MAWB/HAWB)",
+        defaultPriority: "MEDIUM",
+        defaultCandidateRole: "DOCUMENTATION_SPECIALIST",
+        slaDurationMinutes: 240,
+      },
+    ],
+  },
+  {
+    definitionKey: "ROAD_EXPORT_STANDARD",
+    name: "Standard Road / Ground Export Operations",
+    description:
+      "End-to-end operational task pipeline for Road/Ground exports (gross vehicle & axle weight, e-CMR).",
+    serviceMode: "ROAD",
+    matchServiceType: "ROAD_FTL",
+    tasks: [
+      {
+        taskTypeCode: "CONFIRM_CARRIER_BOOKING",
+        title: "Confirm Haulier Booking & Vehicle Assignment",
+        defaultPriority: "HIGH",
+        defaultCandidateRole: "OPERATIONS_COORDINATOR",
+        slaDurationMinutes: 120,
+      },
+      {
+        taskTypeCode: "VERIFY_VEHICLE_AXLE_WEIGHT",
+        title: "Verify Gross Vehicle Weight, Axle Load & Loading Plan",
+        defaultPriority: "HIGH",
+        defaultCandidateRole: "OPERATIONS_COORDINATOR",
+        slaDurationMinutes: 180,
+      },
+      {
+        taskTypeCode: "ISSUE_ECMR_WAYBILL",
+        title: "Issue Electronic Consignment Note (e-CMR)",
+        defaultPriority: "MEDIUM",
+        defaultCandidateRole: "DOCUMENTATION_SPECIALIST",
+        slaDurationMinutes: 240,
+      },
+    ],
+  },
+];
 
-  // 2. Version 1 (DRAFT)
+function mapDefinitionRow(row: any): WorkflowDefinitionRecord {
+  return {
+    ...row,
+    createdAt: new Date(row.createdAt),
+    updatedAt: new Date(row.updatedAt),
+  };
+}
+
+async function seedWorkflowDefinitionFromSpec(
+  spec: StandardWorkflowSeedSpec,
+): Promise<WorkflowDefinitionRecord> {
+  const existing = await db
+    .select()
+    .from(scmWorkflowDefinitions)
+    .where(eq(scmWorkflowDefinitions.definitionKey, spec.definitionKey))
+    .limit(1);
+
+  if (existing.length > 0 && existing[0].activeVersionId) {
+    return mapDefinitionRow(existing[0]);
+  }
+
+  // 1. Definition (reuse an unpublished existing row if present)
+  const def =
+    existing.length > 0
+      ? mapDefinitionRow(existing[0])
+      : await createWorkflowDefinition({
+          definitionKey: spec.definitionKey,
+          name: spec.name,
+          description: spec.description,
+          category: "EXPORT",
+          serviceMode: spec.serviceMode,
+        });
+
+  // 2. Version (DRAFT)
   const ver = await createWorkflowDefinitionVersion({
     workflowDefinitionId: def.workflowDefinitionId,
     triggerEventType: "transport_planning.RoutePlanned.v2",
-    matchCondition: { serviceType: "OCEAN_FCL" },
+    matchCondition: { serviceType: spec.matchServiceType },
   });
 
   // 3. Task Definitions
-  await addTaskDefinitionToVersion({
-    workflowVersionId: ver.workflowVersionId,
-    taskTypeCode: "CONFIRM_CARRIER_BOOKING",
-    title: "Confirm Carrier Booking & Container Release",
-    defaultPriority: "HIGH",
-    defaultCandidateRole: "OPERATIONS_COORDINATOR",
-    slaDurationMinutes: 120,
-    sequenceHint: 1,
-  });
+  for (let i = 0; i < spec.tasks.length; i++) {
+    await addTaskDefinitionToVersion({
+      workflowVersionId: ver.workflowVersionId,
+      ...spec.tasks[i],
+      sequenceHint: i + 1,
+    });
+  }
 
-  await addTaskDefinitionToVersion({
-    workflowVersionId: ver.workflowVersionId,
-    taskTypeCode: "VERIFY_VGM_CUTOFF",
-    title: "Verify SOLAS VGM & Terminal Cut-off",
-    defaultPriority: "HIGH",
-    defaultCandidateRole: "OPERATIONS_COORDINATOR",
-    slaDurationMinutes: 240,
-    sequenceHint: 2,
-  });
+  // 4. Linear FINISH_TO_START dependency chain: Task A -> Task B -> Task C
+  for (let i = 1; i < spec.tasks.length; i++) {
+    await addDependencyDefinitionToVersion({
+      workflowVersionId: ver.workflowVersionId,
+      predecessorTaskTypeCode: spec.tasks[i - 1].taskTypeCode,
+      successorTaskTypeCode: spec.tasks[i].taskTypeCode,
+      dependencyType: "FINISH_TO_START",
+    });
+  }
 
-  await addTaskDefinitionToVersion({
-    workflowVersionId: ver.workflowVersionId,
-    taskTypeCode: "ISSUE_BILL_OF_LADING",
-    title: "Issue Bill of Lading (Transport Document)",
-    defaultPriority: "MEDIUM",
-    defaultCandidateRole: "DOCUMENTATION_SPECIALIST",
-    slaDurationMinutes: 480,
-    sequenceHint: 3,
-  });
-
-  // 4. Dependency Definitions: Task A -> Task B -> Task C
-  await addDependencyDefinitionToVersion({
-    workflowVersionId: ver.workflowVersionId,
-    predecessorTaskTypeCode: "CONFIRM_CARRIER_BOOKING",
-    successorTaskTypeCode: "VERIFY_VGM_CUTOFF",
-    dependencyType: "FINISH_TO_START",
-  });
-
-  await addDependencyDefinitionToVersion({
-    workflowVersionId: ver.workflowVersionId,
-    predecessorTaskTypeCode: "VERIFY_VGM_CUTOFF",
-    successorTaskTypeCode: "ISSUE_BILL_OF_LADING",
-    dependencyType: "FINISH_TO_START",
-  });
-
-  // 5. Publish Version 1 (Validates DAG and activates)
+  // 5. Publish (validates DAG and activates)
   await publishWorkflowDefinitionVersion(ver.workflowVersionId);
 
   const updatedDef = (
@@ -957,9 +1048,20 @@ export async function seedStandardWorkflowDefinitions(): Promise<WorkflowDefinit
       )
   )[0];
 
-  return {
-    ...updatedDef,
-    createdAt: new Date(updatedDef.createdAt),
-    updatedAt: new Date(updatedDef.updatedAt),
-  };
+  return mapDefinitionRow(updatedDef);
+}
+
+/**
+ * Seeds the mode-aware standard workflow catalog (Ocean, Air, Road).
+ * Returns the Ocean definition for backward compatibility with existing callers.
+ */
+export async function seedStandardWorkflowDefinitions(): Promise<WorkflowDefinitionRecord> {
+  await ensureWorkflowEngineTables();
+
+  let oceanDef: WorkflowDefinitionRecord | null = null;
+  for (const spec of STANDARD_WORKFLOW_SEED_SPECS) {
+    const rec = await seedWorkflowDefinitionFromSpec(spec);
+    if (spec.definitionKey === "OCEAN_EXPORT_STANDARD") oceanDef = rec;
+  }
+  return oceanDef!;
 }

@@ -18,6 +18,11 @@ import {
   ensureScmFoundationTables,
   outboxBus,
 } from "../../kernel/outbox-bus.js";
+import {
+  isSolasVgmApplicable,
+  resolveModeFromLegs,
+  resolvePreDepartureCutoffMilestone,
+} from "../../kernel/transport-mode.js";
 
 let controlSubscribersRegistered = false;
 
@@ -85,9 +90,15 @@ export async function initializeSlaClocksForShipment(
   const firstStop = payload.stops[0];
   const firstLeg = payload.legs[0];
   const lastLeg = payload.legs[payload.legs.length - 1];
+  // Mode-aware pre-departure cut-off (SOLAS VGM applies only to Ocean)
+  const cutoffMeta = resolvePreDepartureCutoffMilestone(
+    resolveModeFromLegs(payload.legs),
+  );
 
   const vgmDeadline =
-    firstStop?.cutOffs?.vgmCutOffAt ||
+    (cutoffMeta.milestoneCode === "VGM_CUTOFF"
+      ? firstStop?.cutOffs?.vgmCutOffAt
+      : firstStop?.cutOffs?.gateInCutOffAt) ||
     (firstLeg?.plannedDepartureAt
       ? new Date(
           new Date(firstLeg.plannedDepartureAt).getTime() - 24 * 3600 * 1000,
@@ -107,7 +118,7 @@ export async function initializeSlaClocksForShipment(
       id: `sla_${uuidv4()}`,
       shipmentId: payload.shipmentId,
       slaCode: "SLA_PRE_DEPARTURE_CUTOFF",
-      slaName: "SOLAS VGM & Export Gate-In Cut-Off",
+      slaName: cutoffMeta.slaName,
       status: "ON_TRACK",
       startedAt: nowIso,
       originalDeadlineAt: vgmDeadline,
@@ -781,9 +792,13 @@ export async function evaluateShipmentDataQuality(
         message: "No hay unidades de equipamiento (contenedor/ULD) asignadas.",
         remediationHint: "Asignar contenedor o ULD con precintos.",
       });
-    } else if (model.header?.serviceProduct?.mode === "SEA") {
+    } else if (isSolasVgmApplicable(model.header?.serviceProduct?.mode)) {
+      // SOLAS VGM applies only to packed sea containers (never ULD / trailers)
       const missingVgm = equipList.some(
-        (eqItem: any) => !eqItem.vgmWeightKg || eqItem.vgmWeightKg <= 0,
+        (eqItem: any) =>
+          (!eqItem.equipmentCategory ||
+            eqItem.equipmentCategory === "CONTAINER") &&
+          (!eqItem.vgmWeightKg || eqItem.vgmWeightKg <= 0),
       );
       if (missingVgm) {
         findings.push({
@@ -920,7 +935,9 @@ export async function evaluateShipmentDataQuality(
         severity: "HIGH",
         title: `Data Quality Gate Bloqueado en etapa ${targetStage} (${blockingCount} hallazgos)`,
         summary: findings.map((f) => f.message).join(" | "),
-        milestoneCode: "VGM_CUTOFF",
+        milestoneCode: resolvePreDepartureCutoffMilestone(
+          model.header?.serviceProduct?.mode,
+        ).milestoneCode,
         locationLocode: model.routing?.legs?.[0]?.originLocode || "POL",
         actionCommandName: "data_quality.RemediateAndRevalidateGate",
         actionLabel: "Subsanar Hallazgos y Re-Evaluar Gate",

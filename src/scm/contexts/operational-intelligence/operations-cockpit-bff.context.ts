@@ -31,6 +31,10 @@ import {
 import { ensureOperationalBffTables } from "../../kernel/operational-bff-tables.js";
 import { outboxBus } from "../../kernel/outbox-bus.js";
 import {
+  resolveStandardWorkflowDefinitionKey,
+  resolveTransportModeFamily,
+} from "../../kernel/transport-mode.js";
+import {
   getOperationalShipmentById,
   OperationalShipmentRecord,
   OperationalRoutePlanRecord,
@@ -238,12 +242,119 @@ export interface ProjectionsHealthReport {
 // TASK METADATA HELPER
 // ============================================================================
 
-export function resolveTaskMetadata(taskTypeCode: string): {
+/**
+ * Legacy rows created before the mode-aware workflow catalog may carry Ocean
+ * task types (SOLAS VGM / B/L) on Air or Ground shipments. Remap them to the
+ * mode-appropriate equivalents so SOLAS VGM is never presented outside Ocean.
+ */
+export function remapTaskTypeForMode(
+  taskTypeCode: string,
+  serviceType?: string | null,
+): string {
+  const family = resolveTransportModeFamily(serviceType);
+  if (family === "AIR") {
+    if (taskTypeCode === "VERIFY_VGM_CUTOFF")
+      return "VERIFY_AWB_SECURITY_WEIGHT";
+    if (taskTypeCode === "ISSUE_BILL_OF_LADING") return "ISSUE_AIR_WAYBILL";
+  } else if (family === "ROAD") {
+    if (taskTypeCode === "VERIFY_VGM_CUTOFF")
+      return "VERIFY_VEHICLE_AXLE_WEIGHT";
+    if (taskTypeCode === "ISSUE_BILL_OF_LADING") return "ISSUE_ECMR_WAYBILL";
+  }
+  return taskTypeCode;
+}
+
+/** Remaps a legacy Ocean workflow definition key for non-ocean shipments. */
+export function remapWorkflowDefinitionKeyForMode(
+  definitionKey: string,
+  serviceType?: string | null,
+): string {
+  if (definitionKey !== "OCEAN_EXPORT_STANDARD") return definitionKey;
+  return resolveStandardWorkflowDefinitionKey(serviceType);
+}
+
+export function resolveTaskMetadata(
+  rawTaskTypeCode: string,
+  serviceType?: string | null,
+): {
   title: string;
   description: string;
   primaryAction: TaskActionMetadata;
 } {
+  const taskTypeCode = remapTaskTypeForMode(rawTaskTypeCode, serviceType);
   switch (taskTypeCode) {
+    case "VERIFY_AWB_SECURITY_WEIGHT":
+      return {
+        title: "Verify Chargeable Weight & Security Screening",
+        description:
+          "Confirm IATA chargeable weight (actual vs. volumetric 1:6000) and Known Consignor / SPX security screening before airline lodge-in cut-off.",
+        primaryAction: {
+          command: "COMPLETE_TASK",
+          actionLabel: "Verify Weight & Screening",
+          inputFields: [
+            {
+              name: "chargeableWeightKg",
+              label: "Chargeable Weight (kg)",
+              type: "number",
+              required: true,
+            },
+          ],
+        },
+      };
+    case "ISSUE_AIR_WAYBILL":
+      return {
+        title: "Issue Air Waybill (MAWB/HAWB)",
+        description:
+          "Draft, approve and transmit the IATA e-AWB (FWB/FHL) for the master and house air waybills.",
+        primaryAction: {
+          command: "COMPLETE_TASK",
+          actionLabel: "Issue Air Waybill",
+          inputFields: [
+            {
+              name: "awbNumber",
+              label: "MAWB Number",
+              type: "string",
+              required: true,
+            },
+          ],
+        },
+      };
+    case "VERIFY_VEHICLE_AXLE_WEIGHT":
+      return {
+        title: "Verify Gross Vehicle & Axle Weight",
+        description:
+          "Confirm gross vehicle weight and per-axle load are within legal limits and the loading plan is secured before departure.",
+        primaryAction: {
+          command: "COMPLETE_TASK",
+          actionLabel: "Verify Vehicle Weight",
+          inputFields: [
+            {
+              name: "grossVehicleWeightKg",
+              label: "Gross Vehicle Weight (kg)",
+              type: "number",
+              required: true,
+            },
+          ],
+        },
+      };
+    case "ISSUE_ECMR_WAYBILL":
+      return {
+        title: "Issue e-CMR Consignment Note",
+        description:
+          "Issue the electronic CMR consignment note signed by shipper, haulier and consignee.",
+        primaryAction: {
+          command: "COMPLETE_TASK",
+          actionLabel: "Issue e-CMR",
+          inputFields: [
+            {
+              name: "cmrNumber",
+              label: "e-CMR Number",
+              type: "string",
+              required: true,
+            },
+          ],
+        },
+      };
     case "CONFIRM_CARRIER_BOOKING":
       return {
         title: "Confirm Carrier Booking",
@@ -605,7 +716,10 @@ export async function computeShipment360View(
 
     workflow = {
       instanceId: wf.instanceId,
-      definitionCode: defRows[0]?.definitionKey || "WORKFLOW",
+      definitionCode: remapWorkflowDefinitionKeyForMode(
+        defRows[0]?.definitionKey || "WORKFLOW",
+        shipment.serviceType,
+      ),
       versionNumber: verRows[0]?.versionNumber || 1,
       status: wf.status,
       progressPercentage,
@@ -613,10 +727,10 @@ export async function computeShipment360View(
   }
 
   const enrichedTasks = rawTasks.map((t) => {
-    const meta = resolveTaskMetadata(t.taskType);
+    const meta = resolveTaskMetadata(t.taskType, shipment.serviceType);
     return {
       taskId: t.taskId,
-      taskType: t.taskType,
+      taskType: remapTaskTypeForMode(t.taskType, shipment.serviceType),
       title: meta.title,
       priority: t.priority,
       status: t.status,
@@ -888,7 +1002,7 @@ export async function refreshShipmentProjections(
   );
 
   for (const task of view.tasks) {
-    const meta = resolveTaskMetadata(task.taskType);
+    const meta = resolveTaskMetadata(task.taskType, view.serviceType);
     const scoreUrgency = computeAttentionScoreAndUrgency(
       {
         itemType: "TASK",
@@ -1408,7 +1522,7 @@ export async function executeCockpitWorkItem(
     const unlockedWorkItems: OperationalCockpitWorkItem[] = freshView.tasks
       .filter((t) => t.status === "OPEN" && !t.isBlocked)
       .map((t) => {
-        const meta = resolveTaskMetadata(t.taskType);
+        const meta = resolveTaskMetadata(t.taskType, freshView.serviceType);
         const scoreUrgency = computeAttentionScoreAndUrgency(
           { status: t.status, isBlocked: t.isBlocked, priority: t.priority },
           freshView.serviceType,
@@ -1485,7 +1599,7 @@ export async function executeCockpitWorkItem(
       (t) => t.status === "OPEN" && !t.isBlocked && t.taskId !== workItemId,
     )
     .map((t) => {
-      const meta = resolveTaskMetadata(t.taskType);
+      const meta = resolveTaskMetadata(t.taskType, freshView.serviceType);
       const scoreUrgency = computeAttentionScoreAndUrgency(
         { status: t.status, isBlocked: t.isBlocked, priority: t.priority },
         freshView.serviceType,

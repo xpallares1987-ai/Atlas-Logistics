@@ -35,6 +35,31 @@ import {
   seedStandardWorkflowDefinitions,
   instantiateWorkflow,
 } from "../workflow-engine/workflow-engine.context.js";
+import {
+  resolveModeFromLegs,
+  resolvePreDepartureCutoffMilestone,
+  resolveStandardWorkflowDefinitionKey,
+} from "../../kernel/transport-mode.js";
+
+/**
+ * Resolves the mode/service code of a logical shipment so downstream
+ * milestone & workflow generation stays mode-aware (SOLAS VGM is Ocean-only).
+ * Falls back to the main-carriage leg mode carried by the event payload.
+ */
+async function resolveShipmentModeCode(
+  shipmentId: string,
+  payload?: any,
+): Promise<string | undefined> {
+  const rows = await db
+    .select({ serviceType: scmLogicalShipments.serviceType })
+    .from(scmLogicalShipments)
+    .where(eq(scmLogicalShipments.shipmentId, shipmentId))
+    .limit(1);
+  if (rows[0]?.serviceType) return rows[0].serviceType;
+  return (
+    payload?.serviceType || resolveModeFromLegs(payload?.legs) || undefined
+  );
+}
 
 // ============================================================================
 // OPERATIONAL CORE CONTEXT (Vertical Slice 1 Operational Flow)
@@ -517,10 +542,13 @@ export function registerOperationalSubscribers(): void {
         version: 1,
       });
 
-      // Generate initial milestones based on planned stops
+      // Generate initial milestones based on planned stops.
+      // Pre-departure cut-off is mode-aware: SOLAS VGM only for Ocean.
+      const modeCode = await resolveShipmentModeCode(p.shipmentId, p);
+      const cutoff = resolvePreDepartureCutoffMilestone(modeCode);
       const milestoneTypes = [
         "GATE_IN",
-        "VGM_CUTOFF",
+        cutoff.milestoneCode,
         "POL_DEPARTURE",
         "ETA_POD",
         "POD_DELIVERY",
@@ -571,10 +599,13 @@ export function registerOperationalSubscribers(): void {
       // Seed standard workflow catalog if needed
       await seedStandardWorkflowDefinitions();
 
-      // Instantiate the active version of the operational workflow definition
+      // Instantiate the active version of the mode-appropriate workflow definition
+      const definitionKey = resolveStandardWorkflowDefinitionKey(
+        await resolveShipmentModeCode(p.shipmentId, p),
+      );
       const wfInstance = await instantiateWorkflow(
         {
-          definitionKey: "OCEAN_EXPORT_STANDARD",
+          definitionKey,
           subjectType: "SHIPMENT",
           subjectId: p.shipmentId,
         },
