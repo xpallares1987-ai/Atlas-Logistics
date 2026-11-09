@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import federation from "@originjs/vite-plugin-federation";
 import { VitePWA } from "vite-plugin-pwa";
+import devtoolsJson from "vite-plugin-devtools-json";
 
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
@@ -13,6 +14,9 @@ export default defineConfig({
     ),
   },
   plugins: [
+    devtoolsJson({
+      projectRoot: path.resolve(import.meta.dirname, "../.."),
+    }),
     tailwindcss(),
     react(),
     federation({

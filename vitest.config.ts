@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    fileParallelism: false,
     env: {
       COOKIE_SECRET: "test-cookie-secret-min-32-chars-long-for-vitest",
       JWT_SECRET: "test-jwt-secret-min-32-chars-long-for-vitest",

@@ -2,7 +2,12 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { db } from "../../db/index.js";
-import { documents, shipments } from "../../db/schema/index.js";
+import {
+  documents,
+  shipments,
+  scmLogicalShipments,
+  users,
+} from "../../db/schema/index.js";
 import { eq, desc, or } from "drizzle-orm";
 import { PDFService, type HBLData } from "../pdf.service.js";
 import { logger } from "../../config/logger.js";
@@ -237,6 +242,41 @@ export class DocumentSignerService {
           .limit(1);
         if (foundShipment.length > 0) {
           validShipmentId = foundShipment[0].id;
+        } else {
+          // Check if it's an SCM logical shipment (e.g., shp_..., sh_demo_01)
+          const foundScm = await db
+            .select({ id: scmLogicalShipments.shipmentId })
+            .from(scmLogicalShipments)
+            .where(eq(scmLogicalShipments.shipmentId, params.shipmentId))
+            .limit(1);
+          if (foundScm.length > 0) {
+            await db
+              .insert(shipments)
+              .values({
+                id: params.shipmentId,
+                status: "ACTIVE",
+                serviceType: "MULTIMODAL",
+                companyId: "c-1",
+              })
+              .onConflictDoNothing();
+            validShipmentId = params.shipmentId;
+          }
+        }
+      } catch {
+        // ignore check failure
+      }
+    }
+
+    let validUserId: string | undefined = undefined;
+    if (params.userId) {
+      try {
+        const foundUser = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.id, params.userId))
+          .limit(1);
+        if (foundUser.length > 0) {
+          validUserId = foundUser[0].id;
         }
       } catch {
         // ignore check failure
@@ -261,7 +301,7 @@ export class DocumentSignerService {
       payloadData: params.payloadData,
       fileSize: pdfBuffer.length,
       url: `/api/documents/${docId}/pdf`,
-      uploadedBy: params.userId,
+      uploadedBy: validUserId,
       createdAt: now,
     });
 

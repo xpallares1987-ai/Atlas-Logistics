@@ -334,6 +334,19 @@ export default function ShipmentWorkspace360Module() {
     useState<ShipmentGreenComplianceReadModel | null>(null);
   const [greenLoading, setGreenLoading] = useState(false);
   const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
+  const [shipmentDocuments, setShipmentDocuments] = useState<
+    Array<{
+      id: string;
+      name: string;
+      type: string;
+      documentReference: string | null;
+      sha256Hash: string | null;
+      status: string;
+      signedBy: string | null;
+      signedAt: string | null;
+      createdAt: string;
+    }>
+  >([]);
   const [offsetPercentage, setOffsetPercentage] = useState<number>(100);
   const [searchFilter, setSearchFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -439,6 +452,20 @@ export default function ShipmentWorkspace360Module() {
       );
     } finally {
       setDetailLoading(false);
+    }
+  }, []);
+
+  // Fetch Official Documents for this shipment
+  const fetchShipmentDocuments = useCallback(async (id: string) => {
+    if (!id) return;
+    try {
+      const res = await authFetch(`/api/documents?shipmentId=${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setShipmentDocuments(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Failed to load shipment documents", err);
     }
   }, []);
 
@@ -571,6 +598,7 @@ export default function ShipmentWorkspace360Module() {
   useEffect(() => {
     if (selectedShipmentId) {
       fetchShipmentDetail(selectedShipmentId);
+      fetchShipmentDocuments(selectedShipmentId);
       fetchGreenCompliance(selectedShipmentId);
       if (activeTab === "journey") {
         fetchTimeline(selectedShipmentId);
@@ -586,6 +614,7 @@ export default function ShipmentWorkspace360Module() {
     selectedShipmentId,
     activeTab,
     fetchShipmentDetail,
+    fetchShipmentDocuments,
     fetchTimeline,
     fetchAuditTrail,
     fetchGreenCompliance,
@@ -752,7 +781,10 @@ export default function ShipmentWorkspace360Module() {
 
       setActiveActionModal(null);
       // Reload fresh data
-      await fetchShipmentDetail(shipmentDetail.shipmentId);
+      await Promise.all([
+        fetchShipmentDetail(shipmentDetail.shipmentId),
+        fetchShipmentDocuments(shipmentDetail.shipmentId),
+      ]);
       if (activeTab === "journey")
         await fetchTimeline(shipmentDetail.shipmentId);
       if (activeTab === "audit")
@@ -1864,6 +1896,119 @@ export default function ShipmentWorkspace360Module() {
                         <Download className="w-3.5 h-3.5 text-slate-400" />
                         Documentación Oficial:
                       </span>
+
+                      {/* Multimodal Transport Document (e-AWB, e-CMR, Ocean B/L) */}
+                      {(() => {
+                        const st = (
+                          shipmentDetail.serviceType || ""
+                        ).toUpperCase();
+                        const isAir = st.includes("AIR");
+                        const isRoad = st.includes("ROAD");
+
+                        const matchedDoc = shipmentDocuments.find(
+                          (d) =>
+                            (isAir && d.type === "AWB") ||
+                            (isRoad && d.type === "ECMR") ||
+                            (!isAir &&
+                              !isRoad &&
+                              (d.type === "HBL" || d.type === "BOL")),
+                        );
+
+                        if (isAir) {
+                          return matchedDoc ? (
+                            <a
+                              href={`/api/documents/${matchedDoc.id}/pdf`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 text-xs font-semibold flex items-center gap-1.5 transition"
+                              title={`SHA-256: ${matchedDoc.sha256Hash}`}
+                            >
+                              <Plane className="w-3.5 h-3.5 text-sky-400" />
+                              e-AWB Digital (
+                              {matchedDoc.documentReference || "Oficial"})
+                              <ShieldCheck className="w-3 h-3 text-emerald-400 ml-0.5" />
+                            </a>
+                          ) : (
+                            <span
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-800/40 text-slate-400 border border-slate-700/40 text-xs font-medium flex items-center gap-1.5 opacity-70"
+                              title="Emita el e-AWB completando la tarea en Operations Cockpit"
+                            >
+                              <Plane className="w-3.5 h-3.5 text-slate-400" />
+                              e-AWB (Pendiente en Cockpit)
+                            </span>
+                          );
+                        }
+
+                        if (isRoad) {
+                          return matchedDoc ? (
+                            <a
+                              href={`/api/documents/${matchedDoc.id}/pdf`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition"
+                              title={`SHA-256: ${matchedDoc.sha256Hash}`}
+                            >
+                              <Truck className="w-3.5 h-3.5 text-emerald-400" />
+                              e-CMR Digital (
+                              {matchedDoc.documentReference || "Oficial"})
+                              <ShieldCheck className="w-3 h-3 text-emerald-400 ml-0.5" />
+                            </a>
+                          ) : (
+                            <span
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-800/40 text-slate-400 border border-slate-700/40 text-xs font-medium flex items-center gap-1.5 opacity-70"
+                              title="Emita el e-CMR completando la tarea en Operations Cockpit"
+                            >
+                              <Truck className="w-3.5 h-3.5 text-slate-400" />
+                              e-CMR (Pendiente en Cockpit)
+                            </span>
+                          );
+                        }
+
+                        // Ocean
+                        return matchedDoc ? (
+                          <a
+                            href={`/api/documents/${matchedDoc.id}/pdf`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-semibold flex items-center gap-1.5 transition"
+                            title={`SHA-256: ${matchedDoc.sha256Hash}`}
+                          >
+                            <Ship className="w-3.5 h-3.5 text-blue-400" />
+                            Ocean B/L (
+                            {matchedDoc.documentReference || "Oficial"})
+                            <ShieldCheck className="w-3 h-3 text-emerald-400 ml-0.5" />
+                          </a>
+                        ) : (
+                          <span
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-800/40 text-slate-400 border border-slate-700/40 text-xs font-medium flex items-center gap-1.5 opacity-70"
+                            title="Emita el Bill of Lading completando la tarea en Operations Cockpit"
+                          >
+                            <Ship className="w-3.5 h-3.5 text-slate-400" />
+                            Ocean B/L (Pendiente en Cockpit)
+                          </span>
+                        );
+                      })()}
+
+                      {/* Other Emitted Vault Documents */}
+                      {shipmentDocuments
+                        .filter(
+                          (d) =>
+                            !["AWB", "ECMR", "HBL", "BOL"].includes(d.type),
+                        )
+                        .map((doc) => (
+                          <a
+                            key={doc.id}
+                            href={`/api/documents/${doc.id}/pdf`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition"
+                            title={`SHA-256: ${doc.sha256Hash}`}
+                          >
+                            <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                            {doc.name}
+                            <ShieldCheck className="w-3 h-3 text-emerald-400 ml-0.5" />
+                          </a>
+                        ))}
 
                       <button
                         onClick={() =>
