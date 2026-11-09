@@ -184,16 +184,31 @@ export function ShippingMap({
         // @ts-ignore
         await import("leaflet.markercluster/dist/MarkerCluster.Default.css");
 
-        // Apply dark-themed beautiful tile layout
-        L.tileLayer(
-          "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-          {
-            attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: "abcd",
-            maxZoom: 20,
-          },
-        ).addTo(map);
+        // Apply dark-themed CARTO tile layout with API Key and OSM fallback
+        const cartoApiKey =
+          (typeof import.meta !== "undefined" &&
+            (import.meta as any).env?.VITE_CARTO_API_KEY) ||
+          (typeof process !== "undefined" && process.env?.CARTO_API_KEY) ||
+          "";
+
+        const tileUrl = cartoApiKey
+          ? `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${cartoApiKey}`
+          : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
+        const tileLayer = L.tileLayer(tileUrl, {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          subdomains: "abcd",
+          maxZoom: 20,
+        });
+
+        tileLayer.on("tileerror", () => {
+          tileLayer.setUrl(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          );
+        });
+
+        tileLayer.addTo(map);
 
         // Create a Marker Cluster Group for better UX
         const clusterGroup = (L as any).markerClusterGroup({

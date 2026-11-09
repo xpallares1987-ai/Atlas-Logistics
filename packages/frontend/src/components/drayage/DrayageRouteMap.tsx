@@ -46,14 +46,24 @@ export const DrayageRouteMap: React.FC<DrayageRouteMapProps> = ({
         attributionControl: false,
       }).setView([origin.lat, origin.lon], 10);
 
-      // Voyager tile layer (clean, dark/light compatible, free zero-auth)
-      L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        {
-          maxZoom: 19,
-          subdomains: "abcd",
-        },
-      ).addTo(map);
+      // CARTO Voyager tile layer with API Key and OSM fallback
+      const cartoApiKey = import.meta.env.VITE_CARTO_API_KEY || "";
+      const tileUrl = cartoApiKey
+        ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${cartoApiKey}`
+        : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+
+      const tileLayer = L.tileLayer(tileUrl, {
+        maxZoom: 19,
+        subdomains: "abcd",
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      });
+
+      tileLayer.on("tileerror", () => {
+        tileLayer.setUrl("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png");
+      });
+
+      tileLayer.addTo(map);
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
       mapInstanceRef.current = map;

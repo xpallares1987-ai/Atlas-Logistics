@@ -7,6 +7,11 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
+  define: {
+    "import.meta.env.VITE_CARTO_API_KEY": JSON.stringify(
+      process.env.CARTO_API_KEY || process.env.VITE_CARTO_API_KEY || "",
+    ),
+  },
   plugins: [
     tailwindcss(),
     react(),
