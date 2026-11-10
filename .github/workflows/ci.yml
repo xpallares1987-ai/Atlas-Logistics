@@ -65,6 +65,7 @@ jobs:
 
       - name: Prepare database for tests
         run: |
+          mkdir -p data
           touch .env.local
           pnpm run db:migrate
           pnpm run db:seed
@@ -226,6 +227,7 @@ jobs:
 
       - name: Prepare database for E2E
         run: |
+          mkdir -p data
           touch .env.local
           pnpm run db:migrate
           pnpm run db:seed

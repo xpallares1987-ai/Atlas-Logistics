@@ -3,26 +3,6 @@ name: Copilot Setup Steps
 on:
   workflow_dispatch:
 
-  push:
-    paths:
-      - ".github/workflows/copilot-setup-steps.yml"
-      - ".nvmrc"
-      - ".npmrc"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "turbo.json"
-
-  pull_request:
-    paths:
-      - ".github/workflows/copilot-setup-steps.yml"
-      - ".nvmrc"
-      - ".npmrc"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "turbo.json"
-
 jobs:
   copilot-setup-steps:
     name: Prepare Atlas Logistics
@@ -82,10 +62,7 @@ jobs:
           path: |
             .turbo
             packages/*/.turbo
-          key: >-
-            ${{ runner.os }}-node-${{ hashFiles('.nvmrc') }}-turbo-${{
-            hashFiles('pnpm-lock.yaml', 'turbo.json', 'pnpm-workspace.yaml')
-            }}-${{ github.sha }}
+          key: ${{ runner.os }}-node-${{ hashFiles('.nvmrc') }}-turbo-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'pnpm-workspace.yaml') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-node-${{ hashFiles('.nvmrc') }}-turbo-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'pnpm-workspace.yaml') }}-
             ${{ runner.os }}-node-${{ hashFiles('.nvmrc') }}-turbo-

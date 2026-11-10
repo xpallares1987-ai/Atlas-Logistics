@@ -2,6 +2,8 @@ import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
 import * as schema from "./schema/index.js";
 import dotenv from "dotenv";
+import fs from "node:fs";
+import path from "node:path";
 
 // Load environment-specific configurations
 const isProduction = process.env.NODE_ENV === "production";
@@ -28,6 +30,16 @@ export const getDatabaseUrl = (): string => {
 };
 
 export const databaseUrl = getDatabaseUrl();
+
+// Ensure parent directory exists for file-based SQLite databases
+if (databaseUrl.startsWith("file:")) {
+  const filePath = databaseUrl.replace(/^file:/, "").split("?")[0];
+  const dir = path.dirname(filePath);
+  if (dir && dir !== "." && !fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
 export const client = createClient({
   url: databaseUrl,
   authToken: process.env.DATABASE_AUTH_TOKEN,
