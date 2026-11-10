@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck,
@@ -459,8 +459,10 @@ export default function EFirmaHubModule() {
       {/* Main Tab Navigation */}
       <div className="flex border-b border-slate-800 gap-2">
         <button
-          onClick={() => setActiveTab("SIGNING_STUDIO")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${
+          onClick={() =>
+            React.startTransition(() => setActiveTab("SIGNING_STUDIO"))
+          }
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-150 border-b-2 ${
             activeTab === "SIGNING_STUDIO"
               ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
               : "border-transparent text-slate-400 hover:text-slate-200"
@@ -471,8 +473,10 @@ export default function EFirmaHubModule() {
         </button>
 
         <button
-          onClick={() => setActiveTab("VAULT_CERT")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${
+          onClick={() =>
+            React.startTransition(() => setActiveTab("VAULT_CERT"))
+          }
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-150 border-b-2 ${
             activeTab === "VAULT_CERT"
               ? "border-emerald-500 text-emerald-400 bg-emerald-500/5"
               : "border-transparent text-slate-400 hover:text-slate-200"
@@ -483,8 +487,10 @@ export default function EFirmaHubModule() {
         </button>
 
         <button
-          onClick={() => setActiveTab("PUBLIC_VERIFIER")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${
+          onClick={() =>
+            React.startTransition(() => setActiveTab("PUBLIC_VERIFIER"))
+          }
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-150 border-b-2 ${
             activeTab === "PUBLIC_VERIFIER"
               ? "border-cyan-500 text-cyan-400 bg-cyan-500/5"
               : "border-transparent text-slate-400 hover:text-slate-200"
@@ -503,6 +509,7 @@ export default function EFirmaHubModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-6"
           >
             {/* Left Col: Document Parameters & Cadena Original */}
@@ -767,6 +774,7 @@ export default function EFirmaHubModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-6"
           >
             {/* Left Col: Upload & Credentials Management */}
@@ -1008,6 +1016,7 @@ export default function EFirmaHubModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-6"
           >
             {/* Form Left Side */}

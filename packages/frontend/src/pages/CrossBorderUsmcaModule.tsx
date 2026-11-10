@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Truck,
@@ -343,8 +343,10 @@ export default function CrossBorderUsmcaModule() {
       {/* Main Tab Navigation */}
       <div className="flex border-b border-slate-800 gap-2">
         <button
-          onClick={() => setActiveTab("CARTA_PORTE")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${
+          onClick={() =>
+            React.startTransition(() => setActiveTab("CARTA_PORTE"))
+          }
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-150 border-b-2 ${
             activeTab === "CARTA_PORTE"
               ? "border-emerald-500 text-emerald-400 bg-emerald-500/5"
               : "border-transparent text-slate-400 hover:text-slate-200"
@@ -355,8 +357,10 @@ export default function CrossBorderUsmcaModule() {
         </button>
 
         <button
-          onClick={() => setActiveTab("USMCA_IMMEX")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${
+          onClick={() =>
+            React.startTransition(() => setActiveTab("USMCA_IMMEX"))
+          }
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-150 border-b-2 ${
             activeTab === "USMCA_IMMEX"
               ? "border-cyan-500 text-cyan-400 bg-cyan-500/5"
               : "border-transparent text-slate-400 hover:text-slate-200"
@@ -367,8 +371,10 @@ export default function CrossBorderUsmcaModule() {
         </button>
 
         <button
-          onClick={() => setActiveTab("CUSTOMS_ML")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${
+          onClick={() =>
+            React.startTransition(() => setActiveTab("CUSTOMS_ML"))
+          }
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-150 border-b-2 ${
             activeTab === "CUSTOMS_ML"
               ? "border-amber-500 text-amber-400 bg-amber-500/5"
               : "border-transparent text-slate-400 hover:text-slate-200"
@@ -387,6 +393,7 @@ export default function CrossBorderUsmcaModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-6"
           >
             {/* Form Left Side */}
@@ -739,6 +746,7 @@ export default function CrossBorderUsmcaModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-6"
           >
             {/* Left Col: RVC Calculator (Art 4.5) */}
@@ -1112,6 +1120,7 @@ export default function CrossBorderUsmcaModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-6"
           >
             {/* Left Col: Prediction Configuration */}

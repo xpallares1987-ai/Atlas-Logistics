@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck,
@@ -40,6 +40,53 @@ import {
 } from "@atlas/shared";
 import { Button, Input } from "@atlas/ui";
 
+// Memoized leaf component: encapsulates the 1-second interval timer
+// to prevent re-rendering the entire 1,300-line SecurityRiskResilienceModule component tree
+const TotpSecurityCard = React.memo(function TotpSecurityCard({
+  secret,
+}: {
+  secret: string;
+}) {
+  const [code, setCode] = useState(() => generateTOTP(secret));
+  const [secondsRemaining, setSecondsRemaining] = useState(30);
+
+  useEffect(() => {
+    setCode(generateTOTP(secret));
+    const interval = setInterval(() => {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const remaining = 30 - (nowSeconds % 30);
+      setSecondsRemaining(remaining);
+      if (remaining === 30 || remaining === 1) {
+        setCode(generateTOTP(secret));
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [secret]);
+
+  return (
+    <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border border-indigo-200/50 dark:border-indigo-800/50 text-center">
+      <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 block mb-1">
+        CÓDIGO DE 6 DÍGITOS ACTIVO
+      </span>
+      <div className="text-4xl font-extrabold tracking-widest text-slate-900 dark:text-white font-mono my-2">
+        {code.slice(0, 3)} {code.slice(3)}
+      </div>
+      <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+        <span>Expira en:</span>
+        <span className="font-bold text-indigo-600 dark:text-indigo-400">
+          {secondsRemaining}s
+        </span>
+      </div>
+      <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-3">
+        <div
+          className="bg-indigo-600 h-full transition-[width] duration-1000 ease-linear"
+          style={{ width: `${(secondsRemaining / 30) * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+});
+
 export default function SecurityRiskResilienceModule() {
   const [activeTab, setActiveTab] = useState<
     | "PASSKEYS_TOTP"
@@ -77,10 +124,6 @@ export default function SecurityRiskResilienceModule() {
 
   // TOTP Live Simulator
   const [totpSecret, setTotpSecret] = useState(() => generateBase32Secret(16));
-  const [currentTotpCode, setCurrentTotpCode] = useState(() =>
-    generateTOTP(totpSecret),
-  );
-  const [totpSecondsRemaining, setTotpSecondsRemaining] = useState(30);
   const [totpInputCode, setTotpInputCode] = useState("");
   const [totpVerificationStatus, setTotpVerificationStatus] = useState<
     boolean | null
@@ -88,18 +131,6 @@ export default function SecurityRiskResilienceModule() {
   const [backupCodes, setBackupCodes] = useState<string[]>(() =>
     generateBackupCodes(5),
   );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const nowSeconds = Math.floor(Date.now() / 1000);
-      const remaining = 30 - (nowSeconds % 30);
-      setTotpSecondsRemaining(remaining);
-      if (remaining === 30 || remaining === 1) {
-        setCurrentTotpCode(generateTOTP(totpSecret));
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [totpSecret]);
 
   const handleTestPasskeyAuth = async () => {
     setIsAuthenticating(true);
@@ -127,7 +158,6 @@ export default function SecurityRiskResilienceModule() {
   const handleGenerateNewSecret = () => {
     const newSec = generateBase32Secret(16);
     setTotpSecret(newSec);
-    setCurrentTotpCode(generateTOTP(newSec));
     setBackupCodes(generateBackupCodes(5));
     setTotpVerificationStatus(null);
   };
@@ -354,8 +384,10 @@ export default function SecurityRiskResilienceModule() {
       {/* Tab Navigation */}
       <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
         <button
-          onClick={() => setActiveTab("PASSKEYS_TOTP")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+          onClick={() =>
+            React.startTransition(() => setActiveTab("PASSKEYS_TOTP"))
+          }
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-150 ${
             activeTab === "PASSKEYS_TOTP"
               ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
               : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
@@ -365,8 +397,10 @@ export default function SecurityRiskResilienceModule() {
           Passkeys & TOTP 2FA
         </button>
         <button
-          onClick={() => setActiveTab("DIGITAL_SIGNATURES")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+          onClick={() =>
+            React.startTransition(() => setActiveTab("DIGITAL_SIGNATURES"))
+          }
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-150 ${
             activeTab === "DIGITAL_SIGNATURES"
               ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
               : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
@@ -376,8 +410,10 @@ export default function SecurityRiskResilienceModule() {
           Firma Digital WebCrypto
         </button>
         <button
-          onClick={() => setActiveTab("RISK_UNLOCODE")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+          onClick={() =>
+            React.startTransition(() => setActiveTab("RISK_UNLOCODE"))
+          }
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-150 ${
             activeTab === "RISK_UNLOCODE"
               ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
               : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
@@ -387,8 +423,10 @@ export default function SecurityRiskResilienceModule() {
           Radar de Riesgo & UN/LOCODE
         </button>
         <button
-          onClick={() => setActiveTab("OFFLINE_RESILIENCE")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+          onClick={() =>
+            React.startTransition(() => setActiveTab("OFFLINE_RESILIENCE"))
+          }
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-150 ${
             activeTab === "OFFLINE_RESILIENCE"
               ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
               : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
@@ -414,6 +452,7 @@ export default function SecurityRiskResilienceModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-6"
           >
             {/* Left: WebAuthn / Passkeys Hardware Token */}
@@ -581,26 +620,7 @@ export default function SecurityRiskResilienceModule() {
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border border-indigo-200/50 dark:border-indigo-800/50 text-center">
-                  <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 block mb-1">
-                    CÓDIGO DE 6 DÍGITOS ACTIVO
-                  </span>
-                  <div className="text-4xl font-extrabold tracking-widest text-slate-900 dark:text-white font-mono my-2">
-                    {currentTotpCode.slice(0, 3)} {currentTotpCode.slice(3)}
-                  </div>
-                  <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
-                    <span>Expira en:</span>
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                      {totpSecondsRemaining}s
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-3">
-                    <div
-                      className="bg-indigo-600 h-full transition-all duration-1000 ease-linear"
-                      style={{ width: `${(totpSecondsRemaining / 30) * 100}%` }}
-                    />
-                  </div>
-                </div>
+                <TotpSecurityCard secret={totpSecret} />
 
                 <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
                   <div className="flex justify-between items-center text-slate-600 dark:text-slate-400 font-mono">
@@ -685,6 +705,7 @@ export default function SecurityRiskResilienceModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-6"
           >
             {/* Left: Document Signing Studio */}
@@ -897,6 +918,7 @@ export default function SecurityRiskResilienceModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-6"
           >
             {/* Left: Dynamic Risk Scorer Simulator */}
@@ -1219,6 +1241,7 @@ export default function SecurityRiskResilienceModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="space-y-6"
           >
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
