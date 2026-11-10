@@ -159,17 +159,37 @@ export function useNotificationsWebSocket() {
       }
     };
 
-    // Debounce initial connection by 50ms so StrictMode double-mount in dev
-    // cancels the initial throwaway attempt without triggering browser socket closure warnings
-    initTimer = setTimeout(() => {
-      initTimer = null;
-      if (isMounted) {
-        connect();
-      }
-    }, 50);
+    // Defer initial connection during idle time so it doesn't block the initial React tree render pass
+    let idleHandle: number | null = null;
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleHandle = (window as any).requestIdleCallback(
+        () => {
+          idleHandle = null;
+          if (isMounted) {
+            connect();
+          }
+        },
+        { timeout: 1500 },
+      );
+    } else {
+      initTimer = setTimeout(() => {
+        initTimer = null;
+        if (isMounted) {
+          connect();
+        }
+      }, 200);
+    }
 
     return () => {
       isMounted = false;
+      if (
+        idleHandle !== null &&
+        typeof window !== "undefined" &&
+        "cancelIdleCallback" in window
+      ) {
+        (window as any).cancelIdleCallback(idleHandle);
+        idleHandle = null;
+      }
       if (initTimer) {
         clearTimeout(initTimer);
         initTimer = null;

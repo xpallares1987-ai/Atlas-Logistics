@@ -82,7 +82,9 @@ export default function SettingsModule() {
   const { t, i18n } = useTranslation();
 
   const handleTabChange = (id: string) => {
-    setActiveTab(id);
+    React.startTransition(() => {
+      setActiveTab(id);
+    });
     window.location.hash = id.toLowerCase().replace(" ", "");
   };
 
@@ -186,7 +188,7 @@ export default function SettingsModule() {
                     <Button
                       onClick={() => setTheme("light")}
                       variant="outline"
-                      className={`h-auto flex-col justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      className={`h-auto flex-col justify-center gap-3 p-4 rounded-xl border-2 transition-colors duration-150 ${
                         theme === "light"
                           ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20"
                           : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
@@ -209,7 +211,7 @@ export default function SettingsModule() {
                     <Button
                       onClick={() => setTheme("dark")}
                       variant="outline"
-                      className={`h-auto flex-col justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      className={`h-auto flex-col justify-center gap-3 p-4 rounded-xl border-2 transition-colors duration-150 ${
                         theme === "dark"
                           ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20"
                           : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
@@ -232,7 +234,7 @@ export default function SettingsModule() {
                     <Button
                       onClick={() => setTheme("system")}
                       variant="outline"
-                      className={`h-auto flex-col justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      className={`h-auto flex-col justify-center gap-3 p-4 rounded-xl border-2 transition-colors duration-150 ${
                         theme === "system"
                           ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20"
                           : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
@@ -485,7 +487,7 @@ export default function SettingsModule() {
                     </div>
                     <Link
                       to="/system-panel"
-                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-indigo-600/20 shrink-0"
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-colors duration-150 shadow-md shadow-indigo-600/20 shrink-0"
                     >
                       <Sliders size={16} /> Open Full System Panel
                     </Link>
@@ -976,6 +978,51 @@ function CompanySettings() {
   );
 }
 
+// Memoized leaf component: encapsulates the 1-second interval timer
+// to prevent re-rendering the entire 1,000-line SecuritySettings component tree
+const TotpLiveCountdownBadge = React.memo(function TotpLiveCountdownBadge({
+  secret,
+}: {
+  secret: string;
+}) {
+  const [code, setCode] = useState(() => generateTOTP(secret));
+  const [secondsRemaining, setSecondsRemaining] = useState(30);
+
+  useEffect(() => {
+    setCode(generateTOTP(secret));
+    const interval = setInterval(() => {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const remaining = 30 - (nowSeconds % 30);
+      setSecondsRemaining(remaining);
+      if (remaining === 30 || remaining === 1) {
+        setCode(generateTOTP(secret));
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [secret]);
+
+  return (
+    <div className="p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div>
+        <span className="text-[10px] text-slate-400 uppercase font-semibold block">
+          Código de Prueba en Vivo
+        </span>
+        <span className="font-mono text-xl font-black text-indigo-600 dark:text-indigo-400 tracking-wider">
+          {code.slice(0, 3)} {code.slice(3)}
+        </span>
+      </div>
+      <div className="text-right">
+        <span className="text-[10px] text-slate-400 block font-semibold">
+          Expiración
+        </span>
+        <span className="font-mono text-xs font-bold text-amber-500 flex items-center gap-1">
+          <Clock className="w-3 h-3" /> {secondsRemaining}s
+        </span>
+      </div>
+    </div>
+  );
+});
+
 function SecuritySettings() {
   const { addNotification, user } = useAppStore();
   const [currentPassword, setCurrentPassword] = useState("");
@@ -1003,10 +1050,6 @@ function SecuritySettings() {
   // TOTP State
   const [is2FaEnabled, setIs2FaEnabled] = useState(true);
   const [totpSecret, setTotpSecret] = useState(() => generateBase32Secret(16));
-  const [currentTotpCode, setCurrentTotpCode] = useState(() =>
-    generateTOTP(totpSecret),
-  );
-  const [totpSecondsRemaining, setTotpSecondsRemaining] = useState(30);
   const [totpInputCode, setTotpInputCode] = useState("");
   const [totpVerifiedStatus, setTotpVerifiedStatus] = useState<boolean | null>(
     null,
@@ -1020,19 +1063,6 @@ function SecuritySettings() {
     DEFAULT_STEP_UP_POLICY,
   );
   const [savingPolicy, setSavingPolicy] = useState(false);
-
-  // Timer for live TOTP code
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const nowSeconds = Math.floor(Date.now() / 1000);
-      const remaining = 30 - (nowSeconds % 30);
-      setTotpSecondsRemaining(remaining);
-      if (remaining === 30 || remaining === 1) {
-        setCurrentTotpCode(generateTOTP(totpSecret));
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [totpSecret]);
 
   // Fetch credentials and policy from backend on mount
   useEffect(() => {
@@ -1511,11 +1541,7 @@ function SecuritySettings() {
                     </span>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        const newSecret = generateBase32Secret(16);
-                        setTotpSecret(newSecret);
-                        setCurrentTotpCode(generateTOTP(newSecret));
-                      }}
+                      onClick={() => setTotpSecret(generateBase32Secret(16))}
                       title="Generar Nueva Clave Secreta"
                       className="text-xs flex items-center gap-1"
                     >
@@ -1535,25 +1561,8 @@ function SecuritySettings() {
                   </div>
                 </div>
 
-                {/* Código En Vivo y Reloj */}
-                <div className="p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">
-                      Código de Prueba en Vivo
-                    </span>
-                    <span className="font-mono text-xl font-black text-indigo-600 dark:text-indigo-400 tracking-wider">
-                      {currentTotpCode.slice(0, 3)} {currentTotpCode.slice(3)}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] text-slate-400 block font-semibold">
-                      Expiración
-                    </span>
-                    <span className="font-mono text-xs font-bold text-amber-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {totpSecondsRemaining}s
-                    </span>
-                  </div>
-                </div>
+                {/* Código En Vivo y Reloj (Aislado en componente hoja para evitar re-renders globales) */}
+                <TotpLiveCountdownBadge secret={totpSecret} />
               </div>
 
               {/* Verificación de Entrada */}

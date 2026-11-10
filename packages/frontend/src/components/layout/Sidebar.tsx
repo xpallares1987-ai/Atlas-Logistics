@@ -103,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Shell */}
       <aside
-        className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0 transition duration-200 ease-in-out w-72 shrink-0 bg-slate-950 text-slate-300 p-5 flex flex-col gap-5 z-50 shadow-2xl border-r border-slate-800/60 overflow-y-auto`}
+        className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0 transition-transform duration-200 ease-in-out w-72 shrink-0 bg-slate-950 text-slate-300 p-5 flex flex-col gap-5 z-50 shadow-2xl border-r border-slate-800/60 overflow-y-auto`}
       >
         {/* Brand Header */}
         <div className="flex items-center justify-between">
@@ -141,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={() => handleSelectPersona("all")}
-              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all text-center ${
+              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-colors duration-150 text-center ${
                 persona === "all"
                   ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 font-semibold"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
@@ -152,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={() => handleSelectPersona("ops")}
-              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all text-center ${
+              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-colors duration-150 text-center ${
                 persona === "ops"
                   ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 font-semibold"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
@@ -163,7 +163,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={() => handleSelectPersona("finance")}
-              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all text-center ${
+              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-colors duration-150 text-center ${
                 persona === "finance"
                   ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 font-semibold"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
@@ -174,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={() => handleSelectPersona("compliance")}
-              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all text-center ${
+              className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-colors duration-150 text-center ${
                 persona === "compliance"
                   ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 font-semibold"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
