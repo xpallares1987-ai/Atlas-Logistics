@@ -12,52 +12,38 @@ import { warehouseInventory } from "../../db/schema/support.js";
 import { eq } from "drizzle-orm";
 
 export async function ensureOperationsSeedData() {
-  // 1. Companies
-  const existingComp = await db
-    .select()
-    .from(companies)
-    .where(eq(companies.id, "c-1"))
-    .limit(1);
-  if (existingComp.length === 0) {
-    await db
-      .insert(companies)
-      .values([
-        { id: "c-1", name: "Demo Customer Ltd", taxId: "ESA12345678" },
-        { id: "c-2", name: "Tech Solutions", taxId: "ESB12345678" },
-        { id: "c-3", name: "Food Logistics", taxId: "ESC12345678" },
-        { id: "c-4", name: "Global Packaging", taxId: "ESD12345678" },
-        { id: "comp_1", name: "Atlas Forwarding", taxId: "ESE12345678" },
-      ])
-      .onConflictDoNothing();
-  }
+  // 1. Companies - Unconditionally ensure all required companies exist
+  await db
+    .insert(companies)
+    .values([
+      { id: "c-1", name: "Demo Customer Ltd", taxId: "ESA12345678" },
+      { id: "c-2", name: "Tech Solutions", taxId: "ESB12345678" },
+      { id: "c-3", name: "Food Logistics", taxId: "ESC12345678" },
+      { id: "c-4", name: "Global Packaging", taxId: "ESD12345678" },
+      { id: "comp_1", name: "Atlas Forwarding", taxId: "ESE12345678" },
+    ])
+    .onConflictDoNothing();
 
-  // 2. Locations
-  const existingLoc = await db
-    .select()
-    .from(locations)
-    .where(eq(locations.id, "WH-BCN-01"))
-    .limit(1);
-  if (existingLoc.length === 0) {
-    await db
-      .insert(locations)
-      .values([
-        {
-          id: "WH-BCN-01",
-          type: "WAREHOUSE",
-          name: "Barcelona Hub",
-          address: "BCN Port",
-          companyId: "c-1",
-        },
-        {
-          id: "WH-EXT-VAL",
-          type: "WAREHOUSE",
-          name: "Valencia Logistics",
-          address: "VAL Port",
-          companyId: "c-2",
-        },
-      ])
-      .onConflictDoNothing();
-  }
+  // 2. Locations - Unconditionally ensure all required locations exist
+  await db
+    .insert(locations)
+    .values([
+      {
+        id: "WH-BCN-01",
+        type: "WAREHOUSE",
+        name: "Barcelona Hub",
+        address: "BCN Port",
+        companyId: "c-1",
+      },
+      {
+        id: "WH-EXT-VAL",
+        type: "WAREHOUSE",
+        name: "Valencia Logistics",
+        address: "VAL Port",
+        companyId: "c-2",
+      },
+    ])
+    .onConflictDoNothing();
 
   // 3. Demo Shipment for cargo items / containers
   const existingShip = await db
