@@ -15,6 +15,7 @@ import {
   Calendar,
   Building2,
   Scale,
+  Truck,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -35,6 +36,9 @@ export interface QuoteBookingModalProps {
     transitDays?: number;
     validTo?: string;
     serviceLine?: string;
+    drayageQuote?: any;
+    haulierAddressId?: string;
+    drayageDestinationAddressId?: string;
   };
   onSuccess?: (bookingResult: any) => void;
 }
@@ -101,6 +105,9 @@ export function QuoteBookingModal({
         grossWeightKg: Number(grossWeightKg) || 18500,
         specialInstructions,
         paymentMode,
+        drayageQuote: quote.drayageQuote || null,
+        haulierAddressId: quote.haulierAddressId || null,
+        drayageDestinationAddressId: quote.drayageDestinationAddressId || null,
       };
 
       const response = await fetch(
@@ -349,6 +356,42 @@ export function QuoteBookingModal({
                   </div>
                 </div>
               </div>
+
+              {/* Port Drayage Leg Overview if included */}
+              {quote.drayageQuote && (
+                <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400">
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-white flex items-center gap-2">
+                        <span>
+                          Acarreo Portuario (Port-to-Door / Última Milla)
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono">
+                          ISO 14083 / GLEC v3.0
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        {quote.destination} ➔ Destino Interior · Distancia:{" "}
+                        {quote.drayageQuote.distanceKm} km · Emisiones:{" "}
+                        {quote.drayageQuote.co2WtwKg ??
+                          quote.drayageQuote.conventionalDieselKgCO2e}{" "}
+                        kg CO₂
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-mono font-bold text-indigo-400">
+                      +
+                      {quote.drayageQuote.totalGrossCost ??
+                        quote.drayageQuote.totalGross}{" "}
+                      EUR
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Form Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -695,6 +738,67 @@ export function QuoteBookingModal({
                   </span>
                 </div>
               </div>
+
+              {/* Drayage Dispatched Card if present */}
+              {(resultData.drayageOrder ||
+                resultData.booking?.drayageOrder) && (
+                <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/40 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400">
+                      <Truck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center gap-2">
+                        <span>
+                          Orden Port Drayage Generada:{" "}
+                          {
+                            (
+                              resultData.drayageOrder ||
+                              resultData.booking?.drayageOrder
+                            ).orderNumber
+                          }
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
+                          {(
+                            resultData.drayageOrder ||
+                            resultData.booking?.drayageOrder
+                          ).status || "DISPATCHED"}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        Transportista:{" "}
+                        {(
+                          resultData.drayageOrder ||
+                          resultData.booking?.drayageOrder
+                        ).haulier || "Trans-Marítim"}{" "}
+                        ·{" "}
+                        {
+                          (
+                            resultData.drayageOrder ||
+                            resultData.booking?.drayageOrder
+                          ).distanceKm
+                        }{" "}
+                        km ·{" "}
+                        {
+                          (
+                            resultData.drayageOrder ||
+                            resultData.booking?.drayageOrder
+                          ).co2WtwKg
+                        }{" "}
+                        kg CO₂
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigateTo("/drayage")}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 shrink-0"
+                  >
+                    <Truck className="w-4 h-4" />
+                    Ver en Port Drayage Hub
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
 
               {/* 4 One-Click Deep Links */}
               <div className="pt-2">

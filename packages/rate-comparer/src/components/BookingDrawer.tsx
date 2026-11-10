@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Package,
@@ -7,7 +7,9 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle,
+  Truck,
 } from "lucide-react";
+import { drizzleRateService } from "../services/drizzleRateService";
 
 interface BookingDrawerProps {
   rate: any;
@@ -30,6 +32,24 @@ export default function BookingDrawer({
   const [isSuccess, setIsSuccess] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
 
+  const [hauliers, setHauliers] = useState<any[]>([]);
+  const [selectedHaulierId, setSelectedHaulierId] = useState<string>("");
+
+  useEffect(() => {
+    async function loadHauliers() {
+      try {
+        const list = await drizzleRateService.fetchHauliers();
+        if (list && list.length > 0) {
+          setHauliers(list);
+          setSelectedHaulierId(list[0].id);
+        }
+      } catch (e) {
+        console.error("Error loading hauliers:", e);
+      }
+    }
+    loadHauliers();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -42,6 +62,12 @@ export default function BookingDrawer({
         commodity,
         weight: Number(weight),
         poNumber,
+        drayageQuote: rate.drayageQuote || null,
+        haulierAddressId: selectedHaulierId || null,
+        drayageDestinationAddressId:
+          rate.destinationAddressId ||
+          rate.drayageQuote?.destinationAddressId ||
+          null,
       });
 
       const serverRef =
@@ -135,6 +161,53 @@ export default function BookingDrawer({
                 </span>
               </div>
             </div>
+
+            {/* Drayage Leg Preview if present */}
+            {rate.drayageQuote && (
+              <div className="bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-4 shadow-inner space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-indigo-400 flex items-center gap-2">
+                    <Truck className="w-3.5 h-3.5" />
+                    Tramo Terrestre Port-to-Door
+                  </h3>
+                  <span className="text-xs font-mono font-bold text-emerald-400">
+                    +€
+                    {rate.drayageQuote.totalGrossCost ||
+                      rate.drayageQuote.totalGross}{" "}
+                    EUR
+                  </span>
+                </div>
+                <div className="text-xs text-slate-300">
+                  {rate.pod || "ESBCN"} ➔{" "}
+                  {rate.drayageQuote.destinationName || "Almacén Interior"} (
+                  {rate.drayageQuote.distanceKm} km · ~
+                  {rate.drayageQuote.estimatedTransitMinutes || 48} min)
+                </div>
+
+                {hauliers.length > 0 && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      Transportista Terrestre (Haulier)
+                    </label>
+                    <select
+                      value={selectedHaulierId}
+                      onChange={(e) => setSelectedHaulierId(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    >
+                      {hauliers.map((h) => (
+                        <option
+                          key={h.id}
+                          value={h.id}
+                          className="bg-slate-900"
+                        >
+                          {h.companyName} ({h.city})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
 
             <form
               id="booking-form"

@@ -13,10 +13,14 @@ import {
   DollarSign as DollarSignIcon,
   FileText,
   Zap,
+  Truck,
+  Navigation,
+  Leaf,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import RfqGeneratorModal from "./RfqGeneratorModal";
 import BookingDrawer from "./BookingDrawer";
+import DrayageRouteModal from "./DrayageRouteModal";
 import { QuoteBookingModal } from "@atlas/ui";
 import { useAppStore } from "../store";
 import { drizzleRateService } from "../services/drizzleRateService";
@@ -25,9 +29,17 @@ interface RateTableProps {
   rates: any[];
   isLoading?: boolean;
   error?: any;
+  includeDrayage?: boolean;
+  drayageQuote?: any;
 }
 
-export default function RateTable({ rates, isLoading, error }: RateTableProps) {
+export default function RateTable({
+  rates,
+  isLoading,
+  error,
+  includeDrayage,
+  drayageQuote,
+}: RateTableProps) {
   const {
     currency: activeCurrency,
     language,
@@ -49,6 +61,7 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
   const [isBooking, setIsBooking] = useState<string | null>(null);
   const [rfqRate, setRfqRate] = useState<any | null>(null);
   const [drawerRate, setDrawerRate] = useState<any | null>(null);
+  const [routeModalQuote, setRouteModalQuote] = useState<any | null>(null);
 
   const handleBookingConfirm = async (bookingData: any) => {
     const rateId = bookingData.id;
@@ -351,6 +364,12 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
               key={rate.id}
               className={`bg-slate-900/80 backdrop-blur-xl border ${isBestOption ? "border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]" : "border-slate-700/50 shadow-lg"} rounded-3xl overflow-hidden hover:shadow-[0_0_30px_rgba(79,70,229,0.15)] hover:border-indigo-500/30 transition-all duration-300 group relative`}
             >
+              {(rate.hasDrayage || (includeDrayage && drayageQuote)) && (
+                <div className="absolute top-0 left-8 bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-b-xl shadow-lg z-20 flex items-center gap-1.5">
+                  <Truck className="w-3 h-3" />
+                  Door-to-Door (Ocean + Drayage)
+                </div>
+              )}
               {isBestOption && (
                 <div className="absolute top-0 right-8 bg-gradient-to-b from-emerald-500 to-emerald-600 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-b-xl shadow-lg z-20 flex items-center gap-1.5">
                   <Zap className="w-3 h-3" />
@@ -546,6 +565,94 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
                         );
                       })}
                     </div>
+
+                    {/* Drayage Port-to-Door Breakdown Card */}
+                    {(rate.hasDrayage || (includeDrayage && drayageQuote)) && (
+                      <div className="mt-6 pt-6 border-t border-slate-800">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                          <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400 flex items-center gap-2">
+                            <Truck className="w-4 h-4" />
+                            Acarreo Portuario (Port-to-Door / Última Milla)
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setRouteModalQuote(
+                                rate.drayageQuote || drayageQuote,
+                              )
+                            }
+                            className="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-md w-fit cursor-pointer"
+                          >
+                            <Navigation className="w-3.5 h-3.5" />
+                            Ver Trazado de Ruta
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs">
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">
+                              Recogida & Entrega
+                            </span>
+                            <span className="text-white font-medium truncate block mt-0.5">
+                              Terminal{" "}
+                              {(rate.drayageQuote || drayageQuote)
+                                ?.originTerminalName ||
+                                rate.pod ||
+                                "ESBCN"}{" "}
+                              ➔{" "}
+                              {(rate.drayageQuote || drayageQuote)
+                                ?.destinationAddressName ||
+                                (rate.drayageQuote || drayageQuote)
+                                  ?.destinationName ||
+                                "Almacén Interior"}
+                            </span>
+                            <span className="text-slate-400 text-[11px]">
+                              {(rate.drayageQuote || drayageQuote)?.distanceKm}{" "}
+                              km · ~
+                              {(rate.drayageQuote || drayageQuote)
+                                ?.estimatedTransitMinutes || 48}{" "}
+                              min
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">
+                              Coste Terrestre Homologado
+                            </span>
+                            <span className="text-emerald-400 font-mono font-bold block mt-0.5">
+                              €
+                              {(
+                                (rate.drayageQuote || drayageQuote)
+                                  ?.totalGrossCost ||
+                                (rate.drayageQuote || drayageQuote)
+                                  ?.totalGross ||
+                                0
+                              ).toFixed(2)}{" "}
+                              EUR
+                            </span>
+                            <span className="text-slate-400 text-[11px]">
+                              Base + BAF + Peajes
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">
+                              Emisiones Carretera
+                            </span>
+                            <span className="text-emerald-400 font-mono font-bold block mt-0.5">
+                              {(rate.drayageQuote || drayageQuote)?.co2WtwKg ??
+                                (rate.drayageQuote || drayageQuote)
+                                  ?.conventionalDieselKgCO2e ??
+                                38.2}{" "}
+                              kg CO₂e
+                            </span>
+                            <span className="text-slate-400 text-[11px]">
+                              Norma ISO 14083 / GLEC v3.0
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="w-full xl:w-[350px] border-t xl:border-t-0 xl:border-l border-slate-700/50 pt-8 xl:pt-0 xl:pl-12 flex flex-col justify-center relative z-10">
@@ -617,6 +724,11 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
             currency: activeCurrency || drawerRate.currency || "USD",
             transitDays: drawerRate.transitTimeDays || drawerRate.transit || 28,
             validTo: drawerRate.validTo || "2026-12-31",
+            drayageQuote: drawerRate.drayageQuote || drayageQuote || null,
+            drayageDestinationAddressId:
+              drawerRate.destinationAddressId ||
+              drayageQuote?.destinationAddressId ||
+              null,
           }}
           onClose={() => setDrawerRate(null)}
           onSuccess={(result) => {
@@ -627,6 +739,15 @@ export default function RateTable({ rates, isLoading, error }: RateTableProps) {
                 result.booking?.referenceNumber,
             });
           }}
+        />
+      )}
+
+      {routeModalQuote && (
+        <DrayageRouteModal
+          isOpen={Boolean(routeModalQuote)}
+          onClose={() => setRouteModalQuote(null)}
+          drayageQuote={routeModalQuote}
+          destinationPort={routeModalQuote.destinationPort || "ESBCN"}
         />
       )}
     </div>

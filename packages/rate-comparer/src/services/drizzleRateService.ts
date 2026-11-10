@@ -84,6 +84,58 @@ export const drizzleRateService = {
     }
   },
 
+  async fetchDrayageQuote(params: {
+    originCoords?: { lat: number; lon: number };
+    originAddressId?: string;
+    destinationCoords?: { lat: number; lon: number };
+    destinationAddressId?: string;
+    containerType?: string;
+    cargoWeightKg?: number;
+    isDangerousGoods?: boolean;
+    requiresGenset?: boolean;
+  }): Promise<any> {
+    try {
+      const response = await fetch("/api/drayage/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to calculate drayage quote");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching drayage quote:", error);
+      throw error;
+    }
+  },
+
+  async fetchAddresses(type?: string): Promise<any[]> {
+    try {
+      const url = type ? `/api/addresses?type=${type}` : "/api/addresses";
+      const response = await fetch(url);
+      if (!response.ok) {
+        return [];
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching addresses:", error);
+      return [];
+    }
+  },
+
+  async fetchHauliers(): Promise<any[]> {
+    try {
+      const response = await fetch("/api/drayage/hauliers");
+      if (!response.ok) {
+        return [];
+      }
+      return await response.json();
+    } catch {
+      return [];
+    }
+  },
+
   async saveBooking(
     bookingData: any,
     customerId: string = "00000000-0000-0000-0000-000000000000",
@@ -112,6 +164,12 @@ export const drizzleRateService = {
           bookingData.transitTimeDays || bookingData.transitTime || 25,
         ),
         rateId: bookingData.id,
+        drayageQuote: bookingData.drayageQuote || null,
+        haulierAddressId: bookingData.haulierAddressId || null,
+        drayageDestinationAddressId:
+          bookingData.drayageDestinationAddressId ||
+          bookingData.drayageQuote?.destinationAddressId ||
+          null,
       };
 
       const response = await fetch("/api/bookings", {

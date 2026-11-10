@@ -25,6 +25,9 @@ import {
   SlidersHorizontal,
   FileSpreadsheet,
   Compass,
+  Truck,
+  Warehouse,
+  Navigation,
 } from "lucide-react";
 import { useAuth } from "./components";
 import { RateIngestionModal } from "@atlas/ui/src/components/RateIngestionModal";
@@ -42,6 +45,77 @@ export default function RatesContent() {
   const [date, setDate] = useState<string>("");
   const [equipment, setEquipment] = useState<string>("40HC");
   const [ingestionOpen, setIngestionOpen] = useState(false);
+
+  // Port Drayage Integration State
+  const [includeDrayage, setIncludeDrayage] = useState<boolean>(false);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>("");
+  const [drayageQuote, setDrayageQuote] = useState<any | null>(null);
+  const [isDrayageLoading, setIsDrayageLoading] = useState<boolean>(false);
+  const [drayageError, setDrayageError] = useState<string | null>(null);
+
+  // Load destination warehouses from Addresses Hub
+  useEffect(() => {
+    async function loadWarehouses() {
+      try {
+        const list = await drizzleRateService.fetchAddresses("WAREHOUSE");
+        if (list && list.length > 0) {
+          setWarehouses(list);
+          setSelectedWarehouseId(list[0].id);
+        } else {
+          const all = await drizzleRateService.fetchAddresses();
+          const filtered = all.filter(
+            (a: any) =>
+              a.addressType === "WAREHOUSE" || a.addressType === "CONSIGNEE",
+          );
+          setWarehouses(filtered.length > 0 ? filtered : all);
+          if (filtered.length > 0) setSelectedWarehouseId(filtered[0].id);
+        }
+      } catch (e) {
+        console.error("Error loading warehouses for drayage:", e);
+      }
+    }
+    loadWarehouses();
+  }, []);
+
+  // Reactively calculate Drayage Quote via OSRM + GLEC v3.0
+  useEffect(() => {
+    if (!includeDrayage) {
+      setDrayageQuote(null);
+      return;
+    }
+
+    const destPortCode = destination?.locode || destination?.name || "ESBCN";
+    async function calcDrayage() {
+      setIsDrayageLoading(true);
+      setDrayageError(null);
+      try {
+        const destWarehouse = warehouses.find(
+          (w) => w.id === selectedWarehouseId,
+        );
+        const quote = await drizzleRateService.fetchDrayageQuote({
+          destinationAddressId: selectedWarehouseId || undefined,
+          destinationCoords:
+            destWarehouse?.lat && destWarehouse?.lon
+              ? {
+                  lat: Number(destWarehouse.lat),
+                  lon: Number(destWarehouse.lon),
+                }
+              : undefined,
+          containerType: equipment || "40HC",
+        });
+        setDrayageQuote(quote);
+      } catch (err: any) {
+        setDrayageError(
+          err.message || "No se pudo calcular el drayage portuario",
+        );
+      } finally {
+        setIsDrayageLoading(false);
+      }
+    }
+
+    calcDrayage();
+  }, [includeDrayage, destination, selectedWarehouseId, equipment, warehouses]);
 
   // Camunda Backend API State
   const [quotes, setQuotes] = useState<any[]>([]);
@@ -124,23 +198,44 @@ export default function RatesContent() {
       );
 
       if (rates && rates.length > 0) {
+        const drayageEuro =
+          includeDrayage && drayageQuote
+            ? Number(
+                drayageQuote.totalGrossCost ?? drayageQuote.totalGross ?? 0,
+              )
+            : 0;
+        const drayageUsd = Math.round(drayageEuro / 0.92);
+        const drayageCo2 =
+          includeDrayage && drayageQuote?.co2WtwKg
+            ? Number(drayageQuote.co2WtwKg)
+            : 0;
+
         const mappedQuotes = rates.map((r) => {
           const numId = parseInt(r.id?.substring(0, 8) || "0", 16) || 0;
+          const oceanBase = r.baseOceanFreight;
+          const oceanSurcharges = (r.baf || 0) + (r.pss || 0) + (r.thc || 0);
+          const oceanTotal = oceanBase + oceanSurcharges;
+          const totalRate = oceanTotal + drayageUsd;
+
           return {
             id: r.id,
             carrier: r.carrier || "Unknown",
-            rate:
-              r.baseOceanFreight + (r.baf || 0) + (r.pss || 0) + (r.thc || 0),
+            rate: totalRate,
             transit: r.transitTime,
             currency: "USD",
             origin: r.originLocode || origCode || "Global",
             destination: r.destinationLocode || destCode || "Global",
             containerType: r.containerType,
-            baseFreightCost: r.baseOceanFreight,
-            totalCost:
-              r.baseOceanFreight + (r.baf || 0) + (r.pss || 0) + (r.thc || 0),
+            baseFreightCost: oceanBase,
+            oceanTotalCost: oceanTotal,
+            totalCost: totalRate,
             isDirect: numId % 3 === 0,
-            co2Emissions: 1000 + (numId % 2000),
+            co2Emissions: 1000 + (numId % 2000) + drayageCo2,
+            hasDrayage: includeDrayage && !!drayageQuote,
+            drayageQuote: includeDrayage ? drayageQuote : null,
+            drayageCostEuro: drayageEuro,
+            drayageCostUsd: drayageUsd,
+            destinationAddressId: selectedWarehouseId,
           };
         });
         setQuotes(mappedQuotes);
@@ -160,6 +255,12 @@ export default function RatesContent() {
   useEffect(() => {
     loadRates();
   }, []);
+
+  useEffect(() => {
+    if (origin || destination) {
+      loadRates(origin, destination, equipment);
+    }
+  }, [includeDrayage, drayageQuote]);
 
   const handleSearch = () => {
     loadRates(origin, destination, equipment);
@@ -368,6 +469,107 @@ export default function RatesContent() {
               </div>
             </div>
 
+            {/* Port Drayage (Port-to-Door / Última Milla) Integration Bar */}
+            <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`p-2.5 rounded-xl border transition-colors ${
+                    includeDrayage
+                      ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/40"
+                      : "bg-slate-800 text-slate-400 border-slate-700"
+                  }`}
+                >
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white">
+                      Añadir Drayage Portuario (Port-to-Door / Última Milla)
+                    </span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      ISO 14083 / GLEC v3.0
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Acarreo terrestre desde terminal de descarga al almacén del
+                    cliente con OSRM y huella de carbono.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+                {includeDrayage && (
+                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200">
+                    <Warehouse className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <select
+                      value={selectedWarehouseId}
+                      onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                      className="bg-transparent text-xs text-slate-200 outline-none font-medium cursor-pointer"
+                    >
+                      {warehouses.map((w) => (
+                        <option
+                          key={w.id}
+                          value={w.id}
+                          className="bg-slate-900"
+                        >
+                          {w.companyName || w.name} ({w.city || w.country})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setIncludeDrayage(!includeDrayage)}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-2 shrink-0 ${
+                    includeDrayage
+                      ? "bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]"
+                      : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+                  }`}
+                >
+                  {includeDrayage ? (
+                    <>
+                      <Check className="w-4 h-4 text-white" />
+                      Drayage Activo
+                    </>
+                  ) : (
+                    "Activar Drayage"
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Drayage Route Calculation Feedback Banner */}
+            {includeDrayage && drayageQuote && (
+              <div className="bg-indigo-950/40 border border-indigo-500/40 rounded-2xl px-5 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-bold text-white">
+                    Ruta Terrestre: {destination?.locode || "ESBCN"} ➔{" "}
+                    {drayageQuote.destinationName ||
+                      drayageQuote.destinationCity ||
+                      "Almacén Interior"}
+                  </span>
+                  <span className="text-slate-400">
+                    ({drayageQuote.distanceKm} km · ~
+                    {drayageQuote.estimatedTransitMinutes || 48} min)
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-emerald-400 font-mono font-bold">
+                    +€{drayageQuote.totalGrossCost || drayageQuote.totalGross}{" "}
+                    EUR
+                  </span>
+                  <span className="text-slate-400 font-mono">
+                    {drayageQuote.co2WtwKg ??
+                      drayageQuote.conventionalDieselKgCO2e}{" "}
+                    kg CO₂e
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Quick-Access Popular Corridors */}
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
@@ -449,7 +651,13 @@ export default function RatesContent() {
           </div>
         )}
 
-        <RateTable rates={filteredQuotes} isLoading={isLoading} error={error} />
+        <RateTable
+          rates={filteredQuotes}
+          includeDrayage={includeDrayage}
+          drayageQuote={includeDrayage ? drayageQuote : null}
+          isLoading={isLoading}
+          error={error}
+        />
       </div>
       {/* Content Area */}
       <AdvancedFiltersDrawer

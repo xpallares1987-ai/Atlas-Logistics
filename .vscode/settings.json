@@ -15,7 +15,7 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "tailwindCSS.experimental.classRegex": [
-    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+    [ "cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]" ]
   ],
   "editor.wordWrap": "on",
   "editor.tabSize": 2,
@@ -39,5 +39,34 @@
   "git.mergeEditor": true,
   "git.inputValidation": true,
   "git.autoStash": true,
-  "git.addAICoAuthor": "chatAndAgent"
+  "git.addAICoAuthor": "chatAndAgent",
+  "chat.agent.sandbox.network.allowLocalNetwork": true,
+  "chat.checkpoints.showFileChanges": true,
+  "chat.editor.fontSize": 11,
+  "chat.editor.wordWrap": "on",
+  "chat.fontSize": 11,
+  "chat.editing.explainChanges.enabled": true,
+  "chat.unifiedAgentsBar.enabled": true,
+  "chat.restoreLastPanelSession": true,
+  "chat.viewProgressBadge.enabled": true,
+  "chat.exitAfterDelegation": true,
+  "chat.agentSessionProjection.enabled": true,
+  "chat.tools.compressOutput.enabled": true,
+  "chat.tools.terminal.ignoreDefaultAutoApproveRules": true,
+  "chat.tools.terminal.outputDeltas": true,
+  "chat.mcp.discovery.enabled": {
+    "claude-desktop": true,
+    "cursor-workspace": true,
+    "windsurf": true,
+    "cursor-global": true
+  },
+  "chat.mcp.gallery.enabled": true,
+  "chat.mcp.assisted.nuget.enabled": true,
+  "chat.includeReferencedInstructions": true,
+  "chat.experimental.useSkillAdherencePrompt": true,
+  "chat.useNestedAgentsMdFiles": true,
+  "inlineChat.defaultModel": "Gemini 3.8 Flash (gemini)",
+  "inlineChat.affordance": "editor",
+  "inlineChat.notebookAgent": true,
+  "chat.disableAIFeatures": false
 }

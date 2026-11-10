@@ -473,6 +473,9 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           currency,
           transitDays: Number(body.transitDays || 28),
           status: "PENDING",
+          drayageQuote: body.drayageQuote || null,
+          haulierAddressId: body.haulierAddressId || null,
+          drayageDestinationAddressId: body.drayageDestinationAddressId || null,
         });
 
         // 2. Confirmar reserva marítima asignando buque, viaje, contenedor y cut-off
@@ -483,6 +486,8 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           voyageNumber: body.voyageNumber,
           containerNumber: body.containerNumber,
           sealNumber: body.sealNumber,
+          haulierAddressId: body.haulierAddressId || null,
+          drayageDestinationAddressId: body.drayageDestinationAddressId || null,
         });
 
         // 3. Procesar modalidad de pago: Smart Contract Escrow vs. Net-30
@@ -560,8 +565,10 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
             cutOffDate: cutOffDateStr,
             containerNumber: confirmed.container?.containerNumber,
             sealNumber: confirmed.container?.sealNumber,
+            drayageOrder: confirmed.drayageOrder || null,
           },
           shipment: confirmed.shipment,
+          drayageOrder: confirmed.drayageOrder || null,
           payment: {
             mode: paymentMode,
             escrowBlock:
@@ -579,6 +586,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
             shipment360Url: `/shipment-360?id=${confirmed.shipment?.id || createdBooking.id}`,
             ediHubUrl: `/edi?ref=${confirmed.booking?.carrierBookingNumber || createdBooking.referenceNumber}`,
             smartContractsUrl: `/smart-contracts`,
+            drayageHubUrl: `/drayage`,
             quotePdfUrl: `/api/quotes/${quoteRecord?.id}/pdf`,
           },
         });

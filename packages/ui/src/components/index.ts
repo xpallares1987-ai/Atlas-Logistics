@@ -21,3 +21,4 @@ export * from "./AddressSelector";
 export * from "./DuplicateWarningModal";
 export * from "./BlCardPreview";
 export * from "./DrayageCalculatorModal";
+export * from "./DrayageRouteMap";

@@ -9,7 +9,8 @@ import {
 import { shipmentEventLogs } from "../db/schema/audit.js";
 import { documents } from "../db/schema/support.js";
 import { companies, addresses, addressContacts } from "../db/schema/core.js";
-import { eq, desc, or } from "drizzle-orm";
+import { drayageTransportOrders } from "../db/schema/drayage.js";
+import { eq, desc, or, and } from "drizzle-orm";
 import { ensureOperationsSeedData } from "../routes/operations/seed-data.js";
 import { formatAllBlBoxes } from "@atlas/shared";
 
@@ -45,6 +46,11 @@ export interface CreateBookingInput {
   isToOrder?: boolean;
   orderOf?: string;
   blPartiesSnapshot?: any;
+
+  // Drayage Port-to-Door Integration
+  drayageQuote?: any;
+  haulierAddressId?: string;
+  drayageDestinationAddressId?: string;
 }
 
 export interface ConfirmBookingInput {
@@ -67,6 +73,10 @@ export interface ConfirmBookingInput {
   isToOrder?: boolean;
   orderOf?: string;
   blPartiesSnapshot?: any;
+
+  // Drayage Port-to-Door Integration
+  haulierAddressId?: string;
+  drayageDestinationAddressId?: string;
 }
 
 let bookingsColumnsEnsured = false;
@@ -285,6 +295,8 @@ export function formatBookingRecord(b: typeof bookings.$inferSelect) {
     blReference: details.blReference || null,
     containerNumber: details.containerNumber || null,
     confirmedAt: details.confirmedAt || null,
+    drayageQuote: details.drayageQuote || null,
+    drayageOrderId: details.drayageOrderId || null,
     commodities,
     parsedCargoDetails: {
       ...details,
@@ -296,6 +308,7 @@ export function formatBookingRecord(b: typeof bookings.$inferSelect) {
         details.commodity || commodities[0]?.description || "General Cargo",
       shipmentTrackingNumber: details.trackingNumber || null,
       blReference: details.blReference || null,
+      drayageQuote: details.drayageQuote || null,
     },
     containers: details.containerNumber
       ? [
@@ -367,6 +380,12 @@ export async function createBookingRequest(input: CreateBookingInput) {
     commodities: input.commodities || [
       { description: commodityDesc, grossWeightKg: weightKg },
     ],
+    drayageQuote: input.drayageQuote || null,
+    haulierAddressId: input.haulierAddressId || null,
+    drayageDestinationAddressId:
+      input.drayageDestinationAddressId ||
+      input.drayageQuote?.destinationAddressId ||
+      null,
   };
 
   const estDep = input.estimatedDeparture
@@ -532,6 +551,11 @@ export async function confirmBookingToShipment(
       .select()
       .from(shipmentEventLogs)
       .where(eq(shipmentEventLogs.shipmentId, details.shipmentId));
+    const existingDrayage = await db
+      .select()
+      .from(drayageTransportOrders)
+      .where(eq(drayageTransportOrders.shipmentId, details.shipmentId))
+      .limit(1);
 
     return {
       alreadyConfirmed: true,
@@ -545,6 +569,7 @@ export async function confirmBookingToShipment(
       milestones: existingEvents,
       events: existingEvents,
       blDocument: existingDoc[0] || null,
+      drayageOrder: existingDrayage[0] || null,
     };
   }
 
@@ -740,7 +765,209 @@ export async function confirmBookingToShipment(
     })
     .onConflictDoNothing();
 
-  // 5. Update Booking Status to CONFIRMED with full linkage
+  // 5. Materialize Port Drayage Transport Order if drayageQuote is present
+  let createdDrayageOrder: any = null;
+  const drayageData = details.drayageQuote;
+  if (drayageData) {
+    try {
+      // 5.1 Resolve origin port terminal address
+      const terminalUnLocode = bkg.destination || "ESBCN";
+      const terminalCandidates = await db
+        .select()
+        .from(addresses)
+        .where(
+          and(
+            eq(addresses.addressType, "TERMINAL"),
+            eq(addresses.unLocode, terminalUnLocode),
+          ),
+        )
+        .limit(1);
+
+      let originTerminal = terminalCandidates[0];
+      if (!originTerminal) {
+        const anyTerminal = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.addressType, "TERMINAL"))
+          .limit(1);
+        originTerminal = anyTerminal[0];
+      }
+
+      // 5.2 Resolve destination delivery address
+      const targetDestId =
+        input.drayageDestinationAddressId ||
+        drayageData.destinationAddressId ||
+        details.drayageDestinationAddressId ||
+        input.consigneeAddressId ||
+        (bkg as any).consigneeAddressId;
+
+      let destinationAddress: any = null;
+      if (targetDestId) {
+        const destRows = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.id, targetDestId))
+          .limit(1);
+        destinationAddress = destRows[0] || null;
+      }
+
+      if (!destinationAddress) {
+        const warehouseRows = await db
+          .select()
+          .from(addresses)
+          .where(
+            or(
+              eq(addresses.addressType, "WAREHOUSE"),
+              eq(addresses.addressType, "CONSIGNEE_NOTIFY"),
+            ),
+          )
+          .limit(1);
+        destinationAddress = warehouseRows[0] || null;
+      }
+
+      // 5.3 Resolve haulier address
+      const targetHaulierId =
+        input.haulierAddressId ||
+        drayageData.haulierAddressId ||
+        details.haulierAddressId;
+
+      let haulierAddress: any = null;
+      if (targetHaulierId) {
+        const haulierRows = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.id, targetHaulierId))
+          .limit(1);
+        haulierAddress = haulierRows[0] || null;
+      }
+
+      if (!haulierAddress) {
+        const anyHaulier = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.addressType, "HAULIER"))
+          .limit(1);
+        haulierAddress = anyHaulier[0] || null;
+      }
+
+      // 5.4 Insert drayage transport order if all 3 addresses are present
+      if (originTerminal && destinationAddress && haulierAddress) {
+        const orderId = `dry_${uuidv4().substring(0, 8)}`;
+        const orderNumber = `DRY-${year}${String(now.getMonth() + 1).padStart(2, "0")}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        const distKm = Number(drayageData.distanceKm) || 42.5;
+        const bRate =
+          Number(drayageData.baseRate ?? drayageData.baseRateEuro) || 280;
+        const fuelSur =
+          Number(drayageData.fuelSurcharge ?? drayageData.fuelSurchargeEuro) ||
+          42;
+        const tolls =
+          Number(drayageData.tollsCost ?? drayageData.tollsEurovignette) || 12;
+        const extras = Number(drayageData.extraSurcharges) || 0;
+        const subtotal =
+          Number(drayageData.subtotalCost ?? drayageData.subtotalNet) ||
+          bRate + fuelSur + tolls + extras;
+        const margin =
+          Number(drayageData.profitMargin) ||
+          Number((subtotal * 0.15).toFixed(2));
+        const totalGross =
+          Number(drayageData.totalGrossCost ?? drayageData.totalGross) ||
+          subtotal + margin;
+
+        const co2Wtw =
+          Number(
+            drayageData.co2WtwKg ?? drayageData.conventionalDieselKgCO2e,
+          ) || 38.2;
+        const co2Ttw =
+          Number(drayageData.co2TtwKg) || Number((co2Wtw * 0.8).toFixed(1));
+        const co2Wte =
+          Number(drayageData.co2WteKg) || Number((co2Wtw * 0.2).toFixed(1));
+        const intensity = Number(drayageData.emissionsIntensityFactor) || 0.062;
+
+        const pin = String(Math.floor(1000 + Math.random() * 9000));
+        const qrDigest = crypto
+          .createHash("sha256")
+          .update(
+            `${orderNumber}:${haulierAddress.companyName}:${totalGross}:${pin}`,
+          )
+          .digest("hex");
+
+        const windowStart = new Date(
+          now.getTime() + 24 * 60 * 60 * 1000,
+        ).toISOString();
+        const windowEnd = new Date(
+          now.getTime() + 28 * 60 * 60 * 1000,
+        ).toISOString();
+
+        await db.insert(drayageTransportOrders).values({
+          id: orderId,
+          orderNumber,
+          status: "DISPATCHED",
+          shipmentId,
+          bookingReference: bkg.referenceNumber,
+          containerNumber,
+          containerType: bkg.equipment || "40HC",
+          cargoWeightKg: weightKg,
+          isDangerousGoods: !!drayageData.isDangerousGoods,
+          requiresGenset: !!drayageData.requiresGenset,
+          haulierAddressId: haulierAddress.id,
+          originAddressId: originTerminal.id,
+          destinationAddressId: destinationAddress.id,
+          distanceKm: distKm,
+          baseRate: bRate,
+          fuelSurcharge: fuelSur,
+          tollsCost: tolls,
+          extraSurcharges: extras,
+          subtotalCost: subtotal,
+          profitMargin: margin,
+          totalGrossCost: totalGross,
+          currency: drayageData.currency || "EUR",
+          co2WtwKg: co2Wtw,
+          co2TtwKg: co2Ttw,
+          co2WteKg: co2Wte,
+          emissionsIntensityFactor: intensity,
+          driverPickupPin: pin,
+          qrDigest,
+          appointmentWindowStart: windowStart,
+          appointmentWindowEnd: windowEnd,
+          notes: `Port Drayage dispatched from booking ${bkg.referenceNumber} to inland destination.`,
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        });
+
+        const drayageEvt = {
+          id: `evt_${uuidv4().substring(0, 8)}`,
+          shipmentId,
+          status: "DRAYAGE_DISPATCHED",
+          location: `${originTerminal.companyName || terminalUnLocode} ➔ ${destinationAddress.city || "Inland"} (${distKm} km)`,
+          recordedAt: new Date(now.getTime() + 3000),
+        };
+        await db.insert(shipmentEventLogs).values(drayageEvt);
+        milestoneEvents.push(drayageEvt);
+
+        createdDrayageOrder = {
+          id: orderId,
+          orderNumber,
+          status: "DISPATCHED",
+          originTerminal: originTerminal.companyName,
+          destination:
+            destinationAddress.companyName || destinationAddress.city,
+          haulier: haulierAddress.companyName,
+          distanceKm: distKm,
+          totalGrossCost: totalGross,
+          currency: drayageData.currency || "EUR",
+          co2WtwKg: co2Wtw,
+        };
+      }
+    } catch (drayageErr) {
+      console.error(
+        "Failed to auto-materialize drayage transport order:",
+        drayageErr,
+      );
+    }
+  }
+
+  // 6. Update Booking Status to CONFIRMED with full linkage
   const updatedDetails = {
     ...details,
     carrierBookingNumber,
@@ -750,6 +977,7 @@ export async function confirmBookingToShipment(
     blReference,
     containerNumber,
     sealNumber,
+    drayageOrderId: createdDrayageOrder?.id || details.drayageOrderId || null,
     confirmedAt: now.toISOString(),
   };
 
@@ -814,6 +1042,7 @@ export async function confirmBookingToShipment(
       sha256Hash,
       payloadData: blPayload,
     },
+    drayageOrder: createdDrayageOrder,
   };
 }
 

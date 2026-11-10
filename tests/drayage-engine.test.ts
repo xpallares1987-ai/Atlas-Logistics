@@ -243,7 +243,7 @@ describe("Container Drayage Road Haulage & Carbon Engine (GLEC v3.0)", () => {
     it("finds closest intermodal container terminals ordered by proximity", async () => {
       const nearestTerminals = await drayageEngineService.findNearestTerminals(
         zaragozaLogisticsHub,
-        5,
+        20,
       );
 
       expect(Array.isArray(nearestTerminals)).toBe(true);
