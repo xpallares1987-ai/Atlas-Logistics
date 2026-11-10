@@ -2,10 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
+    "allowArbitraryExtensions": true,
     "skipLibCheck": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "strict": false,
+    "types": ["node", "vite/client"],
     "paths": {
       "@/*": ["./src/*"]
     }
