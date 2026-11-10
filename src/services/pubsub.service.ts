@@ -1,16 +1,17 @@
 import { EventEmitter } from "events";
+import { logger } from "../config/logger.js";
 
 export const pubsub = new EventEmitter();
 
 const DOCUMENT_UPLOAD_TOPIC = "document-uploaded-topic";
 
 export const initPubSub = async () => {
-  console.log(
+  logger.info(
     `[PubSub Mock] initPubSub: Local topic ${DOCUMENT_UPLOAD_TOPIC} ready.`,
   );
 
   pubsub.on("accounting.sync.requested", (payload) => {
-    console.log(
+    logger.info(
       `[QuickBooks Mock Sync] Invoice ${payload.invoiceNumber || payload.invoiceId} (${payload.status}) synced to accounting system at ${payload.timestamp}`,
     );
   });
@@ -21,11 +22,11 @@ export const publishDocumentUploaded = async (payload: {
   gcsUrl: string;
   mimeType: string;
 }) => {
-  console.log(`[PubSub Mock] publishDocumentUploaded:`, payload);
+  logger.debug("PubSub Mock: publishDocumentUploaded", { payload });
   return "mock-id";
 };
 
 export const publishInvoiceGenerated = async (payload: any) => {
-  console.log(`[PubSub Mock] publishInvoiceGenerated:`, payload);
+  logger.debug("PubSub Mock: publishInvoiceGenerated", { payload });
   return "mock-message-id";
 };

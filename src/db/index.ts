@@ -51,3 +51,32 @@ if (databaseUrl.startsWith("file:")) {
 }
 
 export const db = drizzle(client, { schema });
+
+/**
+ * Health check for database connectivity.
+ * Safe way to test if the database is accessible without accessing private properties.
+ * @returns true if database is healthy, false otherwise
+ */
+export const checkDatabaseHealth = async (): Promise<boolean> => {
+  try {
+    // Execute a simple query to validate connectivity
+    await client.execute("SELECT 1");
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+/**
+ * Close database connection gracefully.
+ * @returns Promise that resolves when connection is closed
+ */
+export const closeDatabaseConnection = async (): Promise<void> => {
+  try {
+    if (client && typeof client.close === "function") {
+      await client.close();
+    }
+  } catch (error) {
+    // Silently ignore errors during close
+  }
+};

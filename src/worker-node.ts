@@ -1,6 +1,10 @@
 import { loadSecrets } from "./config/secrets.js";
 import { logger } from "./config/logger.js";
-import { db } from "./db/index.js";
+import {
+  db,
+  checkDatabaseHealth,
+  closeDatabaseConnection,
+} from "./db/index.js";
 import { connectRedis, redis } from "./config/redis.js";
 import { startAiParserWorker } from "./pubsub-workers/ai-parser.worker.js";
 import { registerAllWorkers } from "./bpm/workers/index.js";
@@ -14,10 +18,9 @@ async function startWorkerNode() {
   if (db) {
     try {
       logger.info("Testing database connectivity...");
-      // Simple query to validate connectivity
-      const client = (db as any).client || (db as any)._client;
-      if (client && typeof client.execute === "function") {
-        await client.execute("SELECT 1");
+      const isHealthy = await checkDatabaseHealth();
+      if (!isHealthy) {
+        throw new Error("Database health check failed");
       }
       logger.info("Database connection validated");
     } catch (error) {
@@ -33,10 +36,35 @@ async function startWorkerNode() {
 
   logger.info("Starting background workers...");
 
-  // Start background processes (Zeebe Workers and AI utilities)
-  startAiParserWorker();
-  registerAllWorkers();
-  startOcrWorker();
+  // Start background processes with error handling (Zeebe Workers and AI utilities)
+  const workers = [
+    {
+      name: "AI Parser Worker",
+      start: () => startAiParserWorker(),
+    },
+    {
+      name: "BPM Workers",
+      start: () => registerAllWorkers(),
+    },
+    {
+      name: "OCR Worker",
+      start: () => startOcrWorker(),
+    },
+  ];
+
+  for (const worker of workers) {
+    try {
+      logger.info(`Starting ${worker.name}...`);
+      await worker.start();
+      logger.info(`${worker.name} started successfully`);
+    } catch (error) {
+      logger.error(
+        { err: error },
+        `Failed to start ${worker.name}. Continuing with other workers.`,
+      );
+      // Continue with other workers even if one fails
+    }
+  }
 
   logger.info("Worker Node is running and waiting for jobs.");
 
@@ -58,11 +86,8 @@ async function startWorkerNode() {
     // Close database connection
     if (db) {
       try {
-        const client = (db as any).client || (db as any)._client;
-        if (client && typeof client.close === "function") {
-          await client.close();
-          logger.info("Database connection closed.");
-        }
+        await closeDatabaseConnection();
+        logger.info("Database connection closed.");
       } catch (closeError) {
         logger.warn({ err: closeError }, "Error closing database connection");
         errors.push(closeError as Error);

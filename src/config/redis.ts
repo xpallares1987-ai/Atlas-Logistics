@@ -22,6 +22,7 @@ export const USE_MOCK =
 export let isRedisAvailable = false;
 
 let redisClient: Redis;
+let connectionPromise: Promise<void> | null = null;
 
 if (USE_MOCK) {
   try {
@@ -30,7 +31,7 @@ if (USE_MOCK) {
     redisClient = new (RedisMock as any)();
   } catch (error) {
     logger.warn(
-      error,
+      { err: error },
       "ioredis-mock could not be loaded; falling back to standard Redis client.",
     );
     redisClient = new Redis({
@@ -64,81 +65,93 @@ if (USE_MOCK) {
 export const redis = redisClient;
 
 redis.on("error", (error: any) => {
-  logger.error(error, "Redis Connection Error:");
+  logger.error({ err: error }, "Redis Connection Error");
 });
 
 export const connectRedis = async () => {
-  try {
-    if (USE_MOCK) {
-      isRedisAvailable = true;
-      logger.info(
-        "Using Redis Mock (ioredis-mock) in memory. Local environment without Redis.",
-      );
-      return;
-    }
-
-    if (redis.status === "ready") {
-      isRedisAvailable = true;
-      logger.info(`Connected to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
-      return;
-    }
-
-    if (redis.status === "connecting" || redis.status === "connect") {
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          cleanup();
-          reject(new Error("Redis connection timeout"));
-        }, 5000);
-        const onReady = () => {
-          cleanup();
-          resolve();
-        };
-        const onError = (err: any) => {
-          cleanup();
-          reject(err);
-        };
-        const cleanup = () => {
-          clearTimeout(timeout);
-          redis.off("ready", onReady);
-          redis.off("error", onError);
-        };
-        redis.once("ready", onReady);
-        redis.once("error", onError);
-      });
-      isRedisAvailable = true;
-      logger.info(`Connected to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
-      return;
-    }
-
-    await redis.connect();
-    isRedisAvailable = true;
-    logger.info(`Connected to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
-  } catch (error: any) {
-    if (
-      error?.message?.includes("already connecting") ||
-      error?.message?.includes("already connected")
-    ) {
-      isRedisAvailable = true;
-      return;
-    }
-
-    isRedisAvailable = false;
-
-    // In production, require Redis to be available
-    if (process.env.NODE_ENV === "production") {
-      logger.error(
-        { err: error },
-        "FATAL: Redis connection failed in production. Cannot start without Redis.",
-      );
-      throw new Error(
-        `Redis connection failed in production: ${error?.message || error}`,
-      );
-    }
-
-    // In development, warn but continue with degraded functionality
-    logger.warn(
-      { err: error },
-      "Redis is unavailable. System will function degraded (without caching and with in-memory job simulation).",
-    );
+  // Prevent concurrent connection attempts (race condition fix)
+  if (connectionPromise) {
+    return connectionPromise;
   }
+
+  connectionPromise = (async () => {
+    try {
+      if (USE_MOCK) {
+        isRedisAvailable = true;
+        logger.info(
+          "Using Redis Mock (ioredis-mock) in memory. Local environment without Redis.",
+        );
+        return;
+      }
+
+      if (redis.status === "ready") {
+        isRedisAvailable = true;
+        logger.info(`Connected to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
+        return;
+      }
+
+      if (redis.status === "connecting" || redis.status === "connect") {
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            cleanup();
+            reject(new Error("Redis connection timeout"));
+          }, 5000);
+          const onReady = () => {
+            cleanup();
+            resolve();
+          };
+          const onError = (err: any) => {
+            cleanup();
+            reject(err);
+          };
+          const cleanup = () => {
+            clearTimeout(timeout);
+            redis.off("ready", onReady);
+            redis.off("error", onError);
+          };
+          redis.once("ready", onReady);
+          redis.once("error", onError);
+        });
+        isRedisAvailable = true;
+        logger.info(`Connected to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
+        return;
+      }
+
+      await redis.connect();
+      isRedisAvailable = true;
+      logger.info(`Connected to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
+    } catch (error: any) {
+      if (
+        error?.message?.includes("already connecting") ||
+        error?.message?.includes("already connected")
+      ) {
+        isRedisAvailable = true;
+        return;
+      }
+
+      isRedisAvailable = false;
+
+      // In production, require Redis to be available
+      if (process.env.NODE_ENV === "production") {
+        logger.error(
+          { err: error },
+          "FATAL: Redis connection failed in production. Cannot start without Redis.",
+        );
+        throw new Error(
+          `Redis connection failed in production: ${error?.message || error}`,
+        );
+      }
+
+      // In development, warn but continue with degraded functionality
+      logger.warn(
+        { err: error },
+        "Redis is unavailable. System will function degraded (without caching and with in-memory job simulation).",
+      );
+    } finally {
+      // Reset connection promise after first attempt completes
+      connectionPromise = null;
+    }
+  })();
+
+  return connectionPromise;
 };

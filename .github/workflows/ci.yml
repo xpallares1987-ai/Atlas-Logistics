@@ -95,7 +95,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
         with:
-          driver-options: network=host
+          driver-opts: network=host
 
       - name: Check Docker Hub credentials
         id: docker_auth_check

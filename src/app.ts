@@ -20,6 +20,12 @@ import { correlationIdPlugin } from "./middleware/correlation-id.js";
 import { registerAllRoutes } from "./routes/index.js";
 import { tenancyPlugin } from "./lib/tenancy/index.js";
 import {
+  registerSecurityHeaders,
+  enforceHTTPS,
+  logSecurityConfig,
+} from "./config/security-headers.js";
+import { getJWTConfig } from "./config/jwt.js";
+import {
   isEncryptedEnvelope,
   decryptPayloadEnvelope,
   encryptPayloadEnvelope,
@@ -55,10 +61,14 @@ app.addHook("onSend", async (request, reply, payload) => {
     return payload;
   }
 
-  if (
-    typeof payload === "string" &&
-    reply.getHeader("content-type")?.toString().includes("application/json")
-  ) {
+  if (typeof payload === "string") {
+    const contentType = reply.getHeader("content-type");
+    const isJson =
+      typeof contentType === "string" &&
+      contentType.includes("application/json");
+    if (!isJson) {
+      return payload;
+    }
     try {
       const parsed = JSON.parse(payload);
       if (isEncryptedEnvelope(parsed)) {
@@ -106,8 +116,15 @@ app.addContentTypeParser(
 // Correlation ID middleware for distributed tracing
 app.register(correlationIdPlugin);
 
-// Security Middlewares
+// Security: Enforce HTTPS in production
 const isProduction = process.env.NODE_ENV === "production";
+enforceHTTPS(app, isProduction);
+
+// Security: Register security headers middleware
+registerSecurityHeaders(app, isProduction);
+logSecurityConfig(isProduction);
+
+// Security Middlewares
 app.register(fastifyHelmet, {
   contentSecurityPolicy: isProduction
     ? {
@@ -124,6 +141,14 @@ app.register(fastifyHelmet, {
     : false,
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" },
+  hsts: {
+    maxAge: 31536000,
+    includeSubdomains: true,
+    preload: true,
+  },
+  xContentTypeOptions: "nosniff",
+  xFrameOptions: "DENY",
+  referrerPolicy: { policy: "strict-no-referrer" },
 });
 
 // Configure Redis (Using shared client when real Redis is active)
@@ -145,24 +170,65 @@ app.register(fastifyMultipart, {
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
+/**
+ * Validate and parse CORS origin whitelist from environment.
+ * Returns default list if not configured, validates against wildcards.
+ */
+function parseAndValidateCorsOrigins(): string[] {
+  const defaultOrigins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:3100",
+    "http://127.0.0.1:3100",
+  ];
+  const googleAllowed = [
+    "https://atlas-logistics.web.app",
+    "https://atlas-logistics.firebaseapp.com",
+  ];
+
+  if (!process.env.CORS_ORIGIN) {
+    return [...defaultOrigins, ...googleAllowed];
+  }
+
+  const configured = process.env.CORS_ORIGIN.split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  // Reject dangerous patterns
+  const dangerous = configured.filter(
+    (origin) => origin === "*" || origin.includes("*") || origin === "",
+  );
+  if (dangerous.length > 0) {
+    logger.warn(
+      { rejected: dangerous },
+      "CORS_ORIGIN contains wildcard or empty values. Rejecting for security.",
+    );
+  }
+
+  // Validate URL format (basic check)
+  const validOrigins = configured.filter((origin) => {
+    try {
+      new URL(origin);
+      return true;
+    } catch {
+      logger.warn(
+        { origin },
+        "CORS_ORIGIN entry is not a valid URL. Rejecting.",
+      );
+      return false;
+    }
+  });
+
+  return [...validOrigins, ...googleAllowed];
+}
+
+const corsAllowlist = parseAndValidateCorsOrigins();
+
 app.register(fastifyCors, {
   origin: (origin, cb) => {
     // Allow requests with no origin (mobile apps, curl, SSE)
     if (!origin) return cb(null, true);
-    const allowed = process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(",").map((s) => s.trim())
-      : [
-          "http://localhost:3000",
-          "http://localhost:5173",
-          "http://localhost:3100",
-          "http://127.0.0.1:3100",
-        ];
-    // Whitelist specific domains; avoid broad wildcard matches
-    const googleAllowed = [
-      "https://atlas-logistics.web.app",
-      "https://atlas-logistics.firebaseapp.com",
-    ];
-    if (allowed.includes(origin) || googleAllowed.includes(origin)) {
+    if (corsAllowlist.includes(origin)) {
       return cb(null, true);
     }
     cb(null, false);
@@ -186,15 +252,18 @@ app.register(swagger, {
 });
 app.register(swaggerUI, { routePrefix: "/docs" });
 
-// REQUIRED: COOKIE_SECRET and JWT_SECRET are validated in server.ts bootstrap()
-// These are guaranteed to exist here
 app.register(fastifyCookie, {
-  secret: process.env.COOKIE_SECRET!,
-  parseOptions: {},
+  secret: getJWTConfig().secret,
+  parseOptions: {
+    sameSite: isProduction ? "strict" : "lax",
+    secure: isProduction,
+    httpOnly: true,
+    path: "/",
+  },
 });
 
 app.register(fastifyJwt, {
-  secret: process.env.JWT_SECRET!,
+  secret: getJWTConfig().secret,
 });
 
 // Protect API routes with an onRequest hook

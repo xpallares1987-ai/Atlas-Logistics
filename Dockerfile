@@ -5,6 +5,7 @@
 # ============================================================================
 ARG NODE_VERSION=22
 ARG PNPM_VERSION=11.5.1
+ARG NGINX_IMAGE
 
 # ============================================================================
 # STAGE 1: BUILDER — Monorepo build with Turbo caching
@@ -42,10 +43,11 @@ RUN pnpm run build --filter @atlas/frontend
 # ============================================================================
 # STAGE 2: PRODUCTION — Nginx reverse proxy for SPA + API gateway
 # ============================================================================
-FROM nginx:alpine AS production
+FROM ${NGINX_IMAGE} AS production
 
 # Non-root user already exists in nginx:alpine (uid 101)
-RUN apk add --no-cache ca-certificates
+RUN apk upgrade --no-cache && \
+    apk add --no-cache ca-certificates
 
 # Nginx configuration (API reverse proxy, SPA routing, security headers)
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf

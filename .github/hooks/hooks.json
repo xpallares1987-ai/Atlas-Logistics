@@ -1,15 +1,17 @@
 {
-  "version": "1.0",
-  "hooks": [
-    {
-      "id": "atlas-session-safety",
-      "event": "SessionStart",
-      "command": "python ./.github/hooks/atlas_agent_guard.py --event SessionStart"
-    },
-    {
-      "id": "atlas-pretool-safety",
-      "event": "PreToolUse",
-      "command": "python ./.github/hooks/atlas_agent_guard.py --event PreToolUse --tool-command \"${toolCommand}\""
-    }
-  ]
+  "version": 1,
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python ./.github/hooks/atlas_agent_guard.py --event SessionStart"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "python ./.github/hooks/atlas_agent_guard.py --event PreToolUse --tool-command \"${toolCommand}\""
+      }
+    ]
+  }
 }
