@@ -87,22 +87,34 @@ export default defineConfig({
     modulePreload: {
       polyfill: false,
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2500,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            if (id.includes("three") || id.includes("@react-three")) {
-              return "three-vendor";
+            if (id.includes("@react-three/drei")) {
+              return "three-drei-vendor";
             }
-            if (id.includes("recharts") || id.includes("d3-")) {
-              return "charts-vendor";
+            if (id.includes("@react-three/fiber")) {
+              return "three-fiber-vendor";
+            }
+            if (id.includes("three")) {
+              return "three-core-vendor";
+            }
+            if (id.includes("recharts")) {
+              return "recharts-vendor";
+            }
+            if (id.includes("d3-")) {
+              return "d3-vendor";
             }
             if (id.includes("bpmn-js")) {
               return "bpmn-vendor";
             }
-            if (id.includes("jspdf") || id.includes("pdfjs-dist")) {
-              return "pdf-vendor";
+            if (id.includes("pdfjs-dist")) {
+              return "pdfjs-dist-vendor";
+            }
+            if (id.includes("jspdf")) {
+              return "jspdf-vendor";
             }
           }
         },
