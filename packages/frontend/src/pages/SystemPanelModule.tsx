@@ -1453,6 +1453,7 @@ export default function SystemPanelModule() {
                 <div className="flex gap-2">
                   <input
                     type="password"
+                    autoComplete="off"
                     value={apiKeyInput}
                     onChange={(e) => setApiKeyInput(e.target.value)}
                     placeholder="AIzaSy..."

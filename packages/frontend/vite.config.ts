@@ -18,7 +18,11 @@ export default defineConfig({
       projectRoot: path.resolve(import.meta.dirname, "../.."),
     }),
     tailwindcss(),
-    react(),
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", {}]],
+      },
+    }),
     federation({
       name: "host",
       remotes: {

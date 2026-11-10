@@ -92,6 +92,7 @@ export default function Login() {
                 <input
                   type="email"
                   required
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-slate-950/50 border border-white/5 focus:border-indigo-500/50 text-white placeholder-slate-600 rounded-xl py-3.5 pl-12 pr-4 outline-none transition-all shadow-inner focus:bg-slate-900/80"
@@ -111,6 +112,7 @@ export default function Login() {
                 <input
                   type="password"
                   required
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-slate-950/50 border border-white/5 focus:border-indigo-500/50 text-white placeholder-slate-600 rounded-xl py-3.5 pl-12 pr-4 outline-none transition-all shadow-inner focus:bg-slate-900/80"

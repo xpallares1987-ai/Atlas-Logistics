@@ -859,6 +859,7 @@ export default function EFirmaHubModule() {
                   </label>
                   <Input
                     type="password"
+                    autoComplete="current-password"
                     value={passphrase}
                     onChange={(e) => setPassphrase(e.target.value)}
                     placeholder="••••••••••••"

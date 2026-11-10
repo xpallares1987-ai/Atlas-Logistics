@@ -214,6 +214,8 @@ app.addHook("onRequest", async (request, reply) => {
     request.url.startsWith("/api/edi/inbound") ||
     request.url.startsWith("/api/dcsa/v3/events") ||
     request.url.startsWith("/api/documents/verify/") ||
+    request.url.startsWith("/api/ai/config-status") ||
+    request.url.startsWith("/api/ai/status") ||
     request.url.includes("/pdf") ||
     request.url.includes("-pdf") ||
     request.url.includes("/xml") ||

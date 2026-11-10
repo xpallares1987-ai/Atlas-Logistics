@@ -1063,13 +1063,21 @@ function SecuritySettings() {
     }
     setLoadingPassword(true);
     try {
+      const token =
+        localStorage.getItem("atlas_token") || localStorage.getItem("token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
       const res = await fetch("/api/settings/password", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ currentPassword, newPassword }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         addNotification({
           id: Date.now().toString(),
           title: "Password Updated",
@@ -1082,7 +1090,7 @@ function SecuritySettings() {
           useAppStore.getState().logout();
         }, 2000);
       } else {
-        alert(data.error);
+        alert(data.error || "Failed to update password");
       }
     } catch (err: any) {
       alert("Failed to update password: " + err.message);
@@ -1165,22 +1173,39 @@ function SecuritySettings() {
   };
 
   const handleVerifyTotp = async () => {
-    const isValid = verifyTOTP(totpSecret, totpInputCode);
-    setTotpVerifiedStatus(isValid);
-    if (isValid) {
-      await fetch("/api/passkeys/totp/verify", {
+    if (!totpInputCode || totpInputCode.trim().length !== 6) {
+      setTotpVerifiedStatus(false);
+      return;
+    }
+    const isValid = verifyTOTP(totpSecret, totpInputCode.trim());
+    if (!isValid) {
+      setTotpVerifiedStatus(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/passkeys/totp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret: totpSecret, token: totpInputCode }),
+        body: JSON.stringify({
+          secret: totpSecret,
+          token: totpInputCode.trim(),
+        }),
       });
-      addNotification({
-        id: Date.now().toString(),
-        title: "2FA TOTP Activado",
-        message: "Autenticación de dos factores configurada exitosamente.",
-        type: "success",
-        timestamp: new Date().toISOString(),
-        read: false,
-      });
+      const data = await res.json().catch(() => ({}));
+      const verified = Boolean(res.ok && (data.verified || data.success));
+      setTotpVerifiedStatus(verified);
+      if (verified) {
+        addNotification({
+          id: Date.now().toString(),
+          title: "2FA TOTP Activado",
+          message: "Autenticación de dos factores configurada exitosamente.",
+          type: "success",
+          timestamp: new Date().toISOString(),
+          read: false,
+        });
+      }
+    } catch {
+      setTotpVerifiedStatus(false);
     }
   };
 
@@ -1241,6 +1266,7 @@ function SecuritySettings() {
             <Input
               required
               type="password"
+              autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="••••••••"
@@ -1254,6 +1280,7 @@ function SecuritySettings() {
               <Input
                 required
                 type="password"
+                autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••••"
@@ -1266,6 +1293,7 @@ function SecuritySettings() {
               <Input
                 required
                 type="password"
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
@@ -1536,6 +1564,7 @@ function SecuritySettings() {
                 <div className="flex items-center gap-2">
                   <Input
                     maxLength={6}
+                    autoComplete="one-time-code"
                     value={totpInputCode}
                     onChange={(e) =>
                       setTotpInputCode(e.target.value.replace(/[^0-9]/g, ""))

@@ -27,6 +27,7 @@ export const LoginOverlay = () => {
       <h2>Acceso Restringido</h2>
       <input
         type="password"
+        autoComplete="current-password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Contraseña..."

@@ -94,18 +94,41 @@ const authRoutes: FastifyPluginAsync = async (fastify, opts) => {
       try {
         const authHeader = request.headers.authorization;
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
-          return reply.code(401).send({ error: "Unauthorized" });
+          return reply.code(200).send({
+            success: true,
+            authenticated: false,
+            user: null,
+          });
         }
 
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_SECRET);
 
-        return reply.send({ success: true, user: decoded });
+        return reply.send({
+          success: true,
+          authenticated: true,
+          user: decoded,
+        });
       } catch (err) {
         return reply.code(401).send({ error: "Invalid token" });
       }
     },
   );
+
+  fastify.post("/logout", async (request, reply) => {
+    try {
+      if (typeof (reply as any).clearCookie === "function") {
+        (reply as any).clearCookie("token");
+        (reply as any).clearCookie("auth_session");
+      }
+      return reply.send({
+        success: true,
+        message: "Logged out successfully",
+      });
+    } catch {
+      return reply.send({ success: true });
+    }
+  });
 };
 
 export default authRoutes;
