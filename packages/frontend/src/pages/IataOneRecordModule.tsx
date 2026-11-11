@@ -120,7 +120,7 @@ export default function IataOneRecordModule() {
         queryKey: ["one-record", "milestones", awbNumberForMilestones],
       });
       setMilestoneFeedback(
-        `Hito ${data.updatedMilestone?.milestoneCode || eventCode} registrado con éxito en SQLite.`,
+        `Hito ${data.updatedMilestone?.milestoneCode || eventCode} actualizado exitosamente con marca de tiempo actual.`,
       );
       setTimeout(() => setMilestoneFeedback(""), 4000);
     },
