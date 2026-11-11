@@ -9,6 +9,8 @@ export default tseslint.config(
       "**/dist/**",
       "**/node_modules/**",
       "**/coverage/**",
+      ".worktrees/**",
+      "backups-test/**",
       "packages/**",
       "functions/**",
       ".turbo/**",

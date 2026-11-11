@@ -48,6 +48,7 @@ export const client = createClient({
 if (databaseUrl.startsWith("file:")) {
   client.execute("PRAGMA journal_mode = WAL;").catch(() => {});
   client.execute("PRAGMA busy_timeout = 5000;").catch(() => {});
+  client.execute("PRAGMA foreign_keys = ON;").catch(() => {});
 }
 
 export const db = drizzle(client, { schema });

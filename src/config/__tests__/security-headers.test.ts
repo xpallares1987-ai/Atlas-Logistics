@@ -264,7 +264,7 @@ describe("Security Headers", () => {
     });
 
     it("Scenario: User visits https://example.com", () => {
-      const protocol = "https";
+      const protocol: string = "https";
       const shouldRedirect = protocol === "http";
 
       expect(shouldRedirect).toBe(false);

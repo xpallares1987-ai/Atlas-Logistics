@@ -22,11 +22,11 @@ export const publishDocumentUploaded = async (payload: {
   gcsUrl: string;
   mimeType: string;
 }) => {
-  logger.debug("PubSub Mock: publishDocumentUploaded", { payload });
+  logger.debug({ payload }, "PubSub Mock: publishDocumentUploaded");
   return "mock-id";
 };
 
 export const publishInvoiceGenerated = async (payload: any) => {
-  logger.debug("PubSub Mock: publishInvoiceGenerated", { payload });
+  logger.debug({ payload }, "PubSub Mock: publishInvoiceGenerated");
   return "mock-message-id";
 };

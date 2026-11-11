@@ -71,6 +71,7 @@ export const auditLogs = sqliteTable("audit_logs", {
   tableName: text("table_name").notNull(),
   recordId: text("record_id").notNull(),
   action: text("action").notNull(),
+  userId: text("user_id"),
   oldData: text("old_data"),
   newData: text("new_data"),
   createdAt: integer("created_at", { mode: "timestamp" })

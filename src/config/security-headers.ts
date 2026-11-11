@@ -19,7 +19,7 @@ export interface SecurityHeadersConfig {
  * Register security headers middleware
  */
 export function registerSecurityHeaders(
-  app: FastifyInstance,
+  app: FastifyInstance<any, any, any, any>,
   isProduction: boolean,
 ): void {
   // HSTS: Force HTTPS for next 1 year
@@ -61,7 +61,7 @@ export function registerSecurityHeaders(
  * HTTP to HTTPS redirect middleware (production only)
  */
 export function enforceHTTPS(
-  app: FastifyInstance,
+  app: FastifyInstance<any, any, any, any>,
   isProduction: boolean,
 ): void {
   if (!isProduction) {
@@ -88,7 +88,7 @@ export function enforceHTTPS(
       );
 
       // Permanent redirect (301 is better for SEO, but 308 preserves method)
-      return reply.redirect(301, httpsUrl);
+      return reply.code(308).redirect(httpsUrl);
     }
   });
 

@@ -147,7 +147,7 @@ app.register(fastifyHelmet, {
     preload: true,
   },
   xContentTypeOptions: true,
-  xFrameOptions: "DENY",
+  xFrameOptions: { action: "deny" },
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
 });
 
