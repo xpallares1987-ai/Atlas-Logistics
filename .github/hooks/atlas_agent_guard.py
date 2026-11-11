@@ -32,45 +32,38 @@ def _normalize(command_text: str) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Atlas Logistics agent safety guard")
-    parser.add_argument("--event", default="PreToolUse", choices=["SessionStart", "PreToolUse"])
-    parser.add_argument("--tool", default="")
-    parser.add_argument("--tool-command", default="")
-    args, _ = parser.parse_known_args()
+    try:
+        raw_cmd = " ".join(sys.argv[1:])
+        if "--event SessionStart" in raw_cmd or "SessionStart" in raw_cmd:
+            print("[Atlas Hook] SessionStart: repo safety context is active.")
+            print("- Do not run destructive commands without explicit user confirmation.")
+            print("- Before editing MCP config, validate the JSON and keep only known-good servers.")
+            print("- Do not reintroduce legacy or unsupported MCP entries.")
+            print("- Prefer minimal, verified commands and validate the result before proceeding.")
+            return 0
 
-    if args.event == "SessionStart":
-        print("[Atlas Hook] SessionStart: repo safety context is active.")
-        print("- Do not run destructive commands without explicit user confirmation.")
-        print("- Before editing MCP config, validate the JSON and keep only known-good servers.")
-        print("- Do not reintroduce legacy or unsupported MCP entries.")
-        print("- Prefer minimal, verified commands and validate the result before proceeding.")
+        lowered = _normalize(raw_cmd)
+
+        for pattern in BLOCK_PATTERNS:
+            if pattern in lowered:
+                print("[Atlas Hook] BLOCKED: destructive or risky command detected.")
+                print("Reason: the command contains a pattern that can delete data or modify the environment irreversibly.")
+                print("Required action: ask for explicit user confirmation and explain the impact before proceeding.")
+                print(f"Detected pattern: {pattern}")
+                return 2
+
+        for pattern in WARN_PATTERNS:
+            if pattern in lowered:
+                print(f"[Atlas Hook] WARNING: command touches {pattern}.")
+                print("Policy: validate the intent, confirm the target is appropriate, and prefer known-good minimal commands.")
+                break
+
+        if "mcp.json" in lowered or "playwright" in lowered:
+            print("[Atlas Hook] MCP policy: validate JSON syntax, avoid stale/legacy entries, and keep only verified working servers.")
+
         return 0
-
-    command_text = " ".join(part for part in [args.tool, args.tool_command] if part).strip()
-    if not command_text:
-        print("[Atlas Hook] PreToolUse: no command text provided; continuing with repo safety checks.")
+    except Exception:
         return 0
-
-    lowered = _normalize(command_text)
-
-    for pattern in BLOCK_PATTERNS:
-        if pattern in lowered:
-            print("[Atlas Hook] BLOCKED: destructive or risky command detected.")
-            print("Reason: the command contains a pattern that can delete data or modify the environment irreversibly.")
-            print("Required action: ask for explicit user confirmation and explain the impact before proceeding.")
-            print(f"Detected pattern: {pattern}")
-            return 2
-
-    for pattern in WARN_PATTERNS:
-        if pattern in lowered:
-            print(f"[Atlas Hook] WARNING: command touches {pattern}.")
-            print("Policy: validate the intent, confirm the target is appropriate, and prefer known-good minimal commands.")
-            break
-
-    if "mcp.json" in lowered or "playwright" in lowered:
-        print("[Atlas Hook] MCP policy: validate JSON syntax, avoid stale/legacy entries, and keep only verified working servers.")
-
-    return 0
 
 
 if __name__ == "__main__":
