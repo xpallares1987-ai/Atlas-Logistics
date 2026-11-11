@@ -124,6 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="md:hidden text-slate-400 hover:text-white p-0 h-auto"
             onClick={closeMobile}
             variant="ghost"
+            aria-label="Cerrar menú de navegación móvil"
           >
             <X size={24} />
           </Button>
@@ -131,7 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Persona Switcher (Option C) */}
         <div className="bg-slate-900/90 p-1 rounded-xl border border-slate-800/80 shadow-inner">
-          <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider px-2 py-0.5 mb-0.5 flex items-center justify-between">
+          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider px-2 py-0.5 mb-0.5 flex items-center justify-between">
             <span>Navigation View</span>
             <span className="text-[8px] font-mono text-indigo-400">
               {persona.toUpperCase()}
@@ -191,7 +192,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {persona === "ops" && (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Mission Control
               </span>
               <NavLink onClick={closeMobile} to="/" icon={LayoutDashboard}>
@@ -238,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Freight & Multimodal
               </span>
               {isAdminOrFF && (
@@ -326,7 +327,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Directory & Docs
               </span>
               <NavLink
@@ -353,7 +354,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {persona === "finance" && (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Commercial & P&L
               </span>
               <NavLink onClick={closeMobile} to="/" icon={LayoutDashboard}>
@@ -392,7 +393,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Invoicing & Settlements
               </span>
               {isAdminOrFF && (
@@ -433,7 +434,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Legal & Contracts
               </span>
               {isAdminOrFF && (
@@ -475,7 +476,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Directory & Docs
               </span>
               <NavLink
@@ -499,7 +500,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {persona === "compliance" && (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Surveillance & Ops
               </span>
               <NavLink onClick={closeMobile} to="/" icon={LayoutDashboard}>
@@ -527,7 +528,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Customs & Security
               </span>
               {(isAdminOrFF || isCustomsBroker) && (
@@ -593,7 +594,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Regulated Cargo
               </span>
               {isAdminOrFF && (
@@ -619,7 +620,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Decarbonization (EU ETS)
               </span>
               {isAdminOrFF && (
@@ -661,7 +662,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Directory & Docs
               </span>
               <NavLink
@@ -685,7 +686,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {persona === "all" && (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Mission Control
               </span>
               <NavLink onClick={closeMobile} to="/" icon={LayoutDashboard}>
@@ -732,7 +733,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Multimodal Transport
               </span>
               {isAdminOrFF && (
@@ -817,7 +818,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Customs & Security
               </span>
               {(isAdminOrFF || isCustomsBroker) && (
@@ -883,7 +884,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Regulated Cargo & Green
               </span>
               {isAdminOrFF && (
@@ -941,7 +942,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Finance & Legal
               </span>
               {isAdminOrFF && (
@@ -1040,7 +1041,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2.5 mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 mb-1">
                 Directory & Standards
               </span>
               <NavLink

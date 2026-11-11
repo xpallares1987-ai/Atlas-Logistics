@@ -144,13 +144,13 @@ export function OmniSearch() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="w-full flex items-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg border border-slate-200 transition-colors"
+        className="w-full flex items-center px-4 py-2 bg-slate-800/90 hover:bg-slate-800 text-slate-200 rounded-lg border border-slate-700/80 transition-colors shadow-sm"
       >
-        <Search className="w-4 h-4 mr-2" />
-        <span className="text-sm">
+        <Search className="w-4 h-4 mr-2 text-slate-400" />
+        <span className="text-sm font-medium text-slate-300">
           Buscar expedición, documento o protocolo IA...
         </span>
-        <kbd className="ml-auto text-xs font-semibold bg-white border border-slate-300 rounded px-1.5 py-0.5 shadow-sm text-slate-400">
+        <kbd className="ml-auto text-xs font-semibold bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 shadow-sm text-slate-300">
           ⌘K
         </kbd>
       </button>

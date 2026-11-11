@@ -548,7 +548,9 @@ export default function OperationsCockpitModule() {
           <div className="text-2xl font-bold text-emerald-400 mt-1">
             {summary.openActionableCount}
           </div>
-          <span className="text-[10px] text-slate-500">Unblocked & ready</span>
+          <span className="text-[10px] text-slate-400 font-medium">
+            Unblocked & ready
+          </span>
         </div>
 
         <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
@@ -558,7 +560,9 @@ export default function OperationsCockpitModule() {
           <div className="text-2xl font-bold text-rose-400 mt-1">
             {summary.criticalUrgencyCount}
           </div>
-          <span className="text-[10px] text-slate-500">Critical attention</span>
+          <span className="text-[10px] text-slate-400 font-medium">
+            Critical attention
+          </span>
         </div>
 
         <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
@@ -568,7 +572,9 @@ export default function OperationsCockpitModule() {
           <div className="text-2xl font-bold text-amber-400 mt-1">
             {summary.dueTodayCount}
           </div>
-          <span className="text-[10px] text-slate-500">SLA cutoff window</span>
+          <span className="text-[10px] text-slate-400 font-medium">
+            SLA cutoff window
+          </span>
         </div>
 
         <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
@@ -578,7 +584,7 @@ export default function OperationsCockpitModule() {
           <div className="text-2xl font-bold text-purple-400 mt-1">
             {summary.blockedCount}
           </div>
-          <span className="text-[10px] text-slate-500">
+          <span className="text-[10px] text-slate-400 font-medium">
             Awaiting predecessor
           </span>
         </div>
@@ -590,7 +596,7 @@ export default function OperationsCockpitModule() {
           <div className="text-2xl font-bold text-rose-300 mt-1">
             {summary.activeExceptionsCount ?? 0}
           </div>
-          <span className="text-[10px] text-slate-500">
+          <span className="text-[10px] text-slate-400 font-medium">
             Requires resolution
           </span>
         </div>
@@ -602,7 +608,9 @@ export default function OperationsCockpitModule() {
           <div className="text-2xl font-bold text-indigo-400 mt-1">
             {summary.activeWorkflowsCount}
           </div>
-          <span className="text-[10px] text-slate-500">Live DAG execution</span>
+          <span className="text-[10px] text-slate-400 font-medium">
+            Live DAG execution
+          </span>
         </div>
       </div>
 
@@ -869,9 +877,9 @@ export default function OperationsCockpitModule() {
                   </div>
 
                   {/* Title (WHAT) */}
-                  <h3 className="text-sm font-bold text-white mt-1.5 line-clamp-1">
+                  <h2 className="text-sm font-bold text-white mt-1.5 line-clamp-1">
                     {item.title}
-                  </h3>
+                  </h2>
 
                   {/* Where & Impact */}
                   <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-400">

@@ -50,6 +50,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
           className="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg h-auto"
           onClick={() => setMobileMenuOpen(true)}
           variant="ghost"
+          aria-label="Abrir menú de navegación móvil"
         >
           <Menu size={24} />
         </Button>
@@ -66,6 +67,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
             onClick={toggleNotifications}
             variant="ghost"
             className="p-2 text-slate-400 hover:text-indigo-600 relative h-auto"
+            aria-label="Notificaciones del sistema"
           >
             <Bell size={20} />
             {notifications.filter((n) => !n.read).length > 0 && (
@@ -125,6 +127,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
             onClick={toggleCart}
             variant="ghost"
             className="p-2 text-slate-400 hover:text-indigo-600 relative h-auto"
+            aria-label="Cotizaciones guardadas en carrito"
           >
             <ShoppingCart size={20} />
             {quoteCart.length > 0 && (
@@ -171,6 +174,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
                           variant="ghost"
                           onClick={() => removeFromCart(quote.id)}
                           className="p-2 text-slate-400 hover:text-rose-500 h-auto"
+                          aria-label={`Eliminar cotización ${quote.carrier}`}
                         >
                           <X size={16} />
                         </Button>
@@ -283,6 +287,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
             onClick={toggleSettingsMenu}
             variant="ghost"
             className="p-2 text-slate-400 hover:text-indigo-600 h-auto"
+            aria-label="Ajustes de cuenta y perfil"
           >
             <Settings size={20} />
           </Button>

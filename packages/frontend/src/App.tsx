@@ -53,7 +53,7 @@ export default function App() {
               </div>
 
               {/* Footer */}
-              <footer className="h-12 border-t border-slate-800 bg-slate-950 flex items-center justify-between px-8 text-xs text-slate-500 z-40 shrink-0">
+              <footer className="h-12 border-t border-slate-800 bg-slate-950 flex items-center justify-between px-8 text-xs text-slate-400 z-40 shrink-0">
                 <div>
                   &copy; {new Date().getFullYear()} Atlas Logistics Enterprise.
                   All rights reserved.
@@ -61,13 +61,13 @@ export default function App() {
                 <div className="flex gap-4">
                   <Link
                     to="/privacy"
-                    className="hover:text-indigo-600 transition-colors"
+                    className="hover:text-indigo-400 transition-colors"
                   >
                     Privacy Policy
                   </Link>
                   <Link
                     to="/terms"
-                    className="hover:text-indigo-600 transition-colors"
+                    className="hover:text-indigo-400 transition-colors"
                   >
                     Terms of Service
                   </Link>
