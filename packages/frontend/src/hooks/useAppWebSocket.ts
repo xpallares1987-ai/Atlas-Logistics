@@ -124,13 +124,13 @@ export function useAppWebSocket(
       if (!isMountedRef.current || !autoReconnect || reconnectTimerRef.current)
         return;
       reconnectAttemptsRef.current++;
-      if (reconnectAttemptsRef.current > 4) {
+      if (reconnectAttemptsRef.current > 6) {
         return; // Circuit breaker: avoid unbounded reconnect loops
       }
 
       const delay = Math.min(
-        2000 * Math.pow(1.6, reconnectAttemptsRef.current - 1),
-        15000,
+        1500 * Math.pow(1.5, reconnectAttemptsRef.current - 1),
+        10000,
       );
       reconnectTimerRef.current = setTimeout(() => {
         reconnectTimerRef.current = null;
@@ -206,6 +206,25 @@ export function useAppWebSocket(
       }
     };
 
+    // Re-establish connection automatically when document recovers focus or network comes back
+    const handleVisibilityOrOnline = () => {
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "visible" &&
+        isMountedRef.current &&
+        enabled &&
+        (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED)
+      ) {
+        reconnectAttemptsRef.current = 0;
+        connect();
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", handleVisibilityOrOnline);
+      document.addEventListener("visibilitychange", handleVisibilityOrOnline);
+    }
+
     // Stagger connect on idle / microtask to not block the main-thread initial render
     let initTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
       initTimer = null;
@@ -219,6 +238,13 @@ export function useAppWebSocket(
       if (initTimer) {
         clearTimeout(initTimer);
         initTimer = null;
+      }
+      if (typeof window !== "undefined") {
+        window.removeEventListener("online", handleVisibilityOrOnline);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityOrOnline,
+        );
       }
       cleanupSocket();
     };
