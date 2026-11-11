@@ -5,7 +5,7 @@
 # ============================================================================
 ARG NODE_VERSION=22
 ARG PNPM_VERSION=11.5.1
-ARG NGINX_IMAGE
+ARG NGINX_IMAGE=nginx:alpine
 
 # ============================================================================
 # STAGE 1: BUILDER — Monorepo build with Turbo caching

@@ -33,10 +33,10 @@ def _normalize(command_text: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Atlas Logistics agent safety guard")
-    parser.add_argument("--event", required=True, choices=["SessionStart", "PreToolUse"])
+    parser.add_argument("--event", default="PreToolUse", choices=["SessionStart", "PreToolUse"])
     parser.add_argument("--tool", default="")
     parser.add_argument("--tool-command", default="")
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     if args.event == "SessionStart":
         print("[Atlas Hook] SessionStart: repo safety context is active.")

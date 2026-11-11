@@ -37,7 +37,7 @@ export default defineConfig({
       timeout: 120000,
     },
     {
-      command: "pnpm --filter @atlas/frontend dev",
+      command: "npx vite packages/frontend",
       url: "http://127.0.0.1:3100",
       reuseExistingServer: true,
       timeout: 120000,

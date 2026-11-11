@@ -95,6 +95,19 @@ async function bootstrap() {
     await app.listen({ port: PORT, host: "0.0.0.0" });
     logger.info(`API Server running on http://0.0.0.0:${PORT}`);
     logger.info("Backend is running and listening for Camunda jobs.");
+
+    const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM"];
+    for (const signal of signals) {
+      process.once(signal, async () => {
+        logger.info(`Received ${signal}, shutting down gracefully...`);
+        try {
+          await app.close();
+        } catch (err) {
+          logger.error({ err }, "Error closing Fastify app");
+        }
+        process.exit(0);
+      });
+    }
   } catch (err) {
     app.log.error(err);
     process.exit(1);
