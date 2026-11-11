@@ -10,7 +10,10 @@
   - **Límites de Esquemas Drizzle**: Al establecer claves foráneas relacionales (`references(() => table.id)`), importar la tabla padre desde su submódulo canónico exacto en `src/db/schema/` (p. ej., `documents` reside en `./support.js`, no en `./core.js`), previniendo fallos de tipo `undefined` durante `drizzle-kit generate`.
 
 ## 2. Flujo de Git y Seguridad de Código
-- **Commits Locales Únicamente**: Trabajar y commitear directamente en la rama `main`. Prohibido configurar repositorios remotos o ejecutar `git push`.
+- **Flujo de Git y Sincronización Remota**:
+  - Trabajar y commitear directamente en la rama `main`.
+  - **Excepción autorizada para Atlas-Logistics**: Se autoriza la sincronización y ejecución de `git push origin main` exclusivamente en este repositorio (`xpallares1987-ai/Atlas-Logistics`) para mantener la alineación al 100% con GitHub y activar los pipelines de CI/CD, siempre que las pruebas y los análisis de fugas hayan concluido con éxito.
+  - Prohibido configurar repositorios remotos no oficiales o forzar pushes a ramas protegidas.
 - **Prevención de Fugas de Información**:
   - Prohibido commitear identificadores reservados de clientes/socios del mundo real.
   - Antes de cada commit, verificar que `pnpm run audit:leaks:staged` o el script de guardarraíles finalice en código 0 sin alertas.
