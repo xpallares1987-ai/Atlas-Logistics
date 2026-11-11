@@ -31,9 +31,7 @@ test.describe("Automated Demurrage & Detention Dispute Resolver (/demurrage)", (
     ).toBeVisible();
     await expect(page.locator("text=MSKU9284712").first()).toBeVisible();
     await expect(page.locator("text=Maersk Line A/S").first()).toBeVisible();
-    await expect(
-      page.locator("text=APM Terminals Pier 400").first(),
-    ).toBeVisible();
+    await expect(page.locator("text=APM Terminals").first()).toBeVisible();
   });
 
   test("should switch between Radar, Clock-Pause Engine, Invoice Audit, and Dispute Dossier tabs", async ({

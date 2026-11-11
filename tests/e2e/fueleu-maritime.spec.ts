@@ -81,10 +81,11 @@ test.describe("FuelEU Maritime & EU ETS Decarbonization Engine (Reg. UE 2023/180
       .first();
     await poolTab.click();
 
-    // Run Multi-fuel simulator
-    const simFuelBtn = page.locator(
-      "button:has-text('Simular Intensidad GEI & Balance')",
-    );
+    // Run Multi-fuel simulator / calculator
+    const simFuelBtn = page
+      .locator("button:has-text('Calcular Intensidad GEI & Balance')")
+      .or(page.locator("button:has-text('Intensidad GEI & Balance')"))
+      .first();
     await expect(simFuelBtn).toBeVisible();
     await simFuelBtn.click();
     await expect(

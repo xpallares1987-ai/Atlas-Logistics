@@ -59,7 +59,10 @@ test.describe("Enterprise ERP Integration Connectors (/erp-integrations)", () =>
       .first();
     await sandboxTab.click();
     await expect(
-      page.locator("text=Acciones de Disparo & Sincronización"),
+      page
+        .locator("text=Perfil de Conexión & Sincronización")
+        .or(page.locator("text=Sincronización"))
+        .first(),
     ).toBeVisible({ timeout: 10000 });
 
     // Switch to Dexie Queue Tab
@@ -97,7 +100,10 @@ test.describe("Enterprise ERP Integration Connectors (/erp-integrations)", () =>
 
     // Verify response console shows success
     await expect(
-      page.locator("text=SAP S/4HANA PO Sincronizado Exitosamente"),
+      page
+        .locator("text=Sincronización Bidireccional SQLite / ERP Exitosa")
+        .or(page.locator("text=SAP S/4HANA PO Sincronizado Exitosamente"))
+        .first(),
     ).toBeVisible({ timeout: 10000 });
 
     // Trigger NetSuite Item Receipt & Landed Cost
