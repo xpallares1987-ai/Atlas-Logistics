@@ -18,6 +18,7 @@ export * from "./cbam.seed.js";
 export * from "./rail.seed.js";
 export * from "./customs-warehouse.seed.js";
 export * from "./fueleu.seed.js";
+export * from "./carbon-insetting.seed.js";
 export * from "./trade-finance.seed.js";
 export * from "./aeo-security.seed.js";
 export * from "./chartering.seed.js";
@@ -55,6 +56,7 @@ import { seedCbam } from "./cbam.seed.js";
 import { seedRail } from "./rail.seed.js";
 import { seedCustomsWarehouse } from "./customs-warehouse.seed.js";
 import { seedFuelEu } from "./fueleu.seed.js";
+import { seedCarbonInsetting } from "./carbon-insetting.seed.js";
 import { seedTradeFinance } from "./trade-finance.seed.js";
 import { seedAeoSecurity } from "./aeo-security.seed.js";
 import { seedChartering } from "./chartering.seed.js";
@@ -130,6 +132,7 @@ export async function seedPhase2(): Promise<void> {
   await seedCbam();
   await seedCustomsWarehouse();
   await seedFuelEu();
+  await seedCarbonInsetting();
   await seedCarbon();
   await seedAeoSecurity();
   console.log(

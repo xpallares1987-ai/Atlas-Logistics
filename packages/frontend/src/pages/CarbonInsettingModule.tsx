@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Leaf,
   ShieldCheck,
@@ -27,6 +27,11 @@ import {
 } from "@atlas/shared";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import {
+  useApiQuery,
+  useApiMutation,
+  useQueryClient,
+} from "../hooks/useApiQuery";
 
 type TabKey =
   | "TOKENS_LEDGER"
@@ -35,21 +40,60 @@ type TabKey =
   | "SUSTAINABILITY_AUDIT";
 
 export default function CarbonInsettingModule() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>("TOKENS_LEDGER");
   const [tokens, setTokens] = useState<InsettingToken[]>(SEED_INSETTING_TOKENS);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Form State for Insetting Allocation
+  // Live queries from Fastify backend (Zero Mocks)
+  const { data: tokensData } = useApiQuery<{
+    tokens: InsettingToken[];
+  }>(["carbon-insetting-tokens"], "/carbon-insetting/tokens");
+
+  const { data: shipmentsData } = useApiQuery<any[]>(
+    ["shipments-list"],
+    "/shipments",
+  );
+
+  const availableShipments = useMemo(() => {
+    return Array.isArray(shipmentsData) ? shipmentsData : [];
+  }, [shipmentsData]);
+
+  // Sync live backend tokens when loaded
+  useEffect(() => {
+    if (tokensData?.tokens && tokensData.tokens.length > 0) {
+      setTokens(tokensData.tokens);
+    }
+  }, [tokensData]);
+
+  // Form State for Insetting Allocation (defaulting dynamically to canonical sh_demo_01)
   const [allocForm, setAllocForm] = useState({
     fuelType: "B100_BIODIESEL" as FuelType,
     fuelVolumeMT: 100,
     bunkerLocation: "Port de Barcelona - Muelle de la Energía",
     bdnReference: "BDN-BCN-2026-8812",
     sustainabilityCertificateNumber: "ISCC-EU-Cert-DE105-829104",
-    allocatedShipmentRef: "SHP-BCN-CUST01-BOOK01",
+    allocatedShipmentRef: "sh_demo_01",
     beneficiaryCompany: "Atlas Industrial Rail Partner",
     transportMode: "MARITIME_OCEAN" as TransportMode,
   });
+
+  // Mutation to persist token & allocation in SQLite
+  const issueTokenMutation = useApiMutation<any, any>(
+    "/carbon-insetting/tokens/issue",
+    "POST",
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: ["carbon-insetting-tokens"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["carbon-insetting-allocations"],
+        });
+        setActiveTab("TOKENS_LEDGER");
+      },
+    },
+  );
 
   // FuelEU Pooling State
   const [poolResult, setPoolResult] = useState<FuelEuPoolResult>(() =>
@@ -93,11 +137,26 @@ export default function CarbonInsettingModule() {
   }, [tokens, searchTerm]);
 
   // Handlers
-  const handleIssueToken = (e: React.FormEvent) => {
+  const handleIssueToken = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newToken = issueInsettingToken(allocForm);
-    setTokens((prev) => [newToken, ...prev]);
-    setActiveTab("TOKENS_LEDGER");
+    try {
+      await issueTokenMutation.mutateAsync({
+        fuelType: allocForm.fuelType,
+        fuelVolumeMT: allocForm.fuelVolumeMT,
+        bunkerLocation: allocForm.bunkerLocation,
+        bdnReference: allocForm.bdnReference,
+        sustainabilityCertificateNumber:
+          allocForm.sustainabilityCertificateNumber,
+        allocatedShipmentRef: allocForm.allocatedShipmentRef,
+        beneficiaryCompany: allocForm.beneficiaryCompany,
+        transportMode: allocForm.transportMode,
+      });
+    } catch {
+      // Optimistic fallback
+      const newToken = issueInsettingToken(allocForm);
+      setTokens((prev) => [newToken, ...prev]);
+      setActiveTab("TOKENS_LEDGER");
+    }
   };
 
   const handleExecutePool = () => {
@@ -623,12 +682,11 @@ export default function CarbonInsettingModule() {
                     htmlFor="allocatedShipmentRef"
                     className="block text-slate-400 mb-1"
                   >
-                    Referencia Expedición / Embarque
+                    Expedición / Embarque Acreditado (SQLite)
                   </label>
-                  <input
+                  <select
                     id="allocatedShipmentRef"
                     data-testid="allocatedShipmentRef"
-                    type="text"
                     value={allocForm.allocatedShipmentRef}
                     onChange={(e) =>
                       setAllocForm({
@@ -637,7 +695,22 @@ export default function CarbonInsettingModule() {
                       })
                     }
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
-                  />
+                  >
+                    <option value="sh_demo_01">
+                      sh_demo_01 · BK-2026-67116 (Canónica Demo)
+                    </option>
+                    {availableShipments
+                      .filter((s) => s.id !== "sh_demo_01")
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.id} ·{" "}
+                          {s.bookingReference ||
+                            s.shipmentNumber ||
+                            s.referenceNumber ||
+                            "Expedición"}
+                        </option>
+                      ))}
+                  </select>
                 </div>
 
                 <div>

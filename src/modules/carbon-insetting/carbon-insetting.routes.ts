@@ -1,91 +1,247 @@
 /**
  * @file carbon-insetting.routes.ts
- * @description Fastify routes for Scope 3 Carbon Insetting & FuelEU Maritime Pooling.
+ * @description Fastify routes for Scope 3 Carbon Insetting (Book-and-Claim) & FuelEU Maritime Pooling.
  */
 
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { CarbonInsettingService } from './carbon-insetting.service.js';
-import { FuelType, TransportMode, PoolVesselInput } from '@atlas/shared';
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { CarbonInsettingService } from "./carbon-insetting.service.js";
+import {
+  CarbonInsettingLedgerService,
+  IssueTokenDTO,
+  AllocateTokenDTO,
+} from "./carbon-insetting-ledger.service.js";
+import { FuelType, TransportMode, PoolVesselInput } from "@atlas/shared";
 
 export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
-  const service = new CarbonInsettingService();
+  const legacyService = new CarbonInsettingService();
 
-  // GET /api/carbon-insetting/fuels
-  fastify.get('/fuels', async (_req: FastifyRequest, reply: FastifyReply) => {
-    const fuels = service.getFuelsCatalog();
+  // 1. GET /api/carbon-insetting/fuels - Alternative Fuels Catalog
+  fastify.get("/fuels", async (_req: FastifyRequest, reply: FastifyReply) => {
+    const fuels = legacyService.getFuelsCatalog();
     return reply.send({ success: true, fuels });
   });
 
-  // GET /api/carbon-insetting/tokens
-  fastify.get('/tokens', async (_req: FastifyRequest, reply: FastifyReply) => {
-    const tokens = service.getInsettingTokens();
-    return reply.send({ success: true, count: tokens.length, tokens });
-  });
+  // 2. GET /api/carbon-insetting/tokens - Live SQLite Insetting Tokens
+  fastify.get(
+    "/tokens",
+    async (
+      req: FastifyRequest<{
+        Querystring: { status?: string; fuelType?: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const dbTokens = await CarbonInsettingLedgerService.getTokens(req.query);
 
-  // POST /api/carbon-insetting/tokens/issue
+      // Return both live SQLite records and legacy mapped fields for complete compatibility
+      const mappedTokens = dbTokens.map((t) => ({
+        ...t,
+        tokenId: t.tokenReference,
+        fuelVolumeMT: t.totalVolumeMetricTonnes,
+        ghgAbatementTonsCO2e: Number(
+          (t.totalVolumeMetricTonnes * t.ghgAbatementTco2eqPerTonne).toFixed(2),
+        ),
+        digitalSignatureHash: t.digitalSealHash,
+        allocatedShipmentRef: "CANONICAL-FLEET-POOL",
+        beneficiaryCompany: t.supplierCompanyName,
+      }));
+
+      return reply.send({
+        success: true,
+        count: dbTokens.length,
+        tokens: mappedTokens,
+        dbTokens,
+      });
+    },
+  );
+
+  // 3. GET /api/carbon-insetting/tokens/:id - Token detail with allocations
+  fastify.get(
+    "/tokens/:id",
+    async (
+      req: FastifyRequest<{ Params: { id: string } }>,
+      reply: FastifyReply,
+    ) => {
+      const token = await CarbonInsettingLedgerService.getTokenById(
+        req.params.id,
+      );
+      if (!token) {
+        return reply
+          .status(404)
+          .send({ success: false, message: "Token not found" });
+      }
+      return reply.send({ success: true, token });
+    },
+  );
+
+  // 4. POST /api/carbon-insetting/tokens/issue - Issue & Seal Book-and-Claim Token
   fastify.post(
-    '/tokens/issue',
+    "/tokens/issue",
     async (
       req: FastifyRequest<{
         Body: {
           fuelType: FuelType;
           fuelVolumeMT: number;
           bunkerLocation: string;
+          bunkerPortLocode?: string;
           bdnReference: string;
           sustainabilityCertificateNumber: string;
-          allocatedShipmentRef: string;
-          beneficiaryCompany: string;
-          transportMode: TransportMode;
+          allocatedShipmentRef?: string;
+          beneficiaryCompany?: string;
+          transportMode?: TransportMode;
+          certifiedGhgIntensityGco2eqPerMj?: number;
+          unitPriceEurPerMj?: number;
         };
       }>,
-      reply: FastifyReply
+      reply: FastifyReply,
     ) => {
-      const {
-        fuelType,
-        fuelVolumeMT,
-        bunkerLocation,
-        bdnReference,
-        sustainabilityCertificateNumber,
-        allocatedShipmentRef,
-        beneficiaryCompany,
-        transportMode
-      } = req.body || {};
+      const b = req.body || ({} as any);
 
-      if (!fuelType || !fuelVolumeMT || !bunkerLocation || !bdnReference || !allocatedShipmentRef) {
+      if (
+        !b.fuelType ||
+        !b.fuelVolumeMT ||
+        !b.bunkerLocation ||
+        !b.bdnReference
+      ) {
         return reply.code(400).send({
           success: false,
-          message: 'Faltan parámetros requeridos para expedir el token de insetting.'
+          message:
+            "Faltan parámetros requeridos para expedir el token de insetting.",
         });
       }
 
-      const token = service.issueToken({
-        fuelType,
-        fuelVolumeMT: Number(fuelVolumeMT),
-        bunkerLocation,
-        bdnReference,
-        sustainabilityCertificateNumber: sustainabilityCertificateNumber || 'ISCC-EU-PENDING',
-        allocatedShipmentRef,
-        beneficiaryCompany: beneficiaryCompany || 'Atlas Beneficiary Client',
-        transportMode: transportMode || 'MARITIME_OCEAN'
-      });
+      const dto: IssueTokenDTO = {
+        fuelType: b.fuelType,
+        totalVolumeMetricTonnes: Number(b.fuelVolumeMT),
+        bunkerLocationName: b.bunkerLocation,
+        bunkerPortLocode: b.bunkerPortLocode || "ESBCN",
+        bdnReference: b.bdnReference,
+        isccCertificateNumber:
+          b.sustainabilityCertificateNumber || "ISCC-EU-PENDING",
+        supplierCompanyName:
+          b.beneficiaryCompany || "Repsol Marine Decarb S.A.",
+        certifiedGhgIntensityGco2eqPerMj: b.certifiedGhgIntensityGco2eqPerMj,
+        unitPriceEurPerMj: b.unitPriceEurPerMj,
+      };
+
+      const token = await CarbonInsettingLedgerService.issueToken(dto);
 
       return reply.code(201).send({
         success: true,
-        message: 'Token de Insetting emitido y retirado exitosamente en el ledger.',
-        token
+        message:
+          "Token de Insetting emitido y sellado criptográficamente en SQLite.",
+        token: {
+          ...token,
+          tokenId: token.tokenReference,
+          fuelVolumeMT: token.totalVolumeMetricTonnes,
+          ghgAbatementTonsCO2e: Number(
+            (
+              token.totalVolumeMetricTonnes * token.ghgAbatementTco2eqPerTonne
+            ).toFixed(2),
+          ),
+          digitalSignatureHash: token.digitalSealHash,
+          allocatedShipmentRef: b.allocatedShipmentRef || "CANONICAL-POOL",
+          beneficiaryCompany: token.supplierCompanyName,
+        },
       });
-    }
+    },
   );
 
-  // GET /api/carbon-insetting/fueleu/vessels
-  fastify.get('/fueleu/vessels', async (_req: FastifyRequest, reply: FastifyReply) => {
-    const vessels = service.getPoolVessels();
-    return reply.send({ success: true, count: vessels.length, vessels });
-  });
-
-  // POST /api/carbon-insetting/fueleu/pool
+  // 5. POST /api/carbon-insetting/tokens/allocate - Allocate Token to Shipment with Blockchain Seal
   fastify.post(
-    '/fueleu/pool',
+    "/tokens/allocate",
+    async (
+      req: FastifyRequest<{
+        Body: {
+          tokenId: string;
+          shipmentId?: string;
+          beneficiaryCompanyId?: string;
+          beneficiaryName: string;
+          transportMode?: string;
+          allocatedEnergyMj: number;
+          leadAuditorVerifier?: string;
+        };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const b = req.body || ({} as any);
+
+      if (!b.tokenId || !b.allocatedEnergyMj || !b.beneficiaryName) {
+        return reply.code(400).send({
+          success: false,
+          message:
+            "Parámetros requeridos: tokenId, allocatedEnergyMj, beneficiaryName.",
+        });
+      }
+
+      try {
+        const dto: AllocateTokenDTO = {
+          tokenId: b.tokenId,
+          shipmentId: b.shipmentId || "sh_demo_01",
+          beneficiaryCompanyId: b.beneficiaryCompanyId,
+          beneficiaryName: b.beneficiaryName,
+          transportMode: (b.transportMode as any) || "MARITIME_OCEAN",
+          allocatedEnergyMj: Number(b.allocatedEnergyMj),
+          leadAuditorVerifier: b.leadAuditorVerifier,
+        };
+
+        const allocation =
+          await CarbonInsettingLedgerService.allocateTokenToShipment(dto);
+
+        return reply.code(201).send({
+          success: true,
+          message:
+            "Asignación de insetting certificada y registrada en el bloque SHA-256.",
+          allocation,
+        });
+      } catch (err: any) {
+        return reply.code(400).send({
+          success: false,
+          message:
+            err.message || "Error al procesar la asignación de insetting.",
+        });
+      }
+    },
+  );
+
+  // 6. GET /api/carbon-insetting/allocations - List allocations
+  fastify.get(
+    "/allocations",
+    async (
+      req: FastifyRequest<{ Querystring: { shipmentId?: string } }>,
+      reply: FastifyReply,
+    ) => {
+      const allocations = await CarbonInsettingLedgerService.getAllocations(
+        req.query.shipmentId,
+      );
+      return reply.send({
+        success: true,
+        count: allocations.length,
+        allocations,
+      });
+    },
+  );
+
+  // 7. GET /api/carbon-insetting/allocations/verify - Cryptographic Blockchain Audit
+  fastify.get(
+    "/allocations/verify",
+    async (_req: FastifyRequest, reply: FastifyReply) => {
+      const report = await CarbonInsettingLedgerService.verifyLedgerIntegrity();
+      return reply.send({ success: true, report });
+    },
+  );
+
+  // 8. GET /api/carbon-insetting/fueleu/vessels
+  fastify.get(
+    "/fueleu/vessels",
+    async (_req: FastifyRequest, reply: FastifyReply) => {
+      const vessels = legacyService.getPoolVessels();
+      return reply.send({ success: true, count: vessels.length, vessels });
+    },
+  );
+
+  // 9. POST /api/carbon-insetting/fueleu/pool
+  fastify.post(
+    "/fueleu/pool",
     async (
       req: FastifyRequest<{
         Body: {
@@ -93,20 +249,26 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
           reportingYear?: number;
         };
       }>,
-      reply: FastifyReply
+      reply: FastifyReply,
     ) => {
-      const pool = service.executePooling(req.body?.vessels, req.body?.reportingYear || 2026);
+      const pool = legacyService.executePooling(
+        req.body?.vessels,
+        req.body?.reportingYear || 2026,
+      );
       return reply.send({
         success: true,
-        message: 'Pool de cumplimiento FuelEU Maritime ejecutado y sellado.',
-        pool
+        message: "Pool de cumplimiento FuelEU Maritime ejecutado y sellado.",
+        pool,
       });
-    }
+    },
   );
 
-  // GET /api/carbon-insetting/fueleu/pools
-  fastify.get('/fueleu/pools', async (_req: FastifyRequest, reply: FastifyReply) => {
-    const pools = service.getPoolHistory();
-    return reply.send({ success: true, count: pools.length, pools });
-  });
+  // 10. GET /api/carbon-insetting/fueleu/pools
+  fastify.get(
+    "/fueleu/pools",
+    async (_req: FastifyRequest, reply: FastifyReply) => {
+      const pools = legacyService.getPoolHistory();
+      return reply.send({ success: true, count: pools.length, pools });
+    },
+  );
 }

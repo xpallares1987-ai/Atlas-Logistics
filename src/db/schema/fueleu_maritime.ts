@@ -1,4 +1,7 @@
 import { sqliteTable, text, real, integer } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+import { shipments } from "./operations.js";
+import { companies } from "./core.js";
 
 // 1. Catálogo de Combustibles Marítimos & Factores Well-to-Wake (Reg. UE 2023/1805 Anexo II)
 export const marineFuels = sqliteTable("marine_fuels", {
@@ -190,3 +193,150 @@ export const fuelEuPools = sqliteTable("fuel_eu_pools", {
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
+
+// 6. Tokens de Insetting Criptográfico (Book-and-Claim Mass Balance - RED II / ISCC-EU)
+export const carbonInsettingTokens = sqliteTable("carbon_insetting_tokens", {
+  id: text("id").primaryKey(),
+  tokenReference: text("token_reference").notNull().unique(), // ej. INS-2026-BIO-001
+  fuelId: text("fuel_id")
+    .notNull()
+    .references(() => marineFuels.id),
+  fuelType: text("fuel_type").notNull(), // B100_BIODIESEL, BIO_LNG, E_METHANOL_RFNBO, HVO100
+  bunkerPortLocode: text("bunker_port_locode").notNull(), // ej. ESBCN, NLRTM
+  bunkerLocationName: text("bunker_location_name").notNull(),
+  bdnReference: text("bdn_reference").notNull(), // Bunker Delivery Note ref ej. BDN-BCN-2026-8812
+  isccCertificateNumber: text("iscc_certificate_number").notNull(), // ej. ISCC-EU-Cert-DE105-829104
+  sustainabilityRegistry: text("sustainability_registry").notNull(), // ej. ISCC_EU, REDCERT, RSB
+  registryUrl: text("registry_url"),
+  supplierCompanyName: text("supplier_company_name").notNull(), // ej. Repsol Marine Decarb / Maersk Green Bunker
+  totalVolumeMetricTonnes: real("total_volume_metric_tonnes").notNull(),
+  totalEnergyMj: real("total_energy_mj").notNull(),
+  availableEnergyMj: real("available_energy_mj").notNull(),
+  baselineGhgIntensityGco2eqPerMj: real("baseline_ghg_intensity_gco2eq_per_mj")
+    .notNull()
+    .default(91.16),
+  certifiedGhgIntensityGco2eqPerMj: real(
+    "certified_ghg_intensity_gco2eq_per_mj",
+  ).notNull(),
+  ghgSavingPercent: real("ghg_saving_percent").notNull(), // ej. 85.0%
+  ghgAbatementTco2eqPerTonne: real("ghg_abatement_tco2eq_per_tonne").notNull(),
+  unitPriceEurPerMj: real("unit_price_eur_per_mj").notNull(),
+  status: text("status", {
+    enum: ["AVAILABLE", "PARTIALLY_ALLOCATED", "FULLY_RETIRED", "REVOKED"],
+  })
+    .notNull()
+    .default("AVAILABLE"),
+  digitalSealHash: text("digital_seal_hash").notNull(), // SHA-256 genesis seal of the BDN & certification
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+// 7. Asignaciones y Retiros de Insetting (Allocation & Retirement Ledger - Scope 3)
+export const carbonInsettingAllocations = sqliteTable(
+  "carbon_insetting_allocations",
+  {
+    id: text("id").primaryKey(),
+    allocationReference: text("allocation_reference").notNull().unique(), // ej. ALLOC-2026-0912
+    tokenId: text("token_id")
+      .notNull()
+      .references(() => carbonInsettingTokens.id),
+    shipmentId: text("shipment_id").references(() => shipments.id), // Vinculación a expedición (ej. sh_demo_01)
+    beneficiaryCompanyId: text("beneficiary_company_id").references(
+      () => companies.id,
+    ),
+    beneficiaryName: text("beneficiary_name").notNull(),
+    transportMode: text("transport_mode", {
+      enum: [
+        "MARITIME_OCEAN",
+        "MARITIME_SHORT_SEA",
+        "INLAND_WATERWAYS",
+        "ROAD_FREIGHT",
+        "RAIL_FREIGHT",
+      ],
+    })
+      .notNull()
+      .default("MARITIME_OCEAN"),
+    allocatedEnergyMj: real("allocated_energy_mj").notNull(),
+    equivalentFuelVolumeTonnes: real("equivalent_fuel_volume_tonnes").notNull(),
+    abatedGhgTco2eq: real("abated_ghg_tco2eq").notNull(),
+    costEur: real("cost_eur").notNull(),
+    certificateCode: text("certificate_code").notNull().unique(), // ej. CERT-INS-2026-7788
+    verificationQrUrl: text("verification_qr_url").notNull(),
+    previousBlockHash: text("previous_block_hash").notNull(), // Blockchain-like hash linkage
+    blockHashSha256: text("block_hash_sha256").notNull(),
+    status: text("status", {
+      enum: ["ALLOCATED", "CLAIMED_RETIRED", "AUDITED_VERIFIED"],
+    })
+      .notNull()
+      .default("CLAIMED_RETIRED"),
+    leadAuditorVerifier: text("lead_auditor_verifier")
+      .notNull()
+      .default("Bureau Veritas / DNV Maritime"),
+    allocatedAt: text("allocated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+);
+
+// 8. Libro Mayor de Penalizaciones y Liquidaciones FuelEU (Art. 23 - 2.400 € / tVLSFOeq)
+export const fuelEuPenaltiesLedger = sqliteTable("fuel_eu_penalties_ledger", {
+  id: text("id").primaryKey(),
+  settlementReference: text("settlement_reference").notNull().unique(), // ej. PEN-2026-0041
+  vesselId: text("vessel_id")
+    .notNull()
+    .references(() => marineVessels.id),
+  reportingYear: integer("reporting_year").notNull(),
+  complianceDeficitGco2eq: real("compliance_deficit_gco2eq").notNull(), // Déficit en gramos CO2eq
+  vlsfoEquivalentEnergyDeficitMj: real(
+    "vlsfo_equivalent_energy_deficit_mj",
+  ).notNull(),
+  vlsfoEquivalentDeficitTonnes: real(
+    "vlsfo_equivalent_deficit_tonnes",
+  ).notNull(),
+  statutoryPenaltyRateEurPerTonne: real("statutory_penalty_rate_eur_per_tonne")
+    .notNull()
+    .default(2400.0), // 2.400 EUR / tonelada
+  penaltyMultiplierConsecutiveYears: real(
+    "penalty_multiplier_consecutive_years",
+  )
+    .notNull()
+    .default(1.0),
+  totalPenaltyPayableEur: real("total_penalty_payable_eur").notNull(),
+  poolOffsetId: text("pool_offset_id").references(() => fuelEuPools.id),
+  offsetAmountEur: real("offset_amount_eur").notNull().default(0.0),
+  netPayableEur: real("net_payable_eur").notNull(),
+  paymentStatus: text("payment_status", {
+    enum: [
+      "CALCULATED_PENDING",
+      "POOL_COMPENSATED",
+      "PAID_TO_EU_FUND",
+      "DISPUTED_AUDIT",
+    ],
+  })
+    .notNull()
+    .default("CALCULATED_PENDING"),
+  euFundTreasuryAccount: text("eu_fund_treasury_account")
+    .notNull()
+    .default("EU-INNOVATION-FUND-FUELEU-ESCROW"),
+  settledAt: text("settled_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+export type CarbonInsettingToken = typeof carbonInsettingTokens.$inferSelect;
+export type InsertCarbonInsettingToken =
+  typeof carbonInsettingTokens.$inferInsert;
+export type CarbonInsettingAllocation =
+  typeof carbonInsettingAllocations.$inferSelect;
+export type InsertCarbonInsettingAllocation =
+  typeof carbonInsettingAllocations.$inferInsert;
+export type FuelEuPenaltyLedger = typeof fuelEuPenaltiesLedger.$inferSelect;
+export type InsertFuelEuPenaltyLedger =
+  typeof fuelEuPenaltiesLedger.$inferInsert;

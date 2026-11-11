@@ -6,13 +6,12 @@ import {
   FuelEuCalculatorService,
   FuelConsumptionItem,
 } from "./fueleu-calculator.service.js";
-import {
-  EtsMaritimeService,
-  MaritimeScope,
-} from "./ets-maritime.service.js";
+import { EtsMaritimeService, MaritimeScope } from "./ets-maritime.service.js";
 import { ThetisMrvXmlService } from "./thetis-mrv-xml.service.js";
 import { PDFService } from "../../services/pdf.service.js";
 import { domainEventBus } from "../../lib/events/index.js";
+import { CarbonInsettingLedgerService } from "../carbon-insetting/carbon-insetting-ledger.service.js";
+import { EtsGreenBafSettlementService } from "./ets-green-baf-settlement.service.js";
 
 export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
   // Authentication hook (parent app.ts authMiddleware already enforces authentication)
@@ -393,5 +392,43 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
       `inline; filename="BDN-Audit-Report-${voyage.voyageReferenceNumber}.pdf"`,
     );
     return reply.send(pdfBuffer);
+  });
+
+  // 14. GET /api/fueleu/penalties - List FuelEU Maritime Penalties Ledger
+  fastify.get("/penalties", async (_request, reply) => {
+    const penalties = await CarbonInsettingLedgerService.getFuelEuPenalties();
+    return reply.send({ success: true, count: penalties.length, penalties });
+  });
+
+  // 15. POST /api/fueleu/ets/settle - Settle EU ETS & Green BAF for Shipment/Voyage
+  fastify.post("/ets/settle", async (request, reply) => {
+    const body = request.body as {
+      shipmentId?: string;
+      voyageId: string;
+      teuCount?: number;
+      customEuaPrice?: number;
+    };
+
+    if (!body?.voyageId) {
+      return reply
+        .status(400)
+        .send({ error: "Missing required parameter 'voyageId'" });
+    }
+
+    try {
+      const settlement =
+        await EtsGreenBafSettlementService.settleGreenBafForShipment({
+          shipmentId: body.shipmentId || "sh_demo_01",
+          voyageId: body.voyageId,
+          teuCount: Number(body.teuCount || 1),
+          customEuaPrice: body.customEuaPrice,
+        });
+
+      return reply.send({ success: true, settlement });
+    } catch (err: any) {
+      return reply
+        .status(400)
+        .send({ error: err.message || "Failed to settle Green BAF" });
+    }
   });
 };
