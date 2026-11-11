@@ -57,7 +57,7 @@ describe("Hybrid Address Geocoding & Verification Engine", () => {
       expect(first.country).toBe("ES");
       expect(["GOOGLE_MAPS", "NOMINATIM", "PHOTON"]).toContain(first.provider);
     }
-  });
+  }, 15000);
 
   it("service: geocodes structured address parameters and caches response", async () => {
     const res1 = await addressGeocodingService.geocodeAddress({
@@ -80,7 +80,7 @@ describe("Hybrid Address Geocoding & Verification Engine", () => {
       });
       expect(res2).toEqual(res1);
     }
-  });
+  }, 15000);
 
   it("API: GET /api/addresses/autocomplete returns suggestions for live typing", async () => {
     const res = await app.inject({
@@ -91,7 +91,7 @@ describe("Hybrid Address Geocoding & Verification Engine", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(Array.isArray(body)).toBe(true);
-  });
+  }, 15000);
 
   it("API: POST /api/addresses/geocode validates address coordinates", async () => {
     const res = await app.inject({
@@ -111,7 +111,7 @@ describe("Hybrid Address Geocoding & Verification Engine", () => {
       expect(body.lon).toBeTypeOf("number");
       expect(["GOOGLE_MAPS", "NOMINATIM", "PHOTON"]).toContain(body.provider);
     }
-  });
+  }, 15000);
 
   it("API: POST /api/addresses creates an address with native coordinates and verification status", async () => {
     const res = await app.inject({

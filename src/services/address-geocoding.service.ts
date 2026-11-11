@@ -203,7 +203,9 @@ class AddressGeocodingService {
       query,
     )}${countryParam}&key=${apiKey}`;
 
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(3000),
+    });
     if (!res.ok) {
       throw new Error(`Google Maps HTTP ${res.status}`);
     }
@@ -282,6 +284,7 @@ class AddressGeocodingService {
           "AtlasLogistics-TMS/1.0 (operations@atlas-logistics.internal)",
         "Accept-Language": "es,en;q=0.8",
       },
+      signal: AbortSignal.timeout(3000),
     });
 
     if (!res.ok) {
@@ -345,7 +348,9 @@ class AddressGeocodingService {
     countryCode?: string,
   ): Promise<AutocompleteSuggestion[]> {
     const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`;
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(3000),
+    });
     if (!res.ok) {
       throw new Error(`Photon HTTP ${res.status}`);
     }
