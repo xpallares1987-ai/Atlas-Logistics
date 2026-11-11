@@ -27,6 +27,7 @@
     "format": "prettier --write .",
     "prepare": "husky",
     "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:migrate:prod": "cross-env NODE_ENV=production tsx src/db/migrate.ts",
     "db:reset": "sh .devcontainer/reset-db.sh",

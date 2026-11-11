@@ -13,5 +13,5 @@ jobs:
     - uses: actions/first-interaction@v3
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        issue_message: "Message that will be displayed on users' first issue"
-        pr_message: "Message that will be displayed on users' first pull request"
+        issue_message: "👋 Welcome to Atlas Logistics! Thank you for opening your first issue in this repository. Our team will review it shortly. Please ensure your report includes clear reproduction steps and relevant logs."
+        pr_message: "🚀 Thank you for your first pull request to Atlas Logistics! Please ensure all unit tests (`pnpm test`), typechecks (`pnpm type-check`), and leak audits (`pnpm run audit:leaks`) pass cleanly. We will review your contribution soon."
