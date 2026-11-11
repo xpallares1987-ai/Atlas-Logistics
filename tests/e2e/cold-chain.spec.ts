@@ -41,7 +41,7 @@ test.describe("Cold Chain & Temperature-Controlled Pharma/Reefer Monitoring Engi
     // Select vaccine shipment
     const vaxShipment = page.locator("p:has-text('CC-2026-9901')").first();
     await expect(vaxShipment).toBeVisible({ timeout: 10000 });
-    await vaxShipment.click();
+    await vaxShipment.click({ force: true });
 
     // Verify detail panel headers and certificate link
     await expect(

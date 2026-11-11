@@ -20,15 +20,9 @@ test.describe("Automated Demurrage & Detention Dispute Resolver (/demurrage)", (
       page.locator("text=FMC § 541 / OSRA 2022").first(),
     ).toBeVisible();
 
-    // Preset Buttons
+    // Relational Context Banner & Shipment Selector
     await expect(
-      page.locator("button:has-text('US West Coast (FMC § 541)')"),
-    ).toBeVisible();
-    await expect(
-      page.locator("button:has-text('Rotterdam ECT (Huelga)')"),
-    ).toBeVisible();
-    await expect(
-      page.locator("button:has-text('Barcelona Intermodal (Book TEST01)')"),
+      page.locator("text=Expedición Relacional Activa (SQLite dev.db)"),
     ).toBeVisible();
 
     // Default tab: Radar table with container data
@@ -108,17 +102,10 @@ test.describe("Automated Demurrage & Detention Dispute Resolver (/demurrage)", (
       page.locator("h1:has-text('Demurrage & Detention Control Tower')"),
     ).toBeVisible({ timeout: 15000 });
 
-    // Select Spain Corredor preset
-    const bcnBtn = page.locator(
-      "button:has-text('Barcelona Intermodal (Book TEST01)')",
-    );
-    await bcnBtn.click();
-
-    // Verify container updated
-    await expect(page.locator("text=SUDU4829103").first()).toBeVisible({
-      timeout: 5000,
-    });
-    await expect(page.locator("text=Hapag-Lloyd AG").first()).toBeVisible();
+    // Verify relational context
+    await expect(
+      page.locator("text=Expedición Relacional Activa (SQLite dev.db)"),
+    ).toBeVisible({ timeout: 10000 });
 
     // Navigate to Dossier tab
     const dossierTab = page.locator(

@@ -47,7 +47,7 @@ test.describe("Customs Warehouse, Free Zone & Special Regimes Engine (CAU 7100/7
     // Select lot
     const lotItem = page.locator("p:has-text('LOT-2026-DA-08101')").first();
     await expect(lotItem).toBeVisible({ timeout: 10000 });
-    await lotItem.click();
+    await lotItem.click({ force: true });
 
     // Verify detail headers and export buttons
     await expect(

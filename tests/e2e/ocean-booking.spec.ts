@@ -20,16 +20,10 @@ test.describe("Autonomous Ocean Booking Engine & Equipment Control (/bookings)",
       page.locator("text=DCSA v2.0 / EDI 301 & 304").first(),
     ).toBeVisible();
 
-    // Corridor Presets
-    await expect(
-      page.locator("button:has-text('Transpacífico (Shanghai -> LA)')"),
-    ).toBeVisible();
-    await expect(
-      page.locator("button:has-text('Asia-Europa (Singapur -> RTM)')"),
-    ).toBeVisible();
+    // Operational Booking Pipeline
     await expect(
       page.locator(
-        "button:has-text('🇪🇸 Atlántico Norte (BCN -> NYC Express)')",
+        "text=Bandeja Operativa de Reservas (Booking-to-Shipment Pipeline)",
       ),
     ).toBeVisible();
 
@@ -103,19 +97,9 @@ test.describe("Autonomous Ocean Booking Engine & Equipment Control (/bookings)",
       page.locator("h1:has-text('Ocean Booking & Equipment Control Tower')"),
     ).toBeVisible({ timeout: 15000 });
 
-    // Toggle Book TEST01 preset
-    const bcnBtn = page.locator(
-      "button:has-text('🇪🇸 Atlántico Norte (BCN -> NYC Express)')",
-    );
-    await bcnBtn.click();
-
-    await expect(page.locator("text=ESBCN").first()).toBeVisible({
-      timeout: 5000,
-    });
-    await expect(page.locator("text=USNYC").first()).toBeVisible();
-
-    // Click Reservar Ahora
+    // Click Reservar Ahora on first available spot rate
     const bookBtn = page.locator("button:has-text('Reservar Ahora')").first();
+    await expect(bookBtn).toBeVisible({ timeout: 10000 });
     await bookBtn.click();
 
     // Switches automatically to Cut-Off Radar tab

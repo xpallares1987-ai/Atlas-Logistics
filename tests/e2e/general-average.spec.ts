@@ -63,17 +63,15 @@ test.describe("Maritime General Average & Salvage Engine (York-Antwerp Rules 201
   }) => {
     await page.goto("/general-average");
 
-    const tabBtn = page.locator(
-      "button:has-text('Masa Activa & Pasiva (Simulador de Prorrateo)')",
-    );
+    const tabBtn = page
+      .locator("button:has-text('Masa Activa & Pasiva')")
+      .first();
     await expect(tabBtn).toBeVisible({ timeout: 15000 });
     await tabBtn.click();
 
     // Verify simulator inputs & result
     await expect(
-      page
-        .locator("div:has-text('Simulador de Masa Activa & Pasiva (YAR 2016)')")
-        .first(),
+      page.locator("div:has-text('Masa Activa & Pasiva (YAR 2016)')").first(),
     ).toBeVisible();
     await expect(
       page.locator(

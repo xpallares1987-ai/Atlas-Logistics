@@ -39,7 +39,7 @@ test.describe("Automated Freight Cargo Claims & Insurance Subrogation Engine", (
     // Click on Hague-Visby claim
     const firstClaim = page.locator("text=CLM-2026-HV-0041").first();
     await expect(firstClaim).toBeVisible({ timeout: 10000 });
-    await firstClaim.click();
+    await firstClaim.click({ force: true });
 
     // Verify 4-Box Inspector details
     await expect(

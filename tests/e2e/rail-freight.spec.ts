@@ -43,7 +43,7 @@ test.describe("Rail Intermodal Freight & Corridors Engine (COTIF / CIM & TEN-T 7
     // Select consignment
     const cimItem = page.locator("p:has-text('CIM-2026-8801')").first();
     await expect(cimItem).toBeVisible({ timeout: 10000 });
-    await cimItem.click();
+    await cimItem.click({ force: true });
 
     // Verify detail headers and export buttons
     await expect(

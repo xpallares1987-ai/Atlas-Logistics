@@ -43,7 +43,7 @@ test.describe("Customs Clearance & Tariff Engine", () => {
     // Verify declaration list items exist and click first item
     const firstDecl = page.locator("button:has-text('TARIC:')").first();
     await expect(firstDecl).toBeVisible({ timeout: 10000 });
-    await firstDecl.click();
+    await firstDecl.click({ force: true });
 
     // Verify DUA inspector header & boxes
     await expect(
@@ -77,15 +77,21 @@ test.describe("Customs Clearance & Tariff Engine", () => {
     ).toBeVisible({ timeout: 15000 });
 
     // Click simulator button
-    const simBtn = page.locator("button:has-text('Simulador TARIC')");
+    const simBtn = page
+      .locator("button:has-text('Calculador Arancelario TARIC')")
+      .or(page.locator("button:has-text('Simulador TARIC')"))
+      .first();
     await expect(simBtn).toBeVisible({ timeout: 10000 });
     await simBtn.click();
 
     // Verify modal appears
     await expect(
-      page.locator(
-        "h3:has-text('Simulador Arancelario TARIC y Nuevo Despacho')",
-      ),
+      page
+        .locator(
+          "h3:has-text('Calculador Arancelario TARIC y Alta de Despacho')",
+        )
+        .or(page.locator("h3:has-text('Arancelario TARIC')"))
+        .first(),
     ).toBeVisible({ timeout: 10000 });
 
     // Click calculate

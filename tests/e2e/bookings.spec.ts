@@ -34,9 +34,12 @@ test.describe("Booking Management", () => {
     await expect(newBookingBtn).toBeVisible({ timeout: 10000 });
     await newBookingBtn.click();
 
-    // Verify HBL draft editor opens
+    // Verify Booking modal / HBL editor opens
     await expect(
-      page.locator("h3:has-text('House Bill of Lading Draft')"),
+      page
+        .locator("h3:has-text('Nueva Solicitud de Reserva')")
+        .or(page.locator("h3:has-text('House Bill of Lading Draft')"))
+        .first(),
     ).toBeVisible({ timeout: 10000 });
     await expect(page.locator("button:has-text('Save Booking')")).toBeVisible({
       timeout: 10000,

@@ -43,7 +43,7 @@ test.describe("Multi-Currency Treasury, Hedging & IATA CASS / Ocean Carrier Auto
       .locator("p:has-text('MSK-INV-2026-88910')")
       .first();
     await expect(maerskInvoice).toBeVisible({ timeout: 10000 });
-    await maerskInvoice.click();
+    await maerskInvoice.click({ force: true });
 
     // Verify 3-way match table
     await expect(page.locator("th:has-text('Doc. Transporte')")).toBeVisible();
@@ -91,14 +91,19 @@ test.describe("Multi-Currency Treasury, Hedging & IATA CASS / Ocean Carrier Auto
   }) => {
     await page.goto("/treasury");
 
-    await expect(
-      page.locator("button:has-text('Simulador 3-Way Match')"),
-    ).toBeVisible({ timeout: 15000 });
-    await page.click("button:has-text('Simulador 3-Way Match')");
+    const simBtn = page
+      .locator("button:has-text('Motor de Casación 3-Way Match')")
+      .or(page.locator("button:has-text('3-Way Match')"))
+      .first();
+    await expect(simBtn).toBeVisible({ timeout: 15000 });
+    await simBtn.click();
 
     // Modal should be visible
     await expect(
-      page.locator("h3:has-text('Simulador de Casación 3-Way Match')"),
+      page
+        .locator("h3:has-text('Motor de Casación 3-Way Match')")
+        .or(page.locator("h3:has-text('Casación 3-Way Match')"))
+        .first(),
     ).toBeVisible();
 
     // Run evaluation

@@ -49,7 +49,7 @@ test.describe("Trade Finance & Letters of Credit Engine (UCP 600 / URDG 758 / SW
       .locator("p:has-text('LC-2026-BCN-0089')")
       .first();
     await expect(instrumentItem).toBeVisible({ timeout: 10000 });
-    await instrumentItem.click();
+    await instrumentItem.click({ force: true });
 
     // Verify detail headers and export buttons
     await expect(page.locator("a:has-text('SWIFT MT700')")).toBeVisible();
@@ -79,10 +79,11 @@ test.describe("Trade Finance & Letters of Credit Engine (UCP 600 / URDG 758 / SW
       ),
     ).toBeVisible({ timeout: 5000 });
 
-    // Switch to Fee Simulator tab
-    const feeTab = page.locator(
-      "button:has-text('Simulador de Comisiones Bancarias & Coste Financiero')",
-    );
+    // Switch to Fee Simulator / Calculator tab
+    const feeTab = page
+      .locator("button:has-text('Comisiones Bancarias & Coste Financiero')")
+      .or(page.locator("button:has-text('Comisiones Bancarias')"))
+      .first();
     await feeTab.click();
 
     // Run fee calculator

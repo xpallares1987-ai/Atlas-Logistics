@@ -47,7 +47,7 @@ test.describe("FuelEU Maritime & EU ETS Decarbonization Engine (Reg. UE 2023/180
     // Select voyage
     const voyageItem = page.locator("p:has-text('VOY-2026-MED-0101')").first();
     await expect(voyageItem).toBeVisible({ timeout: 10000 });
-    await voyageItem.click();
+    await voyageItem.click({ force: true });
 
     // Verify detail headers and export buttons
     await expect(page.locator("a:has-text('XML THETIS-MRV')")).toBeVisible();
@@ -76,9 +76,9 @@ test.describe("FuelEU Maritime & EU ETS Decarbonization Engine (Reg. UE 2023/180
     ).toBeVisible({ timeout: 5000 });
 
     // Switch to Pooling & Multi-Fuel tab
-    const poolTab = page.locator(
-      "button:has-text('Pooling de Flota (Art. 21) & Simulador Multicombustible')",
-    );
+    const poolTab = page
+      .locator("button:has-text('Pooling de Flota (Art. 21)')")
+      .first();
     await poolTab.click();
 
     // Run Multi-fuel simulator

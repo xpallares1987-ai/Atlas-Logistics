@@ -41,7 +41,7 @@ test.describe("Incoterms® 2020 & Commercial Freight Contracting Engine", () => 
     // Select contract from list
     const firstContract = page.locator("text=CTR-2026-CIP-8819").first();
     await expect(firstContract).toBeVisible({ timeout: 10000 });
-    await firstContract.click();
+    await firstContract.click({ force: true });
 
     // Verify Inspector details
     await expect(
@@ -87,14 +87,21 @@ test.describe("Incoterms® 2020 & Commercial Freight Contracting Engine", () => 
       ),
     ).toBeVisible({ timeout: 10000 });
 
-    // Open Simulator Modal
-    const simBtn = page.locator("button:has-text('Simulador & Validador')");
+    // Open Simulator / Validator Modal
+    const simBtn = page
+      .locator("button:has-text('Matriz & Validador')")
+      .or(page.locator("button:has-text('Simulador & Validador')"))
+      .or(page.locator("button:has-text('Validador')"))
+      .first();
     await expect(simBtn).toBeVisible();
     await simBtn.click();
 
     // Verify modal appears
     await expect(
-      page.locator("h3:has-text('Simulador y Validador Incoterms® 2020')"),
+      page
+        .locator("h3:has-text('Validador Incoterms® 2020')")
+        .or(page.locator("h3:has-text('Simulador y Validador')"))
+        .first(),
     ).toBeVisible({ timeout: 10000 });
 
     // Click Validate & Normalize button

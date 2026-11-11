@@ -67,17 +67,15 @@ test.describe("Maritime Chartering & Laytime / Demurrage Engine (BIMCO Gencon 20
   }) => {
     await page.goto("/chartering-laytime");
 
-    const tabBtn = page.locator(
-      "button:has-text('Estado de Hechos (SOF) & Simulador de Plancha')",
-    );
+    const tabBtn = page
+      .locator("button:has-text('Estado de Hechos (SOF)')")
+      .first();
     await expect(tabBtn).toBeVisible({ timeout: 15000 });
     await tabBtn.click();
 
     // Verify simulator inputs & result
     await expect(
-      page
-        .locator("div:has-text('Simulador de Plancha, Lluvia y Demoras')")
-        .first(),
+      page.locator("div:has-text('Plancha, Lluvia y Demoras')").first(),
     ).toBeVisible();
     await expect(
       page.locator(

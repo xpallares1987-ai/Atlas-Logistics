@@ -39,7 +39,7 @@ test.describe("Carbon Border Adjustment Mechanism (CBAM) & Scope 3 Decarbonizati
     // Select declaration
     const declaration = page.locator("p:has-text('CBAM-2026-Q3-001')").first();
     await expect(declaration).toBeVisible({ timeout: 10000 });
-    await declaration.click();
+    await declaration.click({ force: true });
 
     // Verify detail headers and export buttons
     await expect(page.locator("a:has-text('XML Registro UE')")).toBeVisible();

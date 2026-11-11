@@ -17,14 +17,14 @@ test.describe("Freight Rate Comparer", () => {
         .or(page.locator("text=Freight Rate")),
     ).toBeVisible({ timeout: 20000 });
 
-    await expect(page.locator("button:has-text('USD')")).toBeVisible();
-    await expect(page.locator("button:has-text('EUR')")).toBeVisible();
+    const usdBtn = page.getByRole("button", { name: "USD", exact: true });
+    const eurBtn = page.getByRole("button", { name: "EUR", exact: true });
+    await expect(usdBtn).toBeVisible();
+    await expect(eurBtn).toBeVisible();
 
     // Toggle currency
-    await page.click("button:has-text('EUR')");
-    await expect(page.locator("button:has-text('EUR')")).toHaveClass(
-      /bg-indigo-600/,
-    );
+    await eurBtn.click();
+    await expect(eurBtn).toHaveClass(/bg-indigo-600/);
   });
 
   test("should select origin and destination ports and trigger rate search", async ({

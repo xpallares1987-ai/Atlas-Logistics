@@ -95,18 +95,20 @@ test.describe("IATA e-Freight & Air Cargo (e-AWB) Engine", () => {
       page.locator("h1:has-text('IATA e-Freight & Air Cargo (e-AWB)')"),
     ).toBeVisible({ timeout: 15000 });
 
-    // Click simulator button
-    const simBtn = page.locator(
-      "button:has-text('Simulador Volumétrico y Tarificación')",
-    );
+    // Click simulator / calculator button
+    const simBtn = page
+      .locator("button:has-text('Volumétrica y Tarificación')")
+      .or(page.locator("button:has-text('Simulador Volumétrico')"))
+      .first();
     await expect(simBtn).toBeVisible({ timeout: 10000 });
     await simBtn.click();
 
     // Verify modal appears
     await expect(
-      page.locator(
-        "h3:has-text('Simulador Volumétrico y Tarificación Aérea IATA')",
-      ),
+      page
+        .locator("h3:has-text('Volumétrica y Tarificación Aérea IATA')")
+        .or(page.locator("h3:has-text('Tarificación Aérea IATA')"))
+        .first(),
     ).toBeVisible({ timeout: 10000 });
 
     // Click calculate
