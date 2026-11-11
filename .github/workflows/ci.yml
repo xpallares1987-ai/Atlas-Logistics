@@ -71,10 +71,7 @@ jobs:
           pnpm run db:migrate
           pnpm run db:seed
 
-      - name: Run Vitest unit & integration tests
-        run: pnpm test
-
-      - name: Generate coverage report
+      - name: Run Vitest unit & integration tests with coverage
         run: pnpm test -- --coverage
 
       - name: Upload coverage to Codecov
@@ -86,10 +83,23 @@ jobs:
           fail_ci_if_error: false
 
   build-images:
-    name: Build & Publish Container Images
+    name: Build & Publish ${{ matrix.component }} Image
     needs: lint-and-build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: frontend
+            dockerfile: ./Dockerfile
+            suffix: atlas-frontend
+          - component: backend
+            dockerfile: ./Dockerfile.backend
+            suffix: atlas-backend
+          - component: worker
+            dockerfile: ./Dockerfile.worker
+            suffix: atlas-worker
     steps:
       - uses: actions/checkout@v7
 
@@ -124,34 +134,21 @@ jobs:
       - name: Resolve target image registries
         id: img-names
         run: |
-          FE_IMAGES="ghcr.io/${{ github.repository_owner }}/atlas-frontend"
-          BE_IMAGES="ghcr.io/${{ github.repository_owner }}/atlas-backend"
-          WK_IMAGES="ghcr.io/${{ github.repository_owner }}/atlas-worker"
+          IMAGES="ghcr.io/${{ github.repository_owner }}/${{ matrix.suffix }}"
           if [ "${{ steps.docker_auth_check.outputs.has_auth }}" = "true" ]; then
-            FE_IMAGES="${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/atlas-frontend"$'\n'"$FE_IMAGES"
-            BE_IMAGES="${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/atlas-backend"$'\n'"$BE_IMAGES"
-            WK_IMAGES="${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/atlas-worker"$'\n'"$WK_IMAGES"
+            IMAGES="${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ matrix.suffix }}"$'\n'"$IMAGES"
           fi
           {
-            echo "fe_images<<EOF"
-            echo "$FE_IMAGES"
-            echo "EOF"
-            echo "be_images<<EOF"
-            echo "$BE_IMAGES"
-            echo "EOF"
-            echo "wk_images<<EOF"
-            echo "$WK_IMAGES"
+            echo "images<<EOF"
+            echo "$IMAGES"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      # ========================================================================
-      # Frontend Image
-      # ========================================================================
-      - name: Extract metadata (frontend)
-        id: meta-frontend
+      - name: Extract metadata
+        id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ steps.img-names.outputs.fe_images }}
+          images: ${{ steps.img-names.outputs.images }}
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
@@ -159,74 +156,16 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build (and push) frontend image
+      - name: Build (and push) ${{ matrix.component }} image
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./Dockerfile
+          file: ${{ matrix.dockerfile }}
           push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            NODE_VERSION=22
-            PNPM_VERSION=11.5.1
-
-      # ========================================================================
-      # Backend Image
-      # ========================================================================
-      - name: Extract metadata (backend)
-        id: meta-backend
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ steps.img-names.outputs.be_images }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build (and push) backend image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./Dockerfile.backend
-          push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            NODE_VERSION=22
-            PNPM_VERSION=11.5.1
-
-      # ========================================================================
-      # Worker Image (New)
-      # ========================================================================
-      - name: Extract metadata (worker)
-        id: meta-worker
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ steps.img-names.outputs.wk_images }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build (and push) worker image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./Dockerfile.worker
-          push: true
-          tags: ${{ steps.meta-worker.outputs.tags }}
-          labels: ${{ steps.meta-worker.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
           build-args: |
             NODE_VERSION=22
             PNPM_VERSION=11.5.1
@@ -259,8 +198,13 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
 
-      - name: Install Playwright browsers
+      - name: Install Playwright browsers & dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system dependencies only
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Build project
         run: pnpm run build
@@ -289,7 +233,6 @@ jobs:
 
   container-smoke-test:
     name: Container Configuration Smoke Test
-    needs: lint-and-build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
