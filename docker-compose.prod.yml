@@ -13,7 +13,6 @@
 #
 # ==============================================================================
 
-version: '3.8'
 
 x-common-variables: &common_env
   NODE_ENV: production
@@ -43,7 +42,8 @@ services:
     ports:
       - "3001:3001"
     env_file:
-      - .env.production
+      - path: .env.production
+        required: false
     environment:
       <<: *common_env
       DATABASE_URL: ${DATABASE_URL:-file:/app/data/prod.db}
@@ -74,7 +74,7 @@ services:
           memory: 1.5G
     security_opt:
       - no-new-privileges:true
-    read_only_root_filesystem: false  # Allow writes to /app/data
+    read_only: false  # Allow writes to /app/data
     cap_drop:
       - ALL
     cap_add:
@@ -105,10 +105,10 @@ services:
       <<: *default_healthcheck
     networks:
       - default
-    volumes:
-      # Optional: TLS certificates for HTTPS
-      # - /etc/letsencrypt/live/example.com:/etc/nginx/certs:ro
-      # - /etc/letsencrypt/live/example.com:/etc/ssl/certs:ro
+    # volumes:
+    #   # Optional: TLS certificates for HTTPS
+    #   # - /etc/letsencrypt/live/example.com:/etc/nginx/certs:ro
+    #   # - /etc/letsencrypt/live/example.com:/etc/ssl/certs:ro
     deploy:
       resources:
         limits:
@@ -139,7 +139,8 @@ services:
     image: atlas-logistics:worker-prod
     restart: always
     env_file:
-      - .env.production
+      - path: .env.production
+        required: false
     environment:
       <<: *common_env
       DATABASE_URL: ${DATABASE_URL:-file:/app/data/prod.db}

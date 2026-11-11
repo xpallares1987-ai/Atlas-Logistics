@@ -23,6 +23,7 @@ env:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   lint-and-build:
@@ -113,6 +114,36 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve target image registries
+        id: img-names
+        run: |
+          FE_IMAGES="ghcr.io/${{ github.repository_owner }}/atlas-frontend"
+          BE_IMAGES="ghcr.io/${{ github.repository_owner }}/atlas-backend"
+          WK_IMAGES="ghcr.io/${{ github.repository_owner }}/atlas-worker"
+          if [ "${{ steps.docker_auth_check.outputs.has_auth }}" = "true" ]; then
+            FE_IMAGES="${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/atlas-frontend"$'\n'"$FE_IMAGES"
+            BE_IMAGES="${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/atlas-backend"$'\n'"$BE_IMAGES"
+            WK_IMAGES="${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/atlas-worker"$'\n'"$WK_IMAGES"
+          fi
+          {
+            echo "fe_images<<EOF"
+            echo "$FE_IMAGES"
+            echo "EOF"
+            echo "be_images<<EOF"
+            echo "$BE_IMAGES"
+            echo "EOF"
+            echo "wk_images<<EOF"
+            echo "$WK_IMAGES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       # ========================================================================
       # Frontend Image
       # ========================================================================
@@ -120,7 +151,7 @@ jobs:
         id: meta-frontend
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME || 'xpallares1987-ai' }}/atlas-frontend
+          images: ${{ steps.img-names.outputs.fe_images }}
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
@@ -133,7 +164,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          push: ${{ steps.docker_auth_check.outputs.has_auth == 'true' }}
+          push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
           cache-from: type=gha
@@ -149,7 +180,7 @@ jobs:
         id: meta-backend
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME || 'xpallares1987-ai' }}/atlas-backend
+          images: ${{ steps.img-names.outputs.be_images }}
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
@@ -162,7 +193,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.backend
-          push: ${{ steps.docker_auth_check.outputs.has_auth == 'true' }}
+          push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
@@ -178,7 +209,7 @@ jobs:
         id: meta-worker
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME || 'xpallares1987-ai' }}/atlas-worker
+          images: ${{ steps.img-names.outputs.wk_images }}
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
@@ -191,7 +222,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.worker
-          push: ${{ steps.docker_auth_check.outputs.has_auth == 'true' }}
+          push: true
           tags: ${{ steps.meta-worker.outputs.tags }}
           labels: ${{ steps.meta-worker.outputs.labels }}
           cache-from: type=gha
@@ -256,14 +287,29 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
+  container-smoke-test:
+    name: Container Configuration Smoke Test
+    needs: lint-and-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate Production Docker Compose Configuration
+        run: |
+          docker compose -f docker-compose.prod.yml config --quiet
+        env:
+          JWT_SECRET: smoke-test-jwt-secret-key-super-secure-32chars
+          GRAFANA_ADMIN_PASSWORD: smoke-test-grafana-password
+
   deploy-notification:
     name: Deployment Notification
-    needs: [lint-and-build, build-images, e2e-tests]
+    needs: [lint-and-build, build-images, e2e-tests, container-smoke-test]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Notify deployment
         run: |
           echo "✅ CI/CD Pipeline completed"
-          echo "🐳 3 images built: frontend, backend, worker"
+          echo "🐳 3 container images published: frontend, backend, worker"
+          echo "🔍 Production Docker Compose configuration validated"
           echo "📊 All tests passed"
