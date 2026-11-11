@@ -9,6 +9,8 @@ import {
 import { eq, desc } from "drizzle-orm";
 import { EdiTokenizer, EdiDocumentAST } from "./edi-tokenizer.js";
 import { EdifactService, EdifactIftminInstruction } from "./edifact.service.js";
+import { EdifactDesadvService } from "./edifact-desadv.service.js";
+import { EdifactIftstaService } from "./edifact-iftsta.service.js";
 import {
   X12Service,
   X12LoadTenderInstruction,
@@ -71,6 +73,94 @@ export class EdiDispatcherService {
     let ackPayload = "";
 
     if (standard === "EDIFACT") {
+      const isDesadv = ast.segments.some((s) => {
+        if (s.tag !== "UNH") return false;
+        const el = s.elements[1];
+        if (!el) return false;
+        if (typeof el === "string") return el.includes("DESADV");
+        return (el as any).components?.some(
+          (c: string) => c && c.includes("DESADV"),
+        );
+      });
+
+      if (isDesadv) {
+        const desadv = EdifactDesadvService.parse(ast);
+        const unb = ast.segments.find((s) => s.tag === "UNB");
+        if (unb) {
+          const s = unb.elements[1];
+          const r = unb.elements[2];
+          senderId = typeof s === "object" ? (s as any).components?.[0] : s;
+          receiverId = typeof r === "object" ? (r as any).components?.[0] : r;
+          controlNumber = desadv.despatchAdviceNumber;
+        }
+
+        ackPayload = EdifactIftstaService.generateCONTRL(
+          senderId,
+          receiverId,
+          controlNumber,
+          "ACCEPTED",
+        );
+
+        const partner = await this.findPartnerBySender(senderId, "EDIFACT");
+
+        await db.insert(ediInterchanges).values({
+          id: interchangeId,
+          partnerId: partner?.id,
+          controlNumber,
+          direction: "INBOUND",
+          standard: "EDIFACT",
+          senderId,
+          receiverId,
+          status: "APPLIED",
+          rawPayload: raw,
+          ackPayload,
+          ackStatus: "ACCEPTED",
+          processedAt: new Date(),
+        });
+
+        const msgId = `msg_${crypto.randomUUID().substring(0, 8)}`;
+        extractedMilestones.push("DESPATCH_CONFIRMED");
+
+        const matchedShipment = await this.matchShipment(
+          desadv.orderReference,
+          desadv.billOfLadingReference,
+        );
+
+        await db.insert(ediMessages).values({
+          id: msgId,
+          interchangeId,
+          messageType: "DESADV",
+          controlNumber,
+          shipmentId: matchedShipment?.id,
+          bookingReference: desadv.orderReference,
+          status: "APPLIED",
+          parsedContent: desadv,
+          extractedMilestone: "DESPATCH_CONFIRMED",
+          exceptionTriggered: false,
+          processedAt: new Date(),
+        });
+
+        messageDetails.push(desadv);
+
+        // Emit domain events
+        await EdifactDesadvService.ingest(raw);
+
+        return {
+          interchangeId,
+          controlNumber,
+          standard: "EDIFACT",
+          senderId,
+          receiverId,
+          status: "APPLIED",
+          ackPayload,
+          messagesProcessed: 1,
+          extractedMilestones,
+          exceptionsDetected: 0,
+          details: messageDetails,
+          events: messageDetails,
+        };
+      }
+
       const events = EdifactService.parseIFTSTA(ast);
       if (events.length > 0) {
         senderId = events[0].senderId;

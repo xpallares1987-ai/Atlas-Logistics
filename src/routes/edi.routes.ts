@@ -2,6 +2,8 @@ import { FastifyPluginAsync } from "fastify";
 import {
   EdiTokenizer,
   EdifactService,
+  EdifactDesadvService,
+  EdifactIftstaService,
   X12Service,
   EdiDispatcherService,
 } from "../services/edi/index.js";
@@ -79,7 +81,37 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
       let parsedEvents: any[] = [];
 
       if (standard === "EDIFACT") {
-        parsedEvents = EdifactService.parseIFTSTA(ast);
+        const isDesadv = ast.segments.some((s) => {
+          if (s.tag !== "UNH") return false;
+          const el = s.elements[1];
+          if (!el) return false;
+          if (typeof el === "string") return el.includes("DESADV");
+          return (el as any).components?.some(
+            (c: string) => c && c.includes("DESADV"),
+          );
+        });
+
+        if (isDesadv) {
+          const desadv = EdifactDesadvService.parse(ast);
+          parsedEvents = [
+            {
+              senderId: desadv.consignor.code || "SUPPLIER",
+              receiverId: desadv.consignee.code || "CUSTOMER",
+              controlNumber: desadv.despatchAdviceNumber,
+              bookingReference: desadv.orderReference,
+              billOfLading: desadv.billOfLadingReference,
+              statusCode: "DESPATCH_ADVICE",
+              milestone: "DESPATCH_CONFIRMED",
+              locationName: desadv.consignor.city || desadv.consignor.name,
+              eventTimestamp: desadv.despatchDate,
+              isException: false,
+              details: `DESADV ${desadv.despatchAdviceNumber}: ${desadv.items.length} líneas, ${desadv.totalPackages} paquetes, ${desadv.totalGrossWeightKg} kg`,
+              despatchAdvice: desadv,
+            },
+          ];
+        } else {
+          parsedEvents = EdifactService.parseIFTSTA(ast);
+        }
       } else {
         const is315 = ast.segments.some(
           (s) => s.tag === "ST" && s.elements[0] === "315",
@@ -267,12 +299,190 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
         payload:
           "ISA*00*          *00*          *ZZ*JBHUNT         *ZZ*ATLASLOG       *261004*1800*U*00401*000009941*0*P*>~GS*QM*JBHUNT*ATLASLOG*20261004*1800*9941*X*004010~ST*214*0001~B10*JB-441092*BK-2026-8819*JBHUNT~LX*1~AT7*AG*NS***20261004*1745*LT~MS1*VALENCIA*ES*ES~SE*6*0001~GE*1*9941~IEA*1*000009941~",
       },
+      {
+        id: "edifact_desadv_d96a_standard",
+        name: "UN/EDIFACT D96A DESADV — Despatch Advice (Aviso de Expedición)",
+        standard: "EDIFACT",
+        messageType: "DESADV",
+        carrier: "LOGISTICS-HUB",
+        bookingRef: "BK-2026-67116",
+        description:
+          "Aviso electrónico de expedición internacional de 10 paquetes con desglose de ítems, peso y UOM.",
+        payload:
+          "UNB+UNOA:2+SUPPLIER01+ATLASLOG+261111:1200+100099'UNH+1+DESADV:D:96A:UN'BGM+351+DESADV-2026-8819+9'DTM+137:202611111200:203'RFF+ON:ORD-2026-9921'RFF+BM:MSKU9284712'NAD+SE+SUPPLIER01::92+Global Industrial Parts S.L.+Poligono Prat+Barcelona++08820+ES'NAD+CN+CUSTOMER01::92+Atlas Logistics Hub+Carrer Motors 10+Barcelona++08040+ES'CPS+1'PAC+10++CT'MEA+WT+G+KGM:850'LIN+1++SENSOR-X100:IN'IMD+F++:::Industrial Telemetry Sensors'QTY+12:500:PCE'MEA+WT+G+KGM:850'PAC+10++CT'UNT+15+1'UNZ+1+100099'",
+      },
     ];
 
     return reply.send({
       success: true,
       data: samples,
     });
+  });
+
+  // ==========================================================================
+  // UN/EDIFACT D96A DESADV & IFTSTA Gateway Endpoints
+  // ==========================================================================
+
+  /**
+   * Parse EDIFACT DESADV message into structured JSON DespatchAdvice
+   */
+  fastify.post("/desadv/parse", async (request, reply) => {
+    try {
+      const parsed = inboundSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({
+          success: false,
+          error: "Invalid DESADV payload",
+          details: parsed.error.issues,
+        });
+      }
+
+      const advice = EdifactDesadvService.parse(parsed.data.rawPayload);
+      return reply.send({
+        success: true,
+        data: advice,
+      });
+    } catch (err: any) {
+      return reply.status(500).send({
+        success: false,
+        error: err.message || "Failed to parse DESADV",
+      });
+    }
+  });
+
+  /**
+   * Generate EDIFACT D96A DESADV message text from JSON structure
+   */
+  fastify.post("/desadv/generate", async (request, reply) => {
+    try {
+      const body = request.body as any;
+      if (
+        !body ||
+        !body.despatchAdviceNumber ||
+        !body.consignor ||
+        !body.consignee
+      ) {
+        return reply.status(400).send({
+          success: false,
+          error:
+            "Missing required DespatchAdvice attributes (despatchAdviceNumber, consignor, consignee)",
+        });
+      }
+
+      const senderId = (request.query as any)?.senderId || "ATLASLOG";
+      const receiverId = (request.query as any)?.receiverId || "PARTNER";
+
+      const ediText = EdifactDesadvService.generate(body, senderId, receiverId);
+      return reply.send({
+        success: true,
+        data: {
+          ediText,
+          messageType: "DESADV",
+          version: "D96A",
+          senderId,
+          receiverId,
+        },
+      });
+    } catch (err: any) {
+      return reply.status(500).send({
+        success: false,
+        error: err.message || "Failed to generate DESADV",
+      });
+    }
+  });
+
+  /**
+   * Ingest DESADV with transactional outbox event emission
+   */
+  fastify.post("/desadv/ingest", async (request, reply) => {
+    try {
+      const parsed = inboundSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({
+          success: false,
+          error: "Invalid DESADV payload",
+          details: parsed.error.issues,
+        });
+      }
+
+      const result = await EdifactDesadvService.ingest(parsed.data.rawPayload);
+      return reply.status(201).send(result);
+    } catch (err: any) {
+      return reply.status(500).send({
+        success: false,
+        error: err.message || "Failed to ingest DESADV",
+      });
+    }
+  });
+
+  /**
+   * Generate EDIFACT D96A IFTSTA status message
+   */
+  fastify.post("/iftsta/generate", async (request, reply) => {
+    try {
+      const body = request.body as any;
+      if (!body || !body.statusCode) {
+        return reply.status(400).send({
+          success: false,
+          error: "Missing required statusCode for IFTSTA",
+        });
+      }
+
+      const ediText = EdifactIftstaService.generateIFTSTA(
+        body,
+        body.senderId || "ATLASLOG",
+        body.receiverId || "PARTNER",
+      );
+      return reply.send({
+        success: true,
+        data: {
+          ediText,
+          messageType: "IFTSTA",
+          version: "D96A",
+        },
+      });
+    } catch (err: any) {
+      return reply.status(500).send({
+        success: false,
+        error: err.message || "Failed to generate IFTSTA",
+      });
+    }
+  });
+
+  /**
+   * Generate technical ACK CONTRL
+   */
+  fastify.post("/contrl/generate", async (request, reply) => {
+    try {
+      const body = (request.body || {}) as {
+        interchangeSender?: string;
+        interchangeReceiver?: string;
+        referenceControlNum?: string;
+        status?: "ACCEPTED" | "REJECTED";
+        errorMessage?: string;
+      };
+
+      const ediText = EdifactIftstaService.generateCONTRL(
+        body.interchangeSender || "PARTNER",
+        body.interchangeReceiver || "ATLASLOG",
+        body.referenceControlNum || `CTRL-${Date.now()}`,
+        body.status || "ACCEPTED",
+        body.errorMessage,
+      );
+
+      return reply.send({
+        success: true,
+        data: {
+          ediText,
+          messageType: "CONTRL",
+        },
+      });
+    } catch (err: any) {
+      return reply.status(500).send({
+        success: false,
+        error: err.message || "Failed to generate CONTRL",
+      });
+    }
   });
 };
 

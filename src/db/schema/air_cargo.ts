@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  real,
+  index,
+} from "drizzle-orm/sqlite-core";
 import { commonAuditFields } from "./_common.js";
 
 export const iataAirports = sqliteTable("iata_airports", {
@@ -61,5 +67,34 @@ export const airwayBills = sqliteTable("airway_bills", {
     .notNull()
     .default(true),
   awbData: text("awb_data", { mode: "json" }), // Full 12-box IATA structure
+  oneRecordJsonLd: text("one_record_json_ld", { mode: "json" }), // Official IATA ONE Record 3.0 Linked Data JSON-LD graph
   ...commonAuditFields,
 });
+
+export const cargoIqMilestones = sqliteTable(
+  "cargo_iq_milestones",
+  {
+    id: text("id").primaryKey(), // ciq_...
+    awbNumber: text("awb_number")
+      .notNull()
+      .references(() => airwayBills.awbNumber, { onDelete: "cascade" }),
+    milestoneCode: text("milestone_code").notNull(), // RCS, DEP, ARR, RCF, NFD, AWD, DLV
+    milestoneName: text("milestone_name").notNull(),
+    scheduledTime: integer("scheduled_time", { mode: "timestamp" }).notNull(),
+    actualTime: integer("actual_time", { mode: "timestamp" }),
+    slaDeadline: integer("sla_deadline", { mode: "timestamp" }).notNull(),
+    slaStatus: text("sla_status").notNull().default("ON_TIME"), // ON_TIME, WARNING, BREACHED
+    locationAirportCode: text("location_airport_code")
+      .notNull()
+      .references(() => iataAirports.code),
+    flightNumber: text("flight_number"),
+    carrierCode: text("carrier_code"),
+    eventRemarks: text("event_remarks"),
+    ...commonAuditFields,
+  },
+  (table) => ({
+    awbIdx: index("ciq_awb_idx").on(table.awbNumber),
+    codeIdx: index("ciq_code_idx").on(table.milestoneCode),
+    slaIdx: index("ciq_sla_idx").on(table.slaStatus),
+  }),
+);

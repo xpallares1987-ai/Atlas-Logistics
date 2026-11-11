@@ -186,6 +186,7 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(telemetryRoutes, { prefix: "/api/telemetry" });
   await fastify.register(ediRoutes, { prefix: "/api/edi" });
   await fastify.register(dcsaRoutes, { prefix: "/api/dcsa/v3" });
+  await fastify.register(dcsaRoutes, { prefix: "/api/dcsa" });
   await fastify.register(controlTowerRoutes, { prefix: "/api/control-tower" });
   await fastify.register(stowageRoutes, { prefix: "/api/stowage" });
   await fastify.register(smartContractsRoutes, {

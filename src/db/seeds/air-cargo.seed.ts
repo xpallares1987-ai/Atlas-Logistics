@@ -2,6 +2,10 @@ import { db } from "../index.js";
 import * as schema from "../schema/index.js";
 import { faker } from "@faker-js/faker";
 import { sql } from "drizzle-orm";
+import {
+  SEED_ONE_RECORD_WAYBILLS,
+  SEED_CARGO_IQ_TIMELINE,
+} from "@atlas/shared";
 
 export async function seedAirCargo(): Promise<void> {
   // 14. IATA AIRPORTS, DGR REGISTRY & AIRWAY BILLS (e-AWB)
@@ -82,6 +86,13 @@ export async function seedAirCargo(): Promise<void> {
       city: "Buenos Aires",
       countryCode: "AR",
       timezone: "America/Argentina/Buenos_Aires",
+    },
+    {
+      code: "MEX",
+      name: "Aeropuerto Internacional Benito Juárez",
+      city: "Ciudad de México",
+      countryCode: "MX",
+      timezone: "America/Mexico_City",
     },
   ];
 
@@ -848,6 +859,162 @@ export async function seedAirCargo(): Promise<void> {
       updatedAt: new Date(),
     })
     .onConflictDoNothing();
+
+  // CANONICAL IATA ONE RECORD WAYBILLS & CARGO IQ MILESTONES (Phase 1)
+  const oneRecordWaybill1 = SEED_ONE_RECORD_WAYBILLS[0];
+  const oneRecordWaybill2 = SEED_ONE_RECORD_WAYBILLS[1];
+
+  await db
+    .insert(schema.airwayBills)
+    .values({
+      id: "mawb_ib_82910482",
+      type: "MAWB",
+      awbNumber: oneRecordWaybill1.fullAwbNumber, // "075-82910482"
+      airlinePrefix: oneRecordWaybill1.waybillPrefix,
+      airlineName: oneRecordWaybill1.carrier?.name || "Iberia Líneas Aéreas",
+      originAirport: oneRecordWaybill1.originAirport,
+      destinationAirport: oneRecordWaybill1.destinationAirport,
+      flightNumber:
+        oneRecordWaybill1.transportMovement?.flightNumber || "IB6251",
+      flightDate: new Date(
+        oneRecordWaybill1.transportMovement?.scheduledDeparture ||
+          Date.now() + 6 * 3600 * 1000,
+      ),
+      shipperData: oneRecordWaybill1.shipper,
+      consigneeData: oneRecordWaybill1.consignee,
+      issuingAgentData: oneRecordWaybill1.issuingAgent,
+      pieces: oneRecordWaybill1.piecesCount,
+      grossWeightKg: oneRecordWaybill1.totalGrossWeightKg,
+      volumeCbm: oneRecordWaybill1.totalVolumeCbm,
+      chargeableWeightKg: oneRecordWaybill1.chargeableWeightKg,
+      rateClass: "Q",
+      ratePerKg: 4.8,
+      freightCharge: 4080.0,
+      otherCharges: [
+        { code: "MYC", name: "Fuel Surcharge", amount: 980.0 },
+        { code: "SCC", name: "Security Surcharge", amount: 150.0 },
+        { code: "AWC", name: "AWB Fee", amount: 25.0 },
+        { code: "COL", name: "Cold Storage Fee", amount: 200.0 },
+      ],
+      totalPrepaid: 5435.0,
+      totalCollect: 0,
+      currency: "EUR",
+      natureOfGoods: oneRecordWaybill1.natureAndQuantityOfGoods,
+      specialHandlingCodes: oneRecordWaybill1.specialHandlingCodes,
+      handlingInfo: "TEMP MONITORED +2C TO +8C. CONTAINS DRY ICE UN 1845.",
+      status: "IN_TRANSIT",
+      eAwbCertified: true,
+      oneRecordJsonLd: oneRecordWaybill1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: schema.airwayBills.awbNumber,
+      set: {
+        oneRecordJsonLd: oneRecordWaybill1,
+        status: "IN_TRANSIT",
+        updatedAt: new Date(),
+      },
+    });
+
+  if (oneRecordWaybill2) {
+    await db
+      .insert(schema.airwayBills)
+      .values({
+        id: "mawb_am_44109283",
+        type: "MAWB",
+        awbNumber: oneRecordWaybill2.fullAwbNumber, // "139-44109283"
+        airlinePrefix: oneRecordWaybill2.waybillPrefix,
+        airlineName: oneRecordWaybill2.carrier?.name || "Aeroméxico Cargo",
+        originAirport: oneRecordWaybill2.originAirport,
+        destinationAirport: oneRecordWaybill2.destinationAirport,
+        flightNumber:
+          oneRecordWaybill2.transportMovement?.flightNumber || "AM002",
+        flightDate: new Date(
+          oneRecordWaybill2.transportMovement?.scheduledDeparture ||
+            Date.now() + 10 * 3600 * 1000,
+        ),
+        shipperData: oneRecordWaybill2.shipper,
+        consigneeData: oneRecordWaybill2.consignee,
+        issuingAgentData: oneRecordWaybill2.issuingAgent,
+        pieces: oneRecordWaybill2.piecesCount,
+        grossWeightKg: oneRecordWaybill2.totalGrossWeightKg,
+        volumeCbm: oneRecordWaybill2.totalVolumeCbm,
+        chargeableWeightKg: oneRecordWaybill2.chargeableWeightKg,
+        rateClass: "Q",
+        ratePerKg: 3.9,
+        freightCharge: 1248.0,
+        otherCharges: [
+          { code: "MYC", name: "Fuel Surcharge", amount: 310.0 },
+          { code: "SCC", name: "Security Surcharge", amount: 65.0 },
+          { code: "AWC", name: "AWB Fee", amount: 25.0 },
+        ],
+        totalPrepaid: 1648.0,
+        totalCollect: 0,
+        currency: "EUR",
+        natureOfGoods: oneRecordWaybill2.natureAndQuantityOfGoods,
+        specialHandlingCodes: oneRecordWaybill2.specialHandlingCodes,
+        handlingInfo: "HANDLE WITH CARE. LITHIUM ION BATTERIES PI967.",
+        status: "BOOKED",
+        eAwbCertified: true,
+        oneRecordJsonLd: oneRecordWaybill2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: schema.airwayBills.awbNumber,
+        set: {
+          oneRecordJsonLd: oneRecordWaybill2,
+          status: "BOOKED",
+          updatedAt: new Date(),
+        },
+      });
+  }
+
+  // Seed Cargo iQ Milestones for 075-82910482
+  for (const m of SEED_CARGO_IQ_TIMELINE) {
+    const milestoneId = `ciq_075_${m.milestoneCode.toLowerCase()}`;
+    await db
+      .insert(schema.cargoIqMilestones)
+      .values({
+        id: milestoneId,
+        awbNumber: oneRecordWaybill1.fullAwbNumber,
+        milestoneCode: m.milestoneCode,
+        milestoneName: m.name,
+        scheduledTime: new Date(m.plannedTimestamp),
+        actualTime: m.actualTimestamp ? new Date(m.actualTimestamp) : null,
+        slaDeadline: new Date(m.slaLimitTimestamp),
+        slaStatus:
+          m.status === "COMPLETED"
+            ? "ON_TIME"
+            : m.deltaMinutes && m.deltaMinutes > 0
+              ? "WARNING"
+              : "ON_TIME",
+        locationAirportCode: m.locationAirport,
+        flightNumber: "IB6251",
+        carrierCode: "IB",
+        eventRemarks: m.eventRemarks || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: schema.cargoIqMilestones.id,
+        set: {
+          scheduledTime: new Date(m.plannedTimestamp),
+          actualTime: m.actualTimestamp ? new Date(m.actualTimestamp) : null,
+          slaDeadline: new Date(m.slaLimitTimestamp),
+          slaStatus:
+            m.status === "COMPLETED"
+              ? "ON_TIME"
+              : m.deltaMinutes && m.deltaMinutes > 0
+                ? "WARNING"
+                : "ON_TIME",
+          eventRemarks: m.eventRemarks || null,
+          updatedAt: new Date(),
+        },
+      });
+  }
+  console.log("✅ Creados hitos Cargo iQ e-AWB para IATA ONE Record.");
 
   console.log(
     "✅ Creados Airway Bills maestros, consolidaciones HAWB y vuelos de carga.",

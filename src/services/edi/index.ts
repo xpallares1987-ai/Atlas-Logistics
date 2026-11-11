@@ -5,5 +5,7 @@
 
 export * from "./edi-tokenizer.js";
 export * from "./edifact.service.js";
+export * from "./edifact-desadv.service.js";
+export * from "./edifact-iftsta.service.js";
 export * from "./x12.service.js";
 export * from "./edi-dispatcher.service.js";

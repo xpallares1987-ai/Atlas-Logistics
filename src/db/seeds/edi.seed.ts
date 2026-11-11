@@ -3,7 +3,9 @@ import { ediPartners, ediInterchanges, ediMessages } from "../schema/index.js";
 import { sql } from "drizzle-orm";
 
 export async function seedEdi(): Promise<void> {
-  console.log("🌱 Initializing and seeding B2B EDI Engine & Trading Partners...");
+  console.log(
+    "🌱 Initializing and seeding B2B EDI Engine & Trading Partners...",
+  );
 
   // 1. Create tables if not exist
   await db.run(sql`
@@ -256,5 +258,32 @@ export async function seedEdi(): Promise<void> {
     })
     .onConflictDoNothing();
 
-  console.log(`✅ Creados 5 interlocutores EDI y ${2} intercambios históricos de prueba.`);
+  // 4. Seed Canonical DESADV (Despatch Advice) Interoperability Preset
+  const sampleDesadvPayload =
+    "UNB+UNOA:2+SUPPLIER01+ATLASLOG+261111:1200+100099'UNH+1+DESADV:D:96A:UN'BGM+351+DESADV-2026-8819+9'DTM+137:202611111200:203'RFF+ON:ORD-2026-9921'RFF+BM:MSKU9284712'NAD+SE+SUPPLIER01::92+Global Industrial Parts S.L.+Poligono Prat+Barcelona++08820+ES'NAD+CN+CUSTOMER01::92+Atlas Logistics Hub+Carrer Motors 10+Barcelona++08040+ES'CPS+1'PAC+10++CT'MEA+WT+G+KGM:850'LIN+1++SENSOR-X100:IN'IMD+F++:::Industrial Telemetry Sensors'QTY+12:500:PCE'MEA+WT+G+KGM:850'PAC+10++CT'UNT+15+1'UNZ+1+100099'";
+
+  const sampleDesadvAck =
+    "UNB+UNOA:2+ATLASLOG+SUPPLIER01+261111:1201+ACK9099'UNH+1+CONTRL:D:96A:UN'UCI+100099+SUPPLIER01+ATLASLOG+7'UCM+1+DESADV:D:96A:UN+7'UNT+4+1'UNZ+1+ACK9099'";
+
+  await db
+    .insert(ediInterchanges)
+    .values({
+      id: "ic_sample_desadv_01",
+      partnerId: "partner_maersk",
+      controlNumber: "100099",
+      direction: "INBOUND",
+      standard: "EDIFACT",
+      senderId: "SUPPLIER01",
+      receiverId: "ATLASLOG",
+      status: "APPLIED",
+      rawPayload: sampleDesadvPayload,
+      ackPayload: sampleDesadvAck,
+      ackStatus: "ACCEPTED",
+      processedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  console.log(
+    `✅ Creados 5 interlocutores EDI y 3 intercambios históricos de prueba.`,
+  );
 }
