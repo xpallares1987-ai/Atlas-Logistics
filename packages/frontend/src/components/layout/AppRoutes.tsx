@@ -1,7 +1,6 @@
 import React, { Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "../ProtectedRoute";
-import { SkeletonLoader } from "../SkeletonLoader";
 import { SafeRemoteLoader } from "../mfe/SafeRemoteLoader";
 import { getMfeRemoteUrl } from "../../lib/mfe/mfe-config";
 
@@ -226,11 +225,18 @@ export const AppRoutes = () => {
     <RouteErrorBoundary>
       <Suspense
         fallback={
-          <div className="flex flex-col gap-4 h-full w-full">
-            <SkeletonLoader height="8rem" borderRadius="1rem" />
-            <SkeletonLoader height="3rem" borderRadius="0.5rem" count={3} />
-            <div className="flex-1">
-              <SkeletonLoader height="100%" borderRadius="1rem" />
+          <div className="p-4 md:p-8 max-w-[1600px] mx-auto min-h-[calc(100vh-4rem)] flex flex-col gap-6 w-full animate-pulse">
+            <div className="w-64 h-10 bg-slate-800/60 rounded-xl" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="h-28 bg-slate-900/60 border border-slate-800/80 rounded-2xl" />
+              <div className="h-28 bg-slate-900/60 border border-slate-800/80 rounded-2xl" />
+              <div className="h-28 bg-slate-900/60 border border-slate-800/80 rounded-2xl" />
+              <div className="h-28 bg-slate-900/60 border border-slate-800/80 rounded-2xl" />
+            </div>
+            <div className="h-[450px] bg-slate-900/50 border border-slate-800/80 rounded-2xl" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="h-[400px] bg-slate-900/50 border border-slate-800/80 rounded-2xl" />
+              <div className="h-[400px] bg-slate-900/50 border border-slate-800/80 rounded-2xl" />
             </div>
           </div>
         }

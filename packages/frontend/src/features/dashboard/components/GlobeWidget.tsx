@@ -1,18 +1,10 @@
+import React from "react";
 import { Globe2 } from "lucide-react";
-import { useApiQuery } from "../../../hooks/useApiQuery";
-import { useDashboardStore } from "../store";
+import { useDashboardActiveList } from "../context/DashboardContext";
 
-export function GlobeWidget() {
-  const { dateRange } = useDashboardStore();
-  const queryStr = dateRange
-    ? `?start=${dateRange.start}&end=${dateRange.end}`
-    : "";
-  const { data } = useApiQuery<any>(
-    ["dashboard", dateRange],
-    `/dashboard${queryStr}`,
-  );
-  const shipments = data?.data?.activeList || [];
-  const activeCount = shipments.length;
+export const GlobeWidget: React.FC = () => {
+  const { activeList } = useDashboardActiveList();
+  const activeCount = activeList.length;
   // Make the UI look alive even if DB has few items by adding a baseline, or just use real length
   const displayCount = activeCount > 0 ? activeCount : 342;
   const portCalls = activeCount > 0 ? Math.floor(activeCount / 10) || 1 : 12;
@@ -41,7 +33,7 @@ export function GlobeWidget() {
 
       {/* Connections (Static SVG Lines) */}
       <svg
-        className="absolute inset-0 w-full h-full z-0 opacity-30"
+        className="absolute inset-0 w-full h-full z-0 opacity-30 pointer-events-none"
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
       >
@@ -100,4 +92,4 @@ export function GlobeWidget() {
       </div>
     </div>
   );
-}
+};

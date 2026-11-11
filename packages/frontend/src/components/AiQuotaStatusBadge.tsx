@@ -46,19 +46,48 @@ export const AiQuotaStatusBadge: React.FC = () => {
         setStatus(data);
       }
     } catch {
-      // Ignore network error during initial status check
+      // Ignore network error during status check
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchStatus();
+    // Defer initial status check to idle time to avoid competing with critical first paint
+    let idleId: number | null = null;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = (window as any).requestIdleCallback(
+        () => {
+          fetchStatus();
+        },
+        { timeout: 3000 },
+      );
+    } else {
+      timerId = setTimeout(() => {
+        fetchStatus();
+      }, 2000);
+    }
+
     const handler = () => {
       fetchStatus();
     };
     window.addEventListener("atlas:ai-quota-updated", handler);
-    return () => window.removeEventListener("atlas:ai-quota-updated", handler);
+
+    return () => {
+      if (
+        idleId &&
+        typeof window !== "undefined" &&
+        "cancelIdleCallback" in window
+      ) {
+        (window as any).cancelIdleCallback(idleId);
+      }
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+      window.removeEventListener("atlas:ai-quota-updated", handler);
+    };
   }, [fetchStatus]);
 
   const handlePurgeCache = async () => {

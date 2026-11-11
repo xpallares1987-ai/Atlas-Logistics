@@ -10,20 +10,11 @@ import {
   TableRow,
 } from "@atlas/ui";
 
-import { useApiQuery } from "../../../hooks/useApiQuery";
-import { useDashboardStore } from "../store";
+import { useDashboardActiveList } from "../context/DashboardContext";
 
 export function ActiveShipments() {
   const navigate = useNavigate();
-  const { dateRange } = useDashboardStore();
-  const queryStr = dateRange
-    ? `?start=${dateRange.start}&end=${dateRange.end}`
-    : "";
-  const { data } = useApiQuery<any>(
-    ["dashboard", dateRange],
-    `/dashboard${queryStr}`,
-  );
-  const shipments: any[] = data?.data?.activeList || [];
+  const { activeList: shipments } = useDashboardActiveList();
 
   // Map backend shipments to UI format
   // If no shipments exist, we could provide some visual defaults, but let's just map real data.

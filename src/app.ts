@@ -143,12 +143,12 @@ app.register(fastifyHelmet, {
   crossOriginResourcePolicy: { policy: "cross-origin" },
   hsts: {
     maxAge: 31536000,
-    includeSubdomains: true,
+    includeSubDomains: true,
     preload: true,
   },
-  xContentTypeOptions: "nosniff",
+  xContentTypeOptions: true,
   xFrameOptions: "DENY",
-  referrerPolicy: { policy: "strict-no-referrer" },
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
 });
 
 // Configure Redis (Using shared client when real Redis is active)
