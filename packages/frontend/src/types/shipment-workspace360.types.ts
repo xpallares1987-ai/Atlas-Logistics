@@ -272,3 +272,73 @@ export interface MletrRecordSummary {
   totalEndorsements: number;
   isSurrendered: boolean;
 }
+
+export interface ActiveActionModalState {
+  type: "COMPLETE_TASK" | "RESOLVE_EXCEPTION";
+  targetId: string;
+  title: string;
+  description: string;
+  inputs: Record<string, string>;
+  primaryAction?: TaskActionMetadata;
+}
+
+export interface ExecuteActionModalProps {
+  modalState: ActiveActionModalState;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  submitting: boolean;
+  onChangeInputs: (inputs: Record<string, string>) => void;
+}
+
+export interface RaiseExceptionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  submitting: boolean;
+  category: string;
+  setCategory: (cat: string) => void;
+  severity: string;
+  setSeverity: (sev: string) => void;
+  title: string;
+  setTitle: (t: string) => void;
+  description: string;
+  setDescription: (d: string) => void;
+  isBlocking: boolean;
+  setIsBlocking: (b: boolean) => void;
+}
+
+export interface ShipmentAttentionTabProps {
+  shipmentDetail: OperationalShipment360View;
+  highlightId?: string;
+}
+
+export interface ShipmentJourneyTabProps {
+  shipmentDetail: OperationalShipment360View;
+  timelineEvents: OperationalTimelineEvent[];
+  timelineLoading: boolean;
+  onRefreshTimeline: (shipmentId: string) => void;
+}
+
+export interface ShipmentTasksTabProps {
+  shipmentDetail: OperationalShipment360View;
+  highlightId?: string;
+  onOpenTaskAction: (task: OperationalShipment360View["tasks"][number]) => void;
+}
+
+export interface ShipmentExceptionsTabProps {
+  shipmentDetail: OperationalShipment360View;
+  highlightId?: string;
+  onOpenRaiseExceptionModal: () => void;
+  onOpenResolveExceptionModal: (exception: OperationalExceptionRecord) => void;
+}
+
+export interface ShipmentCargoRouteTabProps {
+  shipmentDetail: OperationalShipment360View;
+}
+
+export interface ShipmentAuditTabProps {
+  shipmentDetail: OperationalShipment360View;
+  auditEvents: OutboxAuditEvent[];
+  auditLoading: boolean;
+  onRefreshAudit: (shipmentId: string) => void;
+}
