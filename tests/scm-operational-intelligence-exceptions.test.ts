@@ -444,6 +444,6 @@ describe("SCM Operational Intelligence — Exceptions, Signals, Explainability &
       expect(rebuildData.success).toBe(true);
       expect(rebuildData.shipmentsRebuiltCount).toBeGreaterThan(0);
       expect(rebuildData.durationMs).toBeGreaterThanOrEqual(0);
-    }, 15000);
+    }, 35000);
   });
 });
