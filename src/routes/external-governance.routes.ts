@@ -304,7 +304,39 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // 5. Query Entity Links for a Given Entity
+  // 5. Query All Entity Links (with optional filters)
+  fastify.get("/entity-links", async (request, reply) => {
+    try {
+      const query = request.query as { entityType?: string; entityId?: string };
+      const conditions = [eq(entitySourceLinks.isDeleted, false)];
+      if (query.entityType) {
+        conditions.push(eq(entitySourceLinks.entityType, query.entityType));
+      }
+      if (query.entityId) {
+        conditions.push(eq(entitySourceLinks.entityId, query.entityId));
+      }
+
+      const links = await db
+        .select({
+          link: entitySourceLinks,
+          sourceRecord: sourceRecords,
+        })
+        .from(entitySourceLinks)
+        .innerJoin(
+          sourceRecords,
+          eq(entitySourceLinks.sourceRecordId, sourceRecords.id),
+        )
+        .where(and(...conditions))
+        .orderBy(desc(entitySourceLinks.createdAt))
+        .limit(100);
+
+      return reply.send({ success: true, count: links.length, data: links });
+    } catch (err: any) {
+      return reply.status(500).send({ success: false, error: err.message });
+    }
+  });
+
+  // 5b. Query Entity Links for a Given Entity
   fastify.get("/entity-links/:entityType/:entityId", async (request, reply) => {
     try {
       const { entityType, entityId } = request.params as {

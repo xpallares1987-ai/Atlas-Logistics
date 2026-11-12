@@ -39,6 +39,7 @@ import {
   Coins,
   Sliders,
   CheckCircle2,
+  Database,
 } from "lucide-react";
 
 import { useAuth } from "../../contexts/AuthContext";
@@ -338,6 +339,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 Addresses & B/L Hub
               </NavLink>
+              <NavLink
+                onClick={closeMobile}
+                to="/external-data"
+                icon={Database}
+                badge="Data"
+              >
+                External Data & Ports
+              </NavLink>
               <NavLink onClick={closeMobile} to="/documents" icon={FileText}>
                 Document Vault
               </NavLink>
@@ -486,6 +495,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 badge="Directory"
               >
                 Addresses & B/L Hub
+              </NavLink>
+              <NavLink
+                onClick={closeMobile}
+                to="/external-data"
+                icon={Database}
+                badge="Data"
+              >
+                External Data & Ports
               </NavLink>
               <NavLink onClick={closeMobile} to="/documents" icon={FileText}>
                 Document Vault
@@ -672,6 +689,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 badge="Directory"
               >
                 Addresses & B/L Hub
+              </NavLink>
+              <NavLink
+                onClick={closeMobile}
+                to="/external-data"
+                icon={Database}
+                badge="Data"
+              >
+                External Data & Ports
               </NavLink>
               <NavLink onClick={closeMobile} to="/documents" icon={FileText}>
                 Document Vault
@@ -1051,6 +1076,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 badge="Directory"
               >
                 Addresses & B/L Hub
+              </NavLink>
+              <NavLink
+                onClick={closeMobile}
+                to="/external-data"
+                icon={Database}
+                badge="Data"
+              >
+                External Data & Ports
               </NavLink>
               <NavLink onClick={closeMobile} to="/documents" icon={FileText}>
                 Document Vault

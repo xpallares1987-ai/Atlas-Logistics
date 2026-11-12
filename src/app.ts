@@ -236,9 +236,13 @@ app.register(fastifyCors, {
   credentials: true,
 });
 
-// Fix rate limit operator precedence: ensure CI/test checks are grouped
+// Fix rate limit operator precedence: Explicitly detect test environment
+// NOTE: In CI environments, CI env var should be set to "true" (e.g., CI=true in GitHub Actions)
+// Default behavior: 5000 requests per 15 minutes for production, 1000 for testing
+const isTestEnvironment =
+  process.env.CI === "true" || process.env.NODE_ENV === "test";
 app.register(fastifyRateLimit, {
-  max: process.env.CI || process.env.NODE_ENV === "test" ? 1000 : 5000,
+  max: isTestEnvironment ? 1000 : 5000,
   timeWindow: "15 minutes",
   allowList: ["127.0.0.1", "::1"],
   redis: redis, // Use shared Redis (or mock) for rate limiting

@@ -27,6 +27,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     - Implemented `src/db/seeds/external-governance.seed.ts` providing deterministic baseline data for UNECE UN/LOCODE, OpenStreetMap, GeoNames, and GLEIF, pre-linked to canonical shipment `sh_demo_01`.
     - Implemented and mounted Fastify routes (`/api/external-governance/*`) in `src/routes/external-governance.routes.ts` and `src/routes/index.ts`.
     - Authored end-to-end integration test suite `tests/external-governance-lean.test.ts` (7/7 passing).
+  - **External Data Governance UI & Living Persistence (Phase 4)**:
+    - Implemented dedicated frontend workspace `/external-data` (`ExternalDataGovernanceModule.tsx`, 203 lines, <1,000 lines ADR 0020 compliant).
+    - Modularized 4 tabs in `packages/frontend/src/components/external-governance/`:
+      - `SourcesCatalogTab.tsx`: Directory of authorized external sources (UN/LOCODE, OSM, GeoNames, GLEIF).
+      - `UnlocodeHotCacheTab.tsx`: In-memory Prefix Trie/LRU diagnostics, real-time search (<1.5ms latency tag), and hot port upsert.
+      - `RawRecordsLedgerTab.tsx`: Raw JSON ledger with copyable SHA-256 hashes, source filtering, and payload audit.
+      - `EntityLinksMatrixTab.tsx`: Semantic cross-reference matrix with entity type filtering and match confidence indicators.
+    - Implemented atomic modals and drawers:
+      - `modals/UpsertUnlocodeModal.tsx`: Hot Write-Through mutations updating server RAM and SQLite simultaneously.
+      - `modals/IngestRecordModal.tsx`: Raw JSON ingestion with live WebCrypto SHA-256 pre-calculation and Outbox event dispatch.
+      - `drawers/RecordPayloadDrawer.tsx`: Formatted JSON inspector with client-side cryptographic integrity verification.
+      - `modals/CreateEntityLinkModal.tsx`: Dynamic entity binding with shipment selector (fallback to `sh_demo_01`).
+    - Added custom hook `useExternalGovernance.ts` with React Query caching and invalidation.
+    - Integrated navigation link in `Sidebar.tsx` under *Directory & Standards* with `Database` icon across all personas.
+    - Authored verification test suite `tests/external-governance-ui.test.ts` (5/5 passing).
 
 ### 🛠️ Refactored & Architecture
 - **Frontend Modular Decomposition & File Size Guardrails (ADR 0020)**:

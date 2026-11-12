@@ -1,18 +1,17 @@
 {
   "branches": ["main"],
   "plugins": [
-    "@semantic-release/commit-analyzer",
-    "@semantic-release/release-notes-generator",
     [
-      "@semantic-release/github",
-      {
-        "assets": [
-          { "path": "docker-compose.prod.yml", "label": "Production Docker Compose" },
-          { "path": "docs/reports/AUDIT_INDEX.md", "label": "Security & Architecture Audit Index" },
-          { "path": "docs/reports/COMPREHENSIVE_AUDIT.md", "label": "Comprehensive Audit Report" },
-          { "path": "docs/reports/EXECUTIVE_SUMMARY.md", "label": "Executive Summary" }
-        ]
-      }
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      [
+        "@semantic-release/github",
+        {
+          "assets": [
+            { "path": "docker-compose.prod.yml", "label": "Production Docker Compose" }
+          ]
+        }
+      ]
     ]
   ]
 }

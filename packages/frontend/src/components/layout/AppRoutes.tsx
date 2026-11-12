@@ -82,6 +82,9 @@ const BookingManagementModule = React.lazy(
 const AddressesHubModule = React.lazy(
   () => import("../../pages/AddressesHubModule"),
 );
+const ExternalDataGovernanceModule = React.lazy(
+  () => import("../../pages/ExternalDataGovernanceModule"),
+);
 const CustomsClearanceModule = React.lazy(
   () => import("../../pages/CustomsClearanceModule"),
 );
@@ -458,6 +461,22 @@ export const AppRoutes = () => {
                 ]}
               >
                 <AddressesHubModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/external-data"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "OPERATIONS",
+                  "CUSTOMS_BROKER",
+                ]}
+              >
+                <ExternalDataGovernanceModule />
               </ProtectedRoute>
             }
           />

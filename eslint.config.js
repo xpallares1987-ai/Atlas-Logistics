@@ -38,10 +38,9 @@ export default tseslint.config(
       },
     },
     rules: {
-      "@typescript-eslint/no-explicit-any": "off",
-      "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-      "no-console": "off",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "no-console": ["warn", { allow: ["warn", "error"] }],
       "workspaces/no-relative-imports": "off",
       "workspaces/require-dependency": "off",
     },

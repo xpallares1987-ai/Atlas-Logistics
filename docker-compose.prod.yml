@@ -43,10 +43,10 @@ services:
       - "3001:3001"
     env_file:
       - path: .env.production
-        required: false
+        required: true
     environment:
       <<: *common_env
-      DATABASE_URL: ${DATABASE_URL:-file:/app/data/prod.db}
+      DATABASE_URL: ${DATABASE_URL:?ERROR: DATABASE_URL must be set for production}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
     volumes:
@@ -56,8 +56,11 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
-      <<: *default_healthcheck
+      test: ["CMD", "sh", "-c", "redis-cli --version >/dev/null && node -e \"fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       default:
         aliases:
@@ -156,7 +159,7 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "sh", "-c", "ps aux | grep 'worker-node' | grep -v grep || exit 1"]
+      test: ["CMD", "sh", "-c", "node -e \"fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -452,6 +452,8 @@ export function getUnlocodeStats() {
   };
 }
 
+export type UnlocodeStats = ReturnType<typeof getUnlocodeStats>;
+
 /**
  * Write-Through Cache operation: atomically updates the in-memory dataset,
  * the Prefix Trie and clears the LRU cache to reflect new or modified locations immediately.

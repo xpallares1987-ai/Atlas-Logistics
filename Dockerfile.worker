@@ -54,9 +54,5 @@ RUN (id -u node >/dev/null 2>&1 || (addgroup -g 1000 node && adduser -D -u 1000 
 
 USER node
 
-# Workers don't expose ports, but signal readiness via logs
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
-    CMD ["/bin/sh", "-c", "ps aux | grep 'worker-node' | grep -v grep || exit 1"]
-
 # Start worker in watch mode for zero-downtime redeploys
 CMD ["node", "--import", "tsx/esm", "src/worker-node.ts"]
