@@ -50,7 +50,8 @@
     "verify:env": "node scripts/verify-env.js",
     "audit:leaks": "node scripts/check-sensitive-leaks.cjs --all",
     "audit:leaks:staged": "node scripts/check-sensitive-leaks.cjs --staged",
-    "check:file-sizes": "node scripts/check-file-sizes.mjs"
+    "check:file-sizes": "node scripts/check-file-sizes.mjs",
+    "wiki:sync": "node scripts/sync-wiki.mjs"
   },
   "dependencies": {
     "@atlas/shared": "workspace:^",

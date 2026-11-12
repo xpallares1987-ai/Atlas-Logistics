@@ -1,0 +1,51 @@
+name: Sync Documentation to Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - "scripts/sync-wiki.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-wiki:
+    name: Sync Docs to GitHub Wiki
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v4
+
+      - name: Checkout Wiki Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Execute Wiki Sync Script
+        env:
+          WIKI_DIR: wiki
+        run: node scripts/sync-wiki.mjs
+
+      - name: Commit and Push to Wiki
+        run: |
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "✨ Wiki is already up-to-date. No changes to commit."
+          else
+            git commit -m "docs(wiki): automated sync from docs/ [skip ci]"
+            git push origin master
+          fi
