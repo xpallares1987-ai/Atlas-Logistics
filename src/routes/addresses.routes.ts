@@ -15,6 +15,7 @@ import {
   searchUnlocodes,
   formatAllBlBoxes,
   DEFAULT_UNLOCODE_HUBS,
+  escapeHTML,
 } from "@atlas/shared";
 import { getCurrentTenant } from "../lib/tenancy/tenancy-context.js";
 import { addressGeocodingService } from "../services/address-geocoding.service.js";
@@ -169,12 +170,31 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
   // UN/LOCODE Lookup
   fastify.get("/unlocode-lookup", async (request, reply) => {
     try {
-      const q = ((request.query as any)?.q || "").trim();
+      const rawQ = ((request.query as any)?.q || "").trim();
+      const q = escapeHTML(rawQ);
       if (!q) {
-        return DEFAULT_UNLOCODE_HUBS.slice(0, 15);
+        const hubs = DEFAULT_UNLOCODE_HUBS.slice(0, 15).map((item) => ({
+          location: escapeHTML(item.location),
+          name: escapeHTML(item.name),
+          country: escapeHTML(item.country),
+          coordinates: item.coordinates
+            ? escapeHTML(item.coordinates)
+            : undefined,
+          status: item.status ? escapeHTML(item.status) : undefined,
+        }));
+        return reply.type("application/json").send(hubs);
       }
       const results = searchUnlocodes(q, undefined, 20);
-      return results;
+      const sanitized = results.map((item) => ({
+        location: escapeHTML(item.location),
+        name: escapeHTML(item.name),
+        country: escapeHTML(item.country),
+        coordinates: item.coordinates
+          ? escapeHTML(item.coordinates)
+          : undefined,
+        status: item.status ? escapeHTML(item.status) : undefined,
+      }));
+      return reply.type("application/json").send(sanitized);
     } catch (err: any) {
       return reply.code(500).send({ error: err.message });
     }

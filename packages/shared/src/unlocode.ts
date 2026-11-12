@@ -4,6 +4,8 @@
  * lookup engine with LRU Cache, 3-character prefix indexing, and Trie hierarchy.
  */
 
+import { escapeHTML } from "./dom.js";
+
 export interface UnlocodeEntry {
   location: string;
   name: string;
@@ -459,14 +461,32 @@ export type UnlocodeStats = ReturnType<typeof getUnlocodeStats>;
  * the Prefix Trie and clears the LRU cache to reflect new or modified locations immediately.
  */
 export function upsertUnlocode(entry: UnlocodeEntry): void {
+  const sanitizedEntry: UnlocodeEntry = {
+    location: escapeHTML(entry.location).trim().toUpperCase(),
+    name: escapeHTML(entry.name).trim(),
+    country: escapeHTML(entry.country).trim().toUpperCase(),
+    coordinates: entry.coordinates
+      ? escapeHTML(entry.coordinates).trim()
+      : undefined,
+    status: entry.status
+      ? escapeHTML(entry.status).trim().toUpperCase()
+      : undefined,
+    subdivision: entry.subdivision
+      ? escapeHTML(entry.subdivision).trim().toUpperCase()
+      : undefined,
+    function: entry.function ? escapeHTML(entry.function).trim() : undefined,
+    nameWoDiacritics: entry.nameWoDiacritics
+      ? escapeHTML(entry.nameWoDiacritics).trim()
+      : undefined,
+  };
   const existingIdx = rawDataset.findIndex(
-    (e) => e.location === entry.location,
+    (e) => e.location === sanitizedEntry.location,
   );
   if (existingIdx >= 0) {
-    rawDataset[existingIdx] = entry;
+    rawDataset[existingIdx] = sanitizedEntry;
   } else {
-    rawDataset.push(entry);
+    rawDataset.push(sanitizedEntry);
   }
-  unlocodeTrie.upsertEntry(entry);
+  unlocodeTrie.upsertEntry(sanitizedEntry);
   unlocodeLruCache.clear();
 }

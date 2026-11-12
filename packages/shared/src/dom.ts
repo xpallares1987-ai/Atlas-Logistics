@@ -28,7 +28,8 @@ export function on<T extends Event>(
     element.removeEventListener(event, handler as EventListener, options);
 }
 
-export function escapeHTML(str: string): string {
+export function escapeHTML(str: string | undefined | null): string {
+  if (!str || typeof str !== "string") return "";
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

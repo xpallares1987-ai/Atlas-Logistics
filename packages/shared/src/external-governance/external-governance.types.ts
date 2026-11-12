@@ -82,3 +82,63 @@ export const createEntityLinkRequestSchema = z.object({
 export type CreateEntityLinkRequest = z.infer<
   typeof createEntityLinkRequestSchema
 >;
+
+export const upsertUnlocodeRequestSchema = z.object({
+  location: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(
+      /^[A-Z0-9]{5}$/,
+      "UN/LOCODE must be exactly 5 alphanumeric characters",
+    ),
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .regex(
+      /^[a-zA-Z0-9\s.,'()\-À-ÿ]+$/,
+      "Port name contains invalid characters",
+    ),
+  country: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{2}$/, "Country code must be exactly 2 uppercase letters"),
+  coordinates: z
+    .union([
+      z.string().regex(/^[0-9A-Za-z\s.,\-+]+$/),
+      z
+        .object({
+          lat: z.number().optional(),
+          lng: z.number().optional(),
+        })
+        .transform((c) =>
+          c.lat !== undefined && c.lng !== undefined
+            ? `${c.lat}, ${c.lng}`
+            : undefined,
+        ),
+    ])
+    .optional(),
+  status: z
+    .string()
+    .trim()
+    .max(10)
+    .regex(/^[A-Za-z0-9]+$/, "Status contains invalid characters")
+    .optional(),
+  subdivision: z
+    .string()
+    .trim()
+    .max(10)
+    .regex(/^[A-Za-z0-9]+$/, "Subdivision contains invalid characters")
+    .optional(),
+  function: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^[0-9\-]+$/, "Function contains invalid characters")
+    .optional(),
+});
+
+export type UpsertUnlocodeRequest = z.infer<typeof upsertUnlocodeRequestSchema>;

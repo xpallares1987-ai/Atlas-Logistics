@@ -11,11 +11,13 @@ import { eq, and, desc } from "drizzle-orm";
 import {
   ingestSourceRecordRequestSchema,
   createEntityLinkRequestSchema,
+  upsertUnlocodeRequestSchema,
   searchUnlocodes,
   upsertUnlocode,
   DEFAULT_UNLOCODE_HUBS,
   getUnlocodeStats,
   UnlocodeEntry,
+  escapeHTML,
 } from "@atlas/shared";
 import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { outboxBus } from "../scm/kernel/outbox-bus.js";
@@ -371,26 +373,47 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
   // 6. High-Performance UN/LOCODE Lookup (Using In-Memory Prefix Trie & LRU)
   fastify.get("/unlocode/lookup", async (request, reply) => {
     try {
-      const q = ((request.query as any)?.q || "").trim();
-      const country = (request.query as any)?.country;
+      const rawQ = ((request.query as any)?.q || "").trim();
+      const rawCountry = (request.query as any)?.country;
+      const q = escapeHTML(rawQ);
+      const country = rawCountry
+        ? escapeHTML(String(rawCountry).trim())
+        : undefined;
       const limit = Math.min(
         100,
         parseInt((request.query as any)?.limit || "20", 10),
       );
 
       if (!q) {
-        return reply.send({
+        const defaultHubs = DEFAULT_UNLOCODE_HUBS.slice(0, limit).map((h) => ({
+          location: escapeHTML(h.location),
+          name: escapeHTML(h.name),
+          country: escapeHTML(h.country),
+          coordinates: h.coordinates ? escapeHTML(h.coordinates) : undefined,
+          status: h.status ? escapeHTML(h.status) : undefined,
+        }));
+        return reply.type("application/json").send({
           success: true,
-          data: DEFAULT_UNLOCODE_HUBS.slice(0, limit),
+          data: defaultHubs,
           stats: getUnlocodeStats(),
         });
       }
 
       const results = searchUnlocodes(q, country, limit);
-      return reply.send({
+      const sanitized = results.map((item) => ({
+        location: escapeHTML(item.location),
+        name: escapeHTML(item.name),
+        country: escapeHTML(item.country),
+        coordinates: item.coordinates
+          ? escapeHTML(item.coordinates)
+          : undefined,
+        status: item.status ? escapeHTML(item.status) : undefined,
+      }));
+
+      return reply.type("application/json").send({
         success: true,
-        count: results.length,
-        data: results,
+        count: sanitized.length,
+        data: sanitized,
         stats: getUnlocodeStats(),
       });
     } catch (err: any) {
@@ -401,14 +424,31 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
   // 7. Write-Through Cache: Update/Upsert UN/LOCODE in Hot Memory + SQLite
   fastify.post("/unlocode/upsert", async (request, reply) => {
     try {
-      const entry = request.body as UnlocodeEntry;
-      if (!entry || !entry.location || !entry.name || !entry.country) {
+      const parsed = upsertUnlocodeRequestSchema.safeParse(request.body);
+      if (!parsed.success) {
         return reply.status(400).send({
           success: false,
           error:
-            "Invalid UN/LOCODE entry: location, name and country are mandatory.",
+            "Invalid UN/LOCODE entry: location (5 uppercase chars), name and country (2 chars) are mandatory.",
+          details: parsed.error.issues,
         });
       }
+
+      const entry: UnlocodeEntry = {
+        location: escapeHTML(parsed.data.location),
+        name: escapeHTML(parsed.data.name),
+        country: escapeHTML(parsed.data.country),
+        coordinates: parsed.data.coordinates
+          ? escapeHTML(parsed.data.coordinates)
+          : undefined,
+        status: parsed.data.status ? escapeHTML(parsed.data.status) : undefined,
+        subdivision: parsed.data.subdivision
+          ? escapeHTML(parsed.data.subdivision)
+          : undefined,
+        function: parsed.data.function
+          ? escapeHTML(parsed.data.function)
+          : undefined,
+      };
 
       // Write-Through: Update In-Memory Trie and LRU immediately without server restart
       upsertUnlocode(entry);
@@ -458,13 +498,16 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
           });
       }
 
-      return reply.status(200).send({
-        success: true,
-        message: `Port '${entry.location}' (${entry.name}) updated via Write-Through Cache in RAM and SQLite.`,
-        entry,
-        recordId,
-        stats: getUnlocodeStats(),
-      });
+      return reply
+        .type("application/json")
+        .status(200)
+        .send({
+          success: true,
+          message: `Port '${entry.location}' (${entry.name}) updated via Write-Through Cache in RAM and SQLite.`,
+          entry,
+          recordId,
+          stats: getUnlocodeStats(),
+        });
     } catch (err: any) {
       return reply.status(500).send({ success: false, error: err.message });
     }
