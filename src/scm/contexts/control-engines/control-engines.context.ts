@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { v4 as uuidv4 } from "uuid";
 import { eq, and } from "drizzle-orm";
 import { db } from "../../../db/index.js";
@@ -628,8 +629,7 @@ export async function promoteExceptionsToMacroIncident(
 
   const incidentId = `inc_${uuidv4().substring(0, 10)}`;
   const incidentNumber =
-    input.incidentNumber ||
-    `INC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    input.incidentNumber || `INC-2026-${randomInt(1000, 10000)}`;
   const nowIso = new Date().toISOString();
 
   const impactedShipmentIds = new Set<string>();

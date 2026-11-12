@@ -118,7 +118,7 @@ export class CarbonInsettingLedgerService {
   public static async issueToken(dto: IssueTokenDTO) {
     const now = new Date().toISOString();
     const tokenId = `token_${crypto.randomUUID().slice(0, 12)}`;
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const randomSuffix = crypto.randomInt(1000, 10000);
     const tokenReference = `INSET-${new Date().getFullYear()}-${dto.fuelType.slice(0, 3).toUpperCase()}-${randomSuffix}`;
 
     // Lookup marine fuel for lower calorific value & baseline factors
@@ -283,7 +283,7 @@ export class CarbonInsettingLedgerService {
       : GENESIS_BLOCK_HASH;
 
     const allocId = `alloc_${crypto.randomUUID().slice(0, 12)}`;
-    const randomCert = Math.floor(1000 + Math.random() * 9000);
+    const randomCert = crypto.randomInt(1000, 10000);
     const allocationReference = `ALLOC-${new Date().getFullYear()}-${randomCert}`;
     const certificateCode = `CERT-INS-${new Date().getFullYear()}-${randomCert}`;
     const verificationQrUrl = `https://atlas-logistics.io/verify/insetting/${certificateCode}`;

@@ -4,6 +4,7 @@
  * Dispute Resolver, Free-Time Clock Engine, and FMC 46 CFR § 541 Compliance Audits.
  */
 
+import { randomBytes, randomInt } from "node:crypto";
 import {
   CarrierInvoiceData,
   ClockSuspension,
@@ -200,12 +201,12 @@ export class DemurrageDisputeService {
   }): DispatchedEmailReceipt {
     const receipt: DispatchedEmailReceipt = {
       dossierId: params.dossierId,
-      messageId: `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+      messageId: `msg-${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`,
       recipientEmail: params.recipientEmail,
       subject: params.subject,
       dispatchedAt: new Date().toISOString(),
       status: "SENT",
-      confirmationCode: `CARRIER-ACK-${Math.floor(100000 + Math.random() * 900000)}`,
+      confirmationCode: `CARRIER-ACK-${randomInt(100000, 1000000)}`,
     };
 
     this.emailDispatches.unshift(receipt);

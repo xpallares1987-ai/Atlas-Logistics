@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
 import { db } from "../../../db/index.js";
@@ -279,7 +280,7 @@ export async function createShipmentExecution(
   const id = `shp_${uuidv4().substring(0, 8)}`;
   const shipmentReference =
     input.shipmentReference ||
-    `ATLS-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+    `ATLS-${new Date().getFullYear()}-${randomInt(10000, 100000)}`;
 
   const allocs = input.orderAllocations || [];
   const relationType: ShipmentOrderLink["relationType"] =

@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
 import { db } from "../../../db/index.js";
@@ -337,7 +338,7 @@ export async function createCustomerOrder(
   const id = `ord_${uuidv4().substring(0, 8)}`;
   const orderNumber =
     input.orderNumber ||
-    `ORD-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+    `ORD-${new Date().getFullYear()}-${randomInt(10000, 100000)}`;
 
   const requirements: OrderCargoRequirement[] = (
     input.cargoRequirements || []

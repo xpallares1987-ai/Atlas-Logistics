@@ -328,7 +328,7 @@ export async function createBookingRequest(input: CreateBookingInput) {
 
   const now = new Date();
   const yyyymm = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const randomSuffix = crypto.randomInt(1000, 10000);
   const id = `bkg_${uuidv4().substring(0, 8)}`;
   const referenceNumber =
     input.referenceNumber ||
@@ -575,7 +575,7 @@ export async function confirmBookingToShipment(
 
   const now = new Date();
   const year = now.getFullYear();
-  const randCode = Math.floor(10000 + Math.random() * 90000);
+  const randCode = crypto.randomInt(10000, 100000);
 
   const shipmentId = details.shipmentId || `shp_${uuidv4().substring(0, 8)}`;
   const trackingNumber = details.trackingNumber || `ATLS-${year}-${randCode}`;
@@ -589,17 +589,17 @@ export async function confirmBookingToShipment(
     input.carrierBookingNumber ||
     input.bookingNumber ||
     details.carrierBookingNumber ||
-    `${scacPrefix}${Math.floor(1000000 + Math.random() * 9000000)}`;
+    `${scacPrefix}${crypto.randomInt(1000000, 10000000)}`;
 
   const containerNumber =
     input.containerNumber ||
     details.containerNumber ||
-    `${scacPrefix}${Math.floor(1000000 + Math.random() * 8999999)}`;
+    `${scacPrefix}${crypto.randomInt(1000000, 9999999)}`;
 
   const sealNumber =
     input.sealNumber ||
     details.sealNumber ||
-    `SL-${Math.floor(10000 + Math.random() * 89999)}`;
+    `SL-${crypto.randomInt(10000, 99999)}`;
   const vesselName =
     input.vesselName || bkg.vessel || `${carrierName.toUpperCase()} TITAN`;
   const voyageNumber = input.voyageNumber || bkg.voyage || "2611E";
@@ -853,7 +853,7 @@ export async function confirmBookingToShipment(
       // 5.4 Insert drayage transport order if all 3 addresses are present
       if (originTerminal && destinationAddress && haulierAddress) {
         const orderId = `dry_${uuidv4().substring(0, 8)}`;
-        const orderNumber = `DRY-${year}${String(now.getMonth() + 1).padStart(2, "0")}-${Math.floor(1000 + Math.random() * 9000)}`;
+        const orderNumber = `DRY-${year}${String(now.getMonth() + 1).padStart(2, "0")}-${crypto.randomInt(1000, 10000)}`;
 
         const distKm = Number(drayageData.distanceKm) || 42.5;
         const bRate =
@@ -884,7 +884,7 @@ export async function confirmBookingToShipment(
           Number(drayageData.co2WteKg) || Number((co2Wtw * 0.2).toFixed(1));
         const intensity = Number(drayageData.emissionsIntensityFactor) || 0.062;
 
-        const pin = String(Math.floor(1000 + Math.random() * 9000));
+        const pin = String(crypto.randomInt(1000, 10000));
         const qrDigest = crypto
           .createHash("sha256")
           .update(

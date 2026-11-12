@@ -143,7 +143,7 @@ export async function createConsolidation(
   );
 
   const id = `cns_${uuidv4()}`;
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const randomSuffix = crypto.randomInt(1000, 10000);
   const consolidationReference =
     input.consolidationReference || `CNS-2026-${randomSuffix}`;
   const now = new Date();
@@ -1060,7 +1060,7 @@ export async function createAndSubmitCustomsCase(
     ) / 100;
 
   const id = `cus_${uuidv4()}`;
-  const randomSeq = Math.floor(10000 + Math.random() * 90000);
+  const randomSeq = crypto.randomInt(10000, 100000);
   const caseNumber = `CUS-2026-${randomSeq}`;
   const mrnNumber = `26${input.jurisdictionCountry.slice(0, 2).toUpperCase()}00${randomSeq}R9`;
   const now = new Date();
