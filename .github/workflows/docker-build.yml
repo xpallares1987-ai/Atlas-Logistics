@@ -176,6 +176,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     needs: build-and-push
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -249,6 +251,8 @@ jobs:
     runs-on: ubuntu-latest
     if: failure()
     needs: [build-and-push]
+    permissions:
+      issues: write
 
     steps:
       - name: Comment on PR (if applicable)
