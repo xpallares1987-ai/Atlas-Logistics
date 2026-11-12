@@ -9,11 +9,13 @@ import {
   DcsaSubscriptionItem,
 } from "../types/edi-integration.types";
 
-import { EdiDcsaTab } from "../components/edi/EdiDcsaTab";
-import { EdiStudioTab } from "../components/edi/EdiStudioTab";
-import { EdiOutboundTab } from "../components/edi/EdiOutboundTab";
-import { EdiAuditTab } from "../components/edi/EdiAuditTab";
-import { EdiPartnersTab } from "../components/edi/EdiPartnersTab";
+import {
+  EdiDcsaTab,
+  EdiStudioTab,
+  EdiOutboundTab,
+  EdiAuditTab,
+  EdiPartnersTab,
+} from "../components/edi/index";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },

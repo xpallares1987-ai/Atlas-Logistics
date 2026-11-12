@@ -1,65 +1,65 @@
-# 0015. Estabilización de CI/CD, Dual-Registry Container Publishing y Corte de Release v1.0.0
+# 0015. CI/CD Pipeline Stabilization, Dual-Registry Container Publishing, and Release v1.0.0 Governance
 
-- **Estado**: Aceptado
-- **Fecha**: 2026-11-11
-- **Contexto**: Atlas Logistics Monorepo (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/rate-comparer`, Fastify Backend, BullMQ Workers, SQLite/Drizzle, Docker Compose, GitHub Actions)
+- **Status**: Accepted
+- **Date**: 2026-11-11
+- **Context**: Atlas Logistics Monorepo (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/rate-comparer`, Fastify Backend, BullMQ Workers, SQLite/Drizzle, Docker Compose, GitHub Actions)
+- **Quadrant**: Explanation & Architectural Decisions (`docs/adr/`)
 
-## Contexto y Problema
+## Context & Problem Statement
 
-1. **Estabilidad y Resiliencia de la Suite End-to-End (E2E)**:
-   El monorepo cuenta con una suite integral de 110 especificaciones Playwright que cubren flujos críticos de la cadena de suministro global: SCM Operational Cockpit, Attention Scoring, Casación 3-Way Match, DUA/TARIC, FuelEU Maritime, CBAM, eFirma WebCrypto, Incoterms 2020, Demurrage & Detention FMC, y Drayage Portuario. Cambios en la jerarquía visual (como barras de herramientas fijas o pies de página de alta prioridad z-index) y selectores frágiles provocaban intercepciones de clics y tiempos de espera excedidos en entornos CI.
+1. **End-to-End (E2E) Test Suite Stability**:
+   The monorepo contains a comprehensive suite of 110 Playwright specifications covering core global supply chain workflows: SCM Operational Cockpit, Attention Telemetry, 3-Way Match Audit, Single Window Customs DUA/TARIC, FuelEU Maritime, CBAM, WebCrypto SAT e.firma, Incoterms 2020, FMC Demurrage & Detention, and Port Drayage. Visual hierarchy changes (such as fixed navigation toolbars and elevated z-index floating footers) and fragile DOM selectors triggered click interception and timeout failures in CI runners.
 
-2. **Gobernanza de Ramas Protegidas vs. Automatización de Release**:
-   La rama `main` opera bajo un Ruleset estricto de GitHub que impone historial lineal y verificación obligatoria del pipeline de CI (`Lint, Type Check, Build & Test`). El uso tradicional de `@semantic-release/git` (intentando commitear archivos de versión directamente a `main` desde el runner) provocaba violaciones del Ruleset (`GH013: Repository rule violations`).
+2. **Branch Protection Rulesets vs. Automated Releases**:
+   The `main` branch operates under a strict GitHub Ruleset enforcing linear history and mandatory CI status checks (`Lint, Type Check, Build & Test`). Standard configurations of `@semantic-release/git` (attempting to commit version bump files directly back to `main` from within GitHub Actions) triggered repository rule violation errors (`GH013: Repository rule violations`).
 
-3. **Distribución Resiliente de Imágenes de Contenedores (Dual-Registry)**:
-   La arquitectura de producción requiere imágenes OCI reproducibles para el Frontend (Nginx SPA), Backend (Fastify + SQLite) y Worker (BullMQ). Depender exclusivamente de Docker Hub exponía el pipeline a fallos si los secretos externos expiraban o si se aplicaban límites de tasa (*rate limits*). Se requería una estrategia dual que publicara tanto en Docker Hub como en GitHub Container Registry (`ghcr.io`).
+3. **Resilient Container Distribution (Dual-Registry)**:
+   The production deployment architecture requires reproducible OCI images for the Frontend (Nginx SPA), Backend (Fastify + SQLite), and Worker (BullMQ). Depending exclusively on Docker Hub exposed the build pipeline to failures if external access tokens expired or if public pull rate limits were encountered. A dual-registry publishing strategy supporting both Docker Hub and GitHub Container Registry (`ghcr.io`) was needed.
 
-4. **Verificación Pre-Flight de Orquestación Docker**:
-   La configuración de producción (`docker-compose.prod.yml`) contenía directivas desalineadas con la especificación moderna de Docker Compose (propiedad `read_only_root_filesystem` en lugar de `read_only`, bloques de volúmenes vacíos y rutas obligatorias de `.env.production`), lo que ponía en riesgo los despliegues automatizados si no se validaban formalmente en CI.
+4. **Pre-Flight Docker Orchestration Validation**:
+   The production deployment specification (`docker-compose.prod.yml`) contained directives misaligned with modern Docker Compose standards (`read_only_root_filesystem` instead of `read_only`, empty volume declarations, and strict requirements for missing `.env.production` files), risking deployment failures if unvalidated in CI.
 
-## Decisión Arquitectónica
+## Architectural Decisions
 
-### 1. Estabilización Integral de la Suite Playwright E2E (110/110)
-- **Viewport Estandarizado**: Se fijó la resolución global en `1440x900` dentro de `playwright.config.ts`, garantizando que los contenedores y elementos de acción no queden cubiertos por el footer flotante o encabezados fijos.
-- **Acciones Defensivas `{ force: true }`**: En tablas y listas operativas con transiciones CSS o superposiciones parciales, se aplicó clics forzados para asegurar determinismo en la interacción.
-- **Selectores Dinámicos SQLite / Zero Mocks**: Se eliminaron selectores hardcodeados obsoletos o dependientes de mocks, conectando las pruebas directamente con los valores sembrados por la Fase 1 (`sh_demo_01`, `BK-2026-67116`, APM Terminals, etc.).
-- **Resiliencia Textual Multi-Idioma**: Se actualizaron las aserciones de botones y pestañas para coincidir exactamente con las etiquetas reales de la interfaz de usuario.
+### 1. Comprehensive Stabilization of Playwright E2E Suite (110/110 Passing)
+- **Standardized Viewport**: Global screen resolution set to `1440x900` in `playwright.config.ts`, ensuring action controls and modal buttons remain visible above floating footers and fixed headers.
+- **Defensive Click Actions (`{ force: true }`)**: Applied to operational tables and list buttons with CSS transitions to guarantee deterministic interaction.
+- **SQLite Zero Mocks Selectors**: Eliminated obsolete mock-dependent selectors, connecting test assertions directly to Phase 1 seed entities (`sh_demo_01`, `BK-2026-67116`, APM Terminals, etc.).
+- **Text Assertion Alignment**: Synchronized UI button, heading, and tab label assertions with exact UI rendering.
 
-### 2. Publicación Dual de Contenedores (`docker.io` y `ghcr.io`)
-- **Permisos en CI**: Se concedió `permissions: packages: write` en `.github/workflows/ci.yml`.
-- **Autenticación Nativa GHCR**: El job `build-images` se autentica automáticamente en `ghcr.io` utilizando el token de sesión de GitHub Actions (`${{ secrets.GITHUB_TOKEN }}`), garantizando la publicación incondicional de los contenedores del monorepo (`atlas-frontend`, `atlas-backend`, `atlas-worker`).
-- **Soporte Opcional Docker Hub**: Si los secretos `DOCKER_USERNAME` y `DOCKER_PASSWORD` están definidos en el repositorio, las imágenes se etiquetan y publican simultáneamente en ambos registros. Si no están configurados, el pipeline publica exclusivamente en GHCR sin fallar.
-- **Etiquetado Semántico Completo**: Cobertura de etiquetas por rama, commit SHA (`main-<sha>`), versión semántica (`1.0.0`, `1.0`) y `latest`.
+### 2. Dual-Registry Container Publishing (`docker.io` & `ghcr.io`)
+- **CI Permissions**: Granted `permissions: packages: write` in `.github/workflows/ci.yml`.
+- **Native GHCR Authentication**: The `build-images` job automatically logs into `ghcr.io` using the runner's session token (`${{ secrets.GITHUB_TOKEN }}`), guaranteeing unconditional publishing of monorepo images (`atlas-frontend`, `atlas-backend`, `atlas-worker`).
+- **Optional Docker Hub Fallback**: When `DOCKER_USERNAME` and `DOCKER_PASSWORD` secrets are configured, images are pushed simultaneously to both registries. If omitted, the workflow publishes to GHCR without failing.
+- **Semantic Tagging**: Produces branch tags, commit SHA tags (`main-<sha>`), semantic versions (`1.0.0`, `1.0`), and `latest`.
 
 ### 3. Container Configuration Smoke Test
-- Se introdujo un job específico en GitHub Actions (`container-smoke-test`) dependiente de `lint-and-build`.
-- Ejecuta `docker compose -f docker-compose.prod.yml config --quiet` bajo variables sintéticas de validación.
-- Se corrigió `docker-compose.prod.yml`:
-  - Sustitución de `read_only_root_filesystem: false` por `read_only: false`.
-  - Configuración opcional defensiva de archivos de entorno: `path: .env.production, required: false`.
-  - Eliminación de claves vacías de volúmenes que invalidaban la sintaxis YAML.
+- Introduced a dedicated validation job in GitHub Actions (`container-smoke-test`) dependent on `lint-and-build`.
+- Executes `docker compose -f docker-compose.prod.yml config --quiet` under synthetic environment inputs.
+- Hardened `docker-compose.prod.yml`:
+  - Replaced `read_only_root_filesystem: false` with standard `read_only: false`.
+  - Configured optional environment file loading: `path: .env.production, required: false`.
+  - Removed empty volume mapping blocks.
 
-### 4. Flujo de Release Limpio y Desacoplado
-- **Corte de Release vía API**: Se configuró `.releaserc` para utilizar `@semantic-release/github` y `@semantic-release/release-notes-generator`, abstrayendo la creación del tag `v1.0.0` y las notas de release a través de la API REST de GitHub, eliminando intentos de git push a la rama protegida `main`.
-- **Artefactos de Release**: La release de GitHub adjunta automáticamente los activos de despliegue y auditoría:
-  - `docker-compose.prod.yml` (Orquestación de producción lista para despliegue).
-  - `docs/reports/AUDIT_INDEX.md` (Índice de gobernanza y auditoría).
-  - `docs/reports/COMPREHENSIVE_AUDIT.md` (Informe integral de seguridad y arquitectura).
-  - `docs/reports/EXECUTIVE_SUMMARY.md` (Resumen ejecutivo del estado del monorepo).
-- **Desencadenador Flexible**: `release.yml` soporta tanto ejecución automática tras CI exitoso (`workflow_run`) como activación manual controlada (`workflow_dispatch`).
+### 4. Decoupled Semantic Release Workflow
+- **API-Based Release Cutting**: Configured `.releaserc` to use `@semantic-release/github` and `@semantic-release/release-notes-generator`, publishing the `v1.0.0` git tag and release notes via GitHub's REST API without pushing git commits to the protected `main` branch.
+- **Release Assets**: Automatically attaches deployment manifests and architectural audits:
+  - `docker-compose.prod.yml` (Production orchestration manifest).
+  - `docs/reports/AUDIT_INDEX.md` (Audit and governance index).
+  - `docs/reports/COMPREHENSIVE_AUDIT.md` (Comprehensive security and architecture report).
+  - `docs/reports/EXECUTIVE_SUMMARY.md` (Monorepo health summary).
+- **Flexible Triggers**: `release.yml` supports both automated dispatch upon successful CI runs (`workflow_run`) and manual execution (`workflow_dispatch`).
 
-### 5. Consolidación de Versión en el Monorepo
-- Unificación de la versión `1.0.0` en `package.json` raíz y todos los subpaquetes (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/rate-comparer`).
-- Consolidación del encabezado `## [1.0.0] - 2026-11-11` en `CHANGELOG.md` siguiendo el estándar Keep a Changelog.
+### 5. Monorepo Version Consolidation
+- Unified version `1.0.0` across the root `package.json` and all workspace packages (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/rate-comparer`).
+- Consolidated `## [1.0.0] - 2026-11-11` in `CHANGELOG.md` adhering to Keep a Changelog.
 
-## Consecuencias
+## Consequences
 
-### Positivas
-- **100% Determinismo en CI**: La suite completa de 110 pruebas Playwright y la suite de integración Vitest pasan de forma consistente en cada ciclo.
-- **Disponibilidad de Artefactos OCI**: Imágenes de contenedores inmediatamente descargables desde `ghcr.io/xpallares1987-ai/atlas-*` sin dependencias de servicios externos.
-- **Validación Preventiva de Infraestructura**: Cualquier error en la sintaxis de Docker Compose es detectado en segundos antes de llegar a entornos de producción.
-- **Alineación con la Gobernanza de Ramas**: Cero conflictos con las reglas de protección de rama y trazabilidad semántica estricta.
-
-### Consideraciones
-- **Cuota de Almacenamiento GHCR**: Las imágenes publicadas en GitHub Packages consumen cuota de la cuenta de GitHub; las capas se optimizan mediante multi-stage builds con Node 22 Alpine y Nginx unprivileged para minimizar el tamaño final.
+- **Positive**:
+  - Deterministic CI pipeline with 100% pass rate across 110 Playwright E2E tests and Vitest suites.
+  - OCI container images publicly pullable from `ghcr.io/xpallares1987-ai/atlas-*`.
+  - Pre-flight syntax validation for production orchestration assets.
+  - Zero conflicts with branch protection rulesets.
+- **Considerations**:
+  - Container layers are optimized with multi-stage builds on Node 22 Alpine and unprivileged Nginx to minimize storage usage on GitHub Packages.

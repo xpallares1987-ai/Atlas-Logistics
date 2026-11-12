@@ -1,36 +1,37 @@
-# 0013. Gateway On-Demand de Google Gemini AI (Free Tier) y Unificación de Variables de Entorno
+# 0013. Google Gemini AI On-Demand Gateway (Free Tier) and Environment Variable Unification
 
-- **Estado**: Aceptado
-- **Fecha**: 2026-11-06
-- **Contexto**: Atlas Logistics (Fastify + SQLite/Drizzle + React/Vite)
+- **Status**: Accepted
+- **Date**: 2026-11-06
+- **Context**: Atlas Logistics (Fastify + SQLite/Drizzle + React/Vite)
+- **Quadrant**: Explanation & Architectural Decisions (`docs/adr/`)
 
-## Contexto y Problema
+## Context & Problem Statement
 
-1. **Integración de IA sin Coste Operativo (Google AI Studio Free Tier)**:
-   El proyecto requiere capacidades avanzadas de análisis jurídico-marítimo (FMC 46 CFR Part 541, ICC UCP 600, DCSA v3.0, Código CTU/IMDG, clasificación HS/CBAM y búsqueda semántica de protocolos) utilizando una API Key gratuita de Google AI Studio, garantizando cero costes y cero errores `429 Too Many Requests`.
-2. **Proliferación de Archivos `.env*` Obsoletos**:
-   Existían múltiples plantillas y copias contradictorias (`.env`, `.env.example`, `.env.local.example`, `.env.production.example`, `.env.saas.example`, `.env.production` y copias en `backups-test/`) con variables obsoletas de PostgreSQL, Firebase Data Connect y Camunda 8 SaaS que provocaban colisiones de puertos y rutas de base de datos.
+1. **Zero-Cost AI Integration (Google AI Studio Free Tier)**:
+   The platform requires advanced maritime-legal analysis capabilities (FMC 46 CFR Part 541, ICC UCP 600, DCSA v3.0, CTU/IMDG Code, HS/CBAM classification, and semantic protocol search) using a free Google AI Studio API key, while guaranteeing zero recurring costs and preventing `429 Too Many Requests` quota exhaustion.
+2. **Proliferation of Obsolete `.env*` Files**:
+   Multiple conflicting configuration files (`.env`, `.env.example`, `.env.local.example`, `.env.production.example`, `.env.saas.example`, `.env.production`, and copies in test backups) accumulated deprecated variables from PostgreSQL, Firebase Data Connect, and Camunda 8 SaaS, causing port collisions and divergent database paths.
 
-## Decisión Arquitectónica
+## Architectural Decisions
 
-### 1. Gateway Centralizado On-Demand Multi-Modelo (`src/services/geminiService.ts`)
-- **Ejecución Estrictamente Bajo Demanda (`1 Clic = 1 Petición`)**: Se prohíbe cualquier invocación automática a Gemini en carga de vistas, *polling* o tareas en segundo plano.
-- **Separación de Cupos por Modelo (Independent Quota Pools)**:
-  - `gemini-2.5-flash` (con auto-resolución a `gemini-3.8-flash` en cuentas nuevas): reservado para redacción jurídica FMC 541, pre-auditoría bancaria UCP 600, extracción multimodal e informes ejecutivos (**12 RPM / 1.400 RPD**).
-  - `gemini-2.5-flash-lite` (con auto-resolución a `gemini-3.5-flash-lite`): asignado a auditorías rápidas de estiba 3D CTU/IMDG y clasificación arancelaria DCSA/HS/CBAM (**15 RPM / 1.400 RPD**).
-  - `text-embedding-004` (con auto-resolución a `gemini-embedding-001`): asignado a búsqueda por similitud semántica de protocolos operativos (**100 RPM / 5.000 RPD**).
-- **Salidas Estructuradas (`responseMimeType: "application/json"`)**: Reduce entre un 40% y un 60% el consumo de tokens de salida y garantiza contratos tipados para la interfaz React.
-- **Caché de Doble Capa (L1 + L2) y Protección en Tests**:
-  - **L1 (`NodeCache`, TTL 30–60 min)**: Evita llamadas repetidas en la misma sesión.
-  - **L2 (Columna `metadata` en SQLite)**: Persiste los dictámenes generados directamente en las entidades relacionales (`demurrage_invoices`, `ocean_booking_details`, `container_stowage_plans`).
-  - **Aislamiento en `vitest`**: Durante la ejecución de pruebas automatizadas (`process.env.VITEST`), el servicio utiliza el motor determinístico local sin consumir cuota real de la API Key del desarrollador.
+### 1. Centralized Multi-Model On-Demand Gateway (`src/services/geminiService.ts`)
+- **Strictly On-Demand Invocation (`1 Click = 1 Request`)**: Automated background polling, lifecycle trigger hooks, or page-load AI queries are strictly prohibited.
+- **Independent Quota Pools by Model**:
+  - `gemini-2.5-flash` (auto-resolving to `gemini-3.8-flash` on updated accounts): Dedicated to FMC 541 legal drafting, UCP 600 bank pre-audit, multimodal OCR extraction, and executive summaries (**12 RPM / 1,400 RPD**).
+  - `gemini-2.5-flash-lite` (auto-resolving to `gemini-3.5-flash-lite`): Dedicated to fast 3D CTU/IMDG stowage audits and DCSA/HS/CBAM tariff classification (**15 RPM / 1,400 RPD**).
+  - `text-embedding-004` (auto-resolving to `gemini-embedding-001`): Dedicated to semantic similarity lookups across operational standard operating procedures (**100 RPM / 5,000 RPD**).
+- **Structured JSON Outputs (`responseMimeType: "application/json"`)**: Reduces output token consumption by 40–60% and guarantees strict TypeScript contracts for React consumers.
+- **Dual-Layer Caching (L1 + L2) and Test Sandbox**:
+  - **L1 In-Memory Cache (`NodeCache`, TTL 30–60 min)**: Prevents redundant roundtrips within the same operator session.
+  - **L2 SQLite Relational Persistence (`metadata` JSON column)**: Directly persists generated legal opinions and audit summaries into target entities (`demurrage_invoices`, `ocean_booking_details`, `container_stowage_plans`).
+  - **Test Sandbox Isolation (`vitest`)**: During automated testing (`process.env.VITEST`), the gateway automatically routes queries to deterministic offline mock analyzers without consuming real developer API quota.
 
-### 2. Estándar Único de Dos Archivos `.env` en Raíz
-- Se eliminan todos los archivos `.env*` redundantes u obsoletos, manteniendo exclusivamente:
-  1. **`.env.example`** *(Versionado en Git)*: Plantilla canónica única alineada con SQLite (`file:./data/dev.db`), Fastify (`3001`), Vite (`5173`) y Google AI Studio (`GEMINI_API_KEY`).
-  2. **`.env.local`** *(Ignorado en Git)*: Configuración local activa del desarrollador.
+### 2. Two-File `.env` Standard in Root
+- Redundant and obsolete `.env*` copies are removed, preserving only:
+  1. **`.env.example`** *(Tracked in Git)*: Single canonical template aligned with SQLite (`file:./data/dev.db`), Fastify (`3001`), Vite (`5173`), and Google AI Studio (`GEMINI_API_KEY`).
+  2. **`.env.local`** *(Ignored in Git)*: Active local environment configuration for developers.
 
-## Consecuencias
+## Consequences
 
-- **Positivas**: Consumo de tokens reducido al mínimo, 0 llamadas accidentales en segundo plano, persistencia permanente en SQLite de los análisis IA ya generados y eliminación total de conflictos entre archivos `.env`.
-- **Mitigaciones**: En caso de ausencia de clave o agotamiento temporal de ventana por minuto, todos los endpoints devuelven un dictamen determinístico calculado sobre los registros reales de SQLite (`source: "deterministic-fallback"`).
+- **Positive**: Token overhead minimized, zero unintended background API consumption, permanent SQLite retention of generated AI evaluations, and full elimination of conflicting environment configurations.
+- **Mitigations**: If the API key is missing or a minute rate limit is reached, all endpoints return deterministic rule-based evaluations calculated directly over live SQLite records (`source: "deterministic-fallback"`).

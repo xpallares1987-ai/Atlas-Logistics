@@ -1,3 +1,12 @@
+/**
+ * @file ShipmentWorkspace360Module.tsx
+ * @description Central mission control and CQRS authoritative workspace for operational shipments.
+ * Coordinates multi-perspective tab telemetry, URL deep-linking, real-time status signals,
+ * in-situ action dispatches, and outbox event audit verification against live Fastify endpoints.
+ * @module @atlas/frontend/pages
+ * @see {@link docs/adr/0020-frontend-modular-decomposition-and-file-size-guardrails.md}
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../lib/api";
@@ -31,13 +40,13 @@ import {
   ShipmentCargoRouteTab,
   ShipmentAuditTab,
   ShipmentGreenComplianceTab,
-  ShipmentWorkspaceSidebar,
+  WorkspaceSidebar,
   ShipmentHeroBanner,
-  ShipmentWorkspaceHeader,
+  WorkspaceHeader,
   ShipmentNavigationTabs,
   ExecuteActionModal,
   RaiseExceptionModal,
-} from "../components/workspace360/index";
+} from "../components/Shipment/index";
 import { generateClientFallbackHBL } from "../utils/hbl-generator";
 
 export default function ShipmentWorkspace360Module() {
@@ -685,7 +694,7 @@ export default function ShipmentWorkspace360Module() {
   return (
     <div className="flex flex-col h-full min-h-screen bg-slate-950 text-slate-100">
       {/* Top Header / Bar */}
-      <ShipmentWorkspaceHeader
+      <WorkspaceHeader
         selectedShipmentId={selectedShipmentId}
         shipmentsList={shipmentsList}
         onSelectShipment={handleSelectShipment}
@@ -708,7 +717,7 @@ export default function ShipmentWorkspace360Module() {
       {/* Main Body with Sidebar + Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Drawer / Shipment List */}
-        <ShipmentWorkspaceSidebar
+        <WorkspaceSidebar
           shipmentsList={shipmentsList}
           selectedShipmentId={selectedShipmentId}
           onSelectShipment={handleSelectShipment}
@@ -780,7 +789,7 @@ export default function ShipmentWorkspace360Module() {
               {/* Navigation Tabs (7 Perspectives) */}
               <ShipmentNavigationTabs
                 activeTab={activeTab}
-                onTabChange={(tab) => handleTabChange(tab)}
+                onTabChange={(tab: TabKey) => handleTabChange(tab)}
                 shipmentDetail={shipmentDetail}
                 timelineCount={timelineEvents.length}
                 auditCount={auditEvents.length}
@@ -837,7 +846,7 @@ export default function ShipmentWorkspace360Module() {
                 <ShipmentTasksTab
                   shipmentDetail={shipmentDetail}
                   highlightId={urlHighlight}
-                  onOpenTaskAction={(task) => {
+                  onOpenTaskAction={(task: any) => {
                     setActiveActionModal({
                       type: "COMPLETE_TASK",
                       targetId: task.taskId,
@@ -858,7 +867,7 @@ export default function ShipmentWorkspace360Module() {
                   onOpenRaiseExceptionModal={() =>
                     setShowRaiseExceptionModal(true)
                   }
-                  onOpenResolveExceptionModal={(ex) => {
+                  onOpenResolveExceptionModal={(ex: any) => {
                     setActiveActionModal({
                       type: "RESOLVE_EXCEPTION",
                       targetId: ex.exceptionId,
@@ -897,7 +906,7 @@ export default function ShipmentWorkspace360Module() {
           onClose={() => setActiveActionModal(null)}
           onSubmit={handleExecuteAction}
           submitting={actionSubmitting}
-          onChangeInputs={(inputs) =>
+          onChangeInputs={(inputs: any) =>
             setActiveActionModal((prev) => (prev ? { ...prev, inputs } : null))
           }
         />

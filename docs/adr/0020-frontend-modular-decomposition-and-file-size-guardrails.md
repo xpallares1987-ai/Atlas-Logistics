@@ -1,78 +1,78 @@
-# ADR 0020: Descomposición Modular Frontend y Guardarraíles de Complejidad (<1.000 Líneas)
+# 0020. Frontend Modular Decomposition and File Size Complexity Guardrails (<1,000 Lines)
 
-## Estado
-**Aceptado**
-
-## Cuadrante Diátaxis
-**Explicación y Decisiones Arquitectónicas** (`docs/adr/`)
-
----
-
-## Contexto y Planteamiento del Problema
-
-A medida que el proyecto Atlas Logistics ha incorporado flujos de trabajo avanzados de comercio exterior (DCSA 3.0, OCR aduanero con modelos multimodales, trazabilidad PKI con sellos WebCrypto/SAT e.firma, y orquestación B2B EDIFACT/ANSI X12), varios módulos de interfaz de usuario en `packages/frontend/src/pages/` crecieron de manera desproporcionada hasta convertirse en componentes monolíticos de más de 2.400 líneas de código:
-
-1. `DocumentVaultModule.tsx`: **2.736 líneas** (acumulaba catálogo de plantillas, bóveda con filtros, verificador criptográfico SHA-256, motor OCR 4-en-1 con matriz de conciliación tripartita y modal de firma digital).
-2. `EdiIntegrationModule.tsx`: **2.402 líneas** (acumulaba feed telemático DCSA 3.0 con simulador de disrupciones, parser de árboles sintácticos AST de mensajes EDI, generador outbound para EDI 304 SOLAS VGM y 310 Freight Invoice, libro mayor de auditoría y directorio de trading partners).
-
-Este crecimiento monolítico presentaba importantes desventajas:
-- **Sobrecarga Cognitiva y Mantenibilidad**: Dificultad para localizar secciones específicas y riesgo elevado de regresiones cruzadas durante ediciones concurrentes.
-- **Degradación del HMR (Hot Module Replacement)**: Recompilaciones más lentas durante el ciclo de desarrollo en Vite ante modificaciones puntuales.
-- **Violación del Principio de Responsabilidad Única**: Un único componente orquestador gestionaba simultáneamente el estado de servidor, múltiples pestañas funcionales disjuntas y diálogos modales complejos.
+- **Status**: Accepted
+- **Date**: 2026-11-12
+- **Context**: Atlas Logistics Architecture Team & Frontend Platform Engineers
+- **Quadrant**: Explanation & Architectural Decisions (`docs/adr/`)
 
 ---
 
-## Decisiones Tomadas
+## Context & Problem Statement
 
-### 1. Establecimiento de Umbral Estricto de Tamaño (<1.000 líneas)
-Se adopta como estándar obligatorio del monorepo que **ningún módulo de página u orquestador en `packages/frontend/src/pages/` superará las 1.000 líneas de código**. Los orquestadores deben limitarse a:
-- Centralizar el estado reactivo raíz y la sincronización con los endpoints Fastify / SQLite (Zero Mocks).
-- Proveer los handlers de navegación y eventos de alto nivel.
-- Delegar la renderización de pestañas y modales a submódulos especializados.
+As Atlas Logistics incorporated advanced international trade workflows (DCSA 3.0, customs OCR with multimodal models, PKI traceability with WebCrypto/SAT e.firma seals, and B2B EDIFACT/ANSI X12 orchestration), several UI modules in `packages/frontend/src/pages/` grew disproportionately into massive monolithic components exceeding 2,400 lines of code:
 
-### 2. Patrón de Descomposición Modular Canónica
-Todo módulo que supere o se aproxime al umbral debe estructurarse según el siguiente patrón:
+1. `DocumentVaultModule.tsx`: **2,736 lines** (bundled template catalog, filtered document vault, SHA-256 cryptographic verifier, 4-in-1 multimodal OCR studio with 3-way match reconciliation matrix, and digital signature modal).
+2. `EdiIntegrationModule.tsx`: **2,402 lines** (bundled DCSA 3.0 telemetric feed with disruption simulator, EDI AST parser, outbound generator for EDI 304 SOLAS VGM and 310 Freight Invoice, audit ledger, and trading partner directory).
+
+This monolithic growth presented significant drawbacks:
+- **Cognitive Overhead & Maintenance Friction**: Difficult navigation and elevated risk of cross-regressions during concurrent edits.
+- **Degraded Hot Module Replacement (HMR)**: Slower incremental rebuild cycles in Vite.
+- **Single Responsibility Principle Violation**: A single orchestrator component managed server state, multiple disjoint functional tab views, and complex modal dialogs simultaneously.
+
+---
+
+## Architectural Decisions
+
+### 1. Mandatory File Size Limit (<1,000 Lines)
+Adopted an architectural standard for the monorepo: **No page or orchestrator module in `packages/frontend/src/pages/` shall exceed 1,000 lines of code**. Page orchestrators must strictly limit their scope to:
+- Centralizing root reactive state and synchronization with Fastify / SQLite endpoints (Zero Mocks).
+- Providing top-level routing, query parameter synchronization, and global event handlers.
+- Delegating tab rendering and dialog interactions to specialized subcomponents.
+
+### 2. Canonical Modular Decomposition Pattern
+Modules approaching or exceeding the threshold must follow this directory pattern:
 
 ```
 packages/frontend/src/
 ├── types/
-│   └── <dominio>.types.ts               # Contratos e interfaces de props tipadas
+│   └── <domain>.types.ts               # Typed props contracts and BFF interfaces
 ├── utils/
-│   └── <dominio>.utils.tsx              # Utilidades de renderizado de iconos y formato
-├── components/<dominio>/
-│   ├── <Dominio><Tab1>Tab.tsx           # Pestaña 1 atómica y desacoplada
-│   ├── <Dominio><Tab2>Tab.tsx           # Pestaña 2 atómica y desacoplada
+│   └── <domain>.utils.tsx              # Rendering helpers, formatters, and icon mappers
+├── components/<domain>/
+│   ├── <Domain><Tab1>Tab.tsx           # Atomic, decoupled perspective tab 1
+│   ├── <Domain><Tab2>Tab.tsx           # Atomic, decoupled perspective tab 2
 │   └── modals/
-│       └── <Dominio><Accion>Modal.tsx   # Diálogos modales extraídos
+│       └── <Domain><Action>Modal.tsx   # Extracted modal dialogs
 └── pages/
-    └── <Dominio>Module.tsx              # Orquestador lean (<1.000 líneas)
+    └── <Domain>Module.tsx              # Lean orchestrator (<1,000 lines)
 ```
 
-### 3. Automatización del Guardarraíl de Tamaño de Archivo (`check:file-sizes`)
-Se implementó un script de verificación automatizada en `scripts/check-file-sizes.mjs`, acompañado de su suite de pruebas unitarias (`tests/check-file-sizes.test.ts`), integrado en `package.json` mediante:
+### 3. Automated File Size Guardrail Scanner (`check:file-sizes`)
+Implemented an automated verification script at `scripts/check-file-sizes.mjs`, accompanied by a unit test suite (`tests/check-file-sizes.test.ts`), registered in `package.json`:
 ```json
 "check:file-sizes": "node scripts/check-file-sizes.mjs"
 ```
-El scanner reporta mediante tablas coloreadas los archivos que exceden el límite de 1.000 líneas y se ejecuta en las rutinas de aseguramiento de calidad antes de commits mayores.
+The scanner reports files exceeding the 1,000-line threshold in formatted tables and runs as part of pre-commit and CI quality checks.
 
 ---
 
-## Resultados y Métricas de Impacto
+## Results & Impact Metrics
 
-| Módulo Refactorizado | Líneas Originales | Líneas Resultantes | Reducción Neta | Subcomponentes Creados |
+| Refactored Module | Original Lines | Resulting Lines | Net Reduction | New Atomic Subcomponents |
 | :--- | :--- | :--- | :--- | :--- |
-| `DocumentVaultModule.tsx` | 2.736 líneas | **895 líneas** | **-67,3% (-1.841 líneas)** | `DocumentStudioTab`, `DocumentVaultTab`, `DocumentVerifyTab`, `DocumentOcrStudioTab`, `DocumentViewerModal`, `document-vault.types`, `document-vault.utils` |
-| `EdiIntegrationModule.tsx` | 2.402 líneas | **673 líneas** | **-72,0% (-1.729 líneas)** | `EdiDcsaTab`, `EdiStudioTab`, `EdiOutboundTab`, `EdiAuditTab`, `EdiPartnersTab`, `DcsaSubscriptionModal`, `edi-integration.types` |
-| **Total Combinado** | **5.138 líneas** | **1.568 líneas** | **-69,5% (-3.570 líneas)** | **14 módulos atómicos nuevos** |
+| `DocumentVaultModule.tsx` | 2,736 lines | **895 lines** | **-67.3% (-1,841 lines)** | `DocumentStudioTab`, `DocumentVaultTab`, `DocumentVerifyTab`, `DocumentOcrStudioTab`, `DocumentViewerModal`, `document-vault.types`, `document-vault.utils` |
+| `EdiIntegrationModule.tsx` | 2,402 lines | **673 lines** | **-72.0% (-1,729 lines)** | `EdiDcsaTab`, `EdiStudioTab`, `EdiOutboundTab`, `EdiAuditTab`, `EdiPartnersTab`, `DcsaSubscriptionModal`, `edi-integration.types` |
+| `ShipmentWorkspace360Module.tsx` | 2,125 lines | **934 lines** | **-56.0% (-1,191 lines)** | `ShipmentOverviewTab`, `ShipmentAttentionTab`, `ShipmentJourneyTab`, `ShipmentTasksTab`, `ShipmentExceptionsTab`, `ShipmentCargoRouteTab`, `ShipmentAuditTab`, `ShipmentGreenComplianceTab`, `ShipmentWorkspaceSidebar`, `ShipmentHeroBanner`, `ShipmentWorkspaceHeader`, `ShipmentNavigationTabs`, `ExecuteActionModal`, `RaiseExceptionModal` |
+| **Total** | **7,263 lines** | **2,502 lines** | **-65.5% (-4,761 lines)** | **28 new atomic modules** |
 
 ---
 
-## Consecuencias y Verificación
+## Consequences & Verification
 
-### Consecuencias Positivas
-- **Cero Mocks Preservado**: El 100% de las integraciones con endpoints reales de Fastify (`/api/documents/*`, `/api/dcsa/*`, `/api/edi/*`, `/api/shipments`) continúan operando con persistencia en SQLite y modo WAL.
-- **Tipado Estricto de Contratos**: La extracción de `document-vault.types.ts` y `edi-integration.types.ts` permite reutilizar interfaces sin acoplar componentes entre sí.
-- **Alineación con CI/CD**: Verificación con 0 errores de TypeScript (`tsc --noEmit`), Vite build en menos de 8 segundos y pruebas unitarias de guardarraíl pasando al 100%.
+### Positive
+- **Zero Mocks Standard Preserved**: 100% of integrations with Fastify endpoints (`/api/documents/*`, `/api/dcsa/*`, `/api/edi/*`, `/api/scm/v1/operational/*`) continue querying live SQLite WAL tables via Drizzle ORM.
+- **Strictly Typed Props Contracts**: Extracted types enable high reuse without inter-component coupling.
+- **CI/CD Alignment**: 0 TypeScript compilation errors (`tsc --noEmit`), Vite builds completed in under 14 seconds, and file size guardrail scanner verified.
 
-### Consecuencias a Gestionar
-- Mantener la disciplina en futuros PRs y desarrollos para no sobrepasar el umbral de 1.000 líneas en los módulos restantes del backlog (`ShipmentWorkspace360Module`, `SettingsModule`, `ContainerPlannerModule`).
+### Mitigations
+- Maintain automated enforcement via `scripts/check-file-sizes.mjs` to systematically decompose remaining backlog modules (`ControlTowerModule`, `OperationsCockpitModule`, `SettingsModule`).

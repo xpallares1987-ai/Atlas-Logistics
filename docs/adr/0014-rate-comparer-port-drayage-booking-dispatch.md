@@ -1,54 +1,55 @@
-# 0014. Integración Integral de Cotización a Reserva con Drayage Portuario y Despacho Automatizado
+# 0014. Comprehensive Quote-to-Booking Integration with Port Drayage and Automated Dispatch
 
-- **Estado**: Aceptado
-- **Fecha**: 2026-11-10
-- **Contexto**: Atlas Logistics (`@atlas/rate-comparer`, `@atlas/ui`, Fastify Backend, SQLite/Drizzle)
+- **Status**: Accepted
+- **Date**: 2026-11-10
+- **Context**: Atlas Logistics (`@atlas/rate-comparer`, `@atlas/ui`, Fastify Backend, SQLite/Drizzle)
+- **Quadrant**: Explanation & Architectural Decisions (`docs/adr/`)
 
-## Contexto y Problema
+## Context & Problem Statement
 
-1. **Desconexión entre Cotización Marítima y Acarreo Terrestre**:
-   Los cotizadores de fletes tradicionalmente calculaban únicamente el tramo puerto a puerto (Port-to-Port), obligando a los transitarios y expedidores a calcular el acarreo de última milla (Port Drayage) de forma manual y aislada, sin trazabilidad unificada de costes ni emisiones de carbono.
-2. **Requisitos de Integridad Referencial (`PRAGMA foreign_keys = ON;`)**:
-   Toda reserva y orden de transporte debe persistirse en SQLite conectando entidades reales: puertos/terminales de origen, almacenes de destino en el Addresses Hub, navieras, empresas transportistas registradas (*hauliers*) y expediciones activas.
-3. **Normativa de Sostenibilidad y Emisiones (ISO 14083 / GLEC Framework v3.0)**:
-   Los clientes corporativos demandan la medición transparente y homologada de emisiones de CO₂ tanto Pozo-a-Rueda (*Well-to-Wheel*, WTW) como Combustión en Ruta (*Tank-to-Wheel*, TTW) combinando flete marítimo y acarreo terrestre.
+1. **Disconnection Between Ocean Freight and Inland Drayage**:
+   Traditional freight comparison engines calculate only port-to-port maritime legs, forcing freight forwarders and shippers to calculate last-mile port drayage separately through manual offline estimates, resulting in fragmented cost tracking and uncoordinated carbon reporting.
+2. **Referential Integrity Constraints (`PRAGMA foreign_keys = ON;`)**:
+   Every booking and inland haulage order must be reliably persisted in SQLite, joining real database entities: origin ports/terminals, destination warehouses in the Addresses Hub, ocean carriers, registered haulage contractors (*hauliers*), and active shipments.
+3. **ESG & Sustainability Compliance (ISO 14083 / GLEC Framework v3.0)**:
+   Corporate logistics shippers require standardized, certified calculations for Well-to-Wheel (WTW) and Tank-to-Wheel (TTW) CO₂ emissions combining ocean voyage and road container haulage.
 
-## Decisión Arquitectónica
+## Architectural Decisions
 
-### 1. Extensión del Comparador de Tarifas (`@atlas/rate-comparer`)
-- **Control Reactivo en Panel de Búsqueda**:
-  - Toggle *"Añadir Drayage Portuario (Port-to-Door / Última Milla)"* en `RatesContent.tsx`.
-  - Selector de almacenes interiores alimentado determinísticamente desde el **Addresses Hub** (`/api/addresses?type=WAREHOUSE`).
-  - Cálculo instantáneo mediante `POST /api/drayage/quote` alimentado por enrutamiento OSRM y tarifas base + BAF terrestre + peajes Eurovignette.
-- **Cotización Unificada Door-to-Door en `RateTable.tsx`**:
-  - Suma del flete marítimo base, recargos navieros (BAF, THC, PSS) y el acarreo portuario en divisa activa (USD/EUR).
-  - Distintivo *"Door-to-Door (Ocean + Drayage)"* por fila.
-  - Sección expandible con desglose de costes terrestres, tiempos de giro (*turn-time*) y huella GLEC v3.0.
-  - Visor cartográfico interactivo modal (`DrayageRouteModal.tsx`) con teselas CARTO Voyager (`CARTO_API_KEY`) y trazado OSRM.
+### 1. Extension of Rate Comparer (`@atlas/rate-comparer`)
+- **Reactive Search Controls**:
+  - *"Include Port Drayage (Port-to-Door / Last Mile)"* toggle in `RatesContent.tsx`.
+  - Inland warehouse selector populated deterministically from the **Addresses Hub** (`/api/addresses?type=WAREHOUSE`).
+  - Sub-millisecond cost and route calculation via `POST /api/drayage/quote`, driven by OSRM routing, haulier base rates, road BAF, and Eurovignette tolls.
+- **Unified Door-to-Door Quotations in `RateTable.tsx`**:
+  - Aggregates ocean freight base rates, carrier surcharges (BAF, THC, PSS), and port drayage in the active currency (USD/EUR).
+  - *"Door-to-Door (Ocean + Drayage)"* badge indicator on combined rows.
+  - Expandable row details displaying breakdown of road haulage costs, estimated container turn-time, and GLEC v3.0 carbon footprint.
+  - Interactive modal route preview (`DrayageRouteModal.tsx`) using CARTO Voyager raster tiles (`CARTO_API_KEY`) and OSRM turn-by-turn road geometry.
 
-### 2. Ciclo de Vida Transaccional y Materialización Automática (`booking-lifecycle.service.ts`)
-- **Persistencia en SQLite**:
-  - Al crearse la solicitud de reserva (`createBookingRequest`), el payload `drayageQuote` se guarda en `bookings.cargoDetails`.
-  - Al confirmarse la reserva (`confirmBookingToShipment` o endpoint `POST /api/quotes/:id/accept-and-book`):
-    1. Se crea la expedición en `shipments` con el contenedor, buque, viaje y precinto asignados.
-    2. Se resuelve la terminal portuaria correspondiente al UN/LOCODE de descarga (ej. `addr_term_best_bcn` para `ESBCN` o `addr_term_apm_vlc` para `ESVLC`).
-    3. Se resuelve la dirección del transportista asignado (*Haulier*) y la del almacén consignatario.
-    4. Se inserta atómicamente la orden en `drayageTransportOrders` (`drayage_transport_orders`) con estado `DISPATCHED`, código correlativo `DRY-YYYYMM-XXXX`, pin de recogida de 4 dígitos, digest criptográfico QR SHA-256 y ventana horaria de carga.
-    5. Se emite el evento de auditoría `DRAYAGE_DISPATCHED` en `shipmentEventLogs`.
-    6. Se retorna el identificador y detalle de la orden para acceso directo con 1 clic hacia `/drayage`.
+### 2. Transactional Booking Lifecycle & Automatic Order Dispatch (`booking-lifecycle.service.ts`)
+- **SQLite Relational Persistence**:
+  - Upon booking request submission (`createBookingRequest`), the structured `drayageQuote` payload is saved to `bookings.cargoDetails`.
+  - Upon booking confirmation (`confirmBookingToShipment` or endpoint `POST /api/quotes/:id/accept-and-book`):
+    1. An operational shipment record is created in `shipments` with assigned container, vessel name, voyage ID, and seal number.
+    2. The discharge port terminal is resolved from the destination UN/LOCODE (e.g. `addr_term_best_bcn` for `ESBCN` or `addr_term_apm_vlc` for `ESVLC`).
+    3. Addresses for the assigned road haulier and destination consignee warehouse are linked defensively.
+    4. An order is atomically inserted into `drayageTransportOrders` (`drayage_transport_orders`) with status `DISPATCHED`, sequential reference `DRY-YYYYMM-XXXX`, 4-digit pickup security PIN, SHA-256 cryptographic QR verification digest, and loading appointment window.
+    5. A `DRAYAGE_DISPATCHED` audit event is published to `shipmentEventLogs`.
+    6. The response returns order identifiers allowing 1-click deep-link navigation directly into `/drayage`.
 
-### 3. Cero Mocks y Cobertura Automatizada (`tests/rate-comparer-drayage-booking.test.ts`)
-- Se implementó suite de pruebas de integración completa validando:
-  - Creación de reserva PENDING con `drayageQuote`.
-  - Confirmación y materialización en `drayageTransportOrders` con verificación de claves foráneas.
-  - Comprobación de orden visible en `/api/drayage/orders?shipmentId=...`.
-  - Flujo de 1 clic `accept-and-book` de cotización a expedición y despacho terrestre.
+### 3. Zero Mocks & Automated Test Coverage (`tests/rate-comparer-drayage-booking.test.ts`)
+- Implemented an automated end-to-end integration test suite validating:
+  - Creation of PENDING bookings containing `drayageQuote`.
+  - Confirmation and transactional insertion into `drayageTransportOrders` with foreign key enforcement.
+  - Verification that the generated order is queryable at `/api/drayage/orders?shipmentId=...`.
+  - 1-click `accept-and-book` flow from quote comparison to road dispatch.
 
-## Consecuencias
+## Consequences
 
-- **Positivas**:
-  - Flujo unificado y sin fricciones desde la comparación de tarifas hasta el despacho de camiones portuarios en el sistema.
-  - Conformidad estricta con ISO 14083 y GLEC Framework v3.0 para informes ESG de clientes.
-  - Total cumplimiento de guardarraíles de base de datos (`PRAGMA foreign_keys = ON;`) y cero datos mock en la interfaz.
-- **Mitigaciones**:
-  - En caso de indisponibilidad temporal de OSRM externo, el motor de drayage conmuta automáticamente a la fórmula Haversine calibrada con factor de circuidad terrestre (1,25) garantizando cotización ininterrumpida.
+- **Positive**:
+  - Frictionless, unified transition from rate comparison directly into port container drayage dispatch.
+  - Full compliance with ISO 14083 and GLEC Framework v3.0 standards for client ESG auditing.
+  - Adheres strictly to database guardrails (`PRAGMA foreign_keys = ON;`) and the Zero Mocks UI policy.
+- **Mitigations**:
+  - In the event of temporary OSRM routing network downtime, the drayage pricing service automatically falls back to an offline Haversine formula calibrated with a 1.25 terrestrial circuity factor to ensure uninterrupted quoting.

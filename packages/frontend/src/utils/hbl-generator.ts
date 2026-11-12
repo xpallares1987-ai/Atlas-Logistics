@@ -1,3 +1,10 @@
+/**
+ * @file hbl-generator.ts
+ * @description In-browser client fallback generator for standard electronic House Bill of Lading (HBL).
+ * Generates signed FIATA/DCSA-compliant PDFs when the backend microservice is unreachable.
+ * @module @atlas/frontend/utils
+ */
+
 import type { OperationalShipment360View } from "../types/shipment-workspace360.types.js";
 
 /**

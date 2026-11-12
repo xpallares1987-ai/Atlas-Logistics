@@ -26,11 +26,13 @@ import {
 } from "../types/document-vault.types";
 import { getDocumentTypeIcon } from "../utils/document-vault.utils";
 
-import { DocumentStudioTab } from "../components/documents/DocumentStudioTab";
-import { DocumentVaultTab } from "../components/documents/DocumentVaultTab";
-import { DocumentVerifyTab } from "../components/documents/DocumentVerifyTab";
-import { DocumentOcrStudioTab } from "../components/documents/DocumentOcrStudioTab";
-import { DocumentViewerModal } from "../components/documents/modals/DocumentViewerModal";
+import {
+  DocumentStudioTab,
+  DocumentVaultTab,
+  DocumentVerifyTab,
+  DocumentOcrStudioTab,
+  DocumentViewerModal,
+} from "../components/documents/index";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },

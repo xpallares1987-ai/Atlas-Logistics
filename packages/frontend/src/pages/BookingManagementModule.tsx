@@ -38,12 +38,14 @@ import {
   downloadShippingInstructionsPdf,
   downloadDepotGatePassPdf,
 } from "../utils/booking-pdf.utils";
-import { BookingRateLockTab } from "../components/bookings/BookingRateLockTab";
-import { BookingCutoffRadarTab } from "../components/bookings/BookingCutoffRadarTab";
-import { BookingSiStudioTab } from "../components/bookings/BookingSiStudioTab";
-import { BookingEquipmentReleaseTab } from "../components/bookings/BookingEquipmentReleaseTab";
-import { BookingConfirmModal } from "../components/bookings/modals/BookingConfirmModal";
-import { NewBookingRequestModal } from "../components/bookings/modals/NewBookingRequestModal";
+import {
+  BookingRateLockTab,
+  BookingCutoffRadarTab,
+  BookingSiStudioTab,
+  BookingEquipmentReleaseTab,
+  BookingConfirmModal,
+  NewBookingRequestModal,
+} from "../components/bookings/index";
 
 const CANONICAL_FALLBACK_OCEAN_BOOKING: OceanBooking = {
   id: "bk_demo_01",
@@ -1277,7 +1279,7 @@ export default function BookingManagementModule() {
             rateLockQuotes={rateLockQuotes}
             countdownSeconds={countdownSeconds}
             formatCountdown={formatCountdown}
-            onBookRate={(quote) => {
+            onBookRate={(quote: any) => {
               bookingMutation.mutate({
                 carrier: quote.carrier,
                 originPort: activeBooking.originPort,
@@ -1302,8 +1304,8 @@ export default function BookingManagementModule() {
             cutOffEval={cutOffEval}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
-            onSelectBooking={(bkg) => setActiveBooking(bkg)}
-            onNavigateTab={(tab) => setActiveTab(tab)}
+            onSelectBooking={(bkg: any) => setActiveBooking(bkg)}
+            onNavigateTab={(tab: any) => setActiveTab(tab)}
           />
         )}
 
@@ -1335,11 +1337,11 @@ export default function BookingManagementModule() {
           <BookingEquipmentReleaseTab
             activeBooking={activeBooking}
             onDownloadDepotPass={handleDownloadDepotPass}
-            onOpenDrayageModal={(bookingRef) => {
+            onOpenDrayageModal={(bookingRef: any) => {
               setDrayageBookingRef(bookingRef);
               setIsDrayageModalOpen(true);
             }}
-            onGenerateRelease={(payload) => {
+            onGenerateRelease={(payload: any) => {
               releaseMutation.mutate(payload);
             }}
             isReleasePending={releaseMutation.isPending}
@@ -1354,7 +1356,7 @@ export default function BookingManagementModule() {
           setConfirmForm={setConfirmForm}
           onSubmit={handleConfirmBookingSubmit}
           isSubmitting={isConfirmSubmitting}
-          onOpenDrayage={(originId, bkgRef, containerNum) => {
+          onOpenDrayage={(originId: any, bkgRef: any, containerNum: any) => {
             setSelectedDrayageOriginId(originId);
             setDrayageBookingRef(bkgRef);
             setDrayageContainerNum(containerNum);

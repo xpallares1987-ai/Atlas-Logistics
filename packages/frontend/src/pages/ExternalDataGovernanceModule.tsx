@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Database, Globe, Layers, Link2, RefreshCw, Zap } from "lucide-react";
 import { ActiveGovernanceTab } from "../types/external-governance.types";
 import { useExternalGovernance } from "../hooks/useExternalGovernance";
-import { SourcesCatalogTab } from "../components/external-governance/SourcesCatalogTab";
-import { UnlocodeHotCacheTab } from "../components/external-governance/UnlocodeHotCacheTab";
-import { RawRecordsLedgerTab } from "../components/external-governance/RawRecordsLedgerTab";
-import { EntityLinksMatrixTab } from "../components/external-governance/EntityLinksMatrixTab";
+import {
+  SourcesCatalogTab,
+  UnlocodeHotCacheTab,
+  RawRecordsLedgerTab,
+  EntityLinksMatrixTab,
+} from "../components/external-governance/index";
 
 export default function ExternalDataGovernanceModule() {
   const [activeTab, setActiveTab] = useState<ActiveGovernanceTab>("unlocode");
