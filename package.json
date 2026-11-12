@@ -45,6 +45,7 @@
     "test:e2e": "playwright test",
     "admin:create": "tsx src/admin/cli.ts",
     "clean:cache": "rm -rf .turbo .njsscan",
+    "clean:documents": "tsx src/scripts/documents-garbage-collector.ts",
     "backup-db": "node src/scripts/backup-db.js",
     "verify:env": "node scripts/verify-env.js",
     "audit:leaks": "node scripts/check-sensitive-leaks.cjs --all",

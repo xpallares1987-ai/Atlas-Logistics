@@ -67,7 +67,8 @@ export class LruCache<K, V> {
 
   getStats() {
     const total = this.hits + this.misses;
-    const hitRate = total > 0 ? ((this.hits / total) * 100).toFixed(1) + "%" : "0.0%";
+    const hitRate =
+      total > 0 ? ((this.hits / total) * 100).toFixed(1) + "%" : "0.0%";
     return {
       size: this.cache.size,
       capacity: this.capacity,
@@ -104,13 +105,17 @@ export class UnlocodePrefixTrie {
         keys.add(String(entry.location).toLowerCase().trim());
       }
       if (entry.nameWoDiacritics) {
-        const words = String(entry.nameWoDiacritics).toLowerCase().split(/[\s,.-]+/);
+        const words = String(entry.nameWoDiacritics)
+          .toLowerCase()
+          .split(/[\s,.-]+/);
         for (const w of words) {
           if (w.length >= 2) keys.add(w);
         }
       }
       if (entry.name) {
-        const words = String(entry.name).toLowerCase().split(/[\s,.-]+/);
+        const words = String(entry.name)
+          .toLowerCase()
+          .split(/[\s,.-]+/);
         for (const w of words) {
           if (w.length >= 2) keys.add(w);
         }
@@ -147,10 +152,67 @@ export class UnlocodePrefixTrie {
         current.children.set(char, next);
       }
       current = next;
-      if (current.entries.length < 250 && !current.entries.includes(entry)) {
+      const existingIdx = current.entries.findIndex(
+        (e) => e.location === entry.location,
+      );
+      if (existingIdx >= 0) {
+        current.entries[existingIdx] = entry;
+      } else if (current.entries.length < 250) {
         current.entries.push(entry);
       }
     }
+  }
+
+  /**
+   * Write-Through Cache operation: dynamically updates or inserts a UN/LOCODE
+   * location in the in-memory Trie and prefix index without requiring a server restart.
+   */
+  public upsertEntry(entry: UnlocodeEntry): void {
+    const keys = new Set<string>();
+    if (entry.location) {
+      keys.add(String(entry.location).toLowerCase().trim());
+    }
+    if (entry.nameWoDiacritics) {
+      const words = String(entry.nameWoDiacritics)
+        .toLowerCase()
+        .split(/[\s,.-]+/);
+      for (const w of words) {
+        if (w.length >= 2) keys.add(w);
+      }
+    }
+    if (entry.name) {
+      const words = String(entry.name)
+        .toLowerCase()
+        .split(/[\s,.-]+/);
+      for (const w of words) {
+        if (w.length >= 2) keys.add(w);
+      }
+    }
+
+    const addedPrefixes = new Set<string>();
+    for (const word of keys) {
+      if (word.length >= 3) {
+        const p3 = word.slice(0, 3);
+        if (!addedPrefixes.has(p3)) {
+          addedPrefixes.add(p3);
+          let list = this.prefix3Map.get(p3);
+          if (!list) {
+            list = [];
+            this.prefix3Map.set(p3, list);
+          }
+          const existingIdx = list.findIndex(
+            (e) => e.location === entry.location,
+          );
+          if (existingIdx >= 0) {
+            list[existingIdx] = entry;
+          } else {
+            list.push(entry);
+          }
+        }
+      }
+      this.insertTrie(word, entry);
+    }
+    this.totalIndexed++;
   }
 
   public getCandidates(query: string): UnlocodeEntry[] | null {
@@ -187,23 +249,142 @@ export class UnlocodePrefixTrie {
 
 /** Standard global hubs pre-seeded for instantaneous zero-latency lookups */
 export const DEFAULT_UNLOCODE_HUBS: UnlocodeEntry[] = [
-  { location: "ESBCN", name: "Barcelona", nameWoDiacritics: "Barcelona", country: "ES", function: "12345---", coordinates: "4121N 00210E" },
-  { location: "ESVLC", name: "Valencia", nameWoDiacritics: "Valencia", country: "ES", function: "12345---", coordinates: "3927N 00019W" },
-  { location: "ESALG", name: "Algeciras", nameWoDiacritics: "Algeciras", country: "ES", function: "1234----", coordinates: "3608N 00527W" },
-  { location: "ESMAD", name: "Madrid", nameWoDiacritics: "Madrid", country: "ES", function: "--34----", coordinates: "4025N 00342W" },
-  { location: "NLRTM", name: "Rotterdam", nameWoDiacritics: "Rotterdam", country: "NL", function: "12345---", coordinates: "5155N 00428E" },
-  { location: "DEHAM", name: "Hamburg", nameWoDiacritics: "Hamburg", country: "DE", function: "12345---", coordinates: "5333N 00959E" },
-  { location: "BEANR", name: "Antwerpen", nameWoDiacritics: "Antwerpen", country: "BE", function: "12345---", coordinates: "5113N 00424E" },
-  { location: "CNSHA", name: "Shanghai", nameWoDiacritics: "Shanghai", country: "CN", function: "12345---", coordinates: "3113N 12130E" },
-  { location: "CNNGB", name: "Ningbo", nameWoDiacritics: "Ningbo", country: "CN", function: "12345---", coordinates: "2952N 12133E" },
-  { location: "SGSIN", name: "Singapore", nameWoDiacritics: "Singapore", country: "SG", function: "12345---", coordinates: "0117N 10351E" },
-  { location: "USLAX", name: "Los Angeles", nameWoDiacritics: "Los Angeles", country: "US", function: "12345---", coordinates: "3344N 11816W" },
-  { location: "USNYC", name: "New York", nameWoDiacritics: "New York", country: "US", function: "12345---", coordinates: "4043N 07400W" },
-  { location: "USSEA", name: "Seattle", nameWoDiacritics: "Seattle", country: "US", function: "12345---", coordinates: "4736N 12220W" },
-  { location: "MXVER", name: "Veracruz", nameWoDiacritics: "Veracruz", country: "MX", function: "1234----", coordinates: "1912N 09608W" },
-  { location: "MXLZC", name: "Lázaro Cárdenas", nameWoDiacritics: "Lazaro Cardenas", country: "MX", function: "1234----", coordinates: "1757N 10212W" },
-  { location: "MXMAN", name: "Manzanillo", nameWoDiacritics: "Manzanillo", country: "MX", function: "1234----", coordinates: "1903N 10419W" },
-  { location: "MXNLD", name: "Nuevo Laredo", nameWoDiacritics: "Nuevo Laredo", country: "MX", function: "--34----", coordinates: "2729N 09930W" },
+  {
+    location: "ESBCN",
+    name: "Barcelona",
+    nameWoDiacritics: "Barcelona",
+    country: "ES",
+    function: "12345---",
+    coordinates: "4121N 00210E",
+  },
+  {
+    location: "ESVLC",
+    name: "Valencia",
+    nameWoDiacritics: "Valencia",
+    country: "ES",
+    function: "12345---",
+    coordinates: "3927N 00019W",
+  },
+  {
+    location: "ESALG",
+    name: "Algeciras",
+    nameWoDiacritics: "Algeciras",
+    country: "ES",
+    function: "1234----",
+    coordinates: "3608N 00527W",
+  },
+  {
+    location: "ESMAD",
+    name: "Madrid",
+    nameWoDiacritics: "Madrid",
+    country: "ES",
+    function: "--34----",
+    coordinates: "4025N 00342W",
+  },
+  {
+    location: "NLRTM",
+    name: "Rotterdam",
+    nameWoDiacritics: "Rotterdam",
+    country: "NL",
+    function: "12345---",
+    coordinates: "5155N 00428E",
+  },
+  {
+    location: "DEHAM",
+    name: "Hamburg",
+    nameWoDiacritics: "Hamburg",
+    country: "DE",
+    function: "12345---",
+    coordinates: "5333N 00959E",
+  },
+  {
+    location: "BEANR",
+    name: "Antwerpen",
+    nameWoDiacritics: "Antwerpen",
+    country: "BE",
+    function: "12345---",
+    coordinates: "5113N 00424E",
+  },
+  {
+    location: "CNSHA",
+    name: "Shanghai",
+    nameWoDiacritics: "Shanghai",
+    country: "CN",
+    function: "12345---",
+    coordinates: "3113N 12130E",
+  },
+  {
+    location: "CNNGB",
+    name: "Ningbo",
+    nameWoDiacritics: "Ningbo",
+    country: "CN",
+    function: "12345---",
+    coordinates: "2952N 12133E",
+  },
+  {
+    location: "SGSIN",
+    name: "Singapore",
+    nameWoDiacritics: "Singapore",
+    country: "SG",
+    function: "12345---",
+    coordinates: "0117N 10351E",
+  },
+  {
+    location: "USLAX",
+    name: "Los Angeles",
+    nameWoDiacritics: "Los Angeles",
+    country: "US",
+    function: "12345---",
+    coordinates: "3344N 11816W",
+  },
+  {
+    location: "USNYC",
+    name: "New York",
+    nameWoDiacritics: "New York",
+    country: "US",
+    function: "12345---",
+    coordinates: "4043N 07400W",
+  },
+  {
+    location: "USSEA",
+    name: "Seattle",
+    nameWoDiacritics: "Seattle",
+    country: "US",
+    function: "12345---",
+    coordinates: "4736N 12220W",
+  },
+  {
+    location: "MXVER",
+    name: "Veracruz",
+    nameWoDiacritics: "Veracruz",
+    country: "MX",
+    function: "1234----",
+    coordinates: "1912N 09608W",
+  },
+  {
+    location: "MXLZC",
+    name: "Lázaro Cárdenas",
+    nameWoDiacritics: "Lazaro Cardenas",
+    country: "MX",
+    function: "1234----",
+    coordinates: "1757N 10212W",
+  },
+  {
+    location: "MXMAN",
+    name: "Manzanillo",
+    nameWoDiacritics: "Manzanillo",
+    country: "MX",
+    function: "1234----",
+    coordinates: "1903N 10419W",
+  },
+  {
+    location: "MXNLD",
+    name: "Nuevo Laredo",
+    nameWoDiacritics: "Nuevo Laredo",
+    country: "MX",
+    function: "--34----",
+    coordinates: "2729N 09930W",
+  },
 ];
 
 export const unlocodeLruCache = new LruCache<string, UnlocodeEntry[]>(250);
@@ -269,4 +450,21 @@ export function getUnlocodeStats() {
     cache: unlocodeLruCache.getStats(),
     trie: unlocodeTrie.getStats(),
   };
+}
+
+/**
+ * Write-Through Cache operation: atomically updates the in-memory dataset,
+ * the Prefix Trie and clears the LRU cache to reflect new or modified locations immediately.
+ */
+export function upsertUnlocode(entry: UnlocodeEntry): void {
+  const existingIdx = rawDataset.findIndex(
+    (e) => e.location === entry.location,
+  );
+  if (existingIdx >= 0) {
+    rawDataset[existingIdx] = entry;
+  } else {
+    rawDataset.push(entry);
+  }
+  unlocodeTrie.upsertEntry(entry);
+  unlocodeLruCache.clear();
 }

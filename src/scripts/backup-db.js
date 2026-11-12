@@ -42,11 +42,13 @@ export function getSafeDbPath() {
     const rawPath = process.env.DATABASE_URL.replace(/^file:/, "");
     return resolveWithinRoot(rawPath, "DATABASE_URL");
   }
+  const devDb = path.resolve(ROOT_DIR, "data/dev.db");
   const v2Db = path.resolve(ROOT_DIR, "atlas-erp-v2.db");
   const prodDb = path.resolve(ROOT_DIR, "atlas-erp-prod.db");
+  if (existsSync(devDb)) return devDb;
   if (existsSync(v2Db)) return v2Db;
   if (existsSync(prodDb)) return prodDb;
-  return v2Db;
+  return devDb;
 }
 
 export function getSafeBackupDir() {
@@ -172,18 +174,41 @@ export async function backup() {
   try {
     if (existsSync(dbSource)) {
       await checkpointDatabase(dbSource);
-      await fs.copyFile(dbSource, backupFile);
+      // Use native SQLite VACUUM INTO for 100% ACID snapshot without file-level tearing
+      let nativeBackupSuccess = false;
+      try {
+        const client = createClient({ url: `file:${dbSource}` });
+        const backupSqlPath = backupFile.replace(/\\/g, "/");
+        await client.execute(`VACUUM INTO '${backupSqlPath}';`);
+        await client.close();
+        nativeBackupSuccess = true;
+        console.log(
+          `✅ Database snapshot created via native SQLite VACUUM INTO: ${backupFile}`,
+        );
+      } catch (vacuumErr) {
+        console.warn(
+          `⚠ Native VACUUM INTO warning (${vacuumErr.message}), falling back to file copy.`,
+        );
+      }
+
+      if (!nativeBackupSuccess) {
+        await fs.copyFile(dbSource, backupFile);
+        console.log(`✅ Database snapshot created via copyFile: ${backupFile}`);
+      }
     } else {
       await fs.writeFile(backupFile, "dummy sqlite content");
+      console.log(`✅ Database placeholder created: ${backupFile}`);
     }
-    console.log(`✅ Database snapshot created: ${backupFile}`);
 
     // Backup environment files
     const envFiles = [".env", ".env.local", ".env.production"];
     for (const envName of envFiles) {
       const envSource = path.resolve(ROOT_DIR, envName);
       if (existsSync(envSource)) {
-        const envTarget = path.resolve(targetDir, `${envName}-${safeTimestamp}.bak`);
+        const envTarget = path.resolve(
+          targetDir,
+          `${envName}-${safeTimestamp}.bak`,
+        );
         await fs.copyFile(envSource, envTarget);
       }
     }

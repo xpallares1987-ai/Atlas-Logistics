@@ -7,6 +7,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### 🌟 Added & Architecture
+- **External Data Governance, Offline Topology & Zero-Cost Infrastructure (ADR 0021)**:
+  - **Lean 3-Table Model (`src/db/schema/external_governance.ts`)**:
+    - Replaced complex license bureaucracy with streamlined 3-table relational schema: `data_sources` (catalog & types), `source_records` (raw JSON payloads + cryptographic SHA-256 integrity hash), and `entity_source_links` (semantic binding to Atlas shipments, containers, ports, vessels).
+    - Added Zod schemas and TypeScript contracts in `@atlas/shared` (`packages/shared/src/external-governance/`).
+    - Defensive auto-migration routines in `ensureExternalGovernanceTables()` for SQLite.
+  - **Write-Through In-Memory Cache (UN/LOCODE)**:
+    - Augmented in-memory Trie index and LRU cache in `packages/shared/src/unlocode.ts` with `upsertUnlocode()` and `upsertEntry()`.
+    - Enables instantaneous hot-memory discoverability of newly registered ports without requiring server or node process restarts.
+  - **Document Governance & Automated Garbage Collection**:
+    - Enforced SHA-256 hashes and relative path pointers in SQLite (`DOCS_ROOT`), completely avoiding absolute machine paths and binary BLOBs in the database.
+    - Implemented `src/scripts/documents-garbage-collector.ts` (`pnpm run clean:documents`) to detect and purge orphaned physical files on disk with dry-run support.
+  - **SQLite Native Zero-Cost Backups (`VACUUM INTO`)**:
+    - Replaced OS-level file copies in `src/scripts/backup-db.js` with native SQLite `VACUUM INTO` via `@libsql/client` to guarantee ACID consistency and prevent torn page corruption in WAL mode.
+  - **Event Sourcing / Outbox Integration**:
+    - Extended `TransactionalOutboxBus` (`src/scm/kernel/outbox-bus.ts`) with `.publish()` to emit append-only events (`external_data.record_ingested`, `external_data.entity_linked`) into `scmOutboxMessages` for offline multi-database synchronization.
+  - **Deterministic Seeds & Fastify API**:
+    - Implemented `src/db/seeds/external-governance.seed.ts` providing deterministic baseline data for UNECE UN/LOCODE, OpenStreetMap, GeoNames, and GLEIF, pre-linked to canonical shipment `sh_demo_01`.
+    - Implemented and mounted Fastify routes (`/api/external-governance/*`) in `src/routes/external-governance.routes.ts` and `src/routes/index.ts`.
+    - Authored end-to-end integration test suite `tests/external-governance-lean.test.ts` (7/7 passing).
+
 ### 🛠️ Refactored & Architecture
 - **Frontend Modular Decomposition & File Size Guardrails (ADR 0020)**:
   - Implemented automated file size scanner `scripts/check-file-sizes.mjs` and npm script `pnpm run check:file-sizes` enforcing strict <1,000 line limits for page modules.

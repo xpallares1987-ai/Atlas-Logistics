@@ -5,6 +5,7 @@ import {
   searchUnlocodes,
   getUnlocodeStats,
   initializeUnlocodes,
+  upsertUnlocode,
 } from "./unlocode";
 
 describe("UN/LOCODE High-Performance Engine & LRU Cache", () => {
@@ -75,5 +76,26 @@ describe("UN/LOCODE High-Performance Engine & LRU Cache", () => {
     const res = searchUnlocodes("Test Port One");
     expect(res).toHaveLength(1);
     expect(res[0].location).toBe("TEST1");
+  });
+
+  it("should support Write-Through Cache updates in hot memory without server restart", () => {
+    // Upsert a brand new UN/LOCODE port in hot RAM
+    const newPort = {
+      location: "ESGTO",
+      name: "Getxo Terminal",
+      nameWoDiacritics: "Getxo Terminal",
+      country: "ES",
+      function: "1234----",
+      coordinates: "4321N 00301W",
+    };
+
+    upsertUnlocode(newPort);
+
+    // Immediately discoverable via code and name
+    const foundByCode = searchUnlocodes("ESGTO");
+    expect(foundByCode.some((p) => p.location === "ESGTO")).toBe(true);
+
+    const foundByName = searchUnlocodes("Getxo");
+    expect(foundByName.some((p) => p.name === "Getxo Terminal")).toBe(true);
   });
 });

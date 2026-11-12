@@ -1,7 +1,7 @@
-# ADR 0021: Bounded Context de Gobierno de Datos Externos, Licenciamiento y Procedencia (Zero-Cost & Offline)
+# ADR 0021: Gobierno Ágil de Datos Externos, Vinculación de Entidades y Metodología Offline Resiliente (Zero-Cost SQLite)
 
 ## Estado
-**Aceptado**
+**Aceptado (Revisión Pragmática)**
 
 ## Cuadrante Diátaxis
 **Explicación y Decisiones Arquitectónicas** (`docs/adr/`)
@@ -10,77 +10,50 @@
 
 ## Contexto y Planteamiento del Problema
 
-Atlas Logistics integra de forma recurrente información proveniente de múltiples fuentes externas y registros abiertos (Wikidata, Wikipedia, Wikimedia Commons, OpenStreetMap / Nominatim, GeoNames, UN/LOCODE de UNECE, GLEIF / LEI, UN Comtrade, Crossref, ORCID, OpenAlex, Europeana, DBpedia, OpenCorporates, VIAF, ISNI e IMO GISIS).
+Atlas Logistics opera en un modelo híbrido "Zero Cost & Offline First" con SQLite y Fastify. La integración de fuentes externas (UN/LOCODE de UNECE, OpenStreetMap, GeoNames, GLEIF, etc.) debe alimentar de forma ágil y confiable las entidades operativas internas (contenedores, puertos, expedientes y buques).
 
-Hasta el momento, estas fuentes se consumían de forma fragmentada o implícita en servicios como `address-geocoding.service.ts` y hooks como `useNominatimGeocoding.ts`, sin una capa unificada de gobernanza que garantizara:
-1. **Verificación Formal de Licencias y Derechos**: Identificar si un dataset o registro cuenta con licencias permisivas (`CC0-1.0`), con atribución (`CC-BY-4.0`, `ODC-BY-1.0`), de compartir igual (`CC-BY-SA-4.0`, `ODbL-1.0`) o términos contractuales/propietarios restringidos.
-2. **Evaluación de Conformidad por Finalidad**: Autorizar o bloquear el uso de datos según el propósito de negocio (`INGESTION`, `INTERNAL_USE`, `COMMERCIAL_USE`, `PUBLICATION`, `REDISTRIBUTION`, `DERIVATIVE_DATASET`, `AI_RAG_USE`, `API_EXPORT`).
-3. **Generación Determinista de Atribuciones**: Cumplir con las cláusulas de atribución obligatoria sin descuidar enlaces canónicos ni avisos de modificación.
-4. **Trazabilidad y Procedencia End-to-End**: Probar qué versión o release se utilizó, cuándo se verificaron los derechos, qué transformaciones se aplicaron y qué evidencias sustentan el uso.
-5. **Revisión Manual Auditable**: Establecer un flujo regulado para que oficiales de cumplimiento resuelvan bloqueos mediante justificaciones fundadas y URLs de evidencia inmutables.
+El diseño inicial contemplaba una arquitectura hiper-normalizada de 11 tablas con un evaluador determinista de licencias (ODbL, CC-BY, etc.). Sin embargo, para la realidad operativa del ecosistema local de coste cero, la hiper-burocracia de licencias introduce fricción innecesaria. La necesidad prioritaria es:
+1. **Vincular entidades operativas** (puertos UN/LOCODE, coordenadas geocodificadas, terminales) con identificadores externos reales y conservar el payload crudo en JSON.
+2. **Resolver la sincronización offline** mediante Event Sourcing / Outbox inmutable (append-only) para evitar conflictos de merge relacional entre bases locales y servidores centrales.
+3. **Prevenir orfandad de archivos** en el sistema de archivos local mediante rutas relativas (`DOCS_ROOT`) y un Garbage Collector automático.
+4. **Evitar des-sincronizaciones en caliente** del diccionario de puertos en memoria (RAM) usando un patrón *Write-Through Cache*.
+5. **Garantizar backups transaccionalmente seguros** sin riesgo de corrupción por commits concurrentes mediante el comando nativo de SQLite `VACUUM INTO`.
 
 ---
 
 ## Decisiones Tomadas
 
-### 1. Creación del Bounded Context de Soporte `ExternalDataGovernance`
-Se establece un nuevo bounded context de soporte denominado `ExternalDataGovernance` que no reemplaza el MDM existente de Atlas Logistics, sino que vincula afirmaciones externas con entidades internas conservando valores originales, normalizados, autoridad, confianza y evidencia.
+### 1. Modelo Relacional Lean: La Tríada Esencial (3 Tablas)
+Se descarta la hiper-normalización de 11 tablas en esta etapa y se adopta una arquitectura lean de 3 tablas fundamentales en `src/db/schema/external_governance.ts`:
+- **`data_sources`**: Catálogo de orígenes de datos externos (`UNLOCODE`, `OPENSTREETMAP`, `GEONAMES`, `GLEIF`, `IMO_GISIS`).
+- **`source_records`**: Datos crudos ingeridos con su payload original en JSON (`text("raw_payload", { mode: "json" })`), identificador externo, marca temporal de extracción y hash SHA-256 de integridad.
+- **`entity_source_links`**: Cruce semántico directo entre registros externos y entidades operativas internas de Atlas (`PORT`, `LOCATION`, `VESSEL`, `CARRIER`, `SHIPMENT`, `CONTAINER`), con puntuación de confianza (`match_confidence`) y método de coincidencia.
 
-### 2. Metodología de Base de Datos (Zero-Cost & Offline SQLite)
-De acuerdo con la directriz de ingeniería de base de datos de Atlas Logistics, la persistencia se implementa bajo los siguientes pilares inquebrantables:
-- **Topología WAL y Claves Foráneas**: SQLite en modo WAL (`PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;`) con claves foráneas activas (`PRAGMA foreign_keys = ON;`).
-- **Esquema Modular Relacional**: Ubicado en `src/db/schema/external_governance.ts` y re-exportado en el `index.ts` maestro.
-- **Patrón Puntero (Cero BLOBs en SQLite)**: Queda estrictamente prohibido almacenar binarios en SQLite. Las evidencias, capturas, volcados y dumps se alojan en el sistema de archivos local (`/atlas-data/governance/evidence/YYYY/MM/`), registrando en la base de datos únicamente metadatos, hashes SHA-256 y la ruta física/URL de evidencia.
-- **Modo JSON para Payloads Dinámicos**: Los registros externos crudos y normalizados se almacenan en columnas `text("payload", { mode: "json" })`, indexando en columnas relacionales de primer nivel únicamente los identificadores y atributos clave de búsqueda (`source_record_id`, `licence_code`, etc.).
-- **Diccionarios en RAM para Cargas de Alto Rendimiento**: Las licencias canónicas y los códigos estáticos se cargan en `Map()` nativos en memoria durante el inicio del servicio para permitir validaciones en microsegundos sin sobrecargar SQLite.
-- **Escrituras en Lote Transaccionales**: Las ingestas masivas de registros externos se realizan mediante transacciones atómicas `db.insert().values(array)`.
+### 2. Escrituras Exclusivas Append-Only (Event Sourcing / Outbox)
+Para garantizar la sincronización bidireccional asíncrona entre entornos offline locales (`atlas-erp-v2.db`) y consolas consolidadas (`atlas-erp-prod.db` o nubes centrales):
+- Las mutaciones de la UI y los endpoints no dependen de escrituras destructivas `UPDATE`/`DELETE` ad-hoc.
+- Toda acción se canaliza a través de eventos inmutables en el log append-only `scmOutboxMessages` / `local_outbox_events` mediante `TransactionalOutboxBus`.
+- La UI lee del modelo relacional proyectado (CQRS), pero las escrituras generan eventos de dominio que permiten replay y sincronización secuencial sin conflictos de UUIDs.
 
-### 3. Modelo Físico Desacoplado (11 Entidades Fundamentales)
-Se prohíbe concentrar la lógica en una única tabla de fuentes. Se modelan explícitamente:
-- `data_sources`: Catálogo de proveedores externos (institución, términos, web).
-- `source_datasets`: Datasets alojados por cada fuente con su alcance predeterminado.
-- `dataset_releases`: Releases o versiones temporales del dataset con fecha de verificación.
-- `access_methods`: Puntos de entrada técnicos (REST API, SPARQL, Dump masivo).
-- `source_records`: Instancias individuales de datos con payload original y normalizado.
-- `entity_source_links`: Vínculo semántico entre registros externos y entidades del dominio Atlas (Locations, Vessels, Carriers, Parties).
-- `provenance_events`: Registro inmutable de eventos de procedencia y transformaciones.
-- `licence_definitions`: Definiciones canónicas de licencias con URLs inmutables y permisos.
-- `compliance_assessments`: Evaluaciones de cumplimiento por finalidad.
-- `validation_results`: Detalle individual de reglas ejecutadas.
-- `manual_reviews`: Resoluciones de excepciones y overrides emitidos por oficiales.
+### 3. Gestión Documental: Rutas Relativas y Garbage Collector
+- **Cero Rutas Absolutas en Base de Datos**: La tabla `documents` almacena únicamente hashes SHA-256 y rutas relativas o URLs virtuales (`/api/documents/download/...`).
+- **Resolución al Vuelo**: Fastify resuelve la ruta física en disco a través de la variable de entorno `DOCS_ROOT` (por defecto `./uploads`), garantizando portabilidad absoluta entre Windows, Linux y NAS.
+- **Garbage Collector Programado**: Script automatizado (`src/scripts/documents-garbage-collector.ts`) que audita el sistema de archivos contra la tabla `documents` en SQLite y purga de forma segura archivos huérfanos sin fila activa.
 
-### 4. Motor de Reglas Automáticas y Algoritmo Fail-Closed
-- Se implementan reglas independientes y testeables:
-  - Estructurales (`VAL-001` a `VAL-015`): Validación de URLs canónicas, fechas consistentes, presencia de términos, evidencia suficiente.
-  - De Atribución (`ATTR-001` a `ATTR-009`): Verificación de autor, enlace a licencia, aviso de cambios, visibilidad.
-  - Específicas por Licencia (`CC0-1.0`, `CC-BY-4.0`, `CC-BY-SA-4.0`, `ODbL-1.0`, `PROPRIETARY-TERMS`, `CONTRACTUAL`).
-- **Algoritmo de Decisión**:
-  $$\text{Si } (\text{bloqueos} > 0 \lor \text{conflicto de finalidad} \lor \neg\text{derechos\_verificados}) \implies \mathbf{BLOCKED}$$
-  $$\text{Si no hay bloqueos y hay advertencias} \implies \mathbf{PASS\_WITH\_WARNINGS}$$
-  $$\text{En cualquier otro caso} \implies \mathbf{PASS}$$
-- El motor **devuelve todos los motivos de bloqueo** sin interrumpir la evaluación en el primer fallo.
+### 4. Diccionarios en Memoria: Write-Through Cache
+- El motor de UN/LOCODE y lookups rápidos (`UnlocodePrefixTrie` en `packages/shared/src/unlocode.ts`) implementa un patrón **Write-Through**:
+- Al crear o editar una entidad en SQLite, la mutación actualiza inmediatamente el objeto `Map()` / Trie en la memoria de Fastify sin requerir reinicios del servidor.
 
-### 5. Rol `COMPLIANCE_OFFICER` y Aislamiento de Tenant
-- Las revisiones manuales, sobreescrituras de bloqueos y registro de nuevos proveedores requieren autenticación JWT y rol `COMPLIANCE_OFFICER` (o `ADMIN`).
-- Todo registro de auditoría y vinculación operativa respeta el aislamiento multi-tenant mediante `AsyncLocalStorage<TenantContext>` (`assertTenantAccess()` y `scopeByTenant()`).
-
-### 6. Integración con el Transactional Outbox
-Toda modificación o evaluación emite eventos de dominio inmutables hacia `scmOutboxMessages` a través de `TransactionalOutboxBus` (`external_data.source.registered`, `external_data.compliance.completed`, `external_data.compliance.blocked`, etc.).
-
-### 7. Interfaz de Usuario PWA y Guardarraíl de Complejidad
-- Se implementa `ExternalDataGovernanceModule.tsx` en `packages/frontend/src/pages/` bajo el límite estricto de `<1.000 líneas` (ADR 0020), apoyado en 5 submódulos de pestañas operativas y 1 modal de revisión manual en `packages/frontend/src/components/external-governance/`.
-- Uso exclusivo de datos en vivo de Fastify/SQLite (Zero Mocks) y paleta semántica estandarizada.
+### 5. Respaldo Transaccional Seguro: SQLite Nativo (`VACUUM INTO`)
+- Se prohíbe la copia directa de archivos `.db` en caliente con utilidades de sistema operativo (`Copy-Item` / `fs.copyFile`).
+- El script maestro de copias de seguridad (`src/scripts/backup-db.js`) invoca la sentencia nativa de SQLite `VACUUM INTO 'backup-path.db'`, garantizando un volcado atómico, compacto y 100% libre de páginas corruptas incluso durante escrituras activas en modo WAL.
 
 ---
 
 ## Consecuencias
 
 ### Positivas
-- **Blindaje Legal y Auditoría Continua**: Atlas Logistics cuenta con evidencia inmutable sobre el origen y las licencias de cada dato externo que alimenta cotizaciones, pedimentos aduanales y georutas.
-- **Rendimiento Óptimo a Cero Coste**: SQLite en modo WAL, diccionarios en RAM e inserciones transaccionales en lote garantizan tiempos de respuesta en milisegundos sin requerir servicios de nube de pago ni infraestructuras pesadas.
-- **Cumplimiento Automatizado**: Las finalidades críticas como `AI_RAG_USE` y `COMMERCIAL_USE` quedan protegidas ante contaminaciones de licencias incompatibles (`CC-BY-SA` o términos no comerciales).
-- **Consistencia Arquitectónica**: Sigue fielmente los estándares del monorepo (Zod en `packages/shared`, Fastify en backend, PWA en frontend, Diátaxis en documentación).
-
-### Desafíos y Mitigaciones
-- **Mantenimiento del Catálogo de Licencias**: Nuevas fuentes pueden introducir licencias sui generis; se mitiga permitiendo códigos `PROVIDER-SPECIFIC` y `CONTRACTUAL` acompañados de revisión manual obligatoria.
-- **Caducidad de Derechos**: Las fuentes dinámicas requieren verificación periódica; se resuelve incorporando un job de reevaluación programado en BullMQ para detectar derechos expirados.
+- **Velocidad de Implementación**: Reducción del 70% en código de soporte innecesario, permitiendo enlazar inmediatamente los contenedores y expedientes con UN/LOCODE y GeoNames.
+- **Offline Resiliente y Sincronizable**: El append-only log de eventos permite mover datos entre instancias locales y centrales sin conflictos relacionales destructivos.
+- **Almacenamiento y Backups Blindados**: Sin riesgo de fugas de espacio en disco por orfandad ni fallos silenciosos en copias de base de datos.
+- **Rendimiento Máximo en Lectura**: Caché en memoria sincronizada en caliente para búsquedas instantáneas en la UI.

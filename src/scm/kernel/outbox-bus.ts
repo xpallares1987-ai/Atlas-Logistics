@@ -7,7 +7,8 @@ import {
   scmInboxProcessedMessages,
   scmCommandIdempotency,
 } from "../../db/schema/scm_foundation.js";
-import { DomainEventEnvelope } from "./primitives.js";
+import { v4 as uuidv4 } from "uuid";
+import { DomainEventEnvelope, DEFAULT_OPERATOR_ACTOR } from "./primitives.js";
 
 export type DomainEventHandler<TPayload = any> = (
   event: DomainEventEnvelope<TPayload>,
@@ -102,6 +103,43 @@ class TransactionalOutboxBus {
         })
         .onConflictDoNothing();
     }
+  }
+
+  /**
+   * Convinience method to publish a single domain event into the transactional outbox.
+   */
+  public async publish(
+    event: {
+      eventId?: string;
+      eventType: string;
+      schemaVersion?: number;
+      producerContext?: string;
+      aggregateType: string;
+      aggregateId: string;
+      aggregateVersion?: number;
+      correlationId?: string;
+      causationId?: string;
+      actor?: any;
+      occurredAt?: string;
+      payload: any;
+    },
+    tx?: any,
+  ): Promise<void> {
+    const envelope: DomainEventEnvelope = {
+      eventId: event.eventId || uuidv4(),
+      eventType: event.eventType,
+      schemaVersion: event.schemaVersion || 1,
+      producerContext: event.producerContext || "GeneralKernel",
+      aggregateType: event.aggregateType,
+      aggregateId: event.aggregateId,
+      aggregateVersion: event.aggregateVersion || 1,
+      correlationId: event.correlationId || uuidv4(),
+      causationId: event.causationId || uuidv4(),
+      actor: event.actor || DEFAULT_OPERATOR_ACTOR,
+      occurredAt: event.occurredAt || new Date().toISOString(),
+      payload: event.payload,
+    };
+    await this.enqueueEvents([envelope], tx);
   }
 
   /**

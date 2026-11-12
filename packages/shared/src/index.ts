@@ -40,3 +40,4 @@ export * from "./wiki/index.js";
 export * from "./logistics/axle-heatmap.js";
 export * from "./bl-party-formatter.js";
 export * from "./drayage-calculator.js";
+export * from "./external-governance/external-governance.types.js";
