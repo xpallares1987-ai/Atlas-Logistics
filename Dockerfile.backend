@@ -10,6 +10,11 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV HUSKY=0
 ENV CI=true
+# Network timeouts for large monorepo
+ENV npm_config_fetch_timeout=120000
+ENV npm_config_fetch_retry_mintimeout=20000
+ENV npm_config_fetch_retry_maxtimeout=120000
+ENV npm_config_network_timeout=120000
 
 RUN apk add --no-cache git python3 make g++ && \
     corepack enable && \
@@ -25,7 +30,9 @@ COPY packages ./packages
 # ============================================================================
 FROM base AS dependencies
 
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts || \
+    pnpm install --frozen-lockfile --ignore-scripts || \
     pnpm install --frozen-lockfile --ignore-scripts
 
 # ============================================================================
@@ -51,7 +58,7 @@ EXPOSE 3001
 
 # Healthcheck for dev environment
 HEALTHCHECK --interval=15s --timeout=10s --retries=3 --start-period=15s \
-    CMD ["/bin/sh", "-c", "node -e \"fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\" || exit 1"]
+    CMD node -e "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" || exit 1
 
 # Watch mode with tsx for fast reloads
 CMD ["pnpm", "start:backend"]
@@ -59,7 +66,6 @@ CMD ["pnpm", "start:backend"]
 # ============================================================================
 # STAGE 4: PRODUCTION-DEPS — Lightweight production dependencies only
 # ============================================================================
-# Note: We reuse the 'dependencies' stage but prune unnecessary dev deps
 FROM dependencies AS production-deps
 
 # Prune dev dependencies for production
@@ -69,6 +75,10 @@ RUN pnpm prune --prod --ignore-scripts
 # STAGE 5: PRODUCTION — Lightweight Fastify runtime
 # ============================================================================
 FROM node:${NODE_VERSION}-alpine AS production
+
+LABEL maintainer="xpallares1987-ai"
+LABEL version="1.0.0"
+LABEL description="Atlas Logistics Backend - Production Fastify API"
 
 ENV NODE_ENV="production"
 ENV NODE_OPTIONS="--max-old-space-size=2048"
@@ -95,6 +105,6 @@ EXPOSE 3001
 
 # Production healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
-    CMD ["sh", "-c", "node -e \"fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+    CMD node -e "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" || exit 1
 
 CMD ["node", "--import", "tsx/esm", "src/server.ts"]

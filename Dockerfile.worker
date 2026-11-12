@@ -10,6 +10,11 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV HUSKY=0
 ENV CI=true
+# Network timeouts for large monorepo
+ENV npm_config_fetch_timeout=120000
+ENV npm_config_fetch_retry_mintimeout=20000
+ENV npm_config_fetch_retry_maxtimeout=120000
+ENV npm_config_network_timeout=120000
 
 RUN apk add --no-cache git python3 make g++ && \
     corepack enable && \
@@ -21,17 +26,23 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
 COPY packages ./packages
 
 # ============================================================================
-# STAGE 2: PRODUCTION DEPENDENCIES — Install only runtime deps
+# STAGE 2: PRODUCTION DEPENDENCIES — Install only runtime deps with retries
 # ============================================================================
 FROM base AS prod-deps
 
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prod --ignore-scripts || \
+    pnpm install --frozen-lockfile --prod --ignore-scripts || \
     pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # ============================================================================
 # STAGE 3: PRODUCTION — Lightweight Worker runtime
 # ============================================================================
 FROM node:${NODE_VERSION}-alpine AS production
+
+LABEL maintainer="xpallares1987-ai"
+LABEL version="1.0.0"
+LABEL description="Atlas Logistics Worker - Production Background Job Processor"
 
 ENV NODE_ENV="production"
 ENV NODE_OPTIONS="--max-old-space-size=1024"
