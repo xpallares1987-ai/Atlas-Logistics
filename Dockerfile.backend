@@ -21,7 +21,7 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
 COPY packages ./packages
 
 # ============================================================================
-# STAGE 2: DEPENDENCIES — Install all dependencies (for both dev & prod)
+# STAGE 2: DEPENDENCIES — Install all dependencies (shared by dev & prod)
 # ============================================================================
 FROM base AS dependencies
 
@@ -39,7 +39,7 @@ ENV LOG_LEVEL="debug"
 
 WORKDIR /app
 
-# Dependencies already cached from previous stage
+# Dependencies already installed from 'dependencies' stage
 COPY src ./src
 COPY drizzle ./drizzle
 COPY package.json pnpm-lock.yaml tsconfig*.json ./
@@ -57,12 +57,13 @@ HEALTHCHECK --interval=15s --timeout=10s --retries=3 --start-period=15s \
 CMD ["pnpm", "start:backend"]
 
 # ============================================================================
-# STAGE 4: PRODUCTION DEPENDENCIES — Install only runtime deps
+# STAGE 4: PRODUCTION-DEPS — Lightweight production dependencies only
 # ============================================================================
-FROM base AS prod-deps
+# Note: We reuse the 'dependencies' stage but prune unnecessary dev deps
+FROM dependencies AS production-deps
 
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile --prod --ignore-scripts
+# Prune dev dependencies for production
+RUN pnpm prune --prod --ignore-scripts
 
 # ============================================================================
 # STAGE 5: PRODUCTION — Lightweight Fastify runtime
@@ -74,9 +75,9 @@ ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 WORKDIR /app
 
-# Copy production node_modules and packages with pre-built artifacts
-COPY --from=prod-deps /app/node_modules /app/node_modules
-COPY --from=prod-deps /app/packages /app/packages
+# Copy production node_modules and packages from production-deps stage
+COPY --from=production-deps /app/node_modules /app/node_modules
+COPY --from=production-deps /app/packages /app/packages
 COPY src ./src
 COPY drizzle ./drizzle
 COPY package.json pnpm-lock.yaml ./
@@ -92,7 +93,8 @@ USER node
 
 EXPOSE 3001
 
-  HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
+# Production healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
     CMD ["sh", "-c", "node -e \"fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
 
 CMD ["node", "--import", "tsx/esm", "src/server.ts"]
