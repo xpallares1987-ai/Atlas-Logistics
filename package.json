@@ -125,6 +125,8 @@
     "fast-uri": "^4.2.3",
     "husky": "^9.1.7",
     "i18next": "^26.7.2",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.9",
     "lint-staged": "^17.6.0",
     "pino-pretty": "^13.2.0",
     "postcss": "^8.5.32",
