@@ -36,13 +36,31 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
       const mappedTokens = dbTokens.map((t) => ({
         ...t,
         tokenId: t.tokenReference,
+        issueDate: t.createdAt || new Date().toISOString(),
+        fuelType: (t.fuelType === "E_METHANOL_RFNBO"
+          ? "E_METHANOL"
+          : t.fuelType) as any,
         fuelVolumeMT: t.totalVolumeMetricTonnes,
+        energyContentMJ: t.totalEnergyMj || 0,
+        bunkerLocation:
+          t.bunkerLocationName || "Port de Barcelona - Muelle de la Energía",
+        bdnReference: t.bdnReference || "BDN-2026-DEFAULT",
+        sustainabilityCertificateNumber:
+          t.isccCertificateNumber || "ISCC-EU-Cert",
         ghgAbatementTonsCO2e: Number(
-          (t.totalVolumeMetricTonnes * t.ghgAbatementTco2eqPerTonne).toFixed(2),
+          (
+            t.totalVolumeMetricTonnes * (t.ghgAbatementTco2eqPerTonne || 3.41)
+          ).toFixed(2),
         ),
-        digitalSignatureHash: t.digitalSealHash,
         allocatedShipmentRef: "CANONICAL-FLEET-POOL",
         beneficiaryCompany: t.supplierCompanyName,
+        transportMode: "MARITIME_OCEAN" as const,
+        verificationStandard: "ISO 14083 / GLEC Framework v3.0" as const,
+        digitalSignatureHash: t.digitalSealHash,
+        qrCodeDigest: `ATLAS-INSET://TOKEN/${t.tokenReference}/${(t.digitalSealHash || "").slice(0, 16)}`,
+        retirementStatus: (t.status === "AVAILABLE"
+          ? "ACTIVE_AVAILABLE"
+          : "ALLOCATED_RETIRED") as any,
       }));
 
       return reply.send({
@@ -132,15 +150,34 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
         token: {
           ...token,
           tokenId: token.tokenReference,
+          issueDate: token.createdAt || new Date().toISOString(),
+          fuelType: (token.fuelType === "E_METHANOL_RFNBO"
+            ? "E_METHANOL"
+            : token.fuelType) as any,
           fuelVolumeMT: token.totalVolumeMetricTonnes,
+          energyContentMJ: token.totalEnergyMj || 0,
+          bunkerLocation:
+            token.bunkerLocationName ||
+            b.bunkerLocation ||
+            "Port de Barcelona - Muelle de la Energía",
+          bdnReference: token.bdnReference || b.bdnReference,
+          sustainabilityCertificateNumber:
+            token.isccCertificateNumber ||
+            b.sustainabilityCertificateNumber ||
+            "ISCC-EU",
           ghgAbatementTonsCO2e: Number(
             (
-              token.totalVolumeMetricTonnes * token.ghgAbatementTco2eqPerTonne
+              token.totalVolumeMetricTonnes *
+              (token.ghgAbatementTco2eqPerTonne || 3.41)
             ).toFixed(2),
           ),
           digitalSignatureHash: token.digitalSealHash,
           allocatedShipmentRef: b.allocatedShipmentRef || "CANONICAL-POOL",
           beneficiaryCompany: token.supplierCompanyName,
+          transportMode: (b.transportMode || "MARITIME_OCEAN") as any,
+          verificationStandard: "ISO 14083 / GLEC Framework v3.0" as const,
+          qrCodeDigest: `ATLAS-INSET://TOKEN/${token.tokenReference}/${(token.digitalSealHash || "").slice(0, 16)}`,
+          retirementStatus: "ACTIVE_AVAILABLE" as const,
         },
       });
     },

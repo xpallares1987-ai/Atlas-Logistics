@@ -11,7 +11,7 @@ export async function seedCarbonInsetting(): Promise<void> {
 
   // 1. Genesis Seal for Token 1 (B100 Biodiesel - Port de Barcelona)
   const b100Payload = JSON.stringify({
-    reference: "INS-2026-BIO-001",
+    reference: "INSET-2026-B100-BCN-001",
     fuel: "BIO_MGO_HVO",
     bdn: "BDN-BCN-2026-8812",
     iscc: "ISCC-EU-Cert-DE105-829104",
@@ -23,7 +23,7 @@ export async function seedCarbonInsetting(): Promise<void> {
 
   // Genesis Seal for Token 2 (E-Methanol - Port of Rotterdam)
   const emethanolPayload = JSON.stringify({
-    reference: "INS-2026-RFNBO-002",
+    reference: "INSET-2026-METH-RTM-002",
     fuel: "E_METHANOL_RFNBO",
     bdn: "BDN-RTM-2026-4401",
     iscc: "ISCC-PLUS-Cert-NL201-994112",
@@ -39,7 +39,7 @@ export async function seedCarbonInsetting(): Promise<void> {
     .values([
       {
         id: "token_b100_bcn_01",
-        tokenReference: "INS-2026-BIO-001",
+        tokenReference: "INSET-2026-B100-BCN-001",
         fuelId: "fuel_bio_mgo_hvo",
         fuelType: "B100_BIODIESEL",
         bunkerPortLocode: "ESBCN",
@@ -65,9 +65,9 @@ export async function seedCarbonInsetting(): Promise<void> {
       },
       {
         id: "token_emethanol_rtm_01",
-        tokenReference: "INS-2026-RFNBO-002",
+        tokenReference: "INSET-2026-METH-RTM-002",
         fuelId: "fuel_e_methanol",
-        fuelType: "E_METHANOL_RFNBO",
+        fuelType: "E_METHANOL",
         bunkerPortLocode: "NLRTM",
         bunkerLocationName: "Port of Rotterdam - Maasvlakte 2 Green Hub",
         bdnReference: "BDN-RTM-2026-4401",

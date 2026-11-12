@@ -83,7 +83,10 @@ export default function CarbonInsettingModule() {
     "/carbon-insetting/tokens/issue",
     "POST",
     {
-      onSuccess: () => {
+      onSuccess: (res: any) => {
+        if (res?.token) {
+          setTokens((prev) => [res.token, ...prev]);
+        }
         queryClient.invalidateQueries({
           queryKey: ["carbon-insetting-tokens"],
         });
@@ -451,7 +454,9 @@ export default function CarbonInsettingModule() {
                         {token.tokenId}
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        {new Date(token.issueDate).toLocaleDateString()}
+                        {new Date(
+                          token.issueDate || Date.now(),
+                        ).toLocaleDateString()}
                       </span>
                     </td>
                     <td className="p-3">
@@ -488,7 +493,7 @@ export default function CarbonInsettingModule() {
                         {token.fuelVolumeMT} MT
                       </span>
                       <span className="text-[10px] text-slate-500 block">
-                        {(token.energyContentMJ / 1000000).toFixed(2)} GJ
+                        {((token.energyContentMJ || 0) / 1000000).toFixed(2)} GJ
                       </span>
                     </td>
                     <td className="p-3 font-mono">
@@ -496,15 +501,15 @@ export default function CarbonInsettingModule() {
                         -{token.ghgAbatementTonsCO2e} tCO2e
                       </span>
                       <span className="text-[10px] text-slate-400 block">
-                        {
-                          CERTIFIED_FUELS_CATALOG[token.fuelType]
-                            ?.ghgReductionPercentage
-                        }
+                        {CERTIFIED_FUELS_CATALOG[token.fuelType]
+                          ?.ghgReductionPercentage ?? 85}
                         % ahorro
                       </span>
                     </td>
                     <td className="p-3 text-[11px] text-slate-300">
-                      <span>{token.bunkerLocation.split("-")[0]}</span>
+                      <span>
+                        {(token.bunkerLocation || "").split("-")[0] || "Port"}
+                      </span>
                       <span className="text-[10px] text-slate-500 block font-mono">
                         {token.bdnReference}
                       </span>
@@ -684,9 +689,11 @@ export default function CarbonInsettingModule() {
                   >
                     Expedición / Embarque Acreditado (SQLite)
                   </label>
-                  <select
+                  <input
                     id="allocatedShipmentRef"
                     data-testid="allocatedShipmentRef"
+                    type="text"
+                    list="shipments-datalist"
                     value={allocForm.allocatedShipmentRef}
                     onChange={(e) =>
                       setAllocForm({
@@ -694,8 +701,10 @@ export default function CarbonInsettingModule() {
                         allocatedShipmentRef: e.target.value,
                       })
                     }
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
-                  >
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 font-mono text-sm"
+                    placeholder="ej. sh_demo_01 o SHP-BCN-TEST-999"
+                  />
+                  <datalist id="shipments-datalist">
                     <option value="sh_demo_01">
                       sh_demo_01 · BK-2026-67116 (Canónica Demo)
                     </option>
@@ -710,7 +719,7 @@ export default function CarbonInsettingModule() {
                             "Expedición"}
                         </option>
                       ))}
-                  </select>
+                  </datalist>
                 </div>
 
                 <div>
