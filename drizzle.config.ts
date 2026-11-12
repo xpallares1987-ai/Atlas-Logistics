@@ -1,16 +1,19 @@
 import { defineConfig } from "drizzle-kit";
 import dotenv from "dotenv";
+import fs from "node:fs";
 
 const isProduction = process.env.NODE_ENV === "production";
-dotenv.config({
-  path: isProduction ? ".env.production" : ".env.local",
-  override: false,
-});
-dotenv.config({ path: ".env", override: false });
+if (isProduction && fs.existsSync(".env.production")) {
+  dotenv.config({ path: ".env.production", override: false });
+}
+if (fs.existsSync(".env.local")) {
+  dotenv.config({ path: ".env.local", override: false });
+}
+if (fs.existsSync(".env")) {
+  dotenv.config({ path: ".env", override: false });
+}
 
-const databaseUrl =
-  process.env.DATABASE_URL ||
-  (isProduction ? "file:./atlas-erp-prod.db" : "file:./atlas-erp-v2.db");
+const databaseUrl = process.env.DATABASE_URL || "file:./data/dev.db";
 
 export default defineConfig({
   schema: "./src/db/schema/index.ts",

@@ -41,6 +41,7 @@ export * from "./demurrage-dispute.seed.js";
 export * from "./ocean-booking.seed.js";
 export * from "./stowage.seed.js";
 export * from "./external-governance.seed.js";
+export * from "./remediation.seed.js";
 
 import { seedTriggers } from "./triggers.seed.js";
 import { seedCore } from "./core.seed.js";
@@ -80,6 +81,7 @@ import { seedDemurrageDisputes } from "./demurrage-dispute.seed.js";
 import { seedOceanBookings } from "./ocean-booking.seed.js";
 import { seedStowagePlans } from "./stowage.seed.js";
 import { seedExternalGovernance } from "./external-governance.seed.js";
+import { seedDatabaseRemediation } from "./remediation.seed.js";
 import { db } from "../index.js";
 import * as schema from "../schema/index.js";
 
@@ -231,6 +233,7 @@ export async function seedPhase5(ctx?: Partial<SeedContext>): Promise<void> {
   await seedOceanBookings();
   await seedStowagePlans();
   await seedExternalGovernance(ctx);
+  await seedDatabaseRemediation();
   console.log(
     "✅ [PHASE 5] Disputas FMC, Reservas DCSA y Estiba 3D completadas con éxito.",
   );

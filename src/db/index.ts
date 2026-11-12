@@ -48,7 +48,7 @@ if (databaseUrl.startsWith("file:")) {
   client.execute("PRAGMA foreign_keys = ON;").catch(() => {});
 }
 
-export const db = drizzle(client, { schema });
+export const db = drizzle({ client, schema } as any);
 
 /**
  * Health check for database connectivity.

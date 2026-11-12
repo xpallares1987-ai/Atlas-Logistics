@@ -89,6 +89,23 @@ const AxleEvaluationRequestSchema = z.object({
 
 export const stowageRoutes: FastifyPluginAsync = async (fastify) => {
   /**
+   * GET /api/stowage/plans
+   * Lists all available relational 3D container stowage plans from SQLite.
+   */
+  fastify.get("/plans", async (request, reply) => {
+    try {
+      const plans = await db.select().from(schema.containerStowagePlans);
+      return reply.status(200).send(plans);
+    } catch (err: any) {
+      request.log.error(err, "Failed to list stowage plans");
+      return reply.status(500).send({
+        error: "FAILED_LIST_STOWAGE_PLANS",
+        message: err.message,
+      });
+    }
+  });
+
+  /**
    * GET /api/stowage/plan
    * Retrieves relational 3D container stowage plan with cargo items from SQLite.
    */
