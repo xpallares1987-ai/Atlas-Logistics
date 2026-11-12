@@ -15,6 +15,7 @@
     "dev:dashboard": "pnpm --filter @atlas/dashboard dev",
     "dev:redis:only": "docker compose up redis --remove-orphans",
     "dev:redis:stop": "docker compose stop redis",
+    "db:start": "tsx watch src/server.ts",
     "db:inspect": "drizzle-kit studio",
     "db:ui": "drizzle-kit studio",
     "build": "turbo run build",

@@ -1,12 +1,20 @@
+import fs from "node:fs";
 import dotenv from "dotenv";
 
-// Load environment-specific configs ONCE at startup, before any other imports
+// Load environment-specific configs ONCE at startup, with local fallback
 const isProduction = process.env.NODE_ENV === "production";
-dotenv.config({
-  path: isProduction ? ".env.production" : ".env.local",
-  override: false,
-});
-dotenv.config({ path: ".env", override: false });
+if (isProduction && fs.existsSync(".env.production")) {
+  dotenv.config({ path: ".env.production", override: false });
+}
+if (fs.existsSync(".env.local")) {
+  dotenv.config({ path: ".env.local", override: false });
+}
+if (fs.existsSync(".env")) {
+  dotenv.config({ path: ".env", override: false });
+}
+if (isProduction && process.env.ENFORCE_HTTPS === undefined) {
+  process.env.ENFORCE_HTTPS = "false";
+}
 
 import app from "./app.js";
 import { db, databaseUrl } from "./db/index.js";

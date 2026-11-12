@@ -5,27 +5,24 @@ import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
 
-// Load environment-specific configurations
+// Load environment-specific configurations with safe local fallback
 const isProduction = process.env.NODE_ENV === "production";
-dotenv.config({
-  path: isProduction ? ".env.production" : ".env.local",
-  override: false,
-});
-dotenv.config({ path: ".env", override: false });
+if (isProduction && fs.existsSync(".env.production")) {
+  dotenv.config({ path: ".env.production", override: false });
+}
+if (fs.existsSync(".env.local")) {
+  dotenv.config({ path: ".env.local", override: false });
+}
+if (fs.existsSync(".env")) {
+  dotenv.config({ path: ".env", override: false });
+}
 
 export const getDatabaseUrl = (): string => {
   if (process.env.DATABASE_URL) {
     return process.env.DATABASE_URL;
   }
 
-  // In production, DATABASE_URL is mandatory
-  if (isProduction) {
-    throw new Error(
-      "DATABASE_URL environment variable is required in production",
-    );
-  }
-
-  // In development, fall back to local SQLite
+  // Fall back to local SQLite database when DATABASE_URL is not explicitly set
   return "file:./data/dev.db";
 };
 

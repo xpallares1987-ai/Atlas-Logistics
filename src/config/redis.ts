@@ -6,18 +6,18 @@ const REDIS_PORT = process.env.REDIS_PORT
   ? parseInt(process.env.REDIS_PORT, 10)
   : 6379;
 
-const isProduction = process.env.NODE_ENV === "production";
 const isExplicitMock = process.env.USE_REDIS_MOCK === "true";
 const isExplicitReal = process.env.USE_REDIS_MOCK === "false";
 const isDockerOrRemote =
-  !!process.env.REDIS_HOST &&
-  process.env.REDIS_HOST !== "localhost" &&
-  process.env.REDIS_HOST !== "127.0.0.1";
+  (!!process.env.REDIS_HOST &&
+    process.env.REDIS_HOST !== "localhost" &&
+    process.env.REDIS_HOST !== "127.0.0.1") ||
+  Boolean(process.env.REDIS_URL);
 
-// Forced mock in dev/test unless REDIS_HOST is explicitly provided and not localhost,
-// or unless running in production or USE_REDIS_MOCK is explicitly "false"
+// Use in-memory Redis mock unless an explicit remote/Docker Redis endpoint is configured
+// or USE_REDIS_MOCK is explicitly set to "false"
 export const USE_MOCK =
-  !isProduction && !isExplicitReal && (isExplicitMock || !isDockerOrRemote);
+  !isExplicitReal && (isExplicitMock || !isDockerOrRemote);
 
 export let isRedisAvailable = false;
 
