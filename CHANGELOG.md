@@ -7,6 +7,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### 🛠️ Refactored & Architecture
+- **Frontend Modular Decomposition & File Size Guardrails (ADR 0020)**:
+  - Implemented automated file size scanner `scripts/check-file-sizes.mjs` and npm script `pnpm run check:file-sizes` enforcing strict <1,000 line limits for page modules.
+  - Modularized `DocumentVaultModule.tsx` (reduced from 2,736 to 895 lines, -67.3%):
+    - Extracted `types/document-vault.types.ts` for strictly typed prop contracts.
+    - Extracted `components/documents/DocumentStudioTab.tsx` for official template generation.
+    - Extracted `components/documents/DocumentVaultTab.tsx` for document ledger and filters.
+    - Extracted `components/documents/DocumentVerifyTab.tsx` for SHA-256 integrity inspection.
+    - Extracted `components/documents/DocumentOcrStudioTab.tsx` for 4-in-1 extraction and tripartite cross-check matrix.
+    - Extracted `components/documents/modals/DocumentViewerModal.tsx` for PDF preview and digital signing.
+    - Extracted `utils/document-vault.utils.tsx` for document type icons.
+  - Modularized `EdiIntegrationModule.tsx` (reduced from 2,402 to 673 lines, -72.0%):
+    - Extracted `types/edi-integration.types.ts` for DCSA and EDI typed contracts.
+    - Extracted `components/edi/EdiDcsaTab.tsx` for real-time telemetry feed and carrier simulator.
+    - Extracted `components/edi/EdiStudioTab.tsx` for EDI syntax parsing and AST segment inspector.
+    - Extracted `components/edi/EdiOutboundTab.tsx` for multimodal outbound generation (EDI 304, 310, IFTMIN, 204).
+    - Extracted `components/edi/EdiAuditTab.tsx` for transmission audit trail and ACK inspection.
+    - Extracted `components/edi/EdiPartnersTab.tsx` for trading partners configuration.
+    - Extracted `components/edi/modals/DcsaSubscriptionModal.tsx` for webhook subscription management.
+  - Formulated Diátaxis ADR 0020 (`docs/adr/0020-frontend-modular-decomposition-and-file-size-guardrails.md`).
+
 ## [1.0.0] - 2026-11-11
 
 ### 🌟 Added

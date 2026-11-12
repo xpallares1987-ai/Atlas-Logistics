@@ -48,7 +48,8 @@
     "backup-db": "node src/scripts/backup-db.js",
     "verify:env": "node scripts/verify-env.js",
     "audit:leaks": "node scripts/check-sensitive-leaks.cjs --all",
-    "audit:leaks:staged": "node scripts/check-sensitive-leaks.cjs --staged"
+    "audit:leaks:staged": "node scripts/check-sensitive-leaks.cjs --staged",
+    "check:file-sizes": "node scripts/check-file-sizes.mjs"
   },
   "dependencies": {
     "@atlas/shared": "workspace:^",
