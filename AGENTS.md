@@ -56,3 +56,26 @@
   // ============================================================================
   ```
 - **Self-Documenting Complex Domain Logic**: Algorithmic transformations, financial formulas (e.g., BAF fuel surcharges, EU ETS Maritime calculations), and cryptographic operations must document parameters, return values, and domain assumptions.
+
+## 7. Frontend Architecture & Non-Redundant (DRY) Hierarchy
+- **Semantic Subdirectory Segregation**: Allocate repetitive or specialized components into dedicated semantic subdirectories:
+  - `Tab/`: Tab views and navigational panels.
+  - `Modal/`: Dialogs, interactive popups, and confirmation screens.
+  - `Banner/`: Hero banners, summary KPI strips, and execution confirmation bars.
+  - `Drawer/`: Contextual side panels and payload inspectors.
+  - `Queue/` & `Panel/`: Work item triage cards, filter controls, and action execution forms.
+- **Non-Redundant (DRY) File & Folder Naming**: Child files and subdirectories must NEVER repeat the parent directory name or category within their filename:
+  - *Correct*: `components/Shipment/Tab/Overview.tsx`, `components/ControlTower/Modal/ResolveIncident.tsx`, `components/Cockpit/Queue/ItemCard.tsx`.
+  - *Prohibited*: `components/Shipment/Tab/ShipmentOverviewTab.tsx`, `components/ControlTower/Modal/ResolveIncidentModal.tsx`, `components/Cockpit/CockpitHeader.tsx`.
+- **Canonical Barrel Exports (`index.ts`)**: Every component module root must provide a barrel `index.ts` exporting clean atomic names, while maintaining backwards-compatible aliases where needed.
+- **Modular File Size Guardrails (ADR 0020)**: Page module files (`packages/frontend/src/pages/*.tsx`) must remain strictly under 1,000 lines (target <700 lines). Enforced continuously via `node scripts/check-file-sizes.mjs`.
+
+## 8. Windows Process & Concurrency Guardrails (Daemons & File Locks)
+- **Filesystem Locking during Refactorings**: Background Vite dev server processes lock source directories on Windows, causing `git mv` or directory renames to fail with `Permission denied`. Always terminate Vite dev daemons before moving or renaming component directories, and restart them afterwards.
+- **SQLite Concurrency & Test Isolation**: Long-running Fastify backend daemons hold open WAL connections on `data/dev.db`. Running full database integration tests (such as authoritative projection rebuilds) concurrently against the locked database causes lock contention and test timeouts. Always suspend background backend daemons before executing heavy database integration test suites (`pnpm vitest run ...`), and restart them upon test completion.
+
+## 9. Documentation & Diagramming Formatting Guardrails (GitHub & Wiki)
+- **Quoted Node Labels in Mermaid Diagrams**: When generating Mermaid diagrams for GitHub Wiki, READMEs, or Diátaxis docs, node labels containing special characters (parentheses `()`, brackets `[]`, slashes `/`, colons, hyphens) must ALWAYS be enclosed in double quotes:
+  - *Correct*: `D["Append Log (data/dev.db-wal)"]` or `T1["Tarea 1: ShipmentWorkspace360Module (2,125 -> <800 lns)"]`
+  - *Prohibited*: `D[Append Log (data/dev.db-wal)]` (causes GitHub Mermaid parser syntax errors).
+
