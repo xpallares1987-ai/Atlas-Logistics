@@ -1,8 +1,10 @@
 import { sqliteTable, text, real, integer } from "drizzle-orm/sqlite-core";
+import { addresses } from "./core.js";
 
 // 1. Instalaciones de Almacenamiento Aduanero Autorizadas
 export const customsFacilities = sqliteTable("customs_facilities", {
   id: text("id").primaryKey(),
+  addressId: text("address_id").references(() => addresses.id), // 1:1 extension of a WH/TRM address
   facilityCode: text("facility_code").notNull().unique(), // ej. ES-DA-08001-ZAL
   name: text("name").notNull(),
   facilityType: text("facility_type", {

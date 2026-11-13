@@ -256,6 +256,97 @@ export async function ensureAddressesTables() {
     await client.execute(`ALTER TABLE address_contacts ADD COLUMN tags TEXT;`);
   } catch {}
 
+  // 4. Ensure address_identifiers table exists
+  await client.execute(`CREATE TABLE IF NOT EXISTS address_identifiers (
+    id TEXT PRIMARY KEY,
+    address_id TEXT NOT NULL REFERENCES addresses(id) ON DELETE CASCADE,
+    scheme TEXT NOT NULL,
+    value TEXT NOT NULL,
+    transport_mode TEXT,
+    is_primary INTEGER DEFAULT 1,
+    issued_by TEXT,
+    valid_from TEXT,
+    valid_to TEXT,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER,
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    metadata TEXT,
+    tags TEXT
+  );`);
+
+  // 5. Ensure container_iso_types table exists
+  await client.execute(`CREATE TABLE IF NOT EXISTS container_iso_types (
+    iso_code TEXT PRIMARY KEY,
+    industry_code TEXT NOT NULL UNIQUE,
+    category TEXT NOT NULL,
+    nominal_length_ft REAL NOT NULL,
+    nominal_height_ft REAL NOT NULL,
+    nominal_width_ft REAL DEFAULT 8.0,
+    external_length_mm INTEGER NOT NULL,
+    external_width_mm INTEGER NOT NULL,
+    external_height_mm INTEGER NOT NULL,
+    internal_length_mm INTEGER NOT NULL,
+    internal_width_mm INTEGER NOT NULL,
+    internal_height_mm INTEGER NOT NULL,
+    door_opening_width_mm INTEGER,
+    door_opening_height_mm INTEGER,
+    tare_weight_kg REAL NOT NULL,
+    max_payload_kg REAL NOT NULL,
+    max_gross_weight_kg REAL NOT NULL,
+    cubic_capacity_cbm REAL NOT NULL,
+    teu_factor REAL NOT NULL,
+    is_reefer INTEGER DEFAULT 0,
+    has_controlled_atmosphere INTEGER DEFAULT 0,
+    is_ventilated INTEGER DEFAULT 0,
+    description TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER,
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    metadata TEXT,
+    tags TEXT
+  );`);
+
+  // 6. Ensure unlocode_locations table exists
+  await client.execute(`CREATE TABLE IF NOT EXISTS unlocode_locations (
+    un_locode TEXT PRIMARY KEY,
+    country_code TEXT NOT NULL,
+    location_code TEXT NOT NULL,
+    name TEXT NOT NULL,
+    name_wo_diacritics TEXT,
+    subdivision_code TEXT,
+    function_classifier TEXT NOT NULL,
+    is_port INTEGER DEFAULT 0,
+    is_rail_terminal INTEGER DEFAULT 0,
+    is_road_terminal INTEGER DEFAULT 0,
+    is_airport INTEGER DEFAULT 0,
+    is_postal_hub INTEGER DEFAULT 0,
+    is_multimodal_icd INTEGER DEFAULT 0,
+    is_border_crossing INTEGER DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'RL',
+    change_code TEXT,
+    release_date_yymm TEXT,
+    iata_code TEXT,
+    raw_coordinates TEXT,
+    latitude REAL,
+    longitude REAL,
+    remarks TEXT,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER,
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    metadata TEXT,
+    tags TEXT
+  );`);
+
+  // 7. Ensure customs_facilities has address_id link
+  try {
+    await client.execute(
+      `ALTER TABLE customs_facilities ADD COLUMN address_id TEXT REFERENCES addresses(id);`,
+    );
+  } catch {}
+
   tablesEnsured = true;
 }
 

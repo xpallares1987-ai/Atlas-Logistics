@@ -1,6 +1,7 @@
 import { db } from "../index.js";
 import * as schema from "../schema/index.js";
 import { faker } from "@faker-js/faker";
+import { generateValidIso6346 } from "@atlas/shared";
 import { CoreSeedContext } from "./core.seed.js";
 
 export async function seedOperations(ctx: CoreSeedContext): Promise<string[]> {
@@ -326,7 +327,11 @@ export async function seedOperations(ctx: CoreSeedContext): Promise<string[]> {
       const containerNumber =
         isDemoShipment && j === 0
           ? "MSKU9284712"
-          : `${corridor.carrierPrefix}${faker.string.numeric(7)}`;
+          : generateValidIso6346(
+              corridor.carrierPrefix
+                ? corridor.carrierPrefix.slice(0, 3)
+                : "MSK",
+            );
       const sealNumber =
         isDemoShipment && j === 0
           ? "ISO-17712-H-881920"

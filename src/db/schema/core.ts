@@ -559,3 +559,35 @@ export const addressContacts = sqliteTable("address_contacts", {
   isPrimary: integer("is_primary", { mode: "boolean" }).default(false),
   ...commonAuditFields,
 });
+
+export const identifierSchemeEnum = [
+  "SCAC",
+  "IATA",
+  "BIC_OWNER",
+  "BROKER_LICENSE",
+  "EORI",
+  "AEO",
+  "CUSTOMS_AUTHORIZATION",
+  "LEI",
+  "DUNS",
+  "TAX_ID",
+] as const;
+
+export type IdentifierScheme = (typeof identifierSchemeEnum)[number];
+
+export const addressIdentifiers = sqliteTable("address_identifiers", {
+  id: text("id").primaryKey(),
+  addressId: text("address_id")
+    .notNull()
+    .references(() => addresses.id, { onDelete: "cascade" }),
+  scheme: text("scheme", { enum: identifierSchemeEnum }).notNull(),
+  value: text("value").notNull(),
+  transportMode: text("transport_mode", {
+    enum: ["OCEAN", "AIR", "ROAD", "RAIL", "MULTIMODAL"],
+  }),
+  isPrimary: integer("is_primary", { mode: "boolean" }).default(true),
+  issuedBy: text("issued_by"),
+  validFrom: text("valid_from"),
+  validTo: text("valid_to"),
+  ...commonAuditFields,
+});

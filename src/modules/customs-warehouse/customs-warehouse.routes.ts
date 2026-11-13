@@ -7,17 +7,41 @@ import {
   customsStockLedgerEntries,
   customsDischargeDeclarations,
 } from "../../db/schema/customs_warehouse.js";
-import { eq, desc } from "drizzle-orm";
+import { addresses } from "../../db/schema/core.js";
+import { eq, desc, sql } from "drizzle-orm";
 import { CustomsWarehouseFinanceService } from "./customs-warehouse-finance.service.js";
 import { CustomsStockLedgerService } from "./customs-stock-ledger.service.js";
 import { PDFService } from "../../services/pdf.service.js";
 import { domainEventBus } from "../../lib/events/index.js";
 
 export async function customsWarehouseRoutes(app: FastifyInstance) {
-  // 1. List Customs Facilities (DA, DDA, ADT, ZF)
+  // 1. List Customs Facilities (DA, DDA, ADT, ZF) with 1:1 address resolution
   app.get("/facilities", async (_req, reply) => {
     try {
-      const facilities = await db.select().from(customsFacilities);
+      const facilities = await db
+        .select({
+          id: customsFacilities.id,
+          addressId: customsFacilities.addressId,
+          facilityCode: customsFacilities.facilityCode,
+          name: sql<string>`coalesce(${addresses.tradeName}, ${addresses.companyName}, ${customsFacilities.name})`,
+          facilityType: customsFacilities.facilityType,
+          customsAuthorityAuthorizationRef:
+            customsFacilities.customsAuthorityAuthorizationRef,
+          managingOperatorName: sql<string>`coalesce(${addresses.companyName}, ${customsFacilities.managingOperatorName})`,
+          locationAddress: sql<string>`coalesce(${addresses.street1}, ${customsFacilities.locationAddress})`,
+          city: sql<string>`coalesce(${addresses.city}, ${customsFacilities.city})`,
+          countryCode: sql<string>`coalesce(${addresses.country}, ${customsFacilities.countryCode})`,
+          totalPalletCapacity: customsFacilities.totalPalletCapacity,
+          occupiedPallets: customsFacilities.occupiedPallets,
+          totalVolumeM3: customsFacilities.totalVolumeM3,
+          maxStayDaysLimit: customsFacilities.maxStayDaysLimit,
+          isReeferCertified: customsFacilities.isReeferCertified,
+          isActive: customsFacilities.isActive,
+          createdAt: customsFacilities.createdAt,
+          updatedAt: customsFacilities.updatedAt,
+        })
+        .from(customsFacilities)
+        .leftJoin(addresses, eq(customsFacilities.addressId, addresses.id));
       return reply.send(facilities);
     } catch (err: any) {
       app.log.error(err);

@@ -42,6 +42,9 @@ export * from "./ocean-booking.seed.js";
 export * from "./stowage.seed.js";
 export * from "./external-governance.seed.js";
 export * from "./remediation.seed.js";
+export * from "./containers.seed.js";
+export * from "./unlocode.seed.js";
+export * from "./address-identifiers.seed.js";
 
 import { seedTriggers } from "./triggers.seed.js";
 import { seedCore } from "./core.seed.js";
@@ -72,7 +75,11 @@ import { seedEdi } from "./edi.seed.js";
 import { seedDocuments } from "./documents.seed.js";
 import { seedControlTower } from "./control_tower.seed.js";
 import { seedAddressesAndBookings } from "./addresses.seed.js";
+import { seedAddressIdentifiers } from "./address-identifiers.seed.js";
+import { seedContainerIsoTypes } from "./containers.seed.js";
+import { seedUnlocodeLocations } from "./unlocode.seed.js";
 import { seedDrayageOrders } from "./drayage.seed.js";
+
 import { seedCrossBorder } from "./cross-border.seed.js";
 import { seedEFirma } from "./efirma.seed.js";
 import { seedSmartContracts } from "./smart-contracts.seed.js";
@@ -100,9 +107,12 @@ export async function seedPhase1(): Promise<SeedContext> {
     "🚀 [PHASE 1] Inyectando Operaciones Multimodales, Fletes y Control Tower...",
   );
   await seedTriggers();
+  await seedContainerIsoTypes();
+  await seedUnlocodeLocations();
   const coreCtx = await seedCore();
   const shipmentIds = await seedOperations(coreCtx);
   await seedAddressesAndBookings();
+  await seedAddressIdentifiers();
   await seedDrayageOrders();
   await seedTelemetry();
   await seedControlTower();
