@@ -20,7 +20,9 @@ vi.mock("../../db/index.js", () => ({
     where: vi.fn().mockReturnThis(),
     limit: vi.fn().mockResolvedValue([]),
     insert: vi.fn().mockReturnThis(),
-    values: vi.fn().mockResolvedValue([]),
+    values: vi.fn().mockReturnThis(),
+    onConflictDoUpdate: vi.fn().mockReturnThis(),
+    onConflictDoNothing: vi.fn().mockReturnThis(),
   },
 }));
 

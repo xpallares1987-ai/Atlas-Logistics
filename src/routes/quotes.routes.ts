@@ -4,12 +4,12 @@ import { db } from "../db/index.js";
 import {
   rates,
   quotes,
-  carriers,
+  addresses,
   lanes,
   locations,
   companies,
 } from "../db/schema/index.js";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { validate } from "../middleware/validate.js";
 import { CreateQuoteSchema } from "@atlas/shared/src/logistics-schemas.js";
@@ -63,7 +63,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           const query = db
             .select({
               id: rates.id,
-              carrier: carriers.name,
+              carrier: sql<string>`COALESCE(${addresses.tradeName}, ${addresses.companyName})`,
               containerType: rates.containerType,
               baseOceanFreight: rates.baseRate,
               baf: rates.baf,
@@ -76,7 +76,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
               destinationLocode: destinationAlias.id,
             })
             .from(rates)
-            .leftJoin(carriers, eq(rates.carrierId, carriers.id))
+            .leftJoin(addresses, eq(rates.carrierId, addresses.id))
             .innerJoin(lanes, eq(rates.laneId, lanes.id))
             .innerJoin(originAlias, eq(lanes.originLocationId, originAlias.id))
             .innerJoin(

@@ -237,40 +237,26 @@ export async function seedCore(): Promise<CoreSeedContext> {
   console.log(`✅ Creadas ${laneIds.length} rutas (lanes).`);
 
   // 5. CARRIERS & OTHER AGENTS
-  const carrierIds = [];
-  const oceanCarriers = [
-    "Maersk",
-    "MSC",
-    "CMA CGM",
-    "COSCO",
-    "Hapag-Lloyd",
-    "ONE",
-    "Evergreen",
-    "HMM",
-    "Yang Ming",
-    "ZIM",
+  // 5. CARRIERS & CUSTOMS BROKERS (Referenced from canonical addresses registry)
+  const carrierIds = [
+    "addr_carr_maersk",
+    "addr_carr_msc",
+    "addr_carr_cma",
+    "addr_carr_cosco",
+    "addr_carr_hapag",
+    "addr_carr_one",
+    "addr_carr_evergreen",
+    "addr_carr_hmm",
+    "addr_carr_yangming",
+    "addr_carr_zim",
   ];
-  for (const name of oceanCarriers) {
-    const id = faker.string.uuid();
-    carrierIds.push(id);
-    await db.insert(schema.carriers).values({
-      id,
-      name,
-      scac: name.substring(0, 4).toUpperCase(),
-      type: "OCEAN",
-    });
-  }
 
-  const brokerIds = [];
-  for (let i = 0; i < 5; i++) {
-    const id = faker.string.uuid();
-    brokerIds.push(id);
-    await db.insert(schema.customsBrokers).values({
-      id,
-      name: faker.company.name() + " Customs",
-      licenseNumber: faker.string.alphanumeric(8).toUpperCase(),
-    });
-  }
+  const brokerIds = [
+    "addr_broker_bcn",
+    "addr_broker_vlc",
+    "addr_broker_mad",
+    "addr_broker_alg",
+  ];
 
   // 5.1 HS CODES & TRADE SANCTIONS
   const standardHsCodes = [

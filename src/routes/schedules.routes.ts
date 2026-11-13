@@ -2,12 +2,12 @@ import { FastifyPluginAsync } from "fastify";
 import { db } from "../db/index.js";
 import {
   schedules,
-  carriers,
+  addresses,
   lanes,
   locations,
   rates,
 } from "../db/schema/index.js";
-import { eq, like, and } from "drizzle-orm";
+import { eq, like, and, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 
 const originLocs = alias(locations, "origin_locations");
@@ -26,10 +26,10 @@ const schedulesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           voyage: schedules.voyageNumber,
           departureDate: schedules.departureDate,
           arrivalDate: schedules.arrivalDate,
-          carrierName: carriers.name,
+          carrierName: sql<string>`COALESCE(${addresses.tradeName}, ${addresses.companyName})`,
         })
         .from(schedules)
-        .leftJoin(carriers, eq(schedules.carrierId, carriers.id))
+        .leftJoin(addresses, eq(schedules.carrierId, addresses.id))
         .leftJoin(lanes, eq(schedules.laneId, lanes.id))
         .leftJoin(originLocs, eq(lanes.originLocationId, originLocs.id))
         .leftJoin(destLocs, eq(lanes.destinationLocationId, destLocs.id));

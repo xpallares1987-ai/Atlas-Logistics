@@ -3,13 +3,13 @@ import { db } from "../db/index.js";
 import {
   rates,
   lanes,
-  carriers,
+  addresses,
   locations,
   locationAliases,
   rateImportBatches,
   surcharges,
 } from "../db/schema/index.js";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, or, sql } from "drizzle-orm";
 import { redis } from "../config/redis.js";
 import { logger } from "../config/logger.js";
 
@@ -254,20 +254,34 @@ export async function ensureCarrierExists(
   const cleanName = (carrierName || "Standard Carrier").trim();
   try {
     const existing = await db
-      .select({ id: carriers.id })
-      .from(carriers)
-      .where(sql`upper(${carriers.name}) = ${cleanName.toUpperCase()}`)
+      .select({ id: addresses.id })
+      .from(addresses)
+      .where(
+        and(
+          eq(addresses.addressType, "CAR"),
+          or(
+            sql`upper(${addresses.tradeName}) = ${cleanName.toUpperCase()}`,
+            sql`upper(${addresses.companyName}) = ${cleanName.toUpperCase()}`,
+          ),
+        ),
+      )
       .limit(1);
 
     if (existing.length > 0) {
       return existing[0].id;
     }
 
-    const newId = `carr-${uuidv4().substring(0, 8)}`;
-    await db.insert(carriers).values({
+    const newId = `addr_carr_${uuidv4().substring(0, 8)}`;
+    await db.insert(addresses).values({
       id: newId,
-      name: cleanName,
-      type: "OCEAN",
+      companyId: "c-1",
+      addressType: "CAR",
+      companyName: cleanName,
+      tradeName: cleanName,
+      street1: "Port Terminal Access Way",
+      zipCode: "08039",
+      city: "Barcelona",
+      country: "ES",
       createdAt: new Date(),
       updatedAt: new Date(),
       isDeleted: false,
@@ -276,7 +290,7 @@ export async function ensureCarrierExists(
     return newId;
   } catch (err) {
     logger.warn({ err }, `Error ensuring carrier ${cleanName}`);
-    return "carr-default";
+    return "addr_carr_maersk";
   }
 }
 
@@ -724,7 +738,7 @@ export async function getImportBatches(limit = 20) {
       .select({
         id: rateImportBatches.id,
         fileName: rateImportBatches.fileName,
-        carrierName: carriers.name,
+        carrierName: sql<string>`COALESCE(${addresses.tradeName}, ${addresses.companyName})`,
         totalRows: rateImportBatches.totalRows,
         insertedCount: rateImportBatches.insertedCount,
         updatedCount: rateImportBatches.updatedCount,
@@ -733,7 +747,7 @@ export async function getImportBatches(limit = 20) {
         createdAt: rateImportBatches.createdAt,
       })
       .from(rateImportBatches)
-      .leftJoin(carriers, eq(rateImportBatches.carrierId, carriers.id))
+      .leftJoin(addresses, eq(rateImportBatches.carrierId, addresses.id))
       .orderBy(sql`${rateImportBatches.createdAt} DESC`)
       .limit(limit);
   } catch (err) {

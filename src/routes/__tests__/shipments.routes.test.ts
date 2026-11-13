@@ -19,6 +19,8 @@ vi.mock("../../db/index.js", () => ({
     from: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
+    onConflictDoUpdate: vi.fn().mockReturnThis(),
+    onConflictDoNothing: vi.fn().mockReturnThis(),
     returning: vi
       .fn()
       .mockResolvedValue([{ id: "test-id", referenceNumber: "REF-123" }]),

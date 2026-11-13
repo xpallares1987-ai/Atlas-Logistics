@@ -109,16 +109,15 @@ export async function ensureAddressesTables() {
   );`);
 
   for (const def of ADDRESS_TYPE_DEFINITIONS) {
-    await db
-      .insert(addressTypes)
-      .values({
-        code: def.code,
-        name: def.name,
-        description: def.description,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
+    const insertQuery = db.insert(addressTypes).values({
+      code: def.code,
+      name: def.name,
+      description: def.description,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    if (typeof (insertQuery as any).onConflictDoUpdate === "function") {
+      await (insertQuery as any).onConflictDoUpdate({
         target: addressTypes.code,
         set: {
           name: def.name,
@@ -126,24 +125,26 @@ export async function ensureAddressesTables() {
           updatedAt: new Date(),
         },
       });
+    } else {
+      await insertQuery;
+    }
   }
 
   // 3. Seed Enterprise Corporate Groups in companies
   for (const grp of ENTERPRISE_COMPANY_GROUPS) {
-    await db
-      .insert(companies)
-      .values({
-        id: grp.id,
-        name: grp.name,
-        groupCode: grp.groupCode,
-        sector: grp.sector,
-        headquartersCountry: grp.headquartersCountry,
-        taxId: grp.taxId,
-        creditLimit: grp.creditLimit,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
+    const insertQuery = db.insert(companies).values({
+      id: grp.id,
+      name: grp.name,
+      groupCode: grp.groupCode,
+      sector: grp.sector,
+      headquartersCountry: grp.headquartersCountry,
+      taxId: grp.taxId,
+      creditLimit: grp.creditLimit,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    if (typeof (insertQuery as any).onConflictDoUpdate === "function") {
+      await (insertQuery as any).onConflictDoUpdate({
         target: companies.id,
         set: {
           name: grp.name,
@@ -153,6 +154,9 @@ export async function ensureAddressesTables() {
           updatedAt: new Date(),
         },
       });
+    } else {
+      await insertQuery;
+    }
   }
 
   await client.execute(`CREATE TABLE IF NOT EXISTS addresses (

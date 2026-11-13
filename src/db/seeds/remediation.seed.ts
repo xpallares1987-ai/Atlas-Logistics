@@ -155,7 +155,9 @@ async function seedEmptyTables(): Promise<void> {
   const companyIds = companiesRes.rows.map((r) => String(r.id));
   const primaryCompanyId = companyIds[0] || "c-1";
 
-  const carriersRes = await client.execute(`SELECT id FROM carriers LIMIT 10;`);
+  const carriersRes = await client.execute(
+    `SELECT id FROM addresses WHERE address_type = 'CAR' LIMIT 10;`,
+  );
   const carrierIds = carriersRes.rows.map((r) => String(r.id));
 
   const shipmentsRes = await client.execute(
@@ -240,23 +242,7 @@ async function seedEmptyTables(): Promise<void> {
     });
   }
 
-  // 4. destination_agents
-  const agentsData = [
-    ["dag_01", "Atlantic Port Maritime Agency LLC", "US"],
-    ["dag_02", "Eurogate Rotterdam Clearing B.V.", "NL"],
-    ["dag_03", "Hanseatic Customs & Port Services GmbH", "DE"],
-    ["dag_04", "Merlion Strait Forwarding Pte Ltd", "SG"],
-    ["dag_05", "Yangshan East Port Logistics Co.", "CN"],
-    ["dag_06", "Agencia Aduanal Transfronteriza del Norte S.A.", "MX"],
-  ];
-  for (const [id, name, country] of agentsData) {
-    await client.execute({
-      sql: `INSERT INTO destination_agents (id, name, country, created_at, updated_at, is_deleted, is_active)
-            VALUES (?, ?, ?, ?, ?, 0, 1)
-            ON CONFLICT(id) DO UPDATE SET name = excluded.name, country = excluded.country, updated_at = excluded.updated_at;`,
-      args: [id, name, country, nowSec, nowSec],
-    });
-  }
+  // 4. destination_agents (consolidated in addresses registry with address_type = 'AG')
 
   // 5. inventory_items
   const invItems = [
@@ -1454,7 +1440,9 @@ async function backfillNullForeignKeys(): Promise<void> {
   );
   const assetIds = assetsRes.rows.map((r) => String(r.id));
 
-  const carriersRes = await client.execute(`SELECT id FROM carriers LIMIT 10;`);
+  const carriersRes = await client.execute(
+    `SELECT id FROM addresses WHERE address_type = 'CAR' LIMIT 10;`,
+  );
   const carrierIds = carriersRes.rows.map((r) => String(r.id));
 
   // 1. cold_chain_shipments.shipment_id -> shipments.id

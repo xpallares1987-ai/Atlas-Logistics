@@ -9,8 +9,7 @@ import {
 import { sql } from "drizzle-orm";
 import { commonAuditFields } from "./_common.js";
 import { shipments } from "./operations.js";
-import { companies, users } from "./core.js";
-import { carriers } from "./vendors.js";
+import { companies, users, addresses } from "./core.js";
 
 export const invoices = sqliteTable(
   "invoices",
@@ -97,7 +96,7 @@ export const costs = sqliteTable(
     shipmentId: text("shipment_id")
       .notNull()
       .references(() => shipments.id),
-    vendorId: text("vendor_id").references(() => carriers.id),
+    vendorId: text("vendor_id").references(() => addresses.id),
     amount: real("amount").notNull(),
     currency: text("currency").notNull(),
     description: text("description"),

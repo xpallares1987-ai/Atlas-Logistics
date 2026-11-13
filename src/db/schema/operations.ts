@@ -7,7 +7,6 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { commonAuditFields } from "./_common.js";
 import { lanes } from "./pricing.js";
-import { carriers, customsBrokers } from "./vendors.js";
 import { locations, companies, users, addresses } from "./core.js";
 
 export const routeSegments = sqliteTable("route_segments", {
@@ -50,7 +49,7 @@ export const schedules = sqliteTable("schedules", {
     .references(() => lanes.id),
   carrierId: text("carrier_id")
     .notNull()
-    .references(() => carriers.id),
+    .references(() => addresses.id),
   vesselName: text("vessel_name"),
   voyageNumber: text("voyage_number"),
   departureDate: integer("departure_date", { mode: "timestamp" }).notNull(),
@@ -153,7 +152,7 @@ export const customsDeclarations = sqliteTable(
     shipmentId: text("shipment_id")
       .notNull()
       .references(() => shipments.id),
-    brokerId: text("broker_id").references(() => customsBrokers.id),
+    brokerId: text("broker_id").references(() => addresses.id),
     hsCodeId: text("hs_code_id").references(() => hsCodes.id),
     blNumber: text("bl_number"),
     duaNumber: text("dua_number"),

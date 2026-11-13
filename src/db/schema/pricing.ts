@@ -7,8 +7,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { commonAuditFields } from "./_common.js";
-import { locations, companies, users } from "./core.js";
-import { carriers } from "./vendors.js";
+import { locations, companies, users, addresses } from "./core.js";
 
 export const lanes = sqliteTable("lanes", {
   id: text("id").primaryKey(),
@@ -28,7 +27,7 @@ export const rates = sqliteTable(
     id: text("id").primaryKey(),
     carrierId: text("carrier_id")
       .notNull()
-      .references(() => carriers.id),
+      .references(() => addresses.id),
     laneId: text("lane_id")
       .notNull()
       .references(() => lanes.id),
@@ -69,7 +68,7 @@ export const locationAliases = sqliteTable("location_aliases", {
 export const rateImportBatches = sqliteTable("rate_import_batches", {
   id: text("id").primaryKey(),
   fileName: text("file_name").notNull(),
-  carrierId: text("carrier_id").references(() => carriers.id),
+  carrierId: text("carrier_id").references(() => addresses.id),
   totalRows: integer("total_rows").notNull(),
   insertedCount: integer("inserted_count").notNull().default(0),
   updatedCount: integer("updated_count").notNull().default(0),
