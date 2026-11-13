@@ -21,19 +21,16 @@ import { DuplicateWarningModal } from "./DuplicateWarningModal";
 import { BlCardPreview } from "./BlCardPreview";
 
 export const ADDRESS_TYPES = [
-  { value: "CUSTOMER", label: "Customer / Cliente Directo" },
-  { value: "CARRIER", label: "Carrier / Naviera o Aerolínea" },
-  { value: "CARRIER_AGENT", label: "Carrier Agent / Agente Naviero" },
-  { value: "CUSTOMS_BROKER", label: "Customs Broker / Agente de Aduanas" },
-  { value: "PORT_AUTHORITY", label: "Port Authority / Autoridad Portuaria" },
-  { value: "WAREHOUSE", label: "Warehouse / Almacén o Depósito" },
-  { value: "TERMINAL", label: "Terminal / Terminal Portuaria" },
-  {
-    value: "INLAND_CONTAINER_DEPOT",
-    label: "Inland Container Depot (ICD) / Depósito Interior",
-  },
-  { value: "HAULIER", label: "Haulier / Empresa de Transporte Terrestre" },
-  { value: "CONSIGNEE_NOTIFY", label: "Consignee / Notify / Destinatario" },
+  { value: "CUS", label: "CUS — Customer (Cliente Directo / BCO)" },
+  { value: "CB", label: "CB — Customs Broker (Agente de Aduanas)" },
+  { value: "AG", label: "AG — Agent (Agente / Representante Portuario)" },
+  { value: "HAU", label: "HAU — Haulier (Transportista Terrestre / Acarreo)" },
+  { value: "CAR", label: "CAR — Carrier (Naviera / Aerolínea / Operador)" },
+  { value: "INS", label: "INS — Insurance (Aseguradora Marítima / P&I)" },
+  { value: "CAA", label: "CAA — Carrier Agent (Agente Consignatario Naviero)" },
+  { value: "WH", label: "WH — Warehouse (Almacén / Depósito / CFS)" },
+  { value: "FW", label: "FW — Forwarder (Transitario / NVOCC / 3PL)" },
+  { value: "TRM", label: "TRM — Terminal (Terminal Portuaria / Estibadora)" },
 ] as const;
 
 export const CONTACT_ROLES = [
@@ -84,12 +81,20 @@ export interface AddressFormData {
   contacts?: ContactFormItem[];
 }
 
+export interface CorporateGroupOption {
+  id: string;
+  name: string;
+  groupCode?: string | null;
+}
+
 export interface AddressModalProps {
   isOpen: boolean;
   onClose: () => void;
   addressToEdit?: AddressFormData | null;
   onSuccess?: (savedAddress: any) => void;
   companyId?: string;
+  canManageCorporateGroups?: boolean;
+  corporateGroups?: CorporateGroupOption[];
 }
 
 export const AddressModal: React.FC<AddressModalProps> = ({
@@ -98,9 +103,14 @@ export const AddressModal: React.FC<AddressModalProps> = ({
   addressToEdit,
   onSuccess,
   companyId,
+  canManageCorporateGroups = false,
+  corporateGroups = [],
 }) => {
   // Main form state
-  const [addressType, setAddressType] = useState<string>("CUSTOMER");
+  const [addressType, setAddressType] = useState<string>("CUS");
+  const [selectedCompanyGroupId, setSelectedCompanyGroupId] = useState<string>(
+    companyId || "",
+  );
   const [companyName, setCompanyName] = useState<string>("");
   const [tradeName, setTradeName] = useState<string>("");
   const [taxId, setTaxId] = useState<string>("");
@@ -166,7 +176,8 @@ export const AddressModal: React.FC<AddressModalProps> = ({
   // Populate state when editing
   useEffect(() => {
     if (addressToEdit) {
-      setAddressType(addressToEdit.addressType || "CUSTOMER");
+      setAddressType(addressToEdit.addressType || "CUS");
+      setSelectedCompanyGroupId(addressToEdit.companyId || companyId || "");
       setCompanyName(addressToEdit.companyName || "");
       setTradeName(addressToEdit.tradeName || "");
       setTaxId(addressToEdit.taxId || "");
@@ -214,7 +225,8 @@ export const AddressModal: React.FC<AddressModalProps> = ({
       }
     } else {
       // Reset form
-      setAddressType("CUSTOMER");
+      setAddressType("CUS");
+      setSelectedCompanyGroupId(companyId || "");
       setCompanyName("");
       setTradeName("");
       setTaxId("");
@@ -475,7 +487,10 @@ export const AddressModal: React.FC<AddressModalProps> = ({
     );
 
     const payload = {
-      companyId,
+      companyId:
+        canManageCorporateGroups && selectedCompanyGroupId
+          ? selectedCompanyGroupId
+          : companyId || undefined,
       addressType,
       companyName: companyName.trim(),
       tradeName: tradeName.trim() || undefined,
@@ -717,6 +732,38 @@ export const AddressModal: React.FC<AddressModalProps> = ({
                     />
                   </div>
                 </div>
+
+                {canManageCorporateGroups && corporateGroups.length > 0 && (
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700/70">
+                    <label
+                      htmlFor="corporate-group-select"
+                      className="block text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1"
+                    >
+                      Corporate Group Consolidation (Accounting / Controlling /
+                      Admin Only)
+                    </label>
+                    <select
+                      id="corporate-group-select"
+                      name="companyId"
+                      aria-label="Corporate Group (Accounting & Controlling)"
+                      value={selectedCompanyGroupId}
+                      onChange={(e) =>
+                        setSelectedCompanyGroupId(e.target.value)
+                      }
+                      className="w-full px-3 py-2 text-sm bg-amber-50/40 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800/70 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
+                    >
+                      <option value="">
+                        — Auto-assign / Unlinked Corporate Group —
+                      </option>
+                      {corporateGroups.map((grp) => (
+                        <option key={grp.id} value={grp.id}>
+                          {grp.name}
+                          {grp.groupCode ? ` (${grp.groupCode})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Physical Geographic Address */}

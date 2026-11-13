@@ -1,8 +1,25 @@
 import { create } from "zustand";
 
 type Theme = "light" | "dark" | "system";
-type Role =
-  "ADMIN" | "EXECUTIVE" | "MANAGER" | "SALES" | "OPERATIONS" | "CUSTOMER";
+export type Role =
+  | "ADMIN"
+  | "ACCOUNTING"
+  | "CONTROLLING"
+  | "EXECUTIVE"
+  | "MANAGER"
+  | "SALES"
+  | "OPERATIONS"
+  | "CUSTOMER";
+
+export function canManageCorporateGroups(role?: string | null): boolean {
+  if (!role) return false;
+  const normalized = role.trim().toUpperCase();
+  return (
+    normalized === "ADMIN" ||
+    normalized === "ACCOUNTING" ||
+    normalized === "CONTROLLING"
+  );
+}
 
 interface User {
   id: string;

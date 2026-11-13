@@ -777,7 +777,10 @@ export async function confirmBookingToShipment(
         .from(addresses)
         .where(
           and(
-            eq(addresses.addressType, "TERMINAL"),
+            or(
+              eq(addresses.addressType, "TRM"),
+              eq(addresses.addressType, "TERMINAL"),
+            ),
             eq(addresses.unLocode, terminalUnLocode),
           ),
         )
@@ -788,7 +791,12 @@ export async function confirmBookingToShipment(
         const anyTerminal = await db
           .select()
           .from(addresses)
-          .where(eq(addresses.addressType, "TERMINAL"))
+          .where(
+            or(
+              eq(addresses.addressType, "TRM"),
+              eq(addresses.addressType, "TERMINAL"),
+            ),
+          )
           .limit(1);
         originTerminal = anyTerminal[0];
       }
@@ -817,8 +825,9 @@ export async function confirmBookingToShipment(
           .from(addresses)
           .where(
             or(
+              eq(addresses.addressType, "WH"),
+              eq(addresses.addressType, "CUS"),
               eq(addresses.addressType, "WAREHOUSE"),
-              eq(addresses.addressType, "CONSIGNEE_NOTIFY"),
             ),
           )
           .limit(1);
@@ -845,7 +854,12 @@ export async function confirmBookingToShipment(
         const anyHaulier = await db
           .select()
           .from(addresses)
-          .where(eq(addresses.addressType, "HAULIER"))
+          .where(
+            or(
+              eq(addresses.addressType, "HAU"),
+              eq(addresses.addressType, "HAULIER"),
+            ),
+          )
           .limit(1);
         haulierAddress = anyHaulier[0] || null;
       }

@@ -260,6 +260,9 @@ class DrayageEngineService {
       .from(addresses)
       .where(
         inArray(addresses.addressType, [
+          "TRM",
+          "AG",
+          "WH",
           "TERMINAL",
           "PORT_AUTHORITY",
           "INLAND_DEPOT",

@@ -12,7 +12,7 @@ import {
   addressContacts,
   drayageTransportOrders,
 } from "../db/schema/index.js";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, or } from "drizzle-orm";
 
 const CoordinatesSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -94,7 +94,12 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
       const hauliers = await db
         .select()
         .from(addresses)
-        .where(eq(addresses.addressType, "HAULIER"));
+        .where(
+          or(
+            eq(addresses.addressType, "HAU"),
+            eq(addresses.addressType, "HAULIER"),
+          ),
+        );
 
       const results: any[] = [];
       for (const h of hauliers) {

@@ -110,7 +110,9 @@ export const addresses = sqliteTable(
   {
     id: text("id").primaryKey(),
     companyId: text("company_id").references(() => companies.id),
-    addressType: text("address_type").notNull(),
+    addressType: text("address_type")
+      .notNull()
+      .references(() => addressTypes.code),
     companyName: text("company_name").notNull(),
     tradeName: text("trade_name"),
     taxId: text("tax_id"),
@@ -167,6 +169,9 @@ export const companies = sqliteTable(
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
+    groupCode: text("group_code"),
+    sector: text("sector"),
+    headquartersCountry: text("headquarters_country"),
     taxId: text("tax_id").unique(),
     creditLimit: real("credit_limit"),
     ...commonAuditFields,
@@ -175,6 +180,13 @@ export const companies = sqliteTable(
     taxIdIdx: index("idx_companies_tax_id").on(t.taxId),
   }),
 );
+
+export const addressTypes = sqliteTable("address_types", {
+  code: text("code").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  ...commonAuditFields,
+});
 
 /**
  * INDEXED SCHEMA: Contacts Table

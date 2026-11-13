@@ -5,7 +5,6 @@ import {
   Plus,
   Search,
   Filter,
-  User,
   Phone,
   Mail,
   FileText,
@@ -34,6 +33,8 @@ import {
   type AddressFormData,
 } from "@atlas/ui";
 import { authFetch } from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
+import { useAppStore, canManageCorporateGroups } from "../store/useAppStore";
 
 const TYPE_CONFIG: Record<
   string,
@@ -44,80 +45,88 @@ const TYPE_CONFIG: Record<
     badgeClass: string;
   }
 > = {
-  CUSTOMER: {
-    label: "Customer / Cliente",
+  CUS: {
+    label: "CUS · Customer",
     icon: Building2,
     color: "indigo",
     badgeClass:
       "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
   },
-  CARRIER: {
-    label: "Carrier / Naviera",
-    icon: Ship,
-    color: "blue",
-    badgeClass:
-      "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800",
-  },
-  CARRIER_AGENT: {
-    label: "Carrier Agent / Agente",
-    icon: Anchor,
-    color: "cyan",
-    badgeClass:
-      "bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
-  },
-  CUSTOMS_BROKER: {
-    label: "Customs Broker / Aduanas",
+  CB: {
+    label: "CB · Customs Broker",
     icon: Shield,
     color: "emerald",
     badgeClass:
       "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
   },
-  PORT_AUTHORITY: {
-    label: "Port Authority / Autoridad",
+  AG: {
+    label: "AG · Agent",
     icon: Anchor,
     color: "sky",
     badgeClass:
       "bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-800",
   },
-  WAREHOUSE: {
-    label: "Warehouse / Almacén",
-    icon: Warehouse,
-    color: "amber",
-    badgeClass:
-      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800",
-  },
-  TERMINAL: {
-    label: "Terminal Portuaria",
-    icon: Layers,
-    color: "orange",
-    badgeClass:
-      "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border-orange-200 dark:border-orange-800",
-  },
-  INLAND_CONTAINER_DEPOT: {
-    label: "Inland Depot (ICD)",
-    icon: Warehouse,
-    color: "teal",
-    badgeClass:
-      "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border-teal-200 dark:border-teal-800",
-  },
-  HAULIER: {
-    label: "Haulier / Transporte",
+  HAU: {
+    label: "HAU · Haulier",
     icon: Truck,
     color: "violet",
     badgeClass:
       "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border-violet-200 dark:border-violet-800",
   },
-  CONSIGNEE_NOTIFY: {
-    label: "Consignee / Notify",
-    icon: User,
+  CAR: {
+    label: "CAR · Carrier",
+    icon: Ship,
+    color: "blue",
+    badgeClass:
+      "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+  },
+  INS: {
+    label: "INS · Insurance",
+    icon: Shield,
     color: "rose",
     badgeClass:
       "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800",
   },
+  CAA: {
+    label: "CAA · Carrier Agent",
+    icon: Anchor,
+    color: "cyan",
+    badgeClass:
+      "bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
+  },
+  WH: {
+    label: "WH · Warehouse",
+    icon: Warehouse,
+    color: "amber",
+    badgeClass:
+      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+  },
+  FW: {
+    label: "FW · Forwarder",
+    icon: Layers,
+    color: "teal",
+    badgeClass:
+      "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border-teal-200 dark:border-teal-800",
+  },
+  TRM: {
+    label: "TRM · Terminal",
+    icon: Layers,
+    color: "orange",
+    badgeClass:
+      "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border-orange-200 dark:border-orange-800",
+  },
 };
 
 export default function AddressesHubModule() {
+  const { user: authUser } = useAuth();
+  const { user: storeUser } = useAppStore();
+  const effectiveRole = authUser?.role || storeUser?.role || "ADMIN";
+  const hasCorporateGroupAccess = canManageCorporateGroups(effectiveRole);
+
   const [addresses, setAddresses] = useState<any[]>([]);
+  const [corporateGroups, setCorporateGroups] = useState<any[]>([]);
+  const [showCorporateGroupsPanel, setShowCorporateGroupsPanel] =
+    useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -146,16 +155,48 @@ export default function AddressesHubModule() {
         const data = await res.json();
         setAddresses(data);
       }
+      if (hasCorporateGroupAccess) {
+        const grpRes = await authFetch("/api/addresses/groups");
+        if (grpRes.ok) {
+          const grpData = await grpRes.json();
+          setCorporateGroups(grpData);
+        }
+      }
     } catch (err) {
       console.error("Failed to load addresses directory:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedType, searchQuery]);
+  }, [selectedType, searchQuery, hasCorporateGroupAccess]);
 
   useEffect(() => {
     fetchAddresses();
   }, [fetchAddresses]);
+
+  const handleLinkAddressToCorporateGroup = async (
+    addressId: string,
+    targetGroupId: string,
+  ) => {
+    if (!hasCorporateGroupAccess) return;
+    try {
+      const res = await authFetch(
+        `/api/addresses/${addressId}/corporate-group`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ companyId: targetGroupId }),
+        },
+      );
+      if (res.ok) {
+        Toast.show("Address linked to Corporate Group", "success");
+        fetchAddresses();
+      } else {
+        Toast.show("Failed to link Corporate Group", "error");
+      }
+    } catch {
+      Toast.show("Connection error while linking group", "error");
+    }
+  };
 
   // Delete address
   const handleDeleteAddress = async (id: string, name: string) => {
@@ -185,18 +226,19 @@ export default function AddressesHubModule() {
   const stats = useMemo(() => {
     const total = addresses.length;
     const customers = addresses.filter(
-      (a) =>
-        a.addressType === "CUSTOMER" || a.addressType === "CONSIGNEE_NOTIFY",
+      (a) => a.addressType === "CUS" || a.addressType === "FW",
     ).length;
     const carriers = addresses.filter(
-      (a) => a.addressType === "CARRIER" || a.addressType === "CARRIER_AGENT",
+      (a) =>
+        a.addressType === "CAR" ||
+        a.addressType === "CAA" ||
+        a.addressType === "AG",
     ).length;
     const infrastructure = addresses.filter(
       (a) =>
-        a.addressType === "TERMINAL" ||
-        a.addressType === "PORT_AUTHORITY" ||
-        a.addressType === "WAREHOUSE" ||
-        a.addressType === "INLAND_CONTAINER_DEPOT",
+        a.addressType === "TRM" ||
+        a.addressType === "WH" ||
+        a.addressType === "HAU",
     ).length;
     return { total, customers, carriers, infrastructure };
   }, [addresses]);
@@ -220,17 +262,112 @@ export default function AddressesHubModule() {
           </p>
         </div>
 
-        <Button
-          onClick={() => {
-            setAddressToEdit(null);
-            setIsAddressModalOpen(true);
-          }}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2 shadow-sm shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Registrar Nueva Dirección</span>
-        </Button>
+        <div className="flex items-center gap-2.5 shrink-0">
+          {hasCorporateGroupAccess && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowCorporateGroupsPanel((prev) => !prev)}
+              className="border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2 text-xs"
+            >
+              <Shield className="w-4 h-4" />
+              <span>
+                {showCorporateGroupsPanel
+                  ? "Ocultar Corporate Groups"
+                  : `Corporate Groups (${corporateGroups.length})`}
+              </span>
+            </Button>
+          )}
+
+          <Button
+            onClick={() => {
+              setAddressToEdit(null);
+              setIsAddressModalOpen(true);
+            }}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2 shadow-sm shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Registrar Nueva Dirección</span>
+          </Button>
+        </div>
       </div>
+
+      {/* Accounting / Controlling / Admin Exclusive Corporate Groups Consolidation Panel */}
+      {hasCorporateGroupAccess && showCorporateGroupsPanel && (
+        <div className="p-5 rounded-2xl border border-amber-200 dark:border-amber-800/70 bg-amber-50/40 dark:bg-amber-950/20 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                <Shield className="w-4 h-4" />
+                <span>
+                  Corporate Groups Consolidation — Restricted to Accounting,
+                  Controlling & Admin ({effectiveRole})
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                Corporate Groups group multiple global operational addresses for
+                credit control and accounting consolidation. They are never
+                selectable as operational shipping addresses.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {corporateGroups.map((grp) => (
+              <div
+                key={grp.id}
+                className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-slate-800 flex flex-col justify-between gap-2 shadow-xs"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">
+                      {grp.name}
+                    </span>
+                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 font-semibold">
+                      {grp.groupCode || grp.id}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {grp.sector || "Global Logistics"} · HQ:{" "}
+                    {grp.headquartersCountry || "GLOBAL"}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                  <span className="text-slate-600 dark:text-slate-300 font-medium">
+                    Linked Addresses: <strong>{grp.addressCount ?? 0}</strong>
+                  </span>
+                  {grp.creditLimit && (
+                    <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
+                      Credit: €{Number(grp.creditLimit).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+
+                {Array.isArray(grp.linkedAddresses) &&
+                  grp.linkedAddresses.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {grp.linkedAddresses.slice(0, 4).map((la: any) => (
+                        <span
+                          key={la.id}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 truncate max-w-[180px]"
+                          title={`${la.companyName} (${la.city}, ${la.country})`}
+                        >
+                          {la.addressType}: {la.city} ({la.country})
+                        </span>
+                      ))}
+                      {grp.linkedAddresses.length > 4 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium">
+                          +{grp.linkedAddresses.length - 4} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Directory Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -505,6 +642,32 @@ export default function AddressesHubModule() {
                     )}
                   </div>
 
+                  {/* Accounting / Controlling / Admin Corporate Group Link Selector (Hidden for standard operational users) */}
+                  {hasCorporateGroupAccess && showCorporateGroupsPanel && (
+                    <div className="pt-2 border-t border-amber-200/70 dark:border-amber-900/50 flex items-center justify-between gap-2 text-xs">
+                      <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 shrink-0">
+                        Corporate Group:
+                      </span>
+                      <select
+                        aria-label={`Corporate Group for ${item.companyName}`}
+                        value={item.companyId || ""}
+                        onChange={(e) =>
+                          handleLinkAddressToCorporateGroup(
+                            item.id,
+                            e.target.value,
+                          )
+                        }
+                        className="flex-1 min-w-0 px-2 py-1 text-xs rounded border border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 outline-none"
+                      >
+                        {corporateGroups.map((grp) => (
+                          <option key={grp.id} value={grp.id}>
+                            {grp.name} ({grp.groupCode || grp.id})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {/* Contacts Summary */}
                   <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
                     <div className="flex items-center justify-between text-xs text-slate-500">
@@ -608,6 +771,8 @@ export default function AddressesHubModule() {
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}
         addressToEdit={addressToEdit}
+        canManageCorporateGroups={hasCorporateGroupAccess}
+        corporateGroups={corporateGroups}
         onSuccess={() => {
           Toast.show(
             addressToEdit

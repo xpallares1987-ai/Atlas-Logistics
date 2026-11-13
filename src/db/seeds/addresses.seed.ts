@@ -1,7 +1,16 @@
 import { db } from "../index.js";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { companies, addresses, addressContacts } from "../schema/core.js";
+import {
+  companies,
+  addresses,
+  addressContacts,
+  addressTypes,
+  ADDRESS_TYPE_DEFINITIONS,
+  ENTERPRISE_COMPANY_GROUPS,
+  normalizeAddressTypeCode,
+  inferEnterpriseGroupId,
+} from "../schema/core.js";
 import {
   bookings,
   shipments,
@@ -1264,23 +1273,242 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
         },
       ],
     },
+    // GLOBAL APM TERMINALS GROUP ADDRESSES (grp_apm_terminals)
+    {
+      id: "addr_term_apm_bcn",
+      companyId: "grp_apm_terminals",
+      addressType: "TRM",
+      companyName: "APM Terminals Barcelona S.L.U.",
+      tradeName: "APMT Barcelona South Quay",
+      taxId: "ESB64182910",
+      street1: "Moll Sud s/n, Ampliación Puerto de Barcelona",
+      street2: "Edificio Operaciones APMT",
+      zipCode: "08039",
+      city: "Barcelona",
+      federalState: "Cataluña",
+      country: "ES",
+      unLocode: "ESBCN",
+      lat: 41.3395,
+      lon: 2.1592,
+      formattedAddress: "Moll Sud, 08039 Barcelona, España",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      isDefaultShipper: false,
+      isDefaultConsignee: false,
+      isDefaultNotify: false,
+      notes:
+        "Terminal marítima del grupo APM Terminals en el Puerto de Barcelona.",
+      contacts: [
+        {
+          id: "cnt_apmt_bcn_1",
+          fullName: "Oriol Puigdemont Valls",
+          email: "ops.barcelona@apmterminals.com",
+          phone: "+34 932 987 100",
+          mobile: "+34 620 441 892",
+          roleCategory: "OPERATIONS",
+          jobTitle: "Shift Terminal Operations Manager",
+          isPrimary: true,
+        },
+      ],
+    },
+    {
+      id: "addr_term_apm_rtm",
+      companyId: "grp_apm_terminals",
+      addressType: "TRM",
+      companyName: "APM Terminals Maasvlakte II B.V.",
+      tradeName: "APMT Rotterdam Maasvlakte II",
+      taxId: "NL851928371B01",
+      street1: "Europaweg 910, Maasvlakte",
+      street2: "Automated Gate Complex B",
+      zipCode: "3199 LC",
+      city: "Rotterdam",
+      federalState: "Zuid-Holland",
+      country: "NL",
+      unLocode: "NLRTM",
+      lat: 51.9585,
+      lon: 4.0185,
+      formattedAddress: "Europaweg 910, 3199 LC Rotterdam, Netherlands",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      isDefaultShipper: false,
+      isDefaultConsignee: false,
+      isDefaultNotify: false,
+      notes:
+        "Fully automated zero-emission deep-sea terminal of APM Terminals Group in Rotterdam.",
+      contacts: [
+        {
+          id: "cnt_apmt_rtm_1",
+          fullName: "Pieter van der Berg",
+          email: "mv2.berthplanning@apmterminals.com",
+          phone: "+31 10 754 9100",
+          mobile: "+31 6 4189 2201",
+          roleCategory: "OPERATIONS",
+          jobTitle: "Automated Yard & Berth Planner",
+          isPrimary: true,
+        },
+      ],
+    },
+    {
+      id: "addr_term_apm_tng",
+      companyId: "grp_apm_terminals",
+      addressType: "TRM",
+      companyName: "APM Terminals Tangier Med S.A.",
+      tradeName: "APMT MedPort Tangier",
+      taxId: "MA10293847",
+      street1: "Zone Franche de Ksar Al Majaz, Complexe Portuaire Tanger Med",
+      street2: "Quai TC1 & TC4",
+      zipCode: "90000",
+      city: "Tangier",
+      federalState: "Tanger-Tétouan-Al Hoceïma",
+      country: "MA",
+      unLocode: "MATNG",
+      lat: 35.8884,
+      lon: -5.5032,
+      formattedAddress: "Complexe Portuaire Tanger Med, 90000 Tangier, Morocco",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      isDefaultShipper: false,
+      isDefaultConsignee: false,
+      isDefaultNotify: false,
+      notes:
+        "West Med transshipment hub operated by APM Terminals Group at Strait of Gibraltar.",
+      contacts: [
+        {
+          id: "cnt_apmt_tng_1",
+          fullName: "Youssef El-Mansouri",
+          email: "transshipment.tng@apmterminals.com",
+          phone: "+212 539 349 200",
+          mobile: "+212 661 883 412",
+          roleCategory: "OPERATIONS",
+          jobTitle: "Transshipment Hub Coordinator",
+          isPrimary: true,
+        },
+      ],
+    },
+    // INSURANCE (INS) & FORWARDER (FW) GLOBAL ADDRESSES
+    {
+      id: "addr_ins_allianz_muc",
+      companyId: "grp_allianz",
+      addressType: "INS",
+      companyName: "Allianz Global Corporate & Specialty SE",
+      tradeName: "AGCS Marine Cargo Underwriting",
+      taxId: "DE129274114",
+      street1: "Königinstraße 28",
+      street2: "Marine & Aviation Claims Division",
+      zipCode: "80802",
+      city: "Munich",
+      federalState: "Bavaria",
+      country: "DE",
+      unLocode: "DEMUC",
+      lat: 48.1512,
+      lon: 11.5847,
+      formattedAddress: "Königinstraße 28, 80802 München, Germany",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      isDefaultShipper: false,
+      isDefaultConsignee: false,
+      isDefaultNotify: false,
+      notes:
+        "Aseguradora marítima ICC(A) y General Average para pólizas flotantes y certificados por embarque.",
+      contacts: [
+        {
+          id: "cnt_ins_allianz_1",
+          fullName: "Dr. Markus Lindner",
+          email: "marine.claims@allianz.com",
+          phone: "+49 89 3800 0",
+          mobile: "+49 172 883 1902",
+          roleCategory: "MANAGEMENT",
+          jobTitle: "Head of Marine Cargo Claims & General Average",
+          isPrimary: true,
+        },
+      ],
+    },
+    {
+      id: "addr_fw_atlas_rtm",
+      companyId: "grp_atlas",
+      addressType: "FW",
+      companyName: "Atlas Global Freight Forwarding Benelux B.V.",
+      tradeName: "Atlas Forwarding Rotterdam Hub",
+      taxId: "NL823910441B01",
+      street1: "Waalhaven Zuidzijde 21",
+      street2: "Port Building Floor 4",
+      zipCode: "3089 JH",
+      city: "Rotterdam",
+      federalState: "Zuid-Holland",
+      country: "NL",
+      unLocode: "NLRTM",
+      lat: 51.8842,
+      lon: 4.4391,
+      formattedAddress:
+        "Waalhaven Zuidzijde 21, 3089 JH Rotterdam, Netherlands",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      isDefaultShipper: false,
+      isDefaultConsignee: false,
+      isDefaultNotify: true,
+      notes:
+        "Oficina corresponsal NVOCC y consolidador de carga del Grupo Atlas en el puerto de Róterdam.",
+      contacts: [
+        {
+          id: "cnt_fw_atlas_rtm_1",
+          fullName: "Sander de Vries",
+          email: "rotterdam.desk@atlas-logistics.eu",
+          phone: "+31 10 429 8810",
+          mobile: "+31 6 2291 0482",
+          roleCategory: "OPERATIONS",
+          jobTitle: "Benelux Ocean & Air Forwarding Desk",
+          isPrimary: true,
+        },
+      ],
+    },
   ];
 
-  // Insert or update addresses and linked contacts
+  // Insert or update addresses and linked contacts using canonical address_types codes and Corporate Groups
   for (const entity of seedEntities) {
     const { contacts, ...addressFields } = entity;
+    const canonicalType =
+      entity.id === "addr_notify_atlas_desk"
+        ? "FW"
+        : normalizeAddressTypeCode(addressFields.addressType);
+    const corporateGroupId = inferEnterpriseGroupId(
+      addressFields.companyName,
+      canonicalType,
+      addressFields.companyId,
+    );
+    const now = new Date();
 
     await db
       .insert(addresses)
       .values({
         ...addressFields,
-        addressType: addressFields.addressType as any,
+        companyId: corporateGroupId,
+        addressType: canonicalType as any,
         verificationStatus: (addressFields.verificationStatus ||
           "NOT_CHECKED") as any,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: now,
+        updatedAt: now,
       } as any)
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: addresses.id,
+        set: {
+          companyId: corporateGroupId,
+          addressType: canonicalType as any,
+          companyName: addressFields.companyName,
+          tradeName: addressFields.tradeName || null,
+          taxId: addressFields.taxId || null,
+          street1: addressFields.street1,
+          street2: addressFields.street2 || null,
+          zipCode: addressFields.zipCode,
+          city: addressFields.city,
+          federalState: addressFields.federalState || null,
+          country: addressFields.country,
+          unLocode: addressFields.unLocode || null,
+          isDefaultShipper: Boolean(addressFields.isDefaultShipper),
+          isDefaultConsignee: Boolean(addressFields.isDefaultConsignee),
+          isDefaultNotify: Boolean(addressFields.isDefaultNotify),
+          updatedAt: now,
+        },
+      });
 
     if (contacts && contacts.length > 0) {
       for (const contact of contacts) {
@@ -1290,11 +1518,48 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
             ...contact,
             addressId: entity.id,
             roleCategory: contact.roleCategory as any,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: now,
+            updatedAt: now,
           })
-          .onConflictDoNothing();
+          .onConflictDoUpdate({
+            target: addressContacts.id,
+            set: {
+              addressId: entity.id,
+              fullName: contact.fullName,
+              email: contact.email,
+              phone: contact.phone || null,
+              mobile: (contact as any).mobile || null,
+              updatedAt: now,
+            },
+          });
       }
+    }
+  }
+
+  // Also normalize any other pre-existing rows in addresses so 0 legacy or CONSIGNEE_NOTIFY types remain
+  const allExistingAddresses = await db.select().from(addresses);
+  for (const row of allExistingAddresses) {
+    const canonicalType =
+      row.id === "addr_notify_atlas_desk"
+        ? "FW"
+        : normalizeAddressTypeCode(row.addressType);
+    const corporateGroupId = inferEnterpriseGroupId(
+      row.companyName,
+      canonicalType,
+      row.companyId,
+    );
+    if (
+      row.addressType !== canonicalType ||
+      row.companyId !== corporateGroupId
+    ) {
+      await db
+        .update(addresses)
+        .set({
+          addressType: canonicalType as any,
+          companyId: corporateGroupId,
+          updatedAt: new Date(),
+        })
+        .where(eq(addresses.id, row.id));
     }
   }
 

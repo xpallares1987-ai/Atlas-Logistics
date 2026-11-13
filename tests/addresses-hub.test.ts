@@ -101,7 +101,7 @@ describe("Addresses Hub & Entity Directory (Tenant-Scoped)", () => {
     const body = res.json();
     expect(body.id).toBeDefined();
     expect(body.companyName).toBe("Mediterranean Shipping Agency S.L.");
-    expect(body.addressType).toBe("CARRIER_AGENT");
+    expect(body.addressType).toBe("CAA");
     expect(body.unLocode).toBe("ESBCN");
     expect(body.contacts.length).toBe(2);
     expect(body.contacts[0].isPrimary).toBe(true);
@@ -159,7 +159,7 @@ describe("Addresses Hub & Entity Directory (Tenant-Scoped)", () => {
     expect(res.statusCode).toBe(201);
     const body = res.json();
     expect(body.id).toBeDefined();
-    expect(body.addressType).toBe("TERMINAL");
+    expect(body.addressType).toBe("TRM");
   });
 
   it("fetches single address with linked contacts and pre-formatted B/L party boxes", async () => {
@@ -184,17 +184,80 @@ describe("Addresses Hub & Entity Directory (Tenant-Scoped)", () => {
     expect(body.blBoxes.agent.rawBlock).toContain("FOR DELIVERY APPLY TO:");
   });
 
-  it("lists tenant addresses with role filter", async () => {
+  it("lists tenant addresses with role filter and normalizes to canonical address_types code", async () => {
     const res = await app.inject({
       method: "GET",
-      url: `/api/addresses?companyId=${testTenantId}&type=CARRIER_AGENT`,
+      url: `/api/addresses?companyId=${testTenantId}&type=CAA`,
     });
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(Array.isArray(body)).toBe(true);
     expect(body.length).toBe(1);
-    expect(body[0].addressType).toBe("CARRIER_AGENT");
+    expect(body[0].addressType).toBe("CAA");
+  });
+
+  it("exposes master address_types catalog without CONSIGNEE_NOTIFY", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/addresses/types",
+    });
+
+    expect(res.statusCode).toBe(200);
+    const types = res.json();
+    const codes = types.map((t: any) => t.code);
+    expect(codes).toEqual(
+      expect.arrayContaining([
+        "CUS",
+        "CB",
+        "AG",
+        "HAU",
+        "CAR",
+        "INS",
+        "CAA",
+        "WH",
+        "FW",
+        "TRM",
+      ]),
+    );
+    expect(codes).not.toContain("CONSIGNEE_NOTIFY");
+  });
+
+  it("restricts Corporate Group management to ACCOUNTING, CONTROLLING, and ADMIN roles", async () => {
+    // 1. Standard operational user is forbidden from listing or linking Corporate Groups
+    const forbiddenList = await app.inject({
+      method: "GET",
+      url: "/api/addresses/groups",
+      headers: { "x-user-role": "OPERATIONS" },
+    });
+    expect(forbiddenList.statusCode).toBe(403);
+
+    const forbiddenPatch = await app.inject({
+      method: "PATCH",
+      url: `/api/addresses/${createdAddressId}/corporate-group`,
+      headers: { "x-user-role": "OPERATIONS" },
+      payload: { companyId: "grp_msc" },
+    });
+    expect(forbiddenPatch.statusCode).toBe(403);
+
+    // 2. Accounting / Controlling user can view Corporate Groups and link addresses
+    const allowedList = await app.inject({
+      method: "GET",
+      url: "/api/addresses/groups",
+      headers: { "x-user-role": "ACCOUNTING" },
+    });
+    expect(allowedList.statusCode).toBe(200);
+    const groups = allowedList.json();
+    expect(groups.some((g: any) => g.id === "grp_apm_terminals")).toBe(true);
+
+    const allowedPatch = await app.inject({
+      method: "PATCH",
+      url: `/api/addresses/${createdAddressId}/corporate-group`,
+      headers: { "x-user-role": "CONTROLLING" },
+      payload: { companyId: "grp_msc" },
+    });
+    expect(allowedPatch.statusCode).toBe(200);
+    expect(allowedPatch.json().companyId).toBe("grp_msc");
   });
 
   it("cascades delete of address contacts upon address deletion", async () => {

@@ -58,15 +58,14 @@ export default function RatesContent() {
   useEffect(() => {
     async function loadWarehouses() {
       try {
-        const list = await drizzleRateService.fetchAddresses("WAREHOUSE");
+        const list = await drizzleRateService.fetchAddresses("WH");
         if (list && list.length > 0) {
           setWarehouses(list);
           setSelectedWarehouseId(list[0].id);
         } else {
           const all = await drizzleRateService.fetchAddresses();
           const filtered = all.filter(
-            (a: any) =>
-              a.addressType === "WAREHOUSE" || a.addressType === "CONSIGNEE",
+            (a: any) => a.addressType === "WH" || a.addressType === "CUS",
           );
           setWarehouses(filtered.length > 0 ? filtered : all);
           if (filtered.length > 0) setSelectedWarehouseId(filtered[0].id);

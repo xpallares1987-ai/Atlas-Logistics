@@ -15,19 +15,52 @@ export interface CoreSeedContext {
 }
 
 export async function seedCore(): Promise<CoreSeedContext> {
-  // 1. COMPANIES
-  const companyIds = [];
-  for (let i = 0; i < 5; i++) {
-    const id = faker.string.uuid();
-    companyIds.push(id);
-    await db.insert(schema.companies).values({
-      id,
-      name: faker.company.name(),
-      taxId: faker.finance.accountNumber(9),
-      creditLimit: faker.number.int({ min: 10000, max: 1000000 }),
-    });
+  // 0. ADDRESS TYPES MASTER CATALOG
+  for (const def of schema.ADDRESS_TYPE_DEFINITIONS) {
+    await db
+      .insert(schema.addressTypes)
+      .values({
+        code: def.code,
+        name: def.name,
+        description: def.description,
+      })
+      .onConflictDoUpdate({
+        target: schema.addressTypes.code,
+        set: {
+          name: def.name,
+          description: def.description,
+        },
+      });
   }
-  console.log(`✅ Creadas ${companyIds.length} compañías.`);
+
+  // 1. CORPORATE GROUPS (COMPANIES)
+  const companyIds: string[] = [];
+  for (const grp of schema.ENTERPRISE_COMPANY_GROUPS) {
+    companyIds.push(grp.id);
+    await db
+      .insert(schema.companies)
+      .values({
+        id: grp.id,
+        name: grp.name,
+        groupCode: grp.groupCode,
+        sector: grp.sector,
+        headquartersCountry: grp.headquartersCountry,
+        taxId: grp.taxId,
+        creditLimit: grp.creditLimit,
+      })
+      .onConflictDoUpdate({
+        target: schema.companies.id,
+        set: {
+          name: grp.name,
+          groupCode: grp.groupCode,
+          sector: grp.sector,
+          headquartersCountry: grp.headquartersCountry,
+          taxId: grp.taxId,
+          creditLimit: grp.creditLimit,
+        },
+      });
+  }
+  console.log(`✅ Creados ${companyIds.length} grupos corporativos.`);
 
   // 2. USERS & CONTACTS (Deterministic Demo Roles + Realistic Team)
   const demoUsers = [
@@ -37,6 +70,22 @@ export async function seedCore(): Promise<CoreSeedContext> {
       role: "ADMIN",
       firstName: "Carlos",
       lastName: "Mendoza",
+      companyId: companyIds[0],
+    },
+    {
+      id: "accounting_user_id",
+      email: "accounting@atlas.com",
+      role: "ACCOUNTING",
+      firstName: "Sofía",
+      lastName: "Navarro",
+      companyId: companyIds[0],
+    },
+    {
+      id: "controlling_user_id",
+      email: "controlling@atlas.com",
+      role: "CONTROLLING",
+      firstName: "Javier",
+      lastName: "Ribera",
       companyId: companyIds[0],
     },
     {
@@ -58,7 +107,7 @@ export async function seedCore(): Promise<CoreSeedContext> {
     {
       id: "treasury_user_id",
       email: "treasury@atlas.com",
-      role: "MANAGER",
+      role: "CONTROLLING",
       firstName: "Lucía",
       lastName: "Domínguez",
       companyId: companyIds[0],
@@ -125,7 +174,9 @@ export async function seedCore(): Promise<CoreSeedContext> {
       });
     }
   }
-  console.log(`✅ Creados ${userIds.length} usuarios y contactos (5 perfiles demo + equipo).`);
+  console.log(
+    `✅ Creados ${userIds.length} usuarios y contactos (5 perfiles demo + equipo).`,
+  );
 
   // 3. LOCATIONS (Ports, Warehouses)
   const locationIds = [];
