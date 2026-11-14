@@ -177,7 +177,7 @@ cat > .env.production << EOF
 NODE_ENV=production
 PORT=3001
 LOG_LEVEL=info
-DATABASE_URL=postgresql://atlas_prod:[REDACTED]@prod-db.internal:5432/atlas_logistics
+DATABASE_URL=file:/app/data/prod.db
 REDIS_HOST=prod-redis.internal
 JWT_SECRET=$JWT_SECRET
 COOKIE_SECRET=$COOKIE_SECRET
@@ -186,24 +186,15 @@ CORS_ORIGIN=https://atlas-logistics.com,https://www.atlas-logistics.com
 EOF
 
 # 3. Build Production Images
-docker build -t atlas-logistics:backend-prod-v1.0.0 \
-  -f Dockerfile.backend --target production .
+docker compose -f docker-compose.prod.yml build
 
-docker build -t atlas-logistics:frontend-prod-v1.0.0 \
-  -f Dockerfile --target production .
+# 4. Deploy (Docker Compose)
+docker compose -f docker-compose.prod.yml up -d
 
-# 4. Push to Registry
-docker tag atlas-logistics:backend-prod-v1.0.0 registry.example.com/atlas-logistics:backend-v1.0.0
-docker push registry.example.com/atlas-logistics:backend-v1.0.0
-
-# 5. Deploy (Kubernetes example)
-kubectl apply -f k8s/deployment.yaml
-kubectl rollout status deployment/atlas-backend
-
-# 6. Verify Deployment
-curl -s https://api.atlas-logistics.com/api/health | jq .
-kubectl get pods -l app=atlas-backend
-kubectl logs -l app=atlas-backend
+# 5. Verify Deployment
+curl -s http://localhost:3001/health | jq .
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs --tail=50 backend
 ```
 
 ### Task 4.3: Post-Deployment Monitoring

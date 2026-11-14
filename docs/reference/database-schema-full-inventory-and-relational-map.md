@@ -13,7 +13,7 @@
 
 ## 1. Executive Summary & Architecture Blueprint
 
-The Atlas-Logistics database is architected around **Domain-Driven Design (DDD)** and **Command Query Responsibility Segregation (CQRS)** implemented on a high-throughput, zero-cost SQLite foundation in WAL mode per **[ADR 0008](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/adr/0008-sqlite-cqrs-workflow-persistence-model.md)** and **[ADR 0009](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/adr/0009-sqlite-wal-concurrency-and-data-integrity.md)**.
+The Atlas-Logistics database is architected around **Domain-Driven Design (DDD)** and **Command Query Responsibility Segregation (CQRS)** implemented on a high-throughput, zero-cost SQLite foundation in WAL mode per **[ADR 0008](../adr/0008-scm-sqlite-cqrs-workflow-engine.md)** and **[ADR 0009](../adr/0009-sqlite-wal-mandatory-foreign-keys.md)**.
 
 ```mermaid
 flowchart TD
@@ -73,7 +73,7 @@ flowchart TD
 - **Cascading Policies**:
   - **Internal Aggregate Entities**: Enforce `ON DELETE CASCADE` (e.g., `shipment_items` $\rightarrow$ `shipments`, `departments` $\rightarrow$ `branch_offices`).
   - **Cross-Aggregate References**: Enforce `ON DELETE RESTRICT` / `NO ACTION` to prevent accidental deletion of shared master records (e.g., deleting an `address` assigned to an active booking is strictly prohibited).
-  - **Relational Drizzle Imports**: All submodules in `src/db/schema/` import parent tables strictly from their canonical definition file per **[ADR 0022](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/adr/0022-enterprise-freight-forwarding-organization-schema-and-governance.md)**.
+  - **Relational Drizzle Imports**: All submodules in `src/db/schema/` import parent tables strictly from their canonical definition file per **[ADR 0022](../adr/0022-enterprise-freight-forwarding-organization-schema-and-governance.md)**.
 
 ---
 

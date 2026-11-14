@@ -19,7 +19,7 @@
   - Frontend Deployment (2 replicas, auto-scale to 5)
   - Backend Deployment (3 replicas, auto-scale to 10)
   - Worker Deployment (2 replicas, auto-scale to 8)
-  - PostgreSQL StatefulSet with PVC
+  - Persistent Volume Claim for SQLite/libSQL data
   - Redis StatefulSet with persistence
   - Network policies for security
   - Pod Disruption Budgets (PDB)
@@ -126,9 +126,8 @@ Go to: Settings → Secrets and variables → Actions
 Add these secrets:
 ```
 JWT_SECRET=<generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))">
-POSTGRES_PASSWORD=<generate: openssl rand -base64 32>
 GRAFANA_ADMIN_PASSWORD=<generate: openssl rand -base64 32>
-DATABASE_URL=postgresql://postgres:[POSTGRES_PASSWORD]@postgres:5432/atlas
+DATABASE_URL=file:/app/data/prod.db
 ```
 
 ### 2. Set Up Kubernetes Cluster (5 min)
@@ -141,7 +140,7 @@ kubectl label namespace atlas-logistics name=atlas-logistics
 # Create secrets
 kubectl create secret generic atlas-secrets \
   --from-literal=JWT_SECRET="$JWT_SECRET" \
-  --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+  --from-literal=DATABASE_URL="file:/app/data/prod.db" \
   -n atlas-logistics
 ```
 
@@ -196,7 +195,7 @@ GitHub Actions CI/CD
 │ Frontend (Nginx)           │
 │ Backend (Fastify)          │
 │ Worker (Node.js)           │
-│ PostgreSQL (DB)            │
+│ SQLite WAL (DB)            │
 │ Redis (Queue)              │
 │ Prometheus (Monitoring)    │
 └────────────────────────────┘
@@ -221,7 +220,7 @@ Prometheus alerts configured for:
 - Memory usage critical (>90%)
 - CPU throttling (>20%)
 - Redis down
-- PostgreSQL slow queries
+- Database slow queries
 - Worker queue backlog
 
 ## 🔄 Continuous Deployment

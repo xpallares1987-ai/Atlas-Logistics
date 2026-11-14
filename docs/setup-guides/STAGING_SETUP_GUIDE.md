@@ -141,7 +141,7 @@ COOKIE_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString(
 ENFORCE_HTTPS=true
 
 # Database
-DATABASE_URL=postgresql://atlas_staging:password@postgres:5432/atlas_logistics_staging
+DATABASE_URL=file:/app/data/staging.db
 DATABASE_AUTH_TOKEN=
 
 # Redis
@@ -416,8 +416,8 @@ curl -sI -H "Origin: http://localhost:8080" http://localhost:3001/api/shipments
 ### 7.3 Database connection issues
 
 ```bash
-# Test PostgreSQL connection
-psql -h localhost -U atlas_staging -d atlas_logistics_staging -c "SELECT 1;"
+# Test SQLite database connection and integrity
+sqlite3 data/staging.db "PRAGMA integrity_check;"
 
 # Test Redis connection
 redis-cli -h localhost ping

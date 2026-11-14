@@ -39,21 +39,21 @@ gh attestation verify oci://ghcr.io/xpallares1987-ai/atlas-backend:latest \
   --repo xpallares1987-ai/Atlas-Logistics \
   --signer-workflow xpallares1987-ai/Atlas-Logistics/.github/workflows/ci.yml
 ```
-*(For complete verification instructions, see [docs/setup-guides/container-provenance-verification.md](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/container-provenance-verification.md)).*
+*(For complete verification instructions, see [docs/setup-guides/container-provenance-verification.md](docs/setup-guides/container-provenance-verification.md)).*
 
 ---
 
 ## 📚 Technical Documentation Hub
 
-The project's technical documentation is structured according to the **Diátaxis Documentation Framework** across four quadrants in [`docs/`](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/README.md):
+The project's technical documentation is structured according to the **Diátaxis Documentation Framework** across four quadrants in [`docs/`](docs/README.md):
 
-- [**SCM Platform Architecture**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/architecture/SCM_PLATFORM_ARCHITECTURE.md) — Aggregate models, transactional outbox, event runtime, and CQRS projections.
-- [**Local Development Walkthrough**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/development-guide.md) — Setup with `pnpm`, environment variables, migration execution, and test suites.
-- [**Docker & Multi-Container Infrastructure**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/docker-setup.md) — Execution profiles (default, observability, worker) and BuildKit caching.
-- [**Station Context & Navigation Cockpit**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/station-context-cockpit-guide.md) — Enterprise forwarding station hierarchy, role-based station switching, and dynamic navigation.
-- [**Observability & Telemetry**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/observability-monitoring.md) — Prometheus metrics (`/metrics`), Grafana dashboards, and structured Pino logging.
-- [**Security & Zero-Leak Policy**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/security-backup-policy.md) — Zero-leak pre-commit guard, credential isolation, and SQLite online backup routines.
-- [**Architectural Decision Records (ADRs)**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/adr/) — Complete historical registry of architectural standards (ADR 0001 through ADR 0022).
+- [**SCM Platform Architecture**](docs/architecture/SCM_PLATFORM_ARCHITECTURE.md) — Aggregate models, transactional outbox, event runtime, and CQRS projections.
+- [**Local Development Walkthrough**](docs/setup-guides/development-guide.md) — Setup with `pnpm`, environment variables, migration execution, and test suites.
+- [**Docker & Multi-Container Infrastructure**](docs/setup-guides/docker-setup.md) — Execution profiles (default, observability, worker) and BuildKit caching.
+- [**Station Context & Navigation Cockpit**](docs/setup-guides/station-context-cockpit-guide.md) — Enterprise forwarding station hierarchy, role-based station switching, and dynamic navigation.
+- [**Observability & Telemetry**](docs/setup-guides/observability-monitoring.md) — Prometheus metrics (`/metrics`), Grafana dashboards, and structured Pino logging.
+- [**Security & Zero-Leak Policy**](docs/setup-guides/security-backup-policy.md) — Zero-leak pre-commit guard, credential isolation, and SQLite online backup routines.
+- [**Architectural Decision Records (ADRs)**](docs/adr/) — Complete historical registry of architectural standards (ADR 0001 through ADR 0022).
 
 ---
 
@@ -256,6 +256,8 @@ pnpm run dev
 | `pnpm test` | Runs the full Vitest unit and integration test suite | Before every commit |
 | `pnpm vitest run tests/scm-*` | Executes SCM domain engine integration tests | SCM development |
 | `pnpm run audit:ddl-drift` | Verifies Drizzle migration consistency & schema parity | Database changes |
+| `pnpm run audit:legacy-docs` | Verifies zero legacy database/infrastructure terms | Documentation updates |
+| `pnpm run test:backup-restore` | Tests SQLite WAL backup, VACUUM INTO, and DR restore | Database & DR drills |
 | `pnpm run check:file-sizes` | Enforces the <1,000 line modularity limit on page files | Frontend development |
 | `pnpm run lint` | Runs ESLint across root and monorepo packages | Prior to commits |
 | `pnpm run audit:leaks:staged`| Scans staged files for confidential tokens or leaks | Pre-commit hook & CI |

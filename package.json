@@ -54,6 +54,8 @@
     "audit:leaks": "node scripts/check-sensitive-leaks.cjs --all",
     "audit:leaks:staged": "node scripts/check-sensitive-leaks.cjs --staged",
     "audit:ddl-drift": "node scripts/check-ddl-drift.mjs",
+    "audit:legacy-docs": "node scripts/check-legacy-docs.mjs",
+    "test:backup-restore": "node scripts/test-sqlite-backup-restore.mjs",
     "check:file-sizes": "node scripts/check-file-sizes.mjs",
     "wiki:sync": "node scripts/sync-wiki.mjs"
   },

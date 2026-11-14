@@ -31,7 +31,7 @@ This matrix ensures forward-compatibility and prevents toolchain regressions acr
 
 ## 3. Automated Validation Workflow
 
-Proactive validation is executed by [.github/workflows/ubuntu-26-validation.yml](file:///C:/Users/xpall/Source/Atlas-Logistics/.github/workflows/ubuntu-26-validation.yml):
+Proactive validation is executed by [.github/workflows/ubuntu-26-validation.yml](../../.github/workflows/ubuntu-26-validation.yml):
 
 - **Trigger Schedule:** Weekly on Mondays at 03:00 UTC, on `workflow_dispatch`, and on PRs modifying `package.json`, `pnpm-lock.yaml`, or `.github/workflows/**`.
 - **Validation Scope:**

@@ -98,7 +98,7 @@ If the image was modified, tampered with, built from an untrusted fork, or gener
 
 SLSA provenance is not merely generated; it is **strictly enforced** as a blocking gate before any deployment:
 
-1. **Generation**: [ci.yml](file:///C:/Users/xpall/Source/Atlas-Logistics/.github/workflows/ci.yml) generates SLSA build provenance attestations during the `build-images` job.
+1. **Generation**: [ci.yml](../../.github/workflows/ci.yml) generates SLSA build provenance attestations during the `build-images` job.
 2. **Blocking Verification Gate (`verify-provenance`)**:
    - Executes after `build-images` completes.
    - Verifies all 3 container images (`atlas-frontend`, `atlas-backend`, `atlas-worker`) against the repository and signing workflow.

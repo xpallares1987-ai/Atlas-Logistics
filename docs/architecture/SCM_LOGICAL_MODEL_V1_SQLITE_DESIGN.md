@@ -176,10 +176,10 @@ flowchart TD
 ## 5. Mapeo de Archivos del Proyecto
 
 * **Definición de Esquema Drizzle:**  
-  [`src/db/schema/scm_logical_slice1_sqlite.ts`](file:///C:/Users/xpall/Source/Atlas-Logistics/src/db/schema/scm_logical_slice1_sqlite.ts)
+  [`src/db/schema/scm_logical_slice1_sqlite.ts`](../../src/db/schema/scm_logical_slice1_sqlite.ts)
 * **Bootstrap DDL en Kernel:**  
-  [`src/scm/kernel/logical-slice1-tables.ts`](file:///C:/Users/xpall/Source/Atlas-Logistics/src/scm/kernel/logical-slice1-tables.ts) (función `ensureScmLogicalSlice1Tables()`)
+  [`src/scm/kernel/logical-slice1-tables.ts`](../../src/scm/kernel/logical-slice1-tables.ts) (función `ensureScmLogicalSlice1Tables()`)
 * **Suite de Pruebas Unitarias / Integración:**  
-  [`tests/scm-logical-model-slice1-sqlite.test.ts`](file:///C:/Users/xpall/Source/Atlas-Logistics/tests/scm-logical-model-slice1-sqlite.test.ts) (4 pruebas exhaustivas verificando los 6 bounded contexts y sus invariantes).
+  [`tests/scm-logical-model-slice1-sqlite.test.ts`](../../tests/scm-logical-model-slice1-sqlite.test.ts) (4 pruebas exhaustivas verificando los 6 bounded contexts y sus invariantes).
 * **Índice Global de Esquemas:**  
-  [`src/db/schema/index.ts`](file:///C:/Users/xpall/Source/Atlas-Logistics/src/db/schema/index.ts)
+  [`src/db/schema/index.ts`](../../src/db/schema/index.ts)

@@ -34,7 +34,7 @@
 
 **Task 3.1: Staging Environment** ✅
 - [x] Docker Compose staging setup
-- [x] PostgreSQL/SQLite database configured
+- [x] SQLite database (WAL mode) configured
 - [x] Redis cache configured
 - [x] All health checks passing
 - [x] Monitoring infrastructure ready

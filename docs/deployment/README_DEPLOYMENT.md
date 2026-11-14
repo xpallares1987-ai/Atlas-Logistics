@@ -26,7 +26,7 @@
    - Frontend Deployment (2 replicas, auto-scale to 5)
    - Backend Deployment (3 replicas, auto-scale to 10)
    - Worker Deployment (2 replicas, auto-scale to 8)
-   - PostgreSQL StatefulSet with 10GB PVC
+   - SQLite WAL Persistent Volume (data/prod.db)
    - Redis StatefulSet with 5GB PVC
    - Namespace, ConfigMap, Secrets
    - Network policies & RBAC
@@ -142,9 +142,9 @@ Go to: https://github.com/xpallares1987-ai/Atlas-Logistics/settings/secrets/acti
 Add secrets:
 ```
 JWT_SECRET = <generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))">
-POSTGRES_PASSWORD = <generate: openssl rand -base64 32>
+COOKIE_SECRET = <generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))">
 GRAFANA_ADMIN_PASSWORD = <generate: openssl rand -base64 32>
-DATABASE_URL = postgresql://postgres:[REDACTED]@postgres:5432/atlas
+DATABASE_URL = file:/app/data/prod.db
 ```
 
 ### STEP 2: Create Kubernetes Namespace & Secrets (5 min)
@@ -155,7 +155,7 @@ kubectl label namespace atlas-logistics name=atlas-logistics
 
 kubectl create secret generic atlas-secrets \
   --from-literal=JWT_SECRET="$JWT_SECRET" \
-  --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+  --from-literal=COOKIE_SECRET="$COOKIE_SECRET" \
   --from-literal=REDIS_PASSWORD="$(openssl rand -base64 32)" \
   -n atlas-logistics
 
@@ -229,7 +229,7 @@ kubectl port-forward svc/frontend 8080:8080 -n atlas-logistics &
          │  └─ Job processor              │
          ├────────────────────────────────┤
          │  Data Services                 │
-         │  ├─ PostgreSQL (1 pod, 10GB)  │
+         │  ├─ SQLite WAL / LibSQL Volume │
          │  ├─ Redis (1 pod, 5GB)        │
          │  └─ Prometheus (metrics)       │
          └────────────────────────────────┘

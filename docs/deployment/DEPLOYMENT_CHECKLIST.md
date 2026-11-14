@@ -26,11 +26,10 @@ cd atlas-logistics
 # Create production env file
 cp .env.production.example .env.production
 # Edit .env.production with actual secrets:
-#   - DATABASE_URL (PostgreSQL connection)
-#   - REDIS_PASSWORD (if needed)
-#   - JWT_SECRET (generate new)
+#   - DATABASE_URL (e.g. file:/app/data/prod.db or libsql://...)
+#   - JWT_SECRET (generate new 32+ char hex)
+#   - COOKIE_SECRET (generate new 32+ char hex)
 #   - GRAFANA_ADMIN_PASSWORD
-#   - POSTGRES_PASSWORD
 
 # Ensure .env.production is NOT committed
 git check-ignore .env.production  # Should return .env.production

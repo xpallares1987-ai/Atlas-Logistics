@@ -240,11 +240,10 @@ DATABASE_AUTH_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGc...
 **Cons:** Requires Turso account, additional cost  
 **Migration:** Existing SQLite can be migrated to Turso via: `turso db create atlas-prod --from-file ./atlas-prod.db`
 
-### Option 3: PostgreSQL (Traditional, if needed)
-**Best for:** Large-scale deployments, complex queries  
-**Not yet supported** in current Drizzle config but possible with configuration change
+### Option 3: Distributed Edge Relational (Cloudflare D1 / Turso)
+**Best for:** Global low-latency edge deployments. Supported natively via `@libsql/client` with zero schema adjustments.
 
-**Recommendation for Phase 2:** Stick with **SQLite** for initial production (Option 1). Migrate to Turso/libSQL later if multi-region scaling is required.
+**Recommendation for Phase 2:** Standardize on **SQLite in WAL mode** for local and containerized production (Option 1), with Turso/libSQL for distributed multi-region topologies.
 
 ---
 

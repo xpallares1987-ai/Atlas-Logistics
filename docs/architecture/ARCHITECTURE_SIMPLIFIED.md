@@ -31,8 +31,8 @@
 │  └──────────────────────────────────────────────────────┘   │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │ Container 4: PostgreSQL 16                           │   │ 300MB
-│  │  - Not actually used (you use SQLite)               │   │
+│  │ Container 4: Legacy External SQL Engine              │   │ 300MB
+│  │  - Excluded from Atlas (standardized on SQLite WAL)  │   │
 │  │  - Wasted resources                                 │   │
 │  └──────────────────────────────────────────────────────┘   │
 │                                                              │
@@ -57,8 +57,8 @@
 │  └──────────────────────────────────────────────────────┘   │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │ Container 9: pgAdmin (Optional)                      │   │ 100MB
-│  │  - PostgreSQL UI (doesn't apply to SQLite)          │   │
+│  │ Container 9: External Database Admin UI (Optional)   │   │ 100MB
+│  │  - Superseded by Drizzle Studio / SQLite inspection  │   │
 │  └──────────────────────────────────────────────────────┘   │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐   │
@@ -253,8 +253,8 @@ User Browser                     Docker Network
 | **Backend (Fastify)** | ✅ YES | Local for hot reload |
 | **Frontend (React/Vite)** | ✅ YES | Local for HMR |
 | **Turborepo** | ✅ YES | MFE dev orchestration |
-| **PostgreSQL** | ❌ NO | Using SQLite locally |
-| **pgAdmin** | ❌ NO | Use `pnpm db:inspect` |
+| **External SQL Server** | ❌ NO | Using SQLite WAL locally & in containers |
+| **External SQL Admin UI** | ❌ NO | Use `pnpm db:inspect` or Drizzle Studio |
 | **Camunda** | ❌ NO | Not implemented |
 | **Prometheus** | ⚠️ OPTIONAL | Only for observability |
 | **Grafana** | ⚠️ OPTIONAL | Only for dashboards |
@@ -269,7 +269,7 @@ User Browser                     Docker Network
 1. **Always:** Redis in Docker (for BullMQ)
 2. **Usually:** Backend + Frontend local with hot reload
 3. **Sometimes:** Observability stack when debugging
-4. **Never:** PostgreSQL, pgAdmin, Camunda, containerized app
+4. **Never:** Heavy external database servers, Camunda, containerized dev apps
 
 This gives you the best balance of **resource efficiency**, **developer velocity**, and **production parity**.
 

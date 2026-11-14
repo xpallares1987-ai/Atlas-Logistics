@@ -500,8 +500,8 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Install curl and jq
-RUN apk add --no-cache curl jq bash postgresql-client
+# Install curl, jq, and sqlite
+RUN apk add --no-cache curl jq bash sqlite
 
 # Copy test scripts
 COPY . /app/tests

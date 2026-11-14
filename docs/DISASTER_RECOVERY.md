@@ -177,116 +177,81 @@ After restore, verify that migration snapshots are in parity:
 ```bash
 pnpm run audit:ddl-drift
 ```
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-pvc-restore
-  namespace: atlas-logistics
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-  dataSource:
-    name: postgres-snapshot-backup
-    kind: VolumeSnapshot
-    apiGroup: snapshot.storage.k8s.io
-EOF
-
-# 3. If restore is successful, swap PVC
-kubectl scale deployment postgres --replicas=0 -n atlas-logistics
-kubectl patch pvc postgres-pvc -n atlas-logistics -p '{"spec":{"volumeMode":"Filesystem"}}'
-# (Manual swap of PVC, or use StatefulSet with update)
-kubectl scale deployment postgres --replicas=1 -n atlas-logistics
-```
-
 ### Redis Backup & Restore
 
 #### Redis RDB Backup (Point-in-Time)
 ```bash
 # Trigger Redis snapshot
-kubectl exec -it redis-0 -n atlas-logistics -- redis-cli BGSAVE
+docker exec -it atlas-redis-prod redis-cli BGSAVE
 
 # Wait for save to complete
-kubectl exec -it redis-0 -n atlas-logistics -- redis-cli LASTSAVE
+docker exec -it atlas-redis-prod redis-cli LASTSAVE
 
 # Export RDB file
-kubectl cp atlas-logistics/redis-0:/data/dump.rdb ./redis-backup.rdb
-
-# Upload to S3 or external storage
-aws s3 cp redis-backup.rdb s3://my-backups/redis/
+docker cp atlas-redis-prod:/data/dump.rdb ./redis-backup.rdb
 ```
 
 #### Redis Restore
 ```bash
-# Copy RDB file back to redis pod
-kubectl cp ./redis-backup.rdb atlas-logistics/redis-0:/data/dump.rdb
+# Copy RDB file back to redis container
+docker cp ./redis-backup.rdb atlas-redis-prod:/data/dump.rdb
 
-# Restart redis to load snapshot
-kubectl delete pod redis-0 -n atlas-logistics
-kubectl rollout status statefulset/redis -n atlas-logistics
+# Restart redis container to load snapshot
+docker restart atlas-redis-prod
 ```
 
 #### Redis Persistence Verification
 ```bash
 # Check AOF (Append-Only File) is enabled
-kubectl exec -it redis-0 -n atlas-logistics -- redis-cli CONFIG GET appendonly
+docker exec -it atlas-redis-prod redis-cli CONFIG GET appendonly
 
 # Monitor AOF rewrite
-kubectl exec -it redis-0 -n atlas-logistics -- redis-cli INFO persistence
+docker exec -it atlas-redis-prod redis-cli INFO persistence
 ```
 
 ---
 
 ## Disaster Recovery Runbook
 
-### Scenario 1: Service Outage (Pod Crash)
+### Scenario 1: Service Outage (Container Failure)
 
-**Symptoms:** Pod stuck in `CrashLoopBackOff`, service unavailable
+**Symptoms:** Container exits with non-zero code or healthcheck fails
 
 **Recovery Steps:**
 ```bash
-# 1. Check pod status and events
-kubectl describe pod backend-xyz -n atlas-logistics
+# 1. Check container status
+docker compose -f docker-compose.prod.yml ps
 
-# 2. Review logs to identify issue
-kubectl logs backend-xyz -n atlas-logistics --tail=200
+# 2. Review logs to identify root cause
+docker compose -f docker-compose.prod.yml logs --tail=200 backend
 
-# 3. Check if persistent storage is full
-kubectl exec backend-xyz -n atlas-logistics -- df -h
+# 3. Restart container
+docker compose -f docker-compose.prod.yml restart backend
 
-# 4. If OOM (Out of Memory), increase memory limits
-kubectl set resources deployment backend \
-  --limits=memory=3Gi,cpu=2 \
-  -n atlas-logistics
-
-# 5. Force pod restart
-kubectl delete pod backend-xyz -n atlas-logistics
-
-# 6. Verify pod recovered
-kubectl get pods -n atlas-logistics -l app=backend
-kubectl logs -f deployment/backend -n atlas-logistics
+# 4. Verify healthcheck passes
+docker compose -f docker-compose.prod.yml ps
 ```
 
-### Scenario 2: Database Corruption
+### Scenario 2: Database Integrity Issues
 
-**Symptoms:** Database query errors, foreign key constraint violations, data inconsistency
+**Symptoms:** Database query errors, foreign key constraint violations, lock timeouts
 
 **Recovery Steps:**
 ```bash
-# 1. Take backup immediately (don't lose current state)
-kubectl exec -it postgres-0 -n atlas-logistics -- pg_dump atlas > corrupted-backup.sql
+# 1. Take snapshot of current state immediately
+sqlite3 data/prod.db ".backup 'data/backups/corrupted_state_$(date +%Y%m%d_%H%M%S).db'"
 
-# 2. Check database integrity
-kubectl exec -it postgres-0 -n atlas-logistics -- psql -U postgres -d atlas -c "REINDEX DATABASE atlas;"
+# 2. Check SQLite database integrity and foreign keys
+sqlite3 data/prod.db "PRAGMA integrity_check;"
+sqlite3 data/prod.db "PRAGMA foreign_key_check;"
 
-# 3. If corruption is severe, restore from backup
-# See "PostgreSQL Restore" section above
+# 3. If checkpoint deadlock occurs, force truncate checkpoint
+sqlite3 data/prod.db "PRAGMA wal_checkpoint(TRUNCATE);"
 
-# 4. Run application migrations to ensure schema is correct
-kubectl exec -it backend-xyz -n atlas-logistics -- pnpm run db:migrate:prod
+# 4. If corruption is confirmed, restore from verified snapshot (see Database Restore above)
+
+# 5. Run DDL drift and migrations check
+pnpm run audit:ddl-drift
 
 # 5. Verify data integrity
 kubectl exec -it backend-xyz -n atlas-logistics -- pnpm run db:check

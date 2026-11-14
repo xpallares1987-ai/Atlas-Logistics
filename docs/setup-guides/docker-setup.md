@@ -46,7 +46,7 @@ Atlas Logistics microservices are packaged and published to GitHub Container Reg
 | **Backend API** | `Dockerfile.backend` | `ghcr.io/xpallares1987-ai/atlas-backend` | Fastify 5 REST API & WebSocket server |
 | **Async Worker** | `Dockerfile.worker` | `ghcr.io/xpallares1987-ai/atlas-worker` | BullMQ asynchronous background queue worker |
 
-Every published image includes cryptographically signed **SLSA v1.0 Build Provenance** attestations. See the [Container Provenance Verification Guide](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/container-provenance-verification.md) for details.
+Every published image includes cryptographically signed **SLSA v1.0 Build Provenance** attestations. See the [Container Provenance Verification Guide](container-provenance-verification.md) for details.
 
 ### Profiles
 

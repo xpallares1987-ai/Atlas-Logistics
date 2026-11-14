@@ -73,7 +73,7 @@ NODE_OPTIONS=--max-old-space-size=2048
 LOG_LEVEL=info
 
 # Backend
-DATABASE_URL=postgresql://user:pass@db-host:5432/atlas
+DATABASE_URL=file:/app/data/prod.db
 REDIS_URL=redis://redis-host:6379
 JWT_SECRET=<generate-secure-secret>
 
@@ -90,19 +90,19 @@ version: '3.8'
 
 services:
   backend:
-    image: ghcr.io/xpallares1987-ai/atlas-logistics:backend-latest
+    image: ghcr.io/xpallares1987-ai/atlas-backend:latest
     container_name: atlas-backend
     ports:
       - "3001:3001"
     env_file: .env.prod
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL:-file:/app/data/prod.db}
       REDIS_URL: ${REDIS_URL}
       JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - backend_data:/app/data
     depends_on:
       redis:
-        condition: service_healthy
-      postgres:
         condition: service_healthy
     restart: always
     healthcheck:
@@ -121,7 +121,7 @@ services:
           memory: 1G
 
   frontend:
-    image: ghcr.io/xpallares1987-ai/atlas-logistics:frontend-latest
+    image: ghcr.io/xpallares1987-ai/atlas-frontend:latest
     container_name: atlas-frontend
     ports:
       - "8080:8080"
@@ -145,12 +145,14 @@ services:
           memory: 256M
 
   worker:
-    image: ghcr.io/xpallares1987-ai/atlas-logistics:worker-latest
+    image: ghcr.io/xpallares1987-ai/atlas-worker:latest
     container_name: atlas-worker
     env_file: .env.prod
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL:-file:/app/data/prod.db}
       REDIS_URL: ${REDIS_URL}
+    volumes:
+      - backend_data:/app/data
     depends_on:
       redis:
         condition: service_healthy
@@ -184,32 +186,13 @@ services:
           cpus: '0.5'
           memory: 512M
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: atlas-postgres-prod
-    environment:
-      POSTGRES_DB: atlas
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-
 volumes:
+  backend_data:
   redis_data:
-  postgres_data:
+
+networks:
+  default:
+    name: atlas-prod
 
 networks:
   default:
@@ -370,7 +353,7 @@ jobs:
 - **Backend**: Scale replicas behind load balancer; stateless design
 - **Worker**: 1–N replicas pulling from Redis queue; horizontal scaling
 - **Frontend**: Nginx handles concurrent connections; CDN for assets
-- **Database**: Use managed PostgreSQL (AWS RDS, Supabase)
+- **Database**: Embedded SQLite in WAL mode; for distributed multi-region, use libSQL / Turso cloud
 - **Redis**: Use managed Redis (AWS ElastiCache, Redis Cloud)
 
 ## Monitoring

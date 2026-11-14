@@ -988,7 +988,7 @@ flowchart TB
 
 #### 4.2. Contrato Estructural de `Shipment360ReadModel`
 
-La proyección `Shipment360ReadModel` se almacena en PostgreSQL (en el esquema `operational_intelligence.shipment_360_views`) indexada por `shipment_id`, `reference_number`, `customer_account_id`, `branch_id` y `health_status`, permitiendo hidratar la pantalla completa en **una única lectura (`GET /api/bff/shipments/:id/360`)**:
+La proyección `Shipment360ReadModel` se almacena en SQLite en modo WAL (en la tabla de proyecciones `operational_intelligence_shipment_360_views`) indexada por `shipment_id`, `reference_number`, `customer_account_id`, `branch_id` y `health_status`, permitiendo hidratar la pantalla completa en **una única lectura (`GET /api/bff/shipments/:id/360`)**:
 
 ```typescript
 export interface Shipment360ReadModel {
@@ -1154,15 +1154,15 @@ Los Read Models nunca modifican datos de negocio; se actualizan asíncronamente 
 
 ---
 
-## Parte V — Arquitectura Física en PostgreSQL, Monorepo Definitivo, Contratos TypeScript y Roadmap de Vertical Slices
+## Parte V — Arquitectura Física en SQLite (Modo WAL), Monorepo Definitivo, Contratos TypeScript y Roadmap de Vertical Slices
 
-### 1. Arquitectura de Datos en PostgreSQL (Ownership por Esquema + Outbox/Inbox)
+### 1. Arquitectura de Datos en SQLite (Ownership Modular + Outbox/Inbox)
 
-Dentro del **Modular Monolith**, todos los contextos comparten inicialmente un único clúster físico de **PostgreSQL 16+**, pero están **estrictamente aislados mediante esquemas lógicos (`CREATE SCHEMA`)**.
+Dentro del **Modular Monolith**, todos los contextos comparten la base de datos de alta velocidad en **SQLite 3 en modo WAL (`PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;`)**, estructurada mediante submódulos modulares en Drizzle ORM.
 
-#### 1.1. Mapa de Esquemas PostgreSQL y Reglas de Aislamiento
+#### 1.1. Mapa de Submódulos Drizzle y Reglas de Aislamiento
 
-| Esquema PostgreSQL (`schema`) | Bounded Context Propietario | Tablas Principales | Regla de Acceso Física |
+| Submódulo Drizzle / Prefijo | Bounded Context Propietario | Tablas Principales | Regla de Acceso Física |
 | :--- | :--- | :--- | :--- |
 | `identity_org` | `01. Identity & Organization` | `organizations`, `legal_entities`, `branches`, `teams`, `user_access`, `role_policies` | Solo `IdentityModule` escribe; expone `UserContext` vía contrato |
 | `party_crm` | `02. Party & CRM` | `parties`, `party_branches`, `party_contacts`, `party_role_capabilities` | Sin `FOREIGN KEY` desde otros esquemas; referencia lógica por `party_id` |
@@ -1199,7 +1199,7 @@ Dentro del **Modular Monolith**, todos los contextos comparten inicialmente un �
 
 #### 1.2. Transactional Outbox + Idempotent Consumer Inbox (Garantía At-Least-Once + Efecto Exactly-Once)
 
-Toda mutación de un Aggregate sigue estrictamente el patrón **Transactional Outbox** dentro de la misma transacción ACID de PostgreSQL:
+Toda mutación de un Aggregate sigue estrictamente el patrón **Transactional Outbox** dentro de la misma transacción ACID de SQLite:
 
 ```sql
 -- 1. Tabla Transactional Outbox (escrita en la misma transacción ACID que el Aggregate)
@@ -1326,7 +1326,7 @@ Atlas-Logistics/
 │   ├── ui-design-system/               # Componentes visuales atómicos y moléculas logísticas (Ribbon de Hitos, Reloj SLA, Badges)
 │   └── ui-features/                    # Vistas modulares de dominio (MyWorkFeature, ShipmentWorkspace360, ConsolidationDesk, FinanceStudio)
 │
-├── drizzle/                            # Migraciones SQL versionadas por esquema PostgreSQL
+├── drizzle/                            # Migraciones SQL versionadas con snapshots jerárquicos
 └── tests/
     ├── unit/                           # Tests puros de Invariantes de Aggregates y Decision Tables (sin I/O, < 5ms)
     ├── contract/                       # Tests de compatibilidad de Commands / Queries / DomainEvents
@@ -1359,24 +1359,24 @@ flowchart LR
     end
 
     subgraph Data["Persistencia & Estado"]
-        PG[("PostgreSQL 16<br/>25 Esquemas Lógicos + Outbox + Read Models JSONB")]
+        SQLITE[("SQLite 3 (Modo WAL)<br/>Drizzle ORM + Transactional Outbox + Read Models JSON")]
         REDIS[("Redis / BullMQ<br/>Colas Asíncronas, Locks & PubSub SSE")]
         S3[("Object Storage S3/R2<br/>Documentos Versionados Inmutables")]
     end
 
     BROWSER -->|"HTTPS / REST + SSE"| API
     PARTNERS -->|"Webhooks / API / SFTP"| API
-    API -->|"ACID Tx (Aggregate + Outbox)"| PG
-    API -->|"Lectura < 30ms (Shipment360 / Cockpit)"| PG
+    API -->|"ACID Tx (Aggregate + Outbox)"| SQLITE
+    API -->|"Lectura < 30ms (Shipment360 / Cockpit)"| SQLITE
     API <-->|"Presigned URLs / Streams"| S3
-    WRK <-->|"Poll Outbox / Update Projections"| PG
+    WRK <-->|"Poll Outbox / Update Projections"| SQLITE
     WRK <-->|"BullMQ Jobs & Timers"| REDIS
     REDIS -->|"Real-time Push Events"| API
 ```
 
 - **Topología de Entornos (Decisión 149A)**:
-  - **`Dev`**: Entorno local/integrado reproducible con Docker Compose (`postgres`, `redis`, `minio/s3-mock`) + migraciones automáticas y datos semilla de todos los modos (`FCL`, `LCL`, `AIR`, `ROAD`).
-  - **`Prod`**: Contenedores gestionados (`api-server` + `worker-runtime` escalables horizontalmente de forma independiente) + PostgreSQL gestionado con backups continuos PITR + Object Storage S3/R2 + Redis gestionado. Preparado mediante variables de entorno y pipelines CI/CD para añadir un entorno `Staging/QA` intermedio en el futuro con cero cambios de código.
+  - **`Dev`**: Entorno local/integrado reproducible con SQLite WAL y Docker Compose (`redis`, `minio/s3-mock`) + migraciones automáticas y datos semilla de todos los modos (`FCL`, `LCL`, `AIR`, `ROAD`).
+  - **`Prod`**: Contenedores gestionados (`api-server` + `worker-runtime` escalables horizontalmente de forma independiente) + SQLite en modo WAL montado en volumen persistente + Object Storage S3/R2 + Redis gestionado. Preparado mediante variables de entorno y pipelines CI/CD para añadir un entorno `Staging/QA` intermedio en el futuro con cero cambios de código.
 - **Observabilidad y Auditoría**:
   - Cada `Command`, `DomainEvent`, `DecisionEvaluation` y llamada externa propaga `correlationId` y `causationId` en cabeceras OpenTelemetry y en `platform_gov.audit_trail_logs`.
 
@@ -1405,7 +1405,7 @@ El **Software Architecture Blueprint v1** cubre ya de extremo a extremo las **15
 - **Parte II**: Domain Model v1 del Núcleo Operativo (`Party/Order → Shipment → RoutePlan → TransportLeg → Consolidation → Cargo → Package → Goods → Equipment → Milestone → Event`).
 - **Parte III**: Domain Model v1 de Control, Automatización y Soporte (`Task`, `Exception/Incident`, `SLA`, `Data Quality`, `Workflow`, `Rules`, `Document`, `Customs`, `ShipmentFinance`, `Billing`).
 - **Parte IV**: Modelo de Navegación RBAC/ABAC, Read Models CQRS (`OperationsCockpitReadModel` y `Shipment360ReadModel`) y Anatomía UX (`My Work` + `Shipment Workspace`).
-- **Parte V**: Arquitectura Física en PostgreSQL, Patrón Transactional Outbox/Inbox, Contratos TypeScript, Estructura Definitiva del Monorepo (`apps/*`, `packages/*`), Infraestructura `Dev + Prod` y Roadmap de 7 Vertical Slices.
+- **Parte V**: Arquitectura Física en SQLite (Modo WAL), Patrón Transactional Outbox/Inbox, Contratos TypeScript, Estructura Definitiva del Monorepo (`apps/*`, `packages/*`), Infraestructura `Dev + Prod` y Roadmap de 7 Vertical Slices.
 
 
 
