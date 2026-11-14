@@ -8,6 +8,9 @@ on:
         required: true
         default: "production"
 
+permissions:
+  contents: read
+
 jobs:
   db-migrate:
     name: Run Versioned Migrations

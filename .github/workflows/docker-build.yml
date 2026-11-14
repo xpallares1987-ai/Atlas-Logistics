@@ -20,10 +20,15 @@ env:
   npm_config_fetch_retry_maxtimeout: '120000'
   npm_config_network_timeout: '120000'
 
+permissions:
+  contents: read
+
 jobs:
   prepare:
     name: Prepare Dynamic Image Namespace
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       image_repo: ${{ steps.repo.outputs.image_repo }}
     steps:
@@ -157,6 +162,8 @@ jobs:
     needs: [prepare, build-and-push, security-scan]
     runs-on: ubuntu-latest
     if: always()
+    permissions:
+      contents: read
     steps:
       - name: Publish Summary to Step Summary
         run: |
