@@ -12,9 +12,17 @@ export function getAuthHeaders(
       (localStorage.getItem("atlas_token") || localStorage.getItem("token"))) ||
     "";
 
+  const stationContext =
+    (typeof window !== "undefined" &&
+      localStorage.getItem("atlas_station_context")) ||
+    "ALL";
+
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(stationContext && stationContext !== "ALL"
+      ? { "X-Station-Context": stationContext }
+      : {}),
     ...extraHeaders,
   };
 }

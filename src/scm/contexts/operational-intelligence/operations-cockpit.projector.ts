@@ -711,11 +711,62 @@ export async function ensureScmDemoSeedData(): Promise<void> {
   }
 }
 
+// ============================================================================
+// STATION CONTEXT & UN/LOCODE GATEWAY MAPPING
+// ============================================================================
+
+export const UNLOCODE_STATION_MAP: Record<string, string> = {
+  ESBCN: "stn_esbcn_01",
+  BCN: "stn_esbcn_01",
+  ESVLC: "stn_esvlc_01",
+  VLC: "stn_esvlc_01",
+  ESMAD: "stn_esmad_01",
+  MAD: "stn_esmad_01",
+  NLRTM: "stn_nlrtm_01",
+  RTM: "stn_nlrtm_01",
+  DEHAM: "stn_deham_01",
+  HAM: "stn_deham_01",
+  BEANR: "stn_beanr_01",
+  ANR: "stn_beanr_01",
+  SGSIN: "stn_sgsin_01",
+  SIN: "stn_sgsin_01",
+  CNSHA: "stn_cnsha_01",
+  SHA: "stn_cnsha_01",
+  USNYC: "stn_usnyc_01",
+  NYC: "stn_usnyc_01",
+  USMIA: "stn_usmia_01",
+  MIA: "stn_usmia_01",
+};
+
+export function resolveItemStationId(
+  item: OperationsCockpitItemReadModel,
+): string {
+  if (item.branchId && item.branchId.startsWith("stn_")) {
+    return item.branchId;
+  }
+  if (item.branchId === "branch_bcn_01") {
+    return "stn_esbcn_01";
+  }
+
+  // Infer from route summary (e.g. "CNSHA -> ESBCN" or "ESBCN -> USNYC")
+  const route = (item.subject?.routeSummary || "").toUpperCase();
+  for (const [code, stationId] of Object.entries(UNLOCODE_STATION_MAP)) {
+    if (route.includes(code)) {
+      return stationId;
+    }
+  }
+
+  // Default fallback to Barcelona Port Ocean Gateway
+  return "stn_esbcn_01";
+}
+
 export async function listOperationsCockpitItems(
   filters: {
     status?: "OPEN" | "COMPLETED" | "ALL";
     urgencyBucket?: string;
     search?: string;
+    branchId?: string;
+    departmentId?: string;
   } = {},
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ) {
@@ -730,8 +781,18 @@ export async function listOperationsCockpitItems(
     .filter((r) => r.organizationId === actor.organizationId)
     .map((r) => JSON.parse(r.itemModelJson));
 
+  // Determine station-scoped baseline items for counts and filtering
+  const scopedItems =
+    filters.branchId && filters.branchId !== "ALL"
+      ? allItems.filter(
+          (i) =>
+            resolveItemStationId(i) === filters.branchId ||
+            i.branchId === filters.branchId,
+        )
+      : allItems;
+
   const statusFilter = filters.status || "OPEN";
-  let filtered = allItems.filter((item) =>
+  let filtered = scopedItems.filter((item) =>
     statusFilter === "ALL" ? true : item.status === statusFilter,
   );
 
@@ -747,6 +808,10 @@ export async function listOperationsCockpitItems(
     }
   }
 
+  if (filters.departmentId && filters.departmentId !== "ALL") {
+    filtered = filtered.filter((i) => i.teamId === filters.departmentId);
+  }
+
   if (filters.search && filters.search.trim()) {
     const q = filters.search.toLowerCase();
     filtered = filtered.filter(
@@ -758,8 +823,8 @@ export async function listOperationsCockpitItems(
     );
   }
 
-  const openItems = allItems.filter((i) => i.status === "OPEN");
-  const completedItems = allItems.filter((i) => i.status === "COMPLETED");
+  const openItems = scopedItems.filter((i) => i.status === "OPEN");
+  const completedItems = scopedItems.filter((i) => i.status === "COMPLETED");
 
   return {
     summary: {

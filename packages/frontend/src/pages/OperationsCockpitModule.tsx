@@ -11,8 +11,9 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, RefreshCw } from "lucide-react";
+import { CheckCircle2, RefreshCw, Building2 } from "lucide-react";
 import { authFetch } from "../lib/api";
+import { useOrganizationStore } from "../store/useOrganizationStore";
 import type {
   CockpitSummaryMetrics,
   CockpitWorkItem,
@@ -45,6 +46,9 @@ export type {
 
 export default function OperationsCockpitModule() {
   const navigate = useNavigate();
+  const { activeStationId, getActiveStation } = useOrganizationStore();
+  const activeStation = getActiveStation();
+
   const [items, setItems] = useState<CockpitWorkItem[]>([]);
   const [summary, setSummary] = useState<CockpitSummaryMetrics>({
     totalTasks: 0,
@@ -87,6 +91,9 @@ export default function OperationsCockpitModule() {
       }
       if (search.trim()) {
         params.set("search", search.trim());
+      }
+      if (activeStationId && activeStationId !== "ALL") {
+        params.set("branchId", activeStationId);
       }
 
       const [cockpitRes, summaryRes] = await Promise.all([
@@ -133,11 +140,17 @@ export default function OperationsCockpitModule() {
     } finally {
       setLoading(false);
     }
-  }, [selectedBucket, statusFilter, search, selectedItem?.workItemId]);
+  }, [
+    selectedBucket,
+    statusFilter,
+    search,
+    activeStationId,
+    selectedItem?.workItemId,
+  ]);
 
   useEffect(() => {
     fetchCockpitData();
-  }, [selectedBucket, statusFilter]);
+  }, [selectedBucket, statusFilter, activeStationId]);
 
   // ============================================================================
   // 4. ACTION HANDLERS
@@ -287,6 +300,29 @@ export default function OperationsCockpitModule() {
         onNavigateExceptions={() => navigate("/exceptions")}
         onNavigateShipment360={() => navigate("/shipment-360")}
       />
+
+      {/* Station Context Banner */}
+      {activeStation && (
+        <div className="bg-indigo-950/40 border border-indigo-800/40 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between text-xs text-indigo-200">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-indigo-400 shrink-0" />
+            <span>
+              Operating Station Scope:{" "}
+              <strong className="text-white font-semibold">
+                {activeStation.stationCode}
+              </strong>{" "}
+              &bull; {activeStation.name} ({activeStation.unLocode})
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
+            <span>Currency: {activeStation.primaryCurrency}</span>
+            <span>Timezone: {activeStation.timezone}</span>
+            {activeStation.fmcOtiNumber && (
+              <span>FMC OTI: {activeStation.fmcOtiNumber}</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* KPI Summary Strip */}
       <SummaryKpi summary={summary} />

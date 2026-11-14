@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { ApiStatusIndicator } from "../ApiStatusIndicator";
 import { SecurityStatusBadge } from "../SecurityStatusBadge";
 import { AiQuotaStatusBadge } from "../AiQuotaStatusBadge";
+import { StationSelectorPill } from "./StationSelectorPill";
 import { Button } from "@atlas/ui";
 
 interface TopNavbarProps {
@@ -58,7 +59,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
           <OmniSearch />
         </div>
       </div>
-      <div className="flex items-center gap-4 ml-4">
+      <div className="flex items-center gap-3 ml-4">
+        <StationSelectorPill />
         <AiQuotaStatusBadge />
         <ApiStatusIndicator />
         <SecurityStatusBadge />
