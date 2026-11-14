@@ -33,13 +33,19 @@ import {
 
 const app = Fastify({ loggerInstance: logger });
 
+declare module "fastify" {
+  interface FastifyRequest {
+    wasPayloadEncrypted?: boolean;
+  }
+}
+
 // Automated Inbound Transaction Decryption (E2EE Zero-Knowledge Envelope)
 app.addHook("preValidation", async (request, reply) => {
   if (request.body && isEncryptedEnvelope(request.body)) {
     try {
       const decrypted = await decryptPayloadEnvelope(request.body);
       request.body = decrypted;
-      (request as any).wasPayloadEncrypted = true;
+      request.wasPayloadEncrypted = true;
     } catch {
       return reply.code(400).send({
         statusCode: 400,
@@ -55,7 +61,7 @@ app.addHook("preValidation", async (request, reply) => {
 app.addHook("onSend", async (request, reply, payload) => {
   const wantsEncryption =
     request.headers["x-atlas-encrypted-payload"] === "true" ||
-    (request as any).wasPayloadEncrypted === true;
+    request.wasPayloadEncrypted === true;
 
   if (!wantsEncryption) {
     return payload;
@@ -343,9 +349,10 @@ app.register(tenancyPlugin);
 app.register(registerAllRoutes);
 
 // Graceful shutdown: close Redis and other resources
-app.addHook("onClose", async (instance) => {
+app.addHook("onClose", async (_instance) => {
   logger.info("Shutting down gracefully...");
-  const redisStatus = (redis as any).status;
+  const redisStatus =
+    "status" in redis ? (redis as { status?: string }).status : undefined;
   // Check if Redis is not already closed
   if (redis && redisStatus !== "close" && redisStatus !== "closed") {
     try {

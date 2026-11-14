@@ -15,14 +15,16 @@ if (fs.existsSync(".env")) {
 
 const databaseUrl = process.env.DATABASE_URL || "file:./data/dev.db";
 
+const dbCredentials: { url: string; authToken?: string } = {
+  url: databaseUrl,
+  ...(process.env.DATABASE_AUTH_TOKEN
+    ? { authToken: process.env.DATABASE_AUTH_TOKEN }
+    : {}),
+};
+
 export default defineConfig({
   schema: "./src/db/schema/index.ts",
   out: "./drizzle",
   dialect: "sqlite",
-  dbCredentials: {
-    url: databaseUrl,
-    ...(process.env.DATABASE_AUTH_TOKEN
-      ? { authToken: process.env.DATABASE_AUTH_TOKEN }
-      : {}),
-  } as any,
+  dbCredentials,
 });

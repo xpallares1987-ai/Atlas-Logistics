@@ -39,10 +39,36 @@ export default tseslint.config(
     },
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "workspaces/no-relative-imports": "off",
       "workspaces/require-dependency": "off",
+    },
+  },
+  {
+    // Scoped rules for CLI, Database Seeders, Migration scripts, Background Jobs, BPM Engine, and Test Suites
+    files: [
+      "src/db/seeds/**/*.ts",
+      "src/db/migrate*.ts",
+      "src/admin/**/*.ts",
+      "src/jobs/**/*.ts",
+      "src/scripts/**/*.ts",
+      "src/bpm/**/*.ts",
+      "tests/**/*.ts",
+      "**/*.test.ts",
+      "**/*.spec.ts",
+    ],
+    rules: {
+      "no-console": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
     },
   },
   storybook.configs["flat/recommended"],

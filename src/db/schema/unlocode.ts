@@ -12,7 +12,6 @@ import {
   real,
   integer,
   index,
-  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { commonAuditFields } from "./_common.js";
 
