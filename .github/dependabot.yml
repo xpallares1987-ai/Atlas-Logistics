@@ -50,7 +50,7 @@ updates:
       timezone: "Europe/Madrid"
     open-pull-requests-limit: 5
     labels:
-      - "ci"
+      - "ci/cd"
       - "github-actions"
     groups:
       github-actions:
