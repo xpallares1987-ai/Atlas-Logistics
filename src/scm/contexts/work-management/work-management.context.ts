@@ -527,7 +527,7 @@ export async function getTasksForSubject(
         ...d,
         dependencyType:
           d.dependencyType as TaskDependencyRecord["dependencyType"],
-        status: d.status as "PENDING" | "SATISFIED" | "FAILED",
+        status: d.status as TaskDependencyRecord["status"],
       })),
       isBlocked: t.status === "BLOCKED",
     });

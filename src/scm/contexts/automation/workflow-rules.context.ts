@@ -755,7 +755,7 @@ export async function initializeWorkflowForShipment(
     await db
       .update(scmShipments)
       .set({
-        teamId: evalRecord.outputSnapshot.assignedTeamId,
+        teamId: String(evalRecord.outputSnapshot.assignedTeamId),
         updatedAt: new Date(),
       })
       .where(eq(scmShipments.id, params.shipmentId));
@@ -1147,7 +1147,7 @@ export async function advanceWorkflowTokenForShipment(
     await db
       .update(scmShipments)
       .set({
-        teamId: assignEval.outputSnapshot.assignedTeamId,
+        teamId: String(assignEval.outputSnapshot.assignedTeamId),
         updatedAt: new Date(),
       })
       .where(eq(scmShipments.id, shp.id));
@@ -1210,7 +1210,8 @@ export async function advanceWorkflowTokenForShipment(
 
     if (dqGateStatus === "BLOCKED" || overallDecision === "BLOCK_RELEASE") {
       nextState = "BLOCKED_AT_GATEWAY";
-      const reasons: string[] = gateEval.outputSnapshot.reasons || [];
+      const reasons: string[] =
+        (gateEval.outputSnapshot.reasons as string[]) || [];
       blockingReason =
         reasons[0] ||
         `Gateway bloqueado por DataQuality (${dqGateStatus}) o falta de VGM.`;

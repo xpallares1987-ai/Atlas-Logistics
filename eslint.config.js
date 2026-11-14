@@ -68,7 +68,7 @@ export default tseslint.config(
     // Issue #9 Phase 1: Progressive strict typing for SCM domain
     files: ["src/scm/**/*.ts"],
     rules: {
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

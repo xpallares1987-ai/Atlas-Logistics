@@ -70,11 +70,27 @@ export interface StopClockEntry {
 /**
  * 18. SLA MANAGEMENT: Initializes reactive SLA clocks for a shipment when its route is published.
  */
+interface SlaRouteStop {
+  cutOffs?: {
+    vgmCutOffAt?: string | null;
+    gateInCutOffAt?: string | null;
+  };
+  [key: string]: unknown;
+}
+
+interface SlaRouteLeg {
+  mode?: string;
+  transportMode?: string;
+  plannedDepartureAt?: string | Date | null;
+  plannedArrivalAt?: string | Date | null;
+  [key: string]: unknown;
+}
+
 export async function initializeSlaClocksForShipment(
   payload: {
     shipmentId: string;
-    stops: Array<Record<string, unknown>>;
-    legs: Array<Record<string, unknown>>;
+    stops: SlaRouteStop[];
+    legs: SlaRouteLeg[];
   },
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ) {
@@ -96,7 +112,7 @@ export async function initializeSlaClocksForShipment(
     resolveModeFromLegs(payload.legs),
   );
 
-  const vgmDeadline =
+  const vgmDeadline: string =
     (cutoffMeta.milestoneCode === "VGM_CUTOFF"
       ? firstStop?.cutOffs?.vgmCutOffAt
       : firstStop?.cutOffs?.gateInCutOffAt) ||
@@ -106,11 +122,14 @@ export async function initializeSlaClocksForShipment(
         ).toISOString()
       : new Date(Date.now() + 24 * 3600 * 1000).toISOString());
 
-  const transitDeadline =
-    lastLeg?.plannedArrivalAt ||
-    new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
+  const transitDeadline: string =
+    (typeof lastLeg?.plannedArrivalAt === "string"
+      ? lastLeg.plannedArrivalAt
+      : lastLeg?.plannedArrivalAt instanceof Date
+        ? lastLeg.plannedArrivalAt.toISOString()
+        : null) || new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
 
-  const customsDeadline = new Date(
+  const customsDeadline: string = new Date(
     new Date(transitDeadline).getTime() + 18 * 3600 * 1000,
   ).toISOString();
 
@@ -933,8 +952,13 @@ export async function evaluateShipmentDataQuality(
           model.commercialContext?.customerAccount?.name || "Customer",
         routeSummary: `${model.routing?.legs?.[0]?.originLocode || "POL"} → ${model.routing?.legs?.[model.routing?.legs?.length - 1]?.destinationLocode || "POD"}`,
         transportMode:
-          (model.header?.serviceProduct?.mode as
-            "AIR" | "OCEAN" | "ROAD" | "RAIL" | "SEA") || "SEA",
+          model.header?.serviceProduct?.mode === "AIR"
+            ? "AIR"
+            : model.header?.serviceProduct?.mode === "ROAD"
+              ? "ROAD"
+              : model.header?.serviceProduct?.mode === "RAIL"
+                ? "RAIL"
+                : "SEA",
         category: "DATA_QUALITY_BLOCK",
         severity: "HIGH",
         title: `Data Quality Gate Bloqueado en etapa ${targetStage} (${blockingCount} hallazgos)`,

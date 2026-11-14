@@ -18,7 +18,8 @@ import { traceSpan } from "../../observability/tracer.js";
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 export type DbOrTx = typeof db | DbTransaction;
 
-export type DomainEventHandler<TPayload = unknown> = (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type DomainEventHandler<TPayload = any> = (
   event: DomainEventEnvelope<TPayload>,
 ) => Promise<void>;
 

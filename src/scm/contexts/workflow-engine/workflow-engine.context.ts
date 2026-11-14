@@ -581,8 +581,8 @@ export async function getWorkflowVersionWithDAG(
       taskTypeCode: t.taskTypeCode,
       title: t.title,
       description: t.description,
-      defaultPriority: t.defaultPriority as
-        "LOW" | "NORMAL" | "HIGH" | "URGENT",
+      defaultPriority:
+        t.defaultPriority as TaskDefinitionRecord["defaultPriority"],
       defaultCandidateRole: t.defaultCandidateRole,
       defaultCandidateTeam: t.defaultCandidateTeam,
       slaDurationMinutes: t.slaDurationMinutes,
@@ -595,7 +595,8 @@ export async function getWorkflowVersionWithDAG(
       workflowVersionId: d.workflowVersionId,
       predecessorTaskTypeCode: d.predecessorTaskTypeCode,
       successorTaskTypeCode: d.successorTaskTypeCode,
-      dependencyType: d.dependencyType as "FINISH_TO_START" | "START_TO_START",
+      dependencyType:
+        d.dependencyType as DependencyDefinitionRecord["dependencyType"],
       conditionJson: d.conditionJson,
     })),
   };
@@ -841,10 +842,9 @@ export async function getWorkflowInstanceById(
     instanceId: inst.instanceId,
     workflowDefinitionId: inst.workflowDefinitionId,
     workflowVersionId: inst.workflowVersionId,
-    subjectType: inst.subjectType as "SHIPMENT" | "ORDER" | "CONSOLIDATION",
+    subjectType: inst.subjectType as WorkflowInstanceRecord["subjectType"],
     subjectId: inst.subjectId,
-    status: inst.status as
-      "RUNNING" | "COMPLETED" | "FAILED" | "SUSPENDED" | "CANCELLED",
+    status: inst.status as WorkflowInstanceRecord["status"],
     variables: JSON.parse(inst.variablesJson),
     startedAt: inst.startedAt,
     completedAt: inst.completedAt,

@@ -78,7 +78,7 @@ export interface ResolveOperationalExceptionInput {
 // ============================================================================
 
 function mapRowToRecord(
-  row: typeof scmOperationalExceptions.$inferSelect,
+  row: typeof scmOperationalExceptionsV2.$inferSelect,
 ): OperationalExceptionRecord {
   return {
     exceptionId: row.exceptionId,

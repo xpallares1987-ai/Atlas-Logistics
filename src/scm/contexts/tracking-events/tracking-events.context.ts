@@ -9,6 +9,7 @@ import {
   SecurityActorContext,
   DEFAULT_OPERATOR_ACTOR,
   assertInvariant,
+  DomainEventEnvelope,
 } from "../../kernel/primitives.js";
 import {
   ensureScmFoundationTables,
@@ -95,12 +96,32 @@ function computeVarianceMinutes(
  * Generates or updates a Shipment's MilestonePlan reactively when a RoutePlan version is published.
  * Preserves any ACTUAL timestamps and estimation history from previous route versions.
  */
+interface TrackingRouteStop {
+  locationId?: string;
+  cutOffs?: {
+    vgmCutOffAt?: string | null;
+    gateInCutOffAt?: string | null;
+  };
+  [key: string]: unknown;
+}
+
+interface TrackingRouteLeg {
+  mode?: string;
+  transportMode?: string;
+  originLocode?: string;
+  destinationLocode?: string;
+  vesselOrFlight?: string;
+  plannedDepartureAt?: string;
+  plannedArrivalAt?: string;
+  [key: string]: unknown;
+}
+
 export async function syncMilestonePlanFromRouteVersion(
   payload: {
     shipmentId: string;
     versionNo: number;
-    stops: Array<Record<string, unknown>>;
-    legs: Array<Record<string, unknown>>;
+    stops: TrackingRouteStop[];
+    legs: TrackingRouteLeg[];
   },
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ): Promise<MilestoneItem[]> {

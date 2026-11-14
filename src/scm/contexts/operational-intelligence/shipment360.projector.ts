@@ -621,7 +621,9 @@ export function registerShipment360Projectors(): void {
           p.decisionKey === "DECISION_OPERATIONAL_ASSIGNMENT" &&
           p.outputSnapshot?.assignedTeamId
         ) {
-          model.header.ownership.teamId = p.outputSnapshot.assignedTeamId;
+          model.header.ownership.teamId = String(
+            p.outputSnapshot.assignedTeamId,
+          );
         }
       });
     },
@@ -678,7 +680,7 @@ export function registerShipment360Projectors(): void {
   );
 
   const handleSlice5ShipmentEvent = async (event: DomainEventEnvelope) => {
-    const p = event.payload;
+    const p = event.payload as { shipmentId?: string };
     if (!p?.shipmentId) return;
     await updateProjectionForShipment(p.shipmentId, event, () => {
       // Appends event to activityTrail and bumps projectionVersion
@@ -844,8 +846,11 @@ export async function enrichShipment360Model(
     model.controlSummary.dataQuality = {
       activeStage: dq.activeStage,
       score: dq.score,
-      gateStatus: dq.gateStatus as
-        "PASSED" | "BLOCKED" | "OVERRIDDEN" | "PENDING",
+      gateStatus: (dq.gateStatus === "BLOCKED"
+        ? "BLOCKED"
+        : dq.gateStatus === "WARN"
+          ? "WARN"
+          : "PASSED") as "PASSED" | "WARN" | "BLOCKED",
       openFindingsCount: dq.blockingFindingsCount + dq.warningFindingsCount,
       findings: JSON.parse(dq.findingsJson),
     };
@@ -889,8 +894,9 @@ export async function enrichShipment360Model(
   model.workflowState = workflowState;
   model.decisionExplainability = decisionExplainability;
   if (workflowState?.variablesSnapshot?.assignedTeamId) {
-    model.header.ownership.teamId =
-      workflowState.variablesSnapshot.assignedTeamId;
+    model.header.ownership.teamId = String(
+      workflowState.variablesSnapshot.assignedTeamId,
+    );
   }
 
   model.tradeAndConsolidation = {

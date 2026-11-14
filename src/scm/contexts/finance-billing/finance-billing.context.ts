@@ -339,7 +339,11 @@ export async function getShipmentFinanceReadModel(
     shipmentId: row.shipmentId,
     functionalCurrency: row.functionalCurrency,
     financialState: row.financialState as
-      "OPEN" | "PROVISIONED" | "INVOICED" | "AUDITED" | "CLOSED",
+      | "OPEN"
+      | "ACCRUALS_POSTED"
+      | "FINANCIALLY_READY"
+      | "SOFT_CLOSED"
+      | "HARD_LOCKED",
     expectedCostTotalEur: row.expectedCostTotalEur,
     confirmedCostTotalEur: row.confirmedCostTotalEur,
     expectedRevenueTotalEur: row.expectedRevenueTotalEur,
@@ -382,11 +386,10 @@ export async function getShipmentFinanceReadModel(
       varianceAmountEur: p.varianceAmountEur,
       variancePercent: p.variancePercent,
       tolerancePercent: p.tolerancePercent,
-      matchOutcome: p.matchOutcome as
-        "AUTO_MATCHED" | "MANUAL_APPROVAL_REQUIRED" | "REJECTED_OVER_TOLERANCE",
-      threeWayMatchStatus: p.threeWayMatchStatus as
-        "MATCHED" | "PRICE_VARIANCE" | "QUANTITY_VARIANCE" | "UNMATCHED",
-      status: p.status as "PENDING" | "APPROVED" | "REJECTED" | "PAID",
+      matchOutcome: p.matchOutcome as PurchaseInvoiceReadModel["matchOutcome"],
+      threeWayMatchStatus:
+        p.threeWayMatchStatus as PurchaseInvoiceReadModel["threeWayMatchStatus"],
+      status: p.status as PurchaseInvoiceReadModel["status"],
       approvalNotes: p.approvalNotes,
       updatedAt: p.updatedAt.toISOString(),
     })),
@@ -945,8 +948,13 @@ export async function registerAndMatchPurchaseInvoice(
         customerName: shp?.customerName || "Customer Account",
         routeSummary: "Corredor Multimodal 360",
         transportMode:
-          (shp?.serviceMode as "AIR" | "OCEAN" | "ROAD" | "RAIL" | "SEA") ||
-          "SEA",
+          shp?.serviceMode === "AIR"
+            ? "AIR"
+            : shp?.serviceMode === "ROAD"
+              ? "ROAD"
+              : shp?.serviceMode === "RAIL"
+                ? "RAIL"
+                : "SEA",
         category: "DATA_QUALITY_BLOCK",
         severity: "HIGH",
         title: `Discrepancia 3-Way Match Factura Proveedor ${input.supplierInvoiceNumber} (+€${varianceAmountEur})`,

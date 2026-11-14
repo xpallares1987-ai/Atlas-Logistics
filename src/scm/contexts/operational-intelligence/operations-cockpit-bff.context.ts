@@ -50,6 +50,7 @@ import {
 import {
   completeTask,
   getTasksForSubject,
+  TaskRecord,
 } from "../work-management/work-management.context.js";
 import {
   listOperationalExceptionsForShipment,
@@ -122,7 +123,7 @@ export interface OperationalShipment360View {
   milestonePlan: {
     milestonePlanId: string;
     status: string;
-    milestones: any[];
+    milestones: Array<Record<string, unknown>>;
   } | null;
 
   workflow: {
@@ -227,7 +228,7 @@ export interface OperationalTimelineEvent {
   title: string;
   description: string;
   actor: string;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
 }
 
 export interface ProjectionsHealthReport {
@@ -1109,7 +1110,7 @@ export async function refreshShipmentProjections(
       : undefined;
 
   const defaultStationInfo = resolveStationForShipment(
-    (view.shipment as any)?.branchId,
+    (view.shipment as unknown as { branchId?: string })?.branchId,
     originLoc,
     destLoc,
   );
@@ -1151,8 +1152,8 @@ export async function refreshShipmentProjections(
       taskTypeCode: task.taskType,
       title: meta.title,
       description: meta.description,
-      priority: task.priority as any,
-      status: task.status as any,
+      priority: task.priority as OperationalCockpitWorkItem["priority"],
+      status: task.status as OperationalCockpitWorkItem["status"],
       isBlocked: task.isBlocked,
       blockedByTasks: blockedBy,
       urgencyBucket: scoreUrgency.urgencyBucket,
@@ -1247,7 +1248,13 @@ export async function refreshShipmentProjections(
       taskTypeCode: exc.category,
       title: `[Exception] ${exc.title}`,
       description: exc.description,
-      priority: exc.severity as any,
+      priority: (exc.severity === "CRITICAL"
+        ? "CRITICAL"
+        : exc.severity === "MAJOR"
+          ? "HIGH"
+          : exc.severity === "MINOR"
+            ? "MEDIUM"
+            : "LOW") as OperationalCockpitWorkItem["priority"],
       status: exc.status === "OPEN" ? "OPEN" : "IN_REVIEW",
       isBlocked: false,
       blockedByTasks: [],
@@ -1368,7 +1375,12 @@ export function registerOperationalBffSubscribers(): void {
       eventType,
       `op_intelligence.BffProjector.${eventType.replace(/\./g, "_")}`,
       async (envelope) => {
-        const payload = envelope.payload as any;
+        const payload = envelope.payload as {
+          shipmentId?: string;
+          subjectType?: string;
+          subjectId?: string;
+          aggregateId?: string;
+        };
         const shipmentId =
           payload.shipmentId ||
           (payload.subjectType === "SHIPMENT" ? payload.subjectId : null) ||
@@ -1646,6 +1658,21 @@ export async function getCockpitSummary(query?: {
 // IN-SITU COCKPIT EXECUTION (TASKS & OPERATIONAL EXCEPTIONS)
 // ============================================================================
 
+interface DocumentEmissionPayload {
+  awbNumber?: string;
+  cmrNumber?: string;
+  blNumber?: string;
+  documentReference?: string;
+  chargeableWeightKg?: number | string;
+  airline?: string;
+  vehicleReg?: string;
+  carrier?: string;
+  driverName?: string;
+  vessel?: string;
+  voyage?: string;
+  [key: string]: unknown;
+}
+
 /**
  * Automatically generates, cryptographically signs (PKI) and archives
  * official multimodal transport documents (e-AWB, e-CMR, HBL) when completing
@@ -1655,7 +1682,7 @@ async function handleAutomaticDocumentEmission(
   taskTypeCode: string,
   shipmentId: string,
   view: OperationalShipment360View,
-  resultPayload: Record<string, any>,
+  resultPayload: DocumentEmissionPayload,
   actor: SecurityActorContext,
 ): Promise<{
   id: string;
@@ -1896,17 +1923,17 @@ async function handleAutomaticDocumentEmission(
 export async function executeCockpitWorkItem(
   workItemId: string,
   input: {
-    result?: Record<string, any>;
+    result?: Record<string, unknown>;
     notes?: string;
     resolutionNotes?: string;
     resolutionStatus?: "RESOLVED" | "WAIVED";
-    [key: string]: any;
+    [key: string]: unknown;
   },
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ): Promise<{
   success: boolean;
   executedWorkItemId: string;
-  completedTask: any;
+  completedTask: (TaskRecord & { title?: string }) | null;
   resolvedException?: OperationalExceptionRecord;
   unlockedWorkItems: OperationalCockpitWorkItem[];
   workflowStatus?: string;
@@ -1972,8 +1999,8 @@ export async function executeCockpitWorkItem(
           taskTypeCode: t.taskType,
           title: meta.title,
           description: meta.description,
-          priority: t.priority as any,
-          status: t.status as any,
+          priority: t.priority as OperationalCockpitWorkItem["priority"],
+          status: t.status as OperationalCockpitWorkItem["status"],
           isBlocked: false,
           blockedByTasks: [],
           urgencyBucket: scoreUrgency.urgencyBucket,
@@ -2091,8 +2118,8 @@ export async function executeCockpitWorkItem(
         taskTypeCode: t.taskType,
         title: meta.title,
         description: meta.description,
-        priority: t.priority as any,
-        status: t.status as any,
+        priority: t.priority as OperationalCockpitWorkItem["priority"],
+        status: t.status as OperationalCockpitWorkItem["status"],
         isBlocked: false,
         blockedByTasks: [],
         urgencyBucket: scoreUrgency.urgencyBucket,
@@ -2142,7 +2169,7 @@ export async function getShipmentOperationalTimeline(
     .orderBy(scmOutboxMessages.occurredAt);
 
   for (const msg of outboxRows) {
-    let payload: Record<string, any> = {};
+    let payload: Record<string, unknown> = {};
     try {
       payload = JSON.parse(msg.payloadJson);
     } catch {
@@ -2191,7 +2218,10 @@ export async function getShipmentOperationalTimeline(
     } else if (msg.eventType.includes("OperationalExceptionRaised")) {
       category = "EXCEPTION";
       title = `[${payload.severity || "EXCEPTION"}] ${payload.title || "Exception Raised"}`;
-      description = payload.description || `Category: ${payload.category}`;
+      description =
+        (typeof payload.description === "string"
+          ? payload.description
+          : null) || `Category: ${payload.category}`;
     } else if (msg.eventType.includes("OperationalExceptionAssigned")) {
       category = "EXCEPTION";
       title = `Exception Assigned: ${payload.exceptionId}`;
@@ -2199,7 +2229,10 @@ export async function getShipmentOperationalTimeline(
     } else if (msg.eventType.includes("OperationalExceptionResolved")) {
       category = "EXCEPTION";
       title = `Exception Resolved: ${payload.category || payload.exceptionId}`;
-      description = payload.resolutionNotes || "Exception marked resolved";
+      description =
+        (typeof payload.resolutionNotes === "string"
+          ? payload.resolutionNotes
+          : null) || "Exception marked resolved";
     }
 
     let actorId = "system";
@@ -2231,7 +2264,7 @@ export async function getShipmentOperationalTimeline(
     .orderBy(scmLogicalOperationalEvents.occurredAt);
 
   for (const trk of trackingRows) {
-    let payload: Record<string, any> = {};
+    let payload: Record<string, unknown> = {};
     try {
       payload = JSON.parse(trk.payloadJson);
     } catch {

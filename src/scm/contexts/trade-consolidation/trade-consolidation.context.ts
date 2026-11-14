@@ -82,8 +82,8 @@ function mapConsolidationRow(
   return {
     consolidationId: row.id,
     consolidationReference: row.consolidationReference,
-    consolidationType: row.consolidationType as
-      "DIRECT" | "CONSOLIDATION" | "CO_LOAD",
+    consolidationType:
+      row.consolidationType as ConsolidationReadModel["consolidationType"],
     mode: row.mode,
     originLocode: row.originLocode,
     destinationLocode: row.destinationLocode,
@@ -525,8 +525,7 @@ function mapDocumentRow(
     title: row.title,
     requiresApproval: Boolean(row.requiresApproval),
     currentVersionNo: row.currentVersionNo,
-    lifecycleState: row.lifecycleState as
-      "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED" | "SUPERSEDED",
+    lifecycleState: row.lifecycleState as DocumentReadModel["lifecycleState"],
     latestSha256Hash: latestVer?.sha256Hash || "",
     versions,
     approvals,
@@ -952,11 +951,7 @@ function mapCustomsRow(
     customsCaseId: row.id,
     caseNumber: row.caseNumber,
     shipmentId: row.shipmentId,
-    procedureType: row.procedureType as
-      | "IMPORT_CLEARANCE"
-      | "EXPORT_CLEARANCE"
-      | "TRANSIT_BONDED"
-      | "FREE_TRADE_ZONE",
+    procedureType: row.procedureType as CustomsCaseReadModel["procedureType"],
     jurisdictionCountry: row.jurisdictionCountry,
     customsOfficeLocode: row.customsOfficeLocode,
     declarantEoriOrTaxId: row.declarantEoriOrTaxId,
