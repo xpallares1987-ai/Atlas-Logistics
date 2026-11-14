@@ -581,7 +581,8 @@ export async function getWorkflowVersionWithDAG(
       taskTypeCode: t.taskTypeCode,
       title: t.title,
       description: t.description,
-      defaultPriority: t.defaultPriority as any,
+      defaultPriority: t.defaultPriority as
+        "LOW" | "NORMAL" | "HIGH" | "URGENT",
       defaultCandidateRole: t.defaultCandidateRole,
       defaultCandidateTeam: t.defaultCandidateTeam,
       slaDurationMinutes: t.slaDurationMinutes,
@@ -594,7 +595,7 @@ export async function getWorkflowVersionWithDAG(
       workflowVersionId: d.workflowVersionId,
       predecessorTaskTypeCode: d.predecessorTaskTypeCode,
       successorTaskTypeCode: d.successorTaskTypeCode,
-      dependencyType: d.dependencyType as any,
+      dependencyType: d.dependencyType as "FINISH_TO_START" | "START_TO_START",
       conditionJson: d.conditionJson,
     })),
   };
@@ -840,9 +841,10 @@ export async function getWorkflowInstanceById(
     instanceId: inst.instanceId,
     workflowDefinitionId: inst.workflowDefinitionId,
     workflowVersionId: inst.workflowVersionId,
-    subjectType: inst.subjectType as any,
+    subjectType: inst.subjectType as "SHIPMENT" | "ORDER" | "CONSOLIDATION",
     subjectId: inst.subjectId,
-    status: inst.status as any,
+    status: inst.status as
+      "RUNNING" | "COMPLETED" | "FAILED" | "SUSPENDED" | "CANCELLED",
     variables: JSON.parse(inst.variablesJson),
     startedAt: inst.startedAt,
     completedAt: inst.completedAt,
@@ -974,7 +976,9 @@ export const STANDARD_WORKFLOW_SEED_SPECS: StandardWorkflowSeedSpec[] = [
   },
 ];
 
-function mapDefinitionRow(row: any): WorkflowDefinitionRecord {
+function mapDefinitionRow(
+  row: typeof scmWorkflowDefinitions.$inferSelect,
+): WorkflowDefinitionRecord {
   return {
     ...row,
     createdAt: new Date(row.createdAt),

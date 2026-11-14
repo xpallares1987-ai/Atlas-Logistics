@@ -12,6 +12,7 @@ import {
 } from "../../../db/schema/scm_workflow_engine_sqlite.js";
 import {
   DomainInvariantError,
+  DomainEventEnvelope,
   SecurityActorContext,
   DEFAULT_OPERATOR_ACTOR,
   assertInvariant,
@@ -246,9 +247,9 @@ export async function completeTask(
     return {
       ...task,
       createdAt: new Date(task.createdAt),
-      status: task.status as any,
-      subjectType: task.subjectType as any,
-      priority: task.priority as any,
+      status: task.status as TaskRecord["status"],
+      subjectType: task.subjectType as TaskRecord["subjectType"],
+      priority: task.priority as TaskRecord["priority"],
     };
   }
 
@@ -343,7 +344,7 @@ export async function completeTask(
     }
 
     // Enqueue Domain Events atomically in the SAME transaction
-    const eventsToEnqueue: any[] = [
+    const eventsToEnqueue: DomainEventEnvelope[] = [
       {
         eventId: `evt_${uuidv4()}`,
         eventType: "work_mgmt.TaskCompleted.v2",
@@ -474,9 +475,9 @@ export async function completeTask(
   return {
     ...updated[0],
     createdAt: new Date(updated[0].createdAt),
-    status: updated[0].status as any,
-    subjectType: updated[0].subjectType as any,
-    priority: updated[0].priority as any,
+    status: updated[0].status as TaskRecord["status"],
+    subjectType: updated[0].subjectType as TaskRecord["subjectType"],
+    priority: updated[0].priority as TaskRecord["priority"],
   };
 }
 
@@ -519,13 +520,14 @@ export async function getTasksForSubject(
     results.push({
       ...t,
       createdAt: new Date(t.createdAt),
-      status: t.status as any,
-      subjectType: t.subjectType as any,
-      priority: t.priority as any,
+      status: t.status as TaskRecord["status"],
+      subjectType: t.subjectType as TaskRecord["subjectType"],
+      priority: t.priority as TaskRecord["priority"],
       dependencies: deps.map((d) => ({
         ...d,
-        dependencyType: d.dependencyType as any,
-        status: d.status as any,
+        dependencyType:
+          d.dependencyType as TaskDependencyRecord["dependencyType"],
+        status: d.status as "PENDING" | "SATISFIED" | "FAILED",
       })),
       isBlocked: t.status === "BLOCKED",
     });

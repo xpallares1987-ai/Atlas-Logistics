@@ -77,7 +77,7 @@ export interface IngestTrackingEventInput {
   timestampKind: "PLANNED" | "ESTIMATED" | "ACTUAL";
   eventTimestamp: string;
   summary: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 function computeVarianceMinutes(
@@ -99,8 +99,8 @@ export async function syncMilestonePlanFromRouteVersion(
   payload: {
     shipmentId: string;
     versionNo: number;
-    stops: any[];
-    legs: any[];
+    stops: Array<Record<string, unknown>>;
+    legs: Array<Record<string, unknown>>;
   },
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ): Promise<MilestoneItem[]> {
@@ -450,7 +450,7 @@ export async function ingestOperationalTrackingEvent(
     .where(eq(scmMilestonePlans.shipmentId, input.shipmentId));
 
   const corrId = uuidv4();
-  const domainEvents: any[] = [
+  const domainEvents: DomainEventEnvelope[] = [
     {
       eventId: `evt_${uuidv4()}`,
       eventType: "tracking_events.TransportEventReceived.v1",

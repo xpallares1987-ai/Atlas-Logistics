@@ -63,7 +63,7 @@ export interface SalesInvoiceReadModel {
   taxAmountEur: number;
   grossAmountEur: number;
   status: string;
-  lines: any[];
+  lines: Array<Record<string, unknown>>;
   creditNoteNumber?: string | null;
   creditReason?: string | null;
   issuedAt?: string | null;
@@ -338,7 +338,8 @@ export async function getShipmentFinanceReadModel(
     shipmentFinanceId: row.id,
     shipmentId: row.shipmentId,
     functionalCurrency: row.functionalCurrency,
-    financialState: row.financialState as any,
+    financialState: row.financialState as
+      "OPEN" | "PROVISIONED" | "INVOICED" | "AUDITED" | "CLOSED",
     expectedCostTotalEur: row.expectedCostTotalEur,
     confirmedCostTotalEur: row.confirmedCostTotalEur,
     expectedRevenueTotalEur: row.expectedRevenueTotalEur,
@@ -381,9 +382,11 @@ export async function getShipmentFinanceReadModel(
       varianceAmountEur: p.varianceAmountEur,
       variancePercent: p.variancePercent,
       tolerancePercent: p.tolerancePercent,
-      matchOutcome: p.matchOutcome as any,
-      threeWayMatchStatus: p.threeWayMatchStatus as any,
-      status: p.status as any,
+      matchOutcome: p.matchOutcome as
+        "AUTO_MATCHED" | "MANUAL_APPROVAL_REQUIRED" | "REJECTED_OVER_TOLERANCE",
+      threeWayMatchStatus: p.threeWayMatchStatus as
+        "MATCHED" | "PRICE_VARIANCE" | "QUANTITY_VARIANCE" | "UNMATCHED",
+      status: p.status as "PENDING" | "APPROVED" | "REJECTED" | "PAID",
       approvalNotes: p.approvalNotes,
       updatedAt: p.updatedAt.toISOString(),
     })),
@@ -941,7 +944,9 @@ export async function registerAndMatchPurchaseInvoice(
         referenceNumber: shp?.shipmentReference || input.shipmentId,
         customerName: shp?.customerName || "Customer Account",
         routeSummary: "Corredor Multimodal 360",
-        transportMode: (shp?.serviceMode as any) || "SEA",
+        transportMode:
+          (shp?.serviceMode as "AIR" | "OCEAN" | "ROAD" | "RAIL" | "SEA") ||
+          "SEA",
         category: "DATA_QUALITY_BLOCK",
         severity: "HIGH",
         title: `Discrepancia 3-Way Match Factura Proveedor ${input.supplierInvoiceNumber} (+€${varianceAmountEur})`,

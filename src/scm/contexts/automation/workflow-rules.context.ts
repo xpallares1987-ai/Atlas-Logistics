@@ -64,8 +64,8 @@ export type HitPolicy = "UNIQUE" | "FIRST" | "PRIORITY" | "COLLECT";
 export interface DecisionRuleRow {
   rowId: string;
   priorityOrder: number;
-  conditions: Record<string, any>; // Key-value matching conditions ("*" or omitted = wildcard)
-  outputs: Record<string, any>;
+  conditions: Record<string, unknown>; // Key-value matching conditions ("*" or omitted = wildcard)
+  outputs: Record<string, unknown>;
   ruleAnnotation: string;
 }
 
@@ -74,10 +74,10 @@ export interface DecisionEvaluationRecord {
   decisionKey: string;
   versionNumber: number;
   shipmentId: string;
-  inputsSnapshot: Record<string, any>;
+  inputsSnapshot: Record<string, unknown>;
   matchedRowIds: string[];
   ruleAnnotations: string[];
-  outputSnapshot: Record<string, any>;
+  outputSnapshot: Record<string, unknown>;
   callerContext: string;
   correlationId: string;
   evaluatedAt: string;
@@ -129,7 +129,7 @@ export interface WorkflowStateReadModel {
     status: "COMPLETED" | "ACTIVE" | "BLOCKED" | "PENDING";
   }>;
   availableUserCommands: string[];
-  variablesSnapshot: Record<string, any>;
+  variablesSnapshot: Record<string, unknown>;
   updatedAt: string;
 }
 
@@ -441,8 +441,8 @@ export async function ensureAutomationDefinitionsSeeded(): Promise<void> {
 }
 
 function rowMatchesInputs(
-  conditions: Record<string, any>,
-  inputs: Record<string, any>,
+  conditions: Record<string, unknown>,
+  inputs: Record<string, unknown>,
 ): boolean {
   for (const [key, expectedVal] of Object.entries(conditions)) {
     if (expectedVal === "*" || expectedVal === undefined) continue;
@@ -461,7 +461,7 @@ export async function evaluateDecisionTable(
   input: {
     decisionKey: string;
     shipmentId: string;
-    inputs: Record<string, any>;
+    inputs: Record<string, unknown>;
     callerContext?: string;
     correlationId?: string;
   },
@@ -512,7 +512,7 @@ export async function evaluateDecisionTable(
       ? [matchedRows[0]]
       : matchedRows; // COLLECT returns all matching rows
 
-  let outputSnapshot: Record<string, any> = {};
+  let outputSnapshot: Record<string, unknown> = {};
   if (hitPolicy === "COLLECT") {
     const gateDecisions = selectedRows.map((r) => r.outputs.gateDecision);
     const overallGateDecision = gateDecisions.includes("BLOCK_RELEASE")
@@ -828,9 +828,11 @@ export function buildWorkflowStateReadModel(
   row: typeof scmWorkflowInstances.$inferSelect,
 ): WorkflowStateReadModel {
   const completedIds: string[] = JSON.parse(row.completedNodeIdsJson || "[]");
-  const variables: Record<string, any> = JSON.parse(
+  const variables: Record<string, unknown> = JSON.parse(
     row.variablesSnapshotJson || "{}",
   );
+  const serviceMode =
+    typeof variables.serviceMode === "string" ? variables.serviceMode : null;
 
   const nodes = CANONICAL_WORKFLOW_NODES.map((n) => {
     let status: "COMPLETED" | "ACTIVE" | "BLOCKED" | "PENDING" = "PENDING";
@@ -848,7 +850,7 @@ export function buildWorkflowStateReadModel(
       nodeId: n.nodeId,
       sequenceOrder: n.sequenceOrder,
       nodeType: n.nodeType,
-      ...resolveModeAwareNodeText(n, variables.serviceMode),
+      ...resolveModeAwareNodeText(n, serviceMode),
       decisionKey: n.decisionKey,
       status,
     };
@@ -859,7 +861,7 @@ export function buildWorkflowStateReadModel(
     CANONICAL_WORKFLOW_NODES[0];
   const currentNode = {
     ...currentNodeDef,
-    ...resolveModeAwareNodeText(currentNodeDef, variables.serviceMode),
+    ...resolveModeAwareNodeText(currentNodeDef, serviceMode),
   };
 
   const availableUserCommands: string[] = ["EvaluateDecisionTables"];
@@ -873,7 +875,7 @@ export function buildWorkflowStateReadModel(
     processInstanceId: row.id,
     processKey: row.processKey,
     versionNumber: row.versionNumber,
-    state: row.state as any,
+    state: row.state as WorkflowStateReadModel["state"],
     currentNodeId: row.currentNodeId,
     currentNodeLabel: currentNode.label,
     blockingReason: row.blockingReason,
@@ -1082,7 +1084,7 @@ export async function advanceWorkflowTokenForShipment(
   const completedIds: string[] = JSON.parse(
     instance.completedNodeIdsJson || "[]",
   );
-  const variables: Record<string, any> = JSON.parse(
+  const variables: Record<string, unknown> = JSON.parse(
     instance.variablesSnapshotJson || "{}",
   );
 
@@ -1091,7 +1093,7 @@ export async function advanceWorkflowTokenForShipment(
   const hasCargo = cargoRows.length > 0;
   const hasRoute = msRows.length > 0;
 
-  const milestones: any[] =
+  const milestones: Array<{ milestoneCode?: string; status?: string }> =
     msRows.length > 0 ? JSON.parse(msRows[0].milestonesJson) : [];
   const vgmMilestoneDone = milestones.some(
     (m) => m.milestoneCode === "VGM_CUTOFF" && m.status === "COMPLETED",

@@ -73,8 +73,8 @@ export interface StopClockEntry {
 export async function initializeSlaClocksForShipment(
   payload: {
     shipmentId: string;
-    stops: any[];
-    legs: any[];
+    stops: Array<Record<string, unknown>>;
+    legs: Array<Record<string, unknown>>;
   },
   actor: SecurityActorContext = DEFAULT_OPERATOR_ACTOR,
 ) {
@@ -391,7 +391,9 @@ export async function raiseOrDeduplicateException(
         ? input.severity
         : prev.severity;
 
-    const evidence: any[] = JSON.parse(prev.evidenceLogJson);
+    const evidence: Array<Record<string, unknown>> = JSON.parse(
+      prev.evidenceLogJson,
+    );
     evidence.unshift({
       occurredAt: nowIso,
       summary: input.summary,
@@ -795,7 +797,7 @@ export async function evaluateShipmentDataQuality(
     } else if (isSolasVgmApplicable(model.header?.serviceProduct?.mode)) {
       // SOLAS VGM applies only to packed sea containers (never ULD / trailers)
       const missingVgm = equipList.some(
-        (eqItem: any) =>
+        (eqItem: { equipmentCategory?: string; vgmWeightKg?: number }) =>
           (!eqItem.equipmentCategory ||
             eqItem.equipmentCategory === "CONTAINER") &&
           (!eqItem.vgmWeightKg || eqItem.vgmWeightKg <= 0),
@@ -816,7 +818,7 @@ export async function evaluateShipmentDataQuality(
 
   // Stage 3: CUSTOMS_CLEARANCE rules
   if (stageOrder[targetStage] >= 3) {
-    const allGoods: any[] = [];
+    const allGoods: Array<Record<string, unknown>> = [];
     for (const ci of model.cargoAndEquipment?.cargoItems || []) {
       for (const pkg of ci.packages || []) {
         for (const g of pkg.goods || []) {
@@ -930,7 +932,9 @@ export async function evaluateShipmentDataQuality(
         customerName:
           model.commercialContext?.customerAccount?.name || "Customer",
         routeSummary: `${model.routing?.legs?.[0]?.originLocode || "POL"} → ${model.routing?.legs?.[model.routing?.legs?.length - 1]?.destinationLocode || "POD"}`,
-        transportMode: (model.header?.serviceProduct?.mode as any) || "SEA",
+        transportMode:
+          (model.header?.serviceProduct?.mode as
+            "AIR" | "OCEAN" | "ROAD" | "RAIL" | "SEA") || "SEA",
         category: "DATA_QUALITY_BLOCK",
         severity: "HIGH",
         title: `Data Quality Gate Bloqueado en etapa ${targetStage} (${blockingCount} hallazgos)`,
