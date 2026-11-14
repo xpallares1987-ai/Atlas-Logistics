@@ -5,6 +5,7 @@ import {
 import { safeGetMetadata, validateProperty } from "../schemas/metadata";
 import type { AppState } from "../state";
 import { Toast } from "@atlas/ui";
+import { escapeHTML } from "@atlas/shared";
 
 export function initLogisticsSidebar(state: AppState) {
   const sidebar = document.getElementById("propertiesSidebar");
@@ -133,11 +134,11 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
         <h3 class="panel-section__title">Metadatos Logísticos</h3>
         <div class="form-group">
           <label>Elemento Seleccionado</label>
-          <div class="selected-badge">${bo.name || selectedElement.id} (${selectedElement.type.replace("bpmn:", "")})</div>
+          <div class="selected-badge">${escapeHTML(bo.name || selectedElement.id)} (${escapeHTML(selectedElement.type.replace("bpmn:", ""))})</div>
         </div>
         <div class="form-group">
           <label for="sysCost">Costo Operativo por Hora ($)</label>
-          <input type="number" id="sysCost" class="input" placeholder="Ej. 150" value="${metadata.costHR || ""}" />
+          <input type="number" id="sysCost" class="input" placeholder="Ej. 150" value="${metadata.costHR !== undefined ? escapeHTML(String(metadata.costHR)) : ""}" />
         </div>
         <div class="form-group">
           <label for="sysStatus">Estado Operativo</label>
@@ -150,11 +151,11 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
         </div>
         <div class="form-group">
           <label for="sysForm">Clave de Formulario (UI)</label>
-          <input type="text" id="sysForm" class="input" placeholder="form-id-123" value="${metadata.formKey || ""}" />
+          <input type="text" id="sysForm" class="input" placeholder="form-id-123" value="${escapeHTML(metadata.formKey || "")}" />
         </div>
         <div class="form-group">
           <label for="sysDecision">ID de Decisión (DMN)</label>
-          <input type="text" id="sysDecision" class="input" placeholder="decision-table-id" value="${metadata.decisionRef || ""}" />
+          <input type="text" id="sysDecision" class="input" placeholder="decision-table-id" value="${escapeHTML(metadata.decisionRef || "")}" />
         </div>
       </div>
     `;
@@ -162,10 +163,7 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
     const bo = selectedElement.businessObject;
     let existingCondition = "";
     if (bo.conditionExpression && (bo.conditionExpression as any).body) {
-      existingCondition = (bo.conditionExpression as any).body.replace(
-        /"/g,
-        "&quot;",
-      );
+      existingCondition = escapeHTML((bo.conditionExpression as any).body);
     }
 
     elementMetadataHtml = `
@@ -174,7 +172,7 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
         <p class="section-desc">Configura reglas de decisión basadas en los datos del Shipment.</p>
         <div class="form-group">
           <label>Elemento Seleccionado</label>
-          <div class="selected-badge">${bo.name || selectedElement.id} (SequenceFlow)</div>
+          <div class="selected-badge">${escapeHTML(bo.name || selectedElement.id)} (SequenceFlow)</div>
         </div>
         <div class="form-group">
           <label for="condIncoterm">Incoterm</label>
@@ -198,7 +196,7 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
         </div>
         <div class="form-group">
           <label>Expresión FEEL Resultante</label>
-          <input type="text" id="zeebeCondition" class="input" readonly placeholder="=" value="${existingCondition}" />
+          <input type="text" id="zeebeCondition" class="input" readonly placeholder="=" value="${escapeHTML(existingCondition)}" />
         </div>
         <button id="btnApplyCondition" class="btn btn--primary btn--full-width" type="button" style="margin-top: 8px;">
           Aplicar Regla al Flujo
@@ -252,13 +250,13 @@ function renderLogisticsPanel(state: AppState, container: HTMLElement) {
             ${analytics.bottlenecks
               .map(
                 (b) => `
-              <div class="bottleneck-item bottleneck-item--${b.status === "Bloqueado" ? "blocked" : "delayed"}" data-element-id="${b.id}">
+              <div class="bottleneck-item bottleneck-item--${escapeHTML(b.status === "Bloqueado" ? "blocked" : "delayed")}" data-element-id="${escapeHTML(b.id)}">
                 <div class="bottleneck-item__header">
-                  <span class="bottleneck-item__status-badge">${b.status}</span>
-                  <span class="bottleneck-item__id">${b.id}</span>
+                  <span class="bottleneck-item__status-badge">${escapeHTML(b.status)}</span>
+                  <span class="bottleneck-item__id">${escapeHTML(b.id)}</span>
                 </div>
-                <div class="bottleneck-item__name">${b.name}</div>
-                <div class="bottleneck-item__cost">Costo: $${b.cost}/hr</div>
+                <div class="bottleneck-item__name">${escapeHTML(b.name)}</div>
+                <div class="bottleneck-item__cost">Costo: $${escapeHTML(String(b.cost))}/hr</div>
               </div>
             `,
               )
@@ -411,115 +409,170 @@ async function renderHistoryPanel(state: AppState, container: HTMLElement) {
   const { historyService } = await import("../services/history-service");
   const versions = await historyService.getVersions(activeTab.id);
 
-  container.innerHTML = `
-    <div class="sidebar-scrollable">
-      <div class="panel-section">
-        <h3 class="panel-section__title">Historial de Versiones</h3>
-        <p class="section-desc">Crea puntos de restauración (commits) locales para esta pestaña.</p>
-        <div class="form-group">
-          <input type="text" id="historyCommitMsg" class="input" placeholder="Mensaje de versión..." />
-        </div>
-        <button id="btnSaveHistoryVersion" class="btn btn--primary btn--full-width" type="button" style="margin-top: 8px;">
-          Guardar Punto de Control
-        </button>
-      </div>
-      <div class="panel-section">
-        <h3 class="panel-section__title">Línea de Tiempo</h3>
-        ${
-          versions.length === 0
-            ? `
-          <div class="no-versions-msg">Sin versiones guardadas todavía. Crea un punto de control arriba.</div>
-        `
-            : `
-          <div class="history-timeline">
-            ${versions
-              .map((v) => {
-                const dateStr = new Date(v.timestamp).toLocaleString();
-                return `
-                <div class="history-timeline__item">
-                  <div class="history-timeline__point"></div>
-                  <div class="history-timeline__content">
-                    <div class="history-timeline__header">
-                      <span class="history-timeline__date">${dateStr}</span>
-                    </div>
-                    <div class="history-timeline__label">${v.label}</div>
-                    <div class="history-timeline__actions" style="margin-top:8px;">
-                      <button class="btn btn-restore btn--transparent" data-version-id="${v.id}" type="button" style="padding: 2px 6px; font-size:11px;">Restaurar</button>
-                      <button class="btn btn-delete btn--transparent" data-version-id="${v.id}" type="button" style="padding: 2px 6px; font-size:11px; color: var(--danger);">Eliminar</button>
-                    </div>
-                  </div>
-                </div>
-              `;
-              })
-              .join("")}
-          </div>
-        `
+  container.innerHTML = "";
+
+  const scrollable = document.createElement("div");
+  scrollable.className = "sidebar-scrollable";
+
+  const panelSection = document.createElement("div");
+  panelSection.className = "panel-section";
+
+  const title = document.createElement("h3");
+  title.className = "panel-section__title";
+  title.textContent = "Historial de Versiones";
+
+  const desc = document.createElement("p");
+  desc.className = "section-desc";
+  desc.textContent =
+    "Crea puntos de restauración (commits) locales para esta pestaña.";
+
+  const formGroup = document.createElement("div");
+  formGroup.className = "form-group";
+
+  const inputCommit = document.createElement("input");
+  inputCommit.type = "text";
+  inputCommit.id = "historyCommitMsg";
+  inputCommit.className = "input";
+  inputCommit.placeholder = "Mensaje de versión...";
+  formGroup.appendChild(inputCommit);
+
+  const btnSave = document.createElement("button");
+  btnSave.id = "btnSaveHistoryVersion";
+  btnSave.className = "btn btn--primary btn--full-width";
+  btnSave.type = "button";
+  btnSave.style.marginTop = "8px";
+  btnSave.textContent = "Guardar Punto de Control";
+
+  panelSection.appendChild(title);
+  panelSection.appendChild(desc);
+  panelSection.appendChild(formGroup);
+  panelSection.appendChild(btnSave);
+  scrollable.appendChild(panelSection);
+
+  const timelineSection = document.createElement("div");
+  timelineSection.className = "panel-section";
+
+  const timelineTitle = document.createElement("h3");
+  timelineTitle.className = "panel-section__title";
+  timelineTitle.textContent = "Línea de Tiempo";
+  timelineSection.appendChild(timelineTitle);
+
+  if (versions.length === 0) {
+    const emptyMsg = document.createElement("div");
+    emptyMsg.className = "no-versions-msg";
+    emptyMsg.textContent =
+      "Sin versiones guardadas todavía. Crea un punto de control arriba.";
+    timelineSection.appendChild(emptyMsg);
+  } else {
+    const timeline = document.createElement("div");
+    timeline.className = "history-timeline";
+
+    for (const v of versions) {
+      const item = document.createElement("div");
+      item.className = "history-timeline__item";
+
+      const point = document.createElement("div");
+      point.className = "history-timeline__point";
+
+      const content = document.createElement("div");
+      content.className = "history-timeline__content";
+
+      const header = document.createElement("div");
+      header.className = "history-timeline__header";
+
+      const dateSpan = document.createElement("span");
+      dateSpan.className = "history-timeline__date";
+      dateSpan.textContent = new Date(v.timestamp).toLocaleString();
+      header.appendChild(dateSpan);
+
+      const label = document.createElement("div");
+      label.className = "history-timeline__label";
+      label.textContent = v.label; // Secure: textContent never executes as HTML or scripts
+
+      const actions = document.createElement("div");
+      actions.className = "history-timeline__actions";
+      actions.style.marginTop = "8px";
+
+      const btnRestore = document.createElement("button");
+      btnRestore.className = "btn btn-restore btn--transparent";
+      btnRestore.type = "button";
+      btnRestore.style.cssText = "padding: 2px 6px; font-size:11px;";
+      btnRestore.textContent = "Restaurar";
+      btnRestore.setAttribute("data-version-id", v.id);
+
+      btnRestore.addEventListener("click", async () => {
+        if (
+          !confirm(
+            "¿Estás seguro de restaurar este punto de restauración? Los cambios no guardados se perderán.",
+          )
+        )
+          return;
+
+        const tabVersions = await historyService.getVersions(activeTab.id);
+        const version = tabVersions.find((ver) => ver.id === v.id);
+        if (version && state.modeler) {
+          try {
+            await importDiagram(state.modeler, version.xml);
+            activeTab.xml = version.xml;
+            activeTab.isDirty = true;
+            Toast.show("Punto de control restaurado correctamente", "success");
+            renderHistoryPanel(state, container);
+          } catch {
+            Toast.show("Error al restaurar punto de control", "error");
+          }
         }
-      </div>
-    </div>
-  `;
+      });
 
-  const btnSave = document.getElementById("btnSaveHistoryVersion");
-  const inputCommit = document.getElementById(
-    "historyCommitMsg",
-  ) as HTMLInputElement;
+      const btnDelete = document.createElement("button");
+      btnDelete.className = "btn btn-delete btn--transparent";
+      btnDelete.type = "button";
+      btnDelete.style.cssText =
+        "padding: 2px 6px; font-size:11px; color: var(--danger);";
+      btnDelete.textContent = "Eliminar";
+      btnDelete.setAttribute("data-version-id", v.id);
 
-  btnSave?.addEventListener("click", async () => {
-    const label =
-      inputCommit?.value.trim() ||
+      btnDelete.addEventListener("click", async () => {
+        if (await historyService.deleteVersion(activeTab.id, v.id)) {
+          Toast.show("Punto de control eliminado", "success");
+          renderHistoryPanel(state, container);
+        }
+      });
+
+      actions.appendChild(btnRestore);
+      actions.appendChild(btnDelete);
+
+      content.appendChild(header);
+      content.appendChild(label);
+      content.appendChild(actions);
+
+      item.appendChild(point);
+      item.appendChild(content);
+      timeline.appendChild(item);
+    }
+
+    timelineSection.appendChild(timeline);
+  }
+
+  scrollable.appendChild(timelineSection);
+  container.appendChild(scrollable);
+
+  btnSave.addEventListener("click", async () => {
+    const commitLabel =
+      inputCommit.value.trim() ||
       `Punto de Control - ${new Date().toLocaleTimeString()}`;
     if (!state.modeler) return;
 
     try {
       const xml = await state.modeler.saveXML({ format: true });
       if (xml && xml.xml) {
-        const { historyService } = await import("../services/history-service");
-        await historyService.saveVersion(activeTab.id, label, xml.xml);
+        await historyService.saveVersion(activeTab.id, commitLabel, xml.xml);
         Toast.show("Punto de control guardado con éxito", "success");
-        if (inputCommit) inputCommit.value = "";
+        inputCommit.value = "";
         renderHistoryPanel(state, container);
       }
     } catch {
       Toast.show("Error al guardar punto de control", "error");
     }
-  });
-
-  container.querySelectorAll(".btn-restore").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const versionId = btn.getAttribute("data-version-id")!;
-      if (
-        !confirm(
-          "¿Estás seguro de restaurar este punto de restauración? Los cambios no guardados se perderán.",
-        )
-      )
-        return;
-
-      const { historyService } = await import("../services/history-service");
-      const tabVersions = await historyService.getVersions(activeTab.id);
-      const version = tabVersions.find((v) => v.id === versionId);
-      if (version && state.modeler) {
-        try {
-          await importDiagram(state.modeler, version.xml);
-          activeTab.xml = version.xml;
-          activeTab.isDirty = true;
-          Toast.show("Punto de control restaurado correctamente", "success");
-          renderHistoryPanel(state, container);
-        } catch {
-          Toast.show("Error al restaurar punto de control", "error");
-        }
-      }
-    });
-  });
-
-  container.querySelectorAll(".btn-delete").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const versionId = btn.getAttribute("data-version-id")!;
-      const { historyService } = await import("../services/history-service");
-      if (await historyService.deleteVersion(activeTab.id, versionId)) {
-        Toast.show("Punto de control eliminado", "success");
-        renderHistoryPanel(state, container);
-      }
-    });
   });
 }
 

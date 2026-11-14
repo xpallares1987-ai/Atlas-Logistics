@@ -257,6 +257,7 @@ pnpm run dev
 | `pnpm vitest run tests/scm-*` | Executes SCM domain engine integration tests | SCM development |
 | `pnpm run audit:ddl-drift` | Verifies Drizzle migration consistency & schema parity | Database changes |
 | `pnpm run audit:legacy-docs` | Verifies zero legacy database/infrastructure terms | Documentation updates |
+| `pnpm run audit:links` | Verifies all markdown relative links across the repository | Documentation updates |
 | `pnpm run test:backup-restore` | Tests SQLite WAL backup, VACUUM INTO, and DR restore | Database & DR drills |
 | `pnpm run check:file-sizes` | Enforces the <1,000 line modularity limit on page files | Frontend development |
 | `pnpm run lint` | Runs ESLint across root and monorepo packages | Prior to commits |

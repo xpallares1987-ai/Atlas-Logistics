@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 18, TypeScript, Tailwind CSS, Lucide React, Framer Motion, Fastify Backend, SQLite + Drizzle ORM, Vitest.
 
-**Spec:** [docs/adr/0020-frontend-modular-decomposition-and-file-size-guardrails.md](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/adr/0020-frontend-modular-decomposition-and-file-size-guardrails.md)
+**Spec:** [`docs/adr/0020-frontend-modular-decomposition-and-file-size-guardrails.md`](../../adr/0020-frontend-modular-decomposition-and-file-size-guardrails.md)
 
 ## Global Constraints
 

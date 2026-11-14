@@ -88,7 +88,7 @@ docs/
 - Debugging de problemas de API
 - Documentar contratos de integración
 
-**Acceso:** [`docs/API_REFERENCE.md`](API_REFERENCE.md)
+**Acceso:** [`docs/API_REFERENCE.md`](../api/API_REFERENCE.md)
 
 ---
 
@@ -110,7 +110,7 @@ docs/
 - Localizar código específico
 - Agregar nuevos módulos o features
 
-**Acceso:** [`docs/PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md)
+**Acceso:** [`docs/PROJECT_STRUCTURE.md`](../reference/PROJECT_STRUCTURE.md)
 
 ---
 
@@ -137,7 +137,7 @@ docs/
 - Problemas técnicos
 - Crear nuevas pruebas
 
-**Acceso:** [`docs/DEVELOPER_HANDBOOK.md`](DEVELOPER_HANDBOOK.md)
+**Acceso:** [`docs/DEVELOPER_HANDBOOK.md`](../setup-guides/DEVELOPER_HANDBOOK.md)
 
 ---
 
@@ -155,9 +155,9 @@ Resumen de todas las actualizaciones de documentación, estadísticas, y guía d
 
 Para **aprender desde cero**:
 
-- [**DEVELOPER_HANDBOOK.md** → Environment Setup](DEVELOPER_HANDBOOK.md#environment-setup) — Configuración de prerequisitos y desarrollo local
-- [**setup-guides/development-guide.md**](setup-guides/development-guide.md) — Puesta en marcha con pnpm, Fastify y Vite
-- [**PROJECT_STRUCTURE.md** → Inicio](PROJECT_STRUCTURE.md) — Entender la organización del repo
+- [**DEVELOPER_HANDBOOK.md** → Environment Setup](../setup-guides/DEVELOPER_HANDBOOK.md#environment-setup) — Configuración de prerequisitos y desarrollo local
+- [**setup-guides/development-guide.md**](../setup-guides/development-guide.md) — Puesta en marcha con pnpm, Fastify y Vite
+- [**PROJECT_STRUCTURE.md** → Inicio](../reference/PROJECT_STRUCTURE.md) — Entender la organización del repo
 
 **Tiempo:** 2-3 días para desarrollador nuevo
 
@@ -167,12 +167,12 @@ Para **aprender desde cero**:
 
 Para **resolver problemas específicos**:
 
-- [**DEVELOPER_HANDBOOK.md** → Development Workflow](DEVELOPER_HANDBOOK.md#development-workflow) — Crear features, hacer commits
-- [**Infraestructura de Contenedores Docker**](setup-guides/docker-setup.md) — Perfiles de ejecución y optimización CI
-- [**Observabilidad & Monitorización**](setup-guides/observability-monitoring.md) — Prometheus, Grafana, Pino
-- [**Resolución de Incidencias**](setup-guides/troubleshooting-maintenance.md) — Diagnóstico y mantenimiento
-- [**Seguridad y Backups**](setup-guides/security-backup-policy.md) — Políticas de secretos y copias
-- [**Despliegue en Cloud Run**](deployment/cloud-run-worker.md) e [**Railway**](deployment/RAILWAY_DEPLOYMENT_GUIDE_ES.md)
+- [**DEVELOPER_HANDBOOK.md** → Development Workflow](../setup-guides/DEVELOPER_HANDBOOK.md#development-workflow) — Crear features, hacer commits
+- [**Infraestructura de Contenedores Docker**](../setup-guides/docker-setup.md) — Perfiles de ejecución y optimización CI
+- [**Observabilidad & Monitorización**](../setup-guides/observability-monitoring.md) — Prometheus, Grafana, Pino
+- [**Resolución de Incidencias**](../setup-guides/troubleshooting-maintenance.md) — Diagnóstico y mantenimiento
+- [**Seguridad y Backups**](../setup-guides/security-backup-policy.md) — Políticas de secretos y copias
+- [**Despliegue en Cloud Run**](archive/legacy-deployment/cloud-run-worker.md) e [**Railway**](archive/legacy-deployment/RAILWAY_DEPLOYMENT_GUIDE_ES.md)
 
 **Tiempo:** 1-2 horas según problema
 
@@ -182,11 +182,11 @@ Para **resolver problemas específicos**:
 
 Para **buscar información específica**:
 
-- [**API_REFERENCE.md**](API_REFERENCE.md) — 70+ endpoints documentados ⭐ NEW
-- [**PROJECT_STRUCTURE.md**](PROJECT_STRUCTURE.md) — Ubicación exacta de cada componente ⭐ NEW
-- [**SCM Architecture Blueprint**](architecture/SCM_ARCHITECTURE_BLUEPRINT_V1.md) — 25 Bounded Contexts
-- [**SCM Logical Model**](architecture/SCM_LOGICAL_MODEL_V1_SQLITE_DESIGN.md) — Schema de DB relacional
-- [**Convenciones de Nombres**](DEVELOPER_HANDBOOK.md#code-conventions) — Variables, funciones, clases
+- [**API_REFERENCE.md**](../api/API_REFERENCE.md) — 70+ endpoints documentados ⭐ NEW
+- [**PROJECT_STRUCTURE.md**](../reference/PROJECT_STRUCTURE.md) — Ubicación exacta de cada componente ⭐ NEW
+- [**SCM Architecture Blueprint**](../architecture/SCM_ARCHITECTURE_BLUEPRINT_V1.md) — 25 Bounded Contexts
+- [**SCM Logical Model**](../architecture/SCM_LOGICAL_MODEL_V1_SQLITE_DESIGN.md) — Schema de DB relacional
+- [**Convenciones de Nombres**](../setup-guides/DEVELOPER_HANDBOOK.md#code-conventions) — Variables, funciones, clases
 
 **Acceso:** Búsqueda rápida o índice
 
@@ -196,16 +196,16 @@ Para **buscar información específica**:
 
 Para **entender conceptos profundamente**:
 
-- [**Arquitectura de la Plataforma SCM**](architecture/SCM_PLATFORM_ARCHITECTURE.md) — DDD, Outbox, Workflows, CQRS
-- [**Arquitectura Integral del Sistema**](architecture/ARCHITECTURE.md) — Visión de 10,000 pies
-- [**Arquitectura Simplificada**](architecture/ARCHITECTURE_SIMPLIFIED.md) — Diagramas visuales
+- [**Arquitectura de la Plataforma SCM**](../architecture/SCM_PLATFORM_ARCHITECTURE.md) — DDD, Outbox, Workflows, CQRS
+- [**Arquitectura Integral del Sistema**](../architecture/ARCHITECTURE.md) — Visión de 10,000 pies
+- [**Arquitectura Simplificada**](../architecture/ARCHITECTURE_SIMPLIFIED.md) — Diagramas visuales
 
 #### 📋 **Architectural Decision Records (ADRs)** — Por qué se tomaron decisiones
-- [ADR-0001](adr/0001-standardization-on-pnpm.md) — pnpm vs npm
-- [ADR-0002](adr/0002-independent-hybrid-architecture.md) — Arquitectura híbrida independiente
-- [ADR-0004](adr/0004-zero-cost-local-architecture.md) — SQLite + Fastify sin costos cloud
-- [ADR-0008](adr/0008-scm-sqlite-cqrs-workflow-engine.md) — Outbox, CQRS y motor de workflows
-- ... (ver todas en `adr/`)
+- [ADR-0001](../adr/0001-standardization-on-pnpm.md) — pnpm vs npm
+- [ADR-0002](../adr/0002-independent-hybrid-architecture.md) — Arquitectura híbrida independiente
+- [ADR-0004](../adr/0004-zero-cost-local-architecture.md) — SQLite + Fastify sin costos cloud
+- [ADR-0008](../adr/0008-scm-sqlite-cqrs-workflow-engine.md) — Outbox, CQRS y motor de workflows
+- ... (ver todas en `../adr/`)
 
 **Tiempo:** 30 min - 2 horas según profundidad
 
@@ -215,10 +215,10 @@ Para **entender conceptos profundamente**:
 
 Para **ver roadmap y planes de futuro**:
 
-- [**Fase 2 Diseño**](superpowers/specs/2026-11-05-real-data-phase-2-design.md) — Transfronterizo, e-Firma SAT, Smart Contracts
-- [**Fase 2 Plan**](superpowers/plans/2026-11-05-real-data-phase-2-cross-border-blockchain-erp.md) — Implementación paso a paso
-- [**Fase 3 Diseño**](superpowers/specs/2026-11-05-real-data-phase-3-design.md) — FMC, DCSA, Estiba 3D
-- [**Fase 3 Plan**](superpowers/plans/2026-11-05-real-data-phase-3-ports-disputes-stowage.md) — Próximos pasos
+- [**Fase 2 Diseño**](../superpowers/specs/2026-11-05-real-data-phase-2-design.md) — Transfronterizo, e-Firma SAT, Smart Contracts
+- [**Fase 2 Plan**](../superpowers/plans/2026-11-05-real-data-phase-2-cross-border-blockchain-erp.md) — Implementación paso a paso
+- [**Fase 3 Diseño**](../superpowers/specs/2026-11-05-real-data-phase-3-design.md) — FMC, DCSA, Estiba 3D
+- [**Fase 3 Plan**](../superpowers/plans/2026-11-05-real-data-phase-3-ports-disputes-stowage.md) — Próximos pasos
 
 **Acceso:** Planificación de sprints
 
@@ -316,10 +316,10 @@ Todos los cambios de documentación deben pasar por code review.
 
 | Enlace | Propósito |
 |--------|----------|
-| [API_REFERENCE.md](API_REFERENCE.md) | 70+ endpoints |
-| [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) | Monorepo map |
-| [DEVELOPER_HANDBOOK.md](DEVELOPER_HANDBOOK.md) | Development guide |
-| [ARCHITECTURE.md](architecture/ARCHITECTURE.md) | System design |
+| [API_REFERENCE.md](../api/API_REFERENCE.md) | 70+ endpoints |
+| [PROJECT_STRUCTURE.md](../reference/PROJECT_STRUCTURE.md) | Monorepo map |
+| [DEVELOPER_HANDBOOK.md](../setup-guides/DEVELOPER_HANDBOOK.md) | Development guide |
+| [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) | System design |
 | [Swagger UI](http://localhost:3001/docs) | API docs (running) |
 | [Drizzle Studio](http://localhost:3456) | Database UI |
 

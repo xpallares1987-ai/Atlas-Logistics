@@ -88,6 +88,9 @@ jobs:
       - name: Verify zero legacy documentation regression
         run: pnpm run audit:legacy-docs
 
+      - name: Verify markdown relative link integrity
+        run: pnpm run audit:links
+
       - name: Verify SQLite WAL backup and restoration test
         run: pnpm run test:backup-restore
 

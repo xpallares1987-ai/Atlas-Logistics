@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript, Node.js, Fastify, Drizzle ORM, SQLite 3 (modo WAL con foreign keys habilitadas), React 18, Vite, Tailwind CSS, `@atlas/ui`, WebCrypto API (SubtleCrypto) y Vitest.
 
-**Spec:** [`docs/superpowers/specs/2026-11-05-real-data-phase-2-design.md`](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/superpowers/specs/2026-11-05-real-data-phase-2-design.md)
+**Spec:** [`docs/superpowers/specs/2026-11-05-real-data-phase-2-design.md`](../specs/2026-11-05-real-data-phase-2-design.md)
 
 ---
 

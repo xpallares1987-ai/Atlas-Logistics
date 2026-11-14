@@ -8,7 +8,7 @@
 
 **Tech Stack:** Fastify, TypeScript, Drizzle ORM, SQLite (`better-sqlite3` / `libsql`), React, `@tanstack/react-query`, Three.js (`@react-three/fiber`), Vitest.
 
-**Spec:** [`docs/superpowers/specs/2026-11-05-real-data-phase-3-design.md`](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/superpowers/specs/2026-11-05-real-data-phase-3-design.md)
+**Spec:** [`docs/superpowers/specs/2026-11-05-real-data-phase-3-design.md`](../specs/2026-11-05-real-data-phase-3-design.md)
 
 ## Global Constraints
 

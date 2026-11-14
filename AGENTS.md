@@ -31,7 +31,7 @@
 - **Dynamic Entity Selectors**: Views requiring an active shipment or operational entity must provide dynamic selectors populated from the database (with fallback to the canonical shipment `sh_demo_01`), rather than hardcoded IDs or static states.
 
 ## 5. Diátaxis Documentation Governance & Root Hygiene
-- **Root Directory Hygiene**: The repository root must contain exclusively the 6 standard canonical files: `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, and `CODE_OF_CONDUCT.md`. Prohibited from accumulating specs, scratch files, or loose guides in the root.
+- **Root Directory Hygiene**: The repository root contains only six canonical documentation files: `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, and `CODE_OF_CONDUCT.md`; operational and tool configuration files remain at the root where required. Prohibited from accumulating specs, scratch files, or loose guides in the root.
 - **Four-Quadrant Diátaxis Structure**: All technical documentation must reside in its corresponding quadrant within `docs/`:
   - **Tutorials**: `docs/tutorials/` (developer learning-oriented).
   - **How-To Guides**: `docs/setup-guides/`, `docs/runbooks/`, and `docs/deployment/` (task-oriented recipes).

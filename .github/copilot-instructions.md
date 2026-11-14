@@ -35,7 +35,7 @@ These instructions guide GitHub Copilot when generating code, answering queries,
 - Dynamic entity pickers should load values from `/api/` endpoints (with a default fallback to `sh_demo_01`).
 
 ### 2.3 Documentation Governance (Diátaxis Framework)
-- **Root Hygiene**: The repository root must strictly contain ONLY the 6 canonical files:
+- **Root Hygiene**: The repository root contains only six canonical documentation files (alongside required source, build, workspace and tool configuration files):
   - `README.md`
   - `AGENTS.md`
   - `CONTRIBUTING.md`

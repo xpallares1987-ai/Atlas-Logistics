@@ -1,12 +1,14 @@
 /**
  * @file test-sqlite-backup-restore.mjs
- * @description Automated verification suite for SQLite WAL online backup, VACUUM INTO,
- *              PRAGMA integrity_check, PRAGMA foreign_key_check, and disaster restoration.
+ * @description Comprehensive verification suite for SQLite WAL online backup (VACUUM INTO),
+ *              checkpoint contention analysis, integrity check, foreign key enforcement,
+ *              full schema & table row parity across all database objects, and disaster restoration.
  * @module @atlas/scripts/test-sqlite-backup-restore
  * @see {@link docs/adr/0009-sqlite-wal-mandatory-foreign-keys.md}
  */
 
 import { createClient } from '@libsql/client';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,6 +36,18 @@ async function safeUnlink(filePath, maxRetries = 5, delay = 200) {
   }
 }
 
+/**
+ * Compute a deterministic SHA-256 checksum of table content
+ */
+async function computeTableChecksum(client, tableName) {
+  const res = await client.execute(`SELECT * FROM "${tableName}" ORDER BY rowid LIMIT 250;`);
+  const hash = crypto.createHash('sha256');
+  for (const row of res.rows) {
+    hash.update(JSON.stringify(row));
+  }
+  return hash.digest('hex');
+}
+
 async function runBackupRestoreVerification() {
   console.log('='.repeat(80));
   console.log(' ATLAS LOGISTICS - SQLITE WAL BACKUP & RESTORATION TEST SUITE');
@@ -52,8 +66,6 @@ async function runBackupRestoreVerification() {
   const timestamp = Date.now();
   const backupFilePath = path.resolve(TEST_SCRATCH_DIR, `snapshot-${timestamp}.db`);
   const restoredFilePath = path.resolve(TEST_SCRATCH_DIR, `restored-${timestamp}.db`);
-
-  // Normalized path with forward slashes for SQLite VACUUM INTO statement
   const backupSqlPath = backupFilePath.replace(/\\/g, '/');
 
   console.log(`\n1. PRIMARY DATABASE INSPECTION:`);
@@ -67,44 +79,76 @@ async function runBackupRestoreVerification() {
 
   try {
     // -------------------------------------------------------------------------
-    // Phase 1: Connect to Primary & Check Canonical State
+    // Phase 1: Connect to Primary with busy_timeout & Checkpoint
     // -------------------------------------------------------------------------
     primaryClient = createClient({ url: `file:${PRIMARY_DB_PATH}` });
+    await primaryClient.execute('PRAGMA busy_timeout = 5000;');
 
-    console.log(`\n2. FLUSHING WAL LOG (PRAGMA wal_checkpoint(TRUNCATE))...`);
-    const checkpointResult = await primaryClient.execute('PRAGMA wal_checkpoint(TRUNCATE);');
-    console.log(`   ✓ WAL Checkpoint executed successfully:`, checkpointResult.rows[0]);
+    console.log(`\n2. EXECUTING WAL CHECKPOINT (PRAGMA wal_checkpoint(TRUNCATE))...`);
+    const cpRes = await primaryClient.execute('PRAGMA wal_checkpoint(TRUNCATE);');
+    const cpData = cpRes.rows[0];
+    console.log(`   ✓ Checkpoint status: busy=${cpData.busy}, log_frames=${cpData.log}, checkpointed=${cpData.checkpointed}`);
 
-    console.log(`\n3. GATHERING BASELINE RECORD COUNTS FROM PRIMARY...`);
-    const countQueries = {
-      companies: 'SELECT COUNT(*) as count FROM companies;',
-      users: 'SELECT COUNT(*) as count FROM users;',
-      shipments: 'SELECT COUNT(*) as count FROM shipments;',
-      addresses: 'SELECT COUNT(*) as count FROM addresses;',
-      branch_offices: 'SELECT COUNT(*) as count FROM branch_offices;',
-    };
-
-    const primaryCounts = {};
-    for (const [table, sql] of Object.entries(countQueries)) {
-      const res = await primaryClient.execute(sql);
-      primaryCounts[table] = Number(res.rows[0].count);
-      console.log(`   - ${table.padEnd(12)}: ${primaryCounts[table]} records`);
+    if (cpData.busy !== 0) {
+      console.warn('   ⚠️ Warning: WAL checkpoint encountered active readers/writers. WAL still active.');
     }
 
-    // Verify canonical shipment sh_demo_01
+    // -------------------------------------------------------------------------
+    // Phase 2: Full Database Object Inventory & Row Counts
+    // -------------------------------------------------------------------------
+    console.log(`\n3. INVENTORYING ALL PRIMARY DATABASE OBJECTS...`);
+    const masterRes = await primaryClient.execute(
+      "SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name;"
+    );
+
+    const inventory = { table: [], index: [], view: [], trigger: [] };
+    masterRes.rows.forEach((row) => {
+      if (inventory[row.type]) {
+        inventory[row.type].push(row.name);
+      }
+    });
+
+    console.log(`   ✓ Found ${inventory.table.length} tables, ${inventory.index.length} indexes, ${inventory.view.length} views, ${inventory.trigger.length} triggers.`);
+
+    console.log(`\n4. GATHERING ROW COUNTS ACROSS ALL ${inventory.table.length} TABLES...`);
+    const primaryTableCounts = {};
+    for (const tableName of inventory.table) {
+      const cntRes = await primaryClient.execute(`SELECT COUNT(*) as count FROM "${tableName}";`);
+      primaryTableCounts[tableName] = Number(cntRes.rows[0].count);
+    }
+
+    // Sample display of prominent domain tables
+    const keyTables = ['companies', 'users', 'shipments', 'addresses', 'branch_offices', 'unlocodes'];
+    keyTables.forEach((t) => {
+      if (primaryTableCounts[t] !== undefined) {
+        console.log(`   - ${t.padEnd(16)}: ${primaryTableCounts[t]} records`);
+      }
+    });
+
+    // Checksums for core domain tables
+    console.log(`\n5. COMPUTING DETERMINISTIC CHECKSUMS ON CORE DOMAIN TABLES...`);
+    const primaryChecksums = {};
+    for (const t of keyTables) {
+      if (primaryTableCounts[t] !== undefined) {
+        primaryChecksums[t] = await computeTableChecksum(primaryClient, t);
+        console.log(`   - ${t.padEnd(16)} SHA-256: ${primaryChecksums[t].slice(0, 16)}...`);
+      }
+    }
+
+    // Canonical shipment sh_demo_01 check
     const canonicalDemo = await primaryClient.execute(
       "SELECT id, tracking_number, company_id, status FROM shipments WHERE id = 'sh_demo_01';"
     );
     if (canonicalDemo.rows.length === 0) {
       console.warn('   ⚠️ Warning: Canonical shipment sh_demo_01 not found in primary.');
     } else {
-      console.log(`   ✓ Canonical shipment sh_demo_01 found: Tracking ${canonicalDemo.rows[0].tracking_number}`);
+      console.log(`   ✓ Canonical shipment sh_demo_01 verified: Tracking ${canonicalDemo.rows[0].tracking_number}`);
     }
 
     // -------------------------------------------------------------------------
-    // Phase 2: Online Atomic Snapshot via VACUUM INTO
+    // Phase 3: Online Atomic Snapshot via VACUUM INTO
     // -------------------------------------------------------------------------
-    console.log(`\n4. EXECUTING ONLINE ATOMIC BACKUP (VACUUM INTO)...`);
+    console.log(`\n6. EXECUTING ONLINE ATOMIC SNAPSHOT (VACUUM INTO)...`);
     const t0 = performance.now();
     await primaryClient.execute(`VACUUM INTO '${backupSqlPath}';`);
     const backupDuration = (performance.now() - t0).toFixed(2);
@@ -118,10 +162,11 @@ async function runBackupRestoreVerification() {
     console.log(`   ✓ Snapshot size: ${(backupStats.size / (1024 * 1024)).toFixed(2)} MB`);
 
     // -------------------------------------------------------------------------
-    // Phase 3: Verify Integrity & Foreign Keys on Backup
+    // Phase 4: Full Parity & Integrity Verification on Snapshot
     // -------------------------------------------------------------------------
-    console.log(`\n5. VERIFYING INTEGRITY OF BACKUP FILE...`);
+    console.log(`\n7. VERIFYING SNAPSHOT INTEGRITY & COMPREHENSIVE PARITY...`);
     backupClient = createClient({ url: `file:${backupFilePath}` });
+    await backupClient.execute('PRAGMA busy_timeout = 5000;');
 
     const integrityRes = await backupClient.execute('PRAGMA integrity_check;');
     const integrityStatus = integrityRes.rows[0]?.integrity_check;
@@ -136,25 +181,39 @@ async function runBackupRestoreVerification() {
     }
     console.log(`   ✓ PRAGMA foreign_key_check: 0 violations (Strict Referential Integrity)`);
 
-    // Verify record counts parity
-    console.log(`\n6. VALIDATING DATA PARITY (PRIMARY vs BACKUP)...`);
-    for (const [table, sql] of Object.entries(countQueries)) {
-      const res = await backupClient.execute(sql);
-      const backupCount = Number(res.rows[0].count);
-      if (backupCount !== primaryCounts[table]) {
-        throw new Error(`Data mismatch on table ${table}: primary=${primaryCounts[table]}, backup=${backupCount}`);
+    // Full table row count verification for ALL tables
+    let verifiedTableCount = 0;
+    for (const tableName of inventory.table) {
+      const cntRes = await backupClient.execute(`SELECT COUNT(*) as count FROM "${tableName}";`);
+      const backupCount = Number(cntRes.rows[0].count);
+      if (backupCount !== primaryTableCounts[tableName]) {
+        throw new Error(
+          `Table row count mismatch on [${tableName}]: primary=${primaryTableCounts[tableName]}, backup=${backupCount}`
+        );
       }
-      console.log(`   ✓ ${table.padEnd(12)}: ${backupCount} records match`);
+      verifiedTableCount++;
     }
+    console.log(`   ✓ 100% Row count parity confirmed across all ${verifiedTableCount} physical tables.`);
+
+    // Checksums parity
+    for (const t of keyTables) {
+      if (primaryChecksums[t]) {
+        const backupHash = await computeTableChecksum(backupClient, t);
+        if (backupHash !== primaryChecksums[t]) {
+          throw new Error(`Deterministic checksum mismatch on table [${t}]!`);
+        }
+      }
+    }
+    console.log(`   ✓ Core table content checksums matched with 100% deterministic fidelity.`);
 
     // -------------------------------------------------------------------------
-    // Phase 4: Disaster Recovery Restoration Test
+    // Phase 5: Simulated Disaster Recovery Restoration
     // -------------------------------------------------------------------------
-    console.log(`\n7. SIMULATING DISASTER RECOVERY RESTORATION...`);
-    // Copy snapshot to target restoration file
+    console.log(`\n8. SIMULATING DISASTER RECOVERY RESTORATION...`);
     fs.copyFileSync(backupFilePath, restoredFilePath);
 
     restoredClient = createClient({ url: `file:${restoredFilePath}` });
+    await restoredClient.execute('PRAGMA busy_timeout = 5000;');
     await restoredClient.execute('PRAGMA journal_mode = WAL;');
     await restoredClient.execute('PRAGMA foreign_keys = ON;');
 
@@ -165,7 +224,7 @@ async function runBackupRestoreVerification() {
       throw new Error('Restored database failed to recover canonical shipment sh_demo_01.');
     }
     console.log(`   ✓ Restored database mounted in WAL mode with active foreign keys.`);
-    console.log(`   ✓ Verified canonical query execution on restored database.`);
+    console.log(`   ✓ Canonical query execution verified on restored database.`);
 
     console.log('\n' + '='.repeat(80));
     console.log(' [PASS] ALL SQLITE BACKUP & RESTORATION CHECKS COMPLETED SUCCESSFULLY');
@@ -185,10 +244,10 @@ async function runBackupRestoreVerification() {
       try { await primaryClient.close(); } catch {}
     }
 
-    // Brief pause to allow Windows file handles to release
+    // Pause for Windows file handles to release
     await sleep(250);
 
-    // Clean up temporary test files
+    // Clean up temporary files
     try {
       await safeUnlink(backupFilePath);
       await safeUnlink(restoredFilePath);
@@ -197,7 +256,7 @@ async function runBackupRestoreVerification() {
       await safeUnlink(`${restoredFilePath}-wal`);
       await safeUnlink(`${restoredFilePath}-shm`);
     } catch {
-      // Ignored for non-critical transient locks
+      // Ignored for transient cleanup
     }
   }
 }

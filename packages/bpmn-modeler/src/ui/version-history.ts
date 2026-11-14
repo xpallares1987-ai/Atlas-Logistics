@@ -2,7 +2,7 @@
 import { loadDiagramInNewTab } from "../state/tab-manager";
 import { state } from "../state";
 import { getDiagramXml } from "../services/xml-service";
-import { on } from "@atlas/shared";
+import { on, escapeHTML } from "@atlas/shared";
 import { Toast } from "@atlas/ui";
 
 let container: HTMLElement | null = null;
@@ -110,9 +110,9 @@ export async function refreshVersions() {
           : new Date().toLocaleString();
         return `
       <div class="version-item" style="padding: 10px; border-bottom: 1px solid var(--border); margin-bottom: 5px;">
-        <div style="font-weight: 500;">${v.label || "Versión sin título"}</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);">${dateStr}</div>
-        <button class="btn btn-secondary btn-sm restore-btn" data-id="${v.id}" style="margin-top: 5px;">Restaurar</button>
+        <div style="font-weight: 500;">${escapeHTML(v.label || "Versión sin título")}</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHTML(dateStr)}</div>
+        <button class="btn btn-secondary btn-sm restore-btn" data-id="${escapeHTML(v.id)}" style="margin-top: 5px;">Restaurar</button>
       </div>
     `;
       })
