@@ -1,431 +1,279 @@
 # Atlas Logistics 🌍🚢✈️🚛
 
-Atlas Logistics es una **Super-App integral de Gestión de Cadena de Suministro (SCM) y Transporte Multimodal**. Centraliza operaciones de transitarios (_freight forwarders_), agentes de aduanas, aerolíneas, navieras y transportistas terrestres, con un backend Fastify, un host PWA en `packages/frontend`, librerías compartidas en `packages/shared` y `packages/ui`, y módulos especializados para comparación de tarifas, modelado BPMN y operaciones de almacén.
+Atlas Logistics is an **enterprise-grade, multimodal Supply Chain Management (SCM) Super-App and Freight Forwarding Operating System**. It centralizes mission-critical operations for international freight forwarders, customs brokers, ocean carriers, air cargo operators, and surface logistics providers. 
 
-![Atlas Logistics Status](https://img.shields.io/badge/Status-Active-success) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue) ![pnpm](https://img.shields.io/badge/pnpm-v10-orange) ![Fastify](https://img.shields.io/badge/Fastify-5.2+-emerald) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+The platform is architected as a modular monorepo combining a high-throughput Fastify backend, a modern Progressive Web App (PWA) host in `packages/frontend` (React 19, Vite, TailwindCSS), reusable design primitives in `packages/ui`, shared cryptographic and domain types in `packages/shared`, and specialized modules for freight rate comparison, visual BPMN process modeling, and warehouse digital twin operations.
 
----
-
-## 🚀 Arquitectura Local de Coste Cero ($0)
-
-Atlas Logistics se ejecuta **100% en local sin coste operativo de nube**, utilizando tecnologías embebidas de máximo rendimiento:
-
-- **Base de Datos:** Drizzle ORM + libSQL / SQLite de alto rendimiento con arquitectura embebida de persistencia normalizada (`party_crm_*`, `shipment_exec_*`, `transport_plan_*`, `wf_engine_*`).
-- **SCM Core & Workflow Engine:** Arquitectura orientada a dominio (DDD) con Outbox transaccional atómico, motor de workflows versionados con validación topológica de ciclos (DAG), y proyecciones CQRS BFF (Shipment 360 y Operations Cockpit).
-- **Backend API:** Fastify 5 con autenticación JWT (`@fastify/jwt`), control de acceso por roles/atributos (RBAC/ABAC) y WebSockets nativos (`ws://`).
-- **Background Jobs:** BullMQ + ioredis con fallback resiliente en memoria si Redis no está conectado.
-- **Monorepo:** Turborepo + pnpm workspaces con empaquetado modular (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/dashboard`, `@atlas/warehouse-ops`).
+![Atlas Logistics Status](https://img.shields.io/badge/Status-Active-success) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue) ![pnpm](https://img.shields.io/badge/pnpm-v10-orange) ![Fastify](https://img.shields.io/badge/Fastify-5.2+-emerald) ![SLSA Provenance](https://img.shields.io/badge/SLSA%20v1.0-Build%20Level%202-brightgreen) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
 ---
 
-## 📚 Documentación Técnica & Arquitectura
+## 🚀 Zero-Cost ($0 Cloud) Embedded Local Architecture
 
-Toda la documentación del proyecto está consolidada y categorizada en [`docs/`](docs/README.md):
+Atlas Logistics operates **100% locally with zero cloud subscription costs**, leveraging embedded, high-performance open technologies:
 
-- [**Arquitectura de la Plataforma SCM**](docs/architecture/SCM_PLATFORM_ARCHITECTURE.md) — Modelo de entidades, Outbox, runtime de eventos, motor de workflows y proyecciones CQRS.
-- [**Guía de Desarrollo Local**](docs/setup-guides/development-guide.md) — Puesta en marcha con `pnpm`, variables de entorno y pruebas.
-- [**Infraestructura Docker**](docs/setup-guides/docker-setup.md) — Perfiles de contenedores (default, observability, worker) y Docker CI.
-- [**Observabilidad & Monitorización**](docs/setup-guides/observability-monitoring.md) — Métricas de Prometheus, dashboards de Grafana y Pino logs.
-- [**Resolución de Problemas & Mantenimiento**](docs/setup-guides/troubleshooting-maintenance.md) — Diagnóstico rápido y mantenimiento preventivo.
-- [**Políticas de Seguridad & Backups**](docs/setup-guides/security-backup-policy.md) — Regla zero-leak, rotación de secretos y copias de SQLite.
-- [**Decisiones de Arquitectura (ADRs)**](docs/adr/) — Registro histórico de decisiones técnicas (ADR 0001 a 0008).
+- **Embedded Relational Persistence:** Drizzle ORM + SQLite / libSQL operating in Write-Ahead Logging (WAL) mode with mandatory foreign key enforcement (`PRAGMA foreign_keys = ON;`). Normalized domain schemas cover parties, transport planning, execution, and workflow state.
+- **SCM Core & Workflow Engine:** Domain-Driven Design (DDD) with an atomic Transactional Outbox pattern, versioned workflow runtime with topological DAG cycle detection, and high-performance CQRS BFF read models (Shipment 360 and Operations Cockpit).
+- **Backend API Server:** Fastify 5 with JWT authentication (`@fastify/jwt`), Role-Based / Attribute-Based Access Control (RBAC/ABAC), and real-time native WebSockets (`ws://`).
+- **Background Job Orchestration:** BullMQ + ioredis with transparent in-memory fallback for local single-process development without an external Redis instance.
+- **Monorepo Workspaces:** Turborepo + pnpm workspaces with clean modular boundaries (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/dashboard`, `@atlas/warehouse-ops`).
 
 ---
 
-## 🌟 Módulos y Capacidades de la Plataforma
+## 📦 Container Microservices & Cryptographic Provenance
 
-Atlas Logistics cubre todos los eslabones operativos, normativos y documentales del transporte internacional multimodal con interfaz premium **Dark Glassmorphism**:
+Atlas Logistics builds and publishes three distinct, lightweight container images to GitHub Container Registry (GHCR):
 
-### 1. 🚢 Transporte Marítimo & Contenedores
+| Container Image | Dockerfile | Purpose | SLSA Level |
+| :--- | :--- | :--- | :--- |
+| `ghcr.io/xpallares1987-ai/atlas-frontend:latest` | `Dockerfile` | PWA static client served via Nginx | Level 2 (Sigstore Cosign) |
+| `ghcr.io/xpallares1987-ai/atlas-backend:latest` | `Dockerfile.backend` | Fastify 5 REST API & WebSocket server | Level 2 (Sigstore Cosign) |
+| `ghcr.io/xpallares1987-ai/atlas-worker:latest` | `Dockerfile.worker` | BullMQ asynchronous background queue worker | Level 2 (Sigstore Cosign) |
 
-- **Sailing Schedules & Demurrage**: Buscador de itinerarios marítimos, control de _cut-off_ y monitor de demoras (_Demurrage & Detention_).
-- **Container Planner 3D**: Estiba y cubicaje tridimensional de contenedores marítimos con cálculo de centro de gravedad y distribución de cargas por eje.
-- **LCL Consolidation Engine**: Motor de consolidación grupal de carga fraccionada para contenedores compartidos.
-- **GlobeTracker**: Visualizador cartográfico de rutas marítimas y aéreas globales.
+### Supply Chain Security & Verification Gate
+Every container image published to GHCR is cryptographically attested with **SLSA v1.0 Build Provenance** generated via GitHub Actions OIDC and Sigstore Cosign. Downstream deployments are protected by a blocking `verify-provenance` CI/CD gate.
 
-### 2. 🛃 Despacho Aduanero & TARIC (DUA/SAD 54 Casillas)
-
-- **Declaración DUA / SAD 54 Casillas**: Formulario completo de importación/exportación con validación de sintaxis aduanera comunitaria.
-- **Motor Arancelario TARIC**: Cálculo determinista de derechos arancelarios, IVA a la importación y medidas antidumping según código HS (Nomenclatura Combinada).
-- **Control de Sanciones Internacionales**: Cribado de listas de sanciones comerciales UE/ONU por país de origen y operador.
-- **Exportación Telemática**: Generación de documentos DUA oficiales en XML y PDF.
-
-### 3. ✈️ Carga Aérea & IATA e-Freight (e-AWB)
-
-- **Airway Bills (MAWB / HAWB)**: Emisión y gestión de cartas de porte aéreo con verificación de **dígito de control IATA Modulo-7**.
-- **Tarificación Aérea 1:6000**: Conversión volumétrica automática según estándar IATA ($1\text{ m}^3 = 167\text{ kg}$).
-- **Cribado de Mercancías Peligrosas (IATA DGR)**: Detección y validación de baterías de litio (UN 3480 / UN 3481) e instrucciones de embalaje ICAO/IATA.
-- **Mensajería EDI e-Freight**: Generación de mensajes Cargo-XML y Cargo-IMP (FWB / FHL) y PDF oficial IATA AWB.
-
-### 4. 📜 Incoterms® 2020 & Contratación Comercial
-
-- **Matriz Oficial 11 Incoterms® 2020**: Asignación de costes y riesgos a lo largo de 10 etapas operativas (desde embalaje hasta descarga en destino).
-- **Normalizador de Valor en Aduana (DUA Casilla 46)**: Cálculo matemático de adiciones (flete, seguro) y deducciones (aranceles, transporte interior) bajo el Código Aduanero de la Unión (CAU Arts. 70–74).
-- **Reglas de Compatibilidad**: Detección de uso indebido de términos marítimos (`FOB`/`CIF`) en carga contenerizada y recomendación de términos multimodales (`FCA`/`CIP`).
-- **Generador de Contratos PDF**: Contratos comerciales de compraventa y transporte multimodal bilingües (Inglés/Español) con firma digital.
-
-### 5. ⚖️ Siniestros de Carga & Recobros Subrogatorios
-
-- **Límites Estatutarios Internacionales (DEG / SDR)**:
-  - **Marítimo (Reglas de La Haya-Visby)**: $\max(2,00\text{ DEG/kg}, \; 666,67\text{ DEG/bulto})$.
-  - **Aéreo (Convenio de Montreal 1999)**: $22,00\text{ DEG/kg}$ de responsabilidad objetiva.
-  - **Carretera (Convenio CMR)**: $8,33\text{ DEG/kg}$.
-  - **Ferrocarril (Convenio CIM/COTIF)**: $17,00\text{ DEG/kg}$.
-- **Cómputo de Plazos de Caducidad y Prescripción**: Alertas antes del vencimiento legal de protestas (3 a 14 días) y prescripción de acciones (1 a 2 años).
-- **Documentación Legal PDF**: Emisión automática de **Cartas de Reserva Formal al Porteador** y **Recibos de Finiquito y Subrogación de Derechos** (Art. 43 LCS).
-
-### 6. 🚛 Transporte por Carretera (FTL/LTL) & e-CMR
-
-- **Doble Estándar Documental**:
-  - **e-CMR de Ginebra (Protocolo IRU 24 Casillas)** para tráfico internacional.
-  - **Carta de Porte Nacional (Ley 15/2009 & RDL 3/2022)** con cláusula obligatoria de prohibición de carga/descarga por conductor y paralizaciones (> 1h).
-- **Calculadora ADR 2025 (Exención 1.1.3.6)**: Algoritmo de cómputo de los 1.000 puntos para determinar exención de placas naranja y carné ADR.
-- **Optimizador de Ruta y Tacógrafo (CE 561/2006)**: Control de capacidad de semirremolque (33 Euro-pallets / 24.000 kg) y cronograma de pausas reglamentarias de 45 minutos.
-
-### 7. 💰 Tesorería Multidivisa & Reconciliación de Porteadores (3-Way Match & CASS)
-
-- **Motor de Casación 3-Way Match**: Reconciliación automática entre Facturas de Porteadores (Aerolíneas/CASS, Navieras, Carretera), Cotizaciones internas (_Bookings_) y Documentos de transporte (B/L, AWB, CMR) con tolerancia configurable ($\pm 1\%$ o $\pm 5\text{ EUR/USD}$).
-- **Auditoría de Demoras y Sobrecargos**: Detección inmediata de recargos indebidos, paralizaciones no autorizadas y duplicidad de cargos BAF/THC.
-- **Monitor de Riesgo Cambiario (FX) y Flujo de Caja**: Matriz de divisas oficiales (EUR base vs USD, GBP, CNY, JPY, CHF, AED), cálculo de ganancias/pérdidas latentes y proyección de liquidez a 30/60/90 días.
-- **Documentación Legal PDF**:
-  - **Nota de Cargo / Carta de Disputa al Porteador (_Carrier Debit Note PDF_)** con solicitud de factura rectificativa a 14 días.
-  - **Estado Oficial de Liquidación y Orden de Pago (_Settlement Statement PDF_)** con retenciones CASS y firma digital de tesorería.
-
-### 8. ❄️ Cadena de Frío, Monitorización Reefer & Farma GDP (EN 12830)
-
-- **Perfiles Térmicos Regulados**: Cobertura integral de rangos Ultra-Cold ($-80^\circ\text{C}$ a $-60^\circ\text{C}$ Hielo Seco UN 1845), Congelado ($-25^\circ\text{C}$ a $-15^\circ\text{C}$), Refrigerado Farmacéutico ($+2^\circ\text{C}$ a $+8^\circ\text{C}$), Ambiente Controlado CRT ($+15^\circ\text{C}$ a $+25^\circ\text{C}$) y Perecederos Frescos ($+0^\circ\text{C}$ a $+4^\circ\text{C}$).
-- **Cálculo Cinético MKT (Ecuación de Arrhenius)**: Determinación exacta de la Temperatura Cinética Media ($\Delta H = 83,14\text{ kJ/mol}$) para cuantificar el impacto térmico real sobre la estabilidad farmacéutica.
-- **Física Térmica Determinista**:
-  - **Sublimación y Autonomía de Hielo Seco**: Cálculo de tasa de sublimación horaria y reserva en kg a la llegada estimada.
-  - **Genset Diésel Reefer**: Consumo de combustible ($\text{L/h}$) y autonomía del generador según diferencial térmico ($\Delta T$).
-- **Garantía de Calidad GDP & Certificados Oficiales PDF**:
-  - Dictamen formal de la Persona Responsable (RP / QP): `RELEASED_FOR_DISTRIBUTION`, `QUARANTINE_INVESTIGATION`, `REJECTED_DISPOSAL`.
-  - Emisión del **Certificado Oficial de Inspección de Cadena de Frío y Liberación Farmacéutica en PDF** (Directiva UE 2013/C 343/01, WHO TRS 961 y EN 12830).
-
-### 9. 🌿 Mecanismo de Ajuste en Frontera por Carbono (CBAM) & Alcance 3
-
-- **Reglamento (UE) 2023/956 & 2023/1773**: Cobertura integral de los 6 sectores regulados (Hierro y Acero, Aluminio, Cemento, Fertilizantes, Hidrógeno, Electricidad).
-- **Cálculo de Emisiones Integradas Directas e Indirectas**:
-  - Emisiones Directas (Alcance 1 de proceso) e Indirectas (Alcance 2 por electricidad).
-  - Cálculo de precursores complejos (_complex goods_, ej. palanquilla en perfiles de acero o alúmina en aluminio).
-  - Comparativa de factores verificados de instalación vs. Valores por Defecto (_Default Values_) de la Comisión Europea (DG TAXUD).
-- **Liquidación Financiera EU ETS & Deducciones en Origen (Art. 9)**:
-  - Valoración de certificados CBAM según cotización semanal de derechos EU ETS (€/tCO2e).
-  - Deducción automática de precios de carbono efectivamente satisfechos en el país de origen (ej. UK ETS, China National ETS).
-- **Exportación Telemática Oficial**:
-  - Generador de **XML Oficial para el Registro Transitorio CBAM** de la Comisión Europea (DG TAXUD).
-  - Emisión del **Certificado Oficial de Declaración de Emisiones Integradas y Obligaciones CBAM en PDF**.
-
-### 10. 🚆 Ferrocarril Intermodal & Corredores Transeuropeos (CIM / TEN-T)
-
-- **Convenio COTIF / Reglas Uniformes CIM (Formulario UIC 992)**: Gestión de expedientes de transporte internacional ferroviario y emisión oficial de la **Carta de Porte CIM en PDF**.
-- **Física de Trenes Bloque & Seguridad Operacional**:
-  - Límite de longitud máxima de convoy ($\le 750\text{ metros}$ estándar TEN-T Corredores Mediterráneo RFC6 y Atlántico RFC4).
-  - Cálculo determinista del **Porcentaje de Masa Frenada** ($\text{Brake } \% \ge 65\%$).
-  - Emisión del **Boletín Oficial de Composición de Tren y Frenado en PDF** (_Train Composition & Brake Sheet_).
-- **Auditoría de Cargas por Eje UIC (Norma EN 15528)**:
-  - Verificación estricta de límites de infraestructura: Categoría A (16.0 t/eje), B (18.0 t/eje), C (20.0 t/eje), D (22.5 t/eje).
-  - Compatibilidad de gálibo intermodal para **Autopistas Ferroviarias (semirremolques P400** sobre vagones canguro T3000e / Sdggmrss).
-- **Interoperabilidad Telemática ERA TAF-TSI**:
-  - Generador de mensajes **TAF-TSI XML** para el intercambio de datos de convoy y orden de expedición con Administradores de Infraestructura (Adif, SNCF Réseau, DB Netze).
-
-### 11. 🏛️ Depósito Aduanero, Zona Franca & Regímenes Especiales (CAU & AEAT)
-
-- **Regímenes Especiales del Código Aduanero de la Unión (CAU Arts. 210–242)**:
-  - **Depósito Aduanero (DA - Régimen 7100)**: Suspensión total de aranceles e IVA a la importación por tiempo ilimitado.
-  - **Depósito Distinto del Aduanero (DDA - Régimen 7600)**: Exención técnica de IVA conforme a la Ley 37/1992 para operaciones asimiladas a la importación.
-  - **Almacén de Depósito Temporal (ADT - Art. 149 CAU)**: Control y alertas automáticas de permanencia con límite estricto de 90 días.
-  - **Zona Franca (ZF)**: Exclusión perimetral aduanera y almacenamiento libre de tributos.
-- **Gestión Financiera de Avales Globales ante la AEAT (Arts. 89–98 CAU)**:
-  - Monitor en tiempo real de consumo y crédito disponible del aval bancario: $\text{Aval Disponible} = \text{Límite Aval} - \sum (\text{Arancel} + \text{IVA Suspendido})$.
-  - Simulador de liquidación fiscal por desvinculación a Libre Práctica (Régimen 4071) vs exención por Reexportación a tercer país (Régimen 3171).
-- **Libro Oficial de Registro Contable de Existencias & Manipulaciones Usuales (Art. 220 CAU)**:
-  - Registro cronológico inmutable de asientos contables auditables para inspecciones de la AEAT.
-  - Validador reglamentario de manipulaciones usuales (Anexo 71-03: etiquetado CE, reacondicionamiento, conservación, toma de muestras).
-  - Emisión oficial del **Documento de Vinculación a Depósito (DVD PDF)** y **Certificado Oficial de Existencias Bajo Control Aduanero en PDF**.
-
-### 12. 🚢 FuelEU Maritime, EU ETS Marítimo & Descarbonización de Flota (Reg. UE 2023/1805 & Dir. 2023/959)
-
-- **Reglamento (UE) 2023/1805 (FuelEU Maritime)**:
-  - Intensidad de Emisiones de Gases de Efecto Invernadero (GEI) de la energía utilizada a bordo ($g\text{CO}_2\text{eq/MJ}$) considerando ciclo de vida Well-to-Wake (WtW: Well-to-Tank + Tank-to-Wake).
-  - Trayectoria de reducción obligatoria: $-2\%$ en 2025–2029 ($89.34\text{ }g/\text{MJ}$), $-6\%$ en 2030, hasta $-80\%$ en 2050.
-  - Cálculo determinista del **Balance de Cumplimiento (Compliance Balance - CB)** y **Penalización FuelEU** ($2.400\text{ €/t VLSFO-equiv}$).
-  - Control de **Conexión Eléctrica en Muelle (OPS - Onshore Power Supply)** con penalización por no conexión ($1.50\text{ €/kWh}$).
-  - Mecanismos de flexibilidad: **Pooling de Flota (Art. 21)** para neutralizar multas compensando buques verdes (E-Metanol/Bio-LNG) con buques a VLSFO, **Banking** y **Borrowing** (1.10x).
-- **Directiva (UE) 2023/959 (Régimen de Comercio de Derechos de Emisión EU ETS Marítimo)**:
-  - Asignación de alcances: $100\%$ intra-UE y atraques; $50\%$ viajes extra-UE para $\text{CO}_2$, $\text{CH}_4$ (GWP 28) y $\text{N}_2\text{O}$ (GWP 265).
-  - Motor de **Recargo Ecológico Marítimo (Green BAF / ETS Surcharge)** por TEU y contenedor de 40 pies.
-- **Exportación Telemática & Documentos Oficiales en PDF**:
-  - Generador de **XML Oficial para el Sistema THETIS-MRV / FuelEU de la EMSA**.
-  - **Certificado Oficial de Cumplimiento FuelEU Maritime & Liquidación EU ETS en PDF** (formato de auditoría DNV / Bureau Veritas).
-  - **Informe de Travesía & Declaración de Combustible (BDN Audit Sheet) en PDF**.
-
-### 13. 🏦 Financiación Internacional & Créditos Documentarios (UCP 600 / URDG 758 / URC 522 / SWIFT MT700)
-
-- **Reglas Uniformes de la Cámara de Comercio Internacional (CCI / ICC)**:
-  - **Créditos Documentarios Comerciales (UCP 600 / eUCP v2.1)**: Emisión, confirmación bancaria y liquidación de cartas de crédito a la vista (_Sight_) o a plazo (_Deferred / Acceptance Usance_).
-  - **Garantías Bancarias a Primera Demanda & Standby L/C (URDG 758 / ISP98)**: Avales internacionales de cumplimiento de contrato (_Performance Bond_), pago anticipado (_Advance Payment Guarantee_) y licitación (_Bid Bond_).
-  - **Remesas Documentarias (URC 522)**: Cobranzas documentarias bajo Documentos contra Pago (D/P) o Documentos contra Aceptación (D/A).
-- **Motor Exhaustivo de Auditoría de Discrepancias UCP 600 / ISBP 745**:
-  - **Plazo de Presentación (Art. 14c & ISBP A19)**: Verificación del límite de 21 días naturales tras la fecha de embarque (_Shipped on Board_).
-  - **Tolerancia en Importes y Cantidades (Art. 30)**: Control de margen estricto de $+/-5\%$ (o $+/-10\%$ para importes aproximados).
-  - **Factura Comercial (Art. 18)**: Cotejo literal con el campo 45A del crédito y coincidencia estricta de divisa.
-  - **Conocimiento de Embarque (Arts. 19–27)**: Detección y bloqueo de B/L con reservas (_Claused / Unclean B/L_) y verificación de mención expresa _Clean on Board_.
-  - **Póliza / Certificado de Seguro (Art. 28)**: Cobertura mínima obligatoria del $110\%$ del valor CIF/CIP de factura y fecha de vigencia anterior o igual al embarque.
-- **Simulador Determinista de Comisiones Bancarias**:
-  - Cálculo de comisiones de apertura trimestral ($\ge 90\text{ días}$), diferencial de riesgo de confirmación por país/banco emisor, recargos por discrepancias y enmiendas MT707.
-- **Mensajería Telemática SWIFT & Documentación Oficial PDF**:
-  - Generador telemático de mensajes **SWIFT MT700** (Apertura de Crédito) y **SWIFT MT734** (Aviso de Rechazo y Discrepancias).
-  - **Dossier de Presentación Bancaria en PDF** (Inventario de documentos y carta de remisión bajo UCP 600).
-  - **Informe Oficial de Auditoría de Discrepancias UCP 600 / ISBP 745 en PDF**.
-  - **Certificado de Garantía Bancaria a Primera Demanda URDG 758 en PDF**.
-
-### 14. 🛡️ Operador Económico Autorizado (OEA / AEO) & Seguridad en Cadena de Suministro (CAU Art. 38-39 / C-TPAT / ISO 28000)
-
-- **Estatuto OEA & Cuestionario de Auto-Evaluación (CAE de la AEAT / DG TAXUD)**:
-  - Cobertura de modalidades: **OEAF** (Aduanas y Seguridad), **OEAC** (Simplificaciones Aduaneras) y **OEAS** (Seguridad y Protección).
-  - Scoring determinista de los 6 bloques oficiales bajo el Artículo 39 del CAU (Información general, Historial aduanero sin sanciones graves, Registros contables, Solvencia financiera, Cualificación profesional y Medidas de seguridad).
-  - Emisión oficial del **Dossier de Autoevaluación OEA (Cuestionario CAE de la AEAT) en PDF**.
-- **Protocolo de Inspección en 7 Puntos de Contenedores y Semirremolques (C-TPAT / OEAS)**:
-  - Verificación física obligatoria de los 7 puntos estructurales: Pared frontal, Lateral izquierdo, Lateral derecho, Suelo/travesaños, Techo exterior, Puertas/mecanismos de cierre y Tren de rodaje/chasis.
-  - Detección fitosanitaria de plagas agrícolas (_WDO check_) y manipulación de compartimentos ocultos.
-  - Emisión del **Acta Oficial de Inspección de Seguridad en 7 Puntos en PDF**.
-- **Trazabilidad de Precintos de Alta Seguridad ISO 17712 (Clase 'H')**:
-  - Libro registro inmutable de precintos de perno (_bolt_) y cable (_cable seal_) certificados Clase 'H'.
-  - Registro de cadena de custodia, colocación en muelle, verificación en puerto de llegada e informe de incidencias de manipulación (_Tamper Incident Report_).
-  - Emisión del **Certificado de Precintado ISO 17712 & Cadena de Custodia en PDF**.
-- **Homologación de Socios Comerciales & Matriz de Riesgo ISO 28000**:
-  - Evaluación y screening determinista de transportistas, agentes de aduanas, almacenes y empacadores (_Low / Medium / High Risk_).
-  - Emisión de la **Matriz Oficial de Evaluación de Riesgos de Proveedores Logísticos en PDF**.
-
-### 15. ⚓ Fletamentos Marítimos & Liquidación de Planchas y Demoras (BIMCO Gencon 2022 / NYPE 2015 / ASBATANKVO)
-
-- **Suite Integral de Pólizas de Fletamento**:
-  - **Fletamento por Viaje (Voyage Charter / BIMCO Gencon 2022 & ASBATANKVO)**: Contratos FIOST (_Free In and Out Stowed and Trimmed_), fletes por tonelada métrica, márgenes MOLOO/MOLCO (+/- 5%), tasas de carga/descarga y cómputo de planchas.
-  - **Fletamento por Tiempo (Time Charter / NYPE 2015)**: Alquiler por día de navegación, auditoría de velocidad y consumo (_Speed & Consumption_), off-hire por avería o desviación y compensación de búnkeres consumidos (VLSFO / MGO).
-- **Validación de Notice of Readiness (NOR) & Turn Time**:
-  - Verificación reglamentaria de días hábiles y horario de oficina (desplazamiento de avisos en domingo/sábado a lunes 08:00 UTC).
-  - Cómputo de vencimiento de tiempo de espera (_Turn Time / e.g. 12 horas_) o inicio anticipado si las operaciones comienzan antes.
-  - Cláusulas contractuales marítimas: **WIPON** (_Whether In Port Or Not_), **WIBON** (_Whether In Berth Or Not_), **WIFPON** (_Whether In Free Pratique Or Not_) y **WCCON** (_Whether Customs Cleared Or Not_).
-- **Cronología SOF (Statement of Facts) & Deducciones Automáticas**:
-  - Registro cronológico inmutable de escala: EOSP, fondeo, atraque (_all fast_), inicio de plancha, eventos operativos e interrupciones.
-  - Deducciones automáticas: Temporal y lluvia bajo días de trabajo con tiempo favorable (**WWD - Weather Working Days**), domingos y festivos bajo **SHEX** (_Sundays and Holidays Excluded_ - EIU vs UU) y **FHEX** (_Fridays and Holidays Excluded_), y averías de grúas/bodegas del buque.
-  - Regla Marítima Universal: _"Once on demurrage, always on demurrage"_ (cesan las deducciones de lluvia y festivos cuando se agota la plancha permitida).
-- **Liquidación de Demurrage & Despatch (ATS vs WTS)**:
-  - Cómputo exacto de días y horas de exceso (Demurrage a favor del armador) o tiempo ahorrado (Despatch a favor del fletador).
-  - Modalidades: **ATS** (_All Time Saved_ / 24h continuas) y **WTS** (_Working Time Saved_ / solo horas laborables de plancha).
-- **Documentación Legal Marítima PDF**:
-  - **Póliza de Fletamento / Fixture Recap PDF** (Gencon 2022 / NYPE 2015 con cláusulas BIMCO).
-  - **Estado de Hechos Oficial (Statement of Facts SOF PDF)** con cronología completa de escala y firma de capitán/agente.
-  - **Hoja de Liquidación de Planchas & Estado de Demoras/Despatch PDF** (_Laytime Calculation Sheet & Statement of Account_).
-
-### 16. 🚨 Avería Gruesa Marítima & Salvamento (York-Antwerp Rules 2016 / LOF 2024 / SCOPIC / LAB 77)
-
-- **Régimen Internacional York-Antwerp Rules (YAR 2016 / 1994)**:
-  - Soporte integral de siniestros mayores: Incendios a bordo y daños por extinción (Regla III), varadas voluntarias/involuntarias y esfuerzo de máquinas para reflotar (Regla VII), alijo y transbordo de carga en barcazas (Regla VIII), gastos de entrada, estancia y salida en puerto de refugio (Regla X), salarios de tripulación y combustible (Regla XI), y reparaciones provisionales (Regla XIV).
-- **Contratos de Salvamento Marítimo & Cláusula SCOPIC**:
-  - Gestión y liquidación pericial de salvamentos bajo **Lloyd's Open Form (LOF 2024 / 2020)** con cláusula de compensación especial ambiental **SCOPIC 2020** (_Special Compensation P&I Club Clause_) y acuerdos amistosos con empresas de salvamento (Smit, Boluda, Svitzer).
-- **Liquidación Determinista 4-en-1**:
-  - **Masa Activa Admisible**: Cómputo de sacrificios y gastos con **comisión estatutaria del 2.5%** sobre fondos desembolsados (Regla XX) e **intereses anuales CMI** (Regla XXI) desde la fecha del siniestro hasta la emisión del ajuste.
-  - **Masa Pasiva Contributoria**: Tasación de valores netos salvados en destino para Buque ($V_{\text{Sound}} - \text{Daño Particular} + \text{Made Good}$), Flete al Riesgo, Cargamento CIF comercial y Contenedores.
-  - **Tasa de Contribución & Matriz de Prorrateo**: $\text{Tasa } \% = (GA_{\text{Total}} / CV_{\text{Total}}) \times 100$, determinación de balances netos y conciliación de saldos deudores vs acreedores con margen cero de discrepancia.
-  - **Gestor de Garantías y Depósitos**: Emisión y validación de compromisos **Lloyd's Average Bond (Form LAB 77)**, Garantías de Aseguradores de Transporte (_Underwriter's Average Guarantee_) y depósitos en efectivo en cuentas fiduciarias (_Cash Deposits_ bajo Regla XXII).
-- **Paquete Documental Oficial Marítimo en PDF**:
-  - **Declaración Formal de Avería Gruesa & Protesta de Mar Notarial en PDF** (YAR 2016).
-  - **Lloyd's Average Bond (Formulario Oficial LAB 77 en PDF)** vinculante para consignatarios.
-  - **Garantía de Asegurador de Transportes (Average Guarantee en PDF)**.
-  - **Cuadro y Dictamen Pericial de Liquidación de Avería Gruesa en PDF** (_General Average Adjustment Statement & Apportionment Matrix_).
-
-### 17. ☣️ Gestión Multimodal de Mercancías Peligrosas (IMO IMDG Code Amdt 41-22 / ICAO-IATA DGR 66th / UNECE ADR 2025 / RID 2025)
-
-- **Marco Normativo Multimodal 4-en-1**:
-  - **Marítimo (IMO IMDG Code Enmienda 41-22)**: Matriz de segregación química (Cap. 7.2.4) para 18 clases y subclases, fichas de emergencia EmS (Fuego F-A..F-J / Derrame S-A..S-Z) y control de contaminantes marinos (MARPOL Anexo III).
-  - **Aéreo (OACI/ICAO TI & IATA DGR 66ª Edición)**: Instrucciones de embalaje de pasajeros vs. Avión Exclusivo de Carga (**CAO - Cargo Aircraft Only**), y clasificación estricta de **Baterías de Ion-Litio y Metal-Litio (UN 3480 / UN 3481 / UN 3090 / UN 3091)** bajo Secciones IA, IB y II con límite de Estado de Carga (**SoC $\le 30\%$**).
-  - **Carretera & Ferrocarril (UNECE ADR 2025 / RID 2025)**: Números de peligro Kemler, categorías de túneles (B a E) y cálculo determinista de la **Exención de 1.000 Puntos por Unidad de Transporte (ADR 1.1.3.6)**.
-- **Motores Analíticos Deterministas**:
-  - **Validador de Matriz de Segregación IMDG 7.2.4**: Evaluación de compatibilidad de todas las combinaciones $\binom{n}{2}$ en contenedor/vehículo con detección de códigos `0` (Compatible), `1` ("Lejos de"), `2` ("Separado de"), `3` ("Separado por compartimento"), `4` ("Separado longitudinalmente") y `X` ("Prohibido").
-  - **Calculadora de Exenciones LQ & EQ**: Control de Cantidades Limitadas (LQ - Cap. 3.4) y Exceptuadas (EQ E0..E5 - Cap. 3.5).
-  - **Generador de Fichas de Intervención & EPIs**: Asignación automática de protocolos de extinción, contención de fugas y Equipos de Protección Individual según sustancia UN.
-- **Paquete Documental Oficial Multimodal en PDF**:
-  - **Declaración Multimodal de Mercancías Peligrosas en PDF (IMO DGD / MDGF)** bajo IMDG Cap. 5.4 y ADR Cap. 5.4.
-  - **Declaración del Expedidor para Mercancías Peligrosas en PDF (IATA Shipper's DGD PDF)** con certificación OACI/IATA.
-  - **Ficha de Emergencia e Instrucciones Escritas en PDF (EmS Fire/Spillage Card)**.
-  - **Certificado Oficial de Embalaje y Estiba de Contenedor o Vehículo en PDF (IMDG 5.4.2 / ADR 5.4.2)**.
-
-### 18. 🛡️ Seguro de Transporte de Mercancías & Pólizas Flotantes (Institute Cargo Clauses ICC A/B/C 2009 / LMA / UCP 600 Art. 28)
-
-- **Suscripción Actuarial & Cláusulas del Instituto de Londres (LMA/IUA)**:
-  - **Institute Cargo Clauses (A) 'All Risks' (CL. 382)**, **ICC (B) 'Major Perils' (CL. 383)** e **ICC (C) 'Basic Perils' (CL. 384)**, más **ICC (Air) (CL. 387)**.
-  - Coberturas adicionales: **Institute War Clauses (Cargo)** y **Institute Strikes Clauses (Cargo)**.
-  - Exclusiones mandatorias: **Institute Cyber Attack Exclusion Clause (CL. 380)** y **Sanction Limitation Clause (JC 2010/014)**.
-- **Motor de Tarificación & Liquidación 4-en-1**:
-  - **Calculadora de Suma Asegurada (110% CIF / CIP)**: Cumplimiento estricto del Artículo 28 de las Reglas **UCP 600** para créditos documentarios e Incoterms® 2020 ($\text{Suma Asegurada} = \text{CIF Base} \times 1.10$).
-  - **Algoritmo Actuarial de Primas**: Ponderación determinista de factores de mercancía, modo de transporte, recargos por zonas de guerra/huelga, prima mínima e impuestos (**IPS 6% + Consorcio de Compensación de Seguros CCS 0.005%**).
-  - **Gestor de Pólizas Flotantes (_Open Cover_) & Bordereau**: Control de límites por buque/embarque (_conveyance limits_) y agregación mensual de aplicaciones para liquidación a aseguradoras.
-  - **Tasador Pericial de Siniestros & Averías Particulares**: Cómputo de depreciación de valor en destino ($(\text{Sano} - \text{Salvamento}) / \text{Sano} \times 100$) y deducción de franquicias fijas o porcentuales.
-- **Paquete Documental Oficial en PDF**:
-  - **Certificado Oficial de Seguro de Transporte de Mercancías en PDF (UCP 600 Art. 28)** con validez bancaria internacional.
-  - **Cuadro de Condiciones de Póliza Flotante en PDF (Open Cover Policy Schedule PDF)**.
-  - **Bordereau Mensual de Declaración de Expediciones de Seguros en PDF**.
-  - **Dictamen Pericial de Ajuste y Liquidación de Siniestro en PDF (Claim Settlement Statement PDF)**.
-
-### 19. ⚓ Logística de Graneles & Operaciones de Terminal Portuaria (IMSBC Code / BLU Code / IMO Grain Code / ASTM 54)
-
-- **Marco Normativo Multigranel 4-en-1**:
-  - **Cálculo Hidrostático de Calados (Draft Survey)**: Determinación legal de la masa de carga por desplazamiento hidrostático a partir de 6 lecturas de calado (Proa, Popa, Centro babor/estribor), corrección por deformación (_Quarter Mean / Mean of Means_), correcciones de asiento de 1º y 2º orden, corrección de densidad del agua ($\rho / 1.025$) y deducción de consumibles y lastre.
-  - **Código Marítimo Internacional de Cargas Sólidas a Granel (IMSBC Code)**: Control de cargas del Grupo A (susceptibles de licuefacción), Grupo B (peligro químico) y Grupo C; cálculo determinista del **Límite de Humedad Transportable (TML)** a partir del **Punto de Fluidez (FMP)** ($\text{TML} = \text{FMP} \times 0.90$) con **rechazo mandatorio automático** si la humedad real excede el TML.
-  - **Código Internacional para el Transporte sin Riesgo de Granos a Granel (IMO Grain Code / SOLAS Cap. VI Regla 9)**: Cálculo de momentos escorantes volumétricos por bodega, verificación de ángulo de escora estática residual ($\theta \le 12^\circ$), altura metacéntrica inicial ($GM_0 \ge 0.30\text{ m}$) y área bajo la curva $GZ$.
-  - **Sondeo de Tanques & Graneles Líquidos (ASTM-IP Petroleum Tables 54A/54B)**: Medición de espacio vacío (_Ullage_), deducción de agua libre (_Free Water Dip_), factor de corrección de volumen por temperatura (_VCF_) y cálculo de toneladas métricas en aire y vacío.
-- **Paquete Documental Oficial en PDF**:
-  - **Certificado Oficial de Cálculo de Calados & Masa de Carga en PDF (Draft Survey Report & Displacement Certificate PDF)**.
-  - **Declaración Oficial de Carga Sólida a Granel & Ensayo de Humedad TML en PDF (IMSBC Code Bulk Cargo Declaration PDF)**.
-  - **Plan de Carga & Estabilidad de Cereales en PDF (IMO Grain Code Stability Certificate PDF)**.
-  - **Informe de Sondeo de Tanques & Volumen Estándar en PDF (Tanker Ullage Survey ASTM Table 54 PDF)**.
-
-### 20. 🏭 Gestión de Almacén & Gemelo Digital 3D
-
-- **Warehouse Digital Twin**: Visualización 3D y 2.5D de andenes de carga, zonas de almacenamiento (racks), tareas de fulfillment y control de tráfico de pallets.
-
-### 21. 📚 Enciclopedia Logística & Wiki PWA Nativa (/wiki)
-
-- **Manuales Operativos & Normativas Multimodales**:
-  - **Guía Oficial DUA/SAD 54 Casillas**: Casilla 46 (Valor Estadístico) bajo CAU Arts. 70-74, Casilla 47 (liquidación de aranceles TARIC, IVA y antidumping) y regímenes aduaneros H1/H2/I1/A1.
-  - **Matriz Incoterms® 2020**: Asignación de costes y riesgos, y sustitución obligatoria de FOB/CIF por FCA/CIP en transporte marítimo de contenedores.
-  - **Demurrage, Detention & Storage**: Días libres, escalones tarifarios diarios de navieras y protocolos FMC de arbitraje de costes.
-  - **IATA e-Freight**: Algoritmo de verificación Modulo-7 para MAWB, relación volumétrica 1:6000 ($1\text{ m}^3 = 167\text{ kg}$) y mercancías peligrosas DGR para baterías de ion-litio (UN 3480 / UN 3481).
-  - **Carretera CMR & EN 12195**: Límite de indemnización legal de $8,33\text{ DEG/kg}$ y fuerzas de inercia longitudinales y transversales.
-- **Buscador Fuzzy Instantáneo & Atajo Global (`Ctrl+K`)**:
-  - Búsqueda en tiempo real indexada por títulos, acrónimos, casillas aduaneras y etiquetas.
-  - **Glosario Internacional A-Z**: Diccionario enciclopédico de acrónimos regulados (DEG/SDR, TEU, FEU, BAF, THC, T3, DUA, TARIC, VGM, DGR, AWB, CMR, BL, OEA, CBAM, GLEC).
-  - **Exportador a PDF Imprimible**: Generación vectorial de manuales operativos y certificados normativos en PDF.
+To verify image provenance on any workstation:
+```bash
+gh attestation verify oci://ghcr.io/xpallares1987-ai/atlas-backend:latest \
+  --repo xpallares1987-ai/Atlas-Logistics \
+  --signer-workflow xpallares1987-ai/Atlas-Logistics/.github/workflows/ci.yml
+```
+*(For complete verification instructions, see [docs/setup-guides/container-provenance-verification.md](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/container-provenance-verification.md)).*
 
 ---
 
-## 🏗️ Estructura del Monorepo
+## 📚 Technical Documentation Hub
+
+The project's technical documentation is structured according to the **Diátaxis Documentation Framework** across four quadrants in [`docs/`](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/README.md):
+
+- [**SCM Platform Architecture**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/architecture/SCM_PLATFORM_ARCHITECTURE.md) — Aggregate models, transactional outbox, event runtime, and CQRS projections.
+- [**Local Development Walkthrough**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/development-guide.md) — Setup with `pnpm`, environment variables, migration execution, and test suites.
+- [**Docker & Multi-Container Infrastructure**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/docker-setup.md) — Execution profiles (default, observability, worker) and BuildKit caching.
+- [**Station Context & Navigation Cockpit**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/station-context-cockpit-guide.md) — Enterprise forwarding station hierarchy, role-based station switching, and dynamic navigation.
+- [**Observability & Telemetry**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/observability-monitoring.md) — Prometheus metrics (`/metrics`), Grafana dashboards, and structured Pino logging.
+- [**Security & Zero-Leak Policy**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/setup-guides/security-backup-policy.md) — Zero-leak pre-commit guard, credential isolation, and SQLite online backup routines.
+- [**Architectural Decision Records (ADRs)**](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/adr/) — Complete historical registry of architectural standards (ADR 0001 through ADR 0022).
+
+---
+
+## 🌟 Platform Modules & Regulatory Capabilities
+
+Atlas Logistics provides end-to-end operational, regulatory, and documentary coverage for multimodal international freight transport, styled with a high-contrast **Dark Glassmorphism** interface:
+
+### 1. 🚢 Ocean Shipping & Container Logistics
+- **Sailing Schedules & Demurrage**: Ocean schedule finder, cargo cut-off milestone tracking, and FMC 46 CFR Part 541 compliant Demurrage & Detention auditing.
+- **3D Container Packing & Stowage**: Volumetric 3D cargo packing engine with Center of Gravity (CoG) balancing and axle weight distribution calculations.
+- **LCL Consolidation Engine**: Cargo consolidation optimizer for shared container loads.
+- **GlobeTracker**: Real-time interactive globe visualizer for maritime and air transport trajectories.
+
+### 2. 🛃 Customs Brokerage & TARIC Clearance (54-Box SAD/DUA)
+- **54-Box Single Administrative Document (SAD/DUA)**: Complete import/export declaration workbench with European customs syntax validation.
+- **TARIC Duty Engine**: Deterministic calculation of import duties, VAT, and anti-dumping measures based on Harmonized System (HS) nomenclature.
+- **International Sanctions Screening**: Commercial trade sanctions screening against EU/UN denied party lists.
+- **Telematic Export**: Official DUA documents generated in standardized XML and PDF formats.
+
+### 3. ✈️ Air Freight & IATA e-Freight (e-AWB)
+- **Air Waybills (MAWB / HAWB)**: Generation and management of air waybills validated via **IATA Modulo-7 check-digit algorithms**.
+- **IATA 1:6000 Volumetric Rating**: Automatic chargeable weight calculation based on standard air freight density ($1\text{ m}^3 = 167\text{ kg}$).
+- **Dangerous Goods Screening (IATA DGR)**: Lithium battery classification (UN 3480 / UN 3481) and ICAO packaging instruction compliance.
+- **EDI e-Freight Messaging**: Cargo-XML and Cargo-IMP (FWB / FHL) messaging alongside official IATA AWB PDFs.
+
+### 4. 📜 Incoterms® 2020 & Commercial Contracting
+- **Official 11 Incoterms® 2020 Matrix**: Allocation of operational costs and risk transfer points across 10 distinct transport stages.
+- **Customs Valuation Normalizer (DUA Box 46)**: Mathematical calculation of freight/insurance additions and duty deductions under Union Customs Code (UCC Arts. 70–74).
+- **Maritime Misuse Gating**: Identification of improper maritime terms (`FOB`/`CIF`) for containerized cargo and automated recommendation of multimodal equivalents (`FCA`/`CIP`).
+- **Contract Generator**: Bilingual (English/Spanish) commercial sales and carriage contracts with digital signature blocks.
+
+### 5. ⚖️ Cargo Claims & Statutory Subrogation (SDR / DEG)
+- **Statutory Liability Limits (SDR / DEG)**:
+  - **Ocean (Hague-Visby Rules)**: $\max(2.00\text{ SDR/kg}, \; 666.67\text{ SDR/package})$.
+  - **Air (Montreal Convention 1999)**: $22.00\text{ SDR/kg}$ strict liability limit.
+  - **Road (CMR Convention)**: $8.33\text{ SDR/kg}$.
+  - **Rail (COTIF / CIM)**: $17.00\text{ SDR/kg}$.
+- **Prescription & Notification Calendars**: Automated notifications before formal claim protest windows (3 to 14 days) and legal action statutory deadlines (1 to 2 years) expire.
+- **Legal PDF Documentation**: Automatic generation of **Carrier Formal Reservation Letters** and **Subrogation / Discharge Receipts**.
+
+### 6. 🚛 Surface Transport (FTL/LTL) & e-CMR
+- **Dual Regulatory Framework**:
+  - **Geneva e-CMR (IRU 24-box protocol)** for cross-border traffic.
+  - **National Consignment Note** incorporating mandatory driver loading prohibitions and delay surcharges (>1h).
+- **ADR 2025 Calculator (Exemption 1.1.3.6)**: Algorithmic calculation of the 1,000-point threshold for orange plate and ADR driver license exemptions.
+- **Tachograph & Route Optimizer (EC 561/2006)**: Semi-trailer volume capacity planning (33 Euro-pallets / 24,000 kg) and mandatory 45-minute driver rest schedules.
+
+### 7. 💰 Multi-Currency Treasury & Carrier Reconciliation (3-Way Match & CASS)
+- **Automated 3-Way Matching Engine**: Reconciliation between carrier invoices (Airlines/CASS, Shipping Lines, Trucking), internal booking quotes, and transport documents (B/L, AWB, CMR) with configurable tolerances ($\pm 1\%$ or $\pm 5\text{ EUR/USD}$).
+- **Demurrage & Surcharge Auditing**: Immediate identification of unjustified detention charges, unauthorized laytime penalties, and duplicate BAF/THC surcharges.
+- **FX Currency Risk & Cash Flow Forecasting**: Multi-currency valuation matrix (EUR base vs USD, GBP, CNY, JPY, CHF, AED), latent P&L calculations, and 30/60/90-day liquidity projections.
+- **Legal PDF Documentation**: Carrier Debit Notes with 14-day rectification notices and Official Settlement Statements.
+
+### 8. ❄️ Cold Chain, Reefer Monitoring & GDP Pharma (EN 12830)
+- **Regulated Thermal Profiles**: Full coverage of Ultra-Cold ($-80^\circ\text{C}$ to $-60^\circ\text{C}$ Dry Ice UN 1845), Frozen ($-25^\circ\text{C}$ to $-15^\circ\text{C}$), Refrigerated Pharma ($+2^\circ\text{C}$ to $+8^\circ\text{C}$), Controlled Room Temperature CRT ($+15^\circ\text{C}$ to $+25^\circ\text{C}$), and Fresh Perishables ($+0^\circ\text{C}$ to $+4^\circ\text{C}$).
+- **Mean Kinetic Temperature (MKT - Arrhenius Equation)**: Kinetic temperature calculation ($\Delta H = 83.14\text{ kJ/mol}$) to evaluate actual thermal stress on pharmaceutical stability.
+- **Thermal Physics Simulation**: Dry ice sublimation decay rates and diesel generator (genset) fuel consumption modeling.
+- **GDP Inspection & Release Certificates**: Formal Responsible Person (RP / QP) disposition reports conforming to EU GDP Directives and WHO TRS 961.
+
+### 9. 🌿 Carbon Border Adjustment Mechanism (CBAM) & Scope 3
+- **Regulation (EU) 2023/956 & 2023/1773**: Complete coverage across all 6 regulated sectors (Iron & Steel, Aluminum, Cement, Fertilizers, Hydrogen, Electricity).
+- **Embedded Emissions Calculation**: Direct (Scope 1) and indirect electricity (Scope 2) emissions, complex precursor calculations, and verified vs default factor comparisons.
+- **EU ETS Financial Settlement**: CBAM certificate valuation based on weekly EU ETS carbon auctions with automatic origin carbon price deductions (e.g. UK ETS).
+- **Official Exports**: DG TAXUD compliant XML generator for the EU CBAM Transitional Registry and formal PDF Declarations of Embedded Emissions.
+
+### 10. 🚆 Intermodal Rail Freight & Trans-European Networks (CIM / TEN-T)
+- **COTIF / CIM Uniform Rules (UIC 992)**: International rail freight dossier management and official CIM Consignment Note generation.
+- **Block Train Physics & Operational Safety**: Maximum train length verification ($\le 750\text{ m}$ TEN-T standard), brake percentage computation ($\ge 65\%$), and Train Composition & Brake Sheets.
+- **UIC Axle Load Auditing (EN 15528)**: Track category limits (A to D 22.5 t/axle) and P400 intermodal pocket wagon compatibility checks.
+- **ERA TAF-TSI Telematics**: XML message generation for European rail infrastructure managers (Adif, SNCF Réseau, DB Netze).
+
+### 11. 🏛️ Customs Warehouses, Free Zones & Special Procedures (UCC)
+- **Special Customs Procedures (UCC Arts. 210–242)**: Customs Warehousing (Type 7100), Non-Customs Warehousing (Type 7600), Temporary Storage Facilities (ADT 90-day limit), and Free Zones (ZF).
+- **AEAT Financial Guarantee Management**: Real-time available bank guarantee monitoring ($\text{Available Credit} = \text{Limit} - \sum (\text{Suspended Duty} + \text{Suspended VAT})$).
+- **Stock Ledger & Usual Forms of Handling**: Immutable chronologically sequenced stock records and Annex 71-03 handling compliance checks.
+
+### 12. 🚢 FuelEU Maritime, Maritime EU ETS & Decarbonization
+- **Regulation (EU) 2023/1805 (FuelEU Maritime)**: Well-to-Wake (WtW) greenhouse gas intensity modeling ($g\text{CO}_2\text{eq/MJ}$), mandatory reduction curves ($-2\%$ in 2025 up to $-80\%$ in 2050), and Compliance Balance (CB) penalties ($2,400\text{ €/t VLSFO-equiv}$).
+- **Onshore Power Supply (OPS)**: Port shore power connection logging with non-compliance penalty calculations ($1.50\text{ €/kWh}$).
+- **Flexibility Mechanisms**: Fleet Pooling (Art. 21), Banking, and Borrowing multipliers.
+- **Directive (EU) 2023/959 (Maritime EU ETS)**: 100% intra-EU and 50% extra-EU scope allocations for $\text{CO}_2$, $\text{CH}_4$, and $\text{N}_2\text{O}$ emissions, plus TEU Green BAF surcharge engines.
+- **Official Exports**: THETIS-MRV / FuelEU XML generator and official DNV / Bureau Veritas audit-ready PDF certificates.
+
+### 13. 🏦 Trade Finance & Documentary Credits (UCP 600 / SWIFT MT700)
+- **ICC Uniform Rules**: Commercial Letters of Credit (UCP 600 / eUCP v2.1), Demand Guarantees & Standby L/Cs (URDG 758 / ISP98), and Documentary Collections (URC 522).
+- **UCP 600 / ISBP 745 Discrepancy Auditing Engine**: Strict verification of the 21-day presentation rule, $+/-5\%$ tolerances, exact invoice descriptions, clean bills of lading, and 110% CIF/CIP insurance policies.
+- **SWIFT Messaging**: Structured generation of **SWIFT MT700** (Issue of a Documentary Credit) and **SWIFT MT734** (Advice of Refusal) payloads.
+
+### 14. 🛡️ Authorized Economic Operator (AEO/C-TPAT / ISO 28000)
+- **AEO Self-Assessment (UCC Arts. 38–39)**: Deterministic scoring across all 6 statutory criteria for AEOF, AEOC, and AEOS authorizations.
+- **C-TPAT 7-Point Container Inspection**: Mandatory 7-point physical inspection protocol for trailers and ocean containers with pest detection checks.
+- **ISO 17712 High-Security Seals (Class 'H')**: Immutable seal log, chain of custody tracking, and tamper incident reporting.
+
+### 15. ⚓ Charterparties & Laytime Calculation (BIMCO Gencon / NYPE)
+- **Voyage & Time Charter Policies**: BIMCO Gencon 2022, NYPE 2015, and ASBATANKVO support with FIOST clauses, MOLOO margins, and bunker off-hire adjustments.
+- **Notice of Readiness (NOR) & Turn Time**: Working day validations, 12-hour turn time lapses, and maritime conditions (**WIPON**, **WIBON**, **WIFPON**, **WCCON**).
+- **Statement of Facts (SOF) & Demurrage/Despatch**: Weather Working Days (**WWD**), Sundays/Holidays Excluded (**SHEX**), and All Time Saved (**ATS**) vs Working Time Saved (**WTS**) calculations.
+
+### 16. 🚨 General Average & Maritime Salvage (York-Antwerp Rules 2016)
+- **York-Antwerp Rules (YAR 2016)**: Calculation of sacrifices and extraordinary expenditures with statutory 2.5% commission (Rule XX) and CMI annual interest (Rule XXI).
+- **Lloyd's Open Form (LOF 2024 / SCOPIC)**: Salvage management with special environmental compensation clauses.
+- **General Average Adjustment**: Contributory value appraisals for ship, freight at risk, and commercial CIF cargo, accompanied by Lloyd's Average Bond (Form LAB 77) generation.
+
+### 17. ☣️ Dangerous Goods Multimodal Management (IMDG / ICAO / ADR 2025)
+- **Multimodal Regulatory Matrix**: IMO IMDG Code Amdt 41-22, ICAO/IATA DGR 66th, UNECE ADR 2025, and RID 2025.
+- **Chemical Segregation Table 7.2.4**: Automated pairwise $\binom{n}{2}$ segregation check for container compatibility.
+- **Lithium Battery Rules**: Strict State of Charge limits ($\text{SoC} \le 30\%$) and Section IA/IB/II packaging rules for UN 3480 / UN 3481.
+- **Official Documentation**: Multimodal Dangerous Goods Declarations (IMO DGD / MDGF) and IATA Shipper's Declarations.
+
+### 18. 🛡️ Cargo Transit Insurance & Open Cover (ICC A/B/C 2009)
+- **Institute Cargo Clauses**: ICC (A) All Risks, ICC (B) Major Perils, ICC (C) Basic Perils, and ICC Air.
+- **Actuarial Rating & Sums Insured**: Strict 110% CIF/CIP valuation ($\text{Sum Insured} = \text{CIF Base} \times 1.10$) and war/strike risk rating.
+- **Open Cover Management**: Monthly bordereau generation and average claim adjustments.
+
+### 19. ⚓ Bulk Logistics & Port Terminal Operations (IMSBC / BLU / ASTM 54)
+- **Draft Survey Hydrostatics**: 6-point draft displacement calculation with quarter-mean deflection and density adjustments.
+- **IMSBC Solid Bulk Code**: Transportable Moisture Limit (TML) calculation ($\text{TML} = \text{FMP} \times 0.90$) with mandatory automated loading rejection if moisture exceeds TML.
+- **Grain Stability (IMO Grain Code)**: Volumetric heeling moment calculations and residual angle of heel verification ($\theta \le 12^\circ$).
+- **Liquid Bulk Ullage Survey (ASTM Tables 54A/54B)**: Free water deduction, volume correction factors (VCF), and metric ton conversions.
+
+### 20. 🏭 Warehouse Management & 3D Digital Twin
+- **Interactive 3D / 2.5D Warehouse Visualizer**: Real-time mapping of dock doors, storage racks, fulfillment tasks, and pallet inventory.
+
+### 21. 📚 Logistics Encyclopedia & In-App Wiki (`/wiki`)
+- **Operational Handbooks & Fuzzy Search (`Ctrl+K`)**: Comprehensive documentation of customs boxes, Incoterms rules, and multimodal regulations searchable instantaneously.
+
+---
+
+## 🏗️ Monorepo Workspaces Layout
 
 ```text
 Atlas-Logistics/
 ├── packages/
-│   ├── frontend/           # Host PWA principal (React 19 + Vite + TailwindCSS)
-│   ├── dashboard/          # Vistas operacionales y analítica
-│   ├── rate-comparer/      # Motor de cotizaciones y comparación de tarifas
-│   ├── bpmn-modeler/       # Modelador visual de procesos BPMN 2.0
-│   ├── warehouse-ops/      # Micro-Frontend de almacén y andenes
-│   ├── ui/                 # Sistema de diseño y componentes Glassmorphism
-│   └── shared/             # Tipos TypeScript, esquemas Zod y criptografía segura
-├── src/                    # Backend API Fastify, WebSockets, Drizzle ORM
-│   ├── routes/             # Endpoints REST (auth, customs, air-cargo, incoterms, claims, road-freight)
-│   ├── services/           # Motores deterministas de cálculo y validación
-│   ├── db/                 # Esquemas Drizzle, migraciones y seed masivo
-│   └── bpm/workers/        # Workers de tareas en background (BullMQ)
-├── drizzle/                # Migraciones SQL generadas por Drizzle Kit
-└── tests/
-    └── e2e/                # Suites de pruebas Playwright automatizadas
+│   ├── frontend/           # Primary PWA client host (React 19 + Vite + TailwindCSS)
+│   ├── dashboard/          # Operations dashboard & telemetry visualizations
+│   ├── rate-comparer/      # Freight rate parsing, rating, and carrier comparison
+│   ├── bpmn-modeler/       # Visual BPMN 2.0 workflow modeling and execution engine
+│   ├── warehouse-ops/      # Warehouse operations & 3D dock management
+│   ├── ui/                 # Shared glassmorphism design system & atomic UI components
+│   └── shared/             # TypeScript contracts, Zod schemas, WebCrypto, UN/LOCODE cache
+├── src/                    # Backend API server (Fastify 5, Drizzle ORM, WebSockets)
+│   ├── routes/             # REST API routes (auth, customs, air, ocean, claims, edi)
+│   ├── services/           # Deterministic calculation engines & domain services
+│   ├── db/                 # Drizzle schemas, migrations, and deterministic seeders
+│   └── bpm/workers/        # BullMQ asynchronous queue workers
+├── drizzle/                # Snapshot migration folders generated by Drizzle Kit
+├── docs/                   # Diátaxis technical documentation hub (Tutorials, How-To, Ref, Arch)
+└── tests/                  # Unit, integration, and Playwright end-to-end test suites
 ```
 
 ---
 
-## 🚀 Inicio Rápido
+## 🚀 Quick Start Guide
 
-### Requisitos Previos
+### Prerequisites
+- **Node.js**: `v22.x` (LTS recommended) or `v24.x`
+- **pnpm**: `v10.x` or higher (enable via `corepack enable pnpm`)
+- **Git**: Installed with GPG or SSH commit signing configured
 
-- **Node.js**: >= 20.0 (recomendado 22+)
-- **pnpm**: >= 10.0
+### Step-by-Step Setup
 
-### Instalación y Puesta en Marcha
-
-1. **Clonar e Instalar:**
-
+1. **Clone the Repository:**
 ```bash
 git clone https://github.com/xpallares1987-ai/Atlas-Logistics.git
 cd Atlas-Logistics
+```
+
+2. **Install Workspace Dependencies:**
+```bash
 pnpm install
 ```
 
-2. **Compilar el Monorepo:**
-
+3. **Initialize Environment Variables:**
 ```bash
-pnpm run build
+cp .env.example .env.local
 ```
 
-3. **Migrar y Poblar la Base de Datos:**
-
+4. **Migrate and Seed the Database:**
 ```bash
+# Execute Drizzle migrations on data/dev.db
 pnpm run db:migrate
+
+# Seed deterministic domain entities (including canonical shipment sh_demo_01)
 pnpm run db:seed
 ```
 
-4. **Iniciar en Modo Desarrollo:**
-
+5. **Start the Development Servers:**
 ```bash
 pnpm run dev
 ```
-
-_El host frontend y el backend arrancan juntos; por defecto el frontend usa Vite en `3000/3002` según el paquete y el backend Fastify escucha en `3001`._
-
-### Scripts útiles
-
-| Comando                                    | Qué hace                             |
-| ------------------------------------------ | ------------------------------------ |
-| `pnpm run build`                           | Compila el monorepo completo         |
-| `pnpm run test`                            | Ejecuta la suite Vitest              |
-| `pnpm run lint`                            | Ejecuta ESLint en todo el repo       |
-| `pnpm run dev`                             | Arranca backend y apps de desarrollo |
-| `pnpm --filter @atlas/frontend type-check` | Valida el frontend principal         |
-| `npx playwright test`                      | Ejecuta E2E                          |
+*The Vite frontend host listens on `http://localhost:3000` (or configured port) and the Fastify backend API listens on `http://localhost:3001`.*
 
 ---
 
-## 🗄️ Gestión de Entornos de Base de Datos (Dev vs. Prod)
+## 🛠️ Common Operations & Quality Scripts
 
-Atlas Logistics cuenta con aislamiento nativo de bases de datos por entorno mediante resolución dinámica en Drizzle ORM:
-
-| Entorno                        | Archivo / Destino por Defecto                               | Variables de Entorno  | Comandos de Operación                                                          |
-| ------------------------------ | ----------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------ |
-| **Desarrollo** (`development`) | `file:atlas-erp-v2.db`                                      | `.env.local` / `.env` | `pnpm run db:migrate`<br>`pnpm run db:seed`<br>`pnpm run dev`                  |
-| **Producción** (`production`)  | `file:atlas-erp-prod.db` _(o `DATABASE_URL` personalizada)_ | `.env.production`     | `pnpm run db:migrate:prod`<br>`pnpm run db:seed:prod`<br>`pnpm run start:prod` |
-
-### Puesta en Marcha en Producción:
-
-```bash
-# 1. Copiar y configurar el archivo de variables de producción
-cp .env.production.example .env.production
-
-# 2. Aplicar migraciones sobre la base de datos de producción
-pnpm run db:migrate:prod
-
-# 3. Poblar triggers y usuario administrador inicial
-pnpm run db:seed:prod
-
-# 4. Iniciar el servidor Backend en modo producción
-pnpm run start:prod
-# O:
-pnpm start
-```
-
-> **Tip para Despliegues Remotos / Turso:** Puedes conectar Atlas Logistics a una base de datos distribuida en la nube especificando `DATABASE_URL=libsql://tu-cluster.turso.io` y `DATABASE_AUTH_TOKEN=tu-token` en `.env.production`.
-
-### Estado del código
-
-- Los paquetes públicos exportan utilidades de análisis, cifrado, logística, almacenamiento y sincronización desde `packages/shared`.
-- `packages/ui` concentra componentes reutilizables, hooks visuales y primitivas de diseño.
-- `packages/rate-comparer` expone lógica compartida para comparación de tarifas, parsing, cálculo y UI de comparador.
-- `src/app.ts` es el punto de ensamblado del backend Fastify, con registro de rutas, middleware de auth y middleware de seguridad.
+| Command | Utility | When to Run |
+| :--- | :--- | :--- |
+| `pnpm run build` | Compiles root backend and all workspace packages | Prior to release |
+| `pnpm test` | Runs the full Vitest unit and integration test suite | Before every commit |
+| `pnpm vitest run tests/scm-*` | Executes SCM domain engine integration tests | SCM development |
+| `pnpm run audit:ddl-drift` | Verifies Drizzle migration consistency & schema parity | Database changes |
+| `pnpm run check:file-sizes` | Enforces the <1,000 line modularity limit on page files | Frontend development |
+| `pnpm run lint` | Runs ESLint across root and monorepo packages | Prior to commits |
+| `pnpm run audit:leaks:staged`| Scans staged files for confidential tokens or leaks | Pre-commit hook & CI |
+| `npx playwright test` | Runs automated end-to-end browser test suites | Pre-deployment |
 
 ---
 
-## 🧪 Pruebas Automatizadas
+## 🗄️ Database Environment Isolation
 
-```bash
-# Suite completa Vitest (129 archivos, 762 tests unitarios e integrados)
-pnpm test
+Atlas Logistics utilizes strict database file isolation per environment:
 
-# Pruebas End-to-End con Playwright
-npx playwright test
-```
+| Environment | Database Target | Configuration File | Management Commands |
+| :--- | :--- | :--- | :--- |
+| **Development** (`development`) | `file:data/dev.db` | `.env.local` | `pnpm run db:migrate`<br>`pnpm run db:seed`<br>`pnpm run dev` |
+| **Production** (`production`) | `file:/app/data/prod.db` *(or distributed `libsql://`)* | `.env.production` | `pnpm run db:migrate`<br>`pnpm run db:seed`<br>`pnpm run start:prod` |
 
 ---
 
-## 📄 Licencia
+## 📄 License
 
-Este proyecto está licenciado bajo los términos de la Licencia MIT.
+This project is licensed under the terms of the **MIT License**.

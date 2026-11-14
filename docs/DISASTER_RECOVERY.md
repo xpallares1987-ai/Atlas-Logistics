@@ -116,98 +116,67 @@ kubectl patch service backend -n atlas-logistics -p \
 
 ---
 
-## Database Backup & Restore
+## Database Backup & Restore (SQLite WAL Mode)
 
-### PostgreSQL Backup
+### SQLite Online Backup & Snapshots
 
-#### Automated Daily Backups
-Configure a Kubernetes CronJob to backup PostgreSQL:
+Because Atlas Logistics utilizes embedded SQLite with WAL mode, backups are zero-overhead, crash-consistent, and file-based.
 
-```yaml
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: postgres-backup
-  namespace: atlas-logistics
-spec:
-  schedule: "0 2 * * *"  # Daily at 2 AM UTC
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          serviceAccountName: postgres-backup
-          containers:
-          - name: backup
-            image: postgres:16-alpine
-            env:
-            - name: PGPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: atlas-secrets
-                  key: POSTGRES_PASSWORD
-            command:
-            - /bin/sh
-            - -c
-            - |
-              pg_dump -h postgres -U postgres atlas | gzip > /backups/atlas-$(date +%Y%m%d-%H%M%S).sql.gz
-              # Or upload to S3:
-              # aws s3 cp /backups/atlas-*.sql.gz s3://my-backups/postgres/
-            volumeMounts:
-            - name: backup-storage
-              mountPath: /backups
-          volumes:
-          - name: backup-storage
-            persistentVolumeClaim:
-              claimName: backup-pvc
-          restartPolicy: OnFailure
-```
-
-#### Manual Backup
-```bash
-# Port-forward to postgres
-kubectl port-forward svc/postgres 5432:5432 -n atlas-logistics &
-
-# Backup database
-PGPASSWORD=$(kubectl get secret atlas-secrets -n atlas-logistics -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d) \
-pg_dump -h localhost -U postgres atlas | gzip > backup-$(date +%Y%m%d-%H%M%S).sql.gz
-
-# Verify backup
-gunzip -t backup-*.sql.gz  # Test integrity
-gzip -l backup-*.sql.gz     # Show compressed size
-```
-
-### PostgreSQL Restore
-
-#### From Backup File
-```bash
-# Port-forward to postgres
-kubectl port-forward svc/postgres 5432:5432 -n atlas-logistics &
-
-# Restore database
-PGPASSWORD=$(kubectl get secret atlas-secrets -n atlas-logistics -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d) \
-gunzip -c backup-20250101-020000.sql.gz | psql -h localhost -U postgres atlas
-
-# Verify restore
-PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U postgres atlas -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';"
-```
-
-#### Full Database Restore with PVC Snapshot
+#### 1. Hot Backup using SQLite Online Backup API
+To safely create an atomic snapshot without interrupting live read/write transactions:
 
 ```bash
-# 1. Create snapshot of current PVC
-kubectl apply -f - <<EOF
-apiVersion: snapshot.storage.k8s.io/v1
-kind: VolumeSnapshot
-metadata:
-  name: postgres-snapshot-backup
-  namespace: atlas-logistics
-spec:
-  volumeSnapshotClassName: csi-hostpath-snapclass
-  source:
-    persistentVolumeClaimName: postgres-pvc
-EOF
+# Safely snapshot live production database
+sqlite3 data/prod.db ".backup 'data/backups/atlas_backup_$(date +%Y%m%d_%H%M%S).db'"
+```
 
-# 2. Create new PVC from snapshot (for testing)
+#### 2. Native SQLite VACUUM INTO
+Alternatively, use SQLite's native `VACUUM INTO` command for a defragmented, compact snapshot:
+
+```bash
+sqlite3 data/prod.db "VACUUM INTO 'data/backups/atlas_vacuum_$(date +%Y%m%d_%H%M%S).db';"
+```
+
+#### 3. WAL Checkpoint Flush (Pre-Maintenance)
+Before taking cold filesystem copies or performing server maintenance:
+
+```bash
+# Truncate WAL log files back into the primary database file
+sqlite3 data/prod.db "PRAGMA wal_checkpoint(TRUNCATE);"
+```
+
+---
+
+### Database Restore & Integrity Verification
+
+#### 1. Restore from Snapshot
+```bash
+# 1. Stop backend services
+docker compose -f docker-compose.prod.yml stop backend worker
+
+# 2. Archive current database state
+cp data/prod.db data/prod.db.bak.$(date +%Y%m%d_%H%M%S)
+
+# 3. Restore chosen backup snapshot
+cp data/backups/atlas_backup_20261114_060000.db data/prod.db
+
+# 4. Remove stale WAL files if present
+rm -f data/prod.db-wal data/prod.db-shm
+
+# 5. Verify restored database integrity
+sqlite3 data/prod.db "PRAGMA integrity_check;"
+sqlite3 data/prod.db "PRAGMA foreign_key_check;"
+
+# 6. Restart backend services
+docker compose -f docker-compose.prod.yml start backend worker
+```
+
+#### 2. Replay & Migration Check
+After restore, verify that migration snapshots are in parity:
+
+```bash
+pnpm run audit:ddl-drift
+```
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -384,17 +353,17 @@ kubectl logs -f deployment/worker -n atlas-logistics
 
 | Component | Type | Frequency | Retention | Location |
 |-----------|------|-----------|-----------|----------|
-| PostgreSQL | Full dump + WAL | Daily (2 AM UTC) | 30 days | S3 bucket |
-| Redis | RDB snapshot | Hourly | 7 days | PVC + S3 |
+| SQLite (`prod.db`) | Hot snapshot (`.backup` / `VACUUM INTO`) | Daily (2 AM UTC) | 30 days | `data/backups/` + S3 |
+| Redis | AOF + RDB snapshot | Hourly | 7 days | Volume + S3 |
 | Application config | Git commits | On change | ∞ | GitHub |
-| Secrets | Encrypted backup | Weekly | 365 days | Sealed Secrets + S3 |
-| Prometheus data | TSDB | Daily retention | 30 days | PVC |
+| Secrets | Encrypted backup | Weekly | 365 days | Key vault + local `.env.local` |
+| Prometheus data | TSDB | Daily retention | 30 days | Docker Volume |
 
 ### Backup Locations
 
-**Primary:** Kubernetes PVC (local)  
-**Secondary:** AWS S3 (off-site)  
-**Tertiary:** GitHub (code/config only)
+**Primary:** Local persistent directory (`data/backups/`)  
+**Secondary:** Encrypted object storage (off-site S3 / Cloud Storage)  
+**Tertiary:** Git repository (code/config only)
 
 ### Backup Verification
 
@@ -447,8 +416,8 @@ EOF
 
 **RPO (Recovery Point Objective):**
 - Redis persistence: AOF fsync every second
-- PostgreSQL: WAL archiving every 5 minutes
-- Application: Transactions ensure data consistency
+- SQLite: WAL mode with immediate fsync and transactional outbox persistence
+- Application: ACID transactions ensure zero loss of committed state
 
 ---
 
@@ -457,34 +426,22 @@ EOF
 ### Monthly DR Drill
 
 ```bash
-# 1. Backup current state
-kubectl cp atlas-logistics/postgres-0:/var/lib/postgresql/data ./pg-live-backup
+# 1. Snapshot current live database
+sqlite3 data/prod.db ".backup 'data/backups/dr_drill_$(date +%Y%m%d).db'"
 
-# 2. Simulate database failure
-kubectl delete pvc postgres-pvc -n atlas-logistics
+# 2. Verify snapshot integrity
+sqlite3 "data/backups/dr_drill_$(date +%Y%m%d).db" "PRAGMA integrity_check;"
+sqlite3 "data/backups/dr_drill_$(date +%Y%m%d).db" "PRAGMA foreign_key_check;"
 
-# 3. Create new PVC and restore from backup
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-pvc
-  namespace: atlas-logistics
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-EOF
+# 3. Simulate restoration on scratch directory
+mkdir -p data/scratch
+cp "data/backups/dr_drill_$(date +%Y%m%d).db" data/scratch/test.db
+sqlite3 data/scratch/test.db "SELECT count(*) FROM scm_shipments_v1;"
 
-# 4. Restore data
-kubectl exec -it postgres-0 -n atlas-logistics -- psql -U postgres -f restore.sql
+# 4. Clean up scratch
+rm -rf data/scratch
 
-# 5. Run health checks
-kubectl exec -it backend-0 -n atlas-logistics -- pnpm run health-check
-
-# 6. Document results
+# 5. Document results
 echo "DR Test: $(date) - Status: PASS" >> DR-TEST-LOG.md
 ```
 

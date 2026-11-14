@@ -8,20 +8,12 @@
 
 ## 1. INFRASTRUCTURE SETUP
 
-### 1.1 Staging Database (PostgreSQL or SQLite)
+### 1.1 Staging Database (SQLite with WAL Mode)
 
 ```bash
-# Create staging database with WAL mode (SQLite)
-sqlite3 data/staging.db "PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;"
-
-# Or use PostgreSQL for staging
-docker run -d \
-  --name atlas-staging-db \
-  -e POSTGRES_USER=atlas_staging \
-  -e POSTGRES_PASSWORD=$(openssl rand -base64 32) \
-  -e POSTGRES_DB=atlas_logistics_staging \
-  -v postgres_staging_data:/var/lib/postgresql/data \
-  postgres:15-alpine
+# Initialize staging SQLite database with WAL mode and mandatory foreign keys
+mkdir -p data
+sqlite3 data/staging.db "PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;"
 ```
 
 ### 1.2 Staging Redis
@@ -29,6 +21,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name atlas-staging-redis \
+  -p 6379:6379 \
   -v redis_staging_data:/data \
   redis:7-alpine \
   redis-server --appendonly yes
@@ -46,21 +39,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-      target: production
     environment:
       NODE_ENV: staging
-      DATABASE_URL: postgresql://atlas_staging:password@postgres:5432/atlas_logistics_staging
-      REDIS_HOST: redis
+      DATABASE_URL: file:/app/data/staging.db
+      REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET}
       COOKIE_SECRET: ${COOKIE_SECRET}
       LOG_LEVEL: debug
     ports:
       - "3001:3001"
+    volumes:
+      - staging_data:/app/data
     depends_on:
-      - postgres
       - redis
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -70,7 +63,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production
     ports:
       - "8080:8080"
     depends_on:
@@ -82,20 +74,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: atlas_staging
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: atlas_logistics_staging
-    volumes:
-      - postgres_staging_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U atlas_staging"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -109,7 +87,7 @@ services:
       retries: 5
 
 volumes:
-  postgres_staging_data:
+  staging_data:
   redis_staging_data:
 ```
 
@@ -122,32 +100,25 @@ volumes:
 ```bash
 # Set staging environment
 export NODE_ENV=staging
-export DATABASE_URL=postgresql://atlas_staging:password@localhost:5432/atlas_logistics_staging
+export DATABASE_URL=file:./data/staging.db
 
-# Run migrations
-pnpm db:generate
-pnpm db:migrate
+# Verify schema parity and run migrations
+pnpm run audit:ddl-drift
+pnpm run db:migrate
 
-# Add indexes (critical for performance testing)
-sqlite3 data/staging.db < scripts/add-indexes.sql
-# or for PostgreSQL:
-psql -U atlas_staging -d atlas_logistics_staging < scripts/add-indexes.sql
-
-# Seed test data
-pnpm db:seed:phase1  # Users, companies, locations
-pnpm db:seed:phase2  # Shipments, bookings, quotes
-pnpm db:seed:phase3  # Complex relationships
+# Seed deterministic baseline data
+pnpm run db:seed
 ```
 
-### 2.2 Verify Database Indexes
+### 2.2 Verify Database Integrity and Indexes
 
 ```bash
-# SQLite
-sqlite3 data/staging.db "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%' ORDER BY name;"
+# Integrity and foreign key verification
+sqlite3 data/staging.db "PRAGMA integrity_check;"
+sqlite3 data/staging.db "PRAGMA foreign_key_check;"
 
-# PostgreSQL
-psql -U atlas_staging -d atlas_logistics_staging -c "\di idx_*"
-
+# Verify indexes
+sqlite3 data/staging.db "SELECT count(*) FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%';"
 # Expected: 40+ indexes
 ```
 
@@ -284,11 +255,11 @@ else
   exit 1
 fi
 
-# Check database connectivity
-if docker exec atlas-staging-db psql -U atlas_staging -d atlas_logistics_staging -c "SELECT 1;" &>/dev/null; then
-  echo "✅ Database connectivity verified"
+# Check database connectivity and integrity
+if sqlite3 data/staging.db "PRAGMA integrity_check;" | grep -q "ok"; then
+  echo "✅ Database connectivity and integrity check passed"
 else
-  echo "❌ Database connectivity FAILED"
+  echo "❌ Database integrity check FAILED"
   exit 1
 fi
 
@@ -308,16 +279,16 @@ else
   echo "⚠️  HTTPS headers not present (expected for HTTP test)"
 fi
 
-# Check audit logging table
-if docker exec atlas-staging-db psql -U atlas_staging -d atlas_logistics_staging -c "SELECT COUNT(*) FROM audit_logs;" &>/dev/null; then
-  echo "✅ Audit logging table exists"
+# Check audit logging / outbox table
+if sqlite3 data/staging.db "SELECT count(*) FROM scm_outbox_messages;" &>/dev/null; then
+  echo "✅ Transactional outbox table exists"
 else
-  echo "❌ Audit logging table missing"
+  echo "❌ Transactional outbox table missing"
   exit 1
 fi
 
 # Check database indexes
-INDEX_COUNT=$(docker exec atlas-staging-db psql -U atlas_staging -d atlas_logistics_staging -c "SELECT COUNT(*) FROM pg_indexes WHERE indexname LIKE 'idx_%';" | grep -oP '^\s*\d+' | head -1)
+INDEX_COUNT=$(sqlite3 data/staging.db "SELECT count(*) FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%';")
 if [ "$INDEX_COUNT" -ge 30 ]; then
   echo "✅ Database indexes verified ($INDEX_COUNT indexes)"
 else

@@ -2,7 +2,7 @@
 
 **Purpose:** Complete guide to the monorepo organization, module layout, and code conventions.
 
-**Last Updated:** 2024-01-15
+**Last Updated:** 2026-11-14
 
 ---
 
@@ -12,17 +12,17 @@
 Atlas-Logistics/
 ├── packages/                    # Monorepo workspaces (pnpm)
 ├── src/                         # Backend API (Fastify)
-├── tests/                       # Test suites
-├── docs/                        # Documentation hub
+├── tests/                       # Test suites (unit, integration, E2E)
+├── docs/                        # Diátaxis documentation hub
 ├── drizzle/                     # Database migrations
 ├── docker/                      # Docker configurations
-├── scripts/                     # Utility scripts
-├── .github/                     # CI/CD workflows
-├── hooks/                       # Git hooks
+├── scripts/                     # Utility and audit scripts
+├── .github/                     # CI/CD workflows (SLSA attestations, DDL drift)
+├── hooks/                       # Git hooks (Husky, commitlint, leak guard)
 ├── templates/                   # Code generation templates
-├── Dockerfile                   # Backend container
-├── Dockerfile.backend           # Alternative backend build
-├── Dockerfile.worker            # Background worker container
+├── Dockerfile                   # Frontend PWA static container (Nginx)
+├── Dockerfile.backend           # Backend API container (Fastify)
+├── Dockerfile.worker            # Background worker container (BullMQ)
 ├── docker-compose.yml           # Dev environment
 ├── docker-compose.prod.yml      # Production environment
 ├── package.json                 # Root workspace manifest

@@ -38,12 +38,37 @@ Security updates and patches are actively applied to the latest stable release l
 
 ## Continuous Auditing & CI Code Scanning
 
-Atlas Logistics enforces automated security and static analysis controls in local pre-commit hooks and the CI pipeline:
+Atlas Logistics enforces automated security and static analysis controls in local pre-commit hooks and the CI/CD pipeline:
 
+- **SLSA v1.0 Build Provenance Gate**: All container images published to GitHub Container Registry (`ghcr.io/xpallares1987-ai/atlas-*`) generate Sigstore Cosign build provenance attestations via GitHub OIDC (`actions/attest-build-provenance@v2`). Downstream deployments are blocked unless cryptographically verified via `gh attestation verify` against `--repo` and `--signer-workflow`.
+- **Automated DDL Drift Detection (`audit:ddl-drift`)**: Every pull request and push to `main` verifies migration consistency (`drizzle-kit check`), schema drift parity between `src/db/schema/` and `drizzle/` snapshots, and replays all migrations on a fresh scratch database enforcing `PRAGMA integrity_check` and `PRAGMA foreign_key_check`.
 - **njsscan SAST & SARIF Code Scanning**: Every pull request and push to `main` runs `njsscan` across `src/` and `packages/` and uploads SARIF results to GitHub Security.
 - **Leak Prevention Guard (`audit:leaks`)**: Pre-commit and CI gates scan tracked and staged files to block sensitive identifiers, credentials, and confidential partner references.
 - **Dependabot & `pnpm audit` Overrides**: Actively monitors and constrains transitive dependencies across all monorepo packages.
 - **Strict ESLint & TypeScript Compilation**: TypeScript runs in strict mode (`tsc --noEmit`) across both the root backend (`src/`) and all workspace packages (`packages/*`).
+
+---
+
+## Container Image Provenance Verification
+
+To verify the integrity and authentic origin of Atlas Logistics container images:
+
+```bash
+# Verify Frontend Container Image
+gh attestation verify oci://ghcr.io/xpallares1987-ai/atlas-frontend:latest \
+  --repo xpallares1987-ai/Atlas-Logistics \
+  --signer-workflow xpallares1987-ai/Atlas-Logistics/.github/workflows/ci.yml
+
+# Verify Backend API Container Image
+gh attestation verify oci://ghcr.io/xpallares1987-ai/atlas-backend:latest \
+  --repo xpallares1987-ai/Atlas-Logistics \
+  --signer-workflow xpallares1987-ai/Atlas-Logistics/.github/workflows/ci.yml
+
+# Verify Async Worker Container Image
+gh attestation verify oci://ghcr.io/xpallares1987-ai/atlas-worker:latest \
+  --repo xpallares1987-ai/Atlas-Logistics \
+  --signer-workflow xpallares1987-ai/Atlas-Logistics/.github/workflows/ci.yml
+```
 
 ---
 

@@ -355,11 +355,11 @@ echo "✅ Pagination performance test COMPLETE"
 
 echo "📑 Verifying Database Indexes..."
 
-# For PostgreSQL
-psql -U atlas_staging -d atlas_logistics_staging -c "
+# For SQLite
+sqlite3 data/dev.db "
   SELECT COUNT(*) as index_count
-  FROM pg_indexes
-  WHERE indexname LIKE 'idx_%';"
+  FROM sqlite_master
+  WHERE type='index' AND name LIKE 'idx_%';"
 
 # Expected: 40+
 ```

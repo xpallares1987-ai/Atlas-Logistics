@@ -4,21 +4,23 @@
 
 Run these commands to generate secure values for your environment:
 
-### JWT Secret (for authentication)
+### JWT Secret & Cookie Secret (for authentication)
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 # Output: abc123def456abc123def456abc123def456abc123def456abc123def456abc1
 ```
 
-### PostgreSQL Password
+### Grafana Admin Password
 ```bash
 openssl rand -base64 32
 # Output: xK9mP2q5R7sT8uV9wX0yZ1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV2wX3yZ4a
 ```
 
-### Database URL (for PostgreSQL)
+### Database URL (Embedded SQLite or Distributed libSQL/Turso)
 ```
-postgresql://postgres:<POSTGRES_PASSWORD>@atlas-postgres.example.com:5432/atlas
+file:/app/data/prod.db
+# Or for Turso cloud:
+# libsql://your-db.turso.io
 ```
 
 ## Step 2: Configure GitHub Repository Secrets
@@ -33,20 +35,19 @@ Add the following secrets:
 
 | Secret Name | Value | Description |
 |---|---|---|
-| `DATABASE_URL` | `postgresql://postgres:PASSWORD@host:5432/atlas` | PostgreSQL connection string |
-| `JWT_SECRET` | (generated from step 1) | Authentication token secret |
-| `POSTGRES_PASSWORD` | (generated from step 1) | Database password |
-| `GRAFANA_ADMIN_PASSWORD` | (generate new) | Grafana admin password |
+| `JWT_SECRET` | (generated 32+ char hex) | Fastify JWT signing token secret |
+| `COOKIE_SECRET` | (generated 32+ char hex) | Fastify cookie signing secret |
+| `GRAFANA_ADMIN_PASSWORD` | (generate new) | Grafana dashboard admin password |
 
-### Optional Secrets (for advanced deployments):
+### Optional Secrets (for external integrations):
 
 | Secret Name | Value | Description |
 |---|---|---|
-| `DOCKER_REGISTRY_USERNAME` | `xpallares1987-ai` | GitHub username for registry access |
-| `DOCKER_REGISTRY_PASSWORD` | `ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx` | GitHub Personal Access Token (if needed) |
-| `SENTRY_DSN` | `https://xxx@sentry.io/123456` | Error tracking (optional) |
-| `AWS_ACCESS_KEY_ID` | (from AWS console) | For S3 document storage (optional) |
-| `AWS_SECRET_ACCESS_KEY` | (from AWS console) | For S3 document storage (optional) |
+| `DOCKER_USERNAME` | `xpallares1987-ai` | Docker Hub username (if mirroring from GHCR) |
+| `DOCKER_PASSWORD` | (Docker token) | Docker Hub access token |
+| `CODECOV_TOKEN` | (from codecov.io) | Code coverage reporting token |
+| `DATABASE_URL` | `file:/app/data/prod.db` | Overrides default SQLite database path |
+| `DATABASE_AUTH_TOKEN` | (optional) | Auth token for remote libSQL/Turso clusters |
 
 ## Step 3: Set GitHub Secrets via CLI
 
@@ -57,9 +58,8 @@ Or use GitHub CLI for automation:
 gh auth login
 
 # Set secrets for your repository
-gh secret set DATABASE_URL --body "postgresql://postgres:PASSWORD@host:5432/atlas"
 gh secret set JWT_SECRET --body "$(node -e 'console.log(require("crypto").randomBytes(32).toString("hex"))')"
-gh secret set POSTGRES_PASSWORD --body "$(openssl rand -base64 32)"
+gh secret set COOKIE_SECRET --body "$(node -e 'console.log(require("crypto").randomBytes(32).toString("hex"))')"
 gh secret set GRAFANA_ADMIN_PASSWORD --body "$(openssl rand -base64 32)"
 
 # Verify secrets are set
@@ -192,7 +192,7 @@ cp .env.production.example .env.production
 # Edit with actual values
 NODE_ENV=production
 LOG_LEVEL=info
-DATABASE_URL=postgresql://postgres:$POSTGRES_PASSWORD@postgres:5432/atlas
+DATABASE_URL=file:/app/data/prod.db
 REDIS_URL=redis://redis:6379
 JWT_SECRET=$JWT_SECRET
 GRAFANA_ADMIN_PASSWORD=$GRAFANA_ADMIN_PASSWORD

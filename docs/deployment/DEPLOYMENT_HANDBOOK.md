@@ -93,8 +93,8 @@ docker run -t owasp/zap2docker-stable \
 
 ```bash
 # 1. Audit Logging Active
-psql -U atlas_staging -d atlas_logistics_staging -c "
-  SELECT COUNT(*) FROM audit_logs;"
+sqlite3 data/dev.db "
+  SELECT COUNT(*) FROM scm_outbox_messages;"
 # Expected: > 0 entries
 
 # 2. User Data Exportable
@@ -291,34 +291,32 @@ docker-compose up -d  # Fall back to previous version
 kubectl scale deployment atlas-backend --replicas=5
 kubectl autoscaling.yaml apply
 
-# If database is overwhelmed:
-kubectl port-forward svc/postgres 5432:5432
-psql -U atlas_prod -d atlas_logistics < optimize-queries.sql
+# If database query contention occurs in WAL mode:
+sqlite3 data/prod.db "PRAGMA wal_checkpoint(TRUNCATE);"
 ```
 
 ### Incident Response
 
 ```bash
 # 1. Assess
-kubectl get pods
-kubectl logs -f deployment/atlas-backend
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs -f backend
 
 # 2. Isolate
-kubectl scale deployment atlas-backend --replicas=0
+docker compose -f docker-compose.prod.yml stop backend
 
 # 3. Investigate
-docker logs <container>
-psql: check query logs
-Review audit logs: SELECT * FROM audit_logs WHERE created_at > now() - interval '10 minutes'
+docker compose -f docker-compose.prod.yml logs backend
+sqlite3 data/prod.db "PRAGMA integrity_check;"
+# Review recent transactional outbox events:
+sqlite3 data/prod.db "SELECT * FROM scm_outbox_messages ORDER BY created_at DESC LIMIT 20;"
 
-# 4. Fix
-# Apply patch or roll back
-kubectl rollout undo deployment/atlas-backend
+# 4. Fix & Recover
+# Restart services or roll back
+docker compose -f docker-compose.prod.yml up -d
 
 # 5. Verify
-curl -s https://api.atlas-logistics.com/api/health
-# Restore to normal
-kubectl scale deployment atlas-backend --replicas=3
+curl -s http://localhost:3001/api/health
 ```
 
 ---

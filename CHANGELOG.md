@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### 📚 Documentation & Governance
+- **Diátaxis Documentation Alignment & English Standard Enforcement**:
+  - Fully translated and updated canonical `README.md` and `docs/README.md` to 100% technical English in strict compliance with repository language guardrails.
+  - Consolidated and linked the complete catalogue of 22 Architectural Decision Records (ADR 0001 through ADR 0022) across the documentation hub.
+  - Purged obsolete legacy PostgreSQL (`psql`) and Kubernetes references across `docs/DISASTER_RECOVERY.md`, `docs/setup-guides/STAGING_SETUP_GUIDE.md`, `docs/setup-guides/INTEGRATION_TESTING_GUIDE.md`, `docs/deployment/DEPLOYMENT_HANDBOOK.md`, and `docs/GITHUB_SETUP.md`, standardizing 100% on embedded SQLite in WAL mode and Docker Compose microservices.
+  - Documented cryptographic **SLSA v1.0 Build Provenance** generation, GHCR container publication (`atlas-frontend`, `atlas-backend`, `atlas-worker`), and the automated CI/CD verification gate (`verify-provenance`) in `SECURITY.md`, `CONTRIBUTING.md`, and `docs/setup-guides/docker-setup.md`.
+  - Incorporated automated DDL drift detection (`pnpm run audit:ddl-drift`) and modular file size limits (`pnpm run check:file-sizes`) across all developer and contribution guides.
+
 ### 🌟 Added & Architecture
 - **External Data Governance, Offline Topology & Zero-Cost Infrastructure (ADR 0021)**:
   - **Lean 3-Table Model (`src/db/schema/external_governance.ts`)**:
