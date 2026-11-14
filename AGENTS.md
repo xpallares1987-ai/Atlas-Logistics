@@ -8,6 +8,7 @@
   - Any seeder depending on base entities must implement defensive check/initialization of the parent record if it does not exist.
   - For upserts in seeds, always use `.onConflictDoUpdate()` with binding fields rather than `.onConflictDoNothing()`, preventing null or stale references on existing records.
   - **Drizzle Schema Boundaries**: When defining relational foreign keys (`references(() => table.id)`), import the parent table from its exact canonical submodule in `src/db/schema/` (e.g. `documents` resides in `./support.js`, not `./core.js`), avoiding `undefined` type errors during `drizzle-kit generate`.
+  - **Drizzle v1.0.0-rc.5 Migration Hierarchy**: Migrations under `drizzle/` must strictly use folder-based snapshots (`drizzle/<timestamp>_<tag>/migration.sql` accompanied by `drizzle/meta/_journal.json`). Flat `.sql` migration files placed directly in `drizzle/` are rejected by Drizzle migrator with `No migration found`.
 
 ## 2. Git Workflow & Code Security
 - **Git Flow & Remote Synchronization**:
@@ -78,4 +79,26 @@
 - **Quoted Node Labels in Mermaid Diagrams**: When generating Mermaid diagrams for GitHub Wiki, READMEs, or Diátaxis docs, node labels containing special characters (parentheses `()`, brackets `[]`, slashes `/`, colons, hyphens) must ALWAYS be enclosed in double quotes:
   - *Correct*: `D["Append Log (data/dev.db-wal)"]` or `T1["Tarea 1: ShipmentWorkspace360Module (2,125 -> <800 lns)"]`
   - *Prohibited*: `D[Append Log (data/dev.db-wal)]` (causes GitHub Mermaid parser syntax errors).
+
+## 10. Logistics Entity Taxonomy & Master Catalog Governance
+- **Corporate Holding Groups vs. Operational Addresses**:
+  - Corporate Groups (e.g., A.P. Moller - Maersk, CMA CGM Group, MSC Group, Evergreen Group) are financial and ownership holding entities residing strictly in `companies` with `company_type = 'HOLDING'`.
+  - Corporate groups are linked to physical subsidiary addresses and operational accounts exclusively through authorized accounting, finance, controlling, or admin roles.
+  - **Prohibited**: Corporate groups must NEVER be selectable or displayed as operational addresses, pickup/delivery locations, or terminal facilities across shipment workflows.
+- **Single Canonical Registry for Logistics Entities (`addresses`)**:
+  - Logistics trading partners must NEVER be scattered across isolated legacy tables (`carriers`, `customs_brokers`, `destination_agents`).
+  - All operational logistics entities belong strictly to `addresses` with explicit `address_type` tags:
+    - `'CAR'`: Ocean / Air / Rail Carrier
+    - `'CB'`: AEO-Licensed Customs Broker
+    - `'AG'`: Destination / Origin Forwarding Agent
+    - `'FWD'`: Freight Forwarder
+    - `'TRM'`: Port / Rail / Inland Container Terminal
+    - `'WH'`: Customs Warehouse / Depósito Aduanero
+  - Official industry codes (SCAC, IATA, EORI, AEO, UN/LOCODE, IMO, UIC) must be stored in `address_identifiers`.
+- **Top-Tier Realistic Domain Entities**:
+  - Master catalogs and seeders must prioritize top-tier, realistic industry actors (e.g., Top 10 ocean container carriers, verified AEO customs brokers) over arbitrary synthetic Faker noise.
+- **Master Logistics Catalogs**:
+  - Standard container types must reference `container_iso_types` (ISO 668/6346). Container identifiers must be validated via standard ISO 6346 modulus-11 check-digit algorithms (`@atlas/shared/iso6346`).
+  - Gateway locations must reference canonical UNECE UN/LOCODE entries (`unlocodes`) preserving official standard publication fields.
+
 
