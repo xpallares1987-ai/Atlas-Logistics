@@ -8,10 +8,17 @@ import {
   scmCommandIdempotency,
 } from "../../db/schema/scm_foundation.js";
 import { v4 as uuidv4 } from "uuid";
-import { DomainEventEnvelope, DEFAULT_OPERATOR_ACTOR } from "./primitives.js";
+import {
+  DomainEventEnvelope,
+  DEFAULT_OPERATOR_ACTOR,
+  SecurityActorContext,
+} from "./primitives.js";
 import { traceSpan } from "../../observability/tracer.js";
 
-export type DomainEventHandler<TPayload = any> = (
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type DbOrTx = typeof db | DbTransaction;
+
+export type DomainEventHandler<TPayload = unknown> = (
   event: DomainEventEnvelope<TPayload>,
 ) => Promise<void>;
 
@@ -77,7 +84,7 @@ class TransactionalOutboxBus {
 
   public async enqueueEvents(
     events: DomainEventEnvelope[],
-    tx?: any,
+    tx?: DbOrTx,
   ): Promise<void> {
     if (events.length === 0) return;
     await ensureScmFoundationTables();
@@ -120,11 +127,11 @@ class TransactionalOutboxBus {
       aggregateVersion?: number;
       correlationId?: string;
       causationId?: string;
-      actor?: any;
+      actor?: SecurityActorContext;
       occurredAt?: string;
-      payload: any;
+      payload: unknown;
     },
-    tx?: any,
+    tx?: DbOrTx,
   ): Promise<void> {
     const envelope: DomainEventEnvelope = {
       eventId: event.eventId || uuidv4(),
@@ -239,7 +246,7 @@ class TransactionalOutboxBus {
                 .where(eq(scmOutboxMessages.eventId, row.eventId));
 
               relayedEventsCount += 1;
-            } catch (err: any) {
+            } catch (err: unknown) {
               failedInThisInvocation.add(row.eventId);
               const nextRetry = row.retryCount + 1;
               const isDeadLetter = nextRetry >= this.maxRetries;
@@ -249,7 +256,7 @@ class TransactionalOutboxBus {
                 .set({
                   status: isDeadLetter ? "FAILED" : "PENDING",
                   retryCount: nextRetry,
-                  lastError: err?.message || String(err),
+                  lastError: err instanceof Error ? err.message : String(err),
                 })
                 .where(eq(scmOutboxMessages.eventId, row.eventId));
 
@@ -288,7 +295,7 @@ class TransactionalOutboxBus {
       retryCount: number;
       lastError: string | null;
       occurredAt: Date;
-      payload: any;
+      payload: unknown;
     }>
   > {
     await ensureScmFoundationTables();
@@ -398,8 +405,8 @@ export const outboxBus = new TransactionalOutboxBus();
 export async function executeWithIdempotency<T>(
   commandKey: string | undefined,
   commandName: string,
-  executor: (tx?: any) => Promise<{ result: T; entityId?: string }>,
-  tx?: any,
+  executor: (tx?: DbOrTx) => Promise<{ result: T; entityId?: string }>,
+  tx?: DbOrTx,
 ): Promise<T> {
   if (!commandKey || !commandKey.trim()) {
     const res = await executor(tx);

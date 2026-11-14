@@ -52,7 +52,7 @@ export interface CommandEnvelope<TPayload = unknown> {
   readonly payload: TPayload;
 }
 
-export interface DomainEventEnvelope<TPayload = any> {
+export interface DomainEventEnvelope<TPayload = unknown> {
   readonly eventId: string;
   readonly eventType: string;
   readonly schemaVersion: number;
