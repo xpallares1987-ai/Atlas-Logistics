@@ -26,11 +26,7 @@ import {
   ensureScmFoundationTables,
   outboxBus,
 } from "../../kernel/outbox-bus.js";
-import {
-  createTask,
-  addTaskDependency,
-  getTasksForSubject,
-} from "../work-management/work-management.context.js";
+import { getTasksForSubject } from "../work-management/work-management.context.js";
 import {
   seedStandardWorkflowDefinitions,
   instantiateWorkflow,
@@ -48,7 +44,7 @@ import {
  */
 async function resolveShipmentModeCode(
   shipmentId: string,
-  payload?: any,
+  payload?: { serviceType?: string; legs?: Array<{ mode?: string }> },
 ): Promise<string | undefined> {
   const rows = await db
     .select({ serviceType: scmLogicalShipments.serviceType })
