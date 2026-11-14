@@ -75,6 +75,23 @@ export async function authFetch(
     body,
   });
 
+  // Intercept 403 Forbidden with active station context and notify application
+  if (
+    response.status === 403 &&
+    typeof window !== "undefined" &&
+    headers["X-Station-Context"]
+  ) {
+    window.dispatchEvent(
+      new CustomEvent("atlas-station-forbidden", {
+        detail: {
+          url,
+          stationCode: headers["X-Station-Context"],
+          status: 403,
+        },
+      }),
+    );
+  }
+
   // Intercept and automatically decrypt response.json() if an encrypted envelope was received
   const originalJson = response.json.bind(response);
   response.json = async () => {

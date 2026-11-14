@@ -81,6 +81,7 @@ interface OrganizationState {
   canAccessAllStations: boolean;
   isLoading: boolean;
   error: string | null;
+  warningMessage: string | null;
 
   fetchStations: () => Promise<void>;
   fetchMyAssignments: () => Promise<void>;
@@ -88,6 +89,9 @@ interface OrganizationState {
   setActiveStation: (stationId: string, stationCode?: string) => void;
   setActiveDepartment: (departmentId: string) => void;
   getActiveStation: () => BranchStation | null;
+  getSelectableStations: () => BranchStation[];
+  fallbackToPrimaryStation: (reason?: string) => void;
+  clearWarning: () => void;
 }
 
 const LOCAL_STORAGE_STATION_KEY = "atlas_station_context";
@@ -113,6 +117,7 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
   canAccessAllStations: true,
   isLoading: false,
   error: null,
+  warningMessage: null,
 
   fetchStations: async () => {
     set({ isLoading: true, error: null });
@@ -222,6 +227,36 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
       localStorage.setItem(LOCAL_STORAGE_DEPT_KEY, departmentId);
     }
     set({ activeDepartmentId: departmentId });
+  },
+
+  clearWarning: () => set({ warningMessage: null }),
+
+  getSelectableStations: () => {
+    const { stations, myAssignments, canAccessAllStations } = get();
+    if (canAccessAllStations) {
+      return stations;
+    }
+    const assignedBranchIds = new Set(myAssignments.map((a) => a.branchId));
+    return stations.filter((s) => assignedBranchIds.has(s.id));
+  },
+
+  fallbackToPrimaryStation: (reason?: string) => {
+    const { myAssignments, stations } = get();
+    const primary = myAssignments.find((a) => a.isPrimary) || myAssignments[0];
+
+    if (primary && primary.branch) {
+      get().setActiveStation(primary.branch.id, primary.branch.stationCode);
+    } else if (stations.length > 0) {
+      get().setActiveStation(stations[0].id, stations[0].stationCode);
+    } else {
+      get().setActiveStation("ALL", "ALL");
+    }
+
+    set({
+      warningMessage:
+        reason ||
+        "Station access denied. Automatically switched to your default assigned station.",
+    });
   },
 
   getActiveStation: () => {

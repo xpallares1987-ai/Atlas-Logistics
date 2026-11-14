@@ -15,6 +15,9 @@ import {
   Plane,
   Train,
   Sparkles,
+  AlertTriangle,
+  X,
+  Shield,
 } from "lucide-react";
 import {
   useOrganizationStore,
@@ -23,14 +26,18 @@ import {
 
 export const StationSelectorPill: React.FC = () => {
   const {
-    stations,
     myAssignments,
     activeStationId,
     activeStationCode,
+    canAccessAllStations,
+    warningMessage,
     fetchStations,
     fetchMyAssignments,
     setActiveStation,
     getActiveStation,
+    getSelectableStations,
+    fallbackToPrimaryStation,
+    clearWarning,
   } = useOrganizationStore();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -41,6 +48,30 @@ export const StationSelectorPill: React.FC = () => {
     fetchStations();
     fetchMyAssignments();
   }, [fetchStations, fetchMyAssignments]);
+
+  // Handle 403 Forbidden station boundary violations
+  useEffect(() => {
+    const handleForbidden = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const code = customEvent.detail?.stationCode || "requested station";
+      fallbackToPrimaryStation(
+        `Access to station '${code}' is restricted. Switched automatically to your authorized station.`,
+      );
+    };
+
+    window.addEventListener("atlas-station-forbidden", handleForbidden);
+    return () =>
+      window.removeEventListener("atlas-station-forbidden", handleForbidden);
+  }, [fallbackToPrimaryStation]);
+
+  // Auto-dismiss warning toast after 6 seconds
+  useEffect(() => {
+    if (!warningMessage) return;
+    const timer = setTimeout(() => {
+      clearWarning();
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [warningMessage, clearWarning]);
 
   // Click outside listener to close dropdown
   useEffect(() => {
@@ -57,6 +88,7 @@ export const StationSelectorPill: React.FC = () => {
   }, []);
 
   const activeStation = getActiveStation();
+  const selectableStations = getSelectableStations();
 
   const getStationIcon = (type?: string) => {
     switch (type) {
@@ -70,7 +102,7 @@ export const StationSelectorPill: React.FC = () => {
     }
   };
 
-  const filteredStations = stations.filter(
+  const filteredStations = selectableStations.filter(
     (s) =>
       s.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
       s.stationCode.toLowerCase().includes(searchFilter.toLowerCase()) ||
@@ -81,6 +113,31 @@ export const StationSelectorPill: React.FC = () => {
 
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
+      {/* Non-intrusive warning toast for forbidden station access */}
+      {warningMessage && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed top-18 right-6 z-50 max-w-md bg-amber-950/95 border border-amber-600/70 text-amber-200 px-4 py-2.5 rounded-xl shadow-2xl flex items-start gap-3 backdrop-blur-md animate-in slide-in-from-top-2 duration-200"
+        >
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="flex-1 text-xs">
+            <span className="font-semibold block text-amber-100">
+              Station Authorization Enforced
+            </span>
+            <span>{warningMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={clearWarning}
+            className="text-amber-400 hover:text-amber-200 p-0.5"
+            aria-label="Close notification"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Pill trigger */}
       <button
         type="button"
@@ -104,6 +161,14 @@ export const StationSelectorPill: React.FC = () => {
             ({activeStation.unLocode})
           </span>
         )}
+        {!canAccessAllStations && (
+          <span
+            className="text-[9px] text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded border border-emerald-800/50 hidden md:inline-flex items-center gap-0.5"
+            title="Operational User Station Context"
+          >
+            <Shield className="w-2.5 h-2.5" /> Station
+          </span>
+        )}
         <ChevronDown
           className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
@@ -121,7 +186,8 @@ export const StationSelectorPill: React.FC = () => {
                 Branch Station Context
               </span>
               <span className="text-[10px] text-indigo-400 font-mono bg-indigo-950/80 px-1.5 py-0.5 rounded border border-indigo-800/50">
-                {stations.length} Active Gateways
+                {selectableStations.length}{" "}
+                {canAccessAllStations ? "Gateways" : "Assigned"}
               </span>
             </div>
             <input
@@ -134,38 +200,40 @@ export const StationSelectorPill: React.FC = () => {
           </div>
 
           <div className="max-h-72 overflow-y-auto divide-y divide-slate-800/60 py-1">
-            {/* Global View Option */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveStation("ALL", "ALL");
-                setIsOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2 text-left text-xs transition-colors ${
-                activeStationId === "ALL"
-                  ? "bg-indigo-950/50 text-indigo-200 font-semibold"
-                  : "text-slate-300 hover:bg-slate-800/60"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-indigo-950/80 border border-indigo-800/60 flex items-center justify-center shrink-0">
-                  <Globe className="w-4 h-4 text-indigo-400" />
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-100 flex items-center gap-1.5">
-                    Global Network View
+            {/* Global View Option - Available only for Admins with multi-station scope */}
+            {canAccessAllStations && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveStation("ALL", "ALL");
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 text-left text-xs transition-colors ${
+                  activeStationId === "ALL"
+                    ? "bg-indigo-950/50 text-indigo-200 font-semibold"
+                    : "text-slate-300 hover:bg-slate-800/60"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-950/80 border border-indigo-800/60 flex items-center justify-center shrink-0">
+                    <Globe className="w-4 h-4 text-indigo-400" />
                   </div>
-                  <div className="text-[10px] text-slate-400">
-                    Aggregated operations across all stations
+                  <div>
+                    <div className="font-semibold text-slate-100 flex items-center gap-1.5">
+                      Global Network View
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Aggregated operations across all stations
+                    </div>
                   </div>
                 </div>
-              </div>
-              {activeStationId === "ALL" && (
-                <Check className="w-4 h-4 text-indigo-400 shrink-0" />
-              )}
-            </button>
+                {activeStationId === "ALL" && (
+                  <Check className="w-4 h-4 text-indigo-400 shrink-0" />
+                )}
+              </button>
+            )}
 
-            {/* List of Stations */}
+            {/* List of Selectable Stations */}
             {filteredStations.map((stn: BranchStation) => {
               const isSelected = activeStationId === stn.id;
               const isAssigned = myAssignments.some(

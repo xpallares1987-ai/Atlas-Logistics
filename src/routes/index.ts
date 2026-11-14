@@ -240,6 +240,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(organizationRoutes, {
     prefix: "/api/organization",
   });
+  await fastify.register(organizationRoutes, {
+    prefix: "/api/v1/organization",
+  });
 };
 
 export default registerAllRoutes;
