@@ -5,6 +5,8 @@
  * and rate-limiting throttle to protect connectivity when restored.
  */
 
+import { getSecureRandomInt, getSecureRandomString } from "./crypto.js";
+
 export interface QueuedDocument {
   id: string;
   shipmentId: string;
@@ -46,9 +48,10 @@ export const QUEUE_CONFIG = {
 export function calculateBackoffDelay(retryCount: number): number {
   const base = Math.min(
     QUEUE_CONFIG.MAX_BACKOFF_MS,
-    QUEUE_CONFIG.INITIAL_BACKOFF_MS * Math.pow(QUEUE_CONFIG.BACKOFF_FACTOR, Math.max(0, retryCount - 1)),
+    QUEUE_CONFIG.INITIAL_BACKOFF_MS *
+      Math.pow(QUEUE_CONFIG.BACKOFF_FACTOR, Math.max(0, retryCount - 1)),
   );
-  const jitter = Math.floor(Math.random() * QUEUE_CONFIG.JITTER_MS);
+  const jitter = getSecureRandomInt(0, QUEUE_CONFIG.JITTER_MS);
   return base + jitter;
 }
 
@@ -64,7 +67,7 @@ export class OfflineDocumentQueue {
   enqueue(
     doc: Omit<QueuedDocument, "id" | "createdAt" | "retryCount" | "status">,
   ): QueuedDocument {
-    const id = `offline-doc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const id = `offline-doc-${Date.now()}-${getSecureRandomString(7)}`;
     const queuedDoc: QueuedDocument = {
       ...doc,
       id,
@@ -154,7 +157,11 @@ export class OfflineDocumentQueue {
   async processQueue(
     uploadFn: (shipmentId: string, payload: any) => Promise<any>,
     options: { force?: boolean } = {},
-  ): Promise<{ successCount: number; failedCount: number; skippedCount: number }> {
+  ): Promise<{
+    successCount: number;
+    failedCount: number;
+    skippedCount: number;
+  }> {
     const now = Date.now();
     let successCount = 0;
     let failedCount = 0;
@@ -193,14 +200,18 @@ export class OfflineDocumentQueue {
         doc.lastAttemptAt = Date.now();
         doc.lastError = err?.message || "Sync failed";
         doc.status = isDeadLetter ? "dead_letter" : "retrying";
-        doc.nextRetryAt = isDeadLetter ? undefined : Date.now() + calculateBackoffDelay(nextRetryCount);
+        doc.nextRetryAt = isDeadLetter
+          ? undefined
+          : Date.now() + calculateBackoffDelay(nextRetryCount);
 
         this.update(doc);
         failedCount++;
       }
 
       if (QUEUE_CONFIG.REQUEST_THROTTLE_MS > 0) {
-        await new Promise((resolve) => setTimeout(resolve, QUEUE_CONFIG.REQUEST_THROTTLE_MS));
+        await new Promise((resolve) =>
+          setTimeout(resolve, QUEUE_CONFIG.REQUEST_THROTTLE_MS),
+        );
       }
     }
 

@@ -353,7 +353,7 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
         requiresGenset: body.requiresGenset,
       });
 
-      const driverPickupPin = String(Math.floor(1000 + Math.random() * 9000));
+      const driverPickupPin = String(crypto.randomInt(1000, 10000));
       const qrDigest = crypto
         .createHash("sha256")
         .update(

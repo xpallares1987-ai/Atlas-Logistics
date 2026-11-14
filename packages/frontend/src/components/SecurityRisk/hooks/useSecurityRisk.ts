@@ -17,6 +17,7 @@ import {
   type DigitalSignatureResult,
   calculateShipmentRisk,
   getRiskBadgeStyles,
+  getSecureRandomInt,
   searchUnlocodes,
   offlineDocumentQueue,
   type QueuedDocument,
@@ -232,7 +233,7 @@ export function useSecurityRisk() {
 
   const handleAddSampleOfflineDoc = () => {
     offlineDocumentQueue.enqueue({
-      shipmentId: `SHP-${Math.floor(1000 + Math.random() * 9000)}`,
+      shipmentId: `SHP-${getSecureRandomInt(1000, 9999)}`,
       documentType: "CUSTOMS_PEDIMENTO_SCAN",
       fileName: `pedimento-scan-${Date.now().toString().slice(-4)}.pdf`,
       fileBase64: "JVBERi0xLjQKJ...",

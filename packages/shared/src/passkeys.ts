@@ -144,7 +144,10 @@ export const SAMPLE_REGISTERED_PASSKEYS: RegisteredPasskeyDevice[] = [
  * Checks whether native WebAuthn is available in the current browser environment.
  */
 export function isWebAuthnAvailable(): boolean {
-  return typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
+  return (
+    typeof window !== "undefined" &&
+    typeof window.PublicKeyCredential !== "undefined"
+  );
 }
 
 /**
@@ -153,7 +156,7 @@ export function isWebAuthnAvailable(): boolean {
 export function createWebAuthnRegistrationOptions(
   userEmail: string,
   userName: string,
-  rpId = "atlas-logistics.internal"
+  rpId = "atlas-logistics.internal",
 ): PasskeyRegistrationOptions {
   const challengeObj = createPasskeyChallenge();
   const userIdBytes = new TextEncoder().encode(userEmail);
@@ -174,7 +177,7 @@ export function createWebAuthnRegistrationOptions(
       displayName: userName,
     },
     pubKeyCredParams: [
-      { alg: -7, type: "public-key" },  // ES256
+      { alg: -7, type: "public-key" }, // ES256
       { alg: -257, type: "public-key" }, // RS256
     ],
     timeout: 60000,
@@ -191,7 +194,7 @@ export function createWebAuthnRegistrationOptions(
  */
 export function createWebAuthnAuthenticationOptions(
   rpId = "atlas-logistics.internal",
-  allowedCredentialIds?: string[]
+  allowedCredentialIds?: string[],
 ): PasskeyAuthenticationOptions {
   const challengeObj = createPasskeyChallenge();
   const allowCredentials = allowedCredentialIds?.map((id) => ({
@@ -214,7 +217,7 @@ export function createWebAuthnAuthenticationOptions(
 export async function simulatePasskeyRegistration(
   deviceName: string,
   _userEmail: string,
-  deviceType: PasskeyDeviceType = "YUBIKEY_FIPS"
+  deviceType: PasskeyDeviceType = "YUBIKEY_FIPS",
 ): Promise<RegisteredPasskeyDevice> {
   const challengeObj = createPasskeyChallenge();
   const hexPart = challengeObj.challenge.slice(0, 16);
@@ -236,19 +239,7 @@ export async function simulatePasskeyRegistration(
  */
 export function createPasskeyChallenge(ttlMs = 120000): PasskeyChallenge {
   const randomBytes = new Uint8Array(32);
-  if (typeof window !== "undefined" && window.crypto) {
-    window.crypto.getRandomValues(randomBytes);
-  } else {
-    // Node.js or server-side environment
-    const cryptoModule = globalThis.crypto;
-    if (cryptoModule && cryptoModule.getRandomValues) {
-      cryptoModule.getRandomValues(randomBytes);
-    } else {
-      for (let i = 0; i < 32; i++) {
-        randomBytes[i] = Math.floor(Math.random() * 256);
-      }
-    }
-  }
+  globalThis.crypto.getRandomValues(randomBytes);
 
   const challenge = Array.from(randomBytes)
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -328,7 +319,9 @@ export function verifyHardwareSignature(
         ? Buffer.from(result.clientDataJSON, "base64").toString("utf-8")
         : atob(result.clientDataJSON);
     const parsed = JSON.parse(decoded);
-    return parsed.type === "webauthn.get" && typeof parsed.challenge === "string";
+    return (
+      parsed.type === "webauthn.get" && typeof parsed.challenge === "string"
+    );
   } catch {
     return false;
   }

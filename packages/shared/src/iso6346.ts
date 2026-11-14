@@ -5,6 +5,8 @@
  * @module @atlas/shared/iso6346
  */
 
+import { getSecureRandomInt } from "./crypto.js";
+
 const LETTER_VALUES: Record<string, number> = {
   A: 10,
   B: 12,
@@ -104,7 +106,7 @@ export function generateValidIso6346(
   if (serial6 !== undefined) {
     serialStr = String(serial6).padStart(6, "0").slice(0, 6);
   } else {
-    serialStr = String(Math.floor(100000 + Math.random() * 900000));
+    serialStr = String(getSecureRandomInt(100000, 999999));
   }
 
   const first10 = `${prefix}${serialStr}`;

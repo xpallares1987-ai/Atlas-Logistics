@@ -6,6 +6,8 @@
  * Performs tripartite discrepancy reconciliation with zero external API cost.
  */
 
+import { getSecureRandomInt } from "./crypto.js";
+
 export interface InvoiceLineItem {
   itemNumber: number;
   hsCode?: string;
@@ -544,14 +546,7 @@ export function performTripartiteCrossCheck(
   if (score < 70) overallStatus = "CRITICAL_MISMATCH";
   else if (score < 90) overallStatus = "DISCREPANCY_WARNING";
 
-  let code = 1000;
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    const buf = new Uint32Array(1);
-    crypto.getRandomValues(buf);
-    code = 1000 + (buf[0] % 9000);
-  } else {
-    code = 1000 + Math.floor(Math.random() * 9000);
-  }
+  const code = getSecureRandomInt(1000, 9999);
   const releaseCertificateId =
     overallStatus === "MATCH_CLEARED"
       ? `CERT-PRE-RELEASE-2026-X${code}`

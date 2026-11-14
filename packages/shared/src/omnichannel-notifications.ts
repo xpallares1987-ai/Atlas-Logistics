@@ -3,6 +3,8 @@
  * Microsoft Teams Adaptive Cards 1.5 & Telegram Driver/Yard Gateway
  */
 
+import { getSecureRandomInt } from "./crypto.js";
+
 // =========================================================================
 // 1. TYPES & DATA STRUCTURES: MS TEAMS ADAPTIVE CARDS 1.5
 // =========================================================================
@@ -60,13 +62,21 @@ export interface AdaptiveCardAction {
 // 2. CRYPTOGRAPHIC HMAC SIGNER (CROSS-ENVIRONMENT)
 // =========================================================================
 
-export function generateHmacSignature(content: string, secret: string = "atlas-scm-teams-secret-key-2026"): string {
+export function generateHmacSignature(
+  content: string,
+  secret: string = "atlas-scm-teams-secret-key-2026",
+): string {
   try {
     if (typeof process !== "undefined" && process?.versions?.node) {
-      const getNodeCrypto = new Function('try { return require("crypto"); } catch(e) { return null; }');
+      const getNodeCrypto = new Function(
+        'try { return require("crypto"); } catch(e) { return null; }',
+      );
       const nodeCrypto = getNodeCrypto();
       if (nodeCrypto && typeof nodeCrypto.createHmac === "function") {
-        return nodeCrypto.createHmac("sha256", secret).update(content).digest("hex");
+        return nodeCrypto
+          .createHmac("sha256", secret)
+          .update(content)
+          .digest("hex");
       }
     }
   } catch {
@@ -76,7 +86,11 @@ export function generateHmacSignature(content: string, secret: string = "atlas-s
   // Deterministic fallback for browser or sandboxed test runs
   let hash = 0;
   for (let i = 0; i < content.length; i++) {
-    hash = (hash << 5) - hash + content.charCodeAt(i) + secret.charCodeAt(i % secret.length);
+    hash =
+      (hash << 5) -
+      hash +
+      content.charCodeAt(i) +
+      secret.charCodeAt(i % secret.length);
     hash |= 0;
   }
   return `hmac_${Math.abs(hash).toString(16).padStart(32, "0")}`;
@@ -109,12 +123,13 @@ export function formatFactTitle(key: string): string {
 
 export function getAnomalyMetadata(
   type: OperationalAnomalyType,
-  ctx: AnomalyPayloadContext
+  ctx: AnomalyPayloadContext,
 ): {
   headline: string;
   description: string;
   bannerIcon: string;
-  accentContainerColor: "attention" | "warning" | "emphasis" | "good" | "default";
+  accentContainerColor:
+    "attention" | "warning" | "emphasis" | "good" | "default";
 } {
   switch (type) {
     case "SPAIN_FWD_REF_DUPLICATE":
@@ -126,7 +141,8 @@ export function getAnomalyMetadata(
       };
     case "CUSTOMS_CANAL_ROJO":
       return {
-        headline: "ALERTA ADUANERA: Canal Rojo (Inspección Física y Documental)",
+        headline:
+          "ALERTA ADUANERA: Canal Rojo (Inspección Física y Documental)",
         description: `Autoridad aduanera (AEAT / SAT / VUCEM) designó el expediente "${ctx.gsid}" a CANAL ROJO. Se requiere aforo físico completo de contenedor y cotejo arancelario antes del levante.`,
         bannerIcon: "🛑",
         accentContainerColor: "attention",
@@ -140,21 +156,24 @@ export function getAnomalyMetadata(
       };
     case "HAZMAT_VIOLATION":
       return {
-        headline: "HAZMAT CRÍTICO: No Conformidad IMDG / ADR de Mercancías Peligrosas",
+        headline:
+          "HAZMAT CRÍTICO: No Conformidad IMDG / ADR de Mercancías Peligrosas",
         description: `Fallo de validación de segregación o etiquetado de mercancías peligrosas en expediente "${ctx.gsid}". Carga retenida en cuarentena a la espera de inspección pericial.`,
         bannerIcon: "☣️",
         accentContainerColor: "attention",
       };
     case "GROSS_PROFIT_LEAKAGE":
       return {
-        headline: "CONTROL FINANCIERO: Fuga de Margen de Beneficio / Pérdida en Expediente",
+        headline:
+          "CONTROL FINANCIERO: Fuga de Margen de Beneficio / Pérdida en Expediente",
         description: `El expediente "${ctx.gsid}" ha caído en margen negativo. Los costes de proveedor y estadías superan ampliamente las provisiones presupuestadas. Requiere anulación o autorización gerencial.`,
         bannerIcon: "📉",
         accentContainerColor: "warning",
       };
     case "BL_RELEASE_BLOCKED":
       return {
-        headline: "LIBERACIÓN DOCUMENTAL: Bill of Lading Bloqueado (Facturas Impagadas)",
+        headline:
+          "LIBERACIÓN DOCUMENTAL: Bill of Lading Bloqueado (Facturas Impagadas)",
         description: `El control automático de crédito ha bloqueado la entrega y liberación del e-BL para "${ctx.gsid}". Existen facturas vencidas pendientes de cobro previo a la entrega de la mercancía.`,
         bannerIcon: "🔒",
         accentContainerColor: "emphasis",
@@ -168,7 +187,8 @@ export function getAnomalyMetadata(
       };
     case "DEMURRAGE_DETENTION_SPIKE":
       return {
-        headline: "ALERTA SOBREESTADÍAS: Vencimiento Inminente de Días Libres (D&D)",
+        headline:
+          "ALERTA SOBREESTADÍAS: Vencimiento Inminente de Días Libres (D&D)",
         description: `Los costes de ocupación portuaria y demora de contenedor (D&D) comenzarán a devengarse en breve para "${ctx.gsid}". Se requiere retirada prioritaria de muelle.`,
         bannerIcon: "⚓",
         accentContainerColor: "warning",
@@ -178,7 +198,7 @@ export function getAnomalyMetadata(
 
 export function generateAdaptiveCardPayload(
   type: OperationalAnomalyType,
-  ctx: AnomalyPayloadContext
+  ctx: AnomalyPayloadContext,
 ): Record<string, unknown> {
   const timestamp = ctx.detectedAt || new Date().toISOString();
 
@@ -190,7 +210,10 @@ export function generateAdaptiveCardPayload(
   ];
 
   if (ctx.forwardingRef) {
-    baseFacts.push({ title: "Referencia Transitaria", value: ctx.forwardingRef });
+    baseFacts.push({
+      title: "Referencia Transitaria",
+      value: ctx.forwardingRef,
+    });
   }
   if (ctx.location) {
     baseFacts.push({ title: "Ubicación / Terminal", value: ctx.location });
@@ -204,7 +227,8 @@ export function generateAdaptiveCardPayload(
     });
   }
 
-  const { headline, description, bannerIcon, accentContainerColor } = getAnomalyMetadata(type, ctx);
+  const { headline, description, bannerIcon, accentContainerColor } =
+    getAnomalyMetadata(type, ctx);
 
   const adaptiveCard = {
     $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -316,7 +340,9 @@ export function generateAdaptiveCardPayload(
   };
 }
 
-export function getSampleAnomalyContext(type: OperationalAnomalyType): AnomalyPayloadContext {
+export function getSampleAnomalyContext(
+  type: OperationalAnomalyType,
+): AnomalyPayloadContext {
   switch (type) {
     case "SPAIN_FWD_REF_DUPLICATE":
       return {
@@ -451,10 +477,7 @@ export function getSampleAnomalyContext(type: OperationalAnomalyType): AnomalyPa
 // =========================================================================
 
 export type TelegramDriverReportType =
-  | "GATE_OUT_TIMESTAMP"
-  | "YARD_DELAY"
-  | "FUEL_RECEIPT"
-  | "POD_SUBMISSION";
+  "GATE_OUT_TIMESTAMP" | "YARD_DELAY" | "FUEL_RECEIPT" | "POD_SUBMISSION";
 
 export interface TelegramDriverMessage {
   messageId: string;
@@ -491,10 +514,10 @@ export function createDriverReport(
   reportType: TelegramDriverReportType,
   details: string,
   amountOrMinutes?: number,
-  location?: string
+  location?: string,
 ): TelegramDriverMessage {
   return {
-    messageId: `TG-MSG-${Math.floor(1000 + Math.random() * 9000)}`,
+    messageId: `TG-MSG-${getSecureRandomInt(1000, 9999)}`,
     driverName,
     telegramChatId,
     truckId,
@@ -518,7 +541,7 @@ export function createDispatchOrder(params: {
   scheduledPickupTime?: string;
 }): TelegramDispatchOrder {
   return {
-    orderId: `DSP-ORD-${Math.floor(10000 + Math.random() * 90000)}`,
+    orderId: `DSP-ORD-${getSecureRandomInt(10000, 99999)}`,
     driverName: params.driverName,
     telegramChatId: params.telegramChatId,
     truckId: params.truckId,
@@ -526,7 +549,9 @@ export function createDispatchOrder(params: {
     deliveryLocation: params.deliveryLocation,
     cargoDescription: params.cargoDescription,
     containerNumber: params.containerNumber,
-    scheduledPickupTime: params.scheduledPickupTime || new Date(Date.now() + 7200000).toISOString(),
+    scheduledPickupTime:
+      params.scheduledPickupTime ||
+      new Date(Date.now() + 7200000).toISOString(),
     dispatchedAt: new Date().toISOString(),
     status: "DISPATCHED",
   };

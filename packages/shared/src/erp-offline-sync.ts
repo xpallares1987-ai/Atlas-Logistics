@@ -6,6 +6,7 @@
  */
 
 import Dexie, { type EntityTable } from "dexie";
+import { getSecureRandomInt, getSecureRandomString } from "./crypto.js";
 
 // ============================================================================
 // 1. Data Contracts
@@ -64,9 +65,9 @@ export function calculateErpBackoff(retryCount: number): number {
   const base = Math.min(
     ERP_SYNC_CONFIG.MAX_BACKOFF_MS,
     ERP_SYNC_CONFIG.INITIAL_BACKOFF_MS *
-      Math.pow(ERP_SYNC_CONFIG.BACKOFF_FACTOR, Math.max(0, retryCount - 1))
+      Math.pow(ERP_SYNC_CONFIG.BACKOFF_FACTOR, Math.max(0, retryCount - 1)),
   );
-  const jitter = Math.floor(Math.random() * ERP_SYNC_CONFIG.JITTER_MS);
+  const jitter = getSecureRandomInt(0, ERP_SYNC_CONFIG.JITTER_MS);
   return base + jitter;
 }
 
@@ -81,7 +82,8 @@ export class ErpOfflineDexieDatabase extends Dexie {
   constructor() {
     super("AtlasErpSyncDB");
     this.version(1).stores({
-      erpSyncQueue: "id, erpSystem, operation, status, createdAt, idempotencyKey",
+      erpSyncQueue:
+        "id, erpSystem, operation, status, createdAt, idempotencyKey",
       erpCachedRecords: "id, erpSystem, recordType, cachedAt",
     });
   }
@@ -97,7 +99,8 @@ export class ErpSyncQueueManager {
   private isBrowser: boolean;
 
   constructor() {
-    this.isBrowser = typeof window !== "undefined" && typeof indexedDB !== "undefined";
+    this.isBrowser =
+      typeof window !== "undefined" && typeof indexedDB !== "undefined";
     if (this.isBrowser) {
       try {
         this.db = new ErpOfflineDexieDatabase();
@@ -110,7 +113,11 @@ export class ErpSyncQueueManager {
   /**
    * Generates a unique idempotency key for ERP API deduplication
    */
-  generateIdempotencyKey(erpSystem: string, operation: string, seed: string): string {
+  generateIdempotencyKey(
+    erpSystem: string,
+    operation: string,
+    seed: string,
+  ): string {
     return `IDEMP-${erpSystem}-${operation}-${Date.now()}-${seed.slice(0, 8)}`;
   }
 
@@ -118,9 +125,9 @@ export class ErpSyncQueueManager {
    * Enqueues an ERP operation for synchronization
    */
   async enqueue(
-    item: Omit<ErpQueuedMutation, "id" | "createdAt" | "retryCount" | "status">
+    item: Omit<ErpQueuedMutation, "id" | "createdAt" | "retryCount" | "status">,
   ): Promise<ErpQueuedMutation> {
-    const id = `erp-tx-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const id = `erp-tx-${Date.now()}-${getSecureRandomString(7)}`;
     const mutation: ErpQueuedMutation = {
       ...item,
       id,
@@ -170,13 +177,14 @@ export class ErpSyncQueueManager {
   async updateStatus(
     id: string,
     status: ErpQueuedMutation["status"],
-    error?: string
+    error?: string,
   ): Promise<void> {
     if (this.db) {
       try {
         const existing = await this.db.erpSyncQueue.get(id);
         if (existing) {
-          const retryCount = status === "FAILED" ? existing.retryCount + 1 : existing.retryCount;
+          const retryCount =
+            status === "FAILED" ? existing.retryCount + 1 : existing.retryCount;
           const nextStatus =
             retryCount >= ERP_SYNC_CONFIG.MAX_RETRIES ? "DEAD_LETTER" : status;
           await this.db.erpSyncQueue.update(id, {
@@ -194,7 +202,8 @@ export class ErpSyncQueueManager {
 
     const mem = this.memQueue.get(id);
     if (mem) {
-      const retryCount = status === "FAILED" ? mem.retryCount + 1 : mem.retryCount;
+      const retryCount =
+        status === "FAILED" ? mem.retryCount + 1 : mem.retryCount;
       const nextStatus =
         retryCount >= ERP_SYNC_CONFIG.MAX_RETRIES ? "DEAD_LETTER" : status;
       this.memQueue.set(id, {
@@ -213,7 +222,10 @@ export class ErpSyncQueueManager {
   async purgeCompleted(): Promise<number> {
     if (this.db) {
       try {
-        const completed = await this.db.erpSyncQueue.where("status").equals("COMPLETED").toArray();
+        const completed = await this.db.erpSyncQueue
+          .where("status")
+          .equals("COMPLETED")
+          .toArray();
         const ids = completed.map((c) => c.id);
         await this.db.erpSyncQueue.bulkDelete(ids);
         return ids.length;

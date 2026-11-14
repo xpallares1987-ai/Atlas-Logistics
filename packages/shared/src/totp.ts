@@ -1,28 +1,13 @@
 import crypto from "node:crypto";
+import { getSecureRandomString } from "./crypto.js";
 
 const BASE32_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-
-function getRandomByte(): number {
-  if (typeof window !== "undefined" && window.crypto && typeof window.crypto.getRandomValues === "function") {
-    const arr = new Uint8Array(1);
-    window.crypto.getRandomValues(arr);
-    return arr[0];
-  }
-  if (typeof crypto !== "undefined" && typeof crypto.randomBytes === "function") {
-    return crypto.randomBytes(1)[0];
-  }
-  return Math.floor(Math.random() * 256);
-}
 
 /**
  * Generates a random Base32 secret key for TOTP (RFC 6238).
  */
 export function generateBase32Secret(length = 16): string {
-  let secret = "";
-  for (let i = 0; i < length; i++) {
-    secret += BASE32_CHARS[getRandomByte() % 32];
-  }
-  return secret;
+  return getSecureRandomString(length, BASE32_CHARS);
 }
 
 /**
@@ -93,10 +78,7 @@ export function verifyTOTP(secret: string, token: string): boolean {
 export function generateBackupCodes(count = 5): string[] {
   const codes: string[] = [];
   for (let i = 0; i < count; i++) {
-    let hex = "";
-    for (let b = 0; b < 4; b++) {
-      hex += getRandomByte().toString(16).padStart(2, "0").toUpperCase();
-    }
+    const hex = getSecureRandomString(8, "0123456789ABCDEF");
     codes.push(`${hex.slice(0, 4)}-${hex.slice(4)}`);
   }
   return codes;

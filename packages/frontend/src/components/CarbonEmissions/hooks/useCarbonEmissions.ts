@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react";
+import { getSecureRandomInt } from "@atlas/shared";
 import { useApiMutation, useApiQuery } from "../../../hooks/useApiQuery";
 import type {
   CarbonTab,
@@ -33,7 +34,7 @@ export function useCarbonEmissions() {
 
   // Calculator State
   const [calcRefCode, setCalcRefCode] = useState(
-    "SIM-" + Math.floor(1000 + Math.random() * 9000),
+    () => `SIM-${getSecureRandomInt(1000, 9999)}`,
   );
   const [calcOriginCity, setCalcOriginCity] = useState("Barcelona");
   const [calcDestinationCity, setCalcDestinationCity] = useState("Rotterdam");

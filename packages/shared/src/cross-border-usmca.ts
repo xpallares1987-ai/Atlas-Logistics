@@ -3,6 +3,8 @@
  * CFDI 4.0, Rules of Origin RVC, IMMEX Duty Exemption & Customs Dwell ML Predictor
  */
 
+import { getSecureRandomInt, getSecureRandomString } from "./crypto.js";
+
 // =========================================================================
 // 1. SAT CFDI 4.0 CON COMPLEMENTO CARTA PORTE 3.1
 // =========================================================================
@@ -91,32 +93,13 @@ export interface CartaPorteStampingResult {
  */
 export function generateIdCCP(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let randomPart = "";
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    const bytes = new Uint8Array(33);
-    crypto.getRandomValues(bytes);
-    for (let i = 0; i < 33; i++) {
-      randomPart += chars.charAt(bytes[i] % chars.length);
-    }
-  } else {
-    for (let i = 0; i < 33; i++) {
-      randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-  }
-  return `CCC${randomPart}`;
+  return `CCC${getSecureRandomString(33, chars)}`;
 }
 
 export function buildAndStampCartaPorte31(
   input: CartaPorteInput,
 ): CartaPorteStampingResult {
-  let randNum = 50000000;
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    const buf = new Uint32Array(1);
-    crypto.getRandomValues(buf);
-    randNum = 10000000 + (buf[0] % 90000000);
-  } else {
-    randNum = Math.floor(10000000 + Math.random() * 90000000);
-  }
+  const randNum = getSecureRandomInt(10000000, 99999999);
   const uuid = `SAT-${randNum}-4041-8892-A81920`;
   const idCCP = generateIdCCP();
   const timestamp = new Date().toISOString();

@@ -7,7 +7,11 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { validateCutOffDeadlines, type OceanBooking } from "@atlas/shared";
+import {
+  getSecureRandomInt,
+  validateCutOffDeadlines,
+  type OceanBooking,
+} from "@atlas/shared";
 import { useApiMutation, useApiQuery } from "../../../hooks/useApiQuery";
 import { authFetch } from "../../../lib/api";
 import type {
@@ -116,11 +120,11 @@ export function useBookingManagement() {
     const details = bkg.parsedCargoDetails || {};
     setConfirmingBooking(bkg);
     setConfirmForm({
-      carrierBookingNumber: `CR-${Math.floor(100000 + Math.random() * 900000)}`,
+      carrierBookingNumber: `CR-${getSecureRandomInt(100000, 999999)}`,
       vesselName: bkg.vessel || "MV ATLAS HORIZON",
       voyageNumber: bkg.voyage || "VY-2026E",
-      containerNumber: `ATLU${Math.floor(1000000 + Math.random() * 8999999)}`,
-      sealNumber: `SL-${Math.floor(10000 + Math.random() * 89999)}`,
+      containerNumber: `ATLU${getSecureRandomInt(1000000, 9999999)}`,
+      sealNumber: `SL-${getSecureRandomInt(10000, 99999)}`,
       shipperName: details.customerName || "Atlas Global Imports S.L.",
       consigneeName: details.consigneeName || "European Distribution Hub B.V.",
       autoDownloadPdf: true,

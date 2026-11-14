@@ -7,6 +7,8 @@
  * No private keys or passphrases ever leave the browser.
  */
 
+import { getSecureRandomInt } from "./crypto.js";
+
 // =========================================================================
 // 1. TIPOS Y MODELOS DE DATOS
 // =========================================================================
@@ -211,7 +213,7 @@ export async function createEFirmaAuditStamp(
   const tamperSealHash = await computeSha256Hex(textToTamperSeal);
 
   return {
-    auditId: `AUD-SAT-${Math.floor(10000000 + Math.random() * 90000000)}`,
+    auditId: `AUD-SAT-${getSecureRandomInt(10000000, 99999999)}`,
     documentId,
     documentType,
     certificateSerial: sealResult.certificateSerial,
@@ -238,14 +240,7 @@ export function extractCertificateMetadata(
   hintRfc = "AAN940112XX1",
   hintRazon = "AGENCIA ADUANAL TRANSFRONTERIZA DEL NORTE S.C.",
 ): EFirmaCertificateMetadata {
-  let randSerial = 50000000;
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    const u32 = new Uint32Array(1);
-    crypto.getRandomValues(u32);
-    randSerial = 10000000 + (u32[0] % 90000000);
-  } else {
-    randSerial = Math.floor(10000000 + Math.random() * 90000000);
-  }
+  const randSerial = getSecureRandomInt(10000000, 99999999);
   const serialNumber = `300010000005${randSerial}`;
   const now = new Date();
   const validUntil = new Date(now.getTime() + 4 * 365 * 24 * 60 * 60 * 1000); // 4 años vigencia SAT

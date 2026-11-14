@@ -18,6 +18,7 @@ import {
   authenticateWithHardwareToken,
   generateBackupCodes,
   generateBase32Secret,
+  getSecureRandomString,
   verifyHardwareSignature,
   verifyTOTP,
 } from "@atlas/shared";
@@ -130,7 +131,7 @@ export function useSecuritySettings() {
 
   const handleAddPasskey = async () => {
     try {
-      const credId = `fido2-cred-${Math.random().toString(36).substring(2, 10)}`;
+      const credId = `fido2-cred-${getSecureRandomString(12)}`;
       const res = await fetch("/api/passkeys/register/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

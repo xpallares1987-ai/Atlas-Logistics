@@ -8,6 +8,8 @@
  * - Automated Equipment Empty Release Order Generation
  */
 
+import { getSecureRandomInt } from "./crypto.js";
+
 export type CarrierCode =
   "MAERSK" | "MSC" | "CMA_CGM" | "HAPAG_LLOYD" | "ONE" | "EVERGREEN";
 
@@ -407,11 +409,11 @@ export function generateEquipmentReleaseOrder(
   const sealNumbersAllocated: string[] = [];
   for (let i = 0; i < booking.requestedEquipment.quantity; i++) {
     sealNumbersAllocated.push(
-      `SL-${booking.carrierScac}-${Math.floor(100000 + Math.random() * 900000)}`,
+      `SL-${booking.carrierScac}-${getSecureRandomInt(100000, 999999)}`,
     );
   }
 
-  const pickupPin = Math.floor(1000 + Math.random() * 9000).toString();
+  const pickupPin = getSecureRandomInt(1000, 9999).toString();
   const validUntil = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
     .toISOString()
     .split("T")[0];

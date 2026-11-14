@@ -5,6 +5,8 @@
  * Token-Based Authentication (TBA), and BAPI translation dictionaries.
  */
 
+import { getSecureRandomString } from "./crypto.js";
+
 // ============================================================================
 // 1. SAP S/4HANA OData v4 / v2 Types & Schemas
 // ============================================================================
@@ -201,7 +203,7 @@ export function calculateNetSuiteLandedCost(
   totalFreightAmount: number,
   method: "VALUE" | "WEIGHT" | "VOLUME",
   items: LandedCostInputItem[],
-  currency = "USD"
+  currency = "USD",
 ): LandedCostResult {
   if (!items || items.length === 0) {
     return {
@@ -238,14 +240,18 @@ export function calculateNetSuiteLandedCost(
 
     // Reconciliation on last item to prevent rounding penny drift
     if (isLast) {
-      allocatedAmount = Math.round((totalFreightAmount - allocatedSum) * 100) / 100;
+      allocatedAmount =
+        Math.round((totalFreightAmount - allocatedSum) * 100) / 100;
     } else {
       allocatedSum += allocatedAmount;
     }
 
-    const effectiveUnitCost = it.quantity > 0
-      ? Math.round(((itemTotalValue + allocatedAmount) / it.quantity) * 1000) / 1000
-      : it.unitValue;
+    const effectiveUnitCost =
+      it.quantity > 0
+        ? Math.round(
+            ((itemTotalValue + allocatedAmount) / it.quantity) * 1000,
+          ) / 1000
+        : it.unitValue;
 
     resultItems.push({
       line: it.line,
@@ -282,13 +288,14 @@ export function generateMockNetSuiteTbaHeader(
   creds: NetSuiteTbaCredentials,
   _httpMethod = "POST",
   _url = "https://rest.netsuite.com/services/rest/record/v1/itemReceipt",
-  nonce = `ns_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-  timestamp = Math.floor(Date.now() / 1000).toString()
+  nonce = `ns_${Date.now()}_${getSecureRandomString(8)}`,
+  timestamp = Math.floor(Date.now() / 1000).toString(),
 ): { authorizationHeader: string; nonce: string; timestamp: string } {
   // Mock deterministic signature simulation for sandbox testing
   const signature = `TBA_HMAC256_${btoa(`${creds.consumerKey}:${creds.tokenId}:${timestamp}`).substring(0, 32)}=`;
-  
-  const authHeader = `OAuth realm="${creds.accountId}", ` +
+
+  const authHeader =
+    `OAuth realm="${creds.accountId}", ` +
     `oauth_consumer_key="${creds.consumerKey}", ` +
     `oauth_token="${creds.tokenId}", ` +
     `oauth_signature_method="HMAC-SHA256", ` +
@@ -342,11 +349,13 @@ export const INCOTERMS_CANONICAL = [
   "CIF",
 ] as const;
 
-export type IncotermCode = typeof INCOTERMS_CANONICAL[number];
+export type IncotermCode = (typeof INCOTERMS_CANONICAL)[number];
 
 export function mapAtlasToSapIncoterm(incoterm: string): string {
   const norm = incoterm.trim().toUpperCase();
-  return (INCOTERMS_CANONICAL as readonly string[]).includes(norm) ? norm : "FOB";
+  return (INCOTERMS_CANONICAL as readonly string[]).includes(norm)
+    ? norm
+    : "FOB";
 }
 
 // ============================================================================
@@ -395,7 +404,8 @@ export const ERP_DEMO_PRESETS: Record<string, ErpDemoPreset> = {
     id: "sap_automotive_tier1",
     name: "SAP S/4HANA: Cadena de Suministro Automotriz (Stuttgart ➔ Veracruz)",
     erpSystem: "SAP_S4HANA",
-    description: "Importación de transmisiones y motores en 3 contenedores 40' HC con PO 4500091823 y generación de Entrega Entrante (Inbound Delivery).",
+    description:
+      "Importación de transmisiones y motores en 3 contenedores 40' HC con PO 4500091823 y generación de Entrega Entrante (Inbound Delivery).",
     sampleInput: {
       referenceNumber: "PO-4500091823",
       originPlant: "1010-STUTTGART",
@@ -434,7 +444,8 @@ export const ERP_DEMO_PRESETS: Record<string, ErpDemoPreset> = {
     id: "netsuite_retail_hightech",
     name: "Oracle NetSuite: Distribución de Electrónica (Taipei ➔ Long Beach)",
     erpSystem: "ORACLE_NETSUITE",
-    description: "Ingreso en almacén 3PL con Item Receipt y prorrateo automático de Landed Cost (Flete Marítimo + Handling + Arancel) por volumen CBM.",
+    description:
+      "Ingreso en almacén 3PL con Item Receipt y prorrateo automático de Landed Cost (Flete Marítimo + Handling + Arancel) por volumen CBM.",
     sampleInput: {
       referenceNumber: "PO-NS-884210",
       originPlant: "TW-TPE-WH01",

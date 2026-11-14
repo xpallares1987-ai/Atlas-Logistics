@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Trash2 } from "lucide-react";
 import { Button, Input } from "@atlas/ui";
+import { getSecureRandomInt, getSecureRandomString } from "@atlas/shared";
 import { useQueryClient } from "../../../hooks/useApiQuery";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
@@ -48,7 +49,7 @@ export function CreateInvoiceModal({
     setLines([
       ...lines,
       {
-        id: Math.random().toString(),
+        id: getSecureRandomString(8),
         description: "",
         quantity: 1,
         unitPrice: 0,
@@ -70,7 +71,7 @@ export function CreateInvoiceModal({
 
     try {
       const payload = {
-        invoiceNumber: `INV-${Math.floor(Math.random() * 100000)}`,
+        invoiceNumber: `INV-${getSecureRandomInt(10000, 99999)}`,
         type,
         partyId,
         shipmentId,

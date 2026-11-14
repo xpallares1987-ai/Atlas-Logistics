@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { Button, Input, Select, Modal } from "@atlas/ui";
+import { getSecureRandomInt } from "@atlas/shared";
 
 interface QuoteWizardModalProps {
   isOpen: boolean;
@@ -41,7 +42,7 @@ export function QuoteWizardModal({
       setIsQuoting(true);
       setTimeout(() => {
         setGeneratedQuote({
-          price: Math.floor(Math.random() * (4500 - 1500) + 1500),
+          price: getSecureRandomInt(1500, 4500),
           currency: "USD",
           eta: "14-18 Days",
           validUntil: new Date(

@@ -192,9 +192,8 @@ export class ControlTowerService {
    * or triggers algorithmic alternative options generation.
    */
   public static async createIncident(input: CreateIncidentInput) {
-    const id = "inc_" + Math.random().toString(36).slice(2, 10);
-    const incidentNumber =
-      "INC-2026-" + Math.floor(1000 + Math.random() * 9000);
+    const id = "inc_" + crypto.randomBytes(4).toString("hex");
+    const incidentNumber = "INC-2026-" + crypto.randomInt(1000, 10000);
     const impactEur = Number(input.impactAmountEur || 0);
     const delayHrs = Number(input.delayHours || 0);
 
@@ -267,8 +266,8 @@ export class ControlTowerService {
     incidentId: string,
     contextTitle: string,
   ) {
-    const opt1Id = "ro_" + Math.random().toString(36).slice(2, 9);
-    const opt2Id = "ro_" + Math.random().toString(36).slice(2, 9);
+    const opt1Id = "ro_" + crypto.randomBytes(4).toString("hex");
+    const opt2Id = "ro_" + crypto.randomBytes(4).toString("hex");
 
     // Option 1: Intermodal Rail / Feeder bypass
     await db.insert(incidentRerouteOptions).values({
@@ -497,14 +496,12 @@ export class ControlTowerService {
     customsOfficeCode: string;
     notes?: string;
   }) {
-    const id = "ics2_" + Math.random().toString(36).slice(2, 9);
+    const id = "ics2_" + crypto.randomBytes(4).toString("hex");
     const mrn =
-      "26ES" +
-      Math.floor(1000000000 + Math.random() * 9000000000).toString() +
-      "A1";
+      "26ES" + crypto.randomInt(1000000000, 10000000000).toString() + "A1";
 
     // Risk Circuit Simulator: Evaluates security assessment score
-    const securityScore = Math.floor(65 + Math.random() * 35); // 65 to 100
+    const securityScore = crypto.randomInt(65, 101); // 65 to 100
     let riskCircuit: "GREEN" | "ORANGE" | "RED" = "GREEN";
     let filingStatus = "CLEARED";
 

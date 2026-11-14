@@ -10,6 +10,8 @@
  * - Pre-configured 1-click realistic demo scenarios.
  */
 
+import { getSecureRandomInt } from "./crypto.js";
+
 // =========================================================================
 // 1. PURE TYPESCRIPT SHA-256 CRYPTOGRAPHIC HASH ENGINE
 // =========================================================================
@@ -21,7 +23,9 @@
 export function sha256(data: string): string {
   try {
     if (typeof process !== "undefined" && process?.versions?.node) {
-      const getNodeCrypto = new Function('try { return require("crypto"); } catch(e) { return null; }');
+      const getNodeCrypto = new Function(
+        'try { return require("crypto"); } catch(e) { return null; }',
+      );
       const nodeCrypto = getNodeCrypto();
       if (nodeCrypto && typeof nodeCrypto.createHash === "function") {
         return nodeCrypto.createHash("sha256").update(data).digest("hex");
@@ -48,10 +52,18 @@ export function sha256(data: string): string {
     h4 = Math.imul(h4 ^ ch, 3266489909);
   }
 
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 1597334677) ^ Math.imul(h3 ^ (h3 >>> 13), 2654435761);
-  h3 = Math.imul(h3 ^ (h3 >>> 16), 3266489909) ^ Math.imul(h4 ^ (h4 >>> 13), 2246822507);
-  h4 = Math.imul(h4 ^ (h4 >>> 16), 2654435761) ^ Math.imul(h1 ^ (h1 >>> 13), 1597334677);
+  h1 =
+    Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^
+    Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 =
+    Math.imul(h2 ^ (h2 >>> 16), 1597334677) ^
+    Math.imul(h3 ^ (h3 >>> 13), 2654435761);
+  h3 =
+    Math.imul(h3 ^ (h3 >>> 16), 3266489909) ^
+    Math.imul(h4 ^ (h4 >>> 13), 2246822507);
+  h4 =
+    Math.imul(h4 ^ (h4 >>> 16), 2654435761) ^
+    Math.imul(h1 ^ (h1 >>> 13), 1597334677);
 
   const hex1 = (h1 >>> 0).toString(16).padStart(8, "0");
   const hex2 = (h2 >>> 0).toString(16).padStart(8, "0");
@@ -137,11 +149,15 @@ export function createBlock(
   blockNumber: number,
   prevHash: string,
   payload: BlockchainBlockPayload,
-  signerKey: string = "atlas_authority_node_1"
+  signerKey: string = "atlas_authority_node_1",
 ): BlockchainBlock {
   const timestamp = new Date().toISOString();
-  const merkleRoot = calculateMerkleRoot([JSON.stringify(payload), prevHash, timestamp]);
-  const nonce = Math.floor(Math.random() * 100000);
+  const merkleRoot = calculateMerkleRoot([
+    JSON.stringify(payload),
+    prevHash,
+    timestamp,
+  ]);
+  const nonce = getSecureRandomInt(1, 1000000);
   const rawData = `${blockNumber}:${timestamp}:${prevHash}:${merkleRoot}:${nonce}`;
   const txHash = sha256(rawData);
   const signature = `ecdsa:${sha256(`${txHash}:${signerKey}`).slice(0, 32)}`;
@@ -167,9 +183,13 @@ export function createGenesisBlock(): BlockchainBlock {
     {
       event: "GENESIS",
       sender: "Atlas Global DLT Ledger",
-      details: "Genesis block initialized for UNCITRAL MLETR Trade Finance & Smart Escrow.",
-      metadata: { protocol: "ATLAS-MLETR-DLT-v2.0", network: "Atlas Logistics Enterprise Ledger" },
-    }
+      details:
+        "Genesis block initialized for UNCITRAL MLETR Trade Finance & Smart Escrow.",
+      metadata: {
+        protocol: "ATLAS-MLETR-DLT-v2.0",
+        network: "Atlas Logistics Enterprise Ledger",
+      },
+    },
   );
 }
 
@@ -181,8 +201,15 @@ export function verifyChainIntegrity(blocks: BlockchainBlock[]): {
   if (blocks.length === 0) return { isValid: true };
 
   // Check genesis
-  if (blocks[0].prevHash !== "0000000000000000000000000000000000000000000000000000000000000000") {
-    return { isValid: false, corruptedBlockNumber: 0, reason: "Bloque Génesis corrupto: prevHash no es cero." };
+  if (
+    blocks[0].prevHash !==
+    "0000000000000000000000000000000000000000000000000000000000000000"
+  ) {
+    return {
+      isValid: false,
+      corruptedBlockNumber: 0,
+      reason: "Bloque Génesis corrupto: prevHash no es cero.",
+    };
   }
 
   for (let i = 1; i < blocks.length; i++) {
@@ -287,15 +314,23 @@ export function createDigitalEbl(params: {
 export function endorseEblTitle(
   ebl: DigitalBillOfLadingMLETR,
   toParty: string,
-  transferType: "SPECIAL_ENDORSEMENT" | "PLEDGE_TO_BANK" | "BLANK_ENDORSEMENT" = "SPECIAL_ENDORSEMENT",
-  signerName: string = ebl.currentTitleHolder
-): { updatedEbl: DigitalBillOfLadingMLETR; endorsementRecord: TitleEndorsementRecord } {
+  transferType:
+    | "SPECIAL_ENDORSEMENT"
+    | "PLEDGE_TO_BANK"
+    | "BLANK_ENDORSEMENT" = "SPECIAL_ENDORSEMENT",
+  signerName: string = ebl.currentTitleHolder,
+): {
+  updatedEbl: DigitalBillOfLadingMLETR;
+  endorsementRecord: TitleEndorsementRecord;
+} {
   if (ebl.status === "SURRENDERED") {
-    throw new Error("No se puede endosar un e-BL que ya ha sido entregado / cancelado (Surrendered).");
+    throw new Error(
+      "No se puede endosar un e-BL que ya ha sido entregado / cancelado (Surrendered).",
+    );
   }
 
   const timestamp = new Date().toISOString();
-  const endorsementId = `END-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const endorsementId = `END-${Date.now()}-${getSecureRandomInt(100, 999)}`;
   const sig = `ecdsa:sig:${sha256(`${ebl.eblNumber}:${signerName}:${toParty}:${timestamp}`).slice(0, 24)}`;
   const txHash = sha256(`${endorsementId}:${sig}`);
 
@@ -383,12 +418,42 @@ export function createSmartEscrowContract(params: {
     fundedAt: new Date().toISOString(),
     status: "FUNDED",
     conditions: [
-      { milestoneKey: "EBL_ISSUED", description: "Emisión y registro del e-BL en el Ledger DLT MLETR", isCompleted: true, completedAt: new Date().toISOString(), verificationSource: "Carrier Signing Authority" },
-      { milestoneKey: "VESSEL_DEPARTED", description: "Zarpada de buque confirmada por telemetría AIS portuaria", isCompleted: false },
-      { milestoneKey: "SEAL_VERIFIED", description: "Inspección de precinto ISO 17712 intacto sin alertas de violación", isCompleted: false },
-      { milestoneKey: "CUSTOMS_CLEARED", description: "Despacho Aduanero con Certificado Pre-Despacho (Verificación Tripartita)", isCompleted: false },
-      { milestoneKey: "DISCHARGED_PORT", description: "Descarga en terminal portuaria y confirmación de Gate-In / Gate-Out", isCompleted: false },
-      { milestoneKey: "PROOF_OF_DELIVERY", description: "Prueba de entrega (POD) firmada criptográficamente por consignatario", isCompleted: false },
+      {
+        milestoneKey: "EBL_ISSUED",
+        description: "Emisión y registro del e-BL en el Ledger DLT MLETR",
+        isCompleted: true,
+        completedAt: new Date().toISOString(),
+        verificationSource: "Carrier Signing Authority",
+      },
+      {
+        milestoneKey: "VESSEL_DEPARTED",
+        description: "Zarpada de buque confirmada por telemetría AIS portuaria",
+        isCompleted: false,
+      },
+      {
+        milestoneKey: "SEAL_VERIFIED",
+        description:
+          "Inspección de precinto ISO 17712 intacto sin alertas de violación",
+        isCompleted: false,
+      },
+      {
+        milestoneKey: "CUSTOMS_CLEARED",
+        description:
+          "Despacho Aduanero con Certificado Pre-Despacho (Verificación Tripartita)",
+        isCompleted: false,
+      },
+      {
+        milestoneKey: "DISCHARGED_PORT",
+        description:
+          "Descarga en terminal portuaria y confirmación de Gate-In / Gate-Out",
+        isCompleted: false,
+      },
+      {
+        milestoneKey: "PROOF_OF_DELIVERY",
+        description:
+          "Prueba de entrega (POD) firmada criptográficamente por consignatario",
+        isCompleted: false,
+      },
     ],
     releasedAmountUsd: 0,
   };
@@ -398,7 +463,7 @@ export function evaluateSmartEscrowMilestone(
   contract: SmartEscrowContract,
   milestoneKey: EscrowMilestoneKey,
   verificationSource: string,
-  blockNumber?: number
+  blockNumber?: number,
 ): { updatedContract: SmartEscrowContract; isAutoSettled: boolean } {
   if (contract.status === "AUTO_RELEASED" || contract.status === "DISPUTED") {
     return { updatedContract: contract, isAutoSettled: false };
@@ -420,7 +485,9 @@ export function evaluateSmartEscrowMilestone(
   const allCompleted = updatedConditions.every((c) => c.isCompleted);
 
   if (allCompleted) {
-    const settlementHash = sha256(`SETTLED:${contract.contractId}:${contract.totalAmountUsd}:${Date.now()}`);
+    const settlementHash = sha256(
+      `SETTLED:${contract.contractId}:${contract.totalAmountUsd}:${Date.now()}`,
+    );
     return {
       updatedContract: {
         ...contract,
@@ -446,7 +513,7 @@ export function evaluateSmartEscrowMilestone(
 
 export function triggerEscrowDispute(
   contract: SmartEscrowContract,
-  reason: string
+  reason: string,
 ): SmartEscrowContract {
   return {
     ...contract,
@@ -482,7 +549,8 @@ export const PRESET_SHANGHAI_VALENCIA: DemoScenarioState = (() => {
     shipperName: "Shanghai Apex Microelectronics Co., Ltd.",
     consigneeName: "Iberian Tech Distribution S.L.",
     notifyParty: "Banco Santander S.A. (Trade Finance Ops)",
-    goodsDescription: "High-Density Microcontrollers & Sensor Modules (22 Pallets)",
+    goodsDescription:
+      "High-Density Microcontrollers & Sensor Modules (22 Pallets)",
     grossWeightKg: 18450,
     totalVolumeCbm: 64.2,
     containerNumber: "MEDU7753120",
@@ -495,7 +563,8 @@ export const PRESET_SHANGHAI_VALENCIA: DemoScenarioState = (() => {
     eblNumber: ebl.eblNumber,
     containerNo: ebl.containerNumber,
     sender: ebl.carrierName,
-    details: "e-BL Negociable emitido conforme a Ley Modelo MLETR de la CNUDMI.",
+    details:
+      "e-BL Negociable emitido conforme a Ley Modelo MLETR de la CNUDMI.",
     metadata: { goods: ebl.goodsDescription, weight: ebl.grossWeightKg },
   });
 
@@ -512,7 +581,8 @@ export const PRESET_SHANGHAI_VALENCIA: DemoScenarioState = (() => {
     contractId: escrow.contractId,
     eblNumber: ebl.eblNumber,
     sender: escrow.payerName,
-    details: "Depósito en garantía de $48,500.00 USD bloqueado en Smart Escrow Multi-Sig.",
+    details:
+      "Depósito en garantía de $48,500.00 USD bloqueado en Smart Escrow Multi-Sig.",
     metadata: { totalAmountUsd: 48500, currency: "USD" },
   });
 
@@ -521,7 +591,8 @@ export const PRESET_SHANGHAI_VALENCIA: DemoScenarioState = (() => {
     eblNumber: ebl.eblNumber,
     containerNo: ebl.containerNumber,
     sender: "Shanghai Maritime AIS Oracle",
-    details: "Buque MSC GÜLSÜN zarpó de Shanghai Port. Posición GPS confirmada.",
+    details:
+      "Buque MSC GÜLSÜN zarpó de Shanghai Port. Posición GPS confirmada.",
   });
 
   const b4 = createBlock(4, b3.txHash, {
@@ -543,7 +614,8 @@ export const PRESET_SHANGHAI_VALENCIA: DemoScenarioState = (() => {
     eblNumber: ebl.eblNumber,
     containerNo: ebl.containerNumber,
     sender: "Aduana de Valencia (VUCE / SAT Oracle)",
-    details: "Despacho Aduanero Concedido (Canal Verde). Certificado CERT-PRE-RELEASE-2026-X89 validado.",
+    details:
+      "Despacho Aduanero Concedido (Canal Verde). Certificado CERT-PRE-RELEASE-2026-X89 validado.",
     metadata: { channel: "GREEN", complianceScore: 100 },
   });
 
@@ -551,7 +623,8 @@ export const PRESET_SHANGHAI_VALENCIA: DemoScenarioState = (() => {
     event: "CONTAINER_DISCHARGED",
     containerNo: ebl.containerNumber,
     sender: "Noatum Terminal Valencia Gate OCR",
-    details: "Contenedor descargado de buque y transferido a patio fiscalizado.",
+    details:
+      "Contenedor descargado de buque y transferido a patio fiscalizado.",
   });
 
   const b7 = createBlock(7, b6.txHash, {
@@ -559,16 +632,42 @@ export const PRESET_SHANGHAI_VALENCIA: DemoScenarioState = (() => {
     eblNumber: ebl.eblNumber,
     containerNo: ebl.containerNumber,
     sender: ebl.consigneeName,
-    details: "Prueba de entrega firmada digitalmente con Passkey e.firma del consignatario.",
+    details:
+      "Prueba de entrega firmada digitalmente con Passkey e.firma del consignatario.",
   });
 
   // Evaluate milestones on escrow
   let currentEscrow = escrow;
-  currentEscrow = evaluateSmartEscrowMilestone(currentEscrow, "VESSEL_DEPARTED", "Shanghai Port AIS", 3).updatedContract;
-  currentEscrow = evaluateSmartEscrowMilestone(currentEscrow, "SEAL_VERIFIED", "IoT Smart Lock Beacon", 4).updatedContract;
-  currentEscrow = evaluateSmartEscrowMilestone(currentEscrow, "CUSTOMS_CLEARED", "Aduana Valencia Oracle", 5).updatedContract;
-  currentEscrow = evaluateSmartEscrowMilestone(currentEscrow, "DISCHARGED_PORT", "Noatum Terminal Gate", 6).updatedContract;
-  const settlement = evaluateSmartEscrowMilestone(currentEscrow, "PROOF_OF_DELIVERY", "Consignee WebCrypto POD", 7);
+  currentEscrow = evaluateSmartEscrowMilestone(
+    currentEscrow,
+    "VESSEL_DEPARTED",
+    "Shanghai Port AIS",
+    3,
+  ).updatedContract;
+  currentEscrow = evaluateSmartEscrowMilestone(
+    currentEscrow,
+    "SEAL_VERIFIED",
+    "IoT Smart Lock Beacon",
+    4,
+  ).updatedContract;
+  currentEscrow = evaluateSmartEscrowMilestone(
+    currentEscrow,
+    "CUSTOMS_CLEARED",
+    "Aduana Valencia Oracle",
+    5,
+  ).updatedContract;
+  currentEscrow = evaluateSmartEscrowMilestone(
+    currentEscrow,
+    "DISCHARGED_PORT",
+    "Noatum Terminal Gate",
+    6,
+  ).updatedContract;
+  const settlement = evaluateSmartEscrowMilestone(
+    currentEscrow,
+    "PROOF_OF_DELIVERY",
+    "Consignee WebCrypto POD",
+    7,
+  );
   currentEscrow = settlement.updatedContract;
 
   const b8 = createBlock(8, b7.txHash, {
@@ -576,14 +675,20 @@ export const PRESET_SHANGHAI_VALENCIA: DemoScenarioState = (() => {
     contractId: currentEscrow.contractId,
     eblNumber: ebl.eblNumber,
     sender: "Atlas Smart Contract Virtual Machine",
-    details: "Liquidación automática: $48,500.00 USD liberados a favor de Shanghai Apex Microelectronics.",
-    metadata: { settlementTxHash: currentEscrow.settlementTxHash, amount: 48500 },
+    details:
+      "Liquidación automática: $48,500.00 USD liberados a favor de Shanghai Apex Microelectronics.",
+    metadata: {
+      settlementTxHash: currentEscrow.settlementTxHash,
+      amount: 48500,
+    },
   });
 
   return {
     scenarioId: "shanghai_valencia_full_success",
-    title: "Flujo Completo Exitoso Shanghai -> Valencia ($48,500 USD Liberados)",
-    description: "Operación de exportación marítima con e-BL MLETR y Smart Escrow: 6 hitos validados con liquidación automática instantánea sin fricción financiera.",
+    title:
+      "Flujo Completo Exitoso Shanghai -> Valencia ($48,500 USD Liberados)",
+    description:
+      "Operación de exportación marítima con e-BL MLETR y Smart Escrow: 6 hitos validados con liquidación automática instantánea sin fricción financiera.",
     ebl: { ...ebl, status: "SURRENDERED" },
     escrow: currentEscrow,
     ledger: [genesis, b1, b2, b3, b4, b5, b6, b7, b8],
@@ -617,7 +722,8 @@ export const PRESET_MLETR_BANK_ENDORSEMENT: DemoScenarioState = (() => {
     eblNumber: ebl.eblNumber,
     containerNo: ebl.containerNumber,
     sender: ebl.carrierName,
-    details: "e-BL Negociable emitido a la orden del banco emisor de Carta de Crédito.",
+    details:
+      "e-BL Negociable emitido a la orden del banco emisor de Carta de Crédito.",
   });
 
   // Endorse to Bank under MLETR
@@ -625,14 +731,15 @@ export const PRESET_MLETR_BANK_ENDORSEMENT: DemoScenarioState = (() => {
     ebl,
     "Banco Santander S.A. (Trade Finance)",
     "PLEDGE_TO_BANK",
-    ebl.shipperName
+    ebl.shipperName,
   );
 
   const b2 = createBlock(2, b1.txHash, {
     event: "TITLE_ENDORSED",
     eblNumber: ebl.eblNumber,
     sender: ebl.shipperName,
-    details: "Título de propiedad endosado y pignorado a favor de Banco Santander bajo Ley Modelo MLETR.",
+    details:
+      "Título de propiedad endosado y pignorado a favor de Banco Santander bajo Ley Modelo MLETR.",
     metadata: { endorsement: endorsementRecord },
   });
 
@@ -649,7 +756,8 @@ export const PRESET_MLETR_BANK_ENDORSEMENT: DemoScenarioState = (() => {
     contractId: escrow.contractId,
     eblNumber: ebl.eblNumber,
     sender: "Banco Santander S.A. (Escrow Trust)",
-    details: "Depósito de $112,000.00 USD afianzado bajo Carta de Crédito Documentaria UCP 600.",
+    details:
+      "Depósito de $112,000.00 USD afianzado bajo Carta de Crédito Documentaria UCP 600.",
   });
 
   const b4 = createBlock(4, b3.txHash, {
@@ -660,12 +768,18 @@ export const PRESET_MLETR_BANK_ENDORSEMENT: DemoScenarioState = (() => {
     details: "Buque zarpó de Qingdao Port con destino Barcelona.",
   });
 
-  let currentEscrow = evaluateSmartEscrowMilestone(escrow, "VESSEL_DEPARTED", "Qingdao AIS", 4).updatedContract;
+  let currentEscrow = evaluateSmartEscrowMilestone(
+    escrow,
+    "VESSEL_DEPARTED",
+    "Qingdao AIS",
+    4,
+  ).updatedContract;
 
   return {
     scenarioId: "mletr_bank_endorsement",
     title: "e-BL Negociable con Endoso de Título Bancario MLETR ($112,000 USD)",
-    description: "Título de propiedad transferido criptográficamente a Banco Santander como colateral de Carta de Crédito Documentaria (UCP 600 / MLETR).",
+    description:
+      "Título de propiedad transferido criptográficamente a Banco Santander como colateral de Carta de Crédito Documentaria (UCP 600 / MLETR).",
     ebl: updatedEbl,
     escrow: currentEscrow,
     ledger: [genesis, b1, b2, b3, b4],
@@ -730,7 +844,8 @@ export const PRESET_TAMPERED_SEAL_DISPUTE: DemoScenarioState = (() => {
     event: "SEAL_TAMPER_ALERT",
     containerNo: ebl.containerNumber,
     sender: "Smart Lock IoT Telemetry Sensor",
-    details: "ALERTA CRÍTICA: Precinto ISO 17712 violentado o manipulado. Apertura de puerta detectada en mar abierto.",
+    details:
+      "ALERTA CRÍTICA: Precinto ISO 17712 violentado o manipulado. Apertura de puerta detectada en mar abierto.",
     iotTelemetry: {
       temperatureCelsius: 28.5,
       batteryPercent: 82,
@@ -741,7 +856,7 @@ export const PRESET_TAMPERED_SEAL_DISPUTE: DemoScenarioState = (() => {
 
   const disputedEscrow = triggerEscrowDispute(
     escrow,
-    "Alerta de precinto de seguridad ISO 17712 violentado (Sensor IoT ID #TLM-4412). Fondos congelados preventivamente por contrato inteligente hasta peritaje forense."
+    "Alerta de precinto de seguridad ISO 17712 violentado (Sensor IoT ID #TLM-4412). Fondos congelados preventivamente por contrato inteligente hasta peritaje forense.",
   );
 
   const b5 = createBlock(5, b4.txHash, {
@@ -749,14 +864,17 @@ export const PRESET_TAMPERED_SEAL_DISPUTE: DemoScenarioState = (() => {
     contractId: escrow.contractId,
     eblNumber: ebl.eblNumber,
     sender: "Smart Escrow Safety Guard Dog",
-    details: "Fondos de $76,000.00 USD congelados. Disputa contractual abierta.",
+    details:
+      "Fondos de $76,000.00 USD congelados. Disputa contractual abierta.",
     metadata: { reason: disputedEscrow.disputeReason },
   });
 
   return {
     scenarioId: "tampered_seal_dispute",
-    title: "Disputa de Escrow por Precinto Violado en Alta Mar ($76,000 USD Congelados)",
-    description: "El sensor IoT detecta intrusión y rotura del precinto ISO 17712; el Smart Contract congela inmediatamente los fondos para proteger al comprador y la aseguradora.",
+    title:
+      "Disputa de Escrow por Precinto Violado en Alta Mar ($76,000 USD Congelados)",
+    description:
+      "El sensor IoT detecta intrusión y rotura del precinto ISO 17712; el Smart Contract congela inmediatamente los fondos para proteger al comprador y la aseguradora.",
     ebl,
     escrow: disputedEscrow,
     ledger: [genesis, b1, b2, b3, b4, b5],

@@ -4,6 +4,8 @@
  * customs declarations, multimodal Bills of Lading, e-CMR, and freight release documents.
  */
 
+import { getSecureRandomInt } from "./crypto.js";
+
 export interface DigitalSignaturePayload {
   documentId: string;
   documentType:
@@ -48,14 +50,7 @@ export class DigitalSignatureService {
         : JSON.stringify(payload.content);
 
     const timestamp = payload.timestamp ?? Date.now();
-    let randSerial = 50000000;
-    if (globalThis.crypto?.getRandomValues) {
-      const u32 = new Uint32Array(1);
-      globalThis.crypto.getRandomValues(u32);
-      randSerial = 10000000 + (u32[0] % 90000000);
-    } else {
-      randSerial = Math.floor(10000000 + Math.random() * 90000000);
-    }
+    const randSerial = getSecureRandomInt(10000000, 99999999);
     const certSerial = options.certificateSerial || `CERT-ATLAS-${randSerial}`;
 
     const textToDigest = `${payload.documentId}:${payload.documentType}:${payload.issuerId}:${payload.issuerOrg}:${rawContent}:${timestamp}:${options.customSalt || "atlas-logistics-subtle-salt"}`;

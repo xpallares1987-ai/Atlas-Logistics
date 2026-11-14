@@ -220,3 +220,35 @@ export async function decryptPayloadEnvelope<T = any>(
   const jsonStr = new TextDecoder().decode(decrypted);
   return JSON.parse(jsonStr) as T;
 }
+
+/**
+ * Generates a cryptographically secure random integer within [min, max] inclusive using Web Crypto API.
+ */
+export function getSecureRandomInt(min: number, max: number): number {
+  if (min > max) throw new Error("min must be less than or equal to max");
+  const range = max - min + 1;
+  const maxAllowed = Math.floor(0xffffffff / range) * range;
+  const arr = new Uint32Array(1);
+  let val: number;
+  do {
+    globalThis.crypto.getRandomValues(arr);
+    val = arr[0];
+  } while (val >= maxAllowed);
+  return min + (val % range);
+}
+
+/**
+ * Generates a cryptographically secure random string with given length and charset using Web Crypto API.
+ */
+export function getSecureRandomString(
+  length: number,
+  charset = "abcdefghijklmnopqrstuvwxyz0123456789",
+): string {
+  const bytes = new Uint8Array(length);
+  globalThis.crypto.getRandomValues(bytes);
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += charset[bytes[i] % charset.length];
+  }
+  return result;
+}
