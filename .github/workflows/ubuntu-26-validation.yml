@@ -1,0 +1,81 @@
+name: Ubuntu 26.04 Platform & Toolchain Validation
+
+on:
+  schedule:
+    # Run weekly on Mondays at 03:00 UTC
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/**'
+      - 'scripts/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-platform:
+    name: ${{ matrix.os }} (Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, ubuntu-24.04]
+        node: [22, 24]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify zero confidential leaks
+        run: pnpm run audit:leaks
+
+      - name: Run lint and type checking
+        run: |
+          pnpm run eslint
+          pnpm run type-check
+
+      - name: Build monorepo packages
+        run: pnpm run build
+
+      - name: Initialize SQLite database and run migrations
+        run: |
+          mkdir -p data
+          touch .env.local
+          pnpm run db:migrate
+          pnpm run db:seed
+
+      - name: Execute Vitest test suite with reproducibility & upgrade contracts
+        run: pnpm test
+
+      - name: Validate production Docker Compose configuration
+        run: docker compose -f docker-compose.prod.yml config
+
+      - name: Record platform diagnostic information
+        if: always()
+        run: |
+          echo "### 🐧 Runner Environment Diagnostics" >> $GITHUB_STEP_SUMMARY
+          echo "- **Runner OS**: ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Linux Kernel**: $(uname -r)" >> $GITHUB_STEP_SUMMARY
+          echo "- **OS Release**: $(cat /etc/os-release | grep PRETTY_NAME | cut -d= -f2 | tr -d '\"')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js**: $(node -v)" >> $GITHUB_STEP_SUMMARY
+          echo "- **pnpm**: $(pnpm -v)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker**: $(docker -v)" >> $GITHUB_STEP_SUMMARY
