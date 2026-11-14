@@ -9,6 +9,11 @@
   - For upserts in seeds, always use `.onConflictDoUpdate()` with binding fields rather than `.onConflictDoNothing()`, preventing null or stale references on existing records.
   - **Drizzle Schema Boundaries**: When defining relational foreign keys (`references(() => table.id)`), import the parent table from its exact canonical submodule in `src/db/schema/` (e.g. `documents` resides in `./support.js`, not `./core.js`), avoiding `undefined` type errors during `drizzle-kit generate`.
   - **Drizzle v1.0.0-rc.5 Migration Hierarchy**: Migrations under `drizzle/` must strictly use folder-based snapshots (`drizzle/<timestamp>_<tag>/migration.sql` accompanied by `drizzle/meta/_journal.json`). Flat `.sql` migration files placed directly in `drizzle/` are rejected by Drizzle migrator with `No migration found`.
+- **SQLite Online Backup & Disaster Recovery Verification**:
+  - **Concurrency Timeout**: Always execute `PRAGMA busy_timeout = 5000;` on all database connection handles before running checkpoints or backups, preventing lock aborts when writers are active.
+  - **Atomic Online Snapshot**: Use `VACUUM INTO '<backup_path>'` for online backups rather than file-copying `data/dev.db` while WAL frames are pending.
+  - **Full Inventory & Parity Check**: Backup verification must assert 100% table row count parity across **all physical tables** in `sqlite_master` (not just sample tables), accompanied by deterministic SHA-256 checksums of core domain tables.
+  - **Disaster Recovery Simulation**: Automated test suites (`pnpm run test:backup-restore`) must mount the restored snapshot in an isolated database file, re-enable `PRAGMA journal_mode = WAL;` and `PRAGMA foreign_keys = ON;`, and assert successful query execution against canonical entities (e.g. `sh_demo_01`).
 
 ## 2. Git Workflow & Code Security
 - **Git Flow & Remote Synchronization**:
@@ -29,15 +34,27 @@
 - **Exclusive Consumption of SQLite/Fastify**: Every action, mutation, or visualization in the UI must query and send data to real Fastify endpoints backed by Drizzle ORM and SQLite.
 - **Elimination of Artificial Mock Buttons**: Prohibited from adding or maintaining mock/simulation data buttons when operational domain endpoints exist.
 - **Dynamic Entity Selectors**: Views requiring an active shipment or operational entity must provide dynamic selectors populated from the database (with fallback to the canonical shipment `sh_demo_01`), rather than hardcoded IDs or static states.
+- **Strict Zero-innerHTML Standard & Safe DOM Construction**:
+  - When rendering dynamic, library, or model-derived data in frontend, sidebar, or canvas extension views, NEVER interpolate raw concatenated strings directly into `innerHTML` sinks (violates CWE-79 / CWE-116 and flags `js/html-constructed-from-input`).
+  - Prohibited from using `dangerouslySetInnerHTML` in React or string concatenation into `innerHTML` in vanilla DOM helpers.
+  - Always construct DOM nodes programmatically using `document.createElement()` and assign untrusted or external strings to `element.textContent`, or use `setAttribute()` with sanitized attributes. `textContent` is a native browser boundary that guarantees zero script execution and permanently severs taint-tracking flows in CodeQL AST analysis.
 
 ## 5. Diátaxis Documentation Governance & Root Hygiene
-- **Root Directory Hygiene**: The repository root contains only six canonical documentation files: `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, and `CODE_OF_CONDUCT.md`; operational and tool configuration files remain at the root where required. Prohibited from accumulating specs, scratch files, or loose guides in the root.
+- **Root Directory Hygiene**: The repository root contains only six canonical documentation files (`README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `CODE_OF_CONDUCT.md`), alongside required source, build, workspace and tool configuration files. Prohibited from accumulating specs, scratch files, or loose guides in the root.
 - **Four-Quadrant Diátaxis Structure**: All technical documentation must reside in its corresponding quadrant within `docs/`:
   - **Tutorials**: `docs/tutorials/` (developer learning-oriented).
   - **How-To Guides**: `docs/setup-guides/`, `docs/runbooks/`, and `docs/deployment/` (task-oriented recipes).
   - **Reference**: `docs/reference/`, `docs/api/`, and `docs/superpowers/specs/` (technical contracts and specifications).
   - **Explanation & Decisions**: `docs/architecture/` and `docs/adr/` (conceptual deep-dives and numbered ADRs `0001-...`).
 - **Architectural Decision Records (ADRs)**: Any architectural change or technical standard must be documented via a numbered ADR in `docs/adr/`.
+- **Markdown Relative Link Integrity & Indexing**:
+  - All relative links in `README.md` and `docs/` must resolve strictly to physical files or directories on disk. Local machine absolute URIs (`file:///...`) are strictly prohibited.
+  - Any newly authored documentation or Architectural Decision Record (ADR) must be indexed in `docs/README.md` (or `docs/adr/`) and verified via `pnpm run audit:links` (`scripts/check-markdown-links.mjs`) prior to commit.
+- **Tripartite Architectural Distinction**:
+  - Maintain a strict conceptual and operational distinction between:
+    1. **GitHub Pages Deployment**: The live production SPA web application build (`https://xpallares1987-ai.github.io/Atlas-Logistics/`).
+    2. **Diátaxis Documentation (`docs/`)**: The in-repo technical source of truth.
+    3. **GitHub Wiki**: The synchronized public mirror updated via `pnpm run wiki:sync`.
 
 ## 6. Language Standards & Code Documentation
 - **Strict English Technical Standard**: 100% of codebase files, JSDoc/TSDoc comments, Architectural Decision Records (ADRs), Diátaxis documentation (`docs/`), GitHub Wiki pages, and git commit messages must be authored strictly in standard technical English.
