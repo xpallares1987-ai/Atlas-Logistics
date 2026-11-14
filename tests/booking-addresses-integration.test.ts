@@ -44,7 +44,7 @@ describe("Booking Lifecycle & Canonical Addresses Integration", () => {
       .values({
         id: "addr_test_shipper_01",
         companyId: testTenantId,
-        addressType: "CUSTOMER",
+        addressType: "CUS",
         companyName: "Iberian Olive Oil Exporters S.A.",
         taxId: "ESA12345678",
         street1: "Av. del Puerto 120, Muelle Sur",
@@ -74,7 +74,7 @@ describe("Booking Lifecycle & Canonical Addresses Integration", () => {
       .values({
         id: "addr_test_consignee_01",
         companyId: testTenantId,
-        addressType: "CUSTOMER",
+        addressType: "CUS",
         companyName: "Nordic Fine Foods B.V.",
         taxId: "NL889900112B01",
         street1: "Keizersgracht 450",
@@ -93,7 +93,7 @@ describe("Booking Lifecycle & Canonical Addresses Integration", () => {
       .values({
         id: "addr_test_notify_01",
         companyId: testTenantId,
-        addressType: "CUSTOMS_BROKER",
+        addressType: "CB",
         companyName: "Rotterdam Port Customs Agents B.V.",
         taxId: "NL112233445B02",
         street1: "Waalhaven Oostzijde 14",
@@ -112,7 +112,7 @@ describe("Booking Lifecycle & Canonical Addresses Integration", () => {
       .values({
         id: "addr_test_agent_01",
         companyId: testTenantId,
-        addressType: "CARRIER_AGENT",
+        addressType: "CAA",
         companyName: "Maersk Agencies Rotterdam B.V.",
         taxId: "NL998877665B01",
         street1: "Maasvlakte Boulevard 100",

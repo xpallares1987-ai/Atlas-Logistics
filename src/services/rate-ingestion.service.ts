@@ -252,6 +252,7 @@ export async function ensureCarrierExists(
   carrierName: string,
 ): Promise<string> {
   const cleanName = (carrierName || "Standard Carrier").trim();
+  const scacCandidate = cleanName.substring(0, 4).toUpperCase();
   try {
     const existing = await db
       .select({ id: addresses.id })
@@ -262,16 +263,33 @@ export async function ensureCarrierExists(
           or(
             sql`upper(${addresses.tradeName}) = ${cleanName.toUpperCase()}`,
             sql`upper(${addresses.companyName}) = ${cleanName.toUpperCase()}`,
+            sql`upper(${addresses.tradeName}) LIKE ${`%${cleanName.toUpperCase()}%`}`,
+            sql`upper(${addresses.companyName}) LIKE ${`%${cleanName.toUpperCase()}%`}`,
           ),
         ),
       )
       .limit(1);
 
     if (existing.length > 0) {
+      // Mirror to legacy carriers table to satisfy table foreign key on rates(carrier_id)
+      await db.run(sql`
+        INSERT OR IGNORE INTO carriers (id, name, scac, type, is_active)
+        VALUES (${existing[0].id}, ${cleanName}, ${scacCandidate}, 'OCEAN', 1)
+      `);
       return existing[0].id;
     }
 
     const newId = `addr_carr_${uuidv4().substring(0, 8)}`;
+    // Defensively ensure parent company and address_types exist
+    await db.run(sql`
+      INSERT OR IGNORE INTO companies (id, name, created_at, is_active)
+      VALUES ('c-1', 'Default Enterprise Carrier Group', strftime('%s', 'now'), 1)
+    `);
+    await db.run(sql`
+      INSERT OR IGNORE INTO address_types (code, name, created_at, is_active)
+      VALUES ('CAR', 'Carrier', strftime('%s', 'now'), 1)
+    `);
+
     await db.insert(addresses).values({
       id: newId,
       companyId: "c-1",
@@ -287,9 +305,20 @@ export async function ensureCarrierExists(
       isDeleted: false,
       isActive: true,
     });
+
+    // Mirror to legacy carriers table to satisfy table foreign key on rates(carrier_id)
+    await db.run(sql`
+      INSERT OR IGNORE INTO carriers (id, name, scac, type, is_active)
+      VALUES (${newId}, ${cleanName}, ${scacCandidate}, 'OCEAN', 1)
+    `);
+
     return newId;
   } catch (err) {
     logger.warn({ err }, `Error ensuring carrier ${cleanName}`);
+    await db.run(sql`
+      INSERT OR IGNORE INTO carriers (id, name, scac, type, is_active)
+      VALUES ('addr_carr_maersk', 'Maersk Line', 'MAEU', 'OCEAN', 1)
+    `);
     return "addr_carr_maersk";
   }
 }

@@ -50,7 +50,7 @@ describe("Rate-Comparer Port Drayage End-to-End Booking Lifecycle", () => {
       .values({
         id: testTerminalId,
         companyId: testCompanyId,
-        addressType: "TERMINAL",
+        addressType: "TRM",
         companyName: "Hutchison Ports BEST Terminal",
         street1: "Muelle Prat s/n, Port de Barcelona",
         zipCode: "08039",
@@ -70,7 +70,7 @@ describe("Rate-Comparer Port Drayage End-to-End Booking Lifecycle", () => {
       .values({
         id: testWarehouseId,
         companyId: testCompanyId,
-        addressType: "WAREHOUSE",
+        addressType: "WH",
         companyName: "ZAL Port Prat Logistics Hub",
         street1: "Avinguda Ports d'Europa 100",
         zipCode: "08820",
@@ -89,7 +89,7 @@ describe("Rate-Comparer Port Drayage End-to-End Booking Lifecycle", () => {
       .values({
         id: testHaulierId,
         companyId: testCompanyId,
-        addressType: "HAULIER",
+        addressType: "HAU",
         companyName: "Transportes Portuarios Trans-Marítim S.L.",
         street1: "Carrer del Foc 45",
         zipCode: "08038",
