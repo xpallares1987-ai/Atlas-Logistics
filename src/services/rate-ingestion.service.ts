@@ -271,11 +271,6 @@ export async function ensureCarrierExists(
       .limit(1);
 
     if (existing.length > 0) {
-      // Mirror to legacy carriers table to satisfy table foreign key on rates(carrier_id)
-      await db.run(sql`
-        INSERT OR IGNORE INTO carriers (id, name, scac, type, is_active)
-        VALUES (${existing[0].id}, ${cleanName}, ${scacCandidate}, 'OCEAN', 1)
-      `);
       return existing[0].id;
     }
 
@@ -306,19 +301,9 @@ export async function ensureCarrierExists(
       isActive: true,
     });
 
-    // Mirror to legacy carriers table to satisfy table foreign key on rates(carrier_id)
-    await db.run(sql`
-      INSERT OR IGNORE INTO carriers (id, name, scac, type, is_active)
-      VALUES (${newId}, ${cleanName}, ${scacCandidate}, 'OCEAN', 1)
-    `);
-
     return newId;
   } catch (err) {
     logger.warn({ err }, `Error ensuring carrier ${cleanName}`);
-    await db.run(sql`
-      INSERT OR IGNORE INTO carriers (id, name, scac, type, is_active)
-      VALUES ('addr_carr_maersk', 'Maersk Line', 'MAEU', 'OCEAN', 1)
-    `);
     return "addr_carr_maersk";
   }
 }

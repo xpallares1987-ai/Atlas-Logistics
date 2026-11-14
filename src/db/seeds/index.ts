@@ -45,6 +45,7 @@ export * from "./remediation.seed.js";
 export * from "./containers.seed.js";
 export * from "./unlocode.seed.js";
 export * from "./address-identifiers.seed.js";
+export * from "./organization.seed.js";
 
 import { seedTriggers } from "./triggers.seed.js";
 import { seedCore } from "./core.seed.js";
@@ -76,6 +77,7 @@ import { seedDocuments } from "./documents.seed.js";
 import { seedControlTower } from "./control_tower.seed.js";
 import { seedAddressesAndBookings } from "./addresses.seed.js";
 import { seedAddressIdentifiers } from "./address-identifiers.seed.js";
+import { seedOrganization } from "./organization.seed.js";
 import { seedContainerIsoTypes } from "./containers.seed.js";
 import { seedUnlocodeLocations } from "./unlocode.seed.js";
 import { seedDrayageOrders } from "./drayage.seed.js";
@@ -112,6 +114,7 @@ export async function seedPhase1(): Promise<SeedContext> {
   const coreCtx = await seedCore();
   await seedAddressesAndBookings();
   await seedAddressIdentifiers();
+  await seedOrganization();
   const shipmentIds = await seedOperations(coreCtx);
   await seedDrayageOrders();
   await seedTelemetry();
