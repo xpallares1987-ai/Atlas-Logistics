@@ -83,9 +83,6 @@ CREATE TABLE IF NOT EXISTS `address_contacts` (
 	FOREIGN KEY (`address_id`) REFERENCES `addresses`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-INSERT OR IGNORE INTO `carriers` (`id`, `name`, `scac`, `type`, `is_active`)
-VALUES ('addr_carr_maersk', 'Maersk Line', 'MAEU', 'OCEAN', 1);
---> statement-breakpoint
 CREATE TABLE IF NOT EXISTS `address_identifiers` (
 	`id` text PRIMARY KEY,
 	`address_id` text NOT NULL,

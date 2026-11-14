@@ -1,6 +1,6 @@
 import { existsSync } from "fs";
-import { migrate } from "drizzle-orm/libsql/migrator";
-import { db, databaseUrl } from "./index.js";
+import { readMigrationFiles } from "drizzle-orm/migrator";
+import { client, databaseUrl } from "./index.js";
 
 export async function runMigrations() {
   const migrationsFolder = "./drizzle";
@@ -14,9 +14,64 @@ export async function runMigrations() {
 
   console.log(`Running database migrations on ${databaseUrl}...`);
   try {
-    await migrate(db, { migrationsFolder });
+    // 1. Ensure __drizzle_migrations table exists with Drizzle v1 standard schema
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        hash text NOT NULL,
+        created_at numeric,
+        name text,
+        applied_at TEXT
+      );
+    `);
+
+    // 2. Fetch already applied migrations
+    const appliedRes = await client.execute(
+      `SELECT name FROM "__drizzle_migrations"`,
+    );
+    const appliedSet = new Set(appliedRes.rows.map((r: any) => String(r.name)));
+
+    // 3. Read migration folder snapshots
+    const migrations = readMigrationFiles({ migrationsFolder });
+    let newlyAppliedCount = 0;
+
+    for (const m of migrations) {
+      if (appliedSet.has(m.name)) {
+        continue;
+      }
+
+      console.log(`Applying migration: ${m.name}...`);
+      for (const rawStmt of m.sql) {
+        const stmt = rawStmt.trim();
+        if (!stmt) continue;
+        try {
+          await client.execute(stmt);
+        } catch (stmtErr: any) {
+          const msg = stmtErr?.message || String(stmtErr);
+          // Defensive handling for already existing columns, tables, or indexes in SQLite
+          if (
+            msg.includes("duplicate column name") ||
+            msg.includes("already exists")
+          ) {
+            console.log(
+              `  [Notice] Skipping idempotent evolution: ${msg.split("\n")[0]}`,
+            );
+            continue;
+          }
+          throw stmtErr;
+        }
+      }
+
+      // Record migration as applied
+      await client.execute({
+        sql: `INSERT INTO "__drizzle_migrations" ("hash", "created_at", "name", "applied_at") VALUES (?, ?, ?, ?)`,
+        args: [m.hash, m.folderMillis, m.name, new Date().toISOString()],
+      });
+      newlyAppliedCount++;
+    }
+
     console.log(
-      `Database migrations on ${databaseUrl} completed successfully.`,
+      `Database migrations on ${databaseUrl} completed successfully (${newlyAppliedCount} applied).`,
     );
   } catch (error) {
     console.error("Error running migrations:", error);
