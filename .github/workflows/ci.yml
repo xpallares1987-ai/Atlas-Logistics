@@ -1,4 +1,4 @@
-name: CI/CD Pipeline with Docker Build Cloud
+name: CI/CD Pipeline
 
 on:
   push:
@@ -31,7 +31,6 @@ env:
   REGISTRY: docker.io
   IMAGE_REGISTRY: ${{ secrets.DOCKER_REGISTRY || 'docker.io' }}
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  DOCKER_BUILD_CLOUD_ENABLED: ${{ secrets.DOCKER_BUILD_CLOUD_ENABLED == 'true' }}
 
 permissions:
   contents: read
