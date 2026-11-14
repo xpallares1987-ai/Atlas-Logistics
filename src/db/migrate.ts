@@ -2,7 +2,10 @@ import { existsSync } from "fs";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { client, databaseUrl } from "./index.js";
 
-export async function runMigrations() {
+export async function runMigrations(
+  targetClient: any = client,
+  targetUrl: string = databaseUrl,
+) {
   const migrationsFolder = "./drizzle";
 
   // Validate migrations folder exists
@@ -12,10 +15,10 @@ export async function runMigrations() {
     );
   }
 
-  console.log(`Running database migrations on ${databaseUrl}...`);
+  console.log(`Running database migrations on ${targetUrl}...`);
   try {
     // 1. Ensure __drizzle_migrations table exists with Drizzle v1 standard schema
-    await client.execute(`
+    await targetClient.execute(`
       CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         hash text NOT NULL,
@@ -26,7 +29,7 @@ export async function runMigrations() {
     `);
 
     // 2. Fetch already applied migrations
-    const appliedRes = await client.execute(
+    const appliedRes = await targetClient.execute(
       `SELECT name FROM "__drizzle_migrations"`,
     );
     const appliedSet = new Set(appliedRes.rows.map((r: any) => String(r.name)));
@@ -45,7 +48,7 @@ export async function runMigrations() {
         const stmt = rawStmt.trim();
         if (!stmt) continue;
         try {
-          await client.execute(stmt);
+          await targetClient.execute(stmt);
         } catch (stmtErr: any) {
           const msg = stmtErr?.message || String(stmtErr);
           // Defensive handling for already existing columns, tables, or indexes in SQLite
@@ -63,7 +66,7 @@ export async function runMigrations() {
       }
 
       // Record migration as applied
-      await client.execute({
+      await targetClient.execute({
         sql: `INSERT INTO "__drizzle_migrations" ("hash", "created_at", "name", "applied_at") VALUES (?, ?, ?, ?)`,
         args: [m.hash, m.folderMillis, m.name, new Date().toISOString()],
       });
@@ -71,7 +74,7 @@ export async function runMigrations() {
     }
 
     console.log(
-      `Database migrations on ${databaseUrl} completed successfully (${newlyAppliedCount} applied).`,
+      `Database migrations on ${targetUrl} completed successfully (${newlyAppliedCount} applied).`,
     );
   } catch (error) {
     console.error("Error running migrations:", error);

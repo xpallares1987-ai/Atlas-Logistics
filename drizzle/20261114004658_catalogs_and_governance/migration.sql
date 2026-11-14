@@ -4,6 +4,12 @@ ALTER TABLE `companies` ADD COLUMN `sector` text;
 --> statement-breakpoint
 ALTER TABLE `companies` ADD COLUMN `headquarters_country` text;
 --> statement-breakpoint
+DROP TABLE IF EXISTS `destination_agents`;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `customs_brokers`;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `carriers`;
+--> statement-breakpoint
 INSERT OR IGNORE INTO `companies` (`id`, `name`, `tax_id`, `credit_limit`, `group_code`, `is_active`)
 VALUES ('c-1', 'Atlas Global Freight Forwarding S.L.', 'ESB99887766', 5000000, 'HOLDING_ATLAS', 1);
 --> statement-breakpoint

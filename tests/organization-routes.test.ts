@@ -10,6 +10,7 @@ import Fastify, { FastifyInstance } from "fastify";
 
 let testUserId = "admin_user_id";
 let testUserRole = "ADMIN";
+let testUserCompanyId: string | null = "c-1";
 
 // 1. Mock auth middleware per AGENTS.md rule 3
 vi.mock("../src/middleware/auth.js", () => ({
@@ -17,6 +18,7 @@ vi.mock("../src/middleware/auth.js", () => ({
     (request as any).user = {
       id: testUserId,
       role: testUserRole,
+      companyId: testUserCompanyId,
       email: "ops.admin@atlaslogistics.com",
     };
   }),
@@ -219,7 +221,20 @@ describe("Enterprise Forwarding Organization & Station Fastify Routes", () => {
     expect(unLocodeBody.stationContext).toBeDefined();
     expect(unLocodeBody.stationContext.stationCode).toBe("BCN-OCEAN");
 
-    // 3. With ALL header (global view)
+    // 3. With case-insensitivity and whitespace trimming
+    const resWhitespace = await app.inject({
+      method: "GET",
+      url: "/api/organization/context",
+      headers: {
+        "x-station-context": "  bcn-ocean  ",
+      },
+    });
+    expect(resWhitespace.statusCode).toBe(200);
+    const wsBody = resWhitespace.json();
+    expect(wsBody.stationContext).toBeDefined();
+    expect(wsBody.stationContext.stationCode).toBe("BCN-OCEAN");
+
+    // 4. With ALL header (global view)
     const resAll = await app.inject({
       method: "GET",
       url: "/api/organization/context",
@@ -232,7 +247,7 @@ describe("Enterprise Forwarding Organization & Station Fastify Routes", () => {
     expect(allBody.stationContext).toBeNull();
   });
 
-  it("rejects unauthorized station context spoofing for non-admin user", async () => {
+  it("rejects unauthorized station context with 403 Forbidden for non-admin user (SEC-02)", async () => {
     // Switch mock user role to OPERATIONS (non-admin)
     testUserRole = "OPERATIONS";
 
@@ -245,12 +260,142 @@ describe("Enterprise Forwarding Organization & Station Fastify Routes", () => {
       },
     });
 
-    expect(resUnauthorized.statusCode).toBe(200);
+    // Hardened security standard: MUST reject with 403 Forbidden rather than silent null
+    expect(resUnauthorized.statusCode).toBe(403);
     const body = resUnauthorized.json();
-    // Unauthorized station context MUST be stripped by the preHandler guard!
-    expect(body.stationContext).toBeNull();
+    expect(body.success).toBe(false);
+    expect(body.error).toBe("FORBIDDEN_STATION_ACCESS");
+    expect(body.message).toContain("NO_STATION_ASSIGNMENT");
 
     // Reset role back to ADMIN for subsequent tests
     testUserRole = "ADMIN";
+  });
+
+  it("rejects non-existent station context with 404 Not Found", async () => {
+    const resNonExistent = await app.inject({
+      method: "GET",
+      url: "/api/organization/context",
+      headers: {
+        "x-station-context": "INVALID-STATION-CODE-999",
+      },
+    });
+
+    expect(resNonExistent.statusCode).toBe(404);
+    const body = resNonExistent.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toBe("STATION_NOT_FOUND");
+    expect(body.message).toContain("INVALID-STATION-CODE-999");
+  });
+
+  it("enforces multi-tenant company boundaries for COMPANY_ADMIN role (SEC-03)", async () => {
+    testUserRole = "COMPANY_ADMIN";
+    testUserCompanyId = "c-1";
+
+    // 1. Station within user's company (stn_esbcn_01 belongs to c-1) -> 200 OK
+    const resAllowed = await app.inject({
+      method: "GET",
+      url: "/api/organization/context",
+      headers: {
+        "x-station-context": "BCN-OCEAN",
+      },
+    });
+    expect(resAllowed.statusCode).toBe(200);
+
+    // 2. COMPANY_ADMIN belonging to a different company (c-other) requesting BCN-OCEAN -> 403 Forbidden
+    testUserCompanyId = "c-foreign-company-99";
+    const resDenied = await app.inject({
+      method: "GET",
+      url: "/api/organization/context",
+      headers: {
+        "x-station-context": "BCN-OCEAN",
+      },
+    });
+    expect(resDenied.statusCode).toBe(403);
+    const deniedBody = resDenied.json();
+    expect(deniedBody.error).toBe("FORBIDDEN_STATION_ACCESS");
+    expect(deniedBody.message).toContain("CROSS_COMPANY_ACCESS_DENIED");
+
+    // Reset back
+    testUserRole = "ADMIN";
+    testUserCompanyId = "c-1";
+  });
+
+  it("allows SYSTEM_ADMIN global station access across all companies and stations", async () => {
+    testUserRole = "SYSTEM_ADMIN";
+    testUserCompanyId = null;
+
+    // SYSTEM_ADMIN requesting NYC-GATEWAY where they have no explicit assignment
+    const resSystemAdmin = await app.inject({
+      method: "GET",
+      url: "/api/organization/context",
+      headers: {
+        "x-station-context": "NYC-GATEWAY",
+      },
+    });
+
+    expect(resSystemAdmin.statusCode).toBe(200);
+    const body = resSystemAdmin.json();
+    expect(body.stationContext).toBeDefined();
+    expect(body.stationContext.stationCode).toBe("NYC-GATEWAY");
+
+    // Reset back to ADMIN
+    testUserRole = "ADMIN";
+    testUserCompanyId = "c-1";
+  });
+
+  it("prevents direct IDOR resource access on /stations/:id/departments (SEC-04)", async () => {
+    testUserRole = "OPERATIONS";
+    testUserCompanyId = "c-1";
+
+    // 1. User assigned to Barcelona -> access allowed
+    const resAllowed = await app.inject({
+      method: "GET",
+      url: "/api/organization/stations/stn_esbcn_01/departments",
+    });
+    expect(resAllowed.statusCode).toBe(200);
+    const allowedBody = resAllowed.json();
+    expect(allowedBody.success).toBe(true);
+    expect(allowedBody.branchId).toBe("stn_esbcn_01");
+
+    // 2. Direct IDOR attempt: operator requests NYC departments without assignment -> 403 Forbidden
+    const resForbidden = await app.inject({
+      method: "GET",
+      url: "/api/organization/stations/stn_usnyc_01/departments",
+    });
+    expect(resForbidden.statusCode).toBe(403);
+    const forbiddenBody = resForbidden.json();
+    expect(forbiddenBody.error).toBe("FORBIDDEN_STATION_ACCESS");
+    expect(forbiddenBody.message).toContain("NO_STATION_ASSIGNMENT");
+
+    // 3. Non-existent station ID -> 404 Not Found
+    const resNotFound = await app.inject({
+      method: "GET",
+      url: "/api/organization/stations/stn_unknown_999/departments",
+    });
+    expect(resNotFound.statusCode).toBe(404);
+    const notFoundBody = resNotFound.json();
+    expect(notFoundBody.error).toBe("STATION_NOT_FOUND");
+
+    // Reset back
+    testUserRole = "ADMIN";
+    testUserCompanyId = "c-1";
+  });
+
+  it("filters carrier allocation contracts by active station context", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/organization/contracts",
+      headers: {
+        "x-station-context": "BCN-OCEAN",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.contracts)).toBe(true);
+    for (const c of body.contracts) {
+      expect(c.station.stationCode).toBe("BCN-OCEAN");
+    }
   });
 });

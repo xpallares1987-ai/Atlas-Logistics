@@ -5,7 +5,7 @@
  * @see {@link docs/adr/0022-enterprise-freight-forwarding-organization-schema-and-governance.md}
  */
 
-import { FastifyPluginAsync, FastifyRequest } from "fastify";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../db/index.js";
 import {
   branchOffices,
@@ -22,16 +22,21 @@ import {
 import { eq, and, desc, inArray, or } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth.js";
 
+export interface StationContext {
+  stationId: string; // Canonical DB Primary Key (e.g. "stn_esbcn_01")
+  stationCode: string; // Operational Business Code (e.g. "BCN-OCEAN")
+  companyId: string; // Owning Tenant Company ID (e.g. "c-1")
+  unLocode: string; // Gateway UN/LOCODE (e.g. "ESBCN")
+  timezone: string;
+  primaryCurrency: string;
+}
+
 // Extend FastifyRequest interface for TypeScript support
 declare module "fastify" {
   interface FastifyRequest {
-    stationContext?: {
-      stationId: string;
-      stationCode: string;
-      unLocode: string;
-      timezone: string;
-      primaryCurrency: string;
-    } | null;
+    stationContext?: StationContext | null;
+    rawStationHeader?: string | null;
+    stationResolutionFailed?: boolean;
   }
 }
 
@@ -39,12 +44,53 @@ declare module "fastify" {
 // 1. STATION CONTEXT HOOK & AUTHORIZATION GUARD
 // ============================================================================
 
+export interface StationAccessValidationResult {
+  allowed: boolean;
+  reason?:
+    | "SYSTEM_ADMIN_ACCESS"
+    | "COMPANY_ADMIN_ACCESS"
+    | "STATION_ASSIGNMENT_VERIFIED"
+    | "STATION_NOT_FOUND"
+    | "CROSS_COMPANY_ACCESS_DENIED"
+    | "NO_STATION_ASSIGNMENT";
+}
+
 export async function validateStationAccess(
   userId: string,
   userRole: string,
   stationId: string,
-): Promise<boolean> {
-  if (userRole === "ADMIN") return true;
+  userCompanyId?: string | null,
+): Promise<StationAccessValidationResult> {
+  // 1. SYSTEM_ADMIN has system-wide access across all companies and stations
+  if (userRole === "SYSTEM_ADMIN") {
+    return { allowed: true, reason: "SYSTEM_ADMIN_ACCESS" };
+  }
+
+  // Retrieve station details including tenant companyId
+  const stationRows = await db
+    .select({
+      id: branchOffices.id,
+      companyId: branchOffices.companyId,
+    })
+    .from(branchOffices)
+    .where(eq(branchOffices.id, stationId))
+    .limit(1);
+
+  if (stationRows.length === 0) {
+    return { allowed: false, reason: "STATION_NOT_FOUND" };
+  }
+
+  const station = stationRows[0];
+
+  // 2. COMPANY_ADMIN or general ADMIN: strictly bounded by company boundaries
+  if (userRole === "COMPANY_ADMIN" || userRole === "ADMIN") {
+    if (userCompanyId && station.companyId !== userCompanyId) {
+      return { allowed: false, reason: "CROSS_COMPANY_ACCESS_DENIED" };
+    }
+    return { allowed: true, reason: "COMPANY_ADMIN_ACCESS" };
+  }
+
+  // 3. Operational users require explicit station assignment in user_station_assignments
   const assignment = await db
     .select({ id: userStationAssignments.id })
     .from(userStationAssignments)
@@ -55,41 +101,114 @@ export async function validateStationAccess(
       ),
     )
     .limit(1);
-  return assignment.length > 0;
+
+  if (assignment.length === 0) {
+    return { allowed: false, reason: "NO_STATION_ASSIGNMENT" };
+  }
+
+  return { allowed: true, reason: "STATION_ASSIGNMENT_VERIFIED" };
 }
 
-export const verifyStationAuthorization = async (request: FastifyRequest) => {
+export const verifyStationAuthorization = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+) => {
   const user = (request as any).user;
-  if (user && user.id && request.stationContext) {
-    const allowed = await validateStationAccess(
+  if (!user || !user.id) {
+    return reply.code(401).send({
+      success: false,
+      error: "UNAUTHORIZED",
+      message: "Authentication required to access station resources",
+    });
+  }
+
+  // 1. If station resolution failed for an explicitly provided header, reject with 404
+  if (request.stationResolutionFailed && request.rawStationHeader) {
+    request.log.warn(
+      {
+        userId: user.id,
+        rawHeader: request.rawStationHeader,
+        path: request.url,
+        correlationId: request.id,
+      },
+      "Station context lookup failed for requested code (404)",
+    );
+    return reply.code(404).send({
+      success: false,
+      error: "STATION_NOT_FOUND",
+      message: `Requested station context '${request.rawStationHeader}' not found or inactive`,
+    });
+  }
+
+  // 2. If stationContext is present, perform strict authorization check
+  if (request.stationContext) {
+    const authResult = await validateStationAccess(
       user.id,
       user.role || "USER",
       request.stationContext.stationId,
+      user.companyId,
     );
-    if (!allowed) {
+
+    if (!authResult.allowed) {
       request.log.warn(
-        { userId: user.id, stationId: request.stationContext.stationId },
-        "Unauthorized station context attempt rejected",
+        {
+          userId: user.id,
+          userRole: user.role,
+          userCompanyId: user.companyId,
+          stationCode: request.stationContext.stationCode,
+          stationId: request.stationContext.stationId,
+          reason: authResult.reason,
+          path: request.url,
+          correlationId: request.id,
+        },
+        "Unauthorized station context access attempt rejected (403)",
       );
-      request.stationContext = null;
+
+      return reply.code(403).send({
+        success: false,
+        error: "FORBIDDEN_STATION_ACCESS",
+        message: `User '${user.id}' is not authorized to access station '${request.stationContext.stationCode}' (${authResult.reason})`,
+      });
     }
+  }
+};
+
+export const requireStationContext = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+) => {
+  if (!request.stationContext) {
+    return reply.code(400).send({
+      success: false,
+      error: "MISSING_STATION_CONTEXT",
+      message:
+        "Explicit X-Station-Context header is required for this station-scoped operation",
+    });
   }
 };
 
 export const organizationRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("onRequest", async (request) => {
     const headerStationCode = request.headers["x-station-context"];
-    if (
-      headerStationCode &&
-      typeof headerStationCode === "string" &&
-      headerStationCode !== "ALL"
-    ) {
+    if (headerStationCode && typeof headerStationCode === "string") {
+      const rawCode = headerStationCode.trim();
+      if (!rawCode || rawCode.toUpperCase() === "ALL") {
+        request.stationContext = null;
+        request.rawStationHeader = rawCode || null;
+        request.stationResolutionFailed = false;
+        return;
+      }
+
+      request.rawStationHeader = rawCode;
+      const codeUpper = rawCode.toUpperCase();
+      const codeLower = rawCode.toLowerCase();
+
       try {
-        const code = headerStationCode.trim().toUpperCase();
         const found = await db
           .select({
             stationId: branchOffices.id,
             stationCode: branchOffices.stationCode,
+            companyId: branchOffices.companyId,
             unLocode: branchOffices.unLocode,
             timezone: branchOffices.timezone,
             primaryCurrency: branchOffices.primaryCurrency,
@@ -97,24 +216,29 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
           .from(branchOffices)
           .where(
             or(
-              eq(branchOffices.stationCode, code),
-              eq(branchOffices.unLocode, code),
-              eq(branchOffices.iataCode, code),
-              eq(branchOffices.id, headerStationCode.trim().toLowerCase()),
+              eq(branchOffices.stationCode, codeUpper),
+              eq(branchOffices.unLocode, codeUpper),
+              eq(branchOffices.iataCode, codeUpper),
+              eq(branchOffices.id, codeLower),
             ),
           )
           .limit(1);
 
         if (found.length > 0) {
           request.stationContext = found[0];
+          request.stationResolutionFailed = false;
         } else {
           request.stationContext = null;
+          request.stationResolutionFailed = true;
         }
       } catch {
         request.stationContext = null;
+        request.stationResolutionFailed = true;
       }
     } else {
       request.stationContext = null;
+      request.rawStationHeader = null;
+      request.stationResolutionFailed = false;
     }
   });
 
@@ -201,12 +325,77 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
   /**
    * GET /api/organization/stations/:id/departments
    * Lists all functional operational units and cost centers for a station.
+   * Enforces station authorization guard (SEC-04 IDOR prevention).
    */
   app.get<{ Params: { id: string } }>(
     "/stations/:id/departments",
     { preHandler: [authMiddleware] },
     async (request, reply) => {
+      const user = (request as any).user;
+      if (!user || !user.id) {
+        return reply
+          .code(401)
+          .send({ success: false, message: "Unauthorized" });
+      }
+
       const { id } = request.params;
+      const cleanId = id.trim();
+      const codeUpper = cleanId.toUpperCase();
+      const codeLower = cleanId.toLowerCase();
+
+      // Resolve target branch/station
+      const stationRows = await db
+        .select({
+          id: branchOffices.id,
+          stationCode: branchOffices.stationCode,
+          companyId: branchOffices.companyId,
+        })
+        .from(branchOffices)
+        .where(
+          or(
+            eq(branchOffices.id, codeLower),
+            eq(branchOffices.stationCode, codeUpper),
+            eq(branchOffices.unLocode, codeUpper),
+          ),
+        )
+        .limit(1);
+
+      if (stationRows.length === 0) {
+        return reply.code(404).send({
+          success: false,
+          error: "STATION_NOT_FOUND",
+          message: `Station '${id}' not found`,
+        });
+      }
+
+      const targetStation = stationRows[0];
+
+      // Validate user access to targetStation
+      const authResult = await validateStationAccess(
+        user.id,
+        user.role || "USER",
+        targetStation.id,
+        user.companyId,
+      );
+
+      if (!authResult.allowed) {
+        request.log.warn(
+          {
+            userId: user.id,
+            targetStation: targetStation.stationCode,
+            reason: authResult.reason,
+            path: request.url,
+            correlationId: request.id,
+          },
+          "Cross-station direct resource access attempt rejected (403)",
+        );
+        return reply.code(403).send({
+          success: false,
+          error: "FORBIDDEN_STATION_ACCESS",
+          message: `User '${user.id}' is not authorized to access station '${targetStation.stationCode}' (${authResult.reason})`,
+        });
+      }
+
       try {
         const rows = await db
           .select({
@@ -221,12 +410,13 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
             updatedAt: departments.updatedAt,
           })
           .from(departments)
-          .where(eq(departments.branchId, id))
+          .where(eq(departments.branchId, targetStation.id))
           .orderBy(departments.code);
 
         return reply.code(200).send({
           success: true,
-          branchId: id,
+          branchId: targetStation.id,
+          stationCode: targetStation.stationCode,
           total: rows.length,
           departments: rows,
         });
@@ -347,13 +537,45 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
   /**
    * GET /api/organization/contracts
    * Returns active carrier MQC / BSA allocation contracts.
+   * Scoped to stationContext when provided, or filtered by user's assigned stations for operators.
    */
   app.get(
     "/contracts",
-    { preHandler: [authMiddleware] },
+    { preHandler: [authMiddleware, verifyStationAuthorization] },
     async (request, reply) => {
+      const user = (request as any).user;
       try {
-        const contracts = await db
+        let condition;
+
+        if (request.stationContext) {
+          condition = eq(
+            carrierAllocationContracts.branchId,
+            request.stationContext.stationId,
+          );
+        } else if (
+          user &&
+          user.role !== "ADMIN" &&
+          user.role !== "SYSTEM_ADMIN" &&
+          user.role !== "COMPANY_ADMIN"
+        ) {
+          // Operators without active stationContext: filter by their assigned stations
+          const assigned = await db
+            .select({ branchId: userStationAssignments.branchId })
+            .from(userStationAssignments)
+            .where(eq(userStationAssignments.userId, user.id));
+
+          const branchIds = assigned.map((a) => a.branchId);
+          if (branchIds.length === 0) {
+            return reply.code(200).send({
+              success: true,
+              total: 0,
+              contracts: [],
+            });
+          }
+          condition = inArray(carrierAllocationContracts.branchId, branchIds);
+        }
+
+        const query = db
           .select({
             id: carrierAllocationContracts.id,
             carrierAddressId: carrierAllocationContracts.carrierAddressId,
@@ -375,8 +597,13 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
           .leftJoin(
             branchOffices,
             eq(carrierAllocationContracts.branchId, branchOffices.id),
-          )
-          .orderBy(carrierAllocationContracts.contractReference);
+          );
+
+        const contracts = condition
+          ? await query
+              .where(condition)
+              .orderBy(carrierAllocationContracts.contractReference)
+          : await query.orderBy(carrierAllocationContracts.contractReference);
 
         return reply.code(200).send({
           success: true,
