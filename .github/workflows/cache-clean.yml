@@ -30,74 +30,30 @@ jobs:
     name: Prune Stale Caches
     runs-on: ubuntu-latest
     steps:
-      - name: Prune GitHub Actions Cache
-        uses: actions/github-script@v7
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const minAgeDays = parseInt('${{ inputs.min_age_days || "5" }}', 10);
-            const purgeAll = '${{ inputs.purge_all }}' === 'true';
-            const dryRun = '${{ inputs.dry_run }}' === 'true';
+          node-version: 22
 
-            console.log(`Starting cache cleanup (minAgeDays=${minAgeDays}, purgeAll=${purgeAll}, dryRun=${dryRun})...`);
+      - name: Run Cache Cleaner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MIN_AGE="${{ inputs.min_age_days }}"
+          MIN_AGE="${MIN_AGE:-5}"
+          PURGE="${{ inputs.purge_all }}"
+          DRY="${{ inputs.dry_run }}"
 
-            const { owner, repo } = context.repo;
-            let page = 1;
-            let totalCaches = [];
+          ARGS="--min-age=$MIN_AGE"
+          if [ "$PURGE" = "true" ]; then
+            ARGS="$ARGS --all"
+          fi
+          if [ "$DRY" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
 
-            while (true) {
-              const res = await github.rest.actions.getActionsCacheList({
-                owner,
-                repo,
-                per_page: 100,
-                page,
-              });
-
-              const caches = res.data.actions_caches || [];
-              if (caches.length === 0) break;
-              totalCaches.push(...caches);
-              if (totalCaches.length >= res.data.total_count) break;
-              page++;
-            }
-
-            console.log(`Found ${totalCaches.length} total active caches.`);
-
-            const now = Date.now();
-            const maxAgeMs = minAgeDays * 24 * 60 * 60 * 1000;
-            let deletedCount = 0;
-            let deletedBytes = 0;
-
-            for (const cache of totalCaches) {
-              const lastAccessed = new Date(cache.last_accessed_at || cache.created_at).getTime();
-              const ageMs = now - lastAccessed;
-              const isBuildKit = cache.key.startsWith('buildkit-blob-') || cache.key.startsWith('index-');
-              const isStale = ageMs > maxAgeMs;
-
-              const shouldDelete = purgeAll || (isBuildKit && isStale);
-
-              if (shouldDelete) {
-                const sizeMb = (cache.size_in_bytes / (1024 * 1024)).toFixed(2);
-                console.log(`Pruning cache ID ${cache.id} (${sizeMb} MB) - Key: ${cache.key.substring(0, 50)}...`);
-
-                if (!dryRun) {
-                  try {
-                    await github.rest.actions.deleteActionsCacheById({
-                      owner,
-                      repo,
-                      cache_id: cache.id,
-                    });
-                    deletedCount++;
-                    deletedBytes += cache.size_in_bytes;
-                  } catch (err) {
-                    console.warn(`Failed to delete cache ${cache.id}:`, err.message);
-                  }
-                } else {
-                  deletedCount++;
-                  deletedBytes += cache.size_in_bytes;
-                }
-              }
-            }
-
-            const reclaimedMb = (deletedBytes / (1024 * 1024)).toFixed(2);
-            const reclaimedGb = (deletedBytes / (1024 * 1024 * 1024)).toFixed(2);
-            console.log(`Cleanup complete! Pruned ${deletedCount} caches, reclaiming ${reclaimedMb} MB (~${reclaimedGb} GB).`);
+          echo "Executing: node scripts/maintenance/ci-clean.mjs $ARGS"
+          node scripts/maintenance/ci-clean.mjs $ARGS

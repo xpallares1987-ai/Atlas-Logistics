@@ -17,12 +17,15 @@ console.log(`🧹 [CI Clean] Starting GitHub Actions cache maintenance...`);
 console.log(`   Config: minAgeDays=${MIN_AGE_DAYS}, purgeAll=${PURGE_ALL}, dryRun=${DRY_RUN}`);
 
 try {
+  const isCi = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+  const authEnv = isCi && process.env.GITHUB_TOKEN ? { ...process.env } : { ...process.env, GITHUB_TOKEN: "" };
+
   // Fetch active caches via GitHub CLI
   const rawOutput = execSync(
     'gh api repos/xpallares1987-ai/Atlas-Logistics/actions/caches --paginate --jq ".actions_caches[] | {id: .id, key: .key, size: .size_in_bytes, created_at: .created_at, last_accessed_at: .last_accessed_at}"',
     {
       encoding: "utf-8",
-      env: { ...process.env, GITHUB_TOKEN: "" }, // Fall back to stored credentials
+      env: authEnv,
     },
   );
 
@@ -55,7 +58,7 @@ try {
             `gh api --method DELETE repos/xpallares1987-ai/Atlas-Logistics/actions/caches/${cache.id}`,
             {
               stdio: "ignore",
-              env: { ...process.env, GITHUB_TOKEN: "" },
+              env: authEnv,
             },
           );
           deletedCount++;
