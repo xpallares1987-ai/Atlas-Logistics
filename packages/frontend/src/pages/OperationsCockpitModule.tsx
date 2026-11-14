@@ -11,7 +11,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, RefreshCw, Building2 } from "lucide-react";
+import { CheckCircle2, RefreshCw } from "lucide-react";
 import { authFetch } from "../lib/api";
 import { useOrganizationStore } from "../store/useOrganizationStore";
 import type {
@@ -29,6 +29,7 @@ import {
   FilterBar,
   Header,
   ItemCard,
+  StationHero,
   SummaryKpi,
   getModeFamily,
 } from "../components/Cockpit";
@@ -46,8 +47,20 @@ export type {
 
 export default function OperationsCockpitModule() {
   const navigate = useNavigate();
-  const { activeStationId, getActiveStation } = useOrganizationStore();
+  const {
+    activeStationId,
+    activeDepartmentId,
+    getActiveStation,
+    setActiveStation,
+    setActiveDepartment,
+    departments,
+    canAccessAllStations,
+    myAssignments,
+  } = useOrganizationStore();
   const activeStation = getActiveStation();
+  const isAssigned = myAssignments.some((a) => a.branchId === activeStationId);
+  const isAuditorMode =
+    activeStationId !== "ALL" && canAccessAllStations && !isAssigned;
 
   const [items, setItems] = useState<CockpitWorkItem[]>([]);
   const [summary, setSummary] = useState<CockpitSummaryMetrics>({
@@ -95,10 +108,24 @@ export default function OperationsCockpitModule() {
       if (activeStationId && activeStationId !== "ALL") {
         params.set("branchId", activeStationId);
       }
+      if (activeDepartmentId && activeDepartmentId !== "ALL") {
+        params.set("departmentId", activeDepartmentId);
+      }
+
+      const summaryParams = new URLSearchParams();
+      if (activeStationId && activeStationId !== "ALL") {
+        summaryParams.set("branchId", activeStationId);
+      }
+      if (activeDepartmentId && activeDepartmentId !== "ALL") {
+        summaryParams.set("departmentId", activeDepartmentId);
+      }
+      const summaryUrl = summaryParams.toString()
+        ? `/api/scm/v1/operational/cockpit/summary?${summaryParams.toString()}`
+        : "/api/scm/v1/operational/cockpit/summary";
 
       const [cockpitRes, summaryRes] = await Promise.all([
         authFetch(`/api/scm/v1/operational/cockpit?${params.toString()}`),
-        authFetch("/api/scm/v1/operational/cockpit/summary"),
+        authFetch(summaryUrl),
       ]);
 
       if (cockpitRes.ok) {
@@ -145,12 +172,13 @@ export default function OperationsCockpitModule() {
     statusFilter,
     search,
     activeStationId,
+    activeDepartmentId,
     selectedItem?.workItemId,
   ]);
 
   useEffect(() => {
     fetchCockpitData();
-  }, [selectedBucket, statusFilter, activeStationId]);
+  }, [selectedBucket, statusFilter, activeStationId, activeDepartmentId]);
 
   // ============================================================================
   // 4. ACTION HANDLERS
@@ -301,27 +329,13 @@ export default function OperationsCockpitModule() {
         onNavigateShipment360={() => navigate("/shipment-360")}
       />
 
-      {/* Station Context Banner */}
+      {/* Station Context Hero Banner */}
       {activeStation && (
-        <div className="bg-indigo-950/40 border border-indigo-800/40 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between text-xs text-indigo-200">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-indigo-400 shrink-0" />
-            <span>
-              Operating Station Scope:{" "}
-              <strong className="text-white font-semibold">
-                {activeStation.stationCode}
-              </strong>{" "}
-              &bull; {activeStation.name} ({activeStation.unLocode})
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
-            <span>Currency: {activeStation.primaryCurrency}</span>
-            <span>Timezone: {activeStation.timezone}</span>
-            {activeStation.fmcOtiNumber && (
-              <span>FMC OTI: {activeStation.fmcOtiNumber}</span>
-            )}
-          </div>
-        </div>
+        <StationHero
+          station={activeStation}
+          isAuditorMode={isAuditorMode}
+          onResetStation={() => setActiveStation("ALL", "ALL")}
+        />
       )}
 
       {/* KPI Summary Strip */}
@@ -341,6 +355,9 @@ export default function OperationsCockpitModule() {
         onSearchChange={setSearch}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
+        departments={departments}
+        activeDepartmentId={activeDepartmentId}
+        onDepartmentChange={(deptId) => setActiveDepartment(deptId)}
       />
 
       {/* Confirmation Notification (CONFIRM Step) & Next Action Dispatch */}
@@ -366,9 +383,27 @@ export default function OperationsCockpitModule() {
           ) : displayedItems.length === 0 ? (
             <div className="p-12 text-center text-slate-400 text-sm bg-slate-900/30 rounded-xl border border-slate-800">
               <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-400" />
-              {modeFilter === "ALL"
-                ? "No work items in this category. Queue is clear!"
-                : `No work items for ${modeFilter.toLowerCase()} transport in this category.`}
+              {activeStation ? (
+                <div>
+                  <p className="font-semibold text-slate-200">
+                    No operational actions pending for Station{" "}
+                    <span className="text-indigo-400 font-bold">
+                      {activeStation.stationCode}
+                    </span>
+                    {activeDepartmentId !== "ALL"
+                      ? ` (${activeDepartmentId.replace(/_/g, " ")})`
+                      : ""}
+                    .
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    All consignments are within SLA. Queue is clear!
+                  </p>
+                </div>
+              ) : modeFilter === "ALL" ? (
+                "No work items in this category. Queue is clear!"
+              ) : (
+                `No work items for ${modeFilter.toLowerCase()} transport in this category.`
+              )}
             </div>
           ) : (
             displayedItems.map((item) => (

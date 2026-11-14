@@ -192,6 +192,9 @@ export interface OperationalCockpitWorkItem {
     explanation: string;
   }>;
   itemType?: "TASK" | "EXCEPTION";
+  branchId?: string | null;
+  stationCode?: string | null;
+  departmentId?: string | null;
   workflowInfo?: {
     instanceId: string;
     definitionCode: string;
@@ -947,6 +950,99 @@ export async function computeShipment360View(
   };
 }
 
+// ============================================================================
+// STATION & DEPARTMENT RESOLUTION HELPERS (Enterprise Forwarding Matrix)
+// ============================================================================
+
+export const UNLOCODE_STATION_MAP: Record<string, string> = {
+  ESBCN: "stn_esbcn_01",
+  BCN: "stn_esbcn_01",
+  ESVLC: "stn_esvlc_01",
+  VLC: "stn_esvlc_01",
+  ESMAD: "stn_esmad_01",
+  MAD: "stn_esmad_01",
+  NLRTM: "stn_nlrtm_01",
+  RTM: "stn_nlrtm_01",
+  DEHAM: "stn_deham_01",
+  HAM: "stn_deham_01",
+  BEANR: "stn_beanr_01",
+  ANR: "stn_beanr_01",
+  SGSIN: "stn_sgsin_01",
+  SIN: "stn_sgsin_01",
+  CNSHA: "stn_cnsha_01",
+  SHA: "stn_cnsha_01",
+  USNYC: "stn_usnyc_01",
+  NYC: "stn_usnyc_01",
+  USMIA: "stn_usmia_01",
+  MIA: "stn_usmia_01",
+};
+
+export const STATION_CODE_MAP: Record<string, string> = {
+  stn_esbcn_01: "BCN-OCEAN",
+  stn_esvlc_01: "VLC-OCEAN",
+  stn_esmad_01: "MAD-AIR",
+  stn_nlrtm_01: "RTM-GATEWAY",
+  stn_deham_01: "HAM-BRANCH",
+  stn_beanr_01: "ANR-HUB",
+  stn_sgsin_01: "SIN-MEGAHUB",
+  stn_cnsha_01: "SHA-GATEWAY",
+  stn_usnyc_01: "NYC-AMER",
+  stn_usmia_01: "MIA-LATAM",
+};
+
+export function resolveStationForShipment(
+  directBranchId?: string | null,
+  originLocationId?: string | null,
+  destinationLocationId?: string | null,
+): { branchId: string; stationCode: string } {
+  if (directBranchId && directBranchId.trim()) {
+    const code = STATION_CODE_MAP[directBranchId] || directBranchId;
+    return { branchId: directBranchId, stationCode: code };
+  }
+
+  // Fallback to gateway resolution from origin / destination UN/LOCODE
+  const originCode = (originLocationId || "").toUpperCase().trim();
+  const destCode = (destinationLocationId || "").toUpperCase().trim();
+
+  const matchedStationId =
+    UNLOCODE_STATION_MAP[originCode] ||
+    UNLOCODE_STATION_MAP[destCode] ||
+    "stn_esbcn_01"; // Default fallback to canonical Barcelona hub
+
+  const stationCode = STATION_CODE_MAP[matchedStationId] || "BCN-OCEAN";
+  return { branchId: matchedStationId, stationCode };
+}
+
+export function resolveDepartmentForTask(
+  taskTypeCode: string,
+  serviceType?: string,
+): string {
+  const code = (taskTypeCode || "").toUpperCase();
+  if (
+    code.includes("CUSTOMS") ||
+    code.includes("DECLARATION") ||
+    code.includes("DUTY") ||
+    code.includes("DUA") ||
+    code.includes("TARIC")
+  ) {
+    return "CUSTOMS";
+  }
+  if (
+    code.includes("DRAYAGE") ||
+    code.includes("DELIVERY") ||
+    code.includes("HAULAGE") ||
+    code.includes("INLAND") ||
+    code.includes("PICKUP")
+  ) {
+    return "DRAYAGE";
+  }
+  const mode = (serviceType || "").toUpperCase();
+  if (mode.includes("AIR")) {
+    return "AIR_OPS";
+  }
+  return "OCEAN_OPS";
+}
+
 export async function refreshShipmentProjections(
   shipmentId: string,
 ): Promise<OperationalShipment360View> {
@@ -1004,7 +1100,21 @@ export async function refreshShipmentProjections(
       .where(eq(scmOperationalShipment360ViewsV2.shipmentId, shipmentId));
   }
 
-  // 2. Upsert Cockpit Items for each task
+  // 2. Resolve Station attribution from shipment route legs or branchId
+  const originLoc = view.routePlan?.legs?.[0]?.originLocationId;
+  const destLoc =
+    view.routePlan?.legs && view.routePlan.legs.length > 0
+      ? view.routePlan.legs[view.routePlan.legs.length - 1]
+          .destinationLocationId
+      : undefined;
+
+  const defaultStationInfo = resolveStationForShipment(
+    (view.shipment as any)?.branchId,
+    originLoc,
+    destLoc,
+  );
+
+  // 3. Upsert Cockpit Items for each task
   const hasActiveBlockingExc = view.exceptions.some(
     (e) => e.isBlocking && e.status !== "RESOLVED" && e.status !== "WAIVED",
   );
@@ -1026,6 +1136,12 @@ export async function refreshShipmentProjections(
       .filter((d) => d.status === "BLOCKING")
       .map((d) => d.predecessorTaskId);
 
+    const stationInfo = defaultStationInfo;
+    const departmentId = resolveDepartmentForTask(
+      task.taskType,
+      view.serviceType,
+    );
+
     const cockpitItem: OperationalCockpitWorkItem = {
       workItemId: task.taskId,
       taskId: task.taskId,
@@ -1043,6 +1159,9 @@ export async function refreshShipmentProjections(
       attentionScore: scoreUrgency.attentionScore,
       scoreBreakdown: scoreUrgency.scoreBreakdown,
       itemType: "TASK",
+      branchId: stationInfo.branchId,
+      stationCode: stationInfo.stationCode,
+      departmentId,
       workflowInfo: view.workflow
         ? {
             instanceId: view.workflow.instanceId,
@@ -1117,6 +1236,8 @@ export async function refreshShipmentProjections(
       view.serviceType,
     );
 
+    const excStationInfo = defaultStationInfo;
+
     const excWorkItem: OperationalCockpitWorkItem = {
       workItemId: exc.exceptionId,
       taskId: exc.exceptionId,
@@ -1134,6 +1255,9 @@ export async function refreshShipmentProjections(
       attentionScore: scoreUrgency.attentionScore,
       scoreBreakdown: scoreUrgency.scoreBreakdown,
       itemType: "EXCEPTION",
+      branchId: excStationInfo.branchId,
+      stationCode: excStationInfo.stationCode,
+      departmentId: "EXCEPTIONS",
       primaryAction: {
         command: "RESOLVE_EXCEPTION",
         actionLabel: "Resolve Exception",
@@ -1362,6 +1486,8 @@ export async function listOperationsCockpitItems(params?: {
   priority?: string;
   shipmentId?: string;
   search?: string;
+  branchId?: string;
+  departmentId?: string;
 }): Promise<{ total: number; items: OperationalCockpitWorkItem[] }> {
   await ensureOperationalBffTables();
   registerOperationalBffSubscribers();
@@ -1414,27 +1540,71 @@ export async function listOperationsCockpitItems(params?: {
           scmOperationalCockpitWorkItemsV2.updatedAt,
         );
 
-  const items = rows.map(
+  let items = rows.map(
     (r) => JSON.parse(r.itemJson) as OperationalCockpitWorkItem,
   );
+
+  // Station Filter (supports branchId e.g. "stn_esbcn_01" or stationCode e.g. "BCN-OCEAN")
+  if (params?.branchId && params.branchId !== "ALL") {
+    const target = params.branchId.toLowerCase().trim();
+    items = items.filter((i) => {
+      const bId = (i.branchId || "").toLowerCase();
+      const sCode = (i.stationCode || "").toLowerCase();
+      return bId === target || sCode === target;
+    });
+  }
+
+  // Department Filter
+  if (params?.departmentId && params.departmentId !== "ALL") {
+    const targetDept = params.departmentId.toUpperCase().trim();
+    items = items.filter((i) => {
+      const dept = (i.departmentId || "").toUpperCase();
+      return dept === targetDept || dept.includes(targetDept);
+    });
+  }
+
   return {
     total: items.length,
     items,
   };
 }
 
-export async function getCockpitSummary(): Promise<CockpitSummaryMetrics> {
+export async function getCockpitSummary(query?: {
+  branchId?: string;
+  departmentId?: string;
+}): Promise<CockpitSummaryMetrics> {
   await ensureOperationalBffTables();
 
-  const allItems = await db.select().from(scmOperationalCockpitWorkItemsV2);
+  const allRows = await db.select().from(scmOperationalCockpitWorkItemsV2);
+  let allItems = allRows.map(
+    (r) => JSON.parse(r.itemJson) as OperationalCockpitWorkItem,
+  );
+
+  // Station Filter
+  if (query?.branchId && query.branchId !== "ALL") {
+    const target = query.branchId.toLowerCase().trim();
+    allItems = allItems.filter((i) => {
+      const bId = (i.branchId || "").toLowerCase();
+      const sCode = (i.stationCode || "").toLowerCase();
+      return bId === target || sCode === target;
+    });
+  }
+
+  // Department Filter
+  if (query?.departmentId && query.departmentId !== "ALL") {
+    const targetDept = query.departmentId.toUpperCase().trim();
+    allItems = allItems.filter((i) => {
+      const dept = (i.departmentId || "").toUpperCase();
+      return dept === targetDept || dept.includes(targetDept);
+    });
+  }
 
   const totalTasks = allItems.length;
   const openActionableCount = allItems.filter(
-    (i) =>
-      (i.status === "OPEN" || i.status === "IN_REVIEW") && i.isBlocked === 0,
+    (i) => (i.status === "OPEN" || i.status === "IN_REVIEW") && !i.isBlocked,
   ).length;
   const blockedCount = allItems.filter(
-    (i) => i.isBlocked === 1 && i.status !== "COMPLETED",
+    (i) => Boolean(i.isBlocked) && i.status !== "COMPLETED",
   ).length;
   const completedCount = allItems.filter(
     (i) => i.status === "COMPLETED",

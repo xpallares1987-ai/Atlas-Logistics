@@ -1,5 +1,7 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { scmOperationalCockpitWorkItemsV2 } from "../db/schema/scm_operational_bff_sqlite.js";
+import { validateStationWriteAccess } from "../middleware/station-context.js";
 import { db } from "../db/index.js";
 import {
   scmOutboxMessages,
@@ -993,7 +995,14 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/operational/cockpit", async (request, reply) => {
     try {
       const query = (request.query as any) || {};
-      const result = await listOperationalCockpitItems(query);
+      const branchId =
+        query.branchId || request.stationContext?.stationId || undefined;
+      const departmentId = query.departmentId || undefined;
+      const result = await listOperationalCockpitItems({
+        ...query,
+        branchId,
+        departmentId,
+      });
       return reply.code(200).send(result);
     } catch (err) {
       return handleDomainError(err, reply);
@@ -1003,16 +1012,30 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/operational/my-work", async (request, reply) => {
     try {
       const query = (request.query as any) || {};
-      const result = await listOperationalCockpitItems(query);
+      const branchId =
+        query.branchId || request.stationContext?.stationId || undefined;
+      const departmentId = query.departmentId || undefined;
+      const result = await listOperationalCockpitItems({
+        ...query,
+        branchId,
+        departmentId,
+      });
       return reply.code(200).send(result);
     } catch (err) {
       return handleDomainError(err, reply);
     }
   });
 
-  fastify.get("/operational/cockpit/summary", async (_request, reply) => {
+  fastify.get("/operational/cockpit/summary", async (request, reply) => {
     try {
-      const result = await getOperationalCockpitSummary();
+      const query = (request.query as any) || {};
+      const branchId =
+        query.branchId || request.stationContext?.stationId || undefined;
+      const departmentId = query.departmentId || undefined;
+      const result = await getOperationalCockpitSummary({
+        branchId,
+        departmentId,
+      });
       return reply.code(200).send(result);
     } catch (err) {
       return handleDomainError(err, reply);
@@ -1026,6 +1049,37 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
         const actor = extractActorFromRequest(request);
         const { workItemId } = request.params as { workItemId: string };
         const body = (request.body as any) || {};
+
+        // Look up target work item to enforce station write authorization
+        const itemRows = await db
+          .select({ itemJson: scmOperationalCockpitWorkItemsV2.itemJson })
+          .from(scmOperationalCockpitWorkItemsV2)
+          .where(eq(scmOperationalCockpitWorkItemsV2.workItemId, workItemId))
+          .limit(1);
+
+        if (itemRows.length > 0) {
+          try {
+            const itemData = JSON.parse(itemRows[0].itemJson);
+            const targetStationId = itemData.branchId;
+
+            if (targetStationId) {
+              const writeAccess = await validateStationWriteAccess(
+                request,
+                targetStationId,
+              );
+              if (!writeAccess.allowed) {
+                return reply.code(403).send({
+                  success: false,
+                  error: writeAccess.error || "FORBIDDEN",
+                  message: writeAccess.message,
+                });
+              }
+            }
+          } catch {
+            // Ignore parse error on itemJson
+          }
+        }
+
         const result = await executeOperationalCockpitWorkItem(
           workItemId,
           body,
@@ -1638,4 +1692,5 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   );
 };
 
+export { scmV1Routes };
 export default scmV1Routes;

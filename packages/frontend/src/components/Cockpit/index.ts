@@ -8,6 +8,7 @@
 export { Header } from "./Header";
 export { SummaryKpi } from "./Banner/SummaryKpi";
 export { Confirmation } from "./Banner/Confirmation";
+export { StationHero } from "./Banner/StationHero";
 export { FilterBar } from "./Queue/FilterBar";
 export { ItemCard } from "./Queue/ItemCard";
 export {

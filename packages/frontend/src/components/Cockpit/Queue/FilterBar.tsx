@@ -6,12 +6,13 @@
  */
 
 import React from "react";
-import { Compass, Plane, Search, Ship, Truck } from "lucide-react";
+import { Briefcase, Compass, Plane, Search, Ship, Truck } from "lucide-react";
 import type {
   StatusFilter,
   TransportMode,
   UrgencyBucketFilter,
 } from "../../../types/cockpit.types";
+import type { Department } from "../../../store/useOrganizationStore.js";
 
 // ============================================================================
 // 1. COMPONENT PROPS
@@ -30,6 +31,9 @@ interface FilterBarProps {
   onSearchChange: (val: string) => void;
   statusFilter: StatusFilter;
   onStatusFilterChange: (status: StatusFilter) => void;
+  departments?: Department[];
+  activeDepartmentId?: string;
+  onDepartmentChange?: (deptId: string) => void;
 }
 
 const URGENCY_BUCKETS: UrgencyBucketFilter[] = [
@@ -57,6 +61,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
+  departments,
+  activeDepartmentId = "ALL",
+  onDepartmentChange,
 }) => {
   return (
     <div className="flex flex-col gap-3">
@@ -123,6 +130,46 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Department Filter Chips (when departments exist for station scope) */}
+      {departments && departments.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+          <span className="text-xs font-semibold text-slate-400 mr-1 flex items-center gap-1.5">
+            <Briefcase className="w-3.5 h-3.5 text-indigo-400" /> Department:
+          </span>
+          <button
+            onClick={() => onDepartmentChange?.("ALL")}
+            className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition ${
+              activeDepartmentId === "ALL"
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "bg-slate-800/70 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+            }`}
+          >
+            All Departments
+          </button>
+          {departments.map((dept) => {
+            const isSelected =
+              activeDepartmentId === dept.id ||
+              activeDepartmentId === dept.code;
+            const displayName = dept.name.includes(" - ")
+              ? dept.name.split(" - ")[1]
+              : dept.name;
+            return (
+              <button
+                key={dept.id}
+                onClick={() => onDepartmentChange?.(dept.code || dept.id)}
+                className={`px-2.5 py-1 text-xs font-medium rounded-lg transition flex items-center gap-1.5 ${
+                  isSelected
+                    ? "bg-indigo-600 text-white font-semibold shadow-sm"
+                    : "bg-slate-800/70 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                }`}
+              >
+                <span>{displayName}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Urgency & Search Strip */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">

@@ -21,93 +21,23 @@ import {
 } from "../db/schema/index.js";
 import { eq, and, desc, inArray, or } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth.js";
+import {
+  StationContext,
+  StationAccessValidationResult,
+  validateStationAccess,
+  stationContextHook,
+} from "../middleware/station-context.js";
 
-export interface StationContext {
-  stationId: string; // Canonical DB Primary Key (e.g. "stn_esbcn_01")
-  stationCode: string; // Operational Business Code (e.g. "BCN-OCEAN")
-  companyId: string; // Owning Tenant Company ID (e.g. "c-1")
-  unLocode: string; // Gateway UN/LOCODE (e.g. "ESBCN")
-  timezone: string;
-  primaryCurrency: string;
-}
-
-// Extend FastifyRequest interface for TypeScript support
-declare module "fastify" {
-  interface FastifyRequest {
-    stationContext?: StationContext | null;
-    rawStationHeader?: string | null;
-    stationResolutionFailed?: boolean;
-  }
-}
+export {
+  StationContext,
+  StationAccessValidationResult,
+  validateStationAccess,
+  stationContextHook,
+};
 
 // ============================================================================
 // 1. STATION CONTEXT HOOK & AUTHORIZATION GUARD
 // ============================================================================
-
-export interface StationAccessValidationResult {
-  allowed: boolean;
-  reason?:
-    | "SYSTEM_ADMIN_ACCESS"
-    | "COMPANY_ADMIN_ACCESS"
-    | "STATION_ASSIGNMENT_VERIFIED"
-    | "STATION_NOT_FOUND"
-    | "CROSS_COMPANY_ACCESS_DENIED"
-    | "NO_STATION_ASSIGNMENT";
-}
-
-export async function validateStationAccess(
-  userId: string,
-  userRole: string,
-  stationId: string,
-  userCompanyId?: string | null,
-): Promise<StationAccessValidationResult> {
-  // 1. SYSTEM_ADMIN has system-wide access across all companies and stations
-  if (userRole === "SYSTEM_ADMIN") {
-    return { allowed: true, reason: "SYSTEM_ADMIN_ACCESS" };
-  }
-
-  // Retrieve station details including tenant companyId
-  const stationRows = await db
-    .select({
-      id: branchOffices.id,
-      companyId: branchOffices.companyId,
-    })
-    .from(branchOffices)
-    .where(eq(branchOffices.id, stationId))
-    .limit(1);
-
-  if (stationRows.length === 0) {
-    return { allowed: false, reason: "STATION_NOT_FOUND" };
-  }
-
-  const station = stationRows[0];
-
-  // 2. COMPANY_ADMIN or general ADMIN: strictly bounded by company boundaries
-  if (userRole === "COMPANY_ADMIN" || userRole === "ADMIN") {
-    if (userCompanyId && station.companyId !== userCompanyId) {
-      return { allowed: false, reason: "CROSS_COMPANY_ACCESS_DENIED" };
-    }
-    return { allowed: true, reason: "COMPANY_ADMIN_ACCESS" };
-  }
-
-  // 3. Operational users require explicit station assignment in user_station_assignments
-  const assignment = await db
-    .select({ id: userStationAssignments.id })
-    .from(userStationAssignments)
-    .where(
-      and(
-        eq(userStationAssignments.userId, userId),
-        eq(userStationAssignments.branchId, stationId),
-      ),
-    )
-    .limit(1);
-
-  if (assignment.length === 0) {
-    return { allowed: false, reason: "NO_STATION_ASSIGNMENT" };
-  }
-
-  return { allowed: true, reason: "STATION_ASSIGNMENT_VERIFIED" };
-}
 
 export const verifyStationAuthorization = async (
   request: FastifyRequest,
@@ -188,59 +118,7 @@ export const requireStationContext = async (
 };
 
 export const organizationRoutes: FastifyPluginAsync = async (app) => {
-  app.addHook("onRequest", async (request) => {
-    const headerStationCode = request.headers["x-station-context"];
-    if (headerStationCode && typeof headerStationCode === "string") {
-      const rawCode = headerStationCode.trim();
-      if (!rawCode || rawCode.toUpperCase() === "ALL") {
-        request.stationContext = null;
-        request.rawStationHeader = rawCode || null;
-        request.stationResolutionFailed = false;
-        return;
-      }
-
-      request.rawStationHeader = rawCode;
-      const codeUpper = rawCode.toUpperCase();
-      const codeLower = rawCode.toLowerCase();
-
-      try {
-        const found = await db
-          .select({
-            stationId: branchOffices.id,
-            stationCode: branchOffices.stationCode,
-            companyId: branchOffices.companyId,
-            unLocode: branchOffices.unLocode,
-            timezone: branchOffices.timezone,
-            primaryCurrency: branchOffices.primaryCurrency,
-          })
-          .from(branchOffices)
-          .where(
-            or(
-              eq(branchOffices.stationCode, codeUpper),
-              eq(branchOffices.unLocode, codeUpper),
-              eq(branchOffices.iataCode, codeUpper),
-              eq(branchOffices.id, codeLower),
-            ),
-          )
-          .limit(1);
-
-        if (found.length > 0) {
-          request.stationContext = found[0];
-          request.stationResolutionFailed = false;
-        } else {
-          request.stationContext = null;
-          request.stationResolutionFailed = true;
-        }
-      } catch {
-        request.stationContext = null;
-        request.stationResolutionFailed = true;
-      }
-    } else {
-      request.stationContext = null;
-      request.rawStationHeader = null;
-      request.stationResolutionFailed = false;
-    }
-  });
+  app.addHook("onRequest", stationContextHook);
 
   // ============================================================================
   // 2. STATIONS & GATEWAYS ENDPOINTS

@@ -17,6 +17,7 @@ import "./cron/backup-scheduler.js"; // start cron scheduler
 import { logger } from "./config/logger.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { correlationIdPlugin } from "./middleware/correlation-id.js";
+import { stationContextHook } from "./middleware/station-context.js";
 import { registerAllRoutes } from "./routes/index.js";
 import { tenancyPlugin } from "./lib/tenancy/index.js";
 import {
@@ -32,6 +33,9 @@ import {
 } from "@atlas/shared";
 
 const app = Fastify({ loggerInstance: logger });
+
+// Global Station Context Resolution (Enterprise Matrix Forwarding)
+app.addHook("onRequest", stationContextHook);
 
 declare module "fastify" {
   interface FastifyRequest {
