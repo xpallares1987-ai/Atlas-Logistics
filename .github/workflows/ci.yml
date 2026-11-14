@@ -89,12 +89,16 @@ jobs:
         run: pnpm test -- --coverage
 
       - name: Upload coverage to Codecov
+        if: ${{ secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v4
+        continue-on-error: true
         with:
-          files: ./coverage/coverage-final.json
+          token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   build-images:
     name: Build & Publish ${{ matrix.component }} Image
