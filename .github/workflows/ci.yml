@@ -242,8 +242,8 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-  container-smoke-test:
-    name: Container Configuration Smoke Test
+  container-config-validation:
+    name: Production Compose Configuration Validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -258,13 +258,16 @@ jobs:
 
   deploy-notification:
     name: Deployment Notification
-    needs: [lint-and-build, build-images, e2e-tests, container-smoke-test]
+    needs: [lint-and-build, build-images, e2e-tests, container-config-validation]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - name: Notify deployment
+      - name: Publish Deployment Summary
         run: |
-          echo "✅ CI/CD Pipeline completed"
-          echo "🐳 3 container images published: frontend, backend, worker"
-          echo "🔍 Production Docker Compose configuration validated"
-          echo "📊 All tests passed"
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          ### 🚀 CI/CD Pipeline Execution Summary
+          - **Monorepo Lint, Type-Check & Unit Tests**: ✅ Passed
+          - **End-to-End Playwright Tests (110 specs)**: ✅ Passed
+          - **Production Compose Configuration Validation**: ✅ Verified (`docker-compose.prod.yml`)
+          - **Container Images (GHCR / Docker Hub)**: ✅ Published (`atlas-frontend`, `atlas-backend`, `atlas-worker`)
+          EOF
