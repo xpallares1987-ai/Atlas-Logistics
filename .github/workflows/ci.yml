@@ -256,7 +256,7 @@ jobs:
 
       - name: Upload Playwright report on failure
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: playwright-report/
@@ -276,9 +276,72 @@ jobs:
           JWT_SECRET: smoke-test-jwt-secret-key-super-secure-32chars
           GRAFANA_ADMIN_PASSWORD: smoke-test-grafana-password
 
+  verify-provenance:
+    name: Verify SLSA Provenance Gate
+    needs: [build-images]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: read
+      attestations: read
+    steps:
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Evidence Directory
+        run: mkdir -p provenance-evidence
+
+      - name: Verify SLSA Provenance (atlas-backend)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          gh attestation verify \
+            "oci://ghcr.io/${OWNER_LC}/atlas-backend:latest" \
+            --repo "${{ github.repository }}" \
+            --signer-workflow "${{ github.repository }}/.github/workflows/ci.yml" \
+            --format json > provenance-evidence/atlas-backend-attestation.json
+          echo "✅ Backend SLSA Provenance verified successfully."
+
+      - name: Verify SLSA Provenance (atlas-worker)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          gh attestation verify \
+            "oci://ghcr.io/${OWNER_LC}/atlas-worker:latest" \
+            --repo "${{ github.repository }}" \
+            --signer-workflow "${{ github.repository }}/.github/workflows/ci.yml" \
+            --format json > provenance-evidence/atlas-worker-attestation.json
+          echo "✅ Worker SLSA Provenance verified successfully."
+
+      - name: Verify SLSA Provenance (atlas-frontend)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          gh attestation verify \
+            "oci://ghcr.io/${OWNER_LC}/atlas-frontend:latest" \
+            --repo "${{ github.repository }}" \
+            --signer-workflow "${{ github.repository }}/.github/workflows/ci.yml" \
+            --format json > provenance-evidence/atlas-frontend-attestation.json
+          echo "✅ Frontend SLSA Provenance verified successfully."
+
+      - name: Archive Cryptographic Provenance Evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: slsa-provenance-evidence
+          path: provenance-evidence/
+          retention-days: 90
+
   deploy-notification:
     name: Deployment Notification
-    needs: [lint-and-build, build-images, e2e-tests, container-config-validation]
+    needs: [lint-and-build, build-images, verify-provenance, e2e-tests, container-config-validation]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
@@ -290,4 +353,5 @@ jobs:
           - **End-to-End Playwright Tests (110 specs)**: ✅ Passed
           - **Production Compose Configuration Validation**: ✅ Verified (`docker-compose.prod.yml`)
           - **Container Images (GHCR / Docker Hub)**: ✅ Published (`atlas-frontend`, `atlas-backend`, `atlas-worker`)
+          - **SLSA v1.0 Provenance Gate**: 🛡️ Cryptographically Verified & Enforced (`verify-provenance`)
           EOF
