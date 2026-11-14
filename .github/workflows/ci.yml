@@ -98,6 +98,11 @@ jobs:
     needs: lint-and-build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
     strategy:
       fail-fast: false
       matrix:
@@ -145,7 +150,9 @@ jobs:
       - name: Resolve target image registries
         id: img-names
         run: |
-          IMAGES="ghcr.io/${{ github.repository_owner }}/${{ matrix.suffix }}"
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          GHCR_IMAGE="ghcr.io/${OWNER_LC}/${{ matrix.suffix }}"
+          IMAGES="$GHCR_IMAGE"
           if [ "${{ steps.docker_auth_check.outputs.has_auth }}" = "true" ]; then
             IMAGES="${{ env.IMAGE_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ matrix.suffix }}"$'\n'"$IMAGES"
           fi
@@ -153,6 +160,7 @@ jobs:
             echo "images<<EOF"
             echo "$IMAGES"
             echo "EOF"
+            echo "ghcr_image=$GHCR_IMAGE"
           } >> "$GITHUB_OUTPUT"
 
       - name: Extract metadata
@@ -168,6 +176,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build (and push) ${{ matrix.component }} image
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -180,6 +189,13 @@ jobs:
           build-args: |
             NODE_VERSION=22
             PNPM_VERSION=11.5.1
+
+      - name: Generate SLSA artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.img-names.outputs.ghcr_image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
 
   e2e-tests:
     name: End-to-End Playwright Tests
