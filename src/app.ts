@@ -31,17 +31,67 @@ import {
   decryptPayloadEnvelope,
   encryptPayloadEnvelope,
 } from "@atlas/shared";
+import { startSpan } from "./observability/tracer.js";
+import { Span, SpanStatusCode } from "@opentelemetry/api";
 
 const app = Fastify({ loggerInstance: logger });
-
-// Global Station Context Resolution (Enterprise Matrix Forwarding)
-app.addHook("onRequest", stationContextHook);
 
 declare module "fastify" {
   interface FastifyRequest {
     wasPayloadEncrypted?: boolean;
+    otelSpan?: Span;
   }
 }
+
+// OpenTelemetry Distributed Tracing: Inbound Request Lifecycle Spans
+app.addHook("onRequest", async (request, _reply) => {
+  const span = startSpan("http.request", {
+    "http.method": request.method,
+    "http.url": request.url,
+    "http.client_ip": request.ip,
+    "http.user_agent": (request.headers["user-agent"] as string) || "unknown",
+  });
+  request.otelSpan = span;
+});
+
+app.addHook("onError", async (request, _reply, error) => {
+  const span = request.otelSpan;
+  if (span) {
+    span.recordException(error);
+    span.setStatus({
+      code: SpanStatusCode.ERROR,
+      message: error?.message || String(error),
+    });
+  }
+});
+
+app.addHook("onResponse", async (request, reply) => {
+  const span = request.otelSpan;
+  if (span) {
+    span.setAttribute("http.status_code", reply.statusCode);
+    if ((request as any).id) {
+      span.setAttribute("correlation_id", (request as any).id);
+    }
+    if ((request as any).stationContext?.stationId) {
+      span.setAttribute(
+        "station.id",
+        (request as any).stationContext.stationId,
+      );
+    }
+    if (reply.statusCode >= 500) {
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: `HTTP ${reply.statusCode}`,
+      });
+    } else {
+      span.setStatus({ code: SpanStatusCode.OK });
+    }
+    span.end();
+  }
+});
+
+// Global Station Context Resolution (Enterprise Matrix Forwarding)
+app.addHook("onRequest", stationContextHook);
 
 // Automated Inbound Transaction Decryption (E2EE Zero-Knowledge Envelope)
 app.addHook("preValidation", async (request, reply) => {

@@ -25,6 +25,13 @@ export default defineConfig({
         functions: 70,
         branches: 60,
         statements: 70,
+        "src/scm/contexts/orders/**": { lines: 80, statements: 80 },
+        "src/scm/contexts/shipment-execution/**": { lines: 85, statements: 85 },
+        "src/scm/contexts/transport-planning/**": { lines: 85, statements: 85 },
+        "src/scm/contexts/shipment-consolidation/**": {
+          lines: 85,
+          statements: 85,
+        },
       },
     },
   },

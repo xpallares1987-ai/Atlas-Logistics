@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import Fastify, { FastifyInstance } from "fastify";
+import fastifyRateLimit from "@fastify/rate-limit";
 
 let testUserId = "operator_bcn_test";
 let testUserRole = "OPERATOR";
@@ -42,6 +43,10 @@ describe("SCM Operational Cockpit - Station Scoping & Cross-Station Execution Gu
 
   beforeAll(async () => {
     app = Fastify();
+    await app.register(fastifyRateLimit, {
+      max: 1000,
+      timeWindow: "15 minutes",
+    });
     app.addHook("onRequest", authMiddleware);
     app.addHook("onRequest", stationContextHook);
     await app.register(scmV1Routes, { prefix: "/api/scm/v1" });

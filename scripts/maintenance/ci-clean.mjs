@@ -1,6 +1,8 @@
 /**
  * @file ci-clean.mjs
  * @description Cross-platform CLI utility to inspect and purge GitHub Actions caches.
+ * Intelligently prunes orphaned CodeQL base database overlays and historical BuildKit blobs
+ * to prevent repository cache quota exhaustion (GitHub 10 GB limit).
  * @module @atlas/scripts/maintenance/ci-clean
  */
 
@@ -9,12 +11,22 @@ import { execSync } from "node:child_process";
 const DRY_RUN = process.argv.includes("--dry-run");
 const PURGE_ALL = process.argv.includes("--all");
 const MIN_AGE_DAYS = parseInt(
-  process.argv.find((arg) => arg.startsWith("--min-age="))?.split("=")[1] || "5",
+  process.argv.find((arg) => arg.startsWith("--min-age="))?.split("=")[1] || "2",
+  10,
+);
+const KEEP_BUILDKIT = parseInt(
+  process.argv.find((arg) => arg.startsWith("--keep-buildkit="))?.split("=")[1] || "20",
+  10,
+);
+const KEEP_CODEQL = parseInt(
+  process.argv.find((arg) => arg.startsWith("--keep-codeql="))?.split("=")[1] || "2",
   10,
 );
 
 console.log(`🧹 [CI Clean] Starting GitHub Actions cache maintenance...`);
-console.log(`   Config: minAgeDays=${MIN_AGE_DAYS}, purgeAll=${PURGE_ALL}, dryRun=${DRY_RUN}`);
+console.log(
+  `   Config: minAgeDays=${MIN_AGE_DAYS}, keepBuildKit=${KEEP_BUILDKIT}, keepCodeQL=${KEEP_CODEQL}, purgeAll=${PURGE_ALL}, dryRun=${DRY_RUN}`,
+);
 
 try {
   const isCi = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
@@ -32,53 +44,105 @@ try {
   const lines = rawOutput.trim().split("\n").filter(Boolean);
   const caches = lines.map((line) => JSON.parse(line));
 
-  console.log(`📊 Found ${caches.length} total cache items in repository.`);
+  const totalBytes = caches.reduce((acc, c) => acc + c.size, 0);
+  console.log(
+    `📊 Found ${caches.length} total cache items in repository (~${(totalBytes / (1024 * 1024 * 1024)).toFixed(2)} GB).`,
+  );
 
   const now = Date.now();
   const maxAgeMs = MIN_AGE_DAYS * 24 * 60 * 60 * 1000;
 
+  const toDelete = new Map();
+
+  if (PURGE_ALL) {
+    for (const c of caches) {
+      toDelete.set(c.id, { cache: c, reason: "PURGE_ALL" });
+    }
+  } else {
+    // 1. Process CodeQL Overlay Caches
+    const codeqlCaches = caches.filter((c) =>
+      c.key.startsWith("codeql-overlay-base-database-"),
+    );
+    codeqlCaches.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+
+    const activeCodeql = codeqlCaches.slice(0, KEEP_CODEQL);
+    const staleCodeql = codeqlCaches.slice(KEEP_CODEQL);
+    for (const c of staleCodeql) {
+      toDelete.set(c.id, {
+        cache: c,
+        reason: `Orphaned CodeQL database overlay (keeping ${KEEP_CODEQL} newest)`,
+      });
+    }
+
+    // 2. Process BuildKit Blob Caches
+    const bkCaches = caches.filter(
+      (c) => c.key.startsWith("buildkit-blob-") || c.key.startsWith("index-"),
+    );
+    bkCaches.sort(
+      (a, b) =>
+        new Date(b.last_accessed_at || b.created_at).getTime() -
+        new Date(a.last_accessed_at || a.created_at).getTime(),
+    );
+
+    for (let i = 0; i < bkCaches.length; i++) {
+      const c = bkCaches[i];
+      const lastAccessed = new Date(c.last_accessed_at || c.created_at).getTime();
+      const ageMs = now - lastAccessed;
+      const isBeyondKeepCount = i >= KEEP_BUILDKIT;
+      const isOlderThanMinAge = ageMs > maxAgeMs;
+
+      if (isBeyondKeepCount || isOlderThanMinAge) {
+        toDelete.set(c.id, {
+          cache: c,
+          reason: isBeyondKeepCount
+            ? `BuildKit blob beyond rank #${KEEP_BUILDKIT}`
+            : `BuildKit blob older than ${MIN_AGE_DAYS}d`,
+        });
+      }
+    }
+  }
+
   let deletedCount = 0;
   let deletedBytes = 0;
 
-  for (const cache of caches) {
-    const lastAccessed = new Date(cache.last_accessed_at || cache.created_at).getTime();
-    const ageMs = now - lastAccessed;
-    const isBuildKit = cache.key.startsWith("buildkit-blob-") || cache.key.startsWith("index-");
-    const isStale = ageMs > maxAgeMs;
+  console.log(`🎯 Identified ${toDelete.size} cache entries to prune.`);
 
-    const shouldDelete = PURGE_ALL || (isBuildKit && isStale);
+  for (const [id, { cache, reason }] of toDelete.entries()) {
+    const sizeMb = (cache.size / (1024 * 1024)).toFixed(2);
+    console.log(
+      `🗑️  [Prune] ID: ${id} | ${sizeMb} MB | ${cache.key.substring(0, 42)}... | ${reason}`,
+    );
 
-    if (shouldDelete) {
-      const sizeMb = (cache.size / (1024 * 1024)).toFixed(2);
-      console.log(`🗑️  [Target] ID: ${cache.id} | Size: ${sizeMb} MB | Key: ${cache.key.substring(0, 45)}...`);
-
-      if (!DRY_RUN) {
-        try {
-          execSync(
-            `gh api --method DELETE repos/xpallares1987-ai/Atlas-Logistics/actions/caches/${cache.id}`,
-            {
-              stdio: "ignore",
-              env: authEnv,
-            },
-          );
-          deletedCount++;
-          deletedBytes += cache.size;
-        } catch (delErr) {
-          console.warn(`   ⚠️ Failed to delete cache ${cache.id}:`, delErr.message);
-        }
-      } else {
+    if (!DRY_RUN) {
+      try {
+        execSync(
+          `gh api --method DELETE repos/xpallares1987-ai/Atlas-Logistics/actions/caches/${id}`,
+          {
+            stdio: "ignore",
+            env: authEnv,
+          },
+        );
         deletedCount++;
         deletedBytes += cache.size;
+      } catch (delErr) {
+        console.warn(`   ⚠️ Failed to delete cache ${id}:`, delErr.message);
       }
+    } else {
+      deletedCount++;
+      deletedBytes += cache.size;
     }
   }
 
   const reclaimedMb = (deletedBytes / (1024 * 1024)).toFixed(2);
   const reclaimedGb = (deletedBytes / (1024 * 1024 * 1024)).toFixed(2);
+  const remainingGb = ((totalBytes - deletedBytes) / (1024 * 1024 * 1024)).toFixed(2);
 
   console.log(`\n✅ [CI Clean Complete]`);
   console.log(`   Caches pruned: ${deletedCount}`);
   console.log(`   Space reclaimed: ${reclaimedMb} MB (~${reclaimedGb} GB)`);
+  console.log(`   Remaining cache footprint: ~${remainingGb} GB`);
 } catch (error) {
   console.error(`❌ [CI Clean Error]:`, error.message);
   process.exit(1);

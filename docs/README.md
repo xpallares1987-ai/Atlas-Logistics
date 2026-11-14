@@ -17,6 +17,7 @@ docs/
 ├── architecture/              # [Explanation] SCM domain aggregates, outbox runtime, event blueprints
 ├── adr/                       # [Decisions] Architectural Decision Records (0001 through 0022)
 ├── setup-guides/              # [How-To Guides] Development, container verification, DDL migrations, security
+├── runbooks/                  # [Runbooks] Operational procedures, branch governance, incident response
 ├── deployment/                # [How-To Guides] Production deployment, Docker Compose, runner matrices
 │   └── docker/                # Multi-profile container configurations
 ├── api/                       # [Reference] API reference and Fastify endpoint contracts
@@ -42,6 +43,7 @@ docs/
 - [**Container Provenance Verification (SLSA v1.0)**](setup-guides/container-provenance-verification.md) — Cryptographic verification of published GHCR container images (`atlas-frontend`, `atlas-backend`, `atlas-worker`) using `gh attestation verify` with `--repo` and `--signer-workflow`.
 - [**Docker & Multi-Container Infrastructure**](setup-guides/docker-setup.md) — Execution profiles (default, observability, worker), CI caching strategies, and Compose orchestration.
 - [**Station Context & Navigation Cockpit Guide**](setup-guides/station-context-cockpit-guide.md) — Managing multi-station operational switches, role-based station filtering, and live SQLite persistence.
+- [**GitHub Branch Protection & Ruleset Governance**](runbooks/github-branch-governance.md) — Branch rulesets, mandatory CI status checks, and administrative bypass procedures.
 - [**Comprehensive Observability & Monitoring**](setup-guides/observability-monitoring.md) — Prometheus metrics (`/metrics`), Grafana dashboards, structured Pino logs, and telemetry benchmarking.
 - [**Troubleshooting & Preventative Maintenance**](setup-guides/troubleshooting-maintenance.md) — Port freeing on Windows, SQLite WAL lock resolution, and background daemon hygiene.
 - [**Security, Backup & Leak Prevention Policy**](setup-guides/security-backup-policy.md) — Pre-commit leak scanning, secrets rotation, and SQLite online backup routines.

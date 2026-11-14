@@ -26,7 +26,7 @@ permissions:
 jobs:
   prepare:
     name: Prepare Dynamic Image Namespace
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
@@ -38,7 +38,7 @@ jobs:
   build-and-push:
     name: Build & Push ${{ matrix.image-suffix }} Image
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
@@ -139,7 +139,7 @@ jobs:
   security-scan:
     name: Trivy Security Scan (${{ matrix.image-suffix }})
     needs: [prepare, build-and-push]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: success()
     permissions:
       contents: read
@@ -170,7 +170,7 @@ jobs:
   report-summary:
     name: Execution Summary
     needs: [prepare, build-and-push, security-scan]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: always()
     permissions:
       contents: read

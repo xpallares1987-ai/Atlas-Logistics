@@ -39,7 +39,7 @@ permissions:
 jobs:
   lint-and-build:
     name: Lint, Type Check, Build & Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         node-version: [22]
@@ -109,7 +109,7 @@ jobs:
   build-images:
     name: Build & Publish ${{ matrix.component }} Image
     needs: lint-and-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
@@ -213,7 +213,7 @@ jobs:
   e2e-tests:
     name: End-to-End Playwright Tests
     needs: lint-and-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -273,7 +273,7 @@ jobs:
 
   container-config-validation:
     name: Production Compose Configuration Validation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -288,7 +288,7 @@ jobs:
   verify-provenance:
     name: Verify SLSA Provenance Gate
     needs: [build-images]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
@@ -351,7 +351,7 @@ jobs:
   deploy-notification:
     name: Deployment Notification
     needs: [lint-and-build, build-images, verify-provenance, e2e-tests, container-config-validation]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Publish Deployment Summary

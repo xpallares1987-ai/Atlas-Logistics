@@ -9,6 +9,7 @@ import {
 } from "../../db/schema/scm_foundation.js";
 import { v4 as uuidv4 } from "uuid";
 import { DomainEventEnvelope, DEFAULT_OPERATOR_ACTOR } from "./primitives.js";
+import { traceSpan } from "../../observability/tracer.js";
 
 export type DomainEventHandler<TPayload = any> = (
   event: DomainEventEnvelope<TPayload>,
@@ -139,7 +140,19 @@ class TransactionalOutboxBus {
       occurredAt: event.occurredAt || new Date().toISOString(),
       payload: event.payload,
     };
-    await this.enqueueEvents([envelope], tx);
+
+    await traceSpan(
+      "outbox.publish",
+      {
+        "event.type": envelope.eventType,
+        "aggregate.type": envelope.aggregateType,
+        "aggregate.id": envelope.aggregateId,
+        "event.id": envelope.eventId,
+      },
+      async () => {
+        await this.enqueueEvents([envelope], tx);
+      },
+    );
   }
 
   /**
@@ -157,91 +170,110 @@ class TransactionalOutboxBus {
     consumerDeliveriesCount: number;
     failedEventsCount: number;
   }> {
-    await ensureScmFoundationTables();
+    return await traceSpan(
+      "outbox.relay",
+      {
+        "outbox.operation": "relay_pending_events",
+      },
+      async (span) => {
+        await ensureScmFoundationTables();
 
-    let relayedEventsCount = 0;
-    let consumerDeliveriesCount = 0;
-    let failedEventsCount = 0;
-    const failedInThisInvocation = new Set<string>();
+        let relayedEventsCount = 0;
+        let consumerDeliveriesCount = 0;
+        let failedEventsCount = 0;
+        const failedInThisInvocation = new Set<string>();
 
-    for (let pass = 0; pass < 8; pass++) {
-      const pendingRows = await db
-        .select()
-        .from(scmOutboxMessages)
-        .where(eq(scmOutboxMessages.status, "PENDING"));
+        for (let pass = 0; pass < 8; pass++) {
+          const pendingRows = await db
+            .select()
+            .from(scmOutboxMessages)
+            .where(eq(scmOutboxMessages.status, "PENDING"));
 
-      const eligibleRows = pendingRows.filter(
-        (r) => !failedInThisInvocation.has(r.eventId),
-      );
+          const eligibleRows = pendingRows.filter(
+            (r) => !failedInThisInvocation.has(r.eventId),
+          );
 
-      if (eligibleRows.length === 0) break;
+          if (eligibleRows.length === 0) break;
 
-      for (const row of eligibleRows) {
-        // Transition PENDING -> PROCESSING
-        await db
-          .update(scmOutboxMessages)
-          .set({ status: "PROCESSING" })
-          .where(eq(scmOutboxMessages.eventId, row.eventId));
+          for (const row of eligibleRows) {
+            // Transition PENDING -> PROCESSING
+            await db
+              .update(scmOutboxMessages)
+              .set({ status: "PROCESSING" })
+              .where(eq(scmOutboxMessages.eventId, row.eventId));
 
-        const envelope: DomainEventEnvelope = {
-          eventId: row.eventId,
-          eventType: row.eventType,
-          schemaVersion: row.schemaVersion,
-          producerContext: row.producerContext,
-          aggregateType: row.aggregateType,
-          aggregateId: row.aggregateId,
-          aggregateVersion: row.aggregateVersion,
-          correlationId: row.correlationId,
-          causationId: row.causationId,
-          actor: JSON.parse(row.actorContextJson),
-          occurredAt: row.occurredAt.toISOString(),
-          payload: JSON.parse(row.payloadJson),
-        };
+            const envelope: DomainEventEnvelope = {
+              eventId: row.eventId,
+              eventType: row.eventType,
+              schemaVersion: row.schemaVersion,
+              producerContext: row.producerContext,
+              aggregateType: row.aggregateType,
+              aggregateId: row.aggregateId,
+              aggregateVersion: row.aggregateVersion,
+              correlationId: row.correlationId,
+              causationId: row.causationId,
+              actor: JSON.parse(row.actorContextJson),
+              occurredAt: row.occurredAt.toISOString(),
+              payload: JSON.parse(row.payloadJson),
+            };
 
-        const matchingSubscribers = this.subscribers.filter(
-          (s) => s.eventType === row.eventType || s.eventType === "*",
-        );
+            const matchingSubscribers = this.subscribers.filter(
+              (s) => s.eventType === row.eventType || s.eventType === "*",
+            );
 
-        try {
-          for (const sub of matchingSubscribers) {
-            const delivered = await this.deliverIdempotently(sub, envelope);
-            if (delivered) {
-              consumerDeliveriesCount += 1;
+            try {
+              for (const sub of matchingSubscribers) {
+                const delivered = await this.deliverIdempotently(sub, envelope);
+                if (delivered) {
+                  consumerDeliveriesCount += 1;
+                }
+              }
+
+              // Transition PROCESSING -> PROCESSED
+              await db
+                .update(scmOutboxMessages)
+                .set({
+                  status: "PROCESSED",
+                  publishedAt: new Date(),
+                })
+                .where(eq(scmOutboxMessages.eventId, row.eventId));
+
+              relayedEventsCount += 1;
+            } catch (err: any) {
+              failedInThisInvocation.add(row.eventId);
+              const nextRetry = row.retryCount + 1;
+              const isDeadLetter = nextRetry >= this.maxRetries;
+
+              await db
+                .update(scmOutboxMessages)
+                .set({
+                  status: isDeadLetter ? "FAILED" : "PENDING",
+                  retryCount: nextRetry,
+                  lastError: err?.message || String(err),
+                })
+                .where(eq(scmOutboxMessages.eventId, row.eventId));
+
+              if (isDeadLetter) {
+                failedEventsCount += 1;
+              }
             }
           }
-
-          // Transition PROCESSING -> PROCESSED
-          await db
-            .update(scmOutboxMessages)
-            .set({
-              status: "PROCESSED",
-              publishedAt: new Date(),
-            })
-            .where(eq(scmOutboxMessages.eventId, row.eventId));
-
-          relayedEventsCount += 1;
-        } catch (err: any) {
-          failedInThisInvocation.add(row.eventId);
-          const nextRetry = row.retryCount + 1;
-          const isDeadLetter = nextRetry >= this.maxRetries;
-
-          await db
-            .update(scmOutboxMessages)
-            .set({
-              status: isDeadLetter ? "FAILED" : "PENDING",
-              retryCount: nextRetry,
-              lastError: err?.message || String(err),
-            })
-            .where(eq(scmOutboxMessages.eventId, row.eventId));
-
-          if (isDeadLetter) {
-            failedEventsCount += 1;
-          }
         }
-      }
-    }
 
-    return { relayedEventsCount, consumerDeliveriesCount, failedEventsCount };
+        span.setAttribute("outbox.relayed_events_count", relayedEventsCount);
+        span.setAttribute(
+          "outbox.consumer_deliveries_count",
+          consumerDeliveriesCount,
+        );
+        span.setAttribute("outbox.failed_events_count", failedEventsCount);
+
+        return {
+          relayedEventsCount,
+          consumerDeliveriesCount,
+          failedEventsCount,
+        };
+      },
+    );
   }
 
   /**
@@ -314,33 +346,46 @@ class TransactionalOutboxBus {
     sub: RegisteredSubscriber,
     envelope: DomainEventEnvelope,
   ): Promise<boolean> {
-    await ensureScmFoundationTables();
-    const inboxKey = `${sub.consumerName}:${envelope.eventId}`;
+    return await traceSpan(
+      "outbox.deliver",
+      {
+        "consumer.name": sub.consumerName,
+        "event.type": envelope.eventType,
+        "event.id": envelope.eventId,
+        "aggregate.id": envelope.aggregateId,
+      },
+      async (span) => {
+        await ensureScmFoundationTables();
+        const inboxKey = `${sub.consumerName}:${envelope.eventId}`;
 
-    const alreadyProcessed = await db
-      .select({ id: scmInboxProcessedMessages.id })
-      .from(scmInboxProcessedMessages)
-      .where(eq(scmInboxProcessedMessages.id, inboxKey))
-      .limit(1);
+        const alreadyProcessed = await db
+          .select({ id: scmInboxProcessedMessages.id })
+          .from(scmInboxProcessedMessages)
+          .where(eq(scmInboxProcessedMessages.id, inboxKey))
+          .limit(1);
 
-    if (alreadyProcessed.length > 0) {
-      return false; // Duplicate delivery skipped idempotently!
-    }
+        if (alreadyProcessed.length > 0) {
+          span.setAttribute("outbox.skipped_duplicate", true);
+          return false; // Duplicate delivery skipped idempotently!
+        }
 
-    await sub.handler(envelope);
+        await sub.handler(envelope);
 
-    await db
-      .insert(scmInboxProcessedMessages)
-      .values({
-        id: inboxKey,
-        consumerName: sub.consumerName,
-        eventId: envelope.eventId,
-        eventType: envelope.eventType,
-        processedAt: new Date(),
-      })
-      .onConflictDoNothing();
+        await db
+          .insert(scmInboxProcessedMessages)
+          .values({
+            id: inboxKey,
+            consumerName: sub.consumerName,
+            eventId: envelope.eventId,
+            eventType: envelope.eventType,
+            processedAt: new Date(),
+          })
+          .onConflictDoNothing();
 
-    return true;
+        span.setAttribute("outbox.delivered", true);
+        return true;
+      },
+    );
   }
 }
 
