@@ -1691,7 +1691,7 @@ async function handleAutomaticDocumentEmission(
   const stops = view.routePlan?.stops || [];
   const firstLeg = legs[0];
   const lastLeg = legs[legs.length - 1];
-  const mainLeg =
+  const _mainLeg =
     legs.find(
       (l) =>
         l.transportMode === "AIR" ||

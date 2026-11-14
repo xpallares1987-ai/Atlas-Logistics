@@ -101,7 +101,7 @@ export interface Shipment360ReadModel {
       pausedAt?: string | null;
       pauseReason?: string | null;
       accumulatedPausedMinutes: number;
-      stopClockHistory: any[];
+      stopClockHistory: Array<Record<string, unknown>>;
     }>;
   };
 
@@ -128,8 +128,8 @@ export interface Shipment360ReadModel {
     routePlanId: string | null;
     activeVersionNumber: number;
     versionHistoryCount: number;
-    stops: any[];
-    legs: any[];
+    stops: Array<Record<string, unknown>>;
+    legs: Array<Record<string, unknown>>;
   };
 
   cargoAndEquipment: {
@@ -141,8 +141,8 @@ export interface Shipment360ReadModel {
       hasDG: boolean;
       hasTemperatureControl: boolean;
     };
-    cargoItems: any[];
-    equipment: any[];
+    cargoItems: Array<Record<string, unknown>>;
+    equipment: Array<Record<string, unknown>>;
   };
 
   tracking?: {
@@ -662,7 +662,7 @@ export function registerShipment360Projectors(): void {
       if (!p.shipmentId) return;
       await updateProjectionForShipment(p.shipmentId, event, (model) => {
         const targetLeg = model.routing.legs.find(
-          (l: any) => l.sequenceNo === p.transportLegSequenceNo,
+          (l) => l.sequenceNo === p.transportLegSequenceNo,
         );
         if (targetLeg) {
           targetLeg.consolidation = {
@@ -830,7 +830,7 @@ export async function enrichShipment360Model(
     slaId: s.id,
     slaCode: s.slaCode,
     slaName: s.slaName,
-    status: s.status as any,
+    status: s.status as "ON_TRACK" | "AT_RISK" | "BREACHED" | "MET" | "PAUSED",
     originalDeadlineAt: s.originalDeadlineAt,
     effectiveDeadlineAt: s.effectiveDeadlineAt,
     pausedAt: s.pausedAt,
@@ -844,7 +844,8 @@ export async function enrichShipment360Model(
     model.controlSummary.dataQuality = {
       activeStage: dq.activeStage,
       score: dq.score,
-      gateStatus: dq.gateStatus as any,
+      gateStatus: dq.gateStatus as
+        "PASSED" | "BLOCKED" | "OVERRIDDEN" | "PENDING",
       openFindingsCount: dq.blockingFindingsCount + dq.warningFindingsCount,
       findings: JSON.parse(dq.findingsJson),
     };

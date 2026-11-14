@@ -5,10 +5,7 @@
  * for authoritative display and official document generation in Shipment 360.
  */
 
-import {
-  getShipment360View,
-  OperationalShipment360View,
-} from "./operations-cockpit-bff.context.js";
+import { getShipment360View } from "./operations-cockpit-bff.context.js";
 import { getCustomsCasesForShipment } from "../trade-consolidation/trade-consolidation.context.js";
 import {
   GlecCalculatorService,
@@ -92,7 +89,7 @@ const CBAM_HS_PREFIXES = [
   "2834", // Nitric acid, ammonia, potassium nitrates (Fertilizers)
 ];
 
-function isCbamEligible(hsCodeOrDesc?: string): boolean {
+export function isCbamEligible(hsCodeOrDesc?: string): boolean {
   if (!hsCodeOrDesc) return false;
   const clean = hsCodeOrDesc.trim();
   const matchesPrefix = CBAM_HS_PREFIXES.some((prefix) =>
@@ -188,7 +185,7 @@ export async function computeShipmentGreenCompliance(
   const channel: "GREEN" | "ORANGE" | "RED" = hasActiveHold
     ? "RED"
     : primaryCase
-      ? (primaryCase.channelAssigned as any) ||
+      ? (primaryCase.channelAssigned as "GREEN" | "ORANGE" | "RED") ||
         (primaryCase.openHoldsCount > 0 ? "ORANGE" : "GREEN")
       : "GREEN";
 
@@ -248,10 +245,13 @@ export async function computeShipmentGreenCompliance(
     },
     customs: {
       caseNumber,
-      procedureType: (primaryCase?.procedureType as any) || "EXPORT_CLEARANCE",
+      procedureType:
+        (primaryCase?.procedureType as ShipmentGreenComplianceReadModel["customs"]["procedureType"]) ||
+        "EXPORT_CLEARANCE",
       status: hasActiveHold
         ? "HELD"
-        : (primaryCase?.state as any) || "RELEASED",
+        : (primaryCase?.state as ShipmentGreenComplianceReadModel["customs"]["status"]) ||
+          "RELEASED",
       channel,
       mrnNumber,
       customsOfficeLocode,
