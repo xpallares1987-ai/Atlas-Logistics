@@ -4,11 +4,156 @@ ALTER TABLE `companies` ADD COLUMN `sector` text;
 --> statement-breakpoint
 ALTER TABLE `companies` ADD COLUMN `headquarters_country` text;
 --> statement-breakpoint
+PRAGMA foreign_keys = OFF;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `schedules_new`;
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `schedules_new` (
+  `id` text PRIMARY KEY,
+  `lane_id` text NOT NULL REFERENCES `lanes`(`id`),
+  `carrier_id` text NOT NULL REFERENCES `addresses`(`id`),
+  `vessel_name` text,
+  `voyage_number` text,
+  `departure_date` integer NOT NULL,
+  `arrival_date` integer NOT NULL,
+  `created_at` integer NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` integer,
+  `is_deleted` integer NOT NULL DEFAULT 0,
+  `is_active` integer NOT NULL DEFAULT 1,
+  `metadata` text,
+  `tags` text
+);
+--> statement-breakpoint
+INSERT OR IGNORE INTO `schedules_new` SELECT * FROM `schedules`;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `schedules`;
+--> statement-breakpoint
+ALTER TABLE `schedules_new` RENAME TO `schedules`;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `rates_new`;
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `rates_new` (
+  `id` text PRIMARY KEY,
+  `carrier_id` text NOT NULL REFERENCES `addresses`(`id`),
+  `lane_id` text NOT NULL REFERENCES `lanes`(`id`),
+  `containerType` text NOT NULL,
+  `baseRate` real NOT NULL,
+  `baf` real NOT NULL DEFAULT 0,
+  `pss` real NOT NULL DEFAULT 0,
+  `thc` real NOT NULL DEFAULT 0,
+  `service_line` text NOT NULL DEFAULT 'Standard',
+  `transitDays` integer NOT NULL,
+  `valid_from` integer,
+  `valid_to` integer,
+  `company_id` text REFERENCES `companies`(`id`),
+  `created_by` text REFERENCES `users`(`id`),
+  `updated_by` text REFERENCES `users`(`id`),
+  `created_at` integer NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` integer,
+  `is_deleted` integer NOT NULL DEFAULT 0,
+  `is_active` integer NOT NULL DEFAULT 1,
+  `metadata` text,
+  `tags` text,
+  CONSTRAINT `rates_dates_check` CHECK (valid_to > valid_from),
+  CONSTRAINT `rates_base_check` CHECK (baseRate >= 0)
+);
+--> statement-breakpoint
+INSERT OR IGNORE INTO `rates_new` SELECT * FROM `rates`;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `rates`;
+--> statement-breakpoint
+ALTER TABLE `rates_new` RENAME TO `rates`;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `costs_new`;
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `costs_new` (
+  `id` text PRIMARY KEY,
+  `shipment_id` text NOT NULL REFERENCES `shipments`(`id`),
+  `vendor_id` text REFERENCES `addresses`(`id`),
+  `amount` real NOT NULL,
+  `currency` text NOT NULL,
+  `description` text,
+  `created_at` integer NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` integer,
+  `is_deleted` integer NOT NULL DEFAULT 0,
+  `is_active` integer NOT NULL DEFAULT 1,
+  `metadata` text,
+  `tags` text,
+  CONSTRAINT `costs_amount_check` CHECK (amount >= 0)
+);
+--> statement-breakpoint
+INSERT OR IGNORE INTO `costs_new` SELECT * FROM `costs`;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `costs`;
+--> statement-breakpoint
+ALTER TABLE `costs_new` RENAME TO `costs`;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `rate_import_batches_new`;
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `rate_import_batches_new` (
+  `id` text PRIMARY KEY,
+  `file_name` text NOT NULL,
+  `carrier_id` text REFERENCES `addresses`(`id`),
+  `total_rows` integer NOT NULL,
+  `inserted_count` integer NOT NULL DEFAULT 0,
+  `updated_count` integer NOT NULL DEFAULT 0,
+  `failed_count` integer NOT NULL DEFAULT 0,
+  `status` text NOT NULL DEFAULT 'COMPLETED',
+  `errors_json` text,
+  `imported_by` text REFERENCES `users`(`id`),
+  `created_at` integer NOT NULL
+);
+--> statement-breakpoint
+INSERT OR IGNORE INTO `rate_import_batches_new` SELECT * FROM `rate_import_batches`;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `rate_import_batches`;
+--> statement-breakpoint
+ALTER TABLE `rate_import_batches_new` RENAME TO `rate_import_batches`;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `customs_declarations_new`;
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `customs_declarations_new` (
+  `id` text PRIMARY KEY,
+  `shipment_id` text NOT NULL REFERENCES `shipments`(`id`),
+  `broker_id` text REFERENCES `addresses`(`id`),
+  `hs_code_id` text REFERENCES `hs_codes`(`id`),
+  `bl_number` text,
+  `type` text DEFAULT 'Import',
+  `duties_amount` real,
+  `taxes_amount` real,
+  `status` text NOT NULL,
+  `ai_risk_score` integer,
+  `ai_risk_flag` text,
+  `created_at` integer NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` integer,
+  `is_deleted` integer NOT NULL DEFAULT 0,
+  `is_active` integer NOT NULL DEFAULT 1,
+  `metadata` text,
+  `tags` text,
+  `dua_number` text,
+  `customs_value` real,
+  `total_payable` real,
+  `risk_score` integer,
+  `risk_flags` text,
+  `eori_number` text,
+  `origin_country` text,
+  `destination_country` text,
+  `dua_data` text
+);
+--> statement-breakpoint
+INSERT OR IGNORE INTO `customs_declarations_new` SELECT * FROM `customs_declarations`;
+--> statement-breakpoint
+DROP TABLE IF EXISTS `customs_declarations`;
+--> statement-breakpoint
+ALTER TABLE `customs_declarations_new` RENAME TO `customs_declarations`;
+--> statement-breakpoint
 DROP TABLE IF EXISTS `destination_agents`;
 --> statement-breakpoint
 DROP TABLE IF EXISTS `customs_brokers`;
 --> statement-breakpoint
 DROP TABLE IF EXISTS `carriers`;
+--> statement-breakpoint
+PRAGMA foreign_keys = ON;
 --> statement-breakpoint
 INSERT OR IGNORE INTO `companies` (`id`, `name`, `tax_id`, `credit_limit`, `group_code`, `is_active`)
 VALUES ('c-1', 'Atlas Global Freight Forwarding S.L.', 'ESB99887766', 5000000, 'HOLDING_ATLAS', 1);
