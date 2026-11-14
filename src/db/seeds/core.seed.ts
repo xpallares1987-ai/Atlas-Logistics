@@ -241,22 +241,34 @@ export async function seedCore(): Promise<CoreSeedContext> {
   const carrierIds = [
     "addr_carr_maersk",
     "addr_carr_msc",
-    "addr_carr_cma",
-    "addr_carr_cosco",
     "addr_carr_hapag",
     "addr_carr_one",
+    "addr_carr_cosco",
     "addr_carr_evergreen",
-    "addr_carr_hmm",
-    "addr_carr_yangming",
-    "addr_carr_zim",
   ];
 
-  const brokerIds = [
-    "addr_broker_bcn",
-    "addr_broker_vlc",
-    "addr_broker_mad",
-    "addr_broker_alg",
-  ];
+  const brokerIds = ["addr_broker_bcn", "addr_broker_vlc"];
+
+  // Defensive legacy mirror to satisfy SQLite table-level foreign keys on rates & customs_declarations
+  for (const cid of carrierIds) {
+    try {
+      await db.run(
+        sql`INSERT OR IGNORE INTO carriers (id, name, scac, type) VALUES (${cid}, ${cid}, ${cid.slice(-4).toUpperCase()}, 'OCEAN')`,
+      );
+    } catch {
+      // Table may not exist in future schema migrations
+    }
+  }
+
+  for (const bid of brokerIds) {
+    try {
+      await db.run(
+        sql`INSERT OR IGNORE INTO customs_brokers (id, name, license_number) VALUES (${bid}, ${bid}, ${bid.slice(-8).toUpperCase()})`,
+      );
+    } catch {
+      // Table may not exist in future schema migrations
+    }
+  }
 
   // 5.1 HS CODES & TRADE SANCTIONS
   const standardHsCodes = [

@@ -110,9 +110,9 @@ export async function seedPhase1(): Promise<SeedContext> {
   await seedContainerIsoTypes();
   await seedUnlocodeLocations();
   const coreCtx = await seedCore();
-  const shipmentIds = await seedOperations(coreCtx);
   await seedAddressesAndBookings();
   await seedAddressIdentifiers();
+  const shipmentIds = await seedOperations(coreCtx);
   await seedDrayageOrders();
   await seedTelemetry();
   await seedControlTower();
