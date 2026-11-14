@@ -5,7 +5,7 @@
  * @see {@link docs/adr/0022-enterprise-freight-forwarding-organization-schema-and-governance.md}
  */
 
-import { FastifyPluginAsync } from "fastify";
+import { FastifyPluginAsync, FastifyRequest } from "fastify";
 import { db } from "../db/index.js";
 import {
   branchOffices,
@@ -35,10 +35,48 @@ declare module "fastify" {
   }
 }
 
+// ============================================================================
+// 1. STATION CONTEXT HOOK & AUTHORIZATION GUARD
+// ============================================================================
+
+export async function validateStationAccess(
+  userId: string,
+  userRole: string,
+  stationId: string,
+): Promise<boolean> {
+  if (userRole === "ADMIN") return true;
+  const assignment = await db
+    .select({ id: userStationAssignments.id })
+    .from(userStationAssignments)
+    .where(
+      and(
+        eq(userStationAssignments.userId, userId),
+        eq(userStationAssignments.branchId, stationId),
+      ),
+    )
+    .limit(1);
+  return assignment.length > 0;
+}
+
+export const verifyStationAuthorization = async (request: FastifyRequest) => {
+  const user = (request as any).user;
+  if (user && user.id && request.stationContext) {
+    const allowed = await validateStationAccess(
+      user.id,
+      user.role || "USER",
+      request.stationContext.stationId,
+    );
+    if (!allowed) {
+      request.log.warn(
+        { userId: user.id, stationId: request.stationContext.stationId },
+        "Unauthorized station context attempt rejected",
+      );
+      request.stationContext = null;
+    }
+  }
+};
+
 export const organizationRoutes: FastifyPluginAsync = async (app) => {
-  // ============================================================================
-  // 1. STATION CONTEXT HOOK
-  // ============================================================================
   app.addHook("onRequest", async (request) => {
     const headerStationCode = request.headers["x-station-context"];
     if (
@@ -88,12 +126,16 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
    * GET /api/organization/context
    * Returns current resolved station context derived from X-Station-Context header.
    */
-  app.get("/context", async (request, reply) => {
-    return reply.code(200).send({
-      success: true,
-      stationContext: request.stationContext || null,
-    });
-  });
+  app.get(
+    "/context",
+    { preHandler: [authMiddleware, verifyStationAuthorization] },
+    async (request, reply) => {
+      return reply.code(200).send({
+        success: true,
+        stationContext: request.stationContext || null,
+      });
+    },
+  );
 
   /**
    * GET /api/organization/stations

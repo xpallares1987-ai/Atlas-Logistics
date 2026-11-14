@@ -9,13 +9,14 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import Fastify, { FastifyInstance } from "fastify";
 
 let testUserId = "admin_user_id";
+let testUserRole = "ADMIN";
 
 // 1. Mock auth middleware per AGENTS.md rule 3
 vi.mock("../src/middleware/auth.js", () => ({
   authMiddleware: vi.fn(async (request) => {
     (request as any).user = {
       id: testUserId,
-      role: "ADMIN",
+      role: testUserRole,
       email: "ops.admin@atlaslogistics.com",
     };
   }),
@@ -229,5 +230,27 @@ describe("Enterprise Forwarding Organization & Station Fastify Routes", () => {
     expect(resAll.statusCode).toBe(200);
     const allBody = resAll.json();
     expect(allBody.stationContext).toBeNull();
+  });
+
+  it("rejects unauthorized station context spoofing for non-admin user", async () => {
+    // Switch mock user role to OPERATIONS (non-admin)
+    testUserRole = "OPERATIONS";
+
+    // Non-admin operator requests NYC station where they have no assignment
+    const resUnauthorized = await app.inject({
+      method: "GET",
+      url: "/api/organization/context",
+      headers: {
+        "x-station-context": "NYC-GATEWAY",
+      },
+    });
+
+    expect(resUnauthorized.statusCode).toBe(200);
+    const body = resUnauthorized.json();
+    // Unauthorized station context MUST be stripped by the preHandler guard!
+    expect(body.stationContext).toBeNull();
+
+    // Reset role back to ADMIN for subsequent tests
+    testUserRole = "ADMIN";
   });
 });
