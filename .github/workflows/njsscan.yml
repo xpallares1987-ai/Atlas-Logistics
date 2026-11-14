@@ -23,7 +23,7 @@ jobs:
     name: njsscan code scanning
     steps:
       - name: Checkout the code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
       - name: nodejsscan scan
         run: pip install njsscan && njsscan src packages --sarif --output results.sarif --exit-warning
       - name: Upload njsscan report

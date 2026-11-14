@@ -5,10 +5,22 @@ on:
     branches:
       - main
       - develop
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'LICENSE'
+      - '.github/workflows/wiki-sync.yml'
+      - '.github/workflows/cache-clean.yml'
   pull_request:
     branches:
       - main
       - develop
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'LICENSE'
+      - '.github/workflows/wiki-sync.yml'
+      - '.github/workflows/cache-clean.yml'
   workflow_dispatch:
 
 concurrency:
@@ -165,7 +177,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.component }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=min,scope=${{ matrix.component }}
           build-args: |
             NODE_VERSION=22
             PNPM_VERSION=11.5.1
