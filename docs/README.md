@@ -107,3 +107,4 @@ docs/
 - [**Phase 3 Implementation Plan**](superpowers/plans/2026-11-05-real-data-phase-3-ports-disputes-stowage.md)
 - [**Frontend Monoliths Modular Decomposition Plan**](superpowers/plans/2026-11-12-frontend-monoliths-modular-decomposition.md)
 - [**External Data Governance Specification**](superpowers/specs/external-data-governance-spec.md)
+- [**Issue #9 Phase 1: Strict TypeScript ESLint Restoration (SCM Domain)**](superpowers/plans/2026-11-14-issue-9-strict-eslint-restoration-scm.md)
