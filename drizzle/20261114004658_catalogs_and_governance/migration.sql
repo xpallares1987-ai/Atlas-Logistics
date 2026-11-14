@@ -29,18 +29,7 @@ INSERT OR IGNORE INTO `address_types` (`code`, `name`, `description`) VALUES
 ('CAA', 'Carrier Agent', 'Authorized liner shipping agency representing an ocean or air carrier at port.'),
 ('WH', 'Warehouse', 'Logistics distribution center, bonded warehouse, CFS, or inland container depot.'),
 ('FW', 'Forwarder', 'Freight forwarder, NVOCC, or 3PL/4PL logistics orchestrator.'),
-('TRM', 'Terminal', 'Maritime container terminal, stevedoring facility, or air cargo terminal.'),
-('CUSTOMER', 'Customer (Legacy)', 'Legacy mapping for CUS'),
-('CUSTOMS_BROKER', 'Customs Broker (Legacy)', 'Legacy mapping for CB'),
-('AGENT', 'Agent (Legacy)', 'Legacy mapping for AG'),
-('HAULIER', 'Haulier (Legacy)', 'Legacy mapping for HAU'),
-('CARRIER', 'Carrier (Legacy)', 'Legacy mapping for CAR'),
-('INSURANCE', 'Insurance (Legacy)', 'Legacy mapping for INS'),
-('CARRIER_AGENT', 'Carrier Agent (Legacy)', 'Legacy mapping for CAA'),
-('WAREHOUSE', 'Warehouse (Legacy)', 'Legacy mapping for WH'),
-('FORWARDER', 'Forwarder (Legacy)', 'Legacy mapping for FW'),
-('TERMINAL', 'Terminal (Legacy)', 'Legacy mapping for TRM'),
-('CONSIGNEE_NOTIFY', 'Consignee Notify (Legacy)', 'Legacy mapping for CUS');
+('TRM', 'Terminal', 'Maritime container terminal, stevedoring facility, or air cargo terminal.');
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS `addresses` (
 	`id` text PRIMARY KEY NOT NULL,
