@@ -82,6 +82,9 @@ jobs:
           pnpm run db:migrate
           pnpm run db:seed
 
+      - name: Verify zero DDL schema drift
+        run: pnpm run audit:ddl-drift
+
       - name: Run Vitest unit & integration tests with coverage
         run: pnpm test -- --coverage
 
