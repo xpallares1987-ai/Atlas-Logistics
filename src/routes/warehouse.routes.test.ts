@@ -3,7 +3,7 @@ import app from "../app.js";
 import { db } from "../db/index.js";
 import { orders } from "../db/schema/warehouse.js";
 import { users } from "../db/schema/core.js";
-import { lucia } from "../lib/auth.js";
+import { createSession, createSessionCookie } from "../lib/auth.js";
 import crypto from "crypto";
 
 describe("Warehouse API Routes", () => {
@@ -21,8 +21,8 @@ describe("Warehouse API Routes", () => {
       role: "ADMIN",
     });
 
-    const session = await lucia.createSession(testUserId, {});
-    const sessionCookie = lucia.createSessionCookie(session.id);
+    const session = await createSession(testUserId);
+    const sessionCookie = createSessionCookie(session.id);
     authCookie = { [sessionCookie.name]: sessionCookie.value };
 
     // 2. Create test order

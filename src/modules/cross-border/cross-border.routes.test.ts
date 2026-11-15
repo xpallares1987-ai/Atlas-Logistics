@@ -1,16 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 
-// Mock auth middleware and password hashing for integration tests
+// Mock auth middleware for integration tests
 vi.mock("../../middleware/auth.js", () => ({
   authMiddleware: vi.fn(async () => {}),
   requireRole: vi.fn(() => async () => {}),
-}));
-
-vi.mock("oslo/password", () => ({
-  Argon2id: vi.fn().mockImplementation(() => ({
-    hash: vi.fn(async () => "mocked-hash"),
-    verify: vi.fn(async () => true),
-  })),
 }));
 
 import app from "../../app.js";

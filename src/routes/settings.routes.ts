@@ -3,8 +3,11 @@ import { z } from "zod";
 import { db } from "../db/index.js";
 import { users, companies } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
-import { Argon2id } from "oslo/password";
-import { lucia } from "../lib/auth.js";
+import {
+  verifyPassword,
+  hashPassword,
+  invalidateUserSessions,
+} from "../lib/auth.js";
 
 const profileSchema = z.object({
   firstName: z.string().min(1),
@@ -137,9 +140,9 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
           isPasswordCorrect = true;
         } else if (existingUser.hashedPassword) {
           try {
-            isPasswordCorrect = await new Argon2id().verify(
-              existingUser.hashedPassword,
+            isPasswordCorrect = await verifyPassword(
               currentPassword,
+              existingUser.hashedPassword,
             );
           } catch {
             isPasswordCorrect = false;
@@ -150,14 +153,14 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
           return reply.code(400).send({ error: "Incorrect current password" });
         }
 
-        const hashedNewPassword = await new Argon2id().hash(newPassword);
+        const hashedNewPassword = await hashPassword(newPassword);
         await db
           .update(users)
           .set({ hashedPassword: hashedNewPassword })
           .where(eq(users.id, existingUser.id));
 
         try {
-          await lucia.invalidateUserSessions(existingUser.id);
+          await invalidateUserSessions(existingUser.id);
         } catch {
           // ignore session table missing in local dev
         }

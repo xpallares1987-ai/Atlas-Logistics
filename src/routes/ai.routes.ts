@@ -6,7 +6,7 @@ import { Queue } from "bullmq";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema/index.js";
 import { pendingAiReviews } from "../db/schema/index.js";
-import { generateId } from "lucia";
+import { randomUUID } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
 import { redis, USE_MOCK } from "../config/redis.js";
 import {
@@ -191,7 +191,7 @@ export default async function aiRoutes(fastify: FastifyInstance) {
       const { prompt, shipmentId, documentUrl } = taskSchema.parse(
         request.body,
       );
-      const reviewId = generateId(15);
+      const reviewId = `rev_${randomUUID().replace(/-/g, "").substring(0, 15)}`;
 
       await db.insert(pendingAiReviews).values({
         id: reviewId,

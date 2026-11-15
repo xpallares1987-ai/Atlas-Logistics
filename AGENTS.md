@@ -28,7 +28,7 @@
 ## 3. Architecture & Verification
 - **Fastify & API Contracts**: All endpoints serving data to the UI must prioritize real relational SQLite entities over in-memory mocks.
 - **TDD & Verification**: Always run unit and integration tests (`pnpm vitest run ...`) before declaring a task complete.
-- **Auth Mocks in Fastify Controller Tests**: In controller test suites (`app.inject()`), explicitly mock `../../middleware/auth.js` (`authMiddleware: vi.fn()`, `requireRole: vi.fn()`) and `oslo/password` to prevent `401 Unauthorized` failures on protected routes.
+- **Auth Mocks in Fastify Controller Tests**: In controller test suites (`app.inject()`), explicitly mock `../../middleware/auth.js` (`authMiddleware: vi.fn()`, `requireRole: vi.fn()`) to prevent `401 Unauthorized` failures on protected routes.
 
 ## 4. UI/Frontend: Live Data Binding & Zero Mocks Standard
 - **Exclusive Consumption of SQLite/Fastify**: Every action, mutation, or visualization in the UI must query and send data to real Fastify endpoints backed by Drizzle ORM and SQLite.

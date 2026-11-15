@@ -1,16 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 
-// Mock auth middleware and password hashing for integration tests
+// Mock auth middleware for integration tests
 vi.mock("../../middleware/auth.js", () => ({
   authMiddleware: vi.fn(async () => {}),
   requireRole: vi.fn(() => async () => {}),
-}));
-
-vi.mock("oslo/password", () => ({
-  Argon2id: vi.fn().mockImplementation(() => ({
-    hash: vi.fn(async () => "mocked-hash"),
-    verify: vi.fn(async () => true),
-  })),
 }));
 
 import app from "../../app.js";
@@ -135,9 +128,13 @@ describe("Passkeys & Biometric Security Routes Integration Tests", () => {
 
   it("POST /api/passkeys/step-up/verify should authorize with hardware token signature", async () => {
     const manifestId = "MNF-2026-X884";
-    const hwSig = await authenticateWithHardwareToken(manifestId, "officer@atlas.com", {
-      simulatedDelayMs: 5,
-    });
+    const hwSig = await authenticateWithHardwareToken(
+      manifestId,
+      "officer@atlas.com",
+      {
+        simulatedDelayMs: 5,
+      },
+    );
 
     const response = await app.inject({
       method: "POST",

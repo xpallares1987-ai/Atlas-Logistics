@@ -1,15 +1,21 @@
 /**
  * @file auth.ts
- * @description Authentication and authorization middleware supporting JWT and Lucia session validation.
+ * @description Authentication and authorization middleware supporting JWT and native Web Crypto session validation.
  * @module @atlas/api/middleware/auth
  * @see {@link docs/adr/0018-cross-tenant-security-and-jwt-rbac-contracts.md}
+ * @see {@link docs/adr/0023-native-web-crypto-session-migration.md}
  */
 
 import { FastifyRequest, FastifyReply } from "fastify";
 import { logger } from "../config/logger.js";
-import { lucia } from "../lib/auth.js";
+import {
+  validateSession,
+  createSessionCookie,
+  createBlankSessionCookie,
+  SESSION_COOKIE_NAME,
+  type Session,
+} from "../lib/auth.js";
 import jwt from "jsonwebtoken";
-import type { Session } from "lucia";
 
 // JWT_SECRET is guaranteed to exist due to validation in server.ts
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -60,16 +66,16 @@ export const authMiddleware = async (
       }
     }
 
-    const sessionId = request.cookies[lucia.sessionCookieName];
+    const sessionId = request.cookies[SESSION_COOKIE_NAME];
     if (!sessionId) {
       reply.code(401).send({ error: "Missing Authentication." });
       return;
     }
 
-    const { session, user } = await lucia.validateSession(sessionId);
+    const { session, user } = await validateSession(sessionId);
 
     if (!session) {
-      const sessionCookie = lucia.createBlankSessionCookie();
+      const sessionCookie = createBlankSessionCookie();
       reply.setCookie(
         sessionCookie.name,
         sessionCookie.value,
@@ -80,7 +86,7 @@ export const authMiddleware = async (
     }
 
     if (session && session.fresh) {
-      const sessionCookie = lucia.createSessionCookie(session.id);
+      const sessionCookie = createSessionCookie(session.id);
       reply.setCookie(
         sessionCookie.name,
         sessionCookie.value,
