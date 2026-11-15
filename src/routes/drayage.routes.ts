@@ -1,3 +1,10 @@
+/**
+ * @file drayage.routes.ts
+ * @description Road drayage costing, terminal distance discovery, hauliers directory, and transport order dispatch.
+ * @module @atlas/api/routes/drayage
+ * @see {@link docs/adr/0014-rate-comparer-port-drayage-booking-dispatch.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import { v4 as uuidv4 } from "uuid";
 import crypto from "node:crypto";
@@ -6,13 +13,14 @@ import {
   drayageEngineService,
   DrayageQuoteRequest,
 } from "../services/drayage-engine.service.js";
+import { DrayageContainerType } from "@atlas/shared";
 import { db } from "../db/index.js";
 import {
   addresses,
   addressContacts,
   drayageTransportOrders,
 } from "../db/schema/index.js";
-import { eq, desc, and, or } from "drizzle-orm";
+import { eq, desc, and, or, SQL } from "drizzle-orm";
 
 const CoordinatesSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -24,13 +32,41 @@ const DrayageQuoteRequestSchema = z.object({
   originCoords: CoordinatesSchema.optional(),
   destinationAddressId: z.string().optional(),
   destinationCoords: CoordinatesSchema.optional(),
-  containerType: z.any().optional(),
+  containerType: z.string().optional(),
   cargoWeightKg: z.number().nonnegative().optional(),
   isDangerousGoods: z.boolean().optional(),
   requiresGenset: z.boolean().optional(),
   baseRateEuro: z.number().nonnegative().optional(),
   perKmRateEuro: z.number().nonnegative().optional(),
 });
+
+interface NearestTerminalsQuery {
+  lat?: string;
+  lon?: string;
+  addressId?: string;
+  limit?: string;
+}
+
+interface DrayageOrdersQuery {
+  status?: string;
+  shipmentId?: string;
+}
+
+interface CreateDrayageOrderBody {
+  haulierAddressId: string;
+  originAddressId: string;
+  destinationAddressId: string;
+  shipmentId?: string;
+  bookingReference?: string;
+  containerNumber?: string;
+  containerType?: DrayageContainerType;
+  cargoWeightKg?: number;
+  isDangerousGoods?: boolean;
+  requiresGenset?: boolean;
+  appointmentWindowStart?: string;
+  appointmentWindowEnd?: string;
+  notes?: string;
+}
 
 const drayageRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/drayage/quote - Calculate road drayage distance, costs and GLEC v3.0 emissions
@@ -41,16 +77,20 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
         body as DrayageQuoteRequest,
       );
       return reply.send(quote);
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err, "Failed to calculate drayage quote");
-      return reply.code(400).send({ error: err.message });
+      const message =
+        err instanceof Error ? err.message : "Failed to calculate quote";
+      return reply.code(400).send({ error: message });
     }
   });
 
   // GET /api/drayage/nearest-terminals - Find closest maritime port terminals and ICDs
-  fastify.get("/nearest-terminals", async (request, reply) => {
+  fastify.get<{
+    Querystring: NearestTerminalsQuery;
+  }>("/nearest-terminals", async (request, reply) => {
     try {
-      const query = request.query as any;
+      const query = request.query;
       let lat = query.lat ? Number(query.lat) : null;
       let lon = query.lon ? Number(query.lon) : null;
 
@@ -82,14 +122,16 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
         limit,
       );
       return reply.send(terminals);
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err, "Failed to find nearest terminals");
-      return reply.code(500).send({ error: err.message });
+      const message =
+        err instanceof Error ? err.message : "Failed to find nearest terminals";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // GET /api/drayage/hauliers - List registered hauliers with primary contact
-  fastify.get("/hauliers", async (request, reply) => {
+  fastify.get("/hauliers", async (_request, reply) => {
     try {
       const hauliers = await db
         .select()
@@ -101,7 +143,7 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
           ),
         );
 
-      const results: any[] = [];
+      const results = [];
       for (const h of hauliers) {
         const contacts = await db
           .select()
@@ -118,19 +160,28 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       return reply.send(results);
-    } catch (err: any) {
-      return reply.code(500).send({ error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to list hauliers";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // GET /api/drayage/orders - List dispatched orders with parties & quote details
-  fastify.get("/orders", async (request, reply) => {
+  fastify.get<{
+    Querystring: DrayageOrdersQuery;
+  }>("/orders", async (request, reply) => {
     try {
-      const query = request.query as any;
-      const conditions: any[] = [];
+      const query = request.query;
+      const conditions: SQL[] = [];
 
       if (query.status && query.status !== "ALL") {
-        conditions.push(eq(drayageTransportOrders.status, query.status));
+        conditions.push(
+          eq(
+            drayageTransportOrders.status,
+            query.status as typeof drayageTransportOrders.$inferSelect.status,
+          ),
+        );
       }
       if (query.shipmentId) {
         conditions.push(
@@ -206,16 +257,20 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
       );
 
       return reply.send(enrichedOrders);
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err, "Failed to list drayage transport orders");
-      return reply.code(500).send({ error: err.message });
+      const message =
+        err instanceof Error ? err.message : "Failed to list drayage orders";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // GET /api/drayage/orders/:id - Get single order details
-  fastify.get("/orders/:id", async (request, reply) => {
+  fastify.get<{
+    Params: { id: string };
+  }>("/orders/:id", async (request, reply) => {
     try {
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
       const [order] = await db
         .select()
         .from(drayageTransportOrders)
@@ -250,17 +305,22 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
         origin,
         destination,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err, "Failed to retrieve drayage order");
-      return reply.code(500).send({ error: err.message });
+      const message =
+        err instanceof Error ? err.message : "Failed to retrieve drayage order";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // PATCH /api/drayage/orders/:id/status - Update order lifecycle state
-  fastify.patch("/orders/:id/status", async (request, reply) => {
+  fastify.patch<{
+    Params: { id: string };
+    Body: { status: string };
+  }>("/orders/:id/status", async (request, reply) => {
     try {
-      const { id } = request.params as { id: string };
-      const body = request.body as { status: string };
+      const { id } = request.params;
+      const body = request.body;
 
       const validStatuses = [
         "DRAFT",
@@ -270,9 +330,11 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
         "IN_TRANSIT",
         "DELIVERED",
         "CANCELLED",
-      ];
+      ] as const;
 
-      if (!body.status || !validStatuses.includes(body.status)) {
+      type ValidStatus = (typeof validStatuses)[number];
+
+      if (!body.status || !validStatuses.includes(body.status as ValidStatus)) {
         return reply.code(400).send({
           error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
         });
@@ -282,7 +344,7 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
       await db
         .update(drayageTransportOrders)
         .set({
-          status: body.status as any,
+          status: body.status as ValidStatus,
           updatedAt: now,
         })
         .where(eq(drayageTransportOrders.id, id));
@@ -294,16 +356,20 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
         .limit(1);
 
       return reply.send(updated);
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err, "Failed to update drayage order status");
-      return reply.code(500).send({ error: err.message });
+      const message =
+        err instanceof Error ? err.message : "Failed to update status";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // POST /api/drayage/orders - Generate, persist and dispatch a Drayage Transport Order
-  fastify.post("/orders", async (request, reply) => {
+  fastify.post<{
+    Body: CreateDrayageOrderBody;
+  }>("/orders", async (request, reply) => {
     try {
-      const body = request.body as any;
+      const body = request.body;
       if (
         !body.haulierAddressId ||
         !body.originAddressId ||
@@ -460,9 +526,11 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
       };
 
       return reply.code(201).send(orderPayload);
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err, "Failed to create drayage transport order");
-      return reply.code(500).send({ error: err.message });
+      const message =
+        err instanceof Error ? err.message : "Failed to create drayage order";
+      return reply.code(500).send({ error: message });
     }
   });
 };

@@ -1,3 +1,10 @@
+/**
+ * @file schedules.routes.ts
+ * @description Vessel schedule search, corridor transit discovery, and dynamic pricing integration.
+ * @module @atlas/api/routes/schedules
+ * @see {@link docs/adr/0019-centralized-correlation-and-distributed-tracing.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import { db } from "../db/index.js";
 import {
@@ -14,10 +21,12 @@ const originLocs = alias(locations, "origin_locations");
 const destLocs = alias(locations, "destination_locations");
 import { addDays, subDays } from "date-fns";
 
-const schedulesRoutes: FastifyPluginAsync = async (fastify, opts) => {
-  fastify.get("/", async (request, reply) => {
+const schedulesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
+  fastify.get<{
+    Querystring: { origin?: string; destination?: string; date?: string };
+  }>("/", async (request, reply) => {
     try {
-      const { origin, destination, date } = request.query as any;
+      const { origin, destination, date } = request.query;
 
       const query = db
         .select({
@@ -110,15 +119,19 @@ const schedulesRoutes: FastifyPluginAsync = async (fastify, opts) => {
       });
 
       return reply.send(mappedSchedules);
-    } catch (error: any) {
+    } catch (error: unknown) {
       request.log.error(error);
-      reply.code(500).send({ error: error.message });
+      const message =
+        error instanceof Error ? error.message : "Failed to fetch schedules";
+      return reply.code(500).send({ error: message });
     }
   });
 
-  fastify.get("/:id/pricing", async (request, reply) => {
+  fastify.get<{
+    Params: { id: string };
+  }>("/:id/pricing", async (request, reply) => {
     try {
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
 
       const sch = await db
         .select({ laneId: schedules.laneId })
@@ -152,9 +165,11 @@ const schedulesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         currency: "USD",
         validUntil: addDays(new Date(), 1).toISOString(), // valid for 24 hours
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       request.log.error(error);
-      reply.code(500).send({ error: error.message });
+      const message =
+        error instanceof Error ? error.message : "Failed to calculate pricing";
+      return reply.code(500).send({ error: message });
     }
   });
 };

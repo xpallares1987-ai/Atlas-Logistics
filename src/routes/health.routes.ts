@@ -1,3 +1,10 @@
+/**
+ * @file health.routes.ts
+ * @description Fastify routes for application liveness (/health, /healthz) and readiness probes (/ready, /readyz).
+ * @module @atlas/api/routes/health
+ * @see {@link docs/adr/0019-centralized-correlation-and-distributed-tracing.md}
+ */
+
 import { FastifyInstance } from "fastify";
 import fs from "node:fs";
 import path from "node:path";
@@ -5,8 +12,6 @@ import os from "node:os";
 import { client, databaseUrl } from "../db/index.js";
 import { redis } from "../config/redis.js";
 import { logger } from "../config/logger.js";
-
-const startTime = Date.now();
 
 export default async function healthRoutes(app: FastifyInstance) {
   /**
@@ -22,7 +27,9 @@ export default async function healthRoutes(app: FastifyInstance) {
     let resolvedDbPath: string | null = null;
     if (databaseUrl.startsWith("file:")) {
       const rawPath = databaseUrl.slice(5);
-      resolvedDbPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(process.cwd(), rawPath);
+      resolvedDbPath = path.isAbsolute(rawPath)
+        ? rawPath
+        : path.resolve(process.cwd(), rawPath);
     }
     const dbExists = resolvedDbPath ? fs.existsSync(resolvedDbPath) : true;
     let dbSize = null;
@@ -35,7 +42,7 @@ export default async function healthRoutes(app: FastifyInstance) {
         const stats = fs.statSync(resolvedDbPath);
         dbSize = Math.round(stats.size / (1024 * 1024)); // MB
       } catch (err) {
-        dbError = `Failed to stat database: ${err instanceof Error ? err.message : 'unknown error'}`;
+        dbError = `Failed to stat database: ${err instanceof Error ? err.message : "unknown error"}`;
       }
     }
 
@@ -143,78 +150,76 @@ export default async function healthRoutes(app: FastifyInstance) {
    * Returns 200 only when all critical dependencies are ready
    * Used for: Load balancer routing, startup probes, readiness gates
    */
-  app.get(
-    "/ready",
-    { logLevel: "silent" },
-    async (_request, reply) => {
+  app.get("/ready", { logLevel: "silent" }, async (_request, reply) => {
+    try {
+      // Check database readiness
+      let dbReady = false;
+      let dbLatency: number | null = null;
       try {
-        // Check database readiness
-        let dbReady = false;
-        let dbLatency: number | null = null;
-        try {
-          const dbStart = Date.now();
-          await client.execute("SELECT 1");
-          dbLatency = Date.now() - dbStart;
-          dbReady = true;
-        } catch (err) {
-          logger.warn({ err }, "Database not ready:");
-        }
-
-        // Check redis readiness
-        let redisReady = false;
-        let redisLatency: number | null = null;
-        try {
-          const redisStart = Date.now();
-          await redis.ping();
-          redisLatency = Date.now() - redisStart;
-          redisReady = true;
-        } catch (err) {
-          logger.warn({ err }, "Redis not ready:");
-        }
-
-        const ready = dbReady && redisReady;
-
-        const response = {
-          ready,
-          timestamp: new Date().toISOString(),
-          dependencies: {
-            database: {
-              ready: dbReady,
-              latencyMs: dbLatency,
-            },
-            redis: {
-              ready: redisReady,
-              latencyMs: redisLatency,
-            },
-          },
-        };
-
-        return reply.status(ready ? 200 : 503).send(response);
-      } catch (error) {
-        logger.error({ error }, "Readiness check failed:");
-        return reply.status(503).send({
-          ready: false,
-          error: "Internal readiness check error",
-          timestamp: new Date().toISOString(),
-        });
+        const dbStart = Date.now();
+        await client.execute("SELECT 1");
+        dbLatency = Date.now() - dbStart;
+        dbReady = true;
+      } catch (err) {
+        logger.warn({ err }, "Database not ready:");
       }
+
+      // Check redis readiness
+      let redisReady = false;
+      let redisLatency: number | null = null;
+      try {
+        const redisStart = Date.now();
+        await redis.ping();
+        redisLatency = Date.now() - redisStart;
+        redisReady = true;
+      } catch (err) {
+        logger.warn({ err }, "Redis not ready:");
+      }
+
+      const ready = dbReady && redisReady;
+
+      const response = {
+        ready,
+        timestamp: new Date().toISOString(),
+        dependencies: {
+          database: {
+            ready: dbReady,
+            latencyMs: dbLatency,
+          },
+          redis: {
+            ready: redisReady,
+            latencyMs: redisLatency,
+          },
+        },
+      };
+
+      return reply.status(ready ? 200 : 503).send(response);
+    } catch (error) {
+      logger.error({ error }, "Readiness check failed:");
+      return reply.status(503).send({
+        ready: false,
+        error: "Internal readiness check error",
+        timestamp: new Date().toISOString(),
+      });
     }
-  );
+  });
 
   // Kubernetes-style aliases
-  app.get("/healthz", { logLevel: "silent" }, (request, reply) =>
+  app.get("/healthz", { logLevel: "silent" }, (request, _reply) =>
     request.server.inject({
       method: "GET",
       url: "/health",
-    })
+    }),
   );
 
-  app.get("/readyz", { logLevel: "silent" }, (request, reply) =>
+  app.get("/readyz", { logLevel: "silent" }, (request, _reply) =>
     request.server.inject({
       method: "GET",
       url: "/ready",
-    })
+    }),
   );
 
-  logger.info("Health check routes registered: /health, /ready, /healthz, /readyz");
+  logger.info(
+    "Health check routes registered: /health, /ready, /healthz, /readyz",
+  );
 }

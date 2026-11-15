@@ -11,15 +11,12 @@ import {
   branchOffices,
   departments,
   roles,
-  permissions,
-  rolePermissions,
   userStationAssignments,
   forwardingAgentNetworks,
   carrierAllocationContracts,
   addresses,
-  users,
 } from "../db/schema/index.js";
-import { eq, and, desc, inArray, or } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth.js";
 import {
   type StationContext,
@@ -39,7 +36,7 @@ export const verifyStationAuthorization = async (
   request: FastifyRequest,
   reply: FastifyReply,
 ) => {
-  const user = (request as any).user;
+  const user = request.user;
   if (!user || !user.id) {
     return reply.code(401).send({
       success: false,
@@ -185,12 +182,12 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
           total: rows.length,
           stations: rows,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         request.log.error({ err }, "Error listing branch stations");
         return reply.code(500).send({
           success: false,
           message: "Failed to retrieve branch stations",
-          error: err?.message,
+          error: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -205,7 +202,7 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
     "/stations/:id/departments",
     { preHandler: [authMiddleware] },
     async (request, reply) => {
-      const user = (request as any).user;
+      const user = request.user;
       if (!user || !user.id) {
         return reply
           .code(401)
@@ -294,7 +291,7 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
           total: rows.length,
           departments: rows,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         request.log.error(
           { err },
           `Error listing departments for station ${id}`,
@@ -302,7 +299,7 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(500).send({
           success: false,
           message: `Failed to retrieve departments for station ${id}`,
-          error: err?.message,
+          error: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -316,7 +313,7 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
     "/my-stations",
     { preHandler: [authMiddleware] },
     async (request, reply) => {
-      const user = (request as any).user;
+      const user = request.user;
       if (!user || !user.id) {
         return reply
           .code(401)
@@ -364,12 +361,12 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
           canAccessAllStations: isAdmin,
           assignments,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         request.log.error({ err }, "Error retrieving user station assignments");
         return reply.code(500).send({
           success: false,
           message: "Failed to retrieve station assignments",
-          error: err?.message,
+          error: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -394,7 +391,7 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
           total: networks.length,
           alliances: networks,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         request.log.error(
           { err },
           "Error retrieving forwarding agent networks",
@@ -402,7 +399,7 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(500).send({
           success: false,
           message: "Failed to retrieve forwarding agent networks",
-          error: err?.message,
+          error: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -417,7 +414,7 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
     "/contracts",
     { preHandler: [authMiddleware, verifyStationAuthorization] },
     async (request, reply) => {
-      const user = (request as any).user;
+      const user = request.user;
       try {
         let condition;
 
@@ -484,7 +481,7 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
           total: contracts.length,
           contracts,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         request.log.error(
           { err },
           "Error retrieving carrier allocation contracts",
@@ -492,7 +489,7 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(500).send({
           success: false,
           message: "Failed to retrieve carrier allocation contracts",
-          error: err?.message,
+          error: err instanceof Error ? err.message : String(err),
         });
       }
     },

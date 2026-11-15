@@ -1,4 +1,11 @@
-import { FastifyPluginAsync } from "fastify";
+/**
+ * @file addresses.routes.ts
+ * @description Master logistics addresses directory, Corporate Groups hierarchy, contacts management, and geocoding.
+ * @module @atlas/api/routes/addresses
+ * @see {@link docs/adr/0022-enterprise-freight-forwarding-organization-schema-and-governance.md}
+ */
+
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { v4 as uuidv4 } from "uuid";
 import { db, client } from "../db/index.js";
 import {
@@ -16,7 +23,7 @@ import {
   AddressVerificationStatus,
   AddressVerificationProvider,
 } from "../db/schema/index.js";
-import { eq, and, or, like, desc, inArray } from "drizzle-orm";
+import { eq, and, or, like, desc, inArray, SQL } from "drizzle-orm";
 import {
   searchUnlocodes,
   formatAllBlBoxes,
@@ -109,15 +116,16 @@ export async function ensureAddressesTables() {
   );`);
 
   for (const def of ADDRESS_TYPE_DEFINITIONS) {
-    const insertQuery = db.insert(addressTypes).values({
-      code: def.code,
-      name: def.name,
-      description: def.description,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    if (typeof (insertQuery as any).onConflictDoUpdate === "function") {
-      await (insertQuery as any).onConflictDoUpdate({
+    await db
+      .insert(addressTypes)
+      .values({
+        code: def.code,
+        name: def.name,
+        description: def.description,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
         target: addressTypes.code,
         set: {
           name: def.name,
@@ -125,26 +133,24 @@ export async function ensureAddressesTables() {
           updatedAt: new Date(),
         },
       });
-    } else {
-      await insertQuery;
-    }
   }
 
   // 3. Seed Enterprise Corporate Groups in companies
   for (const grp of ENTERPRISE_COMPANY_GROUPS) {
-    const insertQuery = db.insert(companies).values({
-      id: grp.id,
-      name: grp.name,
-      groupCode: grp.groupCode,
-      sector: grp.sector,
-      headquartersCountry: grp.headquartersCountry,
-      taxId: grp.taxId,
-      creditLimit: grp.creditLimit,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    if (typeof (insertQuery as any).onConflictDoUpdate === "function") {
-      await (insertQuery as any).onConflictDoUpdate({
+    await db
+      .insert(companies)
+      .values({
+        id: grp.id,
+        name: grp.name,
+        groupCode: grp.groupCode,
+        sector: grp.sector,
+        headquartersCountry: grp.headquartersCountry,
+        taxId: grp.taxId,
+        creditLimit: grp.creditLimit,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
         target: companies.id,
         set: {
           name: grp.name,
@@ -154,9 +160,6 @@ export async function ensureAddressesTables() {
           updatedAt: new Date(),
         },
       });
-    } else {
-      await insertQuery;
-    }
   }
 
   await client.execute(`CREATE TABLE IF NOT EXISTS addresses (
@@ -354,13 +357,15 @@ export async function ensureAddressesTables() {
   tablesEnsured = true;
 }
 
-const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
+const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   await ensureAddressesTables();
 
   // UN/LOCODE Lookup
-  fastify.get("/unlocode-lookup", async (request, reply) => {
+  fastify.get<{
+    Querystring: { q?: string };
+  }>("/unlocode-lookup", async (request, reply) => {
     try {
-      const rawQ = ((request.query as any)?.q || "").trim();
+      const rawQ = (request.query?.q || "").trim();
       const q = escapeHTML(rawQ);
       if (!q) {
         const hubs = DEFAULT_UNLOCODE_HUBS.slice(0, 15).map((item) => ({
@@ -385,16 +390,20 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         status: item.status ? escapeHTML(item.status) : undefined,
       }));
       return reply.type("application/json").send(sanitized);
-    } catch (err: any) {
-      return reply.code(500).send({ error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to lookup UN/LOCODE";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // Smart Autocomplete Address Search (Hybrid: Google Maps + OSM Nominatim / Photon)
-  fastify.get("/autocomplete", async (request, reply) => {
+  fastify.get<{
+    Querystring: { q?: string; country?: string };
+  }>("/autocomplete", async (request, reply) => {
     try {
-      const q = ((request.query as any)?.q || "").trim();
-      const country = (request.query as any)?.country;
+      const q = (request.query?.q || "").trim();
+      const country = request.query?.country;
       if (!q || q.length < 2) {
         return [];
       }
@@ -403,26 +412,30 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         country,
       );
       return results;
-    } catch (err: any) {
-      return reply.code(500).send({ error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to autocomplete address";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // Geocode address structured fields
   fastify.post("/geocode", async (request, reply) => {
     try {
-      const body = (request.body as any) || {};
+      const body = (request.body as Record<string, unknown>) || {};
       const result = await addressGeocodingService.geocodeAddress(body);
       return result || { error: "Address could not be geocoded", found: false };
-    } catch (err: any) {
-      return reply.code(500).send({ error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to geocode address";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // Helper to resolve caller role for Corporate Group Accounting/Controlling RBAC
-  const resolveCallerRole = (request: any): string => {
+  const resolveCallerRole = (request: FastifyRequest): string => {
     return (
-      (request.user as any)?.role ||
+      request.user?.role ||
       (request.headers?.["x-user-role"] as string) ||
       "ADMIN"
     );
@@ -436,13 +449,18 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         return ADDRESS_TYPE_DEFINITIONS;
       }
       return rows;
-    } catch (err: any) {
-      return reply.code(500).send({ error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to fetch address types";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // GET /api/addresses/groups (and /companies) - Corporate Groups (Restricted to ACCOUNTING, CONTROLLING, ADMIN)
-  const listEnterpriseGroupsHandler = async (request: any, reply: any) => {
+  const listEnterpriseGroupsHandler = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) => {
     try {
       const callerRole = resolveCallerRole(request);
       if (!canManageCorporateGroups(callerRole)) {
@@ -493,8 +511,10 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         (a, b) =>
           b.addressCount - a.addressCount || a.name.localeCompare(b.name),
       );
-    } catch (err: any) {
-      return reply.code(500).send({ error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to list enterprise groups";
+      return reply.code(500).send({ error: message });
     }
   };
 
@@ -502,7 +522,17 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
   fastify.get("/companies", listEnterpriseGroupsHandler);
 
   // POST /api/addresses/groups - Create or update a Corporate Group (Restricted to ACCOUNTING, CONTROLLING, ADMIN)
-  fastify.post("/groups", async (request, reply) => {
+  fastify.post<{
+    Body: {
+      name?: string;
+      id?: string;
+      groupCode?: string;
+      sector?: string;
+      headquartersCountry?: string;
+      taxId?: string;
+      creditLimit?: number | string;
+    };
+  }>("/groups", async (request, reply) => {
     try {
       const callerRole = resolveCallerRole(request);
       if (!canManageCorporateGroups(callerRole)) {
@@ -512,7 +542,7 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         });
       }
 
-      const body = (request.body as any) || {};
+      const body = request.body || {};
       if (!body.name || !body.name.trim()) {
         return reply
           .code(400)
@@ -568,13 +598,18 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         .where(eq(companies.id, groupId))
         .limit(1);
       return reply.code(201).send(created[0]);
-    } catch (err: any) {
-      return reply.code(500).send({ error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to create corporate group";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // PATCH /api/addresses/:id/corporate-group - Link a registered Address to a Corporate Group (Restricted to ACCOUNTING, CONTROLLING, ADMIN)
-  fastify.patch("/:id/corporate-group", async (request, reply) => {
+  fastify.patch<{
+    Params: { id: string };
+    Body: { companyId?: string; groupId?: string };
+  }>("/:id/corporate-group", async (request, reply) => {
     try {
       const callerRole = resolveCallerRole(request);
       if (!canManageCorporateGroups(callerRole)) {
@@ -584,8 +619,8 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         });
       }
 
-      const { id } = request.params as any;
-      const body = (request.body as any) || {};
+      const { id } = request.params;
+      const body = request.body || {};
       const targetGroupId = body.companyId || body.groupId;
       if (!targetGroupId) {
         return reply
@@ -621,17 +656,32 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         companyGroupName: groupRow[0].name,
         companyGroupCode: groupRow[0].groupCode,
       };
-    } catch (err: any) {
-      return reply.code(500).send({ error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to link corporate group";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // GET /api/addresses - List addresses with optional filters
-  fastify.get("/", async (request, reply) => {
+  fastify.get<{
+    Querystring: {
+      companyId?: string;
+      groupId?: string;
+      type?: string;
+      addressType?: string;
+      search?: string;
+      unLocode?: string;
+      isDefaultShipper?: string;
+      isDefaultConsignee?: string;
+      isDefaultNotify?: string;
+      limit?: string;
+    };
+  }>("/", async (request, reply) => {
     try {
-      const query = (request.query as any) || {};
+      const query = request.query || {};
 
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
       const groupFilter = query.companyId || query.groupId;
       if (groupFilter && groupFilter !== "ALL") {
         conditions.push(eq(addresses.companyId, groupFilter));
@@ -687,15 +737,16 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
       }
       if (query.search) {
         const term = `%${query.search}%`;
-        conditions.push(
-          or(
-            like(addresses.companyName, term),
-            like(addresses.tradeName, term),
-            like(addresses.city, term),
-            like(addresses.taxId, term),
-            like(addresses.unLocode, term),
-          ),
+        const searchOr = or(
+          like(addresses.companyName, term),
+          like(addresses.tradeName, term),
+          like(addresses.city, term),
+          like(addresses.taxId, term),
+          like(addresses.unLocode, term),
         );
+        if (searchOr) {
+          conditions.push(searchOr);
+        }
       }
 
       const [rows, allGroups, allTypes] = await Promise.all([
@@ -741,23 +792,29 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
       );
 
       return results;
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err, "Failed to list addresses");
-      return reply.code(500).send({ error: err.message });
+      const message =
+        err instanceof Error ? err.message : "Failed to list addresses";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // POST /api/addresses - Create address with duplicate detection & contacts
-  fastify.post("/", async (request, reply) => {
+  fastify.post<{
+    Body: Record<string, unknown>;
+  }>("/", async (request, reply) => {
     try {
       const tenant = getCurrentTenant();
-      const body = (request.body as any) || {};
-      const normalizedType = normalizeAddressTypeCode(body.addressType);
+      const body = request.body || {};
+      const normalizedType = normalizeAddressTypeCode(
+        body.addressType as string,
+      );
 
       const tenantId =
-        body.companyId ||
+        (body.companyId as string) ||
         inferEnterpriseGroupId(
-          body.companyName,
+          body.companyName as string,
           normalizedType,
           tenant?.organizationId,
         );
@@ -778,15 +835,15 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
             id: tenantId,
             name:
               knownDef?.name ||
-              body.companyGroupName ||
-              body.companyName ||
+              (body.companyGroupName as string) ||
+              (body.companyName as string) ||
               tenantId,
             groupCode:
               knownDef?.groupCode ||
               tenantId.replace(/^grp_/, "").substring(0, 6).toUpperCase(),
             sector: knownDef?.sector || "Global Logistics & Supply Chain",
             headquartersCountry:
-              knownDef?.headquartersCountry || body.country || "ES",
+              knownDef?.headquartersCountry || (body.country as string) || "ES",
             taxId: knownDef?.taxId || null,
             creditLimit: knownDef?.creditLimit || 1000000,
             createdAt: new Date(),
@@ -801,13 +858,13 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         .from(addresses)
         .where(eq(addresses.companyId, tenantId));
 
-      let matchedDuplicate: any = null;
+      let matchedDuplicate: typeof addresses.$inferSelect | null = null;
       let highestScore = 0;
 
       for (const item of existing) {
         // 1. Tax ID Exact match
         if (
-          body.taxId &&
+          typeof body.taxId === "string" &&
           item.taxId &&
           body.taxId.trim().toUpperCase() === item.taxId.trim().toUpperCase()
         ) {
@@ -817,7 +874,7 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         }
 
         // 2. Fuzzy text similarity match
-        const proposedCombined = `${body.companyName || ""} ${body.street1 || ""} ${body.city || ""}`;
+        const proposedCombined = `${(body.companyName as string) || ""} ${(body.street1 as string) || ""} ${(body.city as string) || ""}`;
         const existingCombined = `${item.companyName || ""} ${item.street1 || ""} ${item.city || ""}`;
         const score = calculateSimilarity(proposedCombined, existingCombined);
 
@@ -834,7 +891,7 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         return reply.code(409).send({
           duplicateWarning: true,
           message:
-            "Se ha detectado una dirección similar registrada para esta empresa.",
+            "A similar registered address was detected for this company.",
           matchScore: Math.round(highestScore * 100) / 100,
           matchedAddress: {
             id: matchedDuplicate.id,
@@ -848,7 +905,10 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         });
       }
 
-      const addressId = body.id || `addr_${uuidv4().substring(0, 8)}`;
+      const addressId =
+        typeof body.id === "string" && body.id
+          ? body.id
+          : `addr_${uuidv4().substring(0, 8)}`;
       const now = new Date();
 
       // Geocoding & Verification Handling
@@ -860,11 +920,11 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         body.lon !== undefined && body.lon !== null && body.lon !== ""
           ? Number(body.lon)
           : null;
-      let formattedAddress = body.formattedAddress || null;
+      let formattedAddress = (body.formattedAddress as string) || null;
       let verificationStatus: AddressVerificationStatus =
-        body.verificationStatus || "NOT_CHECKED";
+        (body.verificationStatus as AddressVerificationStatus) || "NOT_CHECKED";
       let verificationProvider: AddressVerificationProvider | null =
-        body.verificationProvider || null;
+        (body.verificationProvider as AddressVerificationProvider) || null;
 
       // If coordinates not already supplied from UI, attempt backend geocoding (with strict timeout)
       if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) {
@@ -878,11 +938,11 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
             );
             const geo = await Promise.race([
               addressGeocodingService.geocodeAddress({
-                street1: body.street1,
-                zipCode: body.zipCode,
-                city: body.city,
-                federalState: body.federalState,
-                country: body.country,
+                street1: (body.street1 as string) || "",
+                zipCode: (body.zipCode as string) || "",
+                city: (body.city as string) || "",
+                federalState: (body.federalState as string) || undefined,
+                country: (body.country as string) || "ES",
               }),
               timeoutPromise,
             ]);
@@ -917,20 +977,26 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           id: addressId,
           companyId: tenantId,
           addressType: normalizedType as AddressType,
-          companyName: body.companyName,
-          tradeName: body.tradeName || null,
-          taxId: body.taxId ? body.taxId.trim().toUpperCase() : null,
-          street1: body.street1,
-          street2: body.street2 || null,
-          zipCode: body.zipCode,
-          city: body.city,
-          federalState: body.federalState || null,
-          country: body.country,
-          unLocode: body.unLocode ? body.unLocode.trim().toUpperCase() : null,
+          companyName: (body.companyName as string) || "",
+          tradeName: (body.tradeName as string) || null,
+          taxId:
+            typeof body.taxId === "string"
+              ? body.taxId.trim().toUpperCase()
+              : null,
+          street1: (body.street1 as string) || "",
+          street2: (body.street2 as string) || null,
+          zipCode: (body.zipCode as string) || "",
+          city: (body.city as string) || "",
+          federalState: (body.federalState as string) || null,
+          country: (body.country as string) || "ES",
+          unLocode:
+            typeof body.unLocode === "string"
+              ? body.unLocode.trim().toUpperCase()
+              : null,
           isDefaultShipper: Boolean(body.isDefaultShipper),
           isDefaultConsignee: Boolean(body.isDefaultConsignee),
           isDefaultNotify: Boolean(body.isDefaultNotify),
-          notes: body.notes || null,
+          notes: (body.notes as string) || null,
           lat,
           lon,
           formattedAddress,
@@ -942,23 +1008,23 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         .returning();
 
       const createdAddress = inserted[0];
-      const createdContacts: any[] = [];
+      const createdContacts: (typeof addressContacts.$inferSelect)[] = [];
 
       if (Array.isArray(body.contacts) && body.contacts.length > 0) {
-        for (const c of body.contacts) {
+        for (const c of body.contacts as Record<string, unknown>[]) {
           const contactId = `ct_${uuidv4().substring(0, 8)}`;
           const insertedContact = await db
             .insert(addressContacts)
             .values({
               id: contactId,
               addressId: createdAddress.id,
-              fullName: c.fullName,
-              email: c.email,
-              phone: c.phone || null,
-              mobile: c.mobile || null,
-              roleCategory: (c.roleCategory ||
+              fullName: c.fullName as string,
+              email: c.email as string,
+              phone: (c.phone as string) || null,
+              mobile: (c.mobile as string) || null,
+              roleCategory: ((c.roleCategory as string) ||
                 "OPERATIONS") as ContactRoleCategory,
-              jobTitle: c.jobTitle || null,
+              jobTitle: (c.jobTitle as string) || null,
               isPrimary: Boolean(c.isPrimary),
               createdAt: now,
               updatedAt: now,
@@ -972,16 +1038,20 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         ...createdAddress,
         contacts: createdContacts,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err, "Failed to create address");
-      return reply.code(500).send({ error: err.message });
+      const message =
+        err instanceof Error ? err.message : "Failed to create address";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // GET /api/addresses/:id - Get address with contacts and B/L format blocks
-  fastify.get("/:id", async (request, reply) => {
+  fastify.get<{
+    Params: { id: string };
+  }>("/:id", async (request, reply) => {
     try {
-      const { id } = request.params as any;
+      const { id } = request.params;
       const rows = await db
         .select()
         .from(addresses)
@@ -1086,21 +1156,26 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         contacts,
         blBoxes,
       };
-    } catch (err: any) {
-      return reply.code(500).send({ error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to fetch address";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // PUT /api/addresses/:id - Update address & sync contacts
-  fastify.put("/:id", async (request, reply) => {
+  fastify.put<{
+    Params: { id: string };
+    Body: Record<string, unknown>;
+  }>("/:id", async (request, reply) => {
     try {
-      const { id } = request.params as any;
-      const body = (request.body as any) || {};
+      const { id } = request.params;
+      const body = request.body || {};
       const normalizedType = body.addressType
-        ? normalizeAddressTypeCode(body.addressType)
+        ? normalizeAddressTypeCode(body.addressType as string)
         : undefined;
 
-      if (body.companyId) {
+      if (typeof body.companyId === "string") {
         const existingGroup = await db
           .select()
           .from(companies)
@@ -1116,8 +1191,8 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
               id: body.companyId,
               name:
                 knownDef?.name ||
-                body.companyGroupName ||
-                body.companyName ||
+                (body.companyGroupName as string) ||
+                (body.companyName as string) ||
                 body.companyId,
               groupCode:
                 knownDef?.groupCode ||
@@ -1127,7 +1202,9 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
                   .toUpperCase(),
               sector: knownDef?.sector || "Global Logistics & Supply Chain",
               headquartersCountry:
-                knownDef?.headquartersCountry || body.country || "ES",
+                knownDef?.headquartersCountry ||
+                (body.country as string) ||
+                "ES",
               taxId: knownDef?.taxId || null,
               creditLimit: knownDef?.creditLimit || 1000000,
               createdAt: new Date(),
@@ -1140,22 +1217,26 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
       const updated = await db
         .update(addresses)
         .set({
-          companyId: body.companyId || undefined,
+          companyId: (body.companyId as string) || undefined,
           addressType: normalizedType as AddressType | undefined,
-          companyName: body.companyName,
-          tradeName: body.tradeName || null,
-          taxId: body.taxId ? body.taxId.trim().toUpperCase() : null,
-          street1: body.street1,
-          street2: body.street2 || null,
-          zipCode: body.zipCode,
-          city: body.city,
-          federalState: body.federalState || null,
-          country: body.country,
-          unLocode: body.unLocode ? body.unLocode.trim().toUpperCase() : null,
+          companyName: body.companyName as string,
+          tradeName: (body.tradeName as string) || null,
+          taxId: body.taxId
+            ? (body.taxId as string).trim().toUpperCase()
+            : null,
+          street1: body.street1 as string,
+          street2: (body.street2 as string) || null,
+          zipCode: body.zipCode as string,
+          city: body.city as string,
+          federalState: (body.federalState as string) || null,
+          country: body.country as string,
+          unLocode: body.unLocode
+            ? (body.unLocode as string).trim().toUpperCase()
+            : null,
           isDefaultShipper: Boolean(body.isDefaultShipper),
           isDefaultConsignee: Boolean(body.isDefaultConsignee),
           isDefaultNotify: Boolean(body.isDefaultNotify),
-          notes: body.notes || null,
+          notes: (body.notes as string) || null,
           lat:
             body.lat !== undefined
               ? body.lat !== null && body.lat !== ""
@@ -1170,7 +1251,7 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
               : undefined,
           formattedAddress:
             body.formattedAddress !== undefined
-              ? body.formattedAddress
+              ? (body.formattedAddress as string)
               : undefined,
           verificationStatus:
             (body.verificationStatus as AddressVerificationStatus) || undefined,
@@ -1191,16 +1272,17 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         await db
           .delete(addressContacts)
           .where(eq(addressContacts.addressId, id));
-        for (const c of body.contacts) {
+        for (const c of body.contacts as Record<string, unknown>[]) {
           await db.insert(addressContacts).values({
-            id: c.id || `ct_${uuidv4().substring(0, 8)}`,
+            id: (c.id as string) || `ct_${uuidv4().substring(0, 8)}`,
             addressId: id,
-            fullName: c.fullName,
-            email: c.email,
-            phone: c.phone || null,
-            mobile: c.mobile || null,
-            roleCategory: c.roleCategory || "OPERATIONS",
-            jobTitle: c.jobTitle || null,
+            fullName: c.fullName as string,
+            email: c.email as string,
+            phone: (c.phone as string) || null,
+            mobile: (c.mobile as string) || null,
+            roleCategory: ((c.roleCategory as string) ||
+              "OPERATIONS") as ContactRoleCategory,
+            jobTitle: (c.jobTitle as string) || null,
             isPrimary: Boolean(c.isPrimary),
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -1217,15 +1299,19 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         ...updated[0],
         contacts: finalContacts,
       };
-    } catch (err: any) {
-      return reply.code(500).send({ error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to update address";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // DELETE /api/addresses/:id - Delete address and cascade contacts
-  fastify.delete("/:id", async (request, reply) => {
+  fastify.delete<{
+    Params: { id: string };
+  }>("/:id", async (request, reply) => {
     try {
-      const { id } = request.params as any;
+      const { id } = request.params;
 
       // Delete contacts first
       await db.delete(addressContacts).where(eq(addressContacts.addressId, id));
@@ -1244,8 +1330,10 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         message: "Address and contacts successfully deleted",
         id,
       };
-    } catch (err: any) {
-      return reply.code(500).send({ error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to delete address";
+      return reply.code(500).send({ error: message });
     }
   });
 };

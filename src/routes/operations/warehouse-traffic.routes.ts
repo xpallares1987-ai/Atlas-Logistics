@@ -1,3 +1,10 @@
+/**
+ * @file warehouse-traffic.routes.ts
+ * @description Operational route handlers for warehouse dock traffic and 3D visual inventory synchronization.
+ * @module @atlas/routes/operations/warehouse-traffic
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import { db } from "../../db/index.js";
 import { warehouseTraffic } from "../../db/schema/operations.js";
@@ -6,43 +13,86 @@ import { eq } from "drizzle-orm";
 import { logger } from "../../config/logger.js";
 import { ensureOperationsSeedData } from "./seed-data.js";
 
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+interface TrafficParams {
+  id: string;
+}
+
+interface UpdateTrafficBody {
+  status?: string;
+  assignedDock?: string;
+  eta?: string;
+}
+
+interface InventoryItemPayload {
+  id: string;
+  warehouseId?: string;
+  ownership?: string;
+  customer?: string;
+  buyer?: string;
+  productCode?: string;
+  description?: string;
+  quantity?: number;
+  zone?: string;
+  metadata?: Record<string, unknown>;
+  status?: string;
+}
+
+interface SyncInventoryBody {
+  items: InventoryItemPayload[];
+}
+
+// ============================================================================
+// ROUTE PLUGIN
+// ============================================================================
+
 export const warehouseTrafficOperationsRoutes: FastifyPluginAsync = async (
   fastify,
 ) => {
-  fastify.get("/warehouse/traffic", async (request, reply) => {
+  fastify.get("/warehouse/traffic", async (_request, reply) => {
     try {
       await ensureOperationsSeedData();
       const traffic = await db.select().from(warehouseTraffic);
       return { success: true, data: traffic };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(error, "Failed to fetch warehouse traffic");
-      return reply.code(500).send({ success: false, error: error.message });
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ success: false, error: message });
     }
   });
 
-  fastify.put("/warehouse/traffic/:id", async (request: any, reply) => {
-    const { id } = request.params;
-    const { status, assignedDock, eta } = request.body;
-    try {
-      const updated = await db
-        .update(warehouseTraffic)
-        .set({ status, assignedDock, eta, updatedAt: new Date() })
-        .where(eq(warehouseTraffic.id, id))
-        .returning();
+  fastify.put<{ Params: TrafficParams; Body: UpdateTrafficBody }>(
+    "/warehouse/traffic/:id",
+    async (request, reply) => {
+      const { id } = request.params;
+      const { status, assignedDock, eta } = request.body || {};
+      try {
+        const updated = await db
+          .update(warehouseTraffic)
+          .set({ status, assignedDock, eta, updatedAt: new Date() })
+          .where(eq(warehouseTraffic.id, id))
+          .returning();
 
-      if (updated.length === 0) {
-        return reply
-          .code(404)
-          .send({ success: false, error: "Traffic record not found" });
+        if (updated.length === 0) {
+          return reply
+            .code(404)
+            .send({ success: false, error: "Traffic record not found" });
+        }
+        return { success: true, data: updated[0] };
+      } catch (error: unknown) {
+        logger.error(error, "Failed to update warehouse traffic");
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ success: false, error: message });
       }
-      return { success: true, data: updated[0] };
-    } catch (error: any) {
-      logger.error(error, "Failed to update warehouse traffic");
-      return reply.code(500).send({ success: false, error: error.message });
-    }
-  });
+    },
+  );
 
-  fastify.get("/warehouse/inventory", async (request, reply) => {
+  fastify.get("/warehouse/inventory", async (_request, reply) => {
     try {
       await ensureOperationsSeedData();
       const inventory = await db.select().from(warehouseInventory);
@@ -76,45 +126,52 @@ export const warehouseTrafficOperationsRoutes: FastifyPluginAsync = async (
         };
       });
       return { success: true, data: formatted };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(error, "Failed to fetch warehouse inventory");
-      return reply.code(500).send({ success: false, error: error.message });
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ success: false, error: message });
     }
   });
 
-  fastify.post("/warehouse/inventory", async (request: any, reply) => {
-    const items = request.body.items;
-    try {
-      for (const item of items) {
-        await db
-          .insert(warehouseInventory)
-          .values({
-            id: item.id,
-            locationId: item.warehouseId,
-            ownership: item.ownership,
-            customer: item.customer,
-            buyer: item.buyer,
-            productCode: item.productCode,
-            itemDescription: item.description,
-            quantity: item.quantity,
-            zone: item.zone,
-            metadata: JSON.stringify(item.metadata),
-            status: item.status,
-          })
-          .onConflictDoUpdate({
-            target: warehouseInventory.id,
-            set: {
-              quantity: item.quantity,
-              status: item.status,
-              zone: item.zone,
-              updatedAt: new Date(),
-            },
-          });
+  fastify.post<{ Body: SyncInventoryBody }>(
+    "/warehouse/inventory",
+    async (request, reply) => {
+      const items = request.body?.items || [];
+      try {
+        for (const item of items) {
+          await db
+            .insert(warehouseInventory)
+            .values({
+              id: item.id,
+              locationId: item.warehouseId || "loc-default",
+              ownership: item.ownership || "INTERNAL",
+              customer: item.customer,
+              buyer: item.buyer,
+              productCode: item.productCode,
+              itemDescription: item.description || "General Cargo",
+              quantity: item.quantity ?? 0,
+              zone: item.zone || "DRY",
+              metadata: JSON.stringify(item.metadata || {}),
+              status: item.status || "IN_STOCK",
+            })
+            .onConflictDoUpdate({
+              target: warehouseInventory.id,
+              set: {
+                quantity: item.quantity ?? 0,
+                status: item.status || "IN_STOCK",
+                zone: item.zone || "DRY",
+                updatedAt: new Date(),
+              },
+            });
+        }
+        return { success: true };
+      } catch (error: unknown) {
+        logger.error(error, "Failed to sync warehouse inventory");
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ success: false, error: message });
       }
-      return { success: true };
-    } catch (error: any) {
-      logger.error(error, "Failed to sync warehouse inventory");
-      return reply.code(500).send({ success: false, error: error.message });
-    }
-  });
+    },
+  );
 };

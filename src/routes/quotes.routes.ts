@@ -1,4 +1,11 @@
-import { FastifyInstance, FastifyPluginAsync } from "fastify";
+/**
+ * @file quotes.routes.ts
+ * @description Operational route handlers for freight quotes, rate comparisons, PDF generation, and rate ingestion.
+ * @module @atlas/routes/quotes
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
+import { FastifyPluginAsync } from "fastify";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/index.js";
 import {
@@ -29,8 +36,113 @@ import {
 import { recordEscrowDeposit } from "../modules/smart-contracts/smart-contracts.routes.js";
 import { DcsaHubService } from "../services/dcsa/dcsa-hub.service.js";
 
-const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
-  fastify.get(
+// ============================================================================
+// TYPE DEFINITIONS & SCHEMAS
+// ============================================================================
+
+interface RatesQuerystring {
+  origin?: string;
+  destination?: string;
+  containerType?: string;
+}
+
+interface AnalyticsQuerystring {
+  origin?: string;
+  destination?: string;
+}
+
+interface CompareBody {
+  origin?: string;
+  destination?: string;
+  containerType?: string;
+}
+
+interface CreateQuoteBody {
+  customerId?: string;
+  quoteNumber: string;
+  originLocationId?: string;
+  destinationLocationId?: string;
+  equipment?: string;
+  buyRateTotal?: number;
+  sellMargin?: number;
+  sellRateTotal?: number;
+  status?: string;
+  validTo: string | Date;
+}
+
+interface QuoteParams {
+  id: string;
+}
+
+interface AcceptAndBookBody {
+  quoteNumber?: string;
+  customerId?: string;
+  originLocationId?: string;
+  destinationLocationId?: string;
+  equipment?: string;
+  buyRateTotal?: number;
+  sellMargin?: number;
+  sellRateTotal?: number;
+  rateAmount?: number;
+  validTo?: string | Date;
+  origin?: string;
+  destination?: string;
+  carrier?: string;
+  commodityDescription?: string;
+  commodity?: string;
+  grossWeightKg?: number;
+  weight?: number;
+  shipperName?: string;
+  consigneeName?: string;
+  currency?: string;
+  paymentMode?: "ESCROW_SMART_CONTRACT" | "NET_30_CREDIT";
+  transitDays?: number;
+  drayageQuote?: string | null;
+  haulierAddressId?: string | null;
+  drayageDestinationAddressId?: string | null;
+  vesselName?: string;
+  voyageNumber?: string;
+  containerNumber?: string;
+  sealNumber?: string;
+}
+
+interface GeneratePdfBody {
+  quoteNumber?: string;
+  customer?: string;
+  origin?: string;
+  destination?: string;
+  carrier?: string;
+  equipment?: string;
+  buyRateTotal?: number;
+  sellMargin?: number;
+  sellRateTotal?: number;
+  currency?: string;
+  validTo?: string;
+  serviceLine?: string;
+  transitDays?: number;
+}
+
+interface PreviewRatesBody {
+  rows?: Parameters<typeof previewRates>[0];
+  defaultCarrier?: string;
+}
+
+type BulkImportRatesBody = Partial<Parameters<typeof bulkImportRates>[0]>;
+
+interface ImportBatchesQuery {
+  limit?: string;
+}
+
+interface UnlocodeLookupQuery {
+  q?: string;
+}
+
+// ============================================================================
+// ROUTE PLUGIN
+// ============================================================================
+
+const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
+  fastify.get<{ Querystring: RatesQuerystring }>(
     "/",
     {
       config: {
@@ -41,15 +153,15 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       try {
         if (request.url.includes("/api/rates")) {
-          const { origin, destination, containerType } = request.query as any;
+          const { origin, destination, containerType } = request.query;
           const originParam = origin || "any";
           const destParam = destination || "any";
           const containerParam = containerType || "any";
 
-          // Cache-Aside pattern para las tarifas (alta lectura, baja mutabilidad)
+          // Cache-Aside pattern for rates (high read frequency, low mutability)
           const CACHE_KEY = `atlas:rates:${originParam}:${destParam}:${containerParam}`;
           const cachedRates = await redis.get(CACHE_KEY).catch(() => null);
 
@@ -101,7 +213,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
               ? r.validTo.toISOString().split("T")[0]
               : "2026-12-31",
           }));
-          // Cachear por 1 hora (3600 segundos)
+          // Cache for 1 hour (3600 seconds)
           await redis
             .setex(CACHE_KEY, 3600, JSON.stringify(allRates))
             .catch(() => {});
@@ -110,7 +222,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
         const allQuotes = await db.select().from(quotes);
         return allQuotes;
-      } catch (error: any) {
+      } catch (_error: unknown) {
         fastify.log.warn(
           "DB/Redis unavailable for quotes/rates, returning fallback data",
         );
@@ -180,7 +292,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
   );
 
-  fastify.get(
+  fastify.get<{ Querystring: AnalyticsQuerystring }>(
     "/analytics",
     {
       config: {
@@ -191,13 +303,13 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       // Mock realistic 6-month data for RouteAnalyticsChart
-      const { origin, destination } = request.query as any;
+      const { origin, destination } = request.query;
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
 
       // Calculate a base rate using simple hash of origin/destination
-      const str = `${origin}-${destination}`;
+      const str = `${origin || "ORIG"}-${destination || "DEST"}`;
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -217,7 +329,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
   );
 
-  fastify.post(
+  fastify.post<{ Body: CompareBody }>(
     "/compare",
     {
       config: {
@@ -228,9 +340,9 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       try {
-        const { origin, destination, containerType } = request.body as any;
+        const { origin, destination, containerType } = request.body;
 
         const workflowId = await startWorkflow("rate-comparer-process", {
           origin,
@@ -242,11 +354,11 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           success: true,
           processInstanceKey: workflowId,
         };
-      } catch (error: any) {
+      } catch (_error: unknown) {
         fastify.log.warn(
           "Workflow engine unavailable, returning mock comparison",
         );
-        const { origin, destination, containerType } = request.body as any;
+        const { origin, destination, containerType } = request.body;
         return {
           success: true,
           processInstanceKey: `mock-${Date.now()}`,
@@ -284,7 +396,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
   );
 
-  fastify.post(
+  fastify.post<{ Body: CreateQuoteBody }>(
     "/",
     {
       preHandler: [validate(CreateQuoteSchema)],
@@ -298,7 +410,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
     async (request, reply) => {
       try {
-        const data = request.body as any;
+        const data = request.body;
         let customerId = data.customerId;
         if (!customerId) {
           const firstCompany = await db
@@ -315,10 +427,10 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
             customerId: customerId,
             originLocationId: data.originLocationId,
             destinationLocationId: data.destinationLocationId,
-            equipment: data.equipment,
-            buyRateTotal: data.buyRateTotal,
-            sellMargin: data.sellMargin,
-            sellRateTotal: data.sellRateTotal,
+            equipment: data.equipment || "40HC",
+            buyRateTotal: data.buyRateTotal ?? 0,
+            sellMargin: data.sellMargin ?? 0,
+            sellRateTotal: data.sellRateTotal ?? 0,
             status: data.status || "DRAFT",
             validTo: new Date(data.validTo),
             createdAt: new Date(),
@@ -326,13 +438,15 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           })
           .returning();
         return newQuote[0];
-      } catch (error: any) {
-        reply.code(500).send({ error: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
     },
   );
 
-  fastify.put(
+  fastify.put<{ Params: QuoteParams; Body: Record<string, unknown> }>(
     "/:id",
     {
       config: {
@@ -345,20 +459,22 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
     async (request, reply) => {
       try {
-        const { id } = request.params as any;
+        const { id } = request.params;
         const updatedQuote = await db
           .update(quotes)
-          .set(request.body as any)
+          .set(request.body)
           .where(eq(quotes.id, id))
           .returning();
         return updatedQuote[0];
-      } catch (error: any) {
-        reply.code(500).send({ error: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
     },
   );
 
-  fastify.post(
+  fastify.post<{ Params: QuoteParams; Body: AcceptAndBookBody }>(
     "/:id/accept-and-book",
     {
       config: {
@@ -371,10 +487,10 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
     async (request, reply) => {
       try {
-        const { id } = request.params as any;
-        const body = (request.body as any) || {};
+        const { id } = request.params;
+        const body = request.body || {};
 
-        let quoteRecord: any = null;
+        let quoteRecord: typeof quotes.$inferSelect | null = null;
         const existingQuotes = await db
           .select()
           .from(quotes)
@@ -389,7 +505,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
             .where(eq(quotes.id, id));
           quoteRecord.status = "ACCEPTED";
         } else {
-          // Si es una cotización dinámica generada en memoria sin persistir
+          // Dynamic in-memory quote initialization if not previously persisted
           const quoteId =
             id && id !== "dynamic" && id !== "new" ? id : uuidv4();
           const quoteNumber =
@@ -458,7 +574,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
             ? "NET_30_CREDIT"
             : "ESCROW_SMART_CONTRACT";
 
-        // 1. Crear solicitud de reserva
+        // 1. Create booking request
         const createdBooking = await createBookingRequest({
           origin,
           destination,
@@ -474,11 +590,12 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           transitDays: Number(body.transitDays || 28),
           status: "PENDING",
           drayageQuote: body.drayageQuote || null,
-          haulierAddressId: body.haulierAddressId || null,
-          drayageDestinationAddressId: body.drayageDestinationAddressId || null,
+          haulierAddressId: body.haulierAddressId || undefined,
+          drayageDestinationAddressId:
+            body.drayageDestinationAddressId || undefined,
         });
 
-        // 2. Confirmar reserva marítima asignando buque, viaje, contenedor y cut-off
+        // 2. Confirm ocean booking assigning vessel, voyage, container, and cut-off
         const confirmed = await confirmBookingToShipment(createdBooking.id, {
           shipperName: shipper,
           consigneeName: consignee,
@@ -486,12 +603,13 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           voyageNumber: body.voyageNumber,
           containerNumber: body.containerNumber,
           sealNumber: body.sealNumber,
-          haulierAddressId: body.haulierAddressId || null,
-          drayageDestinationAddressId: body.drayageDestinationAddressId || null,
+          haulierAddressId: body.haulierAddressId || undefined,
+          drayageDestinationAddressId:
+            body.drayageDestinationAddressId || undefined,
         });
 
-        // 3. Procesar modalidad de pago: Smart Contract Escrow vs. Net-30
-        let escrowBlock: any = null;
+        // 3. Process payment modality: Smart Contract Escrow vs. Net-30
+        let escrowBlock: unknown = null;
         let proformaInvoiceNumber: string | null = null;
 
         if (paymentMode === "ESCROW_SMART_CONTRACT") {
@@ -500,7 +618,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
             eblNumber: `EBL-${confirmed.shipment?.trackingNumber || createdBooking.referenceNumber}`,
             sender: shipper,
             amountUsd: rateAmount,
-            details: `Depósito en custodia (Smart Escrow) garantizado para flete ${createdBooking.referenceNumber}. Liberación automatizada por oráculo DCSA (CUSTOMS_CLEARED / CONTAINER_DISCHARGED).`,
+            details: `Escrow deposit secured for freight booking ${createdBooking.referenceNumber}. Automated release via DCSA oracle (CUSTOMS_CLEARED / CONTAINER_DISCHARGED).`,
             metadata: {
               bookingReference: createdBooking.referenceNumber,
               carrierBookingNumber: confirmed.booking?.carrierBookingNumber,
@@ -512,8 +630,10 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
           proformaInvoiceNumber = `INV-PRO-${Date.now().toString().slice(-6)}`;
         }
 
-        // 4. Despacho/Simulación DCSA 3.0 Telemetry Event
-        let dcsaSimResult: any = null;
+        // 4. Dispatch / simulate DCSA 3.0 Telemetry Event
+        let dcsaSimResult: Awaited<
+          ReturnType<typeof DcsaHubService.simulateCarrierEvent>
+        > | null = null;
         try {
           let scac: "MSCU" | "MAEU" | "CMDU" | "HLCU" = "MAEU";
           const carrierUpper = (carrier || "").toUpperCase();
@@ -531,7 +651,7 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
             containerNumber: confirmed.container?.containerNumber,
             locode: origin,
           });
-        } catch (dcsaErr: any) {
+        } catch (dcsaErr: unknown) {
           fastify.log.warn(
             { err: dcsaErr },
             "DCSA carrier event simulation notice",
@@ -539,13 +659,12 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         }
 
         const cutOffDateStr =
-          (confirmed.booking as any)?.cutOffDate ||
+          (confirmed.booking as { cutOffDate?: string | null })?.cutOffDate ||
           new Date(Date.now() + 4 * 86400000).toISOString().split("T")[0];
 
         return reply.send({
           success: true,
-          message:
-            "Cotización aceptada y reserva marítima emitida exitosamente",
+          message: "Quote accepted and ocean booking issued successfully",
           quote: {
             id: quoteRecord?.id,
             quoteNumber: quoteRecord?.quoteNumber,
@@ -590,16 +709,18 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
             quotePdfUrl: `/api/quotes/${quoteRecord?.id}/pdf`,
           },
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         fastify.log.error(error, "Error in accept-and-book quote");
-        return reply.code(500).send({ error: error.message });
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
     },
   );
 
-  fastify.get("/:id/pdf", async (request, reply) => {
+  fastify.get<{ Params: QuoteParams }>("/:id/pdf", async (request, reply) => {
     try {
-      const { id } = request.params as any;
+      const { id } = request.params;
       const quoteList = await db.select().from(quotes).where(eq(quotes.id, id));
       if (!quoteList.length) {
         return reply.code(404).send({ error: "Quote not found" });
@@ -624,45 +745,55 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
         `attachment; filename="Quote-${q.quoteNumber}.pdf"`,
       );
       return reply.send(pdfBuffer);
-    } catch (error: any) {
-      fastify.log.error("Failed to generate quote PDF:", error);
-      reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      fastify.log.error({ err: error }, "Failed to generate quote PDF");
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
     }
   });
 
-  fastify.post("/generate-pdf", async (request, reply) => {
-    try {
-      const body = request.body as any;
-      const pdfBuffer = await PDFService.generateQuote({
-        quoteNumber:
-          body.quoteNumber || `QT-${Date.now().toString().slice(-6)}`,
-        customer: body.customer || "Enterprise Shipper",
-        origin: body.origin || "Origin Port",
-        destination: body.destination || "Destination Port",
-        carrier: body.carrier || "Primary Alliances",
-        equipment: body.equipment || "40HC Container",
-        buyRateTotal: body.buyRateTotal,
-        sellMargin: body.sellMargin,
-        sellRateTotal: body.sellRateTotal,
-        currency: body.currency || "USD",
-        validTo: body.validTo || "2026-12-31",
-        serviceLine: body.serviceLine || "Standard",
-        transitDays: body.transitDays || 28,
-      });
-      reply.header("Content-Type", "application/pdf");
-      reply.header(
-        "Content-Disposition",
-        `attachment; filename="Quote-${body.quoteNumber || "Draft"}.pdf"`,
-      );
-      return reply.send(pdfBuffer);
-    } catch (error: any) {
-      fastify.log.error("Failed to generate direct quote PDF:", error);
-      reply.code(500).send({ error: error.message });
-    }
-  });
+  fastify.post<{ Body: GeneratePdfBody }>(
+    "/generate-pdf",
+    async (request, reply) => {
+      try {
+        const body = request.body;
+        const pdfBuffer = await PDFService.generateQuote({
+          quoteNumber:
+            body.quoteNumber || `QT-${Date.now().toString().slice(-6)}`,
+          customer: body.customer || "Enterprise Shipper",
+          origin: body.origin || "Origin Port",
+          destination: body.destination || "Destination Port",
+          carrier: body.carrier || "Primary Alliances",
+          equipment: body.equipment || "40HC Container",
+          buyRateTotal: body.buyRateTotal,
+          sellMargin: body.sellMargin,
+          sellRateTotal: body.sellRateTotal ?? 0,
+          currency: body.currency || "USD",
+          validTo: body.validTo || "2026-12-31",
+          serviceLine: body.serviceLine || "Standard",
+          transitDays: body.transitDays || 28,
+        });
+        reply.header("Content-Type", "application/pdf");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="Quote-${body.quoteNumber || "Draft"}.pdf"`,
+        );
+        return reply.send(pdfBuffer);
+      } catch (error: unknown) {
+        fastify.log.error(
+          { err: error },
+          "Failed to generate direct quote PDF",
+        );
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 
   // Rate Ingestion & UN/LOCODE Management Endpoints
-  fastify.post(
+  fastify.post<{ Body: PreviewRatesBody }>(
     "/preview",
     {
       config: {
@@ -675,22 +806,24 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
     async (request, reply) => {
       try {
-        const { rows, defaultCarrier } = (request.body as any) || {};
+        const { rows, defaultCarrier } = request.body || {};
         if (!rows || !Array.isArray(rows)) {
           return reply
             .code(400)
-            .send({ error: "Campo 'rows' requerido como array." });
+            .send({ error: "Field 'rows' required as an array." });
         }
         const preview = await previewRates(rows, defaultCarrier);
         return preview;
-      } catch (error: any) {
+      } catch (error: unknown) {
         fastify.log.error(error, "Error previewing rates");
-        return reply.code(500).send({ error: error.message });
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
     },
   );
 
-  fastify.post(
+  fastify.post<{ Body: BulkImportRatesBody }>(
     "/bulk-import",
     {
       config: {
@@ -703,22 +836,30 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
     async (request, reply) => {
       try {
-        const payload = (request.body as any) || {};
+        const payload = request.body || {};
         if (!payload.rates || !Array.isArray(payload.rates)) {
           return reply
             .code(400)
-            .send({ error: "Campo 'rates' requerido como array." });
+            .send({ error: "Field 'rates' required as an array." });
         }
-        const result = await bulkImportRates(payload);
+        const result = await bulkImportRates({
+          fileName: payload.fileName || "rates_import.csv",
+          rates: payload.rates,
+          carrierId: payload.carrierId,
+          newAliases: payload.newAliases,
+          userId: payload.userId,
+        });
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         fastify.log.error(error, "Error executing bulk rate import");
-        return reply.code(500).send({ error: error.message });
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
     },
   );
 
-  fastify.get(
+  fastify.get<{ Querystring: ImportBatchesQuery }>(
     "/import-batches",
     {
       config: {
@@ -731,17 +872,19 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
     async (request, reply) => {
       try {
-        const limit = parseInt((request.query as any)?.limit || "20", 10);
+        const limit = parseInt(request.query?.limit || "20", 10);
         const batches = await getImportBatches(limit);
         return batches;
-      } catch (error: any) {
+      } catch (error: unknown) {
         fastify.log.error(error, "Error retrieving import batches");
-        return reply.code(500).send({ error: error.message });
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
     },
   );
 
-  fastify.get(
+  fastify.get<{ Querystring: UnlocodeLookupQuery }>(
     "/unlocode-lookup",
     {
       config: {
@@ -754,11 +897,13 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, opts) => {
     },
     async (request, reply) => {
       try {
-        const query = ((request.query as any)?.q || "").trim();
+        const query = (request.query?.q || "").trim();
         const resolved = await resolvePort(query);
         return resolved;
-      } catch (error: any) {
-        return reply.code(500).send({ error: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
     },
   );

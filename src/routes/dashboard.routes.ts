@@ -1,12 +1,26 @@
+/**
+ * @file dashboard.routes.ts
+ * @description Executive dashboard KPIs, financial metrics aggregation, and live WebSocket streaming.
+ * @module @atlas/api/routes/dashboard
+ * @see {@link docs/adr/0019-centralized-correlation-and-distributed-tracing.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import { db } from "../db/index.js";
 import { shipments, invoices } from "../db/schema/index.js";
 import { sql, eq, desc, and, gte, lte } from "drizzle-orm";
+interface WebSocketConnection {
+  readyState: number;
+  send: (data: string) => void;
+  on: (event: string, callback: (...args: unknown[]) => void) => void;
+}
 
 const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get("/", async (request, reply) => {
+  fastify.get<{
+    Querystring: { start?: string; end?: string };
+  }>("/", async (request, reply) => {
     try {
-      const { start, end } = request.query as { start?: string; end?: string };
+      const { start, end } = request.query;
 
       // Validate date parameters
       if (start && isNaN(new Date(start).getTime())) {
@@ -171,7 +185,9 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 
   // WebSocket Live Updates
   fastify.get("/live", { websocket: true }, (connection, req) => {
-    const socket: any = (connection as any)?.socket || connection;
+    const rawConn = connection as unknown as { socket?: WebSocketConnection };
+    const socket = (rawConn.socket ||
+      connection) as unknown as WebSocketConnection;
     req.log.info("Client connected to dashboard live stream");
 
     let active = true;
@@ -216,9 +232,9 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     }, 10000);
 
     if (socket && typeof socket.on === "function") {
-      socket.on("message", (rawMsg: any) => {
+      socket.on("message", (rawMsg: unknown) => {
         try {
-          const parsed = JSON.parse(rawMsg.toString());
+          const parsed = JSON.parse(String(rawMsg));
           if (parsed.type === "PING" && socket.readyState === 1) {
             socket.send(JSON.stringify({ type: "PONG" }));
           }

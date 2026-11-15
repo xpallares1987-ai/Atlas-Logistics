@@ -1,15 +1,59 @@
+/**
+ * @file events.routes.ts
+ * @description Real-time operational event broadcasting via Server-Sent Events (SSE) and WebSockets, including telemetry milestones and batch synchronization.
+ * @module @atlas/routes/events
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import EventEmitter from "events";
 import { logger } from "../config/logger.js";
+import crypto from "crypto";
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+export interface OperationalEvent {
+  id?: string;
+  type: string;
+  message?: string;
+  timestamp?: string;
+  metadata?: Record<string, unknown>;
+  workItemId?: string;
+  shipmentId?: string;
+  unlockedWorkItems?: unknown[];
+  [key: string]: unknown;
+}
+
+interface WebSocketClient {
+  readyState: number;
+  send: (data: string) => void;
+  on: (event: string, cb: (msg: { toString: () => string }) => void) => void;
+}
+
+interface SyncBatchBody {
+  source?: string;
+  entities?: unknown[];
+  batchId?: string;
+}
+
+// ============================================================================
+// EVENT EMITTER
+// ============================================================================
 
 const emitter = new EventEmitter();
 const MAX_CLIENTS = 100;
 
-export const broadcastEvent = (event: any) => {
+export const broadcastEvent = (event: OperationalEvent) => {
   emitter.emit("newEvent", event);
 };
 
-const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
+// ============================================================================
+// ROUTE PLUGIN
+// ============================================================================
+
+const eventsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   // Existing SSE route
   fastify.get("/events", (request, reply) => {
     if (emitter.listenerCount("newEvent") >= MAX_CLIENTS) {
@@ -21,7 +65,7 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     reply.raw.setHeader("Cache-Control", "no-cache");
     reply.raw.setHeader("Connection", "keep-alive");
 
-    const onEvent = (data: any) => {
+    const onEvent = (data: unknown) => {
       reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
@@ -32,18 +76,19 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     });
   });
 
-  // New WebSocket route for notifications (Demurrage, etc)
-  fastify.get("/ws/notifications", { websocket: true }, (socket, req) => {
+  // WebSocket route for notifications (Demurrage, etc)
+  fastify.get("/ws/notifications", { websocket: true }, (rawSocket, _req) => {
+    const socket = rawSocket as WebSocketClient;
     logger.info("New WebSocket connection established");
 
     // Broadcast function wrapper
-    const onEvent = (data: any) => {
+    const onEvent = (data: unknown) => {
       if (socket.readyState === 1 /* OPEN */) {
         socket.send(JSON.stringify(data));
       }
     };
 
-    // Listen to our global emitter
+    // Listen to global emitter
     emitter.on("newEvent", onEvent);
 
     // Keepalive ping interval every 25 seconds to prevent proxy idle drop
@@ -82,7 +127,7 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     });
   });
 
-  fastify.post("/demo/trigger-alert", async (request, reply) => {
+  fastify.post("/demo/trigger-alert", async (_request, _reply) => {
     broadcastEvent({
       id: crypto.randomUUID(),
       type: "ALERT",
@@ -93,7 +138,7 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     return { success: true };
   });
 
-  fastify.post("/demo/trigger-milestone", async (request, reply) => {
+  fastify.post("/demo/trigger-milestone", async (_request, _reply) => {
     broadcastEvent({
       id: crypto.randomUUID(),
       type: "MILESTONE",
@@ -104,18 +149,23 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, opts) => {
     return { success: true };
   });
 
-  fastify.post("/sync/batch", async (request, reply) => {
-    try {
-      const { source, entities, batchId } = request.body as any;
-      logger.info(
-        `Received sync batch ${batchId} from ${source} with ${entities.length} entities.`,
-      );
-      return { success: true, processedCount: entities.length, batchId };
-    } catch (error: any) {
-      logger.error("Sync batch error:", error);
-      reply.code(500).send({ success: false, error: error.message });
-    }
-  });
+  fastify.post<{ Body: SyncBatchBody }>(
+    "/sync/batch",
+    async (request, reply) => {
+      try {
+        const { source, entities = [], batchId } = request.body || {};
+        logger.info(
+          `Received sync batch ${batchId} from ${source} with ${entities.length} entities.`,
+        );
+        return { success: true, processedCount: entities.length, batchId };
+      } catch (error: unknown) {
+        logger.error({ err: error }, "Sync batch error");
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ success: false, error: message });
+      }
+    },
+  );
 };
 
 // Background simulator for live vessel tracking
@@ -151,6 +201,6 @@ setInterval(() => {
       });
     });
   }
-}, 5000); // Send updates every 5 seconds
+}, 5000);
 
 export default eventsRoutes;

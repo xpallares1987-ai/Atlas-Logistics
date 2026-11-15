@@ -1,12 +1,21 @@
+/**
+ * @file dcsa.routes.ts
+ * @description Operational route handlers for DCSA 3.0 event ingestion, webhook subscriptions, carrier simulation, and e-BL lifecycle management.
+ * @module @atlas/routes/dcsa
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import {
   DcsaHubService,
   DcsaEventType,
-  DcsaEventClassifierCode,
-  DcsaEventPayload,
 } from "../services/dcsa/dcsa-hub.service.js";
 import { DcsaEblService } from "../services/dcsa/dcsa-ebl.service.js";
+
+// ============================================================================
+// SCHEMAS & TYPE DEFINITIONS
+// ============================================================================
 
 const dcsaEventSchema = z.object({
   eventId: z.string().optional(),
@@ -117,6 +126,10 @@ const surrenderEblSchema = z.object({
   notes: z.string().optional(),
 });
 
+// ============================================================================
+// ROUTE PLUGIN
+// ============================================================================
+
 export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * Ingest DCSA 3.0 Telemetry Event (from Ocean Carrier Webhook or Terminal)
@@ -152,10 +165,12 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: result,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to process DCSA event";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to process DCSA event",
+        error: message,
       });
     }
   });
@@ -173,10 +188,12 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: events,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to list DCSA events";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to list DCSA events",
+        error: message,
       });
     }
   });
@@ -201,10 +218,14 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: subscription,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to create DCSA subscription";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to create DCSA subscription",
+        error: message,
       });
     }
   });
@@ -219,10 +240,14 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: subscriptions,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to list DCSA subscriptions";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to list DCSA subscriptions",
+        error: message,
       });
     }
   });
@@ -255,10 +280,14 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       return reply.status(200).send(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to simulate DCSA carrier event";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to simulate DCSA carrier event",
+        error: message,
       });
     }
   });
@@ -284,10 +313,12 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
 
       const result = await DcsaEblService.issueEbl(parsed.data);
       return reply.status(201).send(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to issue DCSA e-BL";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to issue DCSA e-BL",
+        error: message,
       });
     }
   });
@@ -305,10 +336,12 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
         count: ebls.length,
         data: ebls,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to list DCSA e-BLs";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to list DCSA e-BLs",
+        error: message,
       });
     }
   });
@@ -331,10 +364,12 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: ebl,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to get DCSA e-BL";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to get DCSA e-BL",
+        error: message,
       });
     }
   });
@@ -360,10 +395,14 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
         ...parsed.data,
       });
       return reply.send(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to transfer DCSA e-BL title";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to transfer DCSA e-BL title",
+        error: message,
       });
     }
   });
@@ -389,10 +428,12 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
         ...parsed.data,
       });
       return reply.send(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to endorse DCSA e-BL";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to endorse DCSA e-BL",
+        error: message,
       });
     }
   });
@@ -418,10 +459,12 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
         ...parsed.data,
       });
       return reply.send(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to surrender DCSA e-BL";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to surrender DCSA e-BL",
+        error: message,
       });
     }
   });
@@ -438,10 +481,12 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: result,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to verify DCSA e-BL chain";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to verify DCSA e-BL chain",
+        error: message,
       });
     }
   });

@@ -1,3 +1,10 @@
+/**
+ * @file warehouse.routes.ts
+ * @description Operational route handlers for warehouse fulfillment tasks, dock traffic, and inventory management.
+ * @module @atlas/routes/warehouse
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import crypto from "crypto";
 import { db } from "../db/index.js";
@@ -16,6 +23,68 @@ import {
   UpdateTrafficSchema,
   CreateTrafficSchema,
 } from "./warehouse.schemas.js";
+
+// ============================================================================
+// TYPE DEFINITIONS & SCHEMAS
+// ============================================================================
+
+export interface WarehouseEvent {
+  type: string;
+  payload?: unknown;
+  task?: { id: string; status: string };
+  [key: string]: unknown;
+}
+
+interface TaskIdParams {
+  id: string;
+}
+
+interface CreateTaskBody {
+  orderId: string;
+  status?: string;
+  priority?: string;
+  assignedTo?: string;
+}
+
+interface UpdateTaskStatusBody {
+  status: string;
+}
+
+interface CreateTrafficBody {
+  deviceNumber: string;
+  driverName?: string;
+  deviceType?: string;
+  status?: string;
+  eta?: string;
+  assignedDock?: string;
+  cargoDescription?: string;
+  totalWeightExpected?: number;
+  expectedQuantity?: number;
+  type?: string;
+}
+
+interface UpdateTrafficBody {
+  status?: string;
+  assignedDock?: string;
+  eta?: string;
+}
+
+interface TrafficIdParams {
+  id: string;
+}
+
+interface WebSocketConnection {
+  socket?: {
+    send: (data: string) => void;
+    on: (event: string, cb: () => void) => void;
+  };
+  send?: (data: string) => void;
+  on?: (event: string, cb: () => void) => void;
+}
+
+// ============================================================================
+// EVENT EMITTER & EVENT BUS
+// ============================================================================
 
 const warehouseEmitter = new EventEmitter();
 warehouseEmitter.setMaxListeners(100);
@@ -44,11 +113,7 @@ try {
   // Standalone fallback
 }
 
-export function broadcastWarehouseEvent(event: {
-  type: string;
-  payload?: any;
-  [key: string]: any;
-}) {
+export function broadcastWarehouseEvent(event: WarehouseEvent) {
   warehouseEmitter.emit("warehouseEvent", event);
   try {
     if (redis && typeof redis.publish === "function") {
@@ -57,21 +122,26 @@ export function broadcastWarehouseEvent(event: {
   } catch {}
 }
 
+// ============================================================================
+// ROUTE PLUGIN
+// ============================================================================
+
 const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   // WebSocket live feed for tasks, traffic, and inventory
-  fastify.get("/ws", { websocket: true }, (connection: any, req) => {
+  fastify.get("/ws", { websocket: true }, (connection: unknown, req) => {
     req.log.info("Warehouse WebSocket connected");
-    const ws = connection.socket || connection;
+    const rawConn = connection as WebSocketConnection;
+    const ws = rawConn.socket || rawConn;
 
-    const onWarehouseEvent = (data: any) => {
+    const onWarehouseEvent = (data: unknown) => {
       try {
-        ws.send(JSON.stringify(data));
+        ws.send?.(JSON.stringify(data));
       } catch {}
     };
 
     warehouseEmitter.on("warehouseEvent", onWarehouseEvent);
 
-    ws.on("close", () => {
+    ws.on?.("close", () => {
       req.log.info("Warehouse WebSocket disconnected");
       warehouseEmitter.off("warehouseEvent", onWarehouseEvent);
     });
@@ -99,18 +169,20 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       }));
 
       return reply.send(formatted);
-    } catch (error: any) {
-      reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
     }
   });
 
   // Get task by ID
-  fastify.get(
+  fastify.get<{ Params: TaskIdParams }>(
     "/tasks/:id",
     { preHandler: [validate(TaskIdParamsSchema)] },
     async (request, reply) => {
       try {
-        const { id } = request.params as { id: string };
+        const { id } = request.params;
         const records = await db
           .select({
             task: fulfillmentTasks,
@@ -132,19 +204,21 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
           orderStatus: r.order?.status,
           totalAmount: r.order?.totalAmount,
         });
-      } catch (error: any) {
-        reply.code(500).send({ error: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
     },
   );
 
   // Create new task
-  fastify.post(
+  fastify.post<{ Body: CreateTaskBody }>(
     "/tasks",
     { preHandler: [validate(CreateTaskSchema)] },
     async (request, reply) => {
       try {
-        const body = request.body as any;
+        const body = request.body;
         const taskId = `task_${crypto.randomUUID().substring(0, 8)}`;
 
         await db.insert(fulfillmentTasks).values({
@@ -163,14 +237,16 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         });
 
         return reply.code(201).send({ success: true, id: taskId });
-      } catch (error: any) {
-        reply.code(500).send({ error: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
     },
   );
 
   // Update task status (for Kanban drag & drop)
-  fastify.put(
+  fastify.put<{ Params: TaskIdParams; Body: UpdateTaskStatusBody }>(
     "/tasks/:id/status",
     {
       preHandler: [
@@ -180,8 +256,8 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     },
     async (request, reply) => {
       try {
-        const { id } = request.params as { id: string };
-        const { status } = request.body as { status: string };
+        const { id } = request.params;
+        const { status } = request.body;
 
         await db
           .update(fulfillmentTasks)
@@ -195,8 +271,10 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         });
 
         return reply.send({ success: true, id, status });
-      } catch (error: any) {
-        reply.code(500).send({ error: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
     },
   );
@@ -208,18 +286,20 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     try {
       const traffic = await db.select().from(warehouseTraffic);
       return reply.send({ success: true, data: traffic });
-    } catch (error: any) {
-      reply.code(500).send({ success: false, error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ success: false, error: message });
     }
   });
 
   // Create traffic record
-  fastify.post(
+  fastify.post<{ Body: CreateTrafficBody }>(
     "/traffic",
     { preHandler: [validate(CreateTrafficSchema)] },
     async (request, reply) => {
       try {
-        const body = request.body as any;
+        const body = request.body;
         const id = `TRK-${crypto.randomUUID().substring(0, 8)}`;
 
         await db.insert(warehouseTraffic).values({
@@ -244,14 +324,16 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         });
 
         return reply.code(201).send({ success: true, id });
-      } catch (error: any) {
-        reply.code(500).send({ success: false, error: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ success: false, error: message });
       }
     },
   );
 
   // Update warehouse traffic status & dock assignment
-  fastify.put(
+  fastify.put<{ Params: TrafficIdParams; Body: UpdateTrafficBody }>(
     "/traffic/:id",
     {
       preHandler: [
@@ -261,10 +343,15 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     },
     async (request, reply) => {
       try {
-        const { id } = request.params as { id: string };
-        const body = request.body as any;
+        const { id } = request.params;
+        const body = request.body;
 
-        const updateData: any = { updatedAt: new Date() };
+        const updateData: {
+          updatedAt: Date;
+          status?: string;
+          assignedDock?: string;
+          eta?: string;
+        } = { updatedAt: new Date() };
         if (body.status !== undefined) updateData.status = body.status;
         if (body.assignedDock !== undefined)
           updateData.assignedDock = body.assignedDock;
@@ -288,8 +375,10 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         });
 
         return reply.send({ success: true, data: updated[0] });
-      } catch (error: any) {
-        reply.code(500).send({ success: false, error: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ success: false, error: message });
       }
     },
   );
@@ -321,8 +410,10 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       });
 
       return reply.send({ success: true, data: formatted });
-    } catch (error: any) {
-      reply.code(500).send({ success: false, error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ success: false, error: message });
     }
   });
 };

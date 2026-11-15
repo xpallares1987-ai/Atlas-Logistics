@@ -1,3 +1,10 @@
+/**
+ * @file settlements.routes.ts
+ * @description Operational route handlers for agent billing settlements, statement balances, and PDF statement exports.
+ * @module @atlas/routes/financial/settlements
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import { db } from "../../db/index.js";
 import { invoices, agentSettlements } from "../../db/schema/finance.js";
@@ -7,8 +14,27 @@ import { v4 as uuidv4 } from "uuid";
 import { PDFService } from "../../services/pdf.service.js";
 import { ensureFinancialSeedData } from "./seed-data.js";
 
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+interface CreateSettlementBody {
+  agentId: string;
+  periodStart: string;
+  periodEnd: string;
+  currency?: string;
+}
+
+interface SettlementParams {
+  id: string;
+}
+
+// ============================================================================
+// ROUTE PLUGIN
+// ============================================================================
+
 export const settlementsRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get("/agent-settlements", async (request, reply) => {
+  fastify.get("/agent-settlements", async (_request, reply) => {
     try {
       await ensureFinancialSeedData();
 
@@ -28,129 +54,149 @@ export const settlementsRoutes: FastifyPluginAsync = async (fastify) => {
         .orderBy(sql`${agentSettlements.createdAt} DESC`);
 
       return reply.send(settlements);
-    } catch (error: any) {
-      return reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
     }
   });
 
-  fastify.post("/agent-settlements", async (request, reply) => {
-    try {
-      const { agentId, periodStart, periodEnd, currency } = request.body as any;
+  fastify.post<{ Body: CreateSettlementBody }>(
+    "/agent-settlements",
+    async (request, reply) => {
+      try {
+        const { agentId, periodStart, periodEnd, currency } =
+          request.body || {};
 
-      const result = await db
-        .select({ netBalance: sql<number>`SUM(${invoices.amount})` })
-        .from(invoices)
-        .where(
-          sql`${invoices.companyId} = ${agentId} AND ${invoices.type} = 'AP'`,
-        );
+        const result = await db
+          .select({ netBalance: sql<number>`SUM(${invoices.amount})` })
+          .from(invoices)
+          .where(
+            sql`${invoices.companyId} = ${agentId} AND ${invoices.type} = 'AP'`,
+          );
 
-      const balance = result[0]?.netBalance || 0;
+        const balance = result[0]?.netBalance || 0;
 
-      const newSettlement = await db
-        .insert(agentSettlements)
-        .values({
-          id: uuidv4(),
-          statementNumber: `STMT-${Date.now()}`,
-          agentId,
-          periodStart: new Date(periodStart),
-          periodEnd: new Date(periodEnd),
-          netBalance: balance,
-          currency: currency || "USD",
-          status: "Pending",
-          createdAt: new Date(),
-        })
-        .returning();
+        const newSettlement = await db
+          .insert(agentSettlements)
+          .values({
+            id: uuidv4(),
+            statementNumber: `STMT-${Date.now()}`,
+            agentId,
+            periodStart: new Date(periodStart),
+            periodEnd: new Date(periodEnd),
+            netBalance: balance,
+            currency: currency || "USD",
+            status: "Pending",
+            createdAt: new Date(),
+          })
+          .returning();
 
-      return reply.send(newSettlement[0]);
-    } catch (error: any) {
-      return reply.code(500).send({ error: error.message });
-    }
-  });
-
-  fastify.get("/agent-settlements/:id/invoices", async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
-
-      const settlementRecord = await db
-        .select()
-        .from(agentSettlements)
-        .where(eq(agentSettlements.id, id))
-        .limit(1);
-
-      if (settlementRecord.length === 0) {
-        return reply.code(404).send({ error: "Settlement not found" });
+        return reply.send(newSettlement[0]);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
+    },
+  );
 
-      const st = settlementRecord[0];
+  fastify.get<{ Params: SettlementParams }>(
+    "/agent-settlements/:id/invoices",
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
 
-      const apInvoices = await db
-        .select({
-          id: invoices.id,
-          invoiceNumber: invoices.invoiceNumber,
-          amount: invoices.amount,
-          currency: invoices.currency,
-          status: invoices.status,
-          dueDate: invoices.dueDate,
-          createdAt: invoices.createdAt,
-          shipmentId: invoices.shipmentId,
-        })
-        .from(invoices)
-        .where(
-          sql`${invoices.companyId} = ${st.agentId} AND ${invoices.type} = 'AP' AND ${invoices.createdAt} >= ${st.periodStart} AND ${invoices.createdAt} <= ${st.periodEnd}`,
-        );
+        const settlementRecord = await db
+          .select()
+          .from(agentSettlements)
+          .where(eq(agentSettlements.id, id))
+          .limit(1);
 
-      return reply.send(apInvoices);
-    } catch (error: any) {
-      return reply.code(500).send({ error: error.message });
-    }
-  });
+        if (settlementRecord.length === 0) {
+          return reply.code(404).send({ error: "Settlement not found" });
+        }
 
-  fastify.get("/agent-settlements/:id/pdf", async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
+        const st = settlementRecord[0];
 
-      const records = await db
-        .select({
-          id: agentSettlements.id,
-          statementNumber: agentSettlements.statementNumber,
-          agentName: companies.name,
-          periodStart: agentSettlements.periodStart,
-          periodEnd: agentSettlements.periodEnd,
-          netBalance: agentSettlements.netBalance,
-          currency: agentSettlements.currency,
-          status: agentSettlements.status,
-        })
-        .from(agentSettlements)
-        .leftJoin(companies, eq(agentSettlements.agentId, companies.id))
-        .where(eq(agentSettlements.id, id))
-        .limit(1);
+        const apInvoices = await db
+          .select({
+            id: invoices.id,
+            invoiceNumber: invoices.invoiceNumber,
+            amount: invoices.amount,
+            currency: invoices.currency,
+            status: invoices.status,
+            dueDate: invoices.dueDate,
+            createdAt: invoices.createdAt,
+            shipmentId: invoices.shipmentId,
+          })
+          .from(invoices)
+          .where(
+            sql`${invoices.companyId} = ${st.agentId} AND ${invoices.type} = 'AP' AND ${invoices.createdAt} >= ${st.periodStart} AND ${invoices.createdAt} <= ${st.periodEnd}`,
+          );
 
-      if (records.length === 0) {
-        return reply.code(404).send({ error: "Settlement not found" });
+        return reply.send(apInvoices);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
+    },
+  );
 
-      const st = records[0];
+  fastify.get<{ Params: SettlementParams }>(
+    "/agent-settlements/:id/pdf",
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
 
-      const pdfData = {
-        statementNumber: st.statementNumber,
-        agentName: st.agentName || "Unknown Agent",
-        periodStart: st.periodStart.toISOString(),
-        periodEnd: st.periodEnd.toISOString(),
-        netBalance: st.netBalance,
-        currency: st.currency,
-        status: st.status,
-      };
+        const records = await db
+          .select({
+            id: agentSettlements.id,
+            statementNumber: agentSettlements.statementNumber,
+            agentName: companies.name,
+            periodStart: agentSettlements.periodStart,
+            periodEnd: agentSettlements.periodEnd,
+            netBalance: agentSettlements.netBalance,
+            currency: agentSettlements.currency,
+            status: agentSettlements.status,
+          })
+          .from(agentSettlements)
+          .leftJoin(companies, eq(agentSettlements.agentId, companies.id))
+          .where(eq(agentSettlements.id, id))
+          .limit(1);
 
-      const pdfBuffer = await PDFService.generateAgentSettlement(pdfData);
+        if (records.length === 0) {
+          return reply.code(404).send({ error: "Settlement not found" });
+        }
 
-      reply.header("Content-Type", "application/pdf");
-      reply.header(
-        "Content-Disposition",
-        `attachment; filename=Settlement_${st.statementNumber}.pdf`,
-      );
-      return reply.send(pdfBuffer);
-    } catch (error: any) {
-      return reply.code(500).send({ error: error.message });
-    }
-  });
+        const st = records[0];
+
+        const pdfData = {
+          statementNumber: st.statementNumber,
+          agentName: st.agentName || "Unknown Agent",
+          periodStart: st.periodStart.toISOString(),
+          periodEnd: st.periodEnd.toISOString(),
+          netBalance: st.netBalance,
+          currency: st.currency,
+          status: st.status,
+        };
+
+        const pdfBuffer = await PDFService.generateAgentSettlement(pdfData);
+
+        reply.header("Content-Type", "application/pdf");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename=Settlement_${st.statementNumber}.pdf`,
+        );
+        return reply.send(pdfBuffer);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 };
+
+export default settlementsRoutes;

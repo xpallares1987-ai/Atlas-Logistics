@@ -1,4 +1,11 @@
-import { FastifyPluginAsync } from "fastify";
+/**
+ * @file documents.routes.ts
+ * @description Operational route handlers for document vault, digital signing, template emission, and binary PDF streaming.
+ * @module @atlas/routes/documents
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
+import { FastifyPluginAsync, FastifyRequest } from "fastify";
 import {
   PDFService,
   HBLData,
@@ -15,6 +22,10 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
+
+// ============================================================================
+// SCHEMAS & TYPE DEFINITIONS
+// ============================================================================
 
 const generateDocSchema = z.object({
   type: z.enum([
@@ -33,7 +44,7 @@ const generateDocSchema = z.object({
   ]),
   documentReference: z.string().optional(),
   shipmentId: z.string().optional(),
-  payloadData: z.record(z.string(), z.any()),
+  payloadData: z.record(z.string(), z.unknown()),
   signer: z
     .object({
       signedBy: z.string().min(1),
@@ -48,6 +59,18 @@ const signDocSchema = z.object({
   signerTitle: z.string().min(1, "Signer title required"),
   signerCertificate: z.string().optional(),
 });
+
+interface MultipartPart {
+  type: string;
+  fieldname: string;
+  filename?: string;
+  value?: string;
+  toBuffer?: () => Promise<Buffer>;
+}
+
+// ============================================================================
+// ROUTE PLUGIN
+// ============================================================================
 
 export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
   /**
@@ -66,7 +89,7 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
         query.shipmentId,
       );
       return reply.send(docs);
-    } catch (error: any) {
+    } catch (error: unknown) {
       fastify.log.error(error);
       return reply.status(500).send({ error: "Failed to list documents" });
     }
@@ -99,18 +122,18 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
         shipmentId: parsed.data.shipmentId,
         payloadData: parsed.data.payloadData,
         signer: parsed.data.signer,
-        userId: (request as any).user?.id,
+        userId: request.user?.id,
       });
 
       return reply.status(201).send({
         success: true,
         data: result,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       fastify.log.error(error);
-      return reply
-        .status(500)
-        .send({ error: error.message || "Failed to generate document" });
+      const message =
+        error instanceof Error ? error.message : "Failed to generate document";
+      return reply.status(500).send({ error: message });
     }
   });
 
@@ -125,7 +148,7 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
       reply.header("Content-Type", "application/pdf");
       reply.header("Content-Disposition", `inline; filename="${id}.pdf"`);
       return reply.send(pdfBuffer);
-    } catch (error: any) {
+    } catch (error: unknown) {
       fastify.log.error(error);
       return reply.status(404).send({ error: "Document PDF not found" });
     }
@@ -155,11 +178,11 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: signed,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       fastify.log.error(error);
-      return reply
-        .status(404)
-        .send({ error: error.message || "Failed to sign document" });
+      const message =
+        error instanceof Error ? error.message : "Failed to sign document";
+      return reply.status(404).send({ error: message });
     }
   });
 
@@ -171,7 +194,7 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
       const { hash } = request.params as { hash: string };
       const verification = await DocumentSignerService.verifyAuthenticity(hash);
       return reply.send(verification);
-    } catch (error: any) {
+    } catch (error: unknown) {
       fastify.log.error(error);
       return reply.status(500).send({ error: "Failed to verify document" });
     }
@@ -226,8 +249,8 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
         `attachment; filename=HBL-${data.shipmentId}.pdf`,
       );
       return reply.send(pdfBuffer);
-    } catch (error: any) {
-      fastify.log.error("PDF Generation Error:", error);
+    } catch (error: unknown) {
+      fastify.log.error({ err: error }, "PDF Generation Error");
       return reply.code(500).send({ error: "Failed to generate PDF" });
     }
   });
@@ -247,8 +270,8 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
         `attachment; filename=Booking-${data.referenceNumber}.pdf`,
       );
       return reply.send(pdfBuffer);
-    } catch (error: any) {
-      fastify.log.error("PDF Generation Error:", error);
+    } catch (error: unknown) {
+      fastify.log.error({ err: error }, "PDF Generation Error");
       return reply.code(500).send({ error: "Failed to generate PDF" });
     }
   });
@@ -256,18 +279,24 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.route({
     method: "POST",
     url: "/upload",
-    handler: async (request: any, reply) => {
+    handler: async (request: FastifyRequest, reply) => {
       try {
-        const parts = request.parts();
-        let fileObj: any = null;
-        const body: Record<string, any> = {};
+        const reqWithParts = request as FastifyRequest & {
+          parts: () => AsyncIterable<MultipartPart>;
+        };
+        const parts = reqWithParts.parts();
+        let fileObj: {
+          filename: string;
+          toBuffer: () => Promise<Buffer>;
+        } | null = null;
+        const body: Record<string, string> = {};
 
         for await (const part of parts) {
-          if (part.type === "file") {
-            fileObj = part;
+          if (part.type === "file" && part.filename && part.toBuffer) {
+            fileObj = { filename: part.filename, toBuffer: part.toBuffer };
             break;
-          } else {
-            body[part.fieldname] = part.value;
+          } else if (part.fieldname && part.value !== undefined) {
+            body[part.fieldname] = String(part.value);
           }
         }
 
@@ -283,9 +312,8 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
         await fs.promises.writeFile(filePath, fileBuffer);
 
         const fileUrl = `/api/documents/download/${safeFilename}`;
-        const shipmentId =
-          body.shipmentId?.value || body.shipmentId || "sh_general";
-        const docType = body.type?.value || body.type || "Commercial Invoice";
+        const shipmentId = body.shipmentId || "sh_general";
+        const docType = body.type || "Commercial Invoice";
 
         const docId = crypto.randomUUID();
         const sha256 = crypto
@@ -309,8 +337,10 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
           url: fileUrl,
           name: fileObj.filename,
         });
-      } catch (error: any) {
-        return reply.code(500).send({ error: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
     },
   });
@@ -347,8 +377,10 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
         mimeTypes[ext] || "application/octet-stream",
       );
       return reply.send(fileBuffer);
-    } catch (error: any) {
-      return reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
     }
   });
 };

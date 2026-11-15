@@ -22,7 +22,7 @@ const adminSeedRoutes: FastifyPluginAsync = async (fastify) => {
     ) {
       return;
     }
-    const user = (request as any).user;
+    const user = request.user;
     if (!user || user.role !== "ADMIN") {
       return reply
         .status(403)
@@ -117,9 +117,15 @@ const adminSeedRoutes: FastifyPluginAsync = async (fastify) => {
           },
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error({ err: error }, "Failed to fetch seed status");
-      return reply.status(500).send({ success: false, error: error.message });
+      return reply.status(500).send({
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch seed status",
+      });
     }
   });
 
@@ -137,37 +143,37 @@ const adminSeedRoutes: FastifyPluginAsync = async (fastify) => {
         case "1":
           await seedPhase1();
           resultMessage =
-            "Fase 1 (Operaciones Multimodales & Control Tower) inyectada con éxito.";
+            "Phase 1 (Multimodal Operations & Control Tower) seeded successfully.";
           break;
         case "2":
           await seedPhase2();
           resultMessage =
-            "Fase 2 (Cadena de Frío, Mercancías Peligrosas & CBAM) inyectada con éxito.";
+            "Phase 2 (Cold Chain, Dangerous Goods & CBAM) seeded successfully.";
           break;
         case "3":
           await seedPhase3();
           resultMessage =
-            "Fase 3 (Facturación AR/AP, Créditos UCP 600 & Bóveda) inyectada con éxito.";
+            "Phase 3 (AR/AP Invoicing, UCP 600 Credit & Vault) seeded successfully.";
           break;
         case "4":
           await seedPhase4();
           resultMessage =
-            "Fase 4 (Aduanas USMCA / Carta Porte, e.Firma SAT, Smart Contracts MLETR & ERP) inyectada con éxito.";
+            "Phase 4 (USMCA Customs / Carta Porte, SAT e.Firma, MLETR Smart Contracts & ERP) seeded successfully.";
           break;
         case "5":
           await seedPhase5();
           resultMessage =
-            "Fase 5 (Disputas FMC, Reservas DCSA & Estiba 3D) inyectada con éxito.";
+            "Phase 5 (FMC Disputes, DCSA Bookings & 3D Stowage) seeded successfully.";
           break;
         case "all":
           await runAllSeeds();
           resultMessage =
-            "Todas las fases (Fases 1, 2, 3, 4 y 5) inyectadas con éxito.";
+            "All phases (Phases 1, 2, 3, 4, and 5) seeded successfully.";
           break;
         default:
           return reply.status(400).send({
             success: false,
-            error: `Fase desconocida: '${phase}'. Valores admitidos: 1, 2, 3, 4, 5, all`,
+            error: `Unknown phase: '${phase}'. Allowed values: 1, 2, 3, 4, 5, all`,
           });
       }
 
@@ -182,12 +188,15 @@ const adminSeedRoutes: FastifyPluginAsync = async (fastify) => {
         durationMs,
         message: resultMessage,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         { err: error },
         `Error during admin seed trigger for [Phase: ${phase}]:`,
       );
-      return reply.status(500).send({ success: false, error: error.message });
+      return reply.status(500).send({
+        success: false,
+        error: error instanceof Error ? error.message : "Seed execution failed",
+      });
     }
   });
 };

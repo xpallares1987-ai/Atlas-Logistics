@@ -1,3 +1,10 @@
+/**
+ * @file scm-v1.routes.ts
+ * @description SCM v1 operational controllers and route handlers covering Orders, Shipments, Route Planning, Cargo, Consolidation, Documents, Customs, Finance, Work Management, and Workflow Engine.
+ * @module @atlas/routes/scm-v1
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { desc, eq } from "drizzle-orm";
 import { scmOperationalCockpitWorkItemsV2 } from "../db/schema/scm_operational_bff_sqlite.js";
@@ -95,7 +102,6 @@ import {
   raiseOperationalException,
   assignOperationalException,
   resolveOperationalException,
-  getOperationalExceptionById,
   listOperationalExceptionsForShipment,
   listAllOperationalExceptions,
 } from "../scm/contexts/operational-intelligence/operational-exceptions.context.js";
@@ -103,7 +109,6 @@ import {
   createOperationalShipment,
   updateOperationalShipment,
   createInitialRoutePlan,
-  getShipment360OperationalModel,
   getOperationalAuditTrail,
 } from "../scm/contexts/operational-core/operational-core.context.js";
 import {
@@ -161,7 +166,7 @@ function extractActorFromRequest(
   };
 }
 
-function handleDomainError(error: any, reply: FastifyReply) {
+function handleDomainError(error: unknown, reply: FastifyReply) {
   if (error instanceof DomainInvariantError) {
     return reply.code(422).send({
       error: "DOMAIN_INVARIANT_VIOLATION",
@@ -176,9 +181,10 @@ function handleDomainError(error: any, reply: FastifyReply) {
       message: error.message,
     });
   }
+  const message = error instanceof Error ? error.message : "Unexpected error";
   return reply.code(500).send({
     error: "INTERNAL_ERROR",
-    message: error?.message || "Unexpected error",
+    message,
   });
 }
 
@@ -191,7 +197,8 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/orders", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Parameters<typeof createCustomerOrder>[0]) || {};
       const order = await createCustomerOrder(body, actor);
       return reply.code(201).send(order);
     } catch (err) {
@@ -214,7 +221,7 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body = (request.body as { reason?: string }) || {};
       const order = await cancelCustomerOrder(
         id,
         body.reason || "Cancelled by operator",
@@ -243,7 +250,8 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/shipments", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Parameters<typeof createShipmentExecution>[0]) || {};
       const shipment = await createShipmentExecution(body, actor);
       return reply.code(201).send(shipment);
     } catch (err) {
@@ -277,7 +285,7 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body = (request.body as { reason?: string }) || {};
       const shipment = await reopenClosedShipment(id, body.reason || "", actor);
       return reply.send(shipment);
     } catch (err) {
@@ -292,7 +300,12 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as {
+          changeReason?: string;
+          stops?: Parameters<typeof publishShipmentRoutePlan>[0]["stops"];
+          legs?: Parameters<typeof publishShipmentRoutePlan>[0]["legs"];
+        }) || {};
       const routePlan = await publishShipmentRoutePlan(
         {
           shipmentId: id,
@@ -315,7 +328,10 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as {
+          packages?: Parameters<typeof declareShipmentCargo>[0]["packages"];
+        }) || {};
       const cargo = await declareShipmentCargo(
         {
           shipmentId: id,
@@ -333,7 +349,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Omit<
+          Parameters<typeof assignShipmentEquipment>[0],
+          "shipmentId"
+        >) || {};
       const equipment = await assignShipmentEquipment(
         {
           ...body,
@@ -355,7 +375,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Omit<
+          Parameters<typeof ingestOperationalTrackingEvent>[0],
+          "shipmentId"
+        >) || {};
       const result = await ingestOperationalTrackingEvent(
         {
           ...body,
@@ -373,7 +397,13 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as {
+          slaCode?: string;
+          action?: "PAUSE" | "RESUME";
+          reason?: string;
+          simulatedPauseMinutes?: number;
+        }) || {};
       const result = await toggleSlaStopClock(
         {
           shipmentId: id,
@@ -397,12 +427,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const actor = extractActorFromRequest(request);
         const { id } = request.params as { id: string };
-        const body = (request.body as any) || {};
-        const result = await evaluateShipmentDataQuality(
-          id,
-          body.stage || "PRE_DEPARTURE_EXPORT",
-          actor,
-        );
+        const body =
+          (request.body as {
+            stage?: Parameters<typeof evaluateShipmentDataQuality>[1];
+          }) || {};
+        const result = await evaluateShipmentDataQuality(id, body.stage, actor);
         return reply.send(result);
       } catch (err) {
         return handleDomainError(err, reply);
@@ -413,7 +442,10 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/incidents", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Parameters<
+          typeof promoteExceptionsToMacroIncident
+        >[0]) || {};
       const result = await promoteExceptionsToMacroIncident(body, actor);
       return reply.code(201).send(result);
     } catch (err) {
@@ -436,7 +468,9 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/decisions", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Parameters<typeof publishDecisionTableVersion>[0]) ||
+        {};
       const result = await publishDecisionTableVersion(body, actor);
       return reply.code(201).send(result);
     } catch (err) {
@@ -448,7 +482,12 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { decisionKey } = request.params as { decisionKey: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as {
+          shipmentId?: string;
+          inputs?: Record<string, unknown>;
+          callerContext?: string;
+        }) || {};
       const record = await evaluateDecisionTable(
         {
           decisionKey,
@@ -482,7 +521,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as {
+          triggerReason?: string;
+          strictGateAssertion?: boolean;
+        }) || {};
       const result = await advanceWorkflowTokenForShipment(
         {
           shipmentId: id,
@@ -503,7 +546,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as {
+          action?: Parameters<typeof toggleWorkflowInstanceState>[0]["action"];
+          reason?: string;
+        }) || {};
       const result = await toggleWorkflowInstanceState(
         {
           shipmentId: id,
@@ -533,7 +580,8 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/consolidations", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Parameters<typeof createConsolidation>[0]) || {};
       const cns = await createConsolidation(body, actor);
       return reply.code(201).send(cns);
     } catch (err) {
@@ -545,7 +593,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Omit<
+          Parameters<typeof addShipmentToConsolidation>[0],
+          "consolidationId"
+        >) || {};
       const cns = await addShipmentToConsolidation(
         {
           ...body,
@@ -563,7 +615,10 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as {
+          targetStatus?: "LOCKED_MANIFEST" | "CLOSED";
+        }) || {};
       const cns = await lockOrCloseConsolidation(
         {
           consolidationId: id,
@@ -591,7 +646,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Omit<
+          Parameters<typeof generateOrUploadDocumentVersion>[0],
+          "shipmentId"
+        >) || {};
       const doc = await generateOrUploadDocumentVersion(
         {
           ...body,
@@ -609,7 +668,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { documentId } = request.params as { documentId: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as {
+          decision?: "APPROVED" | "REJECTED";
+          comments?: string;
+        }) || {};
       const doc = await reviewAndApproveDocument(
         {
           documentId,
@@ -649,7 +712,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Omit<
+          Parameters<typeof createAndSubmitCustomsCase>[0],
+          "shipmentId"
+        >) || {};
       const ccase = await createAndSubmitCustomsCase(
         {
           ...body,
@@ -667,7 +734,12 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { customsCaseId } = request.params as { customsCaseId: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as {
+          channel?: Parameters<typeof placeCustomsInspectionHold>[0]["channel"];
+          reasonCode?: string;
+          authorityNotes?: string;
+        }) || {};
       const ccase = await placeCustomsInspectionHold(
         {
           customsCaseId,
@@ -675,7 +747,7 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
           reasonCode: body.reasonCode || "DOC_INSPECTION",
           authorityNotes:
             body.authorityNotes ||
-            "Requerimiento documental de origen y factura comercial",
+            "Documentary requirement for certificate of origin and commercial invoice",
         },
         actor,
       );
@@ -689,7 +761,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { customsCaseId } = request.params as { customsCaseId: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as {
+          clearOpenHolds?: boolean;
+          resolutionNotes?: string;
+        }) || {};
       const ccase = await clearCustomsHoldAndRelease(
         {
           customsCaseId,
@@ -722,7 +798,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Omit<
+          Parameters<typeof addOrUpdateFinancialLine>[0],
+          "shipmentId"
+        >) || {};
       const fin = await addOrUpdateFinancialLine(
         {
           ...body,
@@ -740,7 +820,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Omit<
+          Parameters<typeof issueSalesInvoice>[0],
+          "shipmentId"
+        >) || {};
       const inv = await issueSalesInvoice(
         {
           ...body,
@@ -757,7 +841,7 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.patch("/sales-invoices/:invoiceId", async (request, reply) => {
     try {
       const { invoiceId } = request.params as { invoiceId: string };
-      const body = (request.body as any) || {};
+      const body = (request.body as { netAmountEur?: number }) || {};
       await attemptModifyIssuedSalesInvoice({
         invoiceId,
         newNetAmountEur: body.netAmountEur ?? 0,
@@ -774,11 +858,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const actor = extractActorFromRequest(request);
         const { invoiceId } = request.params as { invoiceId: string };
-        const body = (request.body as any) || {};
+        const body = (request.body as { creditReason?: string }) || {};
         const inv = await issueSalesCreditNote(
           {
             invoiceId,
-            creditReason: body.creditReason,
+            creditReason: body.creditReason || "Commercial adjustment",
           },
           actor,
         );
@@ -793,7 +877,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Omit<
+          Parameters<typeof registerAndMatchPurchaseInvoice>[0],
+          "shipmentId"
+        >) || {};
       const pinv = await registerAndMatchPurchaseInvoice(
         {
           ...body,
@@ -815,7 +903,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
         const { purchaseInvoiceId } = request.params as {
           purchaseInvoiceId: string;
         };
-        const body = (request.body as any) || {};
+        const body =
+          (request.body as {
+            approveVarianceOverride?: boolean;
+            approvalNotes?: string;
+          }) || {};
         const pinv = await approvePurchaseInvoicePayment(
           {
             purchaseInvoiceId,
@@ -858,7 +950,14 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/cockpit", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const query = (request.query as any) || {};
+      const query =
+        (request.query as {
+          status?: NonNullable<
+            Parameters<typeof listOperationsCockpitItems>[0]
+          >["status"];
+          urgencyBucket?: string;
+          search?: string;
+        }) || {};
       const result = await listOperationsCockpitItems(
         {
           status: query.status,
@@ -877,7 +976,7 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { workItemId } = request.params as { workItemId: string };
-      const body = (request.body as any) || {};
+      const body = (request.body as Record<string, unknown>) || {};
       const result = await executeCockpitWorkItem(workItemId, body, actor);
       return reply.send(result);
     } catch (err) {
@@ -920,7 +1019,8 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/operational/shipments", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const body = (request.body as any) || {};
+      const body =
+        (request.body as Parameters<typeof createOperationalShipment>[0]) || {};
       const idempotencyKey =
         (request.headers["x-idempotency-key"] as string) || body.idempotencyKey;
       const result = await createOperationalShipment(
@@ -937,9 +1037,16 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     try {
       const actor = extractActorFromRequest(request);
       const { shipmentId } = request.params as { shipmentId: string };
-      const body = request.body as any;
+      const body =
+        (request.body as Partial<
+          Parameters<typeof updateOperationalShipment>[0]
+        >) || {};
       const result = await updateOperationalShipment(
-        { shipmentId, ...body },
+        {
+          shipmentId,
+          expectedVersion: body.expectedVersion ?? 1,
+          ...body,
+        },
         actor,
       );
       return reply.code(200).send(result);
@@ -954,12 +1061,21 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const actor = extractActorFromRequest(request);
         const { shipmentId } = request.params as { shipmentId: string };
-        const body = (request.body as any) || {};
+        const body =
+          (request.body as Partial<
+            Parameters<typeof createInitialRoutePlan>[0]
+          >) || {};
         const idempotencyKey =
           (request.headers["x-idempotency-key"] as string) ||
           body.idempotencyKey;
         const result = await createInitialRoutePlan(
-          { shipmentId, ...body, idempotencyKey },
+          {
+            shipmentId,
+            stops: body.stops || [],
+            legs: body.legs || [],
+            ...body,
+            idempotencyKey,
+          },
           actor,
         );
         return reply.code(201).send(result);
@@ -984,7 +1100,7 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get("/operational/shipments-360", async (request, reply) => {
     try {
-      const query = (request.query as any) || {};
+      const query = (request.query as Record<string, unknown>) || {};
       const result = await listShipment360Views(query);
       return reply.code(200).send(result);
     } catch (err) {
@@ -994,7 +1110,12 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get("/operational/cockpit", async (request, reply) => {
     try {
-      const query = (request.query as any) || {};
+      const query =
+        (request.query as {
+          branchId?: string;
+          departmentId?: string;
+          [key: string]: unknown;
+        }) || {};
       const branchId =
         query.branchId || request.stationContext?.stationId || undefined;
       const departmentId = query.departmentId || undefined;
@@ -1011,7 +1132,12 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get("/operational/my-work", async (request, reply) => {
     try {
-      const query = (request.query as any) || {};
+      const query =
+        (request.query as {
+          branchId?: string;
+          departmentId?: string;
+          [key: string]: unknown;
+        }) || {};
       const branchId =
         query.branchId || request.stationContext?.stationId || undefined;
       const departmentId = query.departmentId || undefined;
@@ -1028,7 +1154,12 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get("/operational/cockpit/summary", async (request, reply) => {
     try {
-      const query = (request.query as any) || {};
+      const query =
+        (request.query as {
+          branchId?: string;
+          departmentId?: string;
+          [key: string]: unknown;
+        }) || {};
       const branchId =
         query.branchId || request.stationContext?.stationId || undefined;
       const departmentId = query.departmentId || undefined;
@@ -1048,7 +1179,7 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const actor = extractActorFromRequest(request);
         const { workItemId } = request.params as { workItemId: string };
-        const body = (request.body as any) || {};
+        const body = (request.body as Record<string, unknown>) || {};
 
         // Look up target work item to enforce station write authorization
         const itemRows = await db
@@ -1407,7 +1538,8 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/operational/exceptions", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const body = request.body as any;
+      const body =
+        (request.body as Parameters<typeof raiseOperationalException>[0]) || {};
       const result = await raiseOperationalException(body, actor);
       return reply.code(201).send(result);
     } catch (err) {
@@ -1421,7 +1553,9 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const actor = extractActorFromRequest(request);
         const { exceptionId } = request.params as { exceptionId: string };
-        const body = request.body as any;
+        const body =
+          (request.body as Parameters<typeof assignOperationalException>[1]) ||
+          {};
         const result = await assignOperationalException(
           exceptionId,
           body,
@@ -1440,7 +1574,9 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const actor = extractActorFromRequest(request);
         const { exceptionId } = request.params as { exceptionId: string };
-        const body = request.body as any;
+        const body =
+          (request.body as Parameters<typeof resolveOperationalException>[1]) ||
+          {};
         const result = await resolveOperationalException(
           exceptionId,
           body,
@@ -1455,7 +1591,9 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get("/operational/exceptions", async (request, reply) => {
     try {
-      const query = (request.query as any) || {};
+      const query =
+        (request.query as Parameters<typeof listAllOperationalExceptions>[0]) ||
+        {};
       const result = await listAllOperationalExceptions(query);
       return reply.code(200).send(result);
     } catch (err) {
@@ -1507,7 +1645,7 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/operational/tasks", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const body = request.body as any;
+      const body = (request.body as Parameters<typeof createTask>[0]) || {};
       const result = await createTask(body, actor);
       return reply.code(201).send(result);
     } catch (err) {
@@ -1518,7 +1656,8 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/operational/tasks/dependencies", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const body = request.body as any;
+      const body =
+        (request.body as Parameters<typeof addTaskDependency>[0]) || {};
       const result = await addTaskDependency(body, actor);
       return reply.code(201).send(result);
     } catch (err) {
@@ -1532,7 +1671,11 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const actor = extractActorFromRequest(request);
         const { taskId } = request.params as { taskId: string };
-        const body = (request.body as any) || {};
+        const body =
+          (request.body as {
+            idempotencyKey?: string;
+            result?: Record<string, unknown>;
+          }) || {};
         const idempotencyKey =
           (request.headers["x-idempotency-key"] as string) ||
           body.idempotencyKey;
@@ -1548,10 +1691,14 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get("/operational/tasks", async (request, reply) => {
     try {
-      const query = (request.query as any) || {};
+      const query =
+        (request.query as {
+          subjectType?: Parameters<typeof getTasksForSubject>[0];
+          subjectId?: string;
+        }) || {};
       const result = await getTasksForSubject(
         query.subjectType || "SHIPMENT",
-        query.subjectId,
+        query.subjectId || "",
       );
       return reply.code(200).send(result);
     } catch (err) {
@@ -1565,7 +1712,8 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   fastify.post("/workflow-engine/definitions", async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
-      const body = request.body as any;
+      const body =
+        (request.body as Parameters<typeof createWorkflowDefinition>[0]) || {};
       const result = await createWorkflowDefinition(body, actor);
       return reply.code(201).send(result);
     } catch (err) {
@@ -1589,7 +1737,10 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const actor = extractActorFromRequest(request);
         const { defId } = request.params as { defId: string };
-        const body = (request.body as any) || {};
+        const body =
+          (request.body as Partial<
+            Parameters<typeof createWorkflowDefinitionVersion>[0]
+          >) || {};
         const result = await createWorkflowDefinitionVersion(
           { workflowDefinitionId: defId, ...body },
           actor,
@@ -1607,9 +1758,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const actor = extractActorFromRequest(request);
         const { versionId } = request.params as { versionId: string };
-        const body = request.body as any;
+        const body =
+          (request.body as Partial<
+            Parameters<typeof addTaskDefinitionToVersion>[0]
+          >) || {};
         const result = await addTaskDefinitionToVersion(
-          { workflowVersionId: versionId, ...body },
+          {
+            workflowVersionId: versionId,
+            taskTypeCode: body.taskTypeCode || "TASK",
+            title: body.title || "Untitled Task",
+            ...body,
+          },
           actor,
         );
         return reply.code(201).send(result);
@@ -1625,9 +1784,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
       try {
         const actor = extractActorFromRequest(request);
         const { versionId } = request.params as { versionId: string };
-        const body = request.body as any;
+        const body =
+          (request.body as Partial<
+            Parameters<typeof addDependencyDefinitionToVersion>[0]
+          >) || {};
         const result = await addDependencyDefinitionToVersion(
-          { workflowVersionId: versionId, ...body },
+          {
+            workflowVersionId: versionId,
+            predecessorTaskTypeCode: body.predecessorTaskTypeCode || "",
+            successorTaskTypeCode: body.successorTaskTypeCode || "",
+            ...body,
+          },
           actor,
         );
         return reply.code(201).send(result);
@@ -1669,7 +1836,8 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
-        const body = request.body as any;
+        const body =
+          (request.body as Parameters<typeof instantiateWorkflow>[0]) || {};
         const result = await instantiateWorkflow(body, actor);
         return reply.code(201).send(result);
       } catch (err) {

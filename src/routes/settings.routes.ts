@@ -23,6 +23,13 @@ const passwordSchema = z.object({
   newPassword: z.string().min(1),
 });
 
+interface AuthUserPayload {
+  id?: string;
+  email?: string;
+  role?: string;
+  companyId?: string;
+}
+
 export default async function settingsRoutes(fastify: FastifyInstance) {
   // Update Profile
   fastify.put(
@@ -38,13 +45,12 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const user = request.user as any;
+        const user = request.user;
         if (!user) {
           return reply.code(401).send({ error: "Unauthorized" });
         }
 
-        const data = profileSchema.parse(request.body);
-        const fullName = `${data.firstName} ${data.lastName}`.trim();
+        profileSchema.parse(request.body);
 
         // Let's assume there is no `name` or `firstName` on the `users` table directly right now,
         // because earlier I saw: `import { users } from "../db/schema/index.js";` where they only have email, role, companyId.
@@ -71,7 +77,8 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        let user = request.user as any;
+        let user: AuthUserPayload | undefined =
+          (request.user as AuthUserPayload | null) || undefined;
         if (!user) {
           const authHeader = request.headers.authorization;
           if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -80,7 +87,13 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
               const JWT_SECRET =
                 process.env.JWT_SECRET ||
                 "atlas-logistics-jwt-secret-key-super-secure";
-              user = jwt.default.verify(authHeader.substring(7), JWT_SECRET);
+              const decoded = jwt.default.verify(
+                authHeader.substring(7),
+                JWT_SECRET,
+              );
+              if (typeof decoded === "object" && decoded !== null) {
+                user = decoded as AuthUserPayload;
+              }
             } catch {
               // fallback below
             }
@@ -91,7 +104,7 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
           request.body,
         );
 
-        let existingUser: any = null;
+        let existingUser: typeof users.$inferSelect | null = null;
         if (user?.id) {
           const rows = await db
             .select()
@@ -114,11 +127,9 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
         }
 
         if (!existingUser) {
-          return reply
-            .code(400)
-            .send({
-              error: "User not found or no user registered in database",
-            });
+          return reply.code(400).send({
+            error: "User not found or no user registered in database",
+          });
         }
 
         let isPasswordCorrect = false;
@@ -155,10 +166,11 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
           success: true,
           message: "Password updated successfully. Please log in again.",
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         request.log.error(error);
         return reply.code(400).send({
-          error: error.message || "Invalid request format",
+          error:
+            error instanceof Error ? error.message : "Invalid request format",
         });
       }
     },
@@ -178,7 +190,7 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const user = request.user as any;
+        const user = request.user;
         if (!user) {
           return reply.code(401).send({ error: "Unauthorized" });
         }

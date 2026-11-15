@@ -1,3 +1,10 @@
+/**
+ * @file external-governance.routes.ts
+ * @description Operational route handlers for external master data governance, source record ingestion, entity linking, and UN/LOCODE hot-cache lookup.
+ * @module @atlas/routes/external-governance
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import { v4 as uuidv4 } from "uuid";
 import crypto from "node:crypto";
@@ -19,8 +26,13 @@ import {
   UnlocodeEntry,
   escapeHTML,
 } from "@atlas/shared";
-import { authMiddleware, requireRole } from "../middleware/auth.js";
 import { outboxBus } from "../scm/kernel/outbox-bus.js";
+
+interface UnlocodeLookupQuery {
+  q?: string;
+  country?: string;
+  limit?: string;
+}
 
 let tablesEnsured = false;
 
@@ -103,8 +115,10 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
         count: sources.length,
         data: sources,
       });
-    } catch (err: any) {
-      return reply.status(500).send({ success: false, error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Internal Server Error";
+      return reply.status(500).send({ success: false, error: message });
     }
   });
 
@@ -189,8 +203,10 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
         externalId,
         retrievedAt: now,
       });
-    } catch (err: any) {
-      return reply.status(500).send({ success: false, error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Internal Server Error";
+      return reply.status(500).send({ success: false, error: message });
     }
   });
 
@@ -218,8 +234,10 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
         count: records.length,
         data: records,
       });
-    } catch (err: any) {
-      return reply.status(500).send({ success: false, error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Internal Server Error";
+      return reply.status(500).send({ success: false, error: message });
     }
   });
 
@@ -301,8 +319,10 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
         matchConfidence,
         verifiedAt: now,
       });
-    } catch (err: any) {
-      return reply.status(500).send({ success: false, error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Internal Server Error";
+      return reply.status(500).send({ success: false, error: message });
     }
   });
 
@@ -333,8 +353,10 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
         .limit(100);
 
       return reply.send({ success: true, count: links.length, data: links });
-    } catch (err: any) {
-      return reply.status(500).send({ success: false, error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Internal Server Error";
+      return reply.status(500).send({ success: false, error: message });
     }
   });
 
@@ -365,61 +387,69 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
         );
 
       return reply.send({ success: true, count: links.length, data: links });
-    } catch (err: any) {
-      return reply.status(500).send({ success: false, error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Internal Server Error";
+      return reply.status(500).send({ success: false, error: message });
     }
   });
 
   // 6. High-Performance UN/LOCODE Lookup (Using In-Memory Prefix Trie & LRU)
-  fastify.get("/unlocode/lookup", async (request, reply) => {
-    try {
-      const rawQ = ((request.query as any)?.q || "").trim();
-      const rawCountry = (request.query as any)?.country;
-      const q = escapeHTML(rawQ);
-      const country = rawCountry
-        ? escapeHTML(String(rawCountry).trim())
-        : undefined;
-      const limit = Math.min(
-        100,
-        parseInt((request.query as any)?.limit || "20", 10),
-      );
+  fastify.get<{ Querystring: UnlocodeLookupQuery }>(
+    "/unlocode/lookup",
+    async (request, reply) => {
+      try {
+        const rawQ = (request.query?.q || "").trim();
+        const rawCountry = request.query?.country;
+        const q = escapeHTML(rawQ);
+        const country = rawCountry
+          ? escapeHTML(String(rawCountry).trim())
+          : undefined;
+        const limit = Math.min(100, parseInt(request.query?.limit || "20", 10));
 
-      if (!q) {
-        const defaultHubs = DEFAULT_UNLOCODE_HUBS.slice(0, limit).map((h) => ({
-          location: escapeHTML(h.location),
-          name: escapeHTML(h.name),
-          country: escapeHTML(h.country),
-          coordinates: h.coordinates ? escapeHTML(h.coordinates) : undefined,
-          status: h.status ? escapeHTML(h.status) : undefined,
+        if (!q) {
+          const defaultHubs = DEFAULT_UNLOCODE_HUBS.slice(0, limit).map(
+            (h) => ({
+              location: escapeHTML(h.location),
+              name: escapeHTML(h.name),
+              country: escapeHTML(h.country),
+              coordinates: h.coordinates
+                ? escapeHTML(h.coordinates)
+                : undefined,
+              status: h.status ? escapeHTML(h.status) : undefined,
+            }),
+          );
+          return reply.type("application/json").send({
+            success: true,
+            data: defaultHubs,
+            stats: getUnlocodeStats(),
+          });
+        }
+
+        const results = searchUnlocodes(q, country, limit);
+        const sanitized = results.map((item) => ({
+          location: escapeHTML(item.location),
+          name: escapeHTML(item.name),
+          country: escapeHTML(item.country),
+          coordinates: item.coordinates
+            ? escapeHTML(item.coordinates)
+            : undefined,
+          status: item.status ? escapeHTML(item.status) : undefined,
         }));
+
         return reply.type("application/json").send({
           success: true,
-          data: defaultHubs,
+          count: sanitized.length,
+          data: sanitized,
           stats: getUnlocodeStats(),
         });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Internal Server Error";
+        return reply.status(500).send({ success: false, error: message });
       }
-
-      const results = searchUnlocodes(q, country, limit);
-      const sanitized = results.map((item) => ({
-        location: escapeHTML(item.location),
-        name: escapeHTML(item.name),
-        country: escapeHTML(item.country),
-        coordinates: item.coordinates
-          ? escapeHTML(item.coordinates)
-          : undefined,
-        status: item.status ? escapeHTML(item.status) : undefined,
-      }));
-
-      return reply.type("application/json").send({
-        success: true,
-        count: sanitized.length,
-        data: sanitized,
-        stats: getUnlocodeStats(),
-      });
-    } catch (err: any) {
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
+    },
+  );
 
   // 7. Write-Through Cache: Update/Upsert UN/LOCODE in Hot Memory + SQLite
   fastify.post("/unlocode/upsert", async (request, reply) => {
@@ -475,7 +505,7 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
             id: recordId,
             sourceId: src.id,
             externalId: entry.location,
-            rawPayload: entry as any,
+            rawPayload: entry as unknown as Record<string, unknown>,
             normalizedPayload: {
               locode: entry.location,
               portName: entry.name,
@@ -490,7 +520,7 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
           .onConflictDoUpdate({
             target: sourceRecords.id,
             set: {
-              rawPayload: entry as any,
+              rawPayload: entry as unknown as Record<string, unknown>,
               sha256Hash: sha256,
               retrievedAt: now,
               updatedAt: now,
@@ -508,8 +538,10 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
           recordId,
           stats: getUnlocodeStats(),
         });
-    } catch (err: any) {
-      return reply.status(500).send({ success: false, error: err.message });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Internal Server Error";
+      return reply.status(500).send({ success: false, error: message });
     }
   });
 };

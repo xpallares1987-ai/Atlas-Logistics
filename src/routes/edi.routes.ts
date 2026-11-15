@@ -1,3 +1,10 @@
+/**
+ * @file edi.routes.ts
+ * @description Operational route handlers for Electronic Data Interchange (EDI) processing, parsing, outbound generation, and interchange audit ledger.
+ * @module @atlas/routes/edi
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import {
   EdiTokenizer,
@@ -9,6 +16,10 @@ import {
 } from "../services/edi/index.js";
 import { z } from "zod";
 
+// ============================================================================
+// SCHEMAS & TYPE DEFINITIONS
+// ============================================================================
+
 const inboundSchema = z.object({
   rawPayload: z.string().min(10, "EDI payload must be at least 10 characters"),
 });
@@ -19,8 +30,17 @@ const generateSchema = z.object({
   partnerId: z.string().optional(),
   senderId: z.string().optional(),
   receiverId: z.string().optional(),
-  instructionData: z.record(z.string(), z.any()),
+  instructionData: z.record(z.string(), z.unknown()),
 });
+
+interface DesadvGenerateQuery {
+  senderId?: string;
+  receiverId?: string;
+}
+
+// ============================================================================
+// ROUTE PLUGIN
+// ============================================================================
 
 export const ediRoutes: FastifyPluginAsync = async (fastify) => {
   /**
@@ -45,10 +65,14 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: result,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to process EDI transmission";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to process EDI transmission",
+        error: message,
       });
     }
   });
@@ -78,7 +102,7 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const ast = EdiTokenizer.tokenize(raw);
-      let parsedEvents: any[] = [];
+      let parsedEvents: unknown[] = [];
 
       if (standard === "EDIFACT") {
         const isDesadv = ast.segments.some((s) => {
@@ -86,9 +110,11 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
           const el = s.elements[1];
           if (!el) return false;
           if (typeof el === "string") return el.includes("DESADV");
-          return (el as any).components?.some(
-            (c: string) => c && c.includes("DESADV"),
-          );
+          const components =
+            typeof el === "object" && el !== null && "components" in el
+              ? (el as { components?: (string | undefined)[] }).components
+              : undefined;
+          return components?.some((c) => c && c.includes("DESADV"));
         });
 
         if (isDesadv) {
@@ -105,7 +131,7 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
               locationName: desadv.consignor.city || desadv.consignor.name,
               eventTimestamp: desadv.despatchDate,
               isException: false,
-              details: `DESADV ${desadv.despatchAdviceNumber}: ${desadv.items.length} líneas, ${desadv.totalPackages} paquetes, ${desadv.totalGrossWeightKg} kg`,
+              details: `DESADV ${desadv.despatchAdviceNumber}: ${desadv.items.length} lines, ${desadv.totalPackages} packages, ${desadv.totalGrossWeightKg} kg`,
               despatchAdvice: desadv,
             },
           ];
@@ -131,10 +157,14 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
         segments: ast.segments,
         parsedEvents,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Syntactic error while parsing EDI document";
       return reply.status(400).send({
         success: false,
-        error: err.message || "Syntactic error while parsing EDI document",
+        error: message,
       });
     }
   });
@@ -166,10 +196,14 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: result,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to generate outbound EDI document";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to generate outbound EDI document",
+        error: message,
       });
     }
   });
@@ -184,10 +218,12 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: interchanges,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to query EDI interchanges";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to query EDI interchanges",
+        error: message,
       });
     }
   });
@@ -202,10 +238,12 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: partners,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to query EDI partners";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to query EDI partners",
+        error: message,
       });
     }
   });
@@ -217,25 +255,25 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
     const samples = [
       {
         id: "msc_x12_315_vessel_departure",
-        name: "MSC ANSI X12 315 — Ocean Vessel Departure (Zarpe de Buque)",
+        name: "MSC ANSI X12 315 — Ocean Vessel Departure",
         standard: "ANSI_X12",
         messageType: "315",
         carrier: "MSCU",
         bookingRef: "BK-2026-9042",
         description:
-          "Reporte oficial de telemetría de zarpado del portacontenedores MSC OSCAR desde Valencia hacia New York Harbor.",
+          "Official telemetry departure report for container vessel MSC OSCAR from Valencia to New York Harbor.",
         payload:
           "ISA*00*          *00*          *ZZ*MSCU           *ZZ*ATLASLOG       *261102*1200*U*00401*000099481*0*P*>~GS*QO*MSCU*ATLASLOG*20261102*1200*9948*X*004010~ST*315*0001~B4*N*12*VD*20261102*1130*ESVLC*MSCU*9821034~N9*BM*MSCU99482103~N9*BN*BK-2026-9042~N9*SN*SL-994821~Q2*9839420*US*20261102***24500*K*V.2611W**MSC OSCAR~R4*R*UN*ESVLC***VALENCIA TERMINAL~R4*D*UN*USNYC***NEW YORK HARBOR~SE*11*0001~GE*1*9948~IEA*1*000099481~",
       },
       {
         id: "maersk_x12_315_rollover",
-        name: "Maersk ANSI X12 315 — Rollover Exception (Contenedor Dejado en Tierra)",
+        name: "Maersk ANSI X12 315 — Rollover Exception",
         standard: "ANSI_X12",
         messageType: "315",
         carrier: "MAEU",
         bookingRef: "BK-2026-9042",
         description:
-          "Alerta de excepción marítima crítica: Capacidad sobrepasada. Contenedor no embarcado y rolado al siguiente buque.",
+          "Critical maritime exception alert: Vessel capacity reached. Container rolled over to next scheduled departure.",
         payload:
           "ISA*00*          *00*          *ZZ*MAEU           *ZZ*ATLASLOG       *261102*1400*U*00401*000099482*0*P*>~GS*QO*MAEU*ATLASLOG*20261102*1400*9949*X*004010~ST*315*0001~B4*N*12*RL*20261102*1345*ESVLC*MAEU*7749102~N9*BM*MAEU77491023~N9*BN*BK-2026-9042~Q2*9778810*DK*20261102***22000*K*V.4402E**MAERSK MC-KINNEY~R4*R*UN*ESVLC***VALENCIA TERMINAL~SE*8*0001~GE*1*9949~IEA*1*000099482~",
       },
@@ -247,67 +285,67 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
         carrier: "HLCU",
         bookingRef: "BK-2026-9042",
         description:
-          "Instrucciones de embarque marítimo completas con pesaje certificado VGM (SOLAS Method 1) y datos de precinto.",
+          "Complete ocean shipping instructions with certified VGM weighing (SOLAS Method 1) and seal details.",
         payload:
           "ISA*00*          *00*          *ZZ*ATLASLOG       *ZZ*HLCU           *261102*1000*U*00401*000099483*0*P*>~GS*SO*ATLASLOG*HLCU*20261102*1000*9950*X*004010~ST*304*0001~B2*HLCU*BK-2026-9042***L~B2A*00~Y4*HLCU8810239*40HC***24500*K*SL-881920~W09*24500*K*SM1*ATLAS LOGISTICS DECLARANT~N1*SH*IBERIA INDUSTRIAL SL~N3*AV. PUERTO 42~N4*VALENCIA*VC*46024*ES~N1*CN*GLOBAL ATLANTIC MACHINERY LLC~N3*420 BROADWAY AVE~N4*NEW YORK*NY*10013*US~R4*L*UN*ESVLC***VALENCIA PORT~R4*D*UN*USNYC***NEW YORK HARBOR~Q2*9839420*US*20261102***24500*K*V.2611W**HAPAG ROTTERDAM~LX*1~L5*1*MACHINERY PARTS & COMPONENTS*72083800~L0*1*24500*K*24500*K*68.2*X*480*PK~SE*19*0001~GE*1*9950~IEA*1*000099483~",
       },
       {
         id: "maersk_iftsta_departure",
-        name: "Maersk Line IFTSTA — Vessel Departure (Zarpe)",
+        name: "Maersk Line IFTSTA — Vessel Departure",
         standard: "EDIFACT",
         messageType: "IFTSTA",
         carrier: "MAERSKLINE",
         bookingRef: "BK-2026-8819",
         description:
-          "Reporte oficial de salida de buque (Vessel Departure) desde el Puerto de Valencia hacia New York Harbor.",
+          "Official vessel departure telemetry report from Valencia Port to New York Harbor.",
         payload:
           "UNB+UNOA:2+MAERSKLINE:ZZ+ATLASLOG:ZZ+261004:1430+100021'BGM+7+BK-2026-8819+9'RFF+BM:MSK992011'DTM+137:202610041200:203'LOC+7+ESVLC:139:6+VALENCIA PORT'LOC+11+USNYC:139:6+NEW YORK HARBOR'STS+1+VD'UNT+7+100021'UNZ+1+100021'",
       },
       {
         id: "msc_iftsta_customs_hold",
-        name: "MSC Geneva IFTSTA — Customs Hold (Retención Aduanera)",
+        name: "MSC Geneva IFTSTA — Customs Hold",
         standard: "EDIFACT",
         messageType: "IFTSTA",
         carrier: "MSCGVA",
         bookingRef: "BK-2026-8819",
         description:
-          "Alerta de excepción inmediata: Retención aduanera en terminal para inspección de seguridad.",
+          "Immediate operational exception alert: Customs terminal hold for security inspection.",
         payload:
           "UNB+UNOA:2+MSCGVA:01+ATLASLOG:ZZ+261004:1615+100022'BGM+7+BK-2026-8819+9'RFF+BM:MEDU881023'DTM+137:202610041600:203'LOC+7+ESBCN:139:6+BARCELONA PORT'STS+1+X4'FTX+AAI+++CUSTOMS INSPECTION MANDATED BY TAXUD'UNT+7+100022'UNZ+1+100022'",
       },
       {
         id: "knight_x12_214_in_transit",
-        name: "Knight-Swift ANSI X12 214 — En Route (En Tránsito Terrestre)",
+        name: "Knight-Swift ANSI X12 214 — En Route",
         standard: "ANSI_X12",
         messageType: "214",
         carrier: "KNIGHTSWIFT",
         bookingRef: "BK-2026-8819",
         description:
-          "Notificación de transporte por carretera de EE.UU./UE en ruta hacia destino con posición geográfica.",
+          "Road freight telemetry update en route to destination with geographic coordinates.",
         payload:
           "ISA*00*          *00*          *02*KNIGHTSWIFT    *ZZ*ATLASLOG       *261004*1540*U*00401*000008821*0*P*>~GS*QM*KNIGHTSWIFT*ATLASLOG*20261004*1540*8821*X*004010~ST*214*0001~B10*KS-991201*BK-2026-8819*KNIGHTSWIFT~LX*1~AT7*X6*NS***20261004*1530*LT~MS1*MADRID*ES*ES~SE*6*0001~GE*1*8821~IEA*1*000008821~",
       },
       {
         id: "jbhunt_x12_214_delivered",
-        name: "J.B. Hunt ANSI X12 214 — Delivered (Entrega Confirmada)",
+        name: "J.B. Hunt ANSI X12 214 — Delivered",
         standard: "ANSI_X12",
         messageType: "214",
         carrier: "JBHUNT",
         bookingRef: "BK-2026-8819",
         description:
-          "Confirmación final de entrega en almacén de cliente con firma electrónica.",
+          "Final delivery confirmation at customer facility with electronic signature.",
         payload:
           "ISA*00*          *00*          *ZZ*JBHUNT         *ZZ*ATLASLOG       *261004*1800*U*00401*000009941*0*P*>~GS*QM*JBHUNT*ATLASLOG*20261004*1800*9941*X*004010~ST*214*0001~B10*JB-441092*BK-2026-8819*JBHUNT~LX*1~AT7*AG*NS***20261004*1745*LT~MS1*VALENCIA*ES*ES~SE*6*0001~GE*1*9941~IEA*1*000009941~",
       },
       {
         id: "edifact_desadv_d96a_standard",
-        name: "UN/EDIFACT D96A DESADV — Despatch Advice (Aviso de Expedición)",
+        name: "UN/EDIFACT D96A DESADV — Despatch Advice",
         standard: "EDIFACT",
         messageType: "DESADV",
         carrier: "LOGISTICS-HUB",
         bookingRef: "BK-2026-67116",
         description:
-          "Aviso electrónico de expedición internacional de 10 paquetes con desglose de ítems, peso y UOM.",
+          "Electronic international despatch advice for 10 packages with line item itemization, weight, and UOM.",
         payload:
           "UNB+UNOA:2+SUPPLIER01+ATLASLOG+261111:1200+100099'UNH+1+DESADV:D:96A:UN'BGM+351+DESADV-2026-8819+9'DTM+137:202611111200:203'RFF+ON:ORD-2026-9921'RFF+BM:MSKU9284712'NAD+SE+SUPPLIER01::92+Global Industrial Parts S.L.+Poligono Prat+Barcelona++08820+ES'NAD+CN+CUSTOMER01::92+Atlas Logistics Hub+Carrer Motors 10+Barcelona++08040+ES'CPS+1'PAC+10++CT'MEA+WT+G+KGM:850'LIN+1++SENSOR-X100:IN'IMD+F++:::Industrial Telemetry Sensors'QTY+12:500:PCE'MEA+WT+G+KGM:850'PAC+10++CT'UNT+15+1'UNZ+1+100099'",
       },
@@ -342,10 +380,12 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         data: advice,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to parse DESADV";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to parse DESADV",
+        error: message,
       });
     }
   });
@@ -353,43 +393,54 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * Generate EDIFACT D96A DESADV message text from JSON structure
    */
-  fastify.post("/desadv/generate", async (request, reply) => {
-    try {
-      const body = request.body as any;
-      if (
-        !body ||
-        !body.despatchAdviceNumber ||
-        !body.consignor ||
-        !body.consignee
-      ) {
-        return reply.status(400).send({
-          success: false,
-          error:
-            "Missing required DespatchAdvice attributes (despatchAdviceNumber, consignor, consignee)",
-        });
-      }
+  fastify.post<{ Querystring: DesadvGenerateQuery }>(
+    "/desadv/generate",
+    async (request, reply) => {
+      try {
+        const body = request.body as Parameters<
+          typeof EdifactDesadvService.generate
+        >[0];
+        if (
+          !body ||
+          !body.despatchAdviceNumber ||
+          !body.consignor ||
+          !body.consignee
+        ) {
+          return reply.status(400).send({
+            success: false,
+            error:
+              "Missing required DespatchAdvice attributes (despatchAdviceNumber, consignor, consignee)",
+          });
+        }
 
-      const senderId = (request.query as any)?.senderId || "ATLASLOG";
-      const receiverId = (request.query as any)?.receiverId || "PARTNER";
+        const senderId = request.query?.senderId || "ATLASLOG";
+        const receiverId = request.query?.receiverId || "PARTNER";
 
-      const ediText = EdifactDesadvService.generate(body, senderId, receiverId);
-      return reply.send({
-        success: true,
-        data: {
-          ediText,
-          messageType: "DESADV",
-          version: "D96A",
+        const ediText = EdifactDesadvService.generate(
+          body,
           senderId,
           receiverId,
-        },
-      });
-    } catch (err: any) {
-      return reply.status(500).send({
-        success: false,
-        error: err.message || "Failed to generate DESADV",
-      });
-    }
-  });
+        );
+        return reply.send({
+          success: true,
+          data: {
+            ediText,
+            messageType: "DESADV",
+            version: "D96A",
+            senderId,
+            receiverId,
+          },
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to generate DESADV";
+        return reply.status(500).send({
+          success: false,
+          error: message,
+        });
+      }
+    },
+  );
 
   /**
    * Ingest DESADV with transactional outbox event emission
@@ -407,10 +458,12 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
 
       const result = await EdifactDesadvService.ingest(parsed.data.rawPayload);
       return reply.status(201).send(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to ingest DESADV";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to ingest DESADV",
+        error: message,
       });
     }
   });
@@ -420,7 +473,12 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post("/iftsta/generate", async (request, reply) => {
     try {
-      const body = request.body as any;
+      const body = request.body as Parameters<
+        typeof EdifactIftstaService.generateIFTSTA
+      >[0] & {
+        senderId?: string;
+        receiverId?: string;
+      };
       if (!body || !body.statusCode) {
         return reply.status(400).send({
           success: false,
@@ -441,10 +499,12 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
           version: "D96A",
         },
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to generate IFTSTA";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to generate IFTSTA",
+        error: message,
       });
     }
   });
@@ -477,10 +537,12 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
           messageType: "CONTRL",
         },
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to generate CONTRL";
       return reply.status(500).send({
         success: false,
-        error: err.message || "Failed to generate CONTRL",
+        error: message,
       });
     }
   });

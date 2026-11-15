@@ -3,7 +3,7 @@ import { TelemetryService } from "../services/telemetry/telemetry.service.js";
 
 export const telemetryRoutes: FastifyPluginAsync = async (fastify) => {
   // Optional auth verification hook
-  fastify.addHook("onRequest", async (req, reply) => {
+  fastify.addHook("onRequest", async (req, _reply) => {
     try {
       if (req.headers.authorization) {
         await req.jwtVerify();
@@ -14,11 +14,11 @@ export const telemetryRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // GET /api/telemetry/summary - Top KPI Aggregates
-  fastify.get("/summary", async (req, reply) => {
+  fastify.get("/summary", async (_req, reply) => {
     try {
       const summary = await TelemetryService.getFleetSummary();
       return reply.send(summary);
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err);
       return reply
         .status(500)
@@ -27,11 +27,11 @@ export const telemetryRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // GET /api/telemetry/assets - List all tracked assets
-  fastify.get("/assets", async (req, reply) => {
+  fastify.get("/assets", async (_req, reply) => {
     try {
       const assets = await TelemetryService.getAllAssets();
       return reply.send(assets);
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err);
       return reply
         .status(500)
@@ -47,7 +47,7 @@ export const telemetryRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(404).send({ message: "Tracked asset not found" });
       }
       return reply.send(detail);
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err);
       return reply
         .status(500)
@@ -62,7 +62,7 @@ export const telemetryRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const history = await TelemetryService.getAssetHistory(req.params.id);
         return reply.send(history);
-      } catch (err: any) {
+      } catch (err: unknown) {
         fastify.log.error(err);
         return reply
           .status(500)
@@ -72,11 +72,11 @@ export const telemetryRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // GET /api/telemetry/geofences - List all configured geofences
-  fastify.get("/geofences", async (req, reply) => {
+  fastify.get("/geofences", async (_req, reply) => {
     try {
       const geofencesList = await TelemetryService.getGeofences();
       return reply.send(geofencesList);
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err);
       return reply.status(500).send({ message: "Error fetching geofences" });
     }
@@ -108,11 +108,12 @@ export const telemetryRoutes: FastifyPluginAsync = async (fastify) => {
         customValue,
       );
       return reply.send(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err);
-      return reply
-        .status(500)
-        .send({ message: err.message || "Error simulating anomaly" });
+      return reply.status(500).send({
+        message:
+          err instanceof Error ? err.message : "Error simulating anomaly",
+      });
     }
   });
 
@@ -127,7 +128,7 @@ export const telemetryRoutes: FastifyPluginAsync = async (fastify) => {
         req.body?.resolvedBy || "Control Tower Operator",
       );
       return reply.send(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
       fastify.log.error(err);
       return reply.status(500).send({ message: "Error resolving alert" });
     }

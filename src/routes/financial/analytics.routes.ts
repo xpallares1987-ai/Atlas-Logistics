@@ -1,3 +1,10 @@
+/**
+ * @file analytics.routes.ts
+ * @description Operational route handlers for financial profitability analytics, live exchange rates, and executive KPIs.
+ * @module @atlas/routes/financial/analytics
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import NodeCache from "node-cache";
 import { db } from "../../db/index.js";
@@ -9,15 +16,17 @@ import { eq, sql } from "drizzle-orm";
 const currencyCache = new NodeCache({ stdTTL: 43200 });
 
 export const financialAnalyticsRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get("/financials", async (request, reply) => {
+  fastify.get("/financials", async (_request, _reply) => {
     try {
       return [];
-    } catch (error: any) {
-      return reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return _reply.code(500).send({ error: message });
     }
   });
 
-  fastify.get("/exchange-rates", async (request, reply) => {
+  fastify.get("/exchange-rates", async (_request, reply) => {
     try {
       const cachedRates = currencyCache.get("rates");
       if (cachedRates) {
@@ -30,16 +39,20 @@ export const financialAnalyticsRoutes: FastifyPluginAsync = async (fastify) => {
       if (!response.ok) {
         throw new Error("Failed to fetch exchange rates");
       }
-      const data = await response.json();
+      const data = (await response.json()) as {
+        rates?: Record<string, number>;
+      };
       currencyCache.set("rates", data.rates);
 
       return reply.send({ data: data.rates, source: "api" });
-    } catch (error: any) {
-      return reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
     }
   });
 
-  fastify.get("/profitability", async (request, reply) => {
+  fastify.get("/profitability", async (_request, reply) => {
     try {
       const allItems = await db
         .select({
@@ -119,8 +132,10 @@ export const financialAnalyticsRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       return reply.send({ data, alerts });
-    } catch (error: any) {
-      return reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
     }
   });
 
@@ -158,8 +173,10 @@ export const financialAnalyticsRoutes: FastifyPluginAsync = async (fastify) => {
         overdueInvoices: hasData ? overdueCount.count : 7,
         totalRevenue: hasData ? revenueSum.total || 0 : 4200000,
       });
-    } catch (error: any) {
-      return reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
     }
   });
 
@@ -208,8 +225,10 @@ export const financialAnalyticsRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       return reply.send({ revenueTrend, volumeByStatus });
-    } catch (error: any) {
-      return reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
     }
   });
 };

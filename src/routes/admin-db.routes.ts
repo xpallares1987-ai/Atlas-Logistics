@@ -1,12 +1,28 @@
 import { FastifyPluginAsync } from "fastify";
 import { client } from "../db/index.js";
 
-const adminDbRoutes: FastifyPluginAsync = async (fastify, opts) => {
+interface ColumnInfo {
+  cid: unknown;
+  name: unknown;
+  type: unknown;
+  notnull: unknown;
+  dflt_value: unknown;
+  pk: unknown;
+}
+
+interface TableColumnInput {
+  name: string;
+  type: string;
+  pk?: boolean;
+  notnull?: boolean;
+}
+
+const adminDbRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   // Ensure only admins can access these routes
   fastify.addHook("onRequest", async (request, reply) => {
     // We assume authMiddleware is already running before this via app.ts
     // Check if user is admin
-    const user = (request as any).user;
+    const user = request.user;
     if (!user || user.role !== "ADMIN") {
       return reply
         .status(403)
@@ -15,12 +31,12 @@ const adminDbRoutes: FastifyPluginAsync = async (fastify, opts) => {
   });
 
   // Get full schema
-  fastify.get("/schema", async (request, reply) => {
+  fastify.get("/schema", async (_request, reply) => {
     try {
       const tablesResult = await client.execute(
         `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`,
       );
-      const schema: any = {};
+      const schema: Record<string, ColumnInfo[]> = {};
 
       for (const row of tablesResult.rows) {
         const tableName = row.name as string;
@@ -39,7 +55,7 @@ const adminDbRoutes: FastifyPluginAsync = async (fastify, opts) => {
       }
 
       return reply.send({ success: true, schema });
-    } catch (error) {
+    } catch (error: unknown) {
       fastify.log.error(error);
       return reply
         .status(500)
@@ -52,7 +68,7 @@ const adminDbRoutes: FastifyPluginAsync = async (fastify, opts) => {
     try {
       const { tableName, columns } = request.body as {
         tableName: string;
-        columns: any[];
+        columns: TableColumnInput[];
       };
 
       if (!tableName || !columns || columns.length === 0) {
@@ -85,9 +101,12 @@ const adminDbRoutes: FastifyPluginAsync = async (fastify, opts) => {
         success: true,
         message: `Table ${tableName} created successfully`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       fastify.log.error(error);
-      return reply.status(500).send({ success: false, error: error.message });
+      return reply.status(500).send({
+        success: false,
+        error: error instanceof Error ? error.message : "Table creation failed",
+      });
     }
   });
 
@@ -134,9 +153,13 @@ const adminDbRoutes: FastifyPluginAsync = async (fastify, opts) => {
         success: true,
         message: `Column ${columnName} added to ${table}`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       fastify.log.error(error);
-      return reply.status(500).send({ success: false, error: error.message });
+      return reply.status(500).send({
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Column addition failed",
+      });
     }
   });
 };

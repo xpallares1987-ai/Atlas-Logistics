@@ -1,4 +1,4 @@
-import { FastifyPluginAsync } from "fastify";
+import { FastifyPluginAsync, FastifyReply } from "fastify";
 import { db } from "../db/index.js";
 import { users } from "../db/schema/core.js";
 import { eq } from "drizzle-orm";
@@ -7,8 +7,13 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET =
   process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure";
 
-const authRoutes: FastifyPluginAsync = async (fastify, opts) => {
-  fastify.post(
+interface LoginBody {
+  email?: string;
+  password?: string;
+}
+
+const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
+  fastify.post<{ Body: LoginBody }>(
     "/login",
     {
       config: {
@@ -20,7 +25,7 @@ const authRoutes: FastifyPluginAsync = async (fastify, opts) => {
       },
     },
     async (request, reply) => {
-      const { email, password } = request.body as any;
+      const { email, password } = request.body || {};
 
       if (!email || !password) {
         return reply
@@ -47,9 +52,19 @@ const authRoutes: FastifyPluginAsync = async (fastify, opts) => {
           return reply.code(401).send({ error: "Invalid credentials" });
         }
 
-        const userName = (user as any).firstName
-          ? `${(user as any).firstName} ${(user as any).lastName}`
-          : user.email.split("@")[0];
+        const userRecord = user as unknown as Record<string, unknown>;
+        const firstName =
+          typeof userRecord.firstName === "string"
+            ? userRecord.firstName
+            : undefined;
+        const lastName =
+          typeof userRecord.lastName === "string"
+            ? userRecord.lastName
+            : undefined;
+        const userName =
+          firstName && lastName
+            ? `${firstName} ${lastName}`
+            : user.email.split("@")[0];
 
         const token = jwt.sign(
           {
@@ -72,7 +87,7 @@ const authRoutes: FastifyPluginAsync = async (fastify, opts) => {
             role: user.role,
           },
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         request.log.error(error);
         return reply.code(500).send({ error: "Internal server error" });
       }
@@ -109,17 +124,20 @@ const authRoutes: FastifyPluginAsync = async (fastify, opts) => {
           authenticated: true,
           user: decoded,
         });
-      } catch (err) {
+      } catch (_err: unknown) {
         return reply.code(401).send({ error: "Invalid token" });
       }
     },
   );
 
-  fastify.post("/logout", async (request, reply) => {
+  fastify.post("/logout", async (_request, reply) => {
     try {
-      if (typeof (reply as any).clearCookie === "function") {
-        (reply as any).clearCookie("token");
-        (reply as any).clearCookie("auth_session");
+      const replyWithCookie = reply as FastifyReply & {
+        clearCookie?: (name: string) => void;
+      };
+      if (typeof replyWithCookie.clearCookie === "function") {
+        replyWithCookie.clearCookie("token");
+        replyWithCookie.clearCookie("auth_session");
       }
       return reply.send({
         success: true,

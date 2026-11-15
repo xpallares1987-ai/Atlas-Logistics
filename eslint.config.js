@@ -94,5 +94,21 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Issue #9 Phase 3: Progressive strict typing for Operational Controllers & Route Handlers
+    files: ["src/routes/**/*.ts"],
+    ignores: ["src/routes/**/*.test.ts", "src/routes/**/__tests__/**"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
   storybook.configs["flat/recommended"],
 );

@@ -6,7 +6,7 @@ import {
   carbonOffsetProjects,
   carbonCertificates,
 } from "../db/schema/index.js";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import {
   GlecCalculatorService,
@@ -17,7 +17,7 @@ import { CarbonPdfService } from "../services/carbon/carbon-pdf.service.js";
 
 export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
   // Optional auth verification hook (allows unauthenticated in test if needed or verifies JWT)
-  fastify.addHook("onRequest", async (req, reply) => {
+  fastify.addHook("onRequest", async (req, _reply) => {
     try {
       if (req.headers.authorization) {
         await req.jwtVerify();
@@ -94,11 +94,12 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         activeProjectsCount: projects.filter((p) => p.active).length,
         issuedCertificatesCount: certificates.length,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       req.log.error(err);
-      return reply
-        .status(500)
-        .send({ error: "Database error", message: err.message });
+      return reply.status(500).send({
+        error: "Database error",
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   });
 
@@ -134,11 +135,12 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       return reply.send(filtered);
-    } catch (err: any) {
+    } catch (err: unknown) {
       req.log.error(err);
-      return reply
-        .status(500)
-        .send({ error: "Database error", message: err.message });
+      return reply.status(500).send({
+        error: "Database error",
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   });
 
@@ -169,11 +171,12 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         ...calculation,
         legs,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       req.log.error(err);
-      return reply
-        .status(500)
-        .send({ error: "Database error", message: err.message });
+      return reply.status(500).send({
+        error: "Database error",
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   });
 
@@ -244,11 +247,12 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         referenceCode,
         journey,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       req.log.error(err);
-      return reply
-        .status(500)
-        .send({ error: "Calculation Error", message: err.message });
+      return reply.status(500).send({
+        error: "Calculation Error",
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   });
 
@@ -273,11 +277,12 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         baseJourney: base,
         alternatives,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       req.log.error(err);
-      return reply
-        .status(500)
-        .send({ error: "Comparison Error", message: err.message });
+      return reply.status(500).send({
+        error: "Comparison Error",
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   });
 
@@ -289,11 +294,12 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         .from(carbonOffsetProjects)
         .where(eq(carbonOffsetProjects.active, true));
       return reply.send(projects);
-    } catch (err: any) {
+    } catch (err: unknown) {
       req.log.error(err);
-      return reply
-        .status(500)
-        .send({ error: "Database error", message: err.message });
+      return reply.status(500).send({
+        error: "Database error",
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   });
 
@@ -322,11 +328,12 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         success: true,
         certificate: result,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       req.log.error(err);
-      return reply
-        .status(500)
-        .send({ error: "Offset Processing Error", message: err.message });
+      return reply.status(500).send({
+        error: "Offset Processing Error",
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   });
 
@@ -338,11 +345,12 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
         .from(carbonCertificates)
         .orderBy(desc(carbonCertificates.issuedAt));
       return reply.send(certificates);
-    } catch (err: any) {
+    } catch (err: unknown) {
       req.log.error(err);
-      return reply
-        .status(500)
-        .send({ error: "Database error", message: err.message });
+      return reply.status(500).send({
+        error: "Database error",
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   });
 
@@ -409,11 +417,12 @@ export const carbonRoutes: FastifyPluginAsync = async (fastify) => {
           `inline; filename="Scope3_Carbon_Certificate_${cert.certificateNumber}.pdf"`,
         )
         .send(pdfBuffer);
-    } catch (err: any) {
+    } catch (err: unknown) {
       req.log.error(err);
-      return reply
-        .status(500)
-        .send({ error: "PDF Generation Error", message: err.message });
+      return reply.status(500).send({
+        error: "PDF Generation Error",
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   });
 };

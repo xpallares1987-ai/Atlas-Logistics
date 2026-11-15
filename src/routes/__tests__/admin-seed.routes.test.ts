@@ -36,7 +36,7 @@ describe("Admin Seed Management Routes", () => {
     expect(response.statusCode).toBe(400);
     const body = JSON.parse(response.payload);
     expect(body.success).toBe(false);
-    expect(body.error).toContain("Fase desconocida");
+    expect(body.error).toContain("Unknown phase");
   });
 
   it("POST /api/admin/seed/2 executes Phase 2 seed successfully", async () => {

@@ -1,10 +1,16 @@
+/**
+ * @file seed-data.ts
+ * @description Operations domain seeder initializing demo shipments, containers, warehouse traffic, and inventory.
+ * @module @atlas/routes/operations/seed-data
+ * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
+ */
+
 import crypto from "crypto";
 import { db } from "../../db/index.js";
 import {
   shipments,
   shipmentContainers,
   bookings,
-  cargoItems,
   warehouseTraffic,
 } from "../../db/schema/operations.js";
 import { companies, locations } from "../../db/schema/core.js";

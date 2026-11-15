@@ -8,38 +8,47 @@ import { logger } from "../config/logger.js";
 
 export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // GET /api/control-tower/kpis
-  fastify.get("/kpis", async (_request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const kpis = await ControlTowerService.getKpis();
-      return reply.send({ success: true, data: kpis });
-    } catch (err: any) {
-      logger.error({ err }, "Failed to get control tower KPIs");
-      return reply.status(500).send({
-        success: false,
-        error: "No se pudieron obtener las métricas de la Torre de Control",
-        details: err?.message,
-      });
-    }
-  });
+  fastify.get(
+    "/kpis",
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const kpis = await ControlTowerService.getKpis();
+        return reply.send({ success: true, data: kpis });
+      } catch (err: unknown) {
+        logger.error({ err }, "Failed to get control tower KPIs");
+        return reply.status(500).send({
+          success: false,
+          error: "Failed to retrieve control tower KPI metrics",
+          details: err instanceof Error ? err.message : String(err),
+        });
+      }
+    },
+  );
 
   // GET /api/control-tower/incidents
   fastify.get(
     "/incidents",
     async (
       request: FastifyRequest<{
-        Querystring: { status?: string; severity?: string; incidentType?: string };
+        Querystring: {
+          status?: string;
+          severity?: string;
+          incidentType?: string;
+        };
       }>,
       reply: FastifyReply,
     ) => {
       try {
-        const incidents = await ControlTowerService.listIncidents(request.query);
+        const incidents = await ControlTowerService.listIncidents(
+          request.query,
+        );
         return reply.send({ success: true, data: incidents });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error({ err }, "Failed to list incidents");
         return reply.status(500).send({
           success: false,
-          error: "Error al listar incidencias operativas",
-          details: err?.message,
+          error: "Failed to list operational incidents",
+          details: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -59,16 +68,16 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
         if (!incident) {
           return reply.status(404).send({
             success: false,
-            error: "Incidencia no encontrada",
+            error: "Incident not found",
           });
         }
         return reply.send({ success: true, data: incident });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error({ err }, "Failed to get incident");
         return reply.status(500).send({
           success: false,
-          error: "Error al obtener la incidencia",
-          details: err?.message,
+          error: "Failed to retrieve incident",
+          details: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -84,12 +93,12 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
       try {
         const result = await ControlTowerService.createIncident(request.body);
         return reply.status(201).send({ success: true, data: result });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error({ err }, "Failed to create incident");
         return reply.status(500).send({
           success: false,
-          error: "Error al registrar la incidencia",
-          details: err?.message,
+          error: "Failed to register operational incident",
+          details: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -108,15 +117,15 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
       try {
         const options = await ControlTowerService.generateRerouteOptions(
           request.params.id,
-          request.body?.contextTitle || "Incidencia de Transporte",
+          request.body?.contextTitle || "Transport Incident",
         );
         return reply.send({ success: true, data: options });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error({ err }, "Failed to generate reroute options");
         return reply.status(500).send({
           success: false,
-          error: "Error al calcular alternativas de re-enrutamiento",
-          details: err?.message,
+          error: "Failed to calculate reroute alternatives",
+          details: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -128,7 +137,11 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
     async (
       request: FastifyRequest<{
         Params: { id: string };
-        Body: { action: string; selectedOptionId?: string; resolvedBy?: string };
+        Body: {
+          action: string;
+          selectedOptionId?: string;
+          resolvedBy?: string;
+        };
       }>,
       reply: FastifyReply,
     ) => {
@@ -140,12 +153,12 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
           request.body.resolvedBy,
         );
         return reply.send({ success: true, data: result });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error({ err }, "Failed to resolve incident");
         return reply.status(500).send({
           success: false,
-          error: "Error al ejecutar la resolución del incidente",
-          details: err?.message,
+          error: "Failed to execute incident resolution",
+          details: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -158,12 +171,12 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
       try {
         const matches = await ControlTowerService.getFreightAuditMatches();
         return reply.send({ success: true, data: matches });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error({ err }, "Failed to get freight audit matches");
         return reply.status(500).send({
           success: false,
-          error: "Error al obtener conciliaciones de auditoría de fletes",
-          details: err?.message,
+          error: "Failed to retrieve freight audit matches",
+          details: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -189,12 +202,12 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
           request.body,
         );
         return reply.status(201).send({ success: true, data: dispute });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error({ err }, "Failed to file freight dispute");
         return reply.status(500).send({
           success: false,
-          error: "Error al emitir la disputa de flete",
-          details: err?.message,
+          error: "Failed to file freight dispute",
+          details: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -207,12 +220,12 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
       try {
         const radar = await ControlTowerService.getCustomsRadar();
         return reply.send({ success: true, data: radar });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error({ err }, "Failed to get customs radar");
         return reply.status(500).send({
           success: false,
-          error: "Error al consultar el radar aduanero ICS2",
-          details: err?.message,
+          error: "Failed to query ICS2 customs radar",
+          details: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -235,12 +248,12 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
       try {
         const ens = await ControlTowerService.fileIcs2Declaration(request.body);
         return reply.status(201).send({ success: true, data: ens });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error({ err }, "Failed to file ICS2 declaration");
         return reply.status(500).send({
           success: false,
-          error: "Error al presentar la declaración ENS ICS2",
-          details: err?.message,
+          error: "Failed to submit ICS2 ENS declaration",
+          details: err instanceof Error ? err.message : String(err),
         });
       }
     },
@@ -256,12 +269,12 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
       try {
         const calculation = ControlTowerService.calculateSpotRate(request.body);
         return reply.send({ success: true, data: calculation });
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error({ err }, "Failed to calculate spot rate");
         return reply.status(500).send({
           success: false,
-          error: "Error al calcular la cotización multimodal spot",
-          details: err?.message,
+          error: "Failed to calculate multimodal spot rate",
+          details: err instanceof Error ? err.message : String(err),
         });
       }
     },

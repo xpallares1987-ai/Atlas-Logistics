@@ -100,9 +100,9 @@ const semanticSearchSchema = z.object({
   topK: z.number().min(1).max(20).default(5),
 });
 
-function parseMetadataObj(raw: unknown): Record<string, any> {
+function parseMetadataObj(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
-  if (typeof raw === "object") return { ...(raw as Record<string, any>) };
+  if (typeof raw === "object") return { ...(raw as Record<string, unknown>) };
   if (typeof raw === "string") {
     try {
       return JSON.parse(raw);
@@ -173,9 +173,12 @@ export default async function aiRoutes(fastify: FastifyInstance) {
           "API Key de Google AI Studio vinculada correctamente (Modo Free-Tier On-Demand activo).",
         status: getGeminiServiceStatus(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return reply.code(400).send({
-        error: error.message || "Invalid API key configuration payload",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Invalid API key configuration payload",
       });
     }
   });
@@ -230,7 +233,7 @@ export default async function aiRoutes(fastify: FastifyInstance) {
         reviewId,
         source: aiRes.source,
       };
-    } catch (error) {
+    } catch (_error: unknown) {
       return reply.code(400).send({ error: "Invalid input data" });
     }
   });
@@ -316,10 +319,13 @@ export default async function aiRoutes(fastify: FastifyInstance) {
         quota: result.quota,
         timestamp: new Date().toISOString(),
       };
-    } catch (error: any) {
-      return reply
-        .code(400)
-        .send({ error: error.message || "Error processing chat message" });
+    } catch (error: unknown) {
+      return reply.code(400).send({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error processing chat message",
+      });
     }
   });
 
@@ -411,9 +417,12 @@ Datos reales en SQLite:
         ),
         quota: result.quota,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return reply.code(400).send({
-        error: error.message || "Error generating FMC dispute draft",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error generating FMC dispute draft",
       });
     }
   });
@@ -509,9 +518,12 @@ Devuelve JSON con: ctuCompliant (boolean), safetyScore (0-100), imdgCompatibilit
         ),
         quota: result.quota,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return reply.code(400).send({
-        error: error.message || "Error running 3D stowage safety audit",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error running 3D stowage safety audit",
       });
     }
   });
@@ -610,9 +622,12 @@ Devuelve JSON con: suggestedHsCode (string), hsDescription (string), cbamApplica
         ),
         quota: result.quota,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return reply.code(400).send({
-        error: error.message || "Error running DCSA & Customs AI check",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error running DCSA & Customs AI check",
       });
     }
   });
@@ -700,9 +715,12 @@ Devuelve JSON con: instrumentReference, compliantWithUcp600 (boolean), presentat
         ),
         quota: result.quota,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return reply.code(400).send({
-        error: error.message || "Error running UCP 600 L/C audit",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error running UCP 600 L/C audit",
       });
     }
   });
@@ -800,9 +818,12 @@ Devuelve JSON con: documentType, bookingReference, invoiceNumber, packingListNum
         ),
         quota: result.quota,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return reply.code(400).send({
-        error: error.message || "Error extracting multimodal document",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error extracting multimodal document",
       });
     }
   });
@@ -877,9 +898,12 @@ Devuelve JSON con: shiftHeadline (string), overallRiskLevel ("LOW"|"MODERATE"|"H
         ),
         quota: result.quota,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return reply.code(400).send({
-        error: error.message || "Error generating executive briefing",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error generating executive briefing",
       });
     }
   });
@@ -953,9 +977,12 @@ Devuelve JSON con: shiftHeadline (string), overallRiskLevel ("LOW"|"MODERATE"|"H
         ),
         quota: searchRes.quota,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return reply.code(400).send({
-        error: error.message || "Error executing semantic protocol search",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error executing semantic protocol search",
       });
     }
   });

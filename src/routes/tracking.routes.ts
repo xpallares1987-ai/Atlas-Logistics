@@ -1,3 +1,10 @@
+/**
+ * @file tracking.routes.ts
+ * @description Public and authenticated cargo tracking routes, AIS vessel location webhooks, and milestone history.
+ * @module @atlas/api/routes/tracking
+ * @see {@link docs/adr/0019-centralized-correlation-and-distributed-tracing.md}
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import { logger } from "../config/logger.js";
 import { broadcastEvent } from "./events.routes.js";
@@ -11,9 +18,26 @@ import {
 } from "../db/schema/index.js";
 import { eq, or } from "drizzle-orm";
 
-const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
-  fastify.post("/webhook/ais", async (request, reply) => {
-    // 1. Validar la clave de API estática
+interface AISWebhookPayload {
+  trackingNumber: string;
+  imoNumber: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+  eta?: string;
+}
+
+interface CreateShipmentPayload {
+  origin?: string;
+  destination?: string;
+  type?: string;
+}
+
+const trackingRoutes: FastifyPluginAsync = async (fastify, _opts) => {
+  fastify.post<{
+    Body: AISWebhookPayload;
+  }>("/webhook/ais", async (request, reply) => {
+    // 1. Validate static API key
     const apiKey = request.headers["x-api-key"];
     if (apiKey !== (process.env.AIS_WEBHOOK_SECRET || "atlas-ais-secret-123")) {
       logger.warn("Unauthorized access attempt to AIS Webhook");
@@ -22,14 +46,7 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
     }
 
     try {
-      const payload = request.body as {
-        trackingNumber: string;
-        imoNumber: string;
-        latitude: number;
-        longitude: number;
-        status: string;
-        eta?: string;
-      };
+      const payload = request.body;
 
       if (!payload.trackingNumber || !payload.status) {
         reply
@@ -59,7 +76,6 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
 
       const shipment = shipmentRes[0];
       const newStatus = payload.status;
-      const locationStr = `${payload.latitude},${payload.longitude}`;
 
       // Update the shipment
       await db
@@ -88,13 +104,17 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
         `Shipment ${payload.trackingNumber} updated successfully via AIS Webhook.`,
       );
       reply.code(200).send({ success: true, message: "Tracking updated" });
-    } catch (error: any) {
-      logger.error("Error processing AIS Webhook:", error);
-      reply.code(500).send({ success: false, error: error.message });
+    } catch (error: unknown) {
+      logger.error({ err: error }, "Error processing AIS Webhook:");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Internal error processing AIS webhook";
+      reply.code(500).send({ success: false, error: message });
     }
   });
 
-  fastify.get("/my-shipments", async (request, reply) => {
+  fastify.get("/my-shipments", async (_request, reply) => {
     try {
       // Mock auth: fetch shipments for the first company in the DB
       const companyIdRes = await db
@@ -110,15 +130,13 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
           id: shipments.id,
           referenceNumber: shipments.id,
           origin: locations.name,
-          destination: locations.name, // Mocking destination name same as origin for now if joined improperly, but let's just send raw ID if location join is complex. Actually we can just select all.
+          destination: locations.name,
           status: shipments.status,
         })
         .from(shipments)
         .leftJoin(locations, eq(shipments.portOfEntryId, locations.id))
         .where(eq(shipments.companyId, clientCompanyId))
         .limit(10);
-
-      const { shipmentEventLogs } = await import("../db/schema/index.js");
 
       const enrichedShipments = await Promise.all(
         clientShipments.map(async (shipment) => {
@@ -138,14 +156,18 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
       );
 
       return reply.send(enrichedShipments);
-    } catch (error: any) {
-      reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to fetch shipments";
+      reply.code(500).send({ error: message });
     }
   });
 
-  fastify.post("/my-shipments", async (request, reply) => {
+  fastify.post<{
+    Body: CreateShipmentPayload;
+  }>("/my-shipments", async (request, reply) => {
     try {
-      const data: any = request.body;
+      const data = request.body;
       const shipmentId = crypto.randomUUID();
 
       // Find first company to mock client auth
@@ -170,14 +192,18 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
       });
 
       return reply.send({ success: true, shipmentId });
-    } catch (error: any) {
-      reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to create shipment";
+      reply.code(500).send({ error: message });
     }
   });
 
-  fastify.get("/:ref", async (request, reply) => {
+  fastify.get<{
+    Params: { ref: string };
+  }>("/:ref", async (request, reply) => {
     try {
-      const { ref } = request.params as { ref: string };
+      const { ref } = request.params;
       if (!ref) {
         return reply
           .code(400)
@@ -338,9 +364,13 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, opts) => {
         error:
           "Shipment not found. Please verify the tracking number or booking reference.",
       });
-    } catch (error: any) {
-      logger.error("Error in public tracking endpoint:", error);
-      reply.code(500).send({ error: error.message });
+    } catch (error: unknown) {
+      logger.error({ err: error }, "Error in public tracking endpoint:");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to retrieve tracking info";
+      reply.code(500).send({ error: message });
     }
   });
 };

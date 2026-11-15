@@ -109,3 +109,4 @@ docs/
 - [**External Data Governance Specification**](superpowers/specs/external-data-governance-spec.md)
 - [**Issue #9 Phase 1: Strict TypeScript ESLint Restoration (SCM Domain)**](superpowers/plans/2026-11-14-issue-9-strict-eslint-restoration-scm.md)
 - [**Issue #9 Phase 2: Strict TypeScript ESLint Restoration (Security & Identity Layer)**](superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-security-identity.md)
+- [**Issue #9 Phase 3: Strict TypeScript ESLint Restoration (Operational Controllers & Routes)**](superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md)
