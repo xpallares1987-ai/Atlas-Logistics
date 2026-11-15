@@ -74,7 +74,7 @@ export default tseslint.config(
     },
   },
   {
-    // Issue #9 Phase 1: Progressive strict typing for SCM domain
+    // Issue #9 Phase 1 & P1.4 Architectural Boundaries: Strict typing and framework isolation for SCM domain
     files: ["src/scm/**/*.ts"],
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
@@ -84,6 +84,68 @@ export default tseslint.config(
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
           caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "fastify",
+              message:
+                "Domain layer (src/scm) must not depend on HTTP framework (fastify).",
+            },
+            {
+              name: "vite",
+              message:
+                "Domain layer (src/scm) must not depend on frontend bundler (vite).",
+            },
+            {
+              name: "react",
+              message:
+                "Domain layer (src/scm) must not depend on UI library (react).",
+            },
+            {
+              name: "react-dom",
+              message:
+                "Domain layer (src/scm) must not depend on UI library (react-dom).",
+            },
+          ],
+          patterns: [
+            {
+              group: ["@atlas/frontend*", "@atlas/ui*", "packages/frontend*"],
+              message:
+                "Domain layer (src/scm) must never import from frontend or UI presentation packages.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // P1.4 Pure Domain Engines: Zero ORM or database driver coupling inside pure calculation/validation engines
+    files: ["src/scm/engines/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "drizzle-orm",
+              message:
+                "Pure SCM domain engines (src/scm/engines) must remain decoupled from Drizzle ORM.",
+            },
+            {
+              name: "@libsql/client",
+              message:
+                "Pure SCM domain engines (src/scm/engines) must remain decoupled from libSQL database driver.",
+            },
+            {
+              name: "fastify",
+              message:
+                "Pure SCM domain engines (src/scm/engines) must remain decoupled from Fastify HTTP.",
+            },
+          ],
         },
       ],
     },

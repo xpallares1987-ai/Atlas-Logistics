@@ -49,6 +49,8 @@ docs/
 - [**Security, Backup & Leak Prevention Policy**](setup-guides/security-backup-policy.md) — Pre-commit leak scanning, secrets rotation, and SQLite online backup routines.
 - [**Production Deployment Handbook**](deployment/DEPLOYMENT_HANDBOOK.md) — Production Compose rollout, load testing, and operational verification.
 - [**GitHub Pages SPA Continuous Deployment Guide**](deployment/pages-spa-deployment.md) — Gated production deployment, ephemeral PR preview environments, and SPA client routing 404 fallback.
+- [**SQLite WAL Disaster Recovery & Rollback Runbook**](runbooks/DISASTER_RECOVERY.md) — Online `VACUUM INTO` snapshot recovery, corruption remediation, and emergency rollback procedures.
+- [**GitHub Secrets & CI/CD Pipeline Setup Guide**](setup-guides/GITHUB_SETUP.md) — Encrypted repository secrets, container registries, and workflow configuration.
 
 ---
 
@@ -58,6 +60,7 @@ docs/
 - [**Database Schema Inventory & Relational Map**](reference/database-schema-full-inventory-and-relational-map.md) — Full relational map of all domain tables across SQLite schema modules.
 - [**Authoritative Dev DDL Export**](reference/dev-database-schema-ddl-export.sql) — Clean DDL export snapshot of the active development database schema.
 - [**Project Structure & Module Layout**](reference/PROJECT_STRUCTURE.md) — Monorepo workspace hierarchy, package contracts, and directory conventions.
+- [**Docker & Monorepo Build Optimization Reference**](reference/BUILD_OPTIMIZATION.md) — Multi-stage BuildKit caching, layer ordering, and bundle optimization benchmarks.
 - [**Technical Audit Executive Closure**](reference/technical-audit-executive-closure-2026-11-14.md) — Authoritative audit scorecard, risk closure verification, and platform maturity summary.
 - **Regulatory & Domain Standards**:
   - *FMC 46 CFR Part 541*: Mandatory demurrage/detention billing rules and legal dispute parameters.
