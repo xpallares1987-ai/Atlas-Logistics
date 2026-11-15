@@ -5,29 +5,22 @@ services:
       - ../..:/workspaces:cached
     command: sleep infinity
     environment:
-      DATABASE_HOST: db
-      DATABASE_PORT: "5432"
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: postgres
-      DATABASE_NAME: appdb
-      DATABASE_URL: "postgresql://postgres:postgres@db:5432/appdb"
       NODE_ENV: development
-      PORT: "3000"
+      PORT: "3001"
+      DATABASE_URL: "file:./data/dev.db"
+      REDIS_URL: "redis://redis:6379"
+      COOKIE_SECRET: "development-cookie-secret-min-32-chars-long"
+      JWT_SECRET: "development-jwt-secret-min-32-chars-long"
     depends_on:
-      - db
+      - redis
 
-  db:
-    image: postgres:16-bookworm
+  redis:
+    image: redis:7-alpine
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: appdb
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     ports:
-      - "5432:5432"
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
 
 volumes:
-  postgres-data:
+  redis-data:

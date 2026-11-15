@@ -1,26 +1,40 @@
 {
-  "name": "Atlas Logistics",
+  "name": "Atlas Logistics Enterprise",
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "20",
-      "pnpmVersion": "10"
+      "version": "22",
+      "pnpmVersion": "11"
     }
   },
   "containerEnv": {
     "NODE_ENV": "development",
-    "PORT": "3000",
-    "DATABASE_URL": "file:./atlas-erp-v2.db"
+    "PORT": "3001",
+    "DATABASE_URL": "file:./data/dev.db",
+    "REDIS_URL": "redis://redis:6379"
   },
-  "forwardPorts": [3000],
-  "postCreateCommand": "pnpm install",
+  "forwardPorts": [3001, 5173, 6379],
+  "portsAttributes": {
+    "3001": {
+      "label": "Atlas Fastify API",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Atlas Frontend SPA",
+      "onAutoForward": "openBrowser"
+    },
+    "6379": {
+      "label": "Redis Cache & Queue",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "pnpm install && mkdir -p data && pnpm run db:migrate && pnpm run db:seed",
   "customizations": {
     "vscode": {
       "extensions": [
         "google.geminicodeassist",
-        "google.gemini-cli-vscode-ide-companion",
         "dbaeumer.vscode-eslint",
         "bradlc.vscode-tailwindcss",
         "esbenp.prettier-vscode",
