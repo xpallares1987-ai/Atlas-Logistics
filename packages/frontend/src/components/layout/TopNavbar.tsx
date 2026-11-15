@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, Bell, Settings, ShoppingCart, X, FileText } from "lucide-react";
-import autoTable from "jspdf-autotable";
 import { OmniSearch } from "@atlas/ui/src/components/OmniSearch";
 import { useAppStore } from "../../store/useAppStore";
 import { useAuth } from "../../contexts/AuthContext";
@@ -197,7 +196,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
                       setIsGeneratingPdf(true);
                       try {
                         const { jsPDF } = await import("jspdf");
-                        await import("jspdf-autotable");
+                        const autoTableModule = await import("jspdf-autotable");
+                        const autoTable =
+                          autoTableModule.default || autoTableModule;
 
                         const doc = new jsPDF();
 

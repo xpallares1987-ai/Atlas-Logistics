@@ -86,6 +86,16 @@ export default defineConfig({
     cssCodeSplit: true,
     modulePreload: {
       polyfill: false,
+      resolveDependencies: (_filename, deps) => {
+        return deps.filter(
+          (dep) =>
+            !dep.includes("three-") &&
+            !dep.includes("bpmn-") &&
+            !dep.includes("jspdf-") &&
+            !dep.includes("recharts-") &&
+            !dep.includes("d3-"),
+        );
+      },
     },
     chunkSizeWarningLimit: 2500,
     rollupOptions: {

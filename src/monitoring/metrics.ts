@@ -1,18 +1,52 @@
-import { register, Counter, Histogram, Gauge } from "prom-client";
+/**
+ * @file metrics.ts
+ * @description Centralized Prometheus observability metrics definition for Atlas Logistics backend.
+ * Provides system, database, redis, queue, and business metrics using @prometheus-io/client.
+ * @module @atlas/backend/monitoring/metrics
+ * @see {@link docs/superpowers/plans/2026-11-14-governance-hardening-and-observability-plan.md}
+ */
 
-// ============ HTTP Request Metrics ============
-export const httpRequestDuration = new Histogram({
-  name: "http_request_duration_seconds",
-  help: "Duration of HTTP requests in seconds",
-  labelNames: ["method", "route", "status"],
-  buckets: [0.001, 0.01, 0.05, 0.1, 0.5, 1, 2, 5],
-});
+import { register, Counter, Histogram, Gauge } from "@prometheus-io/client";
 
-export const httpRequestTotal = new Counter({
-  name: "http_requests_total",
-  help: "Total HTTP requests",
-  labelNames: ["method", "route", "status"],
-});
+// ============ HTTP Request Metrics (Managed via fastify-metrics) ============
+export const getHttpRequestDuration = (): Histogram<string> | undefined =>
+  register.getSingleMetric("http_request_duration_seconds") as
+    Histogram<string> | undefined;
+
+export const getHttpRequestTotal = (): Counter<string> | undefined =>
+  register.getSingleMetric("http_requests_total") as
+    Counter<string> | undefined;
+
+// Defensive backwards-compatible proxies
+export const httpRequestDuration = {
+  startTimer: (labels?: Record<string, string | number>) =>
+    getHttpRequestDuration()?.startTimer(labels),
+  observe: (labelsOrValue: any, value?: number) => {
+    const metric = getHttpRequestDuration();
+    if (!metric) return;
+    if (typeof labelsOrValue === "number") {
+      metric.observe(labelsOrValue);
+    } else if (typeof value === "number") {
+      metric.observe(labelsOrValue, value);
+    }
+  },
+};
+
+export const httpRequestTotal = {
+  inc: (labelsOrValue?: any, value?: number) => {
+    const metric = getHttpRequestTotal();
+    if (!metric) return;
+    if (typeof labelsOrValue === "number") {
+      metric.inc(labelsOrValue);
+    } else if (labelsOrValue && typeof value === "number") {
+      metric.inc(labelsOrValue, value);
+    } else if (labelsOrValue) {
+      metric.inc(labelsOrValue);
+    } else {
+      metric.inc();
+    }
+  },
+};
 
 // ============ Database Metrics ============
 export const dbQueryDuration = new Histogram({
