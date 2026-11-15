@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 /**
  * JWT Secret Configuration Security Tests
@@ -73,7 +73,7 @@ describe("JWT Secret Configuration", () => {
     it("should not fall back to 'secret' or other defaults", () => {
       const defaults = ["secret", "password", "12345678", "default"];
 
-      for (const defaultVal of defaults) {
+      for (const _defaultVal of defaults) {
         // Application would fail, not use these
         const isNotUsed = true;
         expect(isNotUsed).toBe(true);

@@ -1,3 +1,10 @@
+/**
+ * @file jwt.ts
+ * @description JSON Web Token configuration, startup entropy validation, and cryptographic signing parameters.
+ * @module @atlas/api/config/jwt
+ * @see {@link docs/adr/0018-cross-tenant-security-and-jwt-rbac-contracts.md}
+ */
+
 import { logger } from "./logger.js";
 
 /**
@@ -44,7 +51,6 @@ export function validateJWTConfig(): JWTConfig {
 
   // 3. Warn if using test/development secret
   const isDev = process.env.NODE_ENV === "development";
-  const isTest = process.env.NODE_ENV === "test";
   const isProduction = process.env.NODE_ENV === "production";
 
   if (isProduction && JWT_SECRET.includes("test")) {

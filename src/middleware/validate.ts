@@ -1,10 +1,27 @@
+/**
+ * @file validate.ts
+ * @description Request payload validation middleware leveraging Zod schema contracts.
+ * @module @atlas/api/middleware/validate
+ * @see {@link docs/adr/0018-cross-tenant-security-and-jwt-rbac-contracts.md}
+ */
+
 import { FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 
 export const validate = (schema: z.ZodTypeAny) => {
-  return async (request: FastifyRequest, reply: FastifyReply) => {
+  return async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> => {
     try {
-      const shape = (schema as any).shape;
+      const candidate = schema as unknown as {
+        shape?: Record<string, unknown>;
+      };
+      const shape =
+        typeof candidate.shape === "object" && candidate.shape !== null
+          ? candidate.shape
+          : undefined;
+
       if (shape && ("body" in shape || "query" in shape || "params" in shape)) {
         await schema.parseAsync({
           body: request.body,

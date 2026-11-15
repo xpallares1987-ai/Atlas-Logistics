@@ -79,5 +79,20 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Issue #9 Phase 2: Progressive strict typing for Security & Identity Layer
+    files: ["src/middleware/**/*.ts", "src/config/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
   storybook.configs["flat/recommended"],
 );

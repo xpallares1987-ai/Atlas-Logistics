@@ -1,3 +1,10 @@
+/**
+ * @file secrets.ts
+ * @description Secure environment and mounted secrets loader for container and cloud execution.
+ * @module @atlas/api/config/secrets
+ * @see {@link docs/adr/0018-cross-tenant-security-and-jwt-rbac-contracts.md}
+ */
+
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";

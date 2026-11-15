@@ -867,7 +867,19 @@ export async function confirmBookingToShipment(
       // 5.4 Insert drayage transport order if all 3 addresses are present
       if (originTerminal && destinationAddress && haulierAddress) {
         const orderId = `dry_${uuidv4().substring(0, 8)}`;
-        const orderNumber = `DRY-${year}${String(now.getMonth() + 1).padStart(2, "0")}-${Date.now().toString().slice(-4)}${crypto.randomInt(1000, 9999)}`;
+        let orderNumber = `DRY-${year}${String(now.getMonth() + 1).padStart(2, "0")}-${crypto.randomInt(1000, 10000)}`;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const candidate = `DRY-${year}${String(now.getMonth() + 1).padStart(2, "0")}-${crypto.randomInt(1000, 10000)}`;
+          const existing = await db
+            .select({ id: drayageTransportOrders.id })
+            .from(drayageTransportOrders)
+            .where(eq(drayageTransportOrders.orderNumber, candidate))
+            .limit(1);
+          if (existing.length === 0) {
+            orderNumber = candidate;
+            break;
+          }
+        }
 
         const distKm = Number(drayageData.distanceKm) || 42.5;
         const bRate =

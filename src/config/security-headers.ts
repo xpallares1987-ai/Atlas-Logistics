@@ -1,4 +1,20 @@
-import { FastifyInstance } from "fastify";
+/**
+ * @file security-headers.ts
+ * @description HTTP security headers registration, HTTPS enforcement, and Content Security Policy directives.
+ * @module @atlas/api/config/security-headers
+ * @see {@link docs/adr/0018-cross-tenant-security-and-jwt-rbac-contracts.md}
+ */
+
+import {
+  FastifyInstance,
+  RawServerBase,
+  RawServerDefault,
+  RawRequestDefaultExpression,
+  RawReplyDefaultExpression,
+  FastifyBaseLogger,
+  FastifyTypeProvider,
+  FastifyTypeProviderDefault,
+} from "fastify";
 import { logger } from "./logger.js";
 
 /**
@@ -18,8 +34,16 @@ export interface SecurityHeadersConfig {
 /**
  * Register security headers middleware
  */
-export function registerSecurityHeaders(
-  app: FastifyInstance<any, any, any, any>,
+export function registerSecurityHeaders<
+  RawServer extends RawServerBase = RawServerDefault,
+  RawRequest extends RawRequestDefaultExpression<RawServer> =
+    RawRequestDefaultExpression<RawServer>,
+  RawReply extends RawReplyDefaultExpression<RawServer> =
+    RawReplyDefaultExpression<RawServer>,
+  Logger extends FastifyBaseLogger = FastifyBaseLogger,
+  TypeProvider extends FastifyTypeProvider = FastifyTypeProviderDefault,
+>(
+  app: FastifyInstance<RawServer, RawRequest, RawReply, Logger, TypeProvider>,
   isProduction: boolean,
 ): void {
   // HSTS: Force HTTPS for next 1 year
@@ -60,8 +84,16 @@ export function registerSecurityHeaders(
 /**
  * HTTP to HTTPS redirect middleware (production only)
  */
-export function enforceHTTPS(
-  app: FastifyInstance<any, any, any, any>,
+export function enforceHTTPS<
+  RawServer extends RawServerBase = RawServerDefault,
+  RawRequest extends RawRequestDefaultExpression<RawServer> =
+    RawRequestDefaultExpression<RawServer>,
+  RawReply extends RawReplyDefaultExpression<RawServer> =
+    RawReplyDefaultExpression<RawServer>,
+  Logger extends FastifyBaseLogger = FastifyBaseLogger,
+  TypeProvider extends FastifyTypeProvider = FastifyTypeProviderDefault,
+>(
+  app: FastifyInstance<RawServer, RawRequest, RawReply, Logger, TypeProvider>,
   isProduction: boolean,
 ): void {
   if (!isProduction) {

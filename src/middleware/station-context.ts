@@ -5,7 +5,7 @@
  * @see {@link docs/adr/0022-enterprise-freight-forwarding-organization-schema-and-governance.md}
  */
 
-import { FastifyRequest, FastifyReply } from "fastify";
+import { FastifyRequest } from "fastify";
 import { db } from "../db/index.js";
 import { branchOffices, userStationAssignments } from "../db/schema/index.js";
 import { eq, and, or } from "drizzle-orm";
@@ -201,7 +201,7 @@ export async function validateStationWriteAccess(
   request: FastifyRequest,
   targetBranchId?: string | null,
 ): Promise<{ allowed: boolean; error?: string; message?: string }> {
-  let user = (request as any).user;
+  let user = request.user;
   if (!user || !user.id) {
     const headers = request.headers;
     const userId = headers["x-user-id"] as string | undefined;
@@ -213,7 +213,7 @@ export async function validateStationWriteAccess(
         (headers["x-company-id"] as string) ||
         null;
       user = { id: userId, role, companyId };
-      (request as any).user = user;
+      request.user = user;
     }
   }
 
@@ -237,7 +237,7 @@ export async function validateStationWriteAccess(
     user.id,
     user.role || "OPERATOR",
     targetBranchId,
-    user.companyId || user.company_id,
+    user.companyId || (user.company_id as string | undefined) || null,
   );
 
   if (!authResult.allowed) {

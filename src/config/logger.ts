@@ -1,13 +1,20 @@
+/**
+ * @file logger.ts
+ * @description Centralized Pino logger configured for Google Cloud Structured Logging and local development.
+ * @module @atlas/api/config/logger
+ * @see {@link docs/adr/0019-centralized-correlation-and-distributed-tracing.md}
+ */
+
 import pino from "pino";
 
-// En producción (Cloud Run), GCP captura la salida estándar (stdout) y
-// parsea automáticamente el JSON generado por Pino como Structured Logs.
+// In production (Cloud Run / Container), stdout is captured and
+// automatically parsed as Structured JSON logs by Cloud Logging.
 export const logger = pino({
   level: process.env.LOG_LEVEL || "info",
   base: undefined,
   formatters: {
     level(label, _number) {
-      // Mapear los niveles de Pino a la severidad de Google Cloud Logging
+      // Map Pino log levels to Google Cloud Logging severity levels
       const gcpSeverity =
         label === "trace" || label === "debug"
           ? "DEBUG"

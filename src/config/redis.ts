@@ -1,3 +1,10 @@
+/**
+ * @file redis.ts
+ * @description Redis client configuration, resilient connection lifecycle, and in-memory mock fallback.
+ * @module @atlas/api/config/redis
+ * @see {@link docs/adr/0019-centralized-correlation-and-distributed-tracing.md}
+ */
+
 import { Redis } from "ioredis";
 import { logger } from "./logger.js";
 
@@ -24,11 +31,17 @@ export let isRedisAvailable = false;
 let redisClient: Redis;
 let connectionPromise: Promise<void> | null = null;
 
+type RedisConstructor = new () => Redis;
+
 if (USE_MOCK) {
   try {
-    const mod = await import("ioredis-mock");
-    const RedisMock = (mod as any).default || mod;
-    redisClient = new (RedisMock as any)();
+    const mod = (await import("ioredis-mock")) as unknown as
+      { default?: RedisConstructor } | RedisConstructor;
+    const RedisMock =
+      typeof mod === "function"
+        ? mod
+        : mod.default || (mod as unknown as RedisConstructor);
+    redisClient = new RedisMock();
   } catch (error) {
     logger.warn(
       { err: error },
@@ -64,7 +77,7 @@ if (USE_MOCK) {
 
 export const redis = redisClient;
 
-redis.on("error", (error: any) => {
+redis.on("error", (error: unknown) => {
   logger.error({ err: error }, "Redis Connection Error");
 });
 
@@ -100,9 +113,9 @@ export const connectRedis = async () => {
             cleanup();
             resolve();
           };
-          const onError = (err: any) => {
+          const onError = (err: unknown) => {
             cleanup();
-            reject(err);
+            reject(err instanceof Error ? err : new Error(String(err)));
           };
           const cleanup = () => {
             clearTimeout(timeout);
@@ -120,10 +133,12 @@ export const connectRedis = async () => {
       await redis.connect();
       isRedisAvailable = true;
       logger.info(`Connected to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       if (
-        error?.message?.includes("already connecting") ||
-        error?.message?.includes("already connected")
+        errorMessage.includes("already connecting") ||
+        errorMessage.includes("already connected")
       ) {
         isRedisAvailable = true;
         return;
@@ -138,7 +153,7 @@ export const connectRedis = async () => {
           "FATAL: Redis connection failed in production. Cannot start without Redis.",
         );
         throw new Error(
-          `Redis connection failed in production: ${error?.message || error}`,
+          `Redis connection failed in production: ${errorMessage}`,
         );
       }
 
