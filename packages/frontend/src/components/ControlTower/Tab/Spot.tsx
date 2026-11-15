@@ -8,19 +8,22 @@
 
 import React from "react";
 import { Sparkles, Zap, FileSpreadsheet } from "lucide-react";
+import type { SpotRateQuote } from "../../../types/control-tower.types";
+
+export interface SpotParams {
+  origin: string;
+  destination: string;
+  transportMode: string;
+  containerType: string;
+  distanceKm: number;
+  targetMarginPct: number;
+  includeCustoms: boolean;
+}
 
 export interface ControlTowerSpotTabProps {
-  spotParams: {
-    origin: string;
-    destination: string;
-    transportMode: string;
-    containerType: string;
-    distanceKm: number;
-    targetMarginPct: number;
-    includeCustoms: boolean;
-  };
-  setSpotParams: React.Dispatch<React.SetStateAction<any>>;
-  spotQuote: any;
+  spotParams: SpotParams;
+  setSpotParams: React.Dispatch<React.SetStateAction<SpotParams>>;
+  spotQuote: SpotRateQuote | null;
   handleCalculateSpot: () => void;
   isCalculatingSpot: boolean;
 }
@@ -207,7 +210,10 @@ export const Spot: React.FC<ControlTowerSpotTabProps> = ({
                   Manipulación Terminal THC
                 </span>
                 <div className="text-base font-bold text-white mt-1">
-                  €{(spotQuote.originThc + spotQuote.destThc)?.toFixed(2)}
+                  €
+                  {(
+                    (spotQuote.originThc ?? 0) + (spotQuote.destThc ?? 0)
+                  ).toFixed(2)}
                 </div>
               </div>
               <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800">

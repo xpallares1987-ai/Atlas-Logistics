@@ -7,18 +7,17 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  getSecureRandomInt,
-  validateCutOffDeadlines,
-  type OceanBooking,
-} from "@atlas/shared";
+import { getSecureRandomInt, validateCutOffDeadlines } from "@atlas/shared";
 import { useApiMutation, useApiQuery } from "../../../hooks/useApiQuery";
 import { authFetch } from "../../../lib/api";
 import type {
   TabKey,
   BookingConfirmFormData,
   NewBookingFormData,
+  BookingSiStudioTabProps,
+  OceanBooking,
 } from "../../../types/booking-management.types";
+import type { BookingInboxItem } from "../Panel/BookingInbox";
 import {
   downloadDraftBLModalPdf,
   downloadShippingInstructionsPdf,
@@ -49,13 +48,20 @@ export function useBookingManagement() {
     data: dbBookings = [],
     refetch: refetchDbBookings,
     isLoading: loadingDbBookings,
-  } = useApiQuery<any[]>(["/api/bookings"], "/bookings");
+  } = useApiQuery<BookingInboxItem[]>(["/api/bookings"], "/bookings");
 
   const {
     data: oceanBookingDetail,
     refetch: refetchOceanBookingDetails,
     isLoading: loadingOceanDetails,
-  } = useApiQuery<any>(
+  } = useApiQuery<
+    OceanBooking & {
+      id?: string;
+      booking?: Record<string, unknown>;
+      siStatus?: string;
+      draftBlStatus?: string;
+    }
+  >(
     ["ocean-booking-details", selectedBookingId],
     selectedBookingId
       ? `/ocean-booking/details?bookingId=${selectedBookingId}`
@@ -71,7 +77,8 @@ export function useBookingManagement() {
   // 2. MODAL & CONVERSION STATE
   // ============================================================================
 
-  const [confirmingBooking, setConfirmingBooking] = useState<any | null>(null);
+  const [confirmingBooking, setConfirmingBooking] =
+    useState<OceanBooking | null>(null);
   const [confirmForm, setConfirmForm] = useState<BookingConfirmFormData>({
     carrierBookingNumber: "",
     vesselName: "MV ATLAS HORIZON",
@@ -89,9 +96,10 @@ export function useBookingManagement() {
     orderOf: "THE SHIPPER",
   });
   const [isConfirmSubmitting, setIsConfirmSubmitting] = useState(false);
-  const [lastConversionResult, setLastConversionResult] = useState<any | null>(
-    null,
-  );
+  const [lastConversionResult, setLastConversionResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   const [isDrayageModalOpen, setIsDrayageModalOpen] = useState(false);
   const [selectedDrayageOriginId, setSelectedDrayageOriginId] = useState<
@@ -116,9 +124,9 @@ export function useBookingManagement() {
     totalCost: 2650,
   });
 
-  const handleOpenConfirmModal = (bkg: any) => {
+  const handleOpenConfirmModal = (bkg: BookingInboxItem) => {
     const details = bkg.parsedCargoDetails || {};
-    setConfirmingBooking(bkg);
+    setConfirmingBooking(bkg as unknown as OceanBooking);
     setConfirmForm({
       carrierBookingNumber: `CR-${getSecureRandomInt(100000, 999999)}`,
       vesselName: bkg.vessel || "MV ATLAS HORIZON",
@@ -167,8 +175,8 @@ export function useBookingManagement() {
             consigneeName: confirmForm.consigneeName,
             vesselName: confirmForm.vesselName,
             voyageNumber: confirmForm.voyageNumber,
-            origin: confirmingBooking.origin,
-            destination: confirmingBooking.destination,
+            origin: confirmingBooking.origin || "ESVLC",
+            destination: confirmingBooking.destination || "USNYC",
             equipment: confirmingBooking.equipment || "40HC",
             containerNumber:
               result.container?.containerNumber || confirmForm.containerNumber,
@@ -235,7 +243,10 @@ export function useBookingManagement() {
     if (customActiveBooking && customActiveBooking.id === selectedBookingId) {
       return customActiveBooking;
     }
-    return mapDbToOceanBooking(oceanBookingDetail, selectedDbBooking);
+    return mapDbToOceanBooking(
+      oceanBookingDetail as unknown as Record<string, unknown> | null,
+      selectedDbBooking as unknown as Record<string, unknown> | null,
+    );
   }, [
     customActiveBooking,
     selectedBookingId,
@@ -261,7 +272,7 @@ export function useBookingManagement() {
   const detailId = oceanBookingDetail?.id || "bkg_sh_demo_01";
 
   const submitDcsSiMutation = useApiMutation<
-    { success: boolean; details: any },
+    { success: boolean; details: Record<string, unknown> },
     { vgmKg?: number; sealNumber?: string; certifiedBy?: string }
   >(`/ocean-booking/${detailId}/shipping-instructions`, "POST", {
     onSuccess: () => {
@@ -274,7 +285,7 @@ export function useBookingManagement() {
   });
 
   const generateDraftBlMutation = useApiMutation<
-    { success: boolean; details: any },
+    { success: boolean; details: Record<string, unknown> },
     void
   >(`/ocean-booking/${detailId}/generate-draft-bl`, "POST", {
     onSuccess: () => {
@@ -297,9 +308,11 @@ export function useBookingManagement() {
   };
 
   const [isCheckingDcsaAi, setIsCheckingDcsaAi] = useState(false);
-  const [dcsaAiAudit, setDcsaAiAudit] = useState<any | null>(null);
+  const [dcsaAiAudit, setDcsaAiAudit] =
+    useState<BookingSiStudioTabProps["dcsaAiAudit"]>(null);
   const [isExtractingDocAi, setIsExtractingDocAi] = useState(false);
-  const [extractedDocAi, setExtractedDocAi] = useState<any | null>(null);
+  const [extractedDocAi, setExtractedDocAi] =
+    useState<BookingSiStudioTabProps["extractedDocAi"]>(null);
 
   const handleRunDcsaCustomsCheck = async () => {
     setIsCheckingDcsaAi(true);
@@ -364,7 +377,7 @@ export function useBookingManagement() {
     return validateCutOffDeadlines(activeBooking.cutOffs);
   }, [activeBooking.cutOffs]);
 
-  const bookingMutation = useApiMutation<any, any>(
+  const bookingMutation = useApiMutation<OceanBooking, Record<string, unknown>>(
     "/ocean-booking/request",
     "POST",
     {
@@ -377,17 +390,16 @@ export function useBookingManagement() {
     },
   );
 
-  const releaseMutation = useApiMutation<any, any>(
-    "/ocean-booking/release-equipment",
-    "POST",
-    {
-      onSuccess: (res) => {
-        refetchDbBookings();
-        refetchOceanBookingDetails();
-        setActiveBooking(res.booking);
-      },
+  const releaseMutation = useApiMutation<
+    { booking: OceanBooking },
+    Record<string, unknown>
+  >("/ocean-booking/release-equipment", "POST", {
+    onSuccess: (res) => {
+      refetchDbBookings();
+      refetchOceanBookingDetails();
+      setActiveBooking(res.booking);
     },
-  );
+  });
 
   const handleDownloadDraftBL = () => {
     downloadShippingInstructionsPdf(activeBooking);

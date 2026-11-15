@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, Bell, Settings, ShoppingCart, X, FileText } from "lucide-react";
+import autoTable from "jspdf-autotable";
 import { OmniSearch } from "@atlas/ui/src/components/OmniSearch";
 import { useAppStore } from "../../store/useAppStore";
 import { useAuth } from "../../contexts/AuthContext";
@@ -35,9 +36,10 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   useEffect(() => {
-    const handleAddToCart = (event: any) => {
-      if (event.detail) {
-        addToCart(event.detail);
+    const handleAddToCart = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail) {
+        addToCart(customEvent.detail);
       }
     };
     window.addEventListener("add-to-cart", handleAddToCart);
@@ -252,7 +254,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ setMobileMenuOpen }) => {
                           }).format(q.rate),
                         ]);
 
-                        (doc as any).autoTable({
+                        autoTable(doc, {
                           startY: 95,
                           head: [
                             ["Option", "Carrier", "Routing", "Total Amount"],

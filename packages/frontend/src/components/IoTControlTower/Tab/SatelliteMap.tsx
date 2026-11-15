@@ -6,7 +6,10 @@
  */
 
 import { MapPin } from "lucide-react";
-import type { SatelliteMapTabProps } from "../../../types/iot-control-tower.types";
+import type {
+  SatelliteMapTabProps,
+  IoTReading,
+} from "../../../types/iot-control-tower.types";
 import { toSvgCoords } from "../hooks/useIoTControlTower";
 
 export function SatelliteMap({
@@ -66,8 +69,11 @@ export function SatelliteMap({
 
           {/* Geofence zones */}
           {geofences.map((gf) => {
-            const c = toSvgCoords(gf.centerLat, gf.centerLng);
-            const r = (gf.radiusMeters / 111000) * (800 / 60) * 0.5;
+            const c = toSvgCoords(
+              gf.centerLat ?? gf.lat ?? 0,
+              gf.centerLng ?? gf.lng ?? 0,
+            );
+            const r = ((gf.radiusMeters ?? 500) / 111000) * (800 / 60) * 0.5;
             return (
               <g key={gf.id}>
                 <circle
@@ -96,12 +102,13 @@ export function SatelliteMap({
           {assetDetail?.readings &&
             assetDetail.readings.length > 1 &&
             (() => {
-              const pts = assetDetail.readings.map((r: any) =>
-                toSvgCoords(r.lat, r.lng),
+              const pts = assetDetail.readings.map((r: IoTReading) =>
+                toSvgCoords(r.lat ?? 0, r.lng ?? 0),
               );
               const d = pts
                 .map(
-                  (p: any, i: number) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`,
+                  (p: { x: number; y: number }, i: number) =>
+                    `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`,
                 )
                 .join(" ");
               return (
@@ -117,7 +124,10 @@ export function SatelliteMap({
 
           {/* Asset markers */}
           {assets.map((asset) => {
-            const pos = toSvgCoords(asset.currentLat, asset.currentLng);
+            const pos = toSvgCoords(
+              asset.currentLat ?? 0,
+              asset.currentLng ?? 0,
+            );
             const isSelected = asset.id === selectedAssetId;
             const isCritical = asset.status === "CRITICAL_ALERT";
             const color = isCritical
@@ -168,11 +178,13 @@ export function SatelliteMap({
                   y1={pos.y}
                   x2={
                     pos.x +
-                    Math.sin((asset.currentHeadingDeg * Math.PI) / 180) * 18
+                    Math.sin(((asset.currentHeadingDeg ?? 0) * Math.PI) / 180) *
+                      18
                   }
                   y2={
                     pos.y -
-                    Math.cos((asset.currentHeadingDeg * Math.PI) / 180) * 18
+                    Math.cos(((asset.currentHeadingDeg ?? 0) * Math.PI) / 180) *
+                      18
                   }
                   stroke={color}
                   strokeWidth="1.5"
@@ -193,7 +205,7 @@ export function SatelliteMap({
                   fill="rgba(148,163,184,0.8)"
                   fontSize="7"
                 >
-                  {asset.currentSpeedKnots.toFixed(1)}kn
+                  {(asset.currentSpeedKnots ?? 0).toFixed(1)}kn
                 </text>
               </g>
             );
@@ -238,35 +250,37 @@ export function SatelliteMap({
           <div>
             <span className="text-slate-400 block mb-0.5">Velocidad</span>
             <span className="font-bold text-white">
-              {selectedAsset.currentSpeedKnots.toFixed(1)} kn
+              {(selectedAsset.currentSpeedKnots ?? 0).toFixed(1)} kn
             </span>
           </div>
           <div>
             <span className="text-slate-400 block mb-0.5">Rumbo</span>
             <span className="font-bold text-white">
-              {selectedAsset.currentHeadingDeg.toFixed(0)}°
+              {(selectedAsset.currentHeadingDeg ?? 0).toFixed(0)}°
             </span>
           </div>
           <div>
             <span className="text-slate-400 block mb-0.5">Altitud</span>
             <span className="font-bold text-white">
-              {selectedAsset.currentAltitudeMeters.toFixed(0)} m
+              {(selectedAsset.currentAltitudeMeters ?? 0).toFixed(0)} m
             </span>
           </div>
           <div>
             <span className="text-slate-400 block mb-0.5">Lat / Lng</span>
             <span className="font-bold text-cyan-400">
-              {selectedAsset.currentLat.toFixed(3)}° /{" "}
-              {selectedAsset.currentLng.toFixed(3)}°
+              {(selectedAsset.currentLat ?? 0).toFixed(3)}° /{" "}
+              {(selectedAsset.currentLng ?? 0).toFixed(3)}°
             </span>
           </div>
           <div>
             <span className="text-slate-400 block mb-0.5">ETA Prevista</span>
             <span className="font-bold text-white">
-              {new Date(selectedAsset.predictedEta).toLocaleTimeString(
-                "es-ES",
-                { hour: "2-digit", minute: "2-digit" },
-              )}
+              {new Date(
+                (selectedAsset.predictedEta as string | number) || Date.now(),
+              ).toLocaleTimeString("es-ES", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
           </div>
         </div>

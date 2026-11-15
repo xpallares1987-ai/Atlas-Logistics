@@ -49,6 +49,14 @@ function getAnomalyIcon(type: OperationalAnomalyType) {
   }
 }
 
+export interface TeamsStudioMetadata {
+  accentContainerColor?: string;
+  bannerIcon?: string;
+  headline?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
 export interface TeamsStudioProps {
   selectedAnomaly: OperationalAnomalyType;
   onSelectAnomaly: (type: OperationalAnomalyType) => void;
@@ -56,8 +64,8 @@ export interface TeamsStudioProps {
   setActiveContext: (ctx: AnomalyPayloadContext) => void;
   targetWebhookUrl: string;
   setTargetWebhookUrl: (url: string) => void;
-  currentPayload: any;
-  metadata: any;
+  currentPayload: Record<string, unknown>;
+  metadata: TeamsStudioMetadata;
   copiedJson: boolean;
   onCopyJson: () => void;
   isDispatching: boolean;
@@ -139,7 +147,7 @@ export const TeamsStudio: React.FC<TeamsStudioProps> = ({
                   onChange={(e) =>
                     setActiveContext({
                       ...activeContext,
-                      severity: e.target.value as any,
+                      severity: e.target.value as typeof activeContext.severity,
                     })
                   }
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200"

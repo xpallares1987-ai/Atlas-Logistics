@@ -8,12 +8,25 @@
 import { Database, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Button } from "@atlas/ui";
 
+interface DemurrageShipment {
+  id: string;
+  trackingNumber?: string;
+  origin?: string;
+  destination?: string;
+  vesselName?: string;
+}
+
+interface DemurrageInvoiceSummary {
+  invoiceNumber?: string;
+  status?: string;
+}
+
 interface ShipmentContextProps {
-  shipments: any[];
-  activeShipment: any;
+  shipments: DemurrageShipment[];
+  activeShipment: DemurrageShipment | null;
   selectedShipmentId: string;
   onSelectShipment: (shipmentId: string) => void;
-  activeDbInvoice: any;
+  activeDbInvoice: DemurrageInvoiceSummary | null;
   isLoadingInvoices: boolean;
   onRefreshInvoices: () => void;
   disputeSuccessMessage: string | null;

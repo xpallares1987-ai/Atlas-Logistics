@@ -60,6 +60,77 @@ export interface DcsaSubscriptionItem {
   createdAt: string;
 }
 
+export interface EdiSimulationResult {
+  headerReceived?: string;
+  action?: string;
+  [key: string]: unknown;
+}
+
+export interface EdiParsedSegment {
+  tag: string;
+  elements: string[];
+  rawText?: string;
+  [key: string]: unknown;
+}
+
+export interface EdiParsedEvent {
+  milestone?: string;
+  bookingReference?: string;
+  [key: string]: unknown;
+}
+
+export interface EdiParseResult {
+  controlNumber?: string;
+  senderId?: string;
+  receiverId?: string;
+  ackStatus?: string;
+  standard?: string;
+  segmentsCount?: number;
+  parsedEvents?: EdiParsedEvent[];
+  messages?: Array<Record<string, unknown>>;
+  segments?: EdiParsedSegment[];
+  [key: string]: unknown;
+}
+
+export interface EdiProcessResult {
+  interchange?: {
+    controlNumber?: string;
+    senderId?: string;
+    receiverId?: string;
+    ackStatus?: string;
+    [key: string]: unknown;
+  };
+  events?: Array<{
+    milestone?: string;
+    [key: string]: unknown;
+  }>;
+  acknowledgment?: string;
+  [key: string]: unknown;
+}
+
+export interface EdiOutboundResult {
+  rawPayload: string;
+  controlNumber: string;
+  format: string;
+  [key: string]: unknown;
+}
+
+export interface EdiScmShipmentOption {
+  id?: string;
+  shipmentId?: string;
+  referenceNumber?: string;
+  shipmentReference?: string;
+  serviceType?: string;
+  lifecycle?: string;
+  equipmentReference?: string;
+  originPort?: string;
+  destinationPort?: string;
+  carrierCode?: "CMDU" | "HLCU" | "MAEU" | "MSCU";
+  carrierName?: string;
+  cargoWeight?: number | string;
+  [key: string]: unknown;
+}
+
 export interface EdiDcsaTabProps {
   dcsaEvents: DcsaEventItem[];
   dcsaSubscriptions: DcsaSubscriptionItem[];
@@ -68,7 +139,7 @@ export interface EdiDcsaTabProps {
   dcsaFilterType: string;
   onDcsaFilterTypeChange: (filter: string) => void;
   isSimulating: boolean;
-  simulationResult: any;
+  simulationResult: EdiSimulationResult | null;
   simCarrier: "MSCU" | "MAEU" | "CMDU" | "HLCU";
   onSimCarrierChange: (carrier: "MSCU" | "MAEU" | "CMDU" | "HLCU") => void;
   simEventType: "EQUIPMENT" | "TRANSPORT" | "SHIPMENT";
@@ -96,10 +167,10 @@ export interface EdiStudioTabProps {
   onEdiInputChange: (input: string) => void;
   isParsing: boolean;
   isProcessing: boolean;
-  parseResult: any;
-  processResult: any;
-  selectedSegment: any;
-  onSelectSegment: (segment: any) => void;
+  parseResult: EdiParseResult | null;
+  processResult: EdiProcessResult | null;
+  selectedSegment: EdiParsedSegment | null;
+  onSelectSegment: (segment: EdiParsedSegment | null) => void;
   onParseEdi: () => void;
   onProcessEdi: () => void;
   onLoadSample: (sampleType: string) => void;
@@ -108,49 +179,51 @@ export interface EdiStudioTabProps {
 export interface EdiOutboundTabProps {
   outboundFormat: "304" | "310" | "IFTMIN" | "204";
   onOutboundFormatChange: (format: "304" | "310" | "IFTMIN" | "204") => void;
+  scmShipments: EdiScmShipmentOption[];
+  onScmPreFill: (shipmentId: string) => void;
   bookingRef: string;
   onBookingRefChange: (ref: string) => void;
+  containerNum: string;
+  onContainerNumChange: (num: string) => void;
   consignorName: string;
   onConsignorNameChange: (name: string) => void;
   consigneeName: string;
   onConsigneeNameChange: (name: string) => void;
-  originPort: string;
-  onOriginPortChange: (port: string) => void;
   originLocode: string;
   onOriginLocodeChange: (locode: string) => void;
-  destPort: string;
-  onDestPortChange: (port: string) => void;
   destLocode: string;
   onDestLocodeChange: (locode: string) => void;
-  cargoDesc: string;
-  onCargoDescChange: (desc: string) => void;
-  grossWeight: number;
-  onGrossWeightChange: (weight: number) => void;
-  containerNum: string;
-  onContainerNumChange: (num: string) => void;
-  sealNum: string;
-  onSealNumChange: (num: string) => void;
+  invoiceNumber: string;
+  onInvoiceNumberChange: (num: string) => void;
+  billOfLading: string;
+  onBillOfLadingChange: (bl: string) => void;
+  currency: string;
+  onCurrencyChange: (curr: string) => void;
+  vgmWeightKg: number;
+  onVgmWeightKgChange: (weight: number) => void;
+  vgmMethod: "METHOD_1" | "METHOD_2";
+  onVgmMethodChange: (method: "METHOD_1" | "METHOD_2") => void;
+  vgmPerson: string;
+  onVgmPersonChange: (person: string) => void;
   vesselName: string;
   onVesselNameChange: (name: string) => void;
   voyageNum: string;
   onVoyageNumChange: (num: string) => void;
-  vgmWeightKg: number;
-  onVgmWeightKgChange: (weight: number) => void;
-  vgmMethod: "SM1" | "SM2";
-  onVgmMethodChange: (method: "SM1" | "SM2") => void;
-  vgmSignatory: string;
-  onVgmSignatoryChange: (signatory: string) => void;
-  vgmCertNumber: string;
-  onVgmCertNumberChange: (num: string) => void;
-  selectedPartnerId: string;
-  onSelectedPartnerIdChange: (partnerId: string) => void;
-  partners: PartnerRecord[];
-  isGeneratingOutbound: boolean;
-  generatedOutboundPayload: string;
-  isDispatching: boolean;
-  dispatchResult: any;
+  sealNum: string;
+  onSealNumChange: (seal: string) => void;
+  baseFreightRate: number;
+  onBaseFreightRateChange: (rate: number) => void;
+  bafAmount: number;
+  onBafAmountChange: (amount: number) => void;
+  thcAmount: number;
+  onThcAmountChange: (amount: number) => void;
+  cargoDesc: string;
+  onCargoDescChange: (desc: string) => void;
+  isGenerating: boolean;
   onGenerateOutbound: () => void;
-  onDispatchOutbound: () => void;
+  outboundResult: EdiOutboundResult | null;
+  copyToClipboard: (text: string) => void;
+  downloadEdiFile: (content: string, filename: string) => void;
 }
 
 export interface EdiAuditTabProps {

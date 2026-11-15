@@ -3,11 +3,30 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Ship, MapPin } from "lucide-react";
 import { Input, Button } from "@atlas/ui";
 
+interface TrackingEvent {
+  id: string;
+  status?: string;
+  description?: string;
+  location?: string;
+  timestamp?: string;
+  milestoneDate?: string;
+  [key: string]: unknown;
+}
+
+interface TrackingData {
+  referenceNumber: string;
+  status: string;
+  origin?: string;
+  destination?: string;
+  events: TrackingEvent[];
+  [key: string]: unknown;
+}
+
 export default function PublicTracking() {
   const { referenceNumber } = useParams();
   const navigate = useNavigate();
   const [searchRef, setSearchRef] = useState(referenceNumber || "");
-  const [trackingData, setTrackingData] = useState<any>(null);
+  const [trackingData, setTrackingData] = useState<TrackingData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -31,8 +50,10 @@ export default function PublicTracking() {
       if (ref !== referenceNumber) {
         navigate(`/track/${ref}`);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Error fetching tracking data.",
+      );
       setTrackingData(null);
     } finally {
       setLoading(false);
@@ -161,7 +182,7 @@ export default function PublicTracking() {
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                     <ul className="space-y-4">
-                      {trackingData.events.map((event: any, idx: number) => (
+                      {trackingData.events.map((event, idx: number) => (
                         <li key={event.id} className="relative">
                           {idx !== trackingData.events.length - 1 && (
                             <span
@@ -194,9 +215,15 @@ export default function PublicTracking() {
                                 </p>
                               </div>
                               <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                                <time dateTime={event.milestoneDate}>
+                                <time
+                                  dateTime={
+                                    event.milestoneDate || event.timestamp || ""
+                                  }
+                                >
                                   {new Date(
-                                    event.milestoneDate,
+                                    event.milestoneDate ||
+                                      event.timestamp ||
+                                      "",
                                   ).toLocaleString()}
                                 </time>
                               </div>

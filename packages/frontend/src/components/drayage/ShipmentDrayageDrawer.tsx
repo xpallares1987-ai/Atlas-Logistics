@@ -17,10 +17,74 @@ import {
   DrayageOrderDetails,
 } from "./DigitalGatePassModal";
 
+export interface DrayageShipment {
+  id?: string;
+  shipmentNumber?: string;
+  bookingReference?: string;
+  destinationPort?: string;
+  containers?: Array<{
+    containerNumber?: string;
+    id?: string;
+    type?: string;
+    grossWeightKg?: number;
+    isHazardous?: boolean;
+    temperatureRequired?: boolean;
+  }>;
+}
+
+interface AddressOption {
+  id: string;
+  name?: string;
+  companyName?: string;
+  street1?: string;
+  city?: string;
+  postal_code?: string;
+  lat?: number;
+  lon?: number;
+  unLocode?: string;
+  [key: string]: unknown;
+}
+
+interface HaulierOption {
+  id: string;
+  name?: string;
+  companyName?: string;
+  city?: string;
+  primaryContact?: {
+    fullName?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface DrayageCosts {
+  totalGross: number;
+  currency: string;
+  baseRate: number;
+  fuelSurcharge: number;
+  tollsCost: number;
+  extraSurcharges: number;
+}
+
+interface DrayageEmissions {
+  co2WtwKg: number;
+  emissionsIntensityFactor: number;
+}
+
+interface DrayageQuote {
+  distanceKm?: number;
+  baseRateEur?: number;
+  totalRateEur?: number;
+  co2Kg?: number;
+  costs: DrayageCosts;
+  emissions: DrayageEmissions;
+  [key: string]: unknown;
+}
+
 interface ShipmentDrayageDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  shipment: any;
+  shipment: DrayageShipment | null;
   onOrderCreated?: () => void;
 }
 
@@ -45,16 +109,18 @@ export const ShipmentDrayageDrawer: React.FC<ShipmentDrayageDrawerProps> = ({
   const [requiresGenset, setRequiresGenset] = useState<boolean>(false);
 
   // Address & Terminal State
-  const [terminals, setTerminals] = useState<any[]>([]);
+  const [terminals, setTerminals] = useState<AddressOption[]>([]);
   const [selectedTerminalId, setSelectedTerminalId] = useState<string>("");
-  const [deliveryAddresses, setDeliveryAddresses] = useState<any[]>([]);
+  const [deliveryAddresses, setDeliveryAddresses] = useState<AddressOption[]>(
+    [],
+  );
   const [selectedDeliveryAddressId, setSelectedDeliveryAddressId] =
     useState<string>("");
 
   // Hauliers & Quote State
-  const [hauliers, setHauliers] = useState<any[]>([]);
+  const [hauliers, setHauliers] = useState<HaulierOption[]>([]);
   const [selectedHaulierId, setSelectedHaulierId] = useState<string>("");
-  const [quote, setQuote] = useState<any | null>(null);
+  const [quote, setQuote] = useState<DrayageQuote | null>(null);
   const [appointmentStart, setAppointmentStart] = useState<string>(
     new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16),
   );
@@ -189,8 +255,8 @@ export const ShipmentDrayageDrawer: React.FC<ShipmentDrayageDrawerProps> = ({
       const quoteData = await res.json();
       setQuote(quoteData);
       setStep(2);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -206,9 +272,9 @@ export const ShipmentDrayageDrawer: React.FC<ShipmentDrayageDrawerProps> = ({
       );
 
       const originAddressId =
-        transportLeg === "LAST_MILE" ? terminal.id : delivery.id;
+        transportLeg === "LAST_MILE" ? terminal?.id : delivery?.id;
       const destinationAddressId =
-        transportLeg === "LAST_MILE" ? delivery.id : terminal.id;
+        transportLeg === "LAST_MILE" ? delivery?.id : terminal?.id;
 
       const res = await fetch("/api/drayage/orders", {
         method: "POST",
@@ -241,8 +307,8 @@ export const ShipmentDrayageDrawer: React.FC<ShipmentDrayageDrawerProps> = ({
       if (onOrderCreated) {
         onOrderCreated();
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }

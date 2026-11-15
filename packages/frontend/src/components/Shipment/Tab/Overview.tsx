@@ -20,13 +20,23 @@ import {
   OperationalShipment360View,
   ShipmentGreenComplianceReadModel,
   TabKey,
+  TaskActionMetadata,
 } from "../../../types/shipment-workspace360.types";
+
+export interface ActiveActionModalState {
+  type: "COMPLETE_TASK" | "RESOLVE_EXCEPTION";
+  targetId: string;
+  title: string;
+  description: string;
+  inputs: Record<string, string>;
+  primaryAction?: TaskActionMetadata;
+}
 
 export interface ShipmentOverviewTabProps {
   shipmentDetail: OperationalShipment360View;
   greenCompliance: ShipmentGreenComplianceReadModel | null;
   handleTabChange: (tab: TabKey) => void;
-  setActiveActionModal: (modal: any) => void;
+  setActiveActionModal: (modal: ActiveActionModalState | null) => void;
 }
 
 export const Overview: React.FC<ShipmentOverviewTabProps> = ({

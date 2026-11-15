@@ -42,8 +42,11 @@ export const Profile: React.FC = () => {
       } else {
         alert(data.error);
       }
-    } catch (err: any) {
-      alert("Failed to update profile: " + err.message);
+    } catch (err: unknown) {
+      alert(
+        "Failed to update profile: " +
+          (err instanceof Error ? err.message : String(err)),
+      );
     } finally {
       setLoading(false);
     }

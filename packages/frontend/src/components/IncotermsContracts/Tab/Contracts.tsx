@@ -297,43 +297,41 @@ export function Contracts({
                       de Riesgos
                     </span>
                     <div className="space-y-2">
-                      {selectedContract.milestonesData.map(
-                        (m: any, idx: number) => (
-                          <div
-                            key={idx}
-                            className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-white/5 text-xs"
-                          >
-                            <div className="flex items-center gap-3">
-                              <span
-                                className={`w-2 h-2 rounded-full ${
-                                  m.status === "COMPLETED"
-                                    ? "bg-emerald-400"
-                                    : m.status === "IN_PROGRESS"
-                                      ? "bg-sky-400 animate-pulse"
-                                      : "bg-slate-600"
-                                }`}
-                              />
-                              <div>
-                                <p className="font-bold text-white">{m.name}</p>
-                                <span className="text-[10px] text-slate-400">
-                                  {new Date(m.date).toLocaleDateString()}
-                                </span>
-                              </div>
-                            </div>
+                      {selectedContract.milestonesData.map((m, idx: number) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-white/5 text-xs"
+                        >
+                          <div className="flex items-center gap-3">
                             <span
-                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                              className={`w-2 h-2 rounded-full ${
                                 m.status === "COMPLETED"
-                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                  ? "bg-emerald-400"
                                   : m.status === "IN_PROGRESS"
-                                    ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
-                                    : "bg-white/10 text-slate-400"
+                                    ? "bg-sky-400 animate-pulse"
+                                    : "bg-slate-600"
                               }`}
-                            >
-                              {m.status}
-                            </span>
+                            />
+                            <div>
+                              <p className="font-bold text-white">{m.name}</p>
+                              <span className="text-[10px] text-slate-400">
+                                {new Date(m.date).toLocaleDateString()}
+                              </span>
+                            </div>
                           </div>
-                        ),
-                      )}
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                              m.status === "COMPLETED"
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                : m.status === "IN_PROGRESS"
+                                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                                  : "bg-white/10 text-slate-400"
+                            }`}
+                          >
+                            {m.status}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

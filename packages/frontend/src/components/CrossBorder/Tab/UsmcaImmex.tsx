@@ -82,7 +82,7 @@ export function UsmcaImmex({
                 onChange={(e) =>
                   setRvcInputData({
                     ...rvcInputData,
-                    method: e.target.value as any,
+                    method: e.target.value as typeof rvcInputData.method,
                   })
                 }
                 className="w-full h-9 rounded-md bg-slate-950 border border-slate-800 px-3 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
@@ -274,7 +274,8 @@ export function UsmcaImmex({
                 onChange={(e) =>
                   setImmexInputData({
                     ...immexInputData,
-                    originCountry: e.target.value as any,
+                    originCountry: e.target
+                      .value as typeof immexInputData.originCountry,
                   })
                 }
                 className="w-full h-9 rounded-md bg-slate-950 border border-slate-800 px-3 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"

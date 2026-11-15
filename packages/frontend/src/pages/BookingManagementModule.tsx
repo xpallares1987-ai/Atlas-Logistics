@@ -17,6 +17,11 @@ import {
   BookingRateLockTab,
   useBookingManagement,
 } from "../components/bookings";
+import type {
+  RateLockQuote,
+  OceanBooking,
+  TabKey,
+} from "../types/booking-management.types";
 
 // ============================================================================
 // 1. LAZY-LOADED SECONDARY TABS & MODALS
@@ -105,7 +110,7 @@ export default function BookingManagementModule() {
             rateLockQuotes={vm.rateLockQuotes}
             countdownSeconds={vm.countdownSeconds}
             formatCountdown={vm.formatCountdown}
-            onBookRate={(quote: any) => {
+            onBookRate={(quote: RateLockQuote) => {
               vm.bookingMutation.mutate({
                 carrier: quote.carrier,
                 originPort: vm.activeBooking.originPort,
@@ -136,15 +141,15 @@ export default function BookingManagementModule() {
               cutOffEval={vm.cutOffEval}
               searchTerm={vm.searchTerm}
               setSearchTerm={vm.setSearchTerm}
-              onSelectBooking={(bkg: any) => vm.setActiveBooking(bkg)}
-              onNavigateTab={(tab: any) => vm.setActiveTab(tab)}
+              onSelectBooking={(bkg: OceanBooking) => vm.setActiveBooking(bkg)}
+              onNavigateTab={(tab: TabKey) => vm.setActiveTab(tab)}
             />
           )}
 
           {vm.activeTab === "SI_STUDIO" && (
             <BookingSiStudioTab
               activeBooking={vm.activeBooking}
-              oceanBookingDetail={vm.oceanBookingDetail}
+              oceanBookingDetail={vm.oceanBookingDetail || null}
               dcsaAiAudit={vm.dcsaAiAudit}
               setDcsaAiAudit={vm.setDcsaAiAudit}
               isCheckingDcsaAi={vm.isCheckingDcsaAi}
@@ -167,11 +172,11 @@ export default function BookingManagementModule() {
             <BookingEquipmentReleaseTab
               activeBooking={vm.activeBooking}
               onDownloadDepotPass={vm.handleDownloadDepotPass}
-              onOpenDrayageModal={(bookingRef: any) => {
+              onOpenDrayageModal={(bookingRef: string) => {
                 vm.setDrayageBookingRef(bookingRef);
                 vm.setIsDrayageModalOpen(true);
               }}
-              onGenerateRelease={(payload: any) => {
+              onGenerateRelease={(payload) => {
                 vm.releaseMutation.mutate(payload);
               }}
               isReleasePending={vm.releaseMutation.isPending}

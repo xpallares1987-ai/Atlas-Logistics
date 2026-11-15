@@ -9,11 +9,20 @@ import { IngestRecordModal } from "../Modal/IngestRecord";
 import { RecordPayloadDrawer } from "../Drawer/RecordPayload";
 import { CreateEntityLinkModal } from "../Modal/CreateEntityLink";
 
+export interface IngestPayloadData {
+  sourceCode: string;
+  externalId: string;
+  sourceUrl?: string;
+  rawPayload: unknown;
+  versionTag?: string;
+  [key: string]: unknown;
+}
+
 interface RawRecordsLedgerTabProps {
   records: SourceRecordDto[];
   sources: DataSourceDto[];
   isLoading: boolean;
-  onIngest: (payload: any) => Promise<void>;
+  onIngest: (payload: IngestPayloadData) => Promise<void>;
   isIngesting: boolean;
   onLink: (data: CreateEntityLinkFormData) => Promise<void>;
   isLinking: boolean;

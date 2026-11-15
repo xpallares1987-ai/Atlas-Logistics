@@ -25,7 +25,7 @@ export function OffsetPurchase({
   onConfirmOffset,
 }: OffsetPurchaseModalProps) {
   const selectedProject = projects.find(
-    (project: any) => project.id === offsetSelectedProjectId,
+    (project) => project.id === offsetSelectedProjectId,
   );
   const selectedCalculationTotal = toNumber(selectedCalculation?.totalTco2eWtw);
 
@@ -63,7 +63,7 @@ export function OffsetPurchase({
                     const found = calculations.find(
                       (c) => c.id === e.target.value,
                     );
-                    setSelectedCalculation(found);
+                    setSelectedCalculation(found ?? null);
                   }}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white"
                 >
@@ -86,7 +86,7 @@ export function OffsetPurchase({
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white"
                 >
                   <option value="">Selecciona un proyecto...</option>
-                  {projects.map((p: any) => (
+                  {projects.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} ({String(p.standard || "").replace("_", " ")}) —
                       €{toNumber(p.pricePerTco2eEur, 0)}/t

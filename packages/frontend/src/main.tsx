@@ -14,7 +14,7 @@ if ("serviceWorker" in navigator) {
 
 // Automatically sync when connection is restored
 window.addEventListener("online", () => {
-  console.log("Online again. Processing sync queue...");
+  console.info("Online again. Processing sync queue...");
   syncManager.processQueue();
 });
 

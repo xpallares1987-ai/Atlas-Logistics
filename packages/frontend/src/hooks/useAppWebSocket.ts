@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 
-export interface AppWebSocketOptions {
-  onMessage?: (data: any, rawEvent: MessageEvent) => void;
+export interface AppWebSocketOptions<T = unknown> {
+  onMessage?: (data: T, rawEvent: MessageEvent) => void;
   onOpen?: () => void;
   onClose?: (event: CloseEvent) => void;
   onError?: (event: Event) => void;
@@ -28,9 +28,9 @@ export function resolveWebSocketUrl(
   return `${protocol}//${host}${cleanPath}`;
 }
 
-export function useAppWebSocket(
+export function useAppWebSocket<T = unknown>(
   path: string,
-  options: AppWebSocketOptions = {},
+  options: AppWebSocketOptions<T> = {},
 ) {
   const {
     onMessage,

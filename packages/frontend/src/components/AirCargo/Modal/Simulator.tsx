@@ -10,6 +10,22 @@ import { Calculator, Scale } from "lucide-react";
 import { Input } from "@atlas/ui";
 import { AirwayBillPiece } from "../types/index";
 
+export interface SimRatingResult {
+  totalVolumeCbm?: number;
+  volumetricWeightKg?: number;
+  chargeableWeightKg?: number;
+  totalFreightPayable?: number;
+  [key: string]: unknown;
+}
+
+export interface SimDgrResult {
+  aircraftRestriction?: string;
+  assignedSpecialHandlingCodes?: string[];
+  specialHandlingCodes?: string[];
+  requiresDangerousGoodsDeclaration?: boolean;
+  [key: string]: unknown;
+}
+
 export interface SimulatorModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -31,8 +47,8 @@ export interface SimulatorModalProps {
   setSimTempControlled: (val: boolean) => void;
   onCalculate: () => void;
   isCalculating: boolean;
-  simRatingResult: any;
-  simDgrResult: any;
+  simRatingResult: SimRatingResult | null;
+  simDgrResult: SimDgrResult | null;
 }
 
 export function SimulatorModal({

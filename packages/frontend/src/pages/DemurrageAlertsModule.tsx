@@ -83,7 +83,7 @@ export default function DemurrageAlertsModule() {
     setSelectedInvoiceId(null);
   };
 
-  const handleAuditInvoice = (inv: any) => {
+  const handleAuditInvoice = (inv: { id?: string; shipmentId?: string }) => {
     if (inv.id) setSelectedInvoiceId(inv.id);
     if (inv.shipmentId) setSelectedShipmentId(inv.shipmentId);
     setActiveTab("AUDIT");

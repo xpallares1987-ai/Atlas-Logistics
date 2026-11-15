@@ -33,7 +33,7 @@ describe("MFE Federation Configuration & Dynamic Resolver", () => {
   });
 
   it("should return empty string for non-existent MFE key", () => {
-    // @ts-ignore
+    // @ts-expect-error Testing invalid module key
     expect(getMfeRemoteUrl("invalid_module")).toBe("");
   });
 

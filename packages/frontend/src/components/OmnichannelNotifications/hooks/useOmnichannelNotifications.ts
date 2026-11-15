@@ -128,7 +128,7 @@ export function useOmnichannelNotifications() {
 
   // Mutations
   const dispatchMutation = useApiMutation<
-    any,
+    Record<string, unknown>,
     {
       anomalyType: OperationalAnomalyType;
       context: AnomalyPayloadContext;
@@ -140,28 +140,26 @@ export function useOmnichannelNotifications() {
     },
   });
 
-  const driverReportMutation = useApiMutation<any, any>(
-    "/notifications/telegram/driver-report",
-    "POST",
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["telegram-messages"] });
-        setIsDriverModalOpen(false);
-      },
+  const driverReportMutation = useApiMutation<
+    Record<string, unknown>,
+    Record<string, unknown>
+  >("/notifications/telegram/driver-report", "POST", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["telegram-messages"] });
+      setIsDriverModalOpen(false);
     },
-  );
+  });
 
-  const dispatchOrderMutation = useApiMutation<any, any>(
-    "/notifications/telegram/dispatch-order",
-    "POST",
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["telegram-orders"] });
-        queryClient.invalidateQueries({ queryKey: ["telegram-messages"] });
-        setIsOrderModalOpen(false);
-      },
+  const dispatchOrderMutation = useApiMutation<
+    Record<string, unknown>,
+    Record<string, unknown>
+  >("/notifications/telegram/dispatch-order", "POST", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["telegram-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["telegram-messages"] });
+      setIsOrderModalOpen(false);
     },
-  );
+  });
 
   const handleSelectAnomaly = (type: OperationalAnomalyType) => {
     setSelectedAnomaly(type);

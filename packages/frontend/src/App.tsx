@@ -12,9 +12,10 @@ import { useNotificationsWebSocket } from "./hooks/useNotificationsWebSocket";
 function GlobalNavigationListener() {
   const navigate = useNavigate();
   React.useEffect(() => {
-    const handleNavigate = (e: any) => {
-      if (e.detail?.path) {
-        navigate(e.detail.path);
+    const handleNavigate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ path?: string }>;
+      if (customEvent.detail?.path) {
+        navigate(customEvent.detail.path);
       }
     };
     window.addEventListener("app-navigate", handleNavigate);

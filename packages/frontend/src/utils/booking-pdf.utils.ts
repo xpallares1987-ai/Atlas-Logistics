@@ -8,6 +8,13 @@ import autoTable from "jspdf-autotable";
 import { OceanBooking } from "@atlas/shared";
 import { DraftBLPayload } from "../types/booking-management.types";
 
+interface DocWithAutoTable {
+  lastAutoTable: { finalY: number };
+}
+
+const getFinalY = (doc: jsPDF): number =>
+  (doc as unknown as DocWithAutoTable).lastAutoTable.finalY;
+
 /**
  * Generates and downloads the Official Multimodal Draft Bill of Lading PDF from booking confirmation modal.
  */
@@ -106,7 +113,7 @@ export function downloadDraftBLModalPdf(payload: DraftBLPayload): void {
     headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
   });
 
-  const nextY = (doc as any).lastAutoTable.finalY + 6;
+  const nextY = getFinalY(doc) + 6;
   doc.setFontSize(9.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 41, 59);
@@ -142,7 +149,7 @@ export function downloadDraftBLModalPdf(payload: DraftBLPayload): void {
   });
 
   // Legal Paramount Clause & Disclaimer
-  const finalY = (doc as any).lastAutoTable.finalY + 8;
+  const finalY = getFinalY(doc) + 8;
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(71, 85, 105);
@@ -240,7 +247,7 @@ export function downloadShippingInstructionsPdf(
   });
 
   // Container Cargo Manifest Table
-  const nextY = (doc as any).lastAutoTable.finalY + 8;
+  const nextY = getFinalY(doc) + 8;
   doc.setFontSize(10.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 41, 59);
@@ -287,7 +294,7 @@ export function downloadShippingInstructionsPdf(
   });
 
   // Legal disclaimer
-  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  const finalY = getFinalY(doc) + 10;
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139);
@@ -370,7 +377,7 @@ export function downloadDepotGatePassPdf(activeBooking: OceanBooking): void {
     headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
   });
 
-  const pinY = (doc as any).lastAutoTable.finalY + 12;
+  const pinY = getFinalY(doc) + 12;
   doc.setFillColor(241, 245, 249);
   doc.rect(14, pinY, 182, 28, "F");
 

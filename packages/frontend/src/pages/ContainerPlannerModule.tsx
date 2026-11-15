@@ -18,6 +18,7 @@ import {
   AxleLoad,
   useContainerPlanner,
 } from "../components/ContainerPlanner";
+import type { StowagePlanSummary } from "../types/container-planner.types";
 
 // ============================================================================
 // 1. LAZY-LOADED SECONDARY WORKBENCH TABS
@@ -64,7 +65,10 @@ export default function ContainerPlannerModule() {
         onSelectContainerId={planner.setSelectedContainerId}
         shipments={planner.shipments}
         availablePlans={planner.availablePlans}
-        stowagePlan={planner.stowagePlan}
+        stowagePlan={
+          planner.stowagePlan as unknown as
+            (StowagePlanSummary & Record<string, unknown>) | null
+        }
         isLoadingPlan={planner.isLoadingPlan}
         onRefreshPlan={() => planner.refetchStowagePlan()}
         certificationFeedback={planner.certificationFeedback}

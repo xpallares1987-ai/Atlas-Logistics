@@ -40,6 +40,19 @@ interface Invoice {
   partyId: string;
 }
 
+interface InvoiceLineItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total?: number;
+  [key: string]: unknown;
+}
+
+interface InvoiceDetails extends Invoice {
+  lines?: InvoiceLineItem[];
+  [key: string]: unknown;
+}
+
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
@@ -105,7 +118,7 @@ export default function InvoicingModule() {
     return filteredInvoices[0] || null;
   }, [invoices, filteredInvoices, selectedInvoiceId]);
 
-  const { data: selectedInvoiceDetails } = useApiQuery<any>(
+  const { data: selectedInvoiceDetails } = useApiQuery<InvoiceDetails>(
     ["invoice", selectedInvoice?.id || "none"],
     `/invoices/${selectedInvoice?.id}`,
     { enabled: !!selectedInvoice },
@@ -180,7 +193,7 @@ export default function InvoicingModule() {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["agent-settlements"] });
       setSelectedInvoiceId(inv.id);
-    } catch (err) {
+    } catch (_err) {
       console.error("Failed to update status");
     }
   };
@@ -304,7 +317,7 @@ export default function InvoicingModule() {
 
       {activeTab === "Reports" ? (
         <div className="flex-1 px-4 md:px-8 pb-8 z-10 relative overflow-y-auto">
-          <ReportsDashboard invoices={invoices as any} />
+          <ReportsDashboard invoices={invoices} />
         </div>
       ) : (
         <div className="flex-1 px-4 md:px-8 pb-8 flex flex-col lg:flex-row gap-6 min-h-0 z-10 relative overflow-y-auto lg:overflow-hidden">
@@ -574,7 +587,7 @@ export default function InvoicingModule() {
                         {selectedInvoiceDetails?.lines &&
                         selectedInvoiceDetails.lines.length > 0 ? (
                           selectedInvoiceDetails.lines.map(
-                            (item: any, index: number) => (
+                            (item, index: number) => (
                               <TableRow key={index} className="border-0">
                                 <TableCell className="py-4">
                                   <p className="font-bold text-slate-900">
@@ -588,13 +601,13 @@ export default function InvoicingModule() {
                                   {new Intl.NumberFormat("en-US", {
                                     style: "currency",
                                     currency: selectedInvoice.currency,
-                                  }).format(item.unitPrice)}
+                                  }).format(Number(item.unitPrice) || 0)}
                                 </TableCell>
                                 <TableCell className="text-right py-4 font-bold text-slate-900">
                                   {new Intl.NumberFormat("en-US", {
                                     style: "currency",
                                     currency: selectedInvoice.currency,
-                                  }).format(item.total)}
+                                  }).format(Number(item.total) || 0)}
                                 </TableCell>
                               </TableRow>
                             ),
@@ -693,7 +706,7 @@ export default function InvoicingModule() {
   );
 }
 
-function GlobeIcon(props: any) {
+function GlobeIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

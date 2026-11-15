@@ -270,7 +270,7 @@ export function Journeys({
               </h3>
 
               <div className="flex flex-col gap-3">
-                {calcDetails.legs?.map((leg: any) => {
+                {calcDetails.legs?.map((leg) => {
                   const badge = getModeBadge(leg.mode);
                   const pctOfTotal =
                     totalCalcTco2eWtw > 0

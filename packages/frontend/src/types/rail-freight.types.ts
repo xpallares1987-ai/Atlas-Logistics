@@ -45,6 +45,22 @@ export interface RailTrainConsist {
   calculatedBrakePercentage: number;
 }
 
+export interface RailAllocation {
+  id: string;
+  positionInTrain?: number;
+  utiType?: string;
+  utiIdentification?: string;
+  wagonTareWeightTonnes?: number;
+  grossMassWagonTonnes?: number;
+  axleLoadTonnes?: number;
+  securitySealNumber?: string;
+  payloadMassTonnes?: number;
+  grossWagonMassTonnes?: number;
+  calculatedAxleLoadTonnes?: number;
+  sealNumber?: string;
+  [key: string]: unknown;
+}
+
 export interface RailConsignment {
   id: string;
   cimNumber: string;
@@ -63,7 +79,7 @@ export interface RailConsignment {
   estimatedArrivalDate?: string;
   remarks?: string;
   responsibleRailwayOfficer?: string;
-  allocations?: any[];
+  allocations?: RailAllocation[];
 }
 
 export interface TrainPhysicsResult {

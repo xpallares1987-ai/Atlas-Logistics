@@ -61,10 +61,13 @@ export function useDatabaseSeed() {
             message: data.error || "Seed injection failed",
           });
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         setSeedResult({
           success: false,
-          message: err?.message || "Network error during seed execution",
+          message:
+            err instanceof Error
+              ? err.message
+              : "Network error during seed execution",
         });
       } finally {
         setIsSeeding(false);

@@ -269,8 +269,8 @@ export function CalculatorModal({
                   <div>
                     <span className="text-slate-400">
                       Arancel (
-                      {calcResult.dutyRateApplied !== undefined
-                        ? (calcResult.dutyRateApplied * 100).toFixed(1)
+                      {calcResult.dutyRateApplied != null
+                        ? (Number(calcResult.dutyRateApplied) * 100).toFixed(1)
                         : "0.0"}
                       %):
                     </span>
@@ -281,8 +281,8 @@ export function CalculatorModal({
                   <div>
                     <span className="text-slate-400">
                       IVA (
-                      {calcResult.vatRateApplied !== undefined
-                        ? (calcResult.vatRateApplied * 100).toFixed(1)
+                      {calcResult.vatRateApplied != null
+                        ? (Number(calcResult.vatRateApplied) * 100).toFixed(1)
                         : "21.0"}
                       %):
                     </span>

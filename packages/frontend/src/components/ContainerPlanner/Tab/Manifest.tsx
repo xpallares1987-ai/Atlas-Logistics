@@ -131,7 +131,7 @@ export const Manifest: React.FC<ManifestProps> = ({
         <Input
           placeholder="Descripción (ej. Pallet Repuestos A)"
           value={newItemName}
-          onChange={(e: any) => onChangeNewItemName(e.target.value)}
+          onChange={(e) => onChangeNewItemName(e.target.value)}
           className="bg-slate-900 border-slate-800 text-xs py-1"
         />
         <div className="grid grid-cols-4 gap-1.5 font-mono text-[10px]">
@@ -190,7 +190,7 @@ export const Manifest: React.FC<ManifestProps> = ({
           <Input
             placeholder="IMO Clase (ej. 3, 5.1)"
             value={newItemHazard}
-            onChange={(e: any) => onChangeNewItemHazard(e.target.value)}
+            onChange={(e) => onChangeNewItemHazard(e.target.value)}
             className="bg-slate-900 border-slate-800 text-[10px] w-32 py-0.5"
           />
         </div>

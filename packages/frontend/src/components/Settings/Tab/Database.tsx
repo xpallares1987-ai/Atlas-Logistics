@@ -57,45 +57,43 @@ export const Database: React.FC = () => {
             Current Schema
           </h3>
           <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-            {Object.entries(schema || {}).map(
-              ([tableName, columns]: [string, any]) => (
-                <div
-                  key={tableName}
-                  className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden"
-                >
-                  <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                    <TableProperties className="w-4 h-4 text-indigo-500" />
-                    <span className="font-bold text-sm text-slate-700 dark:text-slate-300">
-                      {tableName}
-                    </span>
-                  </div>
-                  <div className="p-4">
-                    <Table>
-                      <TableHeader className="bg-slate-50 dark:bg-slate-800">
-                        <TableRow>
-                          <TableHead className="h-8 py-1">Column</TableHead>
-                          <TableHead className="h-8 py-1">Type</TableHead>
-                          <TableHead className="h-8 py-1">PK</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {columns.map((c: any) => (
-                          <TableRow key={c.name}>
-                            <TableCell className="py-1 font-medium">
-                              {c.name}
-                            </TableCell>
-                            <TableCell className="py-1">{c.type}</TableCell>
-                            <TableCell className="py-1">
-                              {c.pk ? "✓" : "-"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+            {Object.entries(schema || {}).map(([tableName, columns]) => (
+              <div
+                key={tableName}
+                className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden"
+              >
+                <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                  <TableProperties className="w-4 h-4 text-indigo-500" />
+                  <span className="font-bold text-sm text-slate-700 dark:text-slate-300">
+                    {tableName}
+                  </span>
                 </div>
-              ),
-            )}
+                <div className="p-4">
+                  <Table>
+                    <TableHeader className="bg-slate-50 dark:bg-slate-800">
+                      <TableRow>
+                        <TableHead className="h-8 py-1">Column</TableHead>
+                        <TableHead className="h-8 py-1">Type</TableHead>
+                        <TableHead className="h-8 py-1">PK</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {columns.map((c) => (
+                        <TableRow key={c.name}>
+                          <TableCell className="py-1 font-medium">
+                            {c.name}
+                          </TableCell>
+                          <TableCell className="py-1">{c.type}</TableCell>
+                          <TableCell className="py-1">
+                            {c.pk ? "✓" : "-"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

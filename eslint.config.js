@@ -7,16 +7,25 @@ export default tseslint.config(
   {
     ignores: [
       "**/dist/**",
+      "**/dev-dist/**",
       "**/node_modules/**",
       "**/coverage/**",
       ".worktrees/**",
       "backups-test/**",
-      "packages/**",
+      "packages/bpmn-modeler/**",
+      "packages/mfe-dashboard/**",
+      "packages/mfe-warehouse/**",
+      "packages/rate-comparer/**",
+      "packages/shared/**",
+      "packages/ui/**",
+      "packages/frontend/dist/**",
+      "packages/frontend/dev-dist/**",
       "functions/**",
       ".turbo/**",
       "**/e2e/**",
       "scripts/**",
       "**/playwright.config.ts",
+      "**/vite.config.ts",
       "fix-imports.ts",
       "test-db.ts",
       "test-pw.ts",
@@ -33,7 +42,7 @@ export default tseslint.config(
     },
     languageOptions: {
       parserOptions: {
-        project: ["./tsconfig.json"],
+        project: ["./tsconfig.json", "./packages/frontend/tsconfig.json"],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -98,6 +107,25 @@ export default tseslint.config(
     // Issue #9 Phase 3: Progressive strict typing for Operational Controllers & Route Handlers
     files: ["src/routes/**/*.ts"],
     ignores: ["src/routes/**/*.test.ts", "src/routes/**/__tests__/**"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
+  {
+    // Issue #9 Phase 4: Progressive strict typing for Frontend Component Boundaries
+    files: ["packages/frontend/src/**/*.{ts,tsx}"],
+    ignores: [
+      "packages/frontend/src/**/__tests__/**",
+      "packages/frontend/src/**/*.test.{ts,tsx}",
+    ],
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": [

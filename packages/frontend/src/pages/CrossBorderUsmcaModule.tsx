@@ -46,7 +46,7 @@ export default function CrossBorderUsmcaModule() {
         activeShipment={vm.activeShipment}
         selectedShipmentId={vm.selectedShipmentId}
         onSelectShipmentId={vm.setSelectedShipmentId}
-        dbDeclaration={vm.dbDeclaration}
+        dbDeclaration={vm.dbDeclaration || null}
         isGenerating={vm.generateMutation.isPending}
         onGenerateCartaPorte={() =>
           vm.generateMutation.mutate({ shipmentId: vm.selectedShipmentId })

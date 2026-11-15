@@ -36,8 +36,8 @@ export default function Login() {
 
       login(data.token, data.user);
       navigate("/");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to login");
     } finally {
       setIsLoading(false);
     }

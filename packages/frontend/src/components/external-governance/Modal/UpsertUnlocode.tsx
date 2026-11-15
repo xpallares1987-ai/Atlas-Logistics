@@ -63,8 +63,12 @@ export const UpsertUnlocodeModal: React.FC<UpsertUnlocodeModalProps> = ({
         status: formData.status || "AI",
       });
       onClose();
-    } catch (err: any) {
-      setFormError(err.message || "Error al actualizar UN/LOCODE en caché");
+    } catch (err: unknown) {
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : "Error al actualizar UN/LOCODE en caché",
+      );
     }
   };
 

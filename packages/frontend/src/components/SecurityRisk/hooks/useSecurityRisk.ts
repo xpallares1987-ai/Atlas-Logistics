@@ -73,7 +73,10 @@ export function useSecurityRisk() {
     "YubiKey 5 NFC / TouchID Biometric",
   );
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [passkeyResult, setPasskeyResult] = useState<any>(null);
+  const [passkeyResult, setPasskeyResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [registeredKeys] = useState<RegisteredFidoKey[]>(
     INITIAL_REGISTERED_KEYS,
   );
@@ -139,7 +142,7 @@ export function useSecurityRisk() {
   const handleSignDocument = async () => {
     const payload: DigitalSignaturePayload = {
       documentId: docId,
-      documentType: docType as any,
+      documentType: docType as DigitalSignaturePayload["documentType"],
       issuerId,
       issuerOrg,
       content: docPayload,
@@ -154,7 +157,7 @@ export function useSecurityRisk() {
     if (!digitalSeal) return;
     const testPayload: DigitalSignaturePayload = {
       documentId: docId,
-      documentType: docType as any,
+      documentType: docType as DigitalSignaturePayload["documentType"],
       issuerId,
       issuerOrg,
       content: tamperedPayload,

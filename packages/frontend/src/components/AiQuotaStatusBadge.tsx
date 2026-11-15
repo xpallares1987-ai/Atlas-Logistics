@@ -57,8 +57,20 @@ export const AiQuotaStatusBadge: React.FC = () => {
     let idleId: number | null = null;
     let timerId: ReturnType<typeof setTimeout> | null = null;
 
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = (window as any).requestIdleCallback(
+    type WindowWithIdleCallback = Window & {
+      requestIdleCallback?: (
+        cb: () => void,
+        opts?: { timeout: number },
+      ) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const win = window as unknown as WindowWithIdleCallback;
+
+    if (
+      typeof window !== "undefined" &&
+      typeof win.requestIdleCallback === "function"
+    ) {
+      idleId = win.requestIdleCallback(
         () => {
           fetchStatus();
         },
@@ -79,9 +91,9 @@ export const AiQuotaStatusBadge: React.FC = () => {
       if (
         idleId &&
         typeof window !== "undefined" &&
-        "cancelIdleCallback" in window
+        typeof win.cancelIdleCallback === "function"
       ) {
-        (window as any).cancelIdleCallback(idleId);
+        win.cancelIdleCallback(idleId);
       }
       if (timerId) {
         clearTimeout(timerId);

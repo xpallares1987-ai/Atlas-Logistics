@@ -13,8 +13,123 @@ export type FuelEuGeographicScope =
 export type VoyageVerificationStatus =
   "PLANNED" | "UNDERWAY" | "COMPLETED_VERIFIED" | "AUDITED_THETIS";
 
+export interface FuelEuVoyage {
+  id: string;
+  status: VoyageVerificationStatus | string;
+  voyageReferenceNumber: string;
+  vesselId?: string;
+  vessel?: {
+    vesselName?: string;
+    imoNumber?: string;
+    [key: string]: unknown;
+  };
+  fuelId?: string;
+  fuel?: {
+    fuelName?: string;
+    [key: string]: unknown;
+  };
+  calculatedGhgIntensityGco2eqPerMj: number;
+  totalEnergyConsumedMj: number;
+  geographicScope: FuelEuGeographicScope | string;
+  etsApplicableScopeEmissionsTco2eq: number;
+  carriedTeuCount: number;
+  departurePortName: string;
+  departurePortLocode: string;
+  arrivalPortName: string;
+  arrivalPortLocode: string;
+  distanceNauticalMiles: number;
+  navigationHours: number;
+  berthHours: number;
+  fuelConsumedTonnes: number;
+  opsElectricityConsumedKwh: number;
+  leadAuditorVerifier?: string;
+  co2EmissionsTonnes: number;
+  ch4EmissionsTonnes: number;
+  n2oEmissionsTonnes: number;
+  [key: string]: unknown;
+}
+
+export interface ComplianceAccount {
+  id: string;
+  accountHolderName?: string;
+  currentBalance?: number;
+  [key: string]: unknown;
+}
+
+export interface FuelRecord {
+  id: string;
+  fuelCode: string;
+  fuelName: string;
+  totalWtwFactorGco2eqPerMj?: number;
+  emissionFactorGhg?: number;
+  lcvMjPerGram?: number;
+  [key: string]: unknown;
+}
+
+export interface PoolRecord {
+  id: string;
+  poolReference?: string;
+  poolName?: string;
+  complianceBalanceEur?: number;
+  status?: string;
+  managingOperatorName?: string;
+  reportingYear?: number | string;
+  consolidatedNetComplianceBalanceGco2eq: number;
+  totalEnrolledVesselsCount?: number;
+  remarks?: string;
+  [key: string]: unknown;
+}
+
+export interface EtsLiability {
+  totalGrossGhgTco2eq: number;
+  applicableScopeEmissionsTco2eq: number;
+  scopeFactor: number;
+  totalEtsFinancialLiabilityEur: number;
+  euaPriceEurPerTonne: number;
+}
+
+export interface GreenBafResult {
+  carriedTeus: number;
+  fueleuImpactPerTeuEur: number;
+  etsImpactPerTeuEur: number;
+  totalGreenBafSurchargePerTeuEur: number;
+  totalGreenSurchargeFor40FtContainerEur: number;
+}
+
+export interface EtsSimResult {
+  scopeEmissions?: number;
+  etsCostEur?: number;
+  bafSurchargePerTeuEur?: number;
+  totalCostImpactEur?: number;
+  etsLiability: EtsLiability;
+  greenBaf: GreenBafResult;
+  [key: string]: unknown;
+}
+
+export interface GhgMetrics {
+  calculatedGhgIntensityGco2eqPerMj: number;
+}
+
+export interface ComplianceMetrics {
+  targetGhgIntensityGco2eqPerMj: number;
+  isCompliant: boolean;
+  complianceStatus: string;
+  complianceBalanceTonnesCo2eq: number;
+  fuelEuPenaltyEur: number;
+}
+
+export interface FuelSimResult {
+  ghgIntensity?: number;
+  penaltyEur?: number;
+  complianceSurplusMj?: number;
+  isCompliant?: boolean;
+  ghgMetrics: GhgMetrics;
+  complianceMetrics: ComplianceMetrics;
+  [key: string]: unknown;
+}
+
 export interface FuelEuHeaderProps {
-  currentAccount: any;
+  currentAccount: ComplianceAccount | null;
   voyagesCount: number;
   vesselsCount: number;
   totalFuelEnergySum: number;
@@ -26,16 +141,16 @@ export interface FuelEuHeaderProps {
 }
 
 export interface VoyagesGhgTabProps {
-  voyages: any[];
+  voyages: FuelEuVoyage[];
   loadingVoyages: boolean;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   activeScopeFilter: string;
   setActiveScopeFilter: (scope: string) => void;
-  selectedVoyage: any;
-  onSelectVoyage: (v: any) => void;
-  currentVoyage: any;
-  onOpenVerifyModal: (voyage: any) => void;
+  selectedVoyage: FuelEuVoyage | null;
+  onSelectVoyage: (v: FuelEuVoyage | null) => void;
+  currentVoyage: FuelEuVoyage | null;
+  onOpenVerifyModal: (voyage: FuelEuVoyage) => void;
 }
 
 export interface EtsGreenBafTabProps {
@@ -53,21 +168,21 @@ export interface EtsGreenBafTabProps {
   setSimCarriedTeus: (v: number) => void;
   simFueleuImpact: number;
   setSimFueleuImpact: (v: number) => void;
-  etsSimResult: any;
+  etsSimResult: EtsSimResult | null;
   onRunEtsCalc: () => void;
 }
 
 export interface PoolingFuelsTabProps {
-  fuels: any[];
+  fuels: FuelRecord[];
   simFuelCode: string;
   setSimFuelCode: (code: string) => void;
   simFuelTonnes: number;
   setSimFuelTonnes: (v: number) => void;
   simOpsKwh: number;
   setSimOpsKwh: (v: number) => void;
-  fuelSimResult: any;
+  fuelSimResult: FuelSimResult | null;
   onRunFuelSim: () => void;
-  pools: any[];
+  pools: PoolRecord[];
 }
 
 export interface StatusVerificationModalProps {

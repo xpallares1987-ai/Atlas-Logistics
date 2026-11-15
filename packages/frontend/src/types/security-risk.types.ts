@@ -30,6 +30,14 @@ export interface RegisteredFidoKey {
   status: string;
 }
 
+export interface PasskeyAuthResult {
+  deviceModel?: string;
+  credentialId?: string;
+  signature?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
 export interface PasskeysTotpTabProps {
   userEmail: string;
   setUserEmail: (v: string) => void;
@@ -38,7 +46,7 @@ export interface PasskeysTotpTabProps {
   deviceModel: string;
   setDeviceModel: (v: string) => void;
   isAuthenticating: boolean;
-  passkeyResult: any;
+  passkeyResult: PasskeyAuthResult | null;
   registeredKeys: RegisteredFidoKey[];
   onTestPasskeyAuth: () => void;
   totpSecret: string;

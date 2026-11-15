@@ -5,6 +5,7 @@
  * @see {@link docs/adr/0020-frontend-modular-decomposition.md}
  */
 
+import React from "react";
 import { Clock, PauseCircle, Scale, FileText } from "lucide-react";
 import type { DemurrageTabKey } from "../../types/demurrage.types";
 
@@ -13,7 +14,11 @@ interface NavigationProps {
   onTabChange: (tab: DemurrageTabKey) => void;
 }
 
-const TABS: Array<{ key: DemurrageTabKey; label: string; icon: any }> = [
+const TABS: Array<{
+  key: DemurrageTabKey;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}> = [
   {
     key: "RADAR",
     label: "1. Radar de Free-Time & Clocks",

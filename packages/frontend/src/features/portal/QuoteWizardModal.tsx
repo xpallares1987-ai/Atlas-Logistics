@@ -14,10 +14,25 @@ import {
 import { Button, Input, Select, Modal } from "@atlas/ui";
 import { getSecureRandomInt } from "@atlas/shared";
 
+export interface PortalGeneratedQuote {
+  price: number;
+  currency: string;
+  eta: string;
+  validUntil: string;
+}
+
+export interface PortalBookedQuote extends PortalGeneratedQuote {
+  origin: string;
+  destination: string;
+  type: string;
+  cargo: string;
+  weight: string;
+}
+
 interface QuoteWizardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onBook: (quote: any) => void;
+  onBook: (quote: PortalBookedQuote) => void;
 }
 
 export function QuoteWizardModal({
@@ -34,7 +49,8 @@ export function QuoteWizardModal({
     weight: "",
   });
   const [isQuoting, setIsQuoting] = useState(false);
-  const [generatedQuote, setGeneratedQuote] = useState<any>(null);
+  const [generatedQuote, setGeneratedQuote] =
+    useState<PortalGeneratedQuote | null>(null);
 
   const handleNext = () => {
     if (step === 2) {
@@ -58,6 +74,7 @@ export function QuoteWizardModal({
   };
 
   const handleBook = () => {
+    if (!generatedQuote) return;
     onBook({ ...formData, ...generatedQuote });
     // Reset state after booking
     setStep(1);

@@ -4,7 +4,7 @@ import {
   Marker,
   Arc,
 } from "@atlas/ui/src/components/GlobeTracker";
-// @ts-ignore
+// @ts-expect-error Optional third-party peer types resolved by react-globe.gl bundle
 import type { GlobeMethods } from "react-globe.gl";
 import {
   Ship,

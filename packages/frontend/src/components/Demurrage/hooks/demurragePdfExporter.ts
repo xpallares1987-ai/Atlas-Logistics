@@ -99,7 +99,9 @@ export function downloadDisputeDossierPdf(params: {
   });
 
   // Suspensions Table
-  const nextY = (doc as any).lastAutoTable.finalY + 10;
+  const nextY =
+    (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+      .finalY + 10;
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text(
@@ -134,7 +136,9 @@ export function downloadDisputeDossierPdf(params: {
   });
 
   // Formal Demand Text
-  const letterY = (doc as any).lastAutoTable.finalY + 10;
+  const letterY =
+    (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+      .finalY + 10;
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text(

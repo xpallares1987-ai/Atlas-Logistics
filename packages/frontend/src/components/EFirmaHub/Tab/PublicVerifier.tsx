@@ -17,6 +17,19 @@ import {
 import { Button, Input } from "@atlas/ui";
 import type { EFirmaVerificationFeedback } from "../../../types/efirma-hub.types";
 
+interface StampItem {
+  id?: string;
+  auditId?: string;
+  documentId?: string;
+  documentType?: string;
+  rfc3161TimestampToken?: string;
+  signatureDigest?: string;
+  signerRfc?: string;
+  rfcTitular?: string;
+  verifiedAt?: string;
+  stampedAt?: string;
+}
+
 interface PublicVerifierProps {
   verifierCadena: string;
   onChangeVerifierCadena: (val: string) => void;
@@ -29,7 +42,7 @@ interface PublicVerifierProps {
   isVerifying: boolean;
   onTestVerify: () => void;
   verificationFeedback: EFirmaVerificationFeedback | null;
-  stamps: any[];
+  stamps: StampItem[];
 }
 
 export const PublicVerifier: React.FC<PublicVerifierProps> = ({
@@ -173,7 +186,7 @@ export const PublicVerifier: React.FC<PublicVerifierProps> = ({
 
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {stamps.length > 0 ? (
-              stamps.map((stamp: any) => (
+              stamps.map((stamp) => (
                 <div
                   key={stamp.id || stamp.auditId}
                   className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5 text-xs hover:border-slate-700 transition-colors"
@@ -195,7 +208,8 @@ export const PublicVerifier: React.FC<PublicVerifierProps> = ({
                     <span>
                       {stamp.verifiedAt || stamp.stampedAt
                         ? new Date(
-                            stamp.verifiedAt || stamp.stampedAt,
+                            (stamp.verifiedAt || stamp.stampedAt) as
+                              string | number,
                           ).toLocaleTimeString()
                         : "Validado"}
                     </span>

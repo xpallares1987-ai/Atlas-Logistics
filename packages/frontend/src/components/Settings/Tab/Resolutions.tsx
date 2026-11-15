@@ -189,7 +189,9 @@ export const Resolutions: React.FC = () => {
           ].map((cat) => (
             <button
               key={cat}
-              onClick={() => setSelectedCategory(cat as any)}
+              onClick={() =>
+                setSelectedCategory(cat as ResolutionCategory | "ALL")
+              }
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
                 selectedCategory === cat
                   ? "bg-indigo-600 text-white"

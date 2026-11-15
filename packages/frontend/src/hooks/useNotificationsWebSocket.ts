@@ -6,10 +6,11 @@ export function useNotificationsWebSocket() {
 
   useAppWebSocket("/ws/notifications", {
     onOpen: () => {
-      console.log("WebSocket connected for notifications");
+      console.info("WebSocket connected for notifications");
     },
-    onMessage: (data) => {
-      if (!data || typeof data !== "object") return;
+    onMessage: (raw) => {
+      if (!raw || typeof raw !== "object") return;
+      const data = raw as { type?: string; message?: string };
       addNotification({
         id: crypto.randomUUID(),
         title:

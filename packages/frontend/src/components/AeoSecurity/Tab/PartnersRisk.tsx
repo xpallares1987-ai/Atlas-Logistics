@@ -7,6 +7,7 @@
 import { motion, Variants } from "framer-motion";
 import { ShieldCheck, Building2, Download } from "lucide-react";
 import { Input } from "@atlas/ui";
+import type { LogisticsPartnerRecord } from "../types/index";
 
 export interface PartnersRiskProps {
   partnerName: string;
@@ -23,9 +24,9 @@ export interface PartnersRiskProps {
   setPartnerScore: (val: number) => void;
   monthsAudit: number;
   setMonthsAudit: (val: number) => void;
-  screeningResult: any;
+  screeningResult: Record<string, unknown> | null;
   onSimulateScreening: () => void;
-  partners: any[];
+  partners: LogisticsPartnerRecord[];
   itemVariants?: Variants;
 }
 
@@ -159,27 +160,39 @@ export function PartnersRisk({
                 <div className="flex justify-between items-center">
                   <span className="text-slate-500">Puntuación Calculada:</span>
                   <span className="font-bold text-teal-600">
-                    {screeningResult.calculatedRiskScore} / 100
+                    {String(
+                      (screeningResult as Record<string, unknown>)
+                        .calculatedRiskScore || 0,
+                    )}{" "}
+                    / 100
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-500">Nivel de Riesgo:</span>
                   <span
                     className={`font-bold ${
-                      screeningResult.riskLevel === "LOW_RISK"
+                      (screeningResult as Record<string, unknown>).riskLevel ===
+                      "LOW_RISK"
                         ? "text-emerald-600"
-                        : screeningResult.riskLevel === "MEDIUM_RISK"
+                        : (screeningResult as Record<string, unknown>)
+                              .riskLevel === "MEDIUM_RISK"
                           ? "text-amber-600"
                           : "text-red-600"
                     }`}
                   >
-                    {screeningResult.riskLevel}
+                    {String(
+                      (screeningResult as Record<string, unknown>).riskLevel ||
+                        "",
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-500">Estado:</span>
                   <span className="font-semibold">
-                    {screeningResult.recommendedStatus}
+                    {String(
+                      (screeningResult as Record<string, unknown>)
+                        .recommendedStatus || "",
+                    )}
                   </span>
                 </div>
               </div>
@@ -218,7 +231,7 @@ export function PartnersRisk({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                {partners.map((p: any) => (
+                {partners.map((p) => (
                   <tr
                     key={p.id}
                     className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30"

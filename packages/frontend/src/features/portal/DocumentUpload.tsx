@@ -11,13 +11,20 @@ import { Button, Input } from "@atlas/ui";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
+interface PortalDocument {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+}
+
 export function DocumentUpload({ shipmentId }: { shipmentId: string }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
-  const { data: documents = [], isLoading } = useQuery({
+  const { data: documents = [], isLoading } = useQuery<PortalDocument[]>({
     queryKey: ["shipmentDocuments", shipmentId],
     queryFn: async () => {
       const res = await fetch(`${API_URL}/documents?shipmentId=${shipmentId}`);
@@ -55,7 +62,7 @@ export function DocumentUpload({ shipmentId }: { shipmentId: string }) {
     }
   };
 
-  const downloadDoc = (doc: any) => {
+  const downloadDoc = (doc: PortalDocument) => {
     window.open(`http://localhost:3001${doc.url}`, "_blank");
   };
 
@@ -75,7 +82,7 @@ export function DocumentUpload({ shipmentId }: { shipmentId: string }) {
             <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">
               Available Documents
             </h4>
-            {documents.map((doc: any) => (
+            {documents.map((doc: PortalDocument) => (
               <div
                 key={doc.id}
                 className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100"

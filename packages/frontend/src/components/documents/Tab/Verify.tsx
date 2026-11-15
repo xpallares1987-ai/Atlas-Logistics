@@ -50,7 +50,7 @@ export const DocumentVerifyTab: React.FC<DocumentVerifyTabProps> = ({
           aria-label="Hash SHA-256 o Referencia del Documento"
           placeholder="Pegue aquí el hash SHA-256 (64 caracteres) o la referencia (ej. HBL-2026-0081)..."
           value={verifyQuery}
-          onChange={(e: any) => onVerifyQueryChange(e.target.value)}
+          onChange={(e) => onVerifyQueryChange(e.target.value)}
           className="bg-slate-950 border-slate-800 text-xs font-mono"
         />
         <Button

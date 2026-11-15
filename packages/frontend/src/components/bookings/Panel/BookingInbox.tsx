@@ -9,18 +9,66 @@ import { Package, CheckCircle2, Truck, X, Download } from "lucide-react";
 import { Button } from "@atlas/ui";
 import { downloadDraftBLModalPdf } from "../../../utils/booking-pdf.utils";
 
+interface BookingCargoDetails {
+  customerName?: string;
+  consigneeName?: string;
+  carrier?: string;
+  incoterm?: string;
+  equipment?: string;
+  commodity?: string;
+  weight?: number | string;
+  origin?: string;
+  destination?: string;
+  shipmentTrackingNumber?: string;
+  blReference?: string;
+  containerNumber?: string;
+  sealNumber?: string;
+  carrierBookingNumber?: string;
+  [key: string]: unknown;
+}
+
+export interface BookingInboxItem {
+  id: string;
+  referenceNumber?: string;
+  status?: string;
+  parsedCargoDetails?: BookingCargoDetails;
+  origin?: string;
+  destination?: string;
+  equipment?: string;
+  vessel?: string;
+  voyage?: string;
+  shipperAddressId?: string;
+  consigneeAddressId?: string;
+  notifyAddressId?: string;
+  dischargeAgentAddressId?: string;
+  isToOrder?: boolean;
+  orderOf?: string;
+  shipmentId?: string;
+  trackingNumber?: string;
+  containers?: Array<{ containerNumber?: string }>;
+  [key: string]: unknown;
+}
+
+export interface ConversionResult {
+  booking?: { referenceNumber?: string };
+  shipment?: { trackingNumber?: string };
+  milestones?: unknown[];
+  blDocument?: { documentReference?: string };
+  [key: string]: unknown;
+}
+
 export interface BookingInboxProps {
-  dbBookings: any[];
+  dbBookings: BookingInboxItem[];
   loadingDbBookings: boolean;
   onRefresh: () => void;
-  lastConversionResult: any;
+  lastConversionResult: ConversionResult | null;
   onClearConversionResult: () => void;
   onOpenDrayage: (
     originId?: string,
     bkgRef?: string,
     containerNum?: string,
   ) => void;
-  onOpenConfirmModal: (bkg: any) => void;
+  onOpenConfirmModal: (bkg: BookingInboxItem) => void;
   onCancelBooking: (bookingId: string) => void;
 }
 
@@ -242,11 +290,11 @@ export function BookingInbox({
                               downloadDraftBLModalPdf({
                                 blReference:
                                   details.blReference ||
-                                  `BL-${details.shipmentTrackingNumber || bkg.referenceNumber}`,
-                                bookingReference: bkg.referenceNumber,
+                                  `BL-${details.shipmentTrackingNumber || bkg.referenceNumber || ""}`,
+                                bookingReference: bkg.referenceNumber || "",
                                 carrierBookingNumber:
                                   details.carrierBookingNumber ||
-                                  `CR-${bkg.referenceNumber}`,
+                                  `CR-${bkg.referenceNumber || ""}`,
                                 trackingNumber:
                                   details.shipmentTrackingNumber ||
                                   "ATLS-BOOKED",
@@ -257,8 +305,8 @@ export function BookingInbox({
                                 consigneeName: "European Distribution Hub B.V.",
                                 vesselName: bkg.vessel || "MV ATLAS HORIZON",
                                 voyageNumber: bkg.voyage || "VY-2026E",
-                                origin: bkg.origin,
-                                destination: bkg.destination,
+                                origin: bkg.origin || "ESVLC",
+                                destination: bkg.destination || "USNYC",
                                 equipment: bkg.equipment || "40HC",
                                 containerNumber:
                                   details.containerNumber || "ATLU4928174",

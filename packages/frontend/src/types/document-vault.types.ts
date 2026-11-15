@@ -13,7 +13,7 @@ export interface DocumentTemplate {
   domain: string;
   regulation: string;
   icon: string;
-  defaultData: Record<string, any>;
+  defaultData: Record<string, unknown>;
 }
 
 export interface VaultDocument {
@@ -49,8 +49,10 @@ export interface DocumentStudioTabProps {
   templates: DocumentTemplate[];
   selectedType: string;
   onSelectTemplate: (tpl: DocumentTemplate) => void;
-  formData: Record<string, any>;
-  onFormDataChange: React.Dispatch<React.SetStateAction<Record<string, any>>>;
+  formData: Record<string, unknown>;
+  onFormDataChange: React.Dispatch<
+    React.SetStateAction<Record<string, unknown>>
+  >;
   docReference: string;
   onDocReferenceChange: (ref: string) => void;
   isGenerating: boolean;
@@ -78,13 +80,65 @@ export interface DocumentVaultTabProps {
   getTypeIcon: (type: string) => React.ReactNode;
 }
 
+export interface AuditDocItem {
+  type: string;
+  documentReference?: string;
+  payloadData?: {
+    invoiceNumber?: string;
+    seller?: string;
+    buyer?: string;
+    currency?: string;
+    totalAmount?: number;
+    lineItems?: Array<{
+      description: string;
+      hsCode: string;
+      quantity: number;
+      unitPrice: number;
+      totalAmount: number;
+    }>;
+    packages?: number;
+    verifiedGrossMassKg?: number;
+    grossWeightKg?: number;
+    netCargoWeightKg?: number;
+    containerNumber?: string;
+    sealNumber?: string;
+    vessel?: string;
+    voyage?: string;
+    portOfLoading?: string;
+    portOfDischarge?: string;
+    duaNumber?: string;
+    regime?: string;
+    customsOffice?: string;
+    fobValueUsd?: number;
+    cifValueEur?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+export interface DocumentVerifyResult {
+  authentic?: boolean;
+  message?: string;
+  document?: VaultDocument | null;
+  [key: string]: unknown;
+}
+
 export interface DocumentVerifyTabProps {
   verifyQuery: string;
   onVerifyQueryChange: (query: string) => void;
-  verifyResult: any;
+  verifyResult: DocumentVerifyResult | null;
   isVerifying: boolean;
   onVerify: (queryToVerify?: string) => void;
   onOpenViewer?: (doc: VaultDocument) => void;
+}
+
+export interface DocumentOcrShipmentOption {
+  id: string;
+  referenceNumber?: string;
+  bookingId?: string;
+  originPort?: string;
+  destinationPort?: string;
+  [key: string]: unknown;
 }
 
 export interface DocumentOcrStudioTabProps {
@@ -105,7 +159,7 @@ export interface DocumentOcrStudioTabProps {
   ocrAttachment: OcrAttachment | null;
   onClearAttachment: () => void;
   ocrAiProvenance: OcrAiProvenance | null;
-  shipmentsList: any[];
+  shipmentsList: DocumentOcrShipmentOption[];
   selectedShipmentId: string;
   onSelectedShipmentIdChange: (id: string) => void;
   onAuditShipmentDocuments: (id: string) => void;

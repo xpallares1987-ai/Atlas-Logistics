@@ -7,7 +7,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useApiMutation, useApiQuery } from "../../../hooks/useApiQuery";
-import type { IoTControlTab } from "../../../types/iot-control-tower.types";
+import type {
+  IoTAsset,
+  IoTAssetDetail,
+  IoTControlTab,
+  IoTGeofence,
+  IoTReading,
+  IoTSummary,
+} from "../../../types/iot-control-tower.types";
 
 export function toSvgCoords(
   lat: number,
@@ -53,33 +60,32 @@ export function useIoTControlTower() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const playbackRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { data: summary, refetch: refetchSummary } = useApiQuery<any>(
-    ["telemetry-summary"],
-    "/telemetry/summary",
-  );
-  const { data: assets = [], refetch: refetchAssets } = useApiQuery<any[]>(
+  const { data: summary = null, refetch: refetchSummary } =
+    useApiQuery<IoTSummary>(["telemetry-summary"], "/telemetry/summary");
+  const { data: assets = [], refetch: refetchAssets } = useApiQuery<IoTAsset[]>(
     ["telemetry-assets"],
     "/telemetry/assets",
   );
-  const { data: geofences = [] } = useApiQuery<any[]>(
+  const { data: geofences = [] } = useApiQuery<IoTGeofence[]>(
     ["telemetry-geofences"],
     "/telemetry/geofences",
   );
-  const { data: assetDetail, refetch: refetchDetail } = useApiQuery<any>(
-    ["telemetry-asset-detail", selectedAssetId],
-    selectedAssetId ? `/telemetry/assets/${selectedAssetId}` : "",
-    { enabled: !!selectedAssetId },
-  );
-  const { data: history = [] } = useApiQuery<any[]>(
+  const { data: assetDetail = null, refetch: refetchDetail } =
+    useApiQuery<IoTAssetDetail>(
+      ["telemetry-asset-detail", selectedAssetId],
+      selectedAssetId ? `/telemetry/assets/${selectedAssetId}` : "",
+      { enabled: !!selectedAssetId },
+    );
+  const { data: history = [] } = useApiQuery<IoTReading[]>(
     ["telemetry-history", selectedAssetId],
     selectedAssetId ? `/telemetry/assets/${selectedAssetId}/history` : "",
     { enabled: !!selectedAssetId && activeTab === "PLAYBACK" },
   );
 
-  const simulateMutation = useApiMutation<any, any>(
-    "/telemetry/simulate-anomaly",
-    "POST",
-  );
+  const simulateMutation = useApiMutation<
+    Record<string, unknown>,
+    Record<string, unknown>
+  >("/telemetry/simulate-anomaly", "POST");
 
   useEffect(() => {
     if (assets.length > 0 && !selectedAssetId) {
@@ -120,8 +126,9 @@ export function useIoTControlTower() {
       refetchSummary();
       refetchAssets();
       refetchDetail();
-    } catch (e: any) {
-      alert(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      alert(message);
     }
   };
 
@@ -137,13 +144,20 @@ export function useIoTControlTower() {
       });
       refetchDetail();
       refetchSummary();
-    } catch (e) {}
+    } catch (_e) {}
   };
 
-  const selectedAsset = assets.find((a) => a.id === selectedAssetId);
-  const liveReading = assetDetail?.readings?.[assetDetail.readings.length - 1];
+  const selectedAsset = assets.find((a) => a.id === selectedAssetId) || null;
+  const detailObj = assetDetail as unknown as {
+    readings?: IoTReading[];
+  } | null;
+  const liveReading =
+    assetDetail?.currentReading ||
+    (detailObj?.readings && detailObj.readings.length > 0
+      ? detailObj.readings[detailObj.readings.length - 1]
+      : null);
   const activeAlerts = (assetDetail?.alerts || []).filter(
-    (a: any) => a.status === "ACTIVE",
+    (a) => (a as { status?: string }).status === "ACTIVE",
   );
 
   return {

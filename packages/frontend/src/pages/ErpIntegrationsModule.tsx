@@ -30,6 +30,17 @@ import { useShipments } from "../hooks/useShipments";
 type TabKey = "TOPOLOGY" | "MAPPING" | "SANDBOX" | "QUEUE";
 type PresetKey = "sap_automotive_tier1" | "netsuite_retail_hightech";
 
+interface ErpPurchaseOrder {
+  id: string;
+  poNumber: string;
+  erpSystem?: string;
+  vendorName?: string;
+  totalAmount: number;
+  currency?: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
 export default function ErpIntegrationsModule() {
   const [activeTab, setActiveTab] = useState<TabKey>("TOPOLOGY");
   const [selectedShipmentId, setSelectedShipmentId] =
@@ -41,7 +52,10 @@ export default function ErpIntegrationsModule() {
   );
   const [copiedResponse, setCopiedResponse] = useState(false);
   const [isOffline] = useState(!navigator.onLine);
-  const [activeConsoleLog, setActiveConsoleLog] = useState<any>(null);
+  const [activeConsoleLog, setActiveConsoleLog] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [queueItems, setQueueItems] = useState<ErpQueuedMutation[]>([]);
 
   // Real Shipments from SQLite
@@ -52,7 +66,7 @@ export default function ErpIntegrationsModule() {
   // Real ERP Purchase Orders for this shipment from SQLite
   const { data: ordersData, refetch: refetchOrders } = useApiQuery<{
     success: boolean;
-    orders: any[];
+    orders: ErpPurchaseOrder[];
   }>(
     ["erp-orders", selectedShipmentId],
     `/erp-integrations/orders?shipmentId=${selectedShipmentId}`,
@@ -117,92 +131,107 @@ export default function ErpIntegrationsModule() {
   }, []);
 
   // Direct Operational Sync Mutation against SQLite
-  const syncOrderMutation = useApiMutation<any, { poNumber: string }>(
-    "/erp-integrations/sync",
-    "POST",
+  const syncOrderMutation = useApiMutation<
     {
-      onSuccess: (res) => {
-        refetchOrders();
-        setActiveConsoleLog({
-          title: "Sincronización Bidireccional SQLite / ERP Exitosa",
-          system: res.order?.erpSystem || "SAP_S4HANA",
-          protocol: "Relational Operational Sync",
-          order: res.order,
-          syncLog: res.syncLog,
-        });
-      },
+      order?: { erpSystem?: string; [key: string]: unknown };
+      syncLog?: unknown;
+      [key: string]: unknown;
     },
-  );
+    { poNumber: string }
+  >("/erp-integrations/sync", "POST", {
+    onSuccess: (res) => {
+      refetchOrders();
+      setActiveConsoleLog({
+        title: "Sincronización Bidireccional SQLite / ERP Exitosa",
+        system: res.order?.erpSystem || "SAP_S4HANA",
+        protocol: "Relational Operational Sync",
+        order: res.order,
+        syncLog: res.syncLog,
+      });
+    },
+  });
 
   // API Mutations
-  const syncSapPoMutation = useApiMutation<any, { poNumber: string }>(
-    "/erp-integrations/sap/sync-po",
-    "POST",
+  const syncSapPoMutation = useApiMutation<
     {
-      onSuccess: (res) => {
-        refetchOrders();
-        setActiveConsoleLog({
-          title: "SAP S/4HANA PO Sincronizado Exitosamente",
-          system: "SAP_S4HANA",
-          protocol: "OData v4 REST (JSON)",
-          csrfToken: res.csrfToken,
-          data: res.data,
-        });
-      },
+      csrfToken?: string;
+      data?: unknown;
+      [key: string]: unknown;
     },
-  );
+    { poNumber: string }
+  >("/erp-integrations/sap/sync-po", "POST", {
+    onSuccess: (res) => {
+      refetchOrders();
+      setActiveConsoleLog({
+        title: "SAP S/4HANA PO Sincronizado Exitosamente",
+        system: "SAP_S4HANA",
+        protocol: "OData v4 REST (JSON)",
+        csrfToken: res.csrfToken,
+        data: res.data,
+      });
+    },
+  });
 
-  const postSapDeliveryMutation = useApiMutation<any, any>(
-    "/erp-integrations/sap/post-delivery",
-    "POST",
+  const postSapDeliveryMutation = useApiMutation<
     {
-      onSuccess: (res) => {
-        refetchOrders();
-        setActiveConsoleLog({
-          title: "Entrega Entrante (ASN) Generada en SAP",
-          system: "SAP_S4HANA",
-          protocol: "OData v4 (A_InboundDeliveryHeader)",
-          deliveryDocument: res.deliveryDocument,
-          data: res.data,
-        });
-      },
+      deliveryDocument?: string;
+      data?: unknown;
+      [key: string]: unknown;
     },
-  );
+    Record<string, unknown>
+  >("/erp-integrations/sap/post-delivery", "POST", {
+    onSuccess: (res) => {
+      refetchOrders();
+      setActiveConsoleLog({
+        title: "Entrega Entrante (ASN) Generada en SAP",
+        system: "SAP_S4HANA",
+        protocol: "OData v4 (A_InboundDeliveryHeader)",
+        deliveryDocument: res.deliveryDocument,
+        data: res.data,
+      });
+    },
+  });
 
-  const postNetSuiteReceiptMutation = useApiMutation<any, any>(
-    "/erp-integrations/netsuite/post-receipt",
-    "POST",
+  const postNetSuiteReceiptMutation = useApiMutation<
     {
-      onSuccess: (res) => {
-        refetchOrders();
-        setActiveConsoleLog({
-          title: "Item Receipt & Landed Cost Generado en NetSuite",
-          system: "ORACLE_NETSUITE",
-          protocol: "SuiteTalk REST Web Services",
-          receiptId: res.receiptId,
-          data: res.landedCost,
-        });
-      },
+      receiptId?: string;
+      landedCost?: unknown;
+      [key: string]: unknown;
     },
-  );
+    Record<string, unknown>
+  >("/erp-integrations/netsuite/post-receipt", "POST", {
+    onSuccess: (res) => {
+      refetchOrders();
+      setActiveConsoleLog({
+        title: "Item Receipt & Landed Cost Generado en NetSuite",
+        system: "ORACLE_NETSUITE",
+        protocol: "SuiteTalk REST Web Services",
+        receiptId: res.receiptId,
+        data: res.landedCost,
+      });
+    },
+  });
 
-  const batchQueueMutation = useApiMutation<any, { mutations: any[] }>(
-    "/erp-integrations/queue/batch",
-    "POST",
+  const batchQueueMutation = useApiMutation<
     {
-      onSuccess: async (res) => {
-        await erpQueueManager.purgeCompleted();
-        await refreshQueue();
-        setActiveConsoleLog({
-          title: "Cola Local Dexie Drenada hacia el Servidor",
-          system: "HYBRID_DEXIE_LIB_SQL",
-          protocol: "Batch Sync Pipeline",
-          processedCount: res.processedCount,
-          data: res.results,
-        });
-      },
+      processedCount?: number;
+      results?: unknown;
+      [key: string]: unknown;
     },
-  );
+    { mutations: Array<Record<string, unknown>> }
+  >("/erp-integrations/queue/batch", "POST", {
+    onSuccess: async (res) => {
+      await erpQueueManager.purgeCompleted();
+      await refreshQueue();
+      setActiveConsoleLog({
+        title: "Cola Local Dexie Drenada hacia el Servidor",
+        system: "HYBRID_DEXIE_LIB_SQL",
+        protocol: "Batch Sync Pipeline",
+        processedCount: res.processedCount,
+        data: res.results,
+      });
+    },
+  });
 
   // Handlers
   const handleSelectPreset = (key: PresetKey) => {
@@ -260,8 +289,8 @@ export default function ErpIntegrationsModule() {
 
   const handleEnqueueOffline = async (
     erpSystem: "SAP_S4HANA" | "ORACLE_NETSUITE",
-    operation: any,
-    payload: any,
+    operation: ErpQueuedMutation["operation"],
+    payload: unknown,
   ) => {
     const item = await erpQueueManager.enqueue({
       erpSystem,

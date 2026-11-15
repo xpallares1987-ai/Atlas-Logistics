@@ -10,6 +10,10 @@ import {
   Download,
 } from "lucide-react";
 import { Input, Button } from "@atlas/ui";
+import type {
+  EdiOutboundResult,
+  EdiScmShipmentOption,
+} from "../../../types/edi-integration.types";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -31,7 +35,7 @@ const itemVariants: Variants = {
 export interface EdiOutboundTabProps {
   outboundFormat: "304" | "310" | "IFTMIN" | "204";
   onOutboundFormatChange: (format: "304" | "310" | "IFTMIN" | "204") => void;
-  scmShipments: any[];
+  scmShipments: EdiScmShipmentOption[];
   onScmPreFill: (shipmentId: string) => void;
   bookingRef: string;
   onBookingRefChange: (ref: string) => void;
@@ -73,7 +77,7 @@ export interface EdiOutboundTabProps {
   onCargoDescChange: (desc: string) => void;
   isGenerating: boolean;
   onGenerateOutbound: () => void;
-  outboundResult: any;
+  outboundResult: EdiOutboundResult | null;
   copyToClipboard: (text: string) => void;
   downloadEdiFile: (content: string, filename: string) => void;
 }
@@ -211,8 +215,11 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                 Seleccione una expedición operativa para precargar parámetros...
               </option>
               {scmShipments.map((s) => (
-                <option key={s.shipmentId} value={s.shipmentId}>
-                  {s.shipmentReference || s.shipmentId} •{" "}
+                <option
+                  key={s.shipmentId || s.id || ""}
+                  value={s.shipmentId || s.id || ""}
+                >
+                  {s.shipmentReference || s.shipmentId || s.id} •{" "}
                   {s.serviceType || "OCEAN"} • {s.lifecycle || "ACTIVE"}
                 </option>
               ))}
@@ -227,7 +234,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
               </label>
               <Input
                 value={bookingRef}
-                onChange={(e: any) => onBookingRefChange(e.target.value)}
+                onChange={(e) => onBookingRefChange(e.target.value)}
                 className="bg-slate-950 border-slate-800 font-mono"
               />
             </div>
@@ -237,7 +244,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
               </label>
               <Input
                 value={containerNum}
-                onChange={(e: any) => onContainerNumChange(e.target.value)}
+                onChange={(e) => onContainerNumChange(e.target.value)}
                 className="bg-slate-950 border-slate-800 font-mono"
               />
             </div>
@@ -248,7 +255,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
               </label>
               <Input
                 value={consignorName}
-                onChange={(e: any) => onConsignorNameChange(e.target.value)}
+                onChange={(e) => onConsignorNameChange(e.target.value)}
                 className="bg-slate-950 border-slate-800"
               />
             </div>
@@ -258,7 +265,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
               </label>
               <Input
                 value={consigneeName}
-                onChange={(e: any) => onConsigneeNameChange(e.target.value)}
+                onChange={(e) => onConsigneeNameChange(e.target.value)}
                 className="bg-slate-950 border-slate-800"
               />
             </div>
@@ -269,7 +276,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
               </label>
               <Input
                 value={originLocode}
-                onChange={(e: any) => onOriginLocodeChange(e.target.value)}
+                onChange={(e) => onOriginLocodeChange(e.target.value)}
                 className="bg-slate-950 border-slate-800 font-mono"
               />
             </div>
@@ -279,7 +286,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
               </label>
               <Input
                 value={destLocode}
-                onChange={(e: any) => onDestLocodeChange(e.target.value)}
+                onChange={(e) => onDestLocodeChange(e.target.value)}
                 className="bg-slate-950 border-slate-800 font-mono"
               />
             </div>
@@ -302,9 +309,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                       </label>
                       <Input
                         value={invoiceNumber}
-                        onChange={(e: any) =>
-                          onInvoiceNumberChange(e.target.value)
-                        }
+                        onChange={(e) => onInvoiceNumberChange(e.target.value)}
                         className="bg-slate-900 border-slate-800 text-xs font-mono"
                       />
                     </div>
@@ -314,9 +319,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                       </label>
                       <Input
                         value={billOfLading}
-                        onChange={(e: any) =>
-                          onBillOfLadingChange(e.target.value)
-                        }
+                        onChange={(e) => onBillOfLadingChange(e.target.value)}
                         className="bg-slate-900 border-slate-800 text-xs font-mono"
                       />
                     </div>
@@ -326,7 +329,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                       </label>
                       <select
                         value={currency}
-                        onChange={(e: any) => onCurrencyChange(e.target.value)}
+                        onChange={(e) => onCurrencyChange(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-xs text-white"
                       >
                         <option value="USD">USD ($)</option>
@@ -342,7 +345,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                       <Input
                         type="number"
                         value={vgmWeightKg}
-                        onChange={(e: any) =>
+                        onChange={(e) =>
                           onVgmWeightKgChange(Number(e.target.value))
                         }
                         className="bg-slate-900 border-slate-800 text-xs font-mono"
@@ -354,7 +357,11 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                       </label>
                       <select
                         value={vgmMethod}
-                        onChange={(e: any) => onVgmMethodChange(e.target.value)}
+                        onChange={(e) =>
+                          onVgmMethodChange(
+                            e.target.value as "METHOD_1" | "METHOD_2",
+                          )
+                        }
                         className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-xs text-white"
                       >
                         <option value="METHOD_1">
@@ -371,7 +378,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                       </label>
                       <Input
                         value={vgmPerson}
-                        onChange={(e: any) => onVgmPersonChange(e.target.value)}
+                        onChange={(e) => onVgmPersonChange(e.target.value)}
                         className="bg-slate-900 border-slate-800 text-xs"
                       />
                     </div>
@@ -384,7 +391,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                   </label>
                   <Input
                     value={vesselName}
-                    onChange={(e: any) => onVesselNameChange(e.target.value)}
+                    onChange={(e) => onVesselNameChange(e.target.value)}
                     className="bg-slate-950 border-slate-800"
                   />
                 </div>
@@ -394,7 +401,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                   </label>
                   <Input
                     value={voyageNum}
-                    onChange={(e: any) => onVoyageNumChange(e.target.value)}
+                    onChange={(e) => onVoyageNumChange(e.target.value)}
                     className="bg-slate-950 border-slate-800 font-mono"
                   />
                 </div>
@@ -404,7 +411,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                   </label>
                   <Input
                     value={sealNum}
-                    onChange={(e: any) => onSealNumChange(e.target.value)}
+                    onChange={(e) => onSealNumChange(e.target.value)}
                     className="bg-slate-950 border-slate-800 font-mono"
                   />
                 </div>
@@ -427,9 +434,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                     </label>
                     <Input
                       value={invoiceNumber}
-                      onChange={(e: any) =>
-                        onInvoiceNumberChange(e.target.value)
-                      }
+                      onChange={(e) => onInvoiceNumberChange(e.target.value)}
                       className="bg-slate-900 border-slate-800 text-xs font-mono"
                     />
                   </div>
@@ -439,9 +444,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                     </label>
                     <Input
                       value={billOfLading}
-                      onChange={(e: any) =>
-                        onBillOfLadingChange(e.target.value)
-                      }
+                      onChange={(e) => onBillOfLadingChange(e.target.value)}
                       className="bg-slate-900 border-slate-800 text-xs font-mono"
                     />
                   </div>
@@ -451,7 +454,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                     </label>
                     <select
                       value={currency}
-                      onChange={(e: any) => onCurrencyChange(e.target.value)}
+                      onChange={(e) => onCurrencyChange(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-xs text-white"
                     >
                       <option value="USD">USD ($)</option>
@@ -467,7 +470,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                     <Input
                       type="number"
                       value={baseFreightRate}
-                      onChange={(e: any) =>
+                      onChange={(e) =>
                         onBaseFreightRateChange(Number(e.target.value))
                       }
                       className="bg-slate-900 border-slate-800 text-xs font-mono"
@@ -480,7 +483,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                     <Input
                       type="number"
                       value={bafAmount}
-                      onChange={(e: any) =>
+                      onChange={(e) =>
                         onBafAmountChange(Number(e.target.value))
                       }
                       className="bg-slate-900 border-slate-800 text-xs font-mono"
@@ -493,7 +496,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
                     <Input
                       type="number"
                       value={thcAmount}
-                      onChange={(e: any) =>
+                      onChange={(e) =>
                         onThcAmountChange(Number(e.target.value))
                       }
                       className="bg-slate-900 border-slate-800 text-xs font-mono"
@@ -516,7 +519,7 @@ export const EdiOutboundTab: React.FC<EdiOutboundTabProps> = ({
               </label>
               <Input
                 value={cargoDesc}
-                onChange={(e: any) => onCargoDescChange(e.target.value)}
+                onChange={(e) => onCargoDescChange(e.target.value)}
                 className="bg-slate-950 border-slate-800"
               />
             </div>

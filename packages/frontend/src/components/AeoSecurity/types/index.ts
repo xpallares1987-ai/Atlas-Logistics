@@ -11,10 +11,21 @@ export interface AeoAuditRecord {
   auditReference: string;
   leadAuditorName: string;
   auditDate: string;
-  auditScope: string;
-  overallScore: number;
-  auditStatus: string;
+  auditScope?: string;
+  aeoModality?: string;
+  targetStandard?: string;
+  aeoOfficialCertificateNumber?: string;
+  nextReviewDate?: string;
+  overallScore?: number;
+  overallReadinessScore?: number;
+  auditStatus?: string;
+  complianceStatus?: string;
   findingsCount?: number;
+  customsComplianceScore?: number;
+  commercialRecordsScore?: number;
+  financialSolvencyScore?: number;
+  competenceScore?: number;
+  securitySafetyScore?: number;
   caeBlocks?: {
     block1CorporateRecord: number;
     block2AccountingLogistics: number;
@@ -23,6 +34,7 @@ export interface AeoAuditRecord {
     block5PhysicalSecurity: number;
     block6CrisisManagement: number;
   };
+  [key: string]: unknown;
 }
 
 export interface SevenPointInspectionRecord {

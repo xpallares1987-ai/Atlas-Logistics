@@ -164,7 +164,9 @@ export default function ExternalDataGovernanceModule() {
             isLoading={isUnlocodeLoading}
             lookupLatencyMs={lookupLatencyMs}
             onSearch={triggerUnlocodeSearch}
-            onUpsert={upsertUnlocode}
+            onUpsert={async (data) => {
+              await upsertUnlocode(data);
+            }}
             isUpserting={isUpserting}
           />
         )}
@@ -174,9 +176,13 @@ export default function ExternalDataGovernanceModule() {
             records={records}
             sources={sources}
             isLoading={isLoading}
-            onIngest={ingestRecord}
+            onIngest={async (payload) => {
+              await ingestRecord(payload);
+            }}
             isIngesting={isIngesting}
-            onLink={createEntityLink}
+            onLink={async (data) => {
+              await createEntityLink(data);
+            }}
             isLinking={isLinking}
           />
         )}
@@ -186,7 +192,9 @@ export default function ExternalDataGovernanceModule() {
             entityLinks={entityLinks}
             records={records}
             isLoading={isLoading}
-            onLink={createEntityLink}
+            onLink={async (data) => {
+              await createEntityLink(data);
+            }}
             isLinking={isLinking}
           />
         )}

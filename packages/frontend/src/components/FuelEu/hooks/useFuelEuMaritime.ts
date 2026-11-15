@@ -11,12 +11,18 @@ import type {
   FuelEuTab,
   FuelEuGeographicScope,
   VoyageVerificationStatus,
+  FuelEuVoyage,
+  FuelRecord,
+  ComplianceAccount,
+  PoolRecord,
+  EtsSimResult,
+  FuelSimResult,
 } from "../../../types/fueleu.types";
 
 /**
  * Pure helper to compute aggregated FuelEU / EU ETS KPIs across voyages.
  */
-export function computeVoyageKpis(voyages: any[]) {
+export function computeVoyageKpis(voyages: Partial<FuelEuVoyage>[]) {
   const totalEtsEmissionsSum = voyages.reduce(
     (acc, v) => acc + (v.etsApplicableScopeEmissionsTco2eq || 0),
     0,
@@ -44,7 +50,9 @@ export function useFuelEuMaritime() {
   const [activeTab, setActiveTab] = useState<FuelEuTab>("VOYAGES_GHG");
   const [activeScopeFilter, setActiveScopeFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedVoyage, setSelectedVoyage] = useState<any>(null);
+  const [selectedVoyage, setSelectedVoyage] = useState<FuelEuVoyage | null>(
+    null,
+  );
 
   const [simCo2Tonnes, setSimCo2Tonnes] = useState(350);
   const [simCh4Tonnes, setSimCh4Tonnes] = useState(0.01);
@@ -54,23 +62,25 @@ export function useFuelEuMaritime() {
   const [simEuaPrice, setSimEuaPrice] = useState(75);
   const [simCarriedTeus, setSimCarriedTeus] = useState(4500);
   const [simFueleuImpact, setSimFueleuImpact] = useState(8000);
-  const [etsSimResult, setEtsSimResult] = useState<any>(null);
+  const [etsSimResult, setEtsSimResult] = useState<EtsSimResult | null>(null);
 
   const [simFuelCode, setSimFuelCode] = useState("E_METHANOL_RFNBO");
   const [simFuelTonnes, setSimFuelTonnes] = useState(120);
   const [simOpsKwh, setSimOpsKwh] = useState(15000);
-  const [fuelSimResult, setFuelSimResult] = useState<any>(null);
+  const [fuelSimResult, setFuelSimResult] = useState<FuelSimResult | null>(
+    null,
+  );
 
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusInput, setStatusInput] =
     useState<VoyageVerificationStatus>("COMPLETED_VERIFIED");
   const [verifierInput, setVerifierInput] = useState("");
 
-  const { data: fuels = [] } = useApiQuery<any[]>(
+  const { data: fuels = [] } = useApiQuery<FuelRecord[]>(
     ["fueleu-fuels"],
     "/fueleu/fuels",
   );
-  const { data: vessels = [] } = useApiQuery<any[]>(
+  const { data: vessels = [] } = useApiQuery<Record<string, unknown>[]>(
     ["fueleu-vessels"],
     "/fueleu/vessels",
   );
@@ -78,21 +88,21 @@ export function useFuelEuMaritime() {
     data: voyages = [],
     isLoading: loadingVoyages,
     refetch: refetchVoyages,
-  } = useApiQuery<any[]>(
+  } = useApiQuery<FuelEuVoyage[]>(
     ["fueleu-voyages", activeScopeFilter, searchQuery],
     `/fueleu/voyages?scope=${activeScopeFilter}&q=${encodeURIComponent(
       searchQuery,
     )}`,
   );
-  const { data: accounts = [] } = useApiQuery<any[]>(
+  const { data: accounts = [] } = useApiQuery<ComplianceAccount[]>(
     ["fueleu-accounts"],
     "/fueleu/accounts",
   );
-  const { data: pools = [] } = useApiQuery<any[]>(
+  const { data: pools = [] } = useApiQuery<PoolRecord[]>(
     ["fueleu-pools"],
     "/fueleu/pools",
   );
-  const { data: voyageDetails } = useApiQuery<any>(
+  const { data: voyageDetails } = useApiQuery<FuelEuVoyage>(
     ["fueleu-voyage-details", selectedVoyage?.id],
     selectedVoyage?.id ? `/fueleu/voyages/${selectedVoyage.id}` : "",
   );
@@ -117,17 +127,17 @@ export function useFuelEuMaritime() {
 
   const handleRunEtsCalc = async () => {
     try {
-      const res = await fetch("/api/fueleu/calculate-ets", {
+      const res = await fetch("/api/fueleu/simulate/ets-calculator", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          co2EmissionsTonnes: Number(simCo2Tonnes),
-          ch4EmissionsTonnes: Number(simCh4Tonnes),
-          n2oEmissionsTonnes: Number(simN2oTonnes),
-          scope: simScope,
-          euaPriceEurPerTonne: Number(simEuaPrice),
-          carriedTeus: Number(simCarriedTeus),
-          fueleuPenaltyEur: Number(simFueleuImpact),
+          co2Tonnes: simCo2Tonnes,
+          ch4Tonnes: simCh4Tonnes,
+          n2oTonnes: simN2oTonnes,
+          geographicScope: simScope,
+          euaPriceEur: simEuaPrice,
+          carriedTeus: simCarriedTeus,
+          fueleuPenaltyEur: simFueleuImpact,
         }),
       });
       if (res.ok) {
@@ -135,31 +145,19 @@ export function useFuelEuMaritime() {
         setEtsSimResult(data);
       }
     } catch (err) {
-      console.error("ETS calculation error:", err);
+      console.error("Error simulating ETS:", err);
     }
   };
 
   const handleRunFuelSim = async () => {
-    const selectedFuelObj =
-      fuels.find((f) => f.fuelCode === simFuelCode) || fuels[0];
-    if (!selectedFuelObj) return;
-
     try {
-      const res = await fetch("/api/fueleu/calculate-fueleu", {
+      const res = await fetch("/api/fueleu/simulate/fuel-ghg-intensity", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          reportingYear: 2025,
-          fuelConsumptions: [
-            {
-              fuelCode: selectedFuelObj.fuelCode,
-              consumedTonnes: Number(simFuelTonnes),
-              lowerCalorificValueMjPerGram:
-                selectedFuelObj.lowerCalorificValueMjPerGram,
-              wtwFactorGco2eqPerMj: selectedFuelObj.totalWtwFactorGco2eqPerMj,
-            },
-          ],
-          opsElectricityKwh: Number(simOpsKwh),
+          fuelCode: simFuelCode,
+          consumedTonnes: simFuelTonnes,
+          opsElectricityKwh: simOpsKwh,
         }),
       });
       if (res.ok) {
@@ -167,21 +165,21 @@ export function useFuelEuMaritime() {
         setFuelSimResult(data);
       }
     } catch (err) {
-      console.error("Fuel calculation error:", err);
+      console.error("Error simulating Fuel GHG:", err);
     }
   };
 
-  const handleSaveStatus = async () => {
+  const handleConfirmStatusUpdate = async () => {
     if (!selectedVoyage) return;
     try {
       const res = await fetch(
-        `/api/fueleu/voyages/${selectedVoyage.id}/status`,
+        `/api/fueleu/voyages/${selectedVoyage.id}/verification-status`,
         {
-          method: "POST",
+          method: "PATCH",
           headers: getAuthHeaders(),
           body: JSON.stringify({
             status: statusInput,
-            leadAuditorVerifier: verifierInput || "DNV Marine Lead Auditor",
+            leadAuditorVerifier: verifierInput,
           }),
         },
       );
@@ -194,15 +192,17 @@ export function useFuelEuMaritime() {
     }
   };
 
-  const handleOpenVerifyModal = (voyage: any) => {
-    setStatusInput(voyage.status || "COMPLETED_VERIFIED");
-    setVerifierInput(voyage.leadAuditorVerifier || "");
+  const handleOpenVerifyModal = (voyage: FuelEuVoyage) => {
+    setStatusInput(
+      (voyage.status as VoyageVerificationStatus) || "COMPLETED_VERIFIED",
+    );
+    setVerifierInput((voyage.leadAuditorVerifier as string) || "");
     setShowStatusModal(true);
   };
 
   const kpis = computeVoyageKpis(voyages);
   const currentVoyage = voyageDetails || selectedVoyage;
-  const currentAccount = accounts[0];
+  const currentAccount = accounts[0] || null;
 
   return {
     activeTab,
@@ -228,6 +228,7 @@ export function useFuelEuMaritime() {
     simFueleuImpact,
     setSimFueleuImpact,
     etsSimResult,
+    handleRunEtsCalc,
     simFuelCode,
     setSimFuelCode,
     simFuelTonnes,
@@ -235,23 +236,28 @@ export function useFuelEuMaritime() {
     simOpsKwh,
     setSimOpsKwh,
     fuelSimResult,
+    handleRunFuelSim,
     showStatusModal,
     setShowStatusModal,
     statusInput,
     setStatusInput,
     verifierInput,
     setVerifierInput,
+    handleConfirmStatusUpdate,
+    handleOpenVerifyModal,
     fuels,
     vessels,
     voyages,
     loadingVoyages,
+    accounts,
     pools,
+    voyageDetails,
+    kpis,
     currentVoyage,
     currentAccount,
-    ...kpis,
-    handleRunEtsCalc,
-    handleRunFuelSim,
-    handleSaveStatus,
-    handleOpenVerifyModal,
+    totalEtsEmissionsSum: kpis.totalEtsEmissionsSum,
+    totalFuelEnergySum: kpis.totalFuelEnergySum,
+    avgGhgIntensity: kpis.avgGhgIntensity,
+    handleSaveStatus: handleConfirmStatusUpdate,
   };
 }

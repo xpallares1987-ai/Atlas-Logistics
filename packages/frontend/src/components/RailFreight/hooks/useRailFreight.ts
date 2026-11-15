@@ -11,6 +11,13 @@ import type {
   RailFreightTab,
   RailLineCategory,
   RailConsignmentStatus,
+  RailConsignment,
+  RailCorridor,
+  RailTerminal,
+  RailWagon,
+  RailTrainConsist,
+  TrainPhysicsResult,
+  AxleLoadResult,
 } from "../../../types/rail-freight.types";
 
 export function useRailFreight() {
@@ -18,7 +25,8 @@ export function useRailFreight() {
   const [activeCorridorFilter, setActiveCorridorFilter] =
     useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedConsignment, setSelectedConsignment] = useState<any>(null);
+  const [selectedConsignment, setSelectedConsignment] =
+    useState<RailConsignment | null>(null);
 
   // Train Simulator State
   const [simLocoWeight, setSimLocoWeight] = useState(123.0);
@@ -27,7 +35,8 @@ export function useRailFreight() {
   const [simAvgWagonTare, setSimAvgWagonTare] = useState(28.5);
   const [simAvgWagonPayload, setSimAvgWagonPayload] = useState(32.0);
   const [simAvgWagonBrake, setSimAvgWagonBrake] = useState(80.0);
-  const [trainPhysicsResult, setTrainPhysicsResult] = useState<any>(null);
+  const [trainPhysicsResult, setTrainPhysicsResult] =
+    useState<TrainPhysicsResult | null>(null);
 
   // Axle Load Simulator State
   const [calcWagonTare, setCalcWagonTare] = useState(28.5);
@@ -35,7 +44,7 @@ export function useRailFreight() {
   const [calcAxles, setCalcAxles] = useState(6);
   const [calcLineCategory, setCalcLineCategory] =
     useState<RailLineCategory>("D");
-  const [axleResult, setAxleResult] = useState<any>(null);
+  const [axleResult, setAxleResult] = useState<AxleLoadResult | null>(null);
 
   // Status Change Modal State
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -47,34 +56,34 @@ export function useRailFreight() {
     data: consignments = [],
     isLoading: loadingConsignments,
     refetch: refetchConsignments,
-  } = useApiQuery<any[]>(
+  } = useApiQuery<RailConsignment[]>(
     ["rail-consignments", activeCorridorFilter, searchQuery],
     `/rail/consignments?corridorId=${activeCorridorFilter}&q=${encodeURIComponent(
       searchQuery,
     )}`,
   );
 
-  const { data: corridors = [] } = useApiQuery<any[]>(
+  const { data: corridors = [] } = useApiQuery<RailCorridor[]>(
     ["rail-corridors"],
     "/rail/corridors",
   );
 
-  const { data: terminals = [] } = useApiQuery<any[]>(
+  const { data: terminals = [] } = useApiQuery<RailTerminal[]>(
     ["rail-terminals"],
     "/rail/terminals",
   );
 
-  const { data: wagons = [] } = useApiQuery<any[]>(
+  const { data: wagons = [] } = useApiQuery<RailWagon[]>(
     ["rail-wagons"],
     "/rail/wagons",
   );
 
-  const { data: trains = [] } = useApiQuery<any[]>(
+  const { data: trains = [] } = useApiQuery<RailTrainConsist[]>(
     ["rail-trains"],
     "/rail/trains",
   );
 
-  const { data: consignmentDetails } = useApiQuery<any>(
+  const { data: consignmentDetails } = useApiQuery<RailConsignment>(
     ["rail-consignment-details", selectedConsignment?.id],
     selectedConsignment?.id
       ? `/rail/consignments/${selectedConsignment.id}`

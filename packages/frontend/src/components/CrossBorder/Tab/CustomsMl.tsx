@@ -65,7 +65,8 @@ export function CustomsMl({
                 onChange={(e) =>
                   setDwellInputData({
                     ...dwellInputData,
-                    customsPortCode: e.target.value as any,
+                    customsPortCode: e.target
+                      .value as typeof dwellInputData.customsPortCode,
                   })
                 }
                 className="w-full h-9 rounded-md bg-slate-950 border border-slate-800 px-3 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
@@ -91,7 +92,8 @@ export function CustomsMl({
                 onChange={(e) =>
                   setDwellInputData({
                     ...dwellInputData,
-                    trafficLightOutcome: e.target.value as any,
+                    trafficLightOutcome: e.target
+                      .value as typeof dwellInputData.trafficLightOutcome,
                   })
                 }
                 className="w-full h-9 rounded-md bg-slate-950 border border-slate-800 px-3 text-xs text-slate-200 focus:outline-none focus:border-amber-500"

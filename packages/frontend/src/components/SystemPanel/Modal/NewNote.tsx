@@ -68,7 +68,9 @@ export function NewNote({ isOpen, onClose, onSubmit }: NewNoteProps) {
           </label>
           <select
             value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value as any)}
+            onChange={(e) =>
+              setNewCategory(e.target.value as ResolutionCategory)
+            }
             className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
           >
             <option value="ROUTING">Multimodal Routing & Transit</option>

@@ -98,7 +98,7 @@ export const DocumentStudioTab: React.FC<DocumentStudioTabProps> = ({
               name="docReference"
               aria-label="Referencia Oficial"
               value={docReference}
-              onChange={(e: any) => onDocReferenceChange(e.target.value)}
+              onChange={(e) => onDocReferenceChange(e.target.value)}
               className="bg-slate-950 border-slate-800 font-mono text-xs w-48"
             />
           </div>
@@ -122,7 +122,7 @@ export const DocumentStudioTab: React.FC<DocumentStudioTabProps> = ({
                   id={inputId}
                   name={key}
                   value={String(val ?? "")}
-                  onChange={(e: any) =>
+                  onChange={(e) =>
                     onFormDataChange((prev) => ({
                       ...prev,
                       [key]: e.target.value,

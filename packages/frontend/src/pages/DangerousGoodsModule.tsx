@@ -131,10 +131,13 @@ const UN_CATALOG_DATA = [
   },
 ];
 
+type DangerousGoodsTabId =
+  "catalog_segregation" | "exemptions_adr" | "declarations";
+
 export default function DangerousGoodsModule() {
-  const [activeTab, setActiveTab] = useState<
-    "catalog_segregation" | "exemptions_adr" | "declarations"
-  >("catalog_segregation");
+  const [activeTab, setActiveTab] = useState<DangerousGoodsTabId>(
+    "catalog_segregation",
+  );
 
   const [shipments] = useState<DgShipmentRecord[]>([
     {
@@ -358,7 +361,7 @@ export default function DangerousGoodsModule() {
           return (
             <button
               key={t.id}
-              onClick={() => setActiveTab(t.id as any)}
+              onClick={() => setActiveTab(t.id as DangerousGoodsTabId)}
               className={`flex items-center gap-2 pb-3 pt-1 text-sm font-medium border-b-2 transition-colors ${
                 isActive
                   ? "border-amber-500 text-amber-400"

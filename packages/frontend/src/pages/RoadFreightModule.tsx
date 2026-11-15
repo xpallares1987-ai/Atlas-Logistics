@@ -34,10 +34,65 @@ const itemVariants: Variants = {
   },
 };
 
+interface RoadConsignmentRecord {
+  id: string;
+  consignmentNumber: string;
+  consignmentType: string;
+  originCity: string;
+  destinationCity: string;
+  totalDistanceKm: number;
+  grossWeightKg?: number;
+  totalGrossWeightKg?: number;
+  palletCount?: number;
+  totalPallets?: number;
+  totalFreightCostEur?: number;
+  carrierName?: string;
+  carrierVat?: string;
+  driverName?: string;
+  driverLicense?: string;
+  vehiclePlate?: string;
+  tractorPlate?: string;
+  trailerPlate?: string;
+  status?: string;
+  isAdrHazardous?: boolean;
+  trailerFloorUtilizationPct?: number;
+  senderName?: string;
+  senderCountry?: string;
+  consigneeName?: string;
+  consigneeCountry?: string;
+  goodsDescription?: string;
+  adrTotalPoints?: number;
+  orangePlatesRequired?: boolean;
+  tunnelRestrictionCode?: string;
+  estimatedDrivingHours?: number;
+  requiredRestBreaksCount?: number;
+  pickupDate?: string;
+  specialInstructions?: string;
+  [key: string]: unknown;
+}
+
+interface RoadSimRouteResult {
+  estimatedDrivingHours?: number;
+  requiredRestBreaksCount?: number;
+  capacityUtilization?: {
+    floorUtilizationPct?: number;
+    [key: string]: unknown;
+  };
+  complianceNotes?: string;
+  [key: string]: unknown;
+}
+
+interface RoadSimAdrResult {
+  totalPoints?: number;
+  complianceSummary?: string;
+  [key: string]: unknown;
+}
+
 export default function RoadFreightModule() {
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedConsignment, setSelectedConsignment] = useState<any>(null);
+  const [selectedConsignment, setSelectedConsignment] =
+    useState<RoadConsignmentRecord | null>(null);
 
   // Simulator / Planner Modal
   const [showPlannerModal, setShowPlannerModal] = useState(false);
@@ -52,12 +107,17 @@ export default function RoadFreightModule() {
   const [simCategory, setSimCategory] = useState<0 | 1 | 2 | 3 | 4>(3);
   const [simAdrQty, setSimAdrQty] = useState(400); // 400 kg Cat 3 * 1 = 400 pts (Exempt)
 
-  const [simRouteResult, setSimRouteResult] = useState<any>(null);
-  const [simAdrResult, setSimAdrResult] = useState<any>(null);
+  const [simRouteResult, setSimRouteResult] =
+    useState<RoadSimRouteResult | null>(null);
+  const [simAdrResult, setSimAdrResult] = useState<RoadSimAdrResult | null>(
+    null,
+  );
   const [isSimulating, setIsSimulating] = useState(false);
 
   // Fetch Consignments
-  const { data: consignments = [], isLoading } = useApiQuery<any[]>(
+  const { data: consignments = [], isLoading } = useApiQuery<
+    RoadConsignmentRecord[]
+  >(
     ["road-consignments", activeFilter, searchQuery],
     `/road-freight/consignments?type=${activeFilter}&q=${encodeURIComponent(searchQuery)}`,
   );
@@ -511,7 +571,7 @@ export default function RoadFreightModule() {
                     <div
                       className="bg-gradient-to-r from-emerald-500 to-amber-500 h-full rounded-full transition-all duration-500"
                       style={{
-                        width: `${Math.min(100, selectedConsignment.trailerFloorUtilizationPct)}%`,
+                        width: `${Math.min(100, selectedConsignment.trailerFloorUtilizationPct || 0)}%`,
                       }}
                     />
                   </div>
@@ -540,7 +600,8 @@ export default function RoadFreightModule() {
                       <span className="text-slate-400">Utilización Carga:</span>
                       <p className="text-sm font-bold text-emerald-400">
                         {(
-                          (selectedConsignment.totalGrossWeightKg / 24000) *
+                          ((selectedConsignment.totalGrossWeightKg || 0) /
+                            24000) *
                           100
                         ).toFixed(1)}
                         %
@@ -636,9 +697,11 @@ export default function RoadFreightModule() {
                     <div>
                       <span className="text-slate-400">Salida:</span>
                       <p className="font-bold text-slate-300">
-                        {new Date(
-                          selectedConsignment.pickupDate,
-                        ).toLocaleDateString()}
+                        {selectedConsignment.pickupDate
+                          ? new Date(
+                              selectedConsignment.pickupDate,
+                            ).toLocaleDateString()
+                          : "N/A"}
                       </p>
                     </div>
                   </div>
@@ -792,7 +855,9 @@ export default function RoadFreightModule() {
                       <select
                         value={simCategory}
                         onChange={(e) =>
-                          setSimCategory(Number(e.target.value) as any)
+                          setSimCategory(
+                            Number(e.target.value) as 0 | 1 | 2 | 3 | 4,
+                          )
                         }
                         className="w-full bg-slate-950 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-white"
                       >
@@ -850,7 +915,8 @@ export default function RoadFreightModule() {
                     <div>
                       <span className="text-slate-400">Ocupación Trailer:</span>
                       <p className="text-sm font-bold text-emerald-400">
-                        {simRouteResult.capacityUtilization.floorUtilizationPct}
+                        {simRouteResult.capacityUtilization
+                          ?.floorUtilizationPct ?? 0}
                         %
                       </p>
                     </div>

@@ -29,7 +29,7 @@ export const DcsaSubscriptionModal: React.FC<DcsaSubscriptionModalProps> = ({
           id="sub-carrier-select"
           name="subCarrier"
           value={subCarrier}
-          onChange={(e: any) => onSubCarrierChange(e.target.value)}
+          onChange={(e) => onSubCarrierChange(e.target.value)}
           className="w-full bg-slate-900 border border-slate-800 rounded-xl p-1.5 text-xs text-white"
         >
           <option value="MSCU">MSCU (MSC)</option>
@@ -49,7 +49,7 @@ export const DcsaSubscriptionModal: React.FC<DcsaSubscriptionModalProps> = ({
           id="sub-url-input"
           name="subUrl"
           value={subUrl}
-          onChange={(e: any) => onSubUrlChange(e.target.value)}
+          onChange={(e) => onSubUrlChange(e.target.value)}
           className="bg-slate-900 border-slate-800 text-xs"
         />
       </div>
@@ -64,7 +64,7 @@ export const DcsaSubscriptionModal: React.FC<DcsaSubscriptionModalProps> = ({
           id="sub-secret-input"
           name="subSecret"
           value={subSecret}
-          onChange={(e: any) => onSubSecretChange(e.target.value)}
+          onChange={(e) => onSubSecretChange(e.target.value)}
           className="bg-slate-900 border-slate-800 text-xs font-mono"
         />
       </div>

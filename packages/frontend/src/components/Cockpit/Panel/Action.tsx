@@ -25,9 +25,9 @@ import { ModeTaskBadge, PriorityBadge, UrgencyBadge } from "../Queue/badges";
 
 interface ActionProps {
   item: CockpitWorkItem;
-  formData: Record<string, any>;
+  formData: Record<string, unknown>;
   submitting: boolean;
-  onInputChange: (field: string, value: any) => void;
+  onInputChange: (field: string, value: unknown) => void;
   onExecute: (e: React.FormEvent) => void;
   onInvestigateIn360: (item: CockpitWorkItem) => void;
 }
@@ -215,7 +215,11 @@ export const Action: React.FC<ActionProps> = ({
                 aria-label="Resolution Notes"
                 required
                 rows={3}
-                value={formData.resolutionNotes || ""}
+                value={
+                  typeof formData.resolutionNotes === "string"
+                    ? formData.resolutionNotes
+                    : ""
+                }
                 onChange={(e) =>
                   onInputChange("resolutionNotes", e.target.value)
                 }
@@ -270,7 +274,9 @@ export const Action: React.FC<ActionProps> = ({
                   aria-label={field.label}
                   type={field.type === "number" ? "number" : "text"}
                   required={field.required}
-                  value={formData[field.name] ?? ""}
+                  value={
+                    (formData[field.name] as string | number | undefined) ?? ""
+                  }
                   onChange={(e) =>
                     onInputChange(
                       field.name,

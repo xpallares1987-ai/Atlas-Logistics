@@ -8,17 +8,31 @@
 import React from "react";
 import { Database, Zap } from "lucide-react";
 import { Button } from "@atlas/ui";
+import type { EFirmaAuditStamp } from "../../../types/efirma-hub.types";
+
+export interface EFirmaShipment {
+  id: string;
+  origin?: string;
+  destination?: string;
+}
+
+export interface EFirmaDocument {
+  id: string;
+  name?: string;
+  documentReference?: string;
+  type?: string;
+}
 
 interface RelationalDocumentSelectorProps {
-  shipments: any[];
-  activeShipment: any;
+  shipments: EFirmaShipment[];
+  activeShipment: EFirmaShipment | null | undefined;
   selectedShipmentId: string;
   onSelectShipmentId: (id: string) => void;
-  documents: any[];
-  activeDocument: any;
+  documents: EFirmaDocument[];
+  activeDocument: EFirmaDocument | null | undefined;
   selectedDocId: string;
   onSelectDocId: (id: string) => void;
-  matchingStamp: any;
+  matchingStamp?: EFirmaAuditStamp | null;
   isSigning: boolean;
   isVaultUnlocked: boolean;
   onExecuteSign: () => void;

@@ -32,13 +32,22 @@ export function useIncotermsContracts() {
   const [simImportDuty, setSimImportDuty] = useState(0);
   const [simImportVat, setSimImportVat] = useState(0);
   const [simDestTransport, setSimDestTransport] = useState(0);
-  const [simModeResult, setSimModeResult] = useState<any>(null);
-  const [simInsResult, setSimInsResult] = useState<any>(null);
-  const [simCustomsResult, setSimCustomsResult] = useState<any>(null);
+  const [simModeResult, setSimModeResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const [simInsResult, setSimInsResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const [simCustomsResult, setSimCustomsResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
   // Fetch Incoterms Rules
-  const { data: rulesData } = useApiQuery<any>(
+  const { data: rulesData } = useApiQuery<{ rules: IncotermRule[] }>(
     ["incoterm-rules"],
     "/incoterms/rules",
   );

@@ -9,18 +9,36 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useDashboardStore } from "../features/dashboard/store";
 import { useAppWebSocket } from "../hooks/useAppWebSocket";
 
+interface DashboardStatsPayload {
+  type?: string;
+  data?: {
+    activeShipments?: number;
+  };
+}
+
+interface DashboardQueryData {
+  data?: {
+    stats?: {
+      activeShipments?: number;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 function DashboardContent() {
   const queryClient = useQueryClient();
   const { dateRange } = useDashboardStore();
 
-  useAppWebSocket("/api/dashboard/live", {
-    onMessage: (msg: any) => {
+  useAppWebSocket<DashboardStatsPayload>("/api/dashboard/live", {
+    onMessage: (msg) => {
       if (msg?.type === "STATS_UPDATE") {
         queryClient.setQueryData(
           ["dashboard", dateRange],
           (oldData: unknown) => {
             if (!oldData || typeof oldData !== "object") return oldData;
-            const data = oldData as any;
+            const data = oldData as DashboardQueryData;
             return {
               ...data,
               data: {

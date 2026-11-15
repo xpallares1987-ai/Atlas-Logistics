@@ -8,12 +8,23 @@
 import { Database, Zap } from "lucide-react";
 import { Button } from "@atlas/ui";
 
+interface CrossBorderShipment {
+  id: string;
+  origin?: string;
+  destination?: string;
+  status?: string;
+}
+
+interface DbDeclarationSummary {
+  cfdiFolio?: string;
+}
+
 export interface ShipmentSelectorProps {
-  shipments: any[];
-  activeShipment: any;
+  shipments: CrossBorderShipment[];
+  activeShipment: CrossBorderShipment | null;
   selectedShipmentId: string;
   onSelectShipmentId: (id: string) => void;
-  dbDeclaration: any;
+  dbDeclaration: DbDeclarationSummary | null;
   isGenerating: boolean;
   onGenerateCartaPorte: () => void;
 }

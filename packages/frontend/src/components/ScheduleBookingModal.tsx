@@ -63,8 +63,12 @@ export function ScheduleBookingModal({
         throw new Error("Failed to save booking to database");
       }
       onSuccess(schedule.id);
-    } catch (err: any) {
-      setError(err.message || "An error occurred while saving the booking.");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while saving the booking.",
+      );
       setIsSubmitting(false);
     }
   };

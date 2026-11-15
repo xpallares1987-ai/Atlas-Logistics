@@ -50,8 +50,18 @@ export interface RelationalDeploymentBannerProps {
   escrow: SmartEscrowContract;
   ledgerLength: number;
   title: string;
-  activeShipment: any;
-  shipments: any[];
+  activeShipment: {
+    id: string;
+    referenceNumber?: string;
+    origin?: string;
+    destination?: string;
+  } | null;
+  shipments: Array<{
+    id: string;
+    referenceNumber?: string;
+    origin?: string;
+    destination?: string;
+  }>;
   selectedShipmentId: string;
   onSelectShipmentId: (id: string) => void;
   onDeploy: () => void;
@@ -66,7 +76,7 @@ export interface SmartEscrowCardProps {
     milestoneKey: EscrowMilestoneKey;
     sender: string;
     details: string;
-    iotTelemetry?: any;
+    iotTelemetry?: Record<string, unknown>;
   }) => void;
   onOpenDisputeModal: () => void;
 }

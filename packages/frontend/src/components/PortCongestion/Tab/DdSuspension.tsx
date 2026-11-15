@@ -107,7 +107,10 @@ export function DdSuspension({
             <select
               value={certForm.reason}
               onChange={(e) =>
-                setCertForm({ ...certForm, reason: e.target.value as any })
+                setCertForm({
+                  ...certForm,
+                  reason: e.target.value as typeof certForm.reason,
+                })
               }
               className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-cyan-500"
             >

@@ -97,20 +97,20 @@ export function TimelinePlayback({
                 {
                   label: "Hora",
                   value: new Date(
-                    history[playbackIdx].timestamp,
+                    history[playbackIdx]?.timestamp || Date.now(),
                   ).toLocaleTimeString("es-ES"),
                 },
                 {
                   label: "Lat/Lng",
-                  value: `${history[playbackIdx].lat.toFixed(4)} / ${history[playbackIdx].lng.toFixed(4)}`,
+                  value: `${(history[playbackIdx]?.lat ?? 0).toFixed(4)} / ${(history[playbackIdx]?.lng ?? 0).toFixed(4)}`,
                 },
                 {
                   label: "Velocidad",
-                  value: `${history[playbackIdx].speedKnots?.toFixed(1)} kn`,
+                  value: `${history[playbackIdx]?.speedKnots?.toFixed(1) ?? "0.0"} kn`,
                 },
                 {
                   label: "Temperatura",
-                  value: `${history[playbackIdx].temperatureCelsius?.toFixed(1)}°C`,
+                  value: `${history[playbackIdx]?.temperatureCelsius?.toFixed(1) ?? "0.0"}°C`,
                 },
               ].map((item) => (
                 <div
@@ -139,12 +139,12 @@ export function TimelinePlayback({
               <rect width="800" height="200" fill="#020817" />
               {history.length > 1 &&
                 (() => {
-                  const pts = history.map((r: any) =>
-                    toSvgCoords(r.lat, r.lng),
+                  const pts = history.map((r) =>
+                    toSvgCoords(r.lat ?? 0, r.lng ?? 0),
                   );
                   const d = pts
                     .map(
-                      (p: any, i: number) =>
+                      (p, i: number) =>
                         `${i === 0 ? "M" : "L"} ${p.x} ${p.y / 2}`,
                     )
                     .join(" ");
@@ -161,10 +161,10 @@ export function TimelinePlayback({
                 (() => {
                   const pts = history
                     .slice(0, playbackIdx + 1)
-                    .map((r: any) => toSvgCoords(r.lat, r.lng));
+                    .map((r) => toSvgCoords(r.lat ?? 0, r.lng ?? 0));
                   const d = pts
                     .map(
-                      (p: any, i: number) =>
+                      (p, i: number) =>
                         `${i === 0 ? "M" : "L"} ${p.x} ${p.y / 2}`,
                     )
                     .join(" ");
@@ -180,8 +180,8 @@ export function TimelinePlayback({
               {history[playbackIdx] &&
                 (() => {
                   const pos = toSvgCoords(
-                    history[playbackIdx].lat,
-                    history[playbackIdx].lng,
+                    history[playbackIdx]?.lat ?? 0,
+                    history[playbackIdx]?.lng ?? 0,
                   );
                   return (
                     <circle cx={pos.x} cy={pos.y / 2} r="6" fill="#22d3ee" />

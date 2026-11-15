@@ -85,7 +85,13 @@ export function ReportsDashboard({ invoices }: { invoices: Invoice[] }) {
     }));
   }, [invoices]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: Array<{ value: number; [key: string]: unknown }>;
+    label?: string;
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg shadow-xl">

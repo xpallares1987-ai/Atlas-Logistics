@@ -83,21 +83,20 @@ export function useExternalGovernance() {
   );
 
   // 5. Ingest Raw Record Mutation
-  const ingestRecordMutation = useApiMutation<any, any>(
-    "/external-governance/records",
-    "POST",
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: ["external-governance", "records"],
-        });
-      },
+  const ingestRecordMutation = useApiMutation<
+    Record<string, unknown>,
+    Record<string, unknown>
+  >("/external-governance/records", "POST", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["external-governance", "records"],
+      });
     },
-  );
+  });
 
   // 6. Create Entity Link Mutation
   const createEntityLinkMutation = useApiMutation<
-    any,
+    Record<string, unknown>,
     CreateEntityLinkFormData
   >("/external-governance/entity-links", "POST", {
     onSuccess: () => {
@@ -108,20 +107,19 @@ export function useExternalGovernance() {
   });
 
   // 7. Upsert UN/LOCODE (Write-Through Cache in RAM + SQLite)
-  const upsertUnlocodeMutation = useApiMutation<any, UpsertUnlocodeFormData>(
-    "/external-governance/unlocode/upsert",
-    "POST",
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: ["external-governance", "unlocode"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["external-governance", "records"],
-        });
-      },
+  const upsertUnlocodeMutation = useApiMutation<
+    Record<string, unknown>,
+    UpsertUnlocodeFormData
+  >("/external-governance/unlocode/upsert", "POST", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["external-governance", "unlocode"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["external-governance", "records"],
+      });
     },
-  );
+  });
 
   // Custom search trigger with latency tracking
   const triggerUnlocodeSearch = useCallback(async (searchTerm: string) => {

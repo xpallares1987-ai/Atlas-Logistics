@@ -47,10 +47,10 @@ interface GaCaseRecord {
   status: string;
 }
 
+type GeneralAverageTabId = "cases" | "adjuster_simulator" | "securities";
+
 export default function GeneralAverageModule() {
-  const [activeTab, setActiveTab] = useState<
-    "cases" | "adjuster_simulator" | "securities"
-  >("cases");
+  const [activeTab, setActiveTab] = useState<GeneralAverageTabId>("cases");
 
   const [cases] = useState<GaCaseRecord[]>([
     {
@@ -306,7 +306,7 @@ export default function GeneralAverageModule() {
           return (
             <button
               key={t.id}
-              onClick={() => setActiveTab(t.id as any)}
+              onClick={() => setActiveTab(t.id as GeneralAverageTabId)}
               className={`flex items-center gap-2 pb-3 pt-1 text-sm font-medium border-b-2 transition-colors ${
                 isActive
                   ? "border-rose-500 text-rose-400"

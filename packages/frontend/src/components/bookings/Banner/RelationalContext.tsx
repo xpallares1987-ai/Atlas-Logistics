@@ -11,10 +11,20 @@ import type { OceanBooking } from "@atlas/shared";
 
 export interface RelationalContextProps {
   activeBooking: OceanBooking;
-  oceanBookingDetail: any;
+  oceanBookingDetail?: {
+    id?: string;
+    siStatus?: string;
+    draftBlStatus?: string;
+    serviceContractNumber?: string;
+  } | null;
   selectedBookingId: string;
   onSelectBookingId: (id: string) => void;
-  dbBookings: any[];
+  dbBookings: Array<{
+    id: string;
+    referenceNumber?: string;
+    origin?: string;
+    destination?: string;
+  }>;
   onRefresh: () => void;
   isLoading: boolean;
   siSuccessMsg: string | null;

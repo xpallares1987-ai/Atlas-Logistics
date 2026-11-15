@@ -117,14 +117,76 @@ const TYPE_CONFIG: Record<
   },
 };
 
+interface LinkedAddressSummary {
+  id: string;
+  companyName?: string;
+  city?: string;
+  country?: string;
+  addressType?: string;
+}
+
+interface CorporateGroupRecord {
+  id: string;
+  name: string;
+  corporateTaxId?: string;
+  groupCode?: string;
+  sector?: string;
+  headquartersCountry?: string;
+  addressCount?: number;
+  creditLimit?: number | string;
+  linkedAddresses?: LinkedAddressSummary[];
+  [key: string]: unknown;
+}
+
+interface AddressContact {
+  id?: string;
+  name?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  role?: string;
+  roleCategory?: string;
+  isPrimary?: boolean;
+}
+
+interface AddressRecord {
+  id: string;
+  companyName: string;
+  tradeName?: string;
+  addressType: string;
+  taxId?: string;
+  street?: string;
+  street1?: string;
+  street2?: string;
+  city: string;
+  state?: string;
+  federalState?: string;
+  postalCode?: string;
+  zipCode?: string;
+  country: string;
+  unlocode?: string;
+  unLocode?: string;
+  companyId?: string | null;
+  corporateGroupName?: string | null;
+  verificationStatus?: string;
+  isDefaultShipper?: boolean;
+  isDefaultConsignee?: boolean;
+  isDefaultNotify?: boolean;
+  contacts?: AddressContact[];
+  [key: string]: unknown;
+}
+
 export default function AddressesHubModule() {
   const { user: authUser } = useAuth();
   const { user: storeUser } = useAppStore();
   const effectiveRole = authUser?.role || storeUser?.role || "ADMIN";
   const hasCorporateGroupAccess = canManageCorporateGroups(effectiveRole);
 
-  const [addresses, setAddresses] = useState<any[]>([]);
-  const [corporateGroups, setCorporateGroups] = useState<any[]>([]);
+  const [addresses, setAddresses] = useState<AddressRecord[]>([]);
+  const [corporateGroups, setCorporateGroups] = useState<
+    CorporateGroupRecord[]
+  >([]);
   const [showCorporateGroupsPanel, setShowCorporateGroupsPanel] =
     useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,7 +198,8 @@ export default function AddressesHubModule() {
   const [addressToEdit, setAddressToEdit] = useState<AddressFormData | null>(
     null,
   );
-  const [previewBlAddress, setPreviewBlAddress] = useState<any | null>(null);
+  const [previewBlAddress, setPreviewBlAddress] =
+    useState<AddressRecord | null>(null);
   const [isDrayageModalOpen, setIsDrayageModalOpen] = useState(false);
   const [selectedDrayageOriginId, setSelectedDrayageOriginId] = useState<
     string | undefined
@@ -347,15 +410,17 @@ export default function AddressesHubModule() {
                 {Array.isArray(grp.linkedAddresses) &&
                   grp.linkedAddresses.length > 0 && (
                     <div className="flex flex-wrap gap-1 pt-1">
-                      {grp.linkedAddresses.slice(0, 4).map((la: any) => (
-                        <span
-                          key={la.id}
-                          className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 truncate max-w-[180px]"
-                          title={`${la.companyName} (${la.city}, ${la.country})`}
-                        >
-                          {la.addressType}: {la.city} ({la.country})
-                        </span>
-                      ))}
+                      {grp.linkedAddresses
+                        .slice(0, 4)
+                        .map((la: LinkedAddressSummary) => (
+                          <span
+                            key={la.id}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 truncate max-w-[180px]"
+                            title={`${la.companyName} (${la.city}, ${la.country})`}
+                          >
+                            {la.addressType}: {la.city} ({la.country})
+                          </span>
+                        ))}
                       {grp.linkedAddresses.length > 4 && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium">
                           +{grp.linkedAddresses.length - 4} more
@@ -522,7 +587,7 @@ export default function AddressesHubModule() {
             const IconComponent = config.icon;
             const contacts = item.contacts || [];
             const primaryContact =
-              contacts.find((c: any) => c.isPrimary) || contacts[0];
+              contacts.find((c: AddressContact) => c.isPrimary) || contacts[0];
 
             return (
               <div
@@ -736,7 +801,7 @@ export default function AddressesHubModule() {
                       size="sm"
                       variant="ghost"
                       onClick={() => {
-                        setAddressToEdit(item);
+                        setAddressToEdit(item as unknown as AddressFormData);
                         setIsAddressModalOpen(true);
                       }}
                       className="text-xs h-8 px-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
@@ -799,8 +864,17 @@ export default function AddressesHubModule() {
         >
           <div className="space-y-4">
             <BlCardPreview
-              address={previewBlAddress}
-              contacts={previewBlAddress.contacts || []}
+              address={previewBlAddress as unknown as AddressFormData}
+              contacts={
+                (previewBlAddress.contacts || []) as unknown as {
+                  fullName: string;
+                  email: string;
+                  phone?: string | null;
+                  mobile?: string | null;
+                  roleCategory?: string | null;
+                  isPrimary?: boolean | null;
+                }[]
+              }
             />
             <div className="flex justify-end pt-3">
               <Button

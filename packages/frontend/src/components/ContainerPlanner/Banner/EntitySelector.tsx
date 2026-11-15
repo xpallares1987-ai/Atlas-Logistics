@@ -16,14 +16,21 @@ import {
 // 1. PROPS INTERFACE
 // ============================================================================
 
+interface SelectorShipment {
+  id: string;
+  trackingNumber?: string;
+  vesselName?: string;
+  [key: string]: unknown;
+}
+
 export interface EntitySelectorProps {
   selectedShipmentId: string;
   onSelectShipmentId: (id: string) => void;
   selectedContainerId: string;
   onSelectContainerId: (id: string) => void;
-  shipments: any[];
+  shipments: SelectorShipment[];
   availablePlans: StowagePlanSummary[];
-  stowagePlan: any;
+  stowagePlan: (StowagePlanSummary & Record<string, unknown>) | null;
   isLoadingPlan: boolean;
   onRefreshPlan: () => void;
   certificationFeedback: CertificationFeedback | null;
@@ -73,8 +80,8 @@ export const EntitySelector: React.FC<EntitySelectorProps> = ({
               sh_demo_01 • BK-2026-67116 (MSC ISABELLA)
             </option>
             {shipments
-              .filter((s: any) => s.id !== "sh_demo_01")
-              .map((s: any) => (
+              .filter((s) => s.id !== "sh_demo_01")
+              .map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.id} • {s.trackingNumber || s.vesselName || "Expedición"}
                 </option>

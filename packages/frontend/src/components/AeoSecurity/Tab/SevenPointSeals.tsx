@@ -7,6 +7,7 @@
 import { motion, Variants } from "framer-motion";
 import { ClipboardList, FileCheck2, Lock, Download } from "lucide-react";
 import { Input } from "@atlas/ui";
+import type { SevenPointInspectionRecord, IsoSealRecord } from "../types/index";
 
 export interface SevenPointSealsProps {
   inspEquipId: string;
@@ -35,10 +36,10 @@ export interface SevenPointSealsProps {
   setHasAgri: (val: boolean) => void;
   hasTamper: boolean;
   setHasTamper: (val: boolean) => void;
-  inspectionSimResult: any;
+  inspectionSimResult: Record<string, unknown> | null;
   onSimulateInspection: () => void;
-  inspections: any[];
-  seals: any[];
+  inspections: SevenPointInspectionRecord[];
+  seals: IsoSealRecord[];
   itemVariants?: Variants;
 }
 
@@ -223,16 +224,23 @@ export function SevenPointSeals({
                   <span className="text-slate-500">Resultado:</span>
                   <span
                     className={`font-bold ${
-                      inspectionSimResult.overallPassed
+                      (inspectionSimResult as Record<string, unknown>)
+                        .overallPassed
                         ? "text-emerald-600"
                         : "text-red-600"
                     }`}
                   >
-                    {inspectionSimResult.inspectionResult}
+                    {String(
+                      (inspectionSimResult as Record<string, unknown>)
+                        .inspectionResult || "",
+                    )}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                  {inspectionSimResult.actionRequired}
+                  {String(
+                    (inspectionSimResult as Record<string, unknown>)
+                      .actionRequired || "",
+                  )}
                 </p>
               </div>
             )}
@@ -259,7 +267,7 @@ export function SevenPointSeals({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                  {inspections.map((insp: any) => (
+                  {inspections.map((insp) => (
                     <tr
                       key={insp.id}
                       className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
@@ -315,7 +323,7 @@ export function SevenPointSeals({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                  {seals.map((seal: any) => (
+                  {seals.map((seal) => (
                     <tr
                       key={seal.id}
                       className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30"

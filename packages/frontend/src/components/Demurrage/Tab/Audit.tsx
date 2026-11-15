@@ -27,7 +27,13 @@ interface AuditProps {
   currentInvoice: CarrierInvoiceData;
   auditResult: DemurrageAuditResult;
   currentMilestones: EDI315Milestone[];
-  activeDbInvoice: any;
+  activeDbInvoice:
+    | (Record<string, unknown> & {
+        id?: string;
+        status?: string;
+        invoiceNumber?: string;
+      })
+    | null;
   isSubmittingDispute: boolean;
   onPresentFmcDispute: () => void;
   onNavigateToDossier: () => void;

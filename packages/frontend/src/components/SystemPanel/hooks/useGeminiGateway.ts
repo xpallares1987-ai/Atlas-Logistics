@@ -114,10 +114,13 @@ export function useGeminiGateway() {
             message: data.error || "Error al vincular GEMINI_API_KEY",
           });
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         setKeySaveFeedback({
           success: false,
-          message: err?.message || "Error de red al configurar GEMINI_API_KEY",
+          message:
+            err instanceof Error
+              ? err.message
+              : "Error de red al configurar GEMINI_API_KEY",
         });
       } finally {
         setIsSavingKey(false);

@@ -74,8 +74,12 @@ export const IngestRecordModal: React.FC<IngestRecordModalProps> = ({
         versionTag: versionTag.trim() || undefined,
       });
       onClose();
-    } catch (err: any) {
-      setJsonError(err.message || "Error al ingerir registro externo");
+    } catch (err: unknown) {
+      setJsonError(
+        err instanceof Error
+          ? err.message
+          : "Error al ingerir registro externo",
+      );
     }
   };
 

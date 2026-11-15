@@ -60,7 +60,7 @@ export const EdiAuditTab: React.FC<EdiAuditTabProps> = ({
           <Input
             placeholder="Filtrar por control #, remitente o estándar..."
             value={filterQuery}
-            onChange={(e: any) => onFilterQueryChange(e.target.value)}
+            onChange={(e) => onFilterQueryChange(e.target.value)}
             className="bg-slate-950 border-slate-800 text-xs w-72"
           />
           <Button

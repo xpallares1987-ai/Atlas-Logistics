@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "../ProtectedRoute";
 import { SafeRemoteLoader } from "../mfe/SafeRemoteLoader";
 import { getMfeRemoteUrl } from "../../lib/mfe/mfe-config";
+import type { MfeSharedProps } from "../../lib/mfe/mfe-context";
 
 const Login = React.lazy(() => import("../../pages/Login"));
 const DashboardModule = React.lazy(() => import("../../pages/DashboardModule"));
@@ -19,8 +20,14 @@ const ControlPlaneModule = React.lazy(
   () => import("../../pages/ControlPlaneModule"),
 );
 
-const loadRemoteRates = () => import("rates/RateComparer");
-const loadFallbackRates = () => import("@atlas/rate-comparer");
+const loadRemoteRates = () =>
+  import("rates/RateComparer") as Promise<{
+    default: React.ComponentType<MfeSharedProps>;
+  }>;
+const loadFallbackRates = () =>
+  import("@atlas/rate-comparer") as unknown as Promise<{
+    default: React.ComponentType<MfeSharedProps>;
+  }>;
 
 const RateComparerContainer = () => (
   <SafeRemoteLoader
@@ -58,9 +65,12 @@ const DynamicPricingModule = React.lazy(
 const DocumentVaultModule = React.lazy(
   () => import("../../pages/DocumentVaultModule"),
 );
-const loadRemoteWarehouse = () => import("warehouse/WarehouseOps");
+const loadRemoteWarehouse = () =>
+  import("warehouse/WarehouseOps") as Promise<{
+    default: React.ComponentType<MfeSharedProps>;
+  }>;
 const loadFallbackWarehouse = () =>
-  // @ts-ignore
+  // @ts-expect-error Optional MFE workspace dependency resolved at runtime
   import("@atlas/mfe-warehouse/src/WarehouseOps").then((m) => ({
     default: m.default,
   }));

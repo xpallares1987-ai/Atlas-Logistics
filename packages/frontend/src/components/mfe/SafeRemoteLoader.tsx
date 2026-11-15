@@ -1,8 +1,14 @@
-import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
-import { Radio, ShieldAlert, RefreshCw, Layers } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { probeRemoteEndpoint } from '../../lib/mfe/mfe-config';
-import { MfeSharedProps, MfeUserContext } from '../../lib/mfe/mfe-context';
+import React, {
+  useState,
+  useEffect,
+  Component,
+  ErrorInfo,
+  ReactNode,
+} from "react";
+import { Radio, ShieldAlert, RefreshCw, Layers } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
+import { probeRemoteEndpoint } from "../../lib/mfe/mfe-config";
+import { MfeSharedProps, MfeUserContext } from "../../lib/mfe/mfe-context";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -14,7 +20,10 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class MfeErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class MfeErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -25,7 +34,11 @@ class MfeErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState>
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('SafeRemoteLoader caught an MFE render error:', error, errorInfo);
+    console.error(
+      "SafeRemoteLoader caught an MFE render error:",
+      error,
+      errorInfo,
+    );
   }
 
   reset = () => {
@@ -43,10 +56,12 @@ class MfeErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState>
 export interface SafeRemoteLoaderProps {
   moduleName: string;
   remoteUrl: string;
-  remoteLoader: () => Promise<{ default: React.ComponentType<any> }>;
-  fallbackLoader: () => Promise<{ default: React.ComponentType<any> }>;
+  remoteLoader: () => Promise<{ default: React.ComponentType<MfeSharedProps> }>;
+  fallbackLoader: () => Promise<{
+    default: React.ComponentType<MfeSharedProps>;
+  }>;
   timeoutMs?: number;
-  extraProps?: Record<string, any>;
+  extraProps?: Record<string, unknown>;
 }
 
 export function SafeRemoteLoader({
@@ -55,17 +70,20 @@ export function SafeRemoteLoader({
   remoteLoader,
   fallbackLoader,
   timeoutMs = 2500,
-  extraProps = {}
+  extraProps = {},
 }: SafeRemoteLoaderProps) {
   const { user } = useAuth();
-  const [loadingMode, setLoadingMode] = useState<'LOADING' | 'REMOTE' | 'FALLBACK' | 'FAILED'>('LOADING');
-  const [LoadedComponent, setLoadedComponent] = useState<React.ComponentType<any> | null>(null);
+  const [loadingMode, setLoadingMode] = useState<
+    "LOADING" | "REMOTE" | "FALLBACK" | "FAILED"
+  >("LOADING");
+  const [LoadedComponent, setLoadedComponent] =
+    useState<React.ComponentType<MfeSharedProps> | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState<number>(0);
 
   useEffect(() => {
     let isCancelled = false;
-    setLoadingMode('LOADING');
+    setLoadingMode("LOADING");
     setErrorMessage(null);
 
     async function resolveMicroFrontend() {
@@ -79,11 +97,14 @@ export function SafeRemoteLoader({
           const remoteModule = await remoteLoader();
           if (!isCancelled) {
             setLoadedComponent(() => remoteModule.default);
-            setLoadingMode('REMOTE');
+            setLoadingMode("REMOTE");
             return;
           }
-        } catch (err: any) {
-          console.warn(`[SafeRemoteLoader] Remote load failed for ${moduleName}, switching to fallback:`, err);
+        } catch (err: unknown) {
+          console.warn(
+            `[SafeRemoteLoader] Remote load failed for ${moduleName}, switching to fallback:`,
+            err,
+          );
         }
       }
 
@@ -92,13 +113,20 @@ export function SafeRemoteLoader({
         const fallbackModule = await fallbackLoader();
         if (!isCancelled) {
           setLoadedComponent(() => fallbackModule.default);
-          setLoadingMode('FALLBACK');
+          setLoadingMode("FALLBACK");
         }
-      } catch (fallbackErr: any) {
+      } catch (fallbackErr: unknown) {
         if (!isCancelled) {
-          console.error(`[SafeRemoteLoader] Both remote and fallback failed for ${moduleName}:`, fallbackErr);
-          setLoadingMode('FAILED');
-          setErrorMessage(fallbackErr?.message || 'Error cargando módulo local.');
+          console.error(
+            `[SafeRemoteLoader] Both remote and fallback failed for ${moduleName}:`,
+            fallbackErr,
+          );
+          setLoadingMode("FAILED");
+          setErrorMessage(
+            fallbackErr instanceof Error
+              ? fallbackErr.message
+              : "Error cargando módulo local.",
+          );
         }
       }
     }
@@ -108,30 +136,37 @@ export function SafeRemoteLoader({
     return () => {
       isCancelled = true;
     };
-  }, [remoteUrl, remoteLoader, fallbackLoader, timeoutMs, moduleName, reloadKey]);
+  }, [
+    remoteUrl,
+    remoteLoader,
+    fallbackLoader,
+    timeoutMs,
+    moduleName,
+    reloadKey,
+  ]);
 
   // Construct shared context props
   const userContext: MfeUserContext | null = user
     ? {
-        id: user.id || 'usr-default',
-        name: user.name || 'User',
-        email: user.email || 'user@atlas.local',
-        role: user.role || 'OPERATIONS',
-        company: 'Atlas Logistics Corredor Book TEST01',
-        tenantId: 'tenant-atlas-bcn'
+        id: user.id || "usr-default",
+        name: user.name || "User",
+        email: user.email || "user@atlas.local",
+        role: user.role || "OPERATIONS",
+        company: "Atlas Logistics Corredor Book TEST01",
+        tenantId: "tenant-atlas-bcn",
       }
     : null;
 
   const sharedProps: MfeSharedProps = {
     user: userContext,
-    authToken: (user as any)?.token || null,
-    tenantId: 'tenant-atlas-bcn',
-    isRemoteMode: loadingMode === 'REMOTE',
-    apiBaseUrl: import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001',
-    ...extraProps
+    authToken: (user as { token?: string } | null)?.token || null,
+    tenantId: "tenant-atlas-bcn",
+    isRemoteMode: loadingMode === "REMOTE",
+    apiBaseUrl: import.meta.env.VITE_API_URL || "http://127.0.0.1:3001",
+    ...extraProps,
   };
 
-  if (loadingMode === 'LOADING') {
+  if (loadingMode === "LOADING") {
     return (
       <div className="flex flex-col items-center justify-center min-h-[450px] p-8 space-y-4 bg-slate-900/40 border border-slate-800 rounded-2xl">
         <div className="p-4 bg-blue-600/10 text-blue-400 rounded-2xl animate-pulse border border-blue-500/20">
@@ -142,19 +177,25 @@ export function SafeRemoteLoader({
             Resolviendo Módulo Micro-Frontend: {moduleName}
           </h4>
           <p className="text-xs text-slate-400">
-            Conectando con contenedor Edge y validando fallback de contingencia...
+            Conectando con contenedor Edge y validando fallback de
+            contingencia...
           </p>
         </div>
       </div>
     );
   }
 
-  if (loadingMode === 'FAILED' || !LoadedComponent) {
+  if (loadingMode === "FAILED" || !LoadedComponent) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] p-8 space-y-4 bg-red-950/20 border border-red-900/50 rounded-2xl text-center">
         <ShieldAlert className="w-10 h-10 text-red-400" />
-        <h4 className="text-lg font-bold text-white">Error de Carga Micro-Frontend ({moduleName})</h4>
-        <p className="text-sm text-red-300 max-w-md">{errorMessage || 'No se pudo resolver el módulo remoto ni el paquete local.'}</p>
+        <h4 className="text-lg font-bold text-white">
+          Error de Carga Micro-Frontend ({moduleName})
+        </h4>
+        <p className="text-sm text-red-300 max-w-md">
+          {errorMessage ||
+            "No se pudo resolver el módulo remoto ni el paquete local."}
+        </p>
         <button
           onClick={() => setReloadKey((k) => k + 1)}
           className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors"
@@ -170,7 +211,7 @@ export function SafeRemoteLoader({
     <div className="relative w-full">
       {/* Resilient MFE Status Badge */}
       <div className="flex items-center justify-end mb-3">
-        {loadingMode === 'REMOTE' ? (
+        {loadingMode === "REMOTE" ? (
           <span
             id="mfeStatusRemote"
             className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm"
@@ -193,7 +234,9 @@ export function SafeRemoteLoader({
         fallback={(err, reset) => (
           <div className="p-6 bg-amber-950/30 border border-amber-800/40 rounded-xl space-y-3 text-center">
             <ShieldAlert className="w-8 h-8 text-amber-400 mx-auto" />
-            <h5 className="text-sm font-bold text-white">Excepción en Ejecución Micro-Frontend</h5>
+            <h5 className="text-sm font-bold text-white">
+              Excepción en Ejecución Micro-Frontend
+            </h5>
             <p className="text-xs text-amber-300">{err.message}</p>
             <button
               onClick={reset}

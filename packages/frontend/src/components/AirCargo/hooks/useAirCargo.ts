@@ -34,8 +34,14 @@ export function useAirCargo() {
   const [simUnNumber, setSimUnNumber] = useState("");
   const [simTempControlled, setSimTempControlled] = useState(true);
   const [simTempRange, setSimTempRange] = useState("+2C to +8C");
-  const [simRatingResult, setSimRatingResult] = useState<any>(null);
-  const [simDgrResult, setSimDgrResult] = useState<any>(null);
+  const [simRatingResult, setSimRatingResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const [simDgrResult, setSimDgrResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
   // Fetch AWBs

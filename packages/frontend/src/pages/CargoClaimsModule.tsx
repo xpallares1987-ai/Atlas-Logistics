@@ -37,10 +37,59 @@ const itemVariants: Variants = {
   },
 };
 
+interface CargoClaimRecord {
+  id: string;
+  claimNumber: string;
+  governingConvention: string;
+  transportDocNumber?: string;
+  carrierName?: string;
+  claimantName?: string;
+  transportMode?: string;
+  incidentDate: string;
+  deliveryDate?: string;
+  noticeDate?: string;
+  incidentType?: string;
+  incidentDescription?: string;
+  surveyorData?: {
+    surveyorName?: string;
+    reportNumber?: string;
+    assessedDepreciationPct?: number;
+    [key: string]: unknown;
+  };
+  claimedAmount: number;
+  statutoryLimitEur: number;
+  subrogationRecoveredAmount: number;
+  status?: string;
+  claimedCurrency?: string;
+  damagedWeightKg?: number;
+  packagesCount?: number;
+  statutorySdrRate?: number;
+  recoveryNotes?: string;
+  insuredValueEur?: number;
+  insuranceSettlementEur?: number;
+  insuranceClaimRef?: string;
+  insurerName?: string;
+  salvageValueEur?: number;
+  [key: string]: unknown;
+}
+
+interface ClaimSimResult {
+  statutorySdrRatePerKg: number;
+  totalStatutoryLimitSdr: number;
+  totalStatutoryLimitEur: number;
+  prescriptionDate?: string;
+  isPrescribed?: boolean;
+  timeBarDays?: number;
+  legalRecommendation?: string;
+  [key: string]: unknown;
+}
+
 export default function CargoClaimsModule() {
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedClaim, setSelectedClaim] = useState<any>(null);
+  const [selectedClaim, setSelectedClaim] = useState<CargoClaimRecord | null>(
+    null,
+  );
 
   // Simulator State
   const [showSimulatorModal, setShowSimulatorModal] = useState(false);
@@ -55,11 +104,11 @@ export default function CargoClaimsModule() {
   const [simDeliveryDate, setSimDeliveryDate] = useState(
     new Date().toISOString().substring(0, 10),
   );
-  const [simResult, setSimResult] = useState<any>(null);
+  const [simResult, setSimResult] = useState<ClaimSimResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
   // Fetch Claims
-  const { data: claims = [], isLoading } = useApiQuery<any[]>(
+  const { data: claims = [], isLoading } = useApiQuery<CargoClaimRecord[]>(
     ["cargo-claims", activeFilter, searchQuery],
     `/claims?convention=${activeFilter}&q=${encodeURIComponent(searchQuery)}`,
   );
@@ -331,7 +380,7 @@ export default function CargoClaimsModule() {
                       <div className="flex justify-between items-start">
                         <div className="flex items-start gap-3">
                           <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 mt-0.5">
-                            {getModeIcon(claim.transportMode)}
+                            {getModeIcon(claim.transportMode || "ROAD")}
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
@@ -452,7 +501,11 @@ export default function CargoClaimsModule() {
                     </p>
                     <p className="text-xs text-slate-300">
                       Fecha Notificación / Protesta:{" "}
-                      {new Date(selectedClaim.noticeDate).toLocaleDateString()}
+                      {selectedClaim.noticeDate
+                        ? new Date(
+                            selectedClaim.noticeDate,
+                          ).toLocaleDateString()
+                        : "N/A"}
                     </p>
                     <p className="text-xs text-slate-400">
                       Tipo de Daño:{" "}

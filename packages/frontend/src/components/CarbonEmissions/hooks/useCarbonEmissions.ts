@@ -9,7 +9,12 @@ import { useState } from "react";
 import { getSecureRandomInt } from "@atlas/shared";
 import { useApiMutation, useApiQuery } from "../../../hooks/useApiQuery";
 import type {
+  CarbonCalculation,
+  CarbonCertificate,
+  CarbonProject,
+  CarbonSummary,
   CarbonTab,
+  GreenAlternative,
   LegInput,
 } from "../../../types/carbon-emissions.types";
 
@@ -24,7 +29,8 @@ export const toFixed = (value: unknown, digits = 2): string =>
 export function useCarbonEmissions() {
   const [activeTab, setActiveTab] = useState<CarbonTab>("JOURNEYS");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCalculation, setSelectedCalculation] = useState<any>(null);
+  const [selectedCalculation, setSelectedCalculation] =
+    useState<CarbonCalculation | null>(null);
 
   // Offset Purchase Modal State
   const [showOffsetModal, setShowOffsetModal] = useState(false);
@@ -54,36 +60,35 @@ export function useCarbonEmissions() {
       weightKg: 20000,
     },
   ]);
-  const [calcResult, setCalcResult] = useState<any>(null);
-  const [greenAlternatives, setGreenAlternatives] = useState<any[]>([]);
+  const [calcResult, setCalcResult] = useState<CarbonCalculation | null>(null);
+  const [greenAlternatives, setGreenAlternatives] = useState<
+    GreenAlternative[]
+  >([]);
 
   // 1. Fetch Summary KPIs
-  const { data: summary, refetch: refetchSummary } = useApiQuery<any>(
-    ["carbon-summary"],
-    "/carbon/summary",
-  );
+  const { data: summary = null, refetch: refetchSummary } =
+    useApiQuery<CarbonSummary>(["carbon-summary"], "/carbon/summary");
 
   // 2. Fetch Calculations List
   const { data: calculations = [], refetch: refetchCalculations } = useApiQuery<
-    any[]
+    CarbonCalculation[]
   >(
     ["carbon-calculations", searchQuery],
     `/carbon/calculations?q=${encodeURIComponent(searchQuery)}`,
   );
 
   // 3. Fetch Projects Catalog
-  const { data: projects = [], refetch: refetchProjects } = useApiQuery<any[]>(
-    ["carbon-projects"],
-    "/carbon/projects",
-  );
+  const { data: projects = [], refetch: refetchProjects } = useApiQuery<
+    CarbonProject[]
+  >(["carbon-projects"], "/carbon/projects");
 
   // 4. Fetch Certificates List
   const { data: certificates = [], refetch: refetchCertificates } = useApiQuery<
-    any[]
+    CarbonCertificate[]
   >(["carbon-certificates"], "/carbon/certificates");
 
   // 5. Fetch Calculation Details
-  const { data: calcDetails } = useApiQuery<any>(
+  const { data: calcDetails = null } = useApiQuery<CarbonCalculation>(
     ["carbon-calculation-details", selectedCalculation?.id],
     selectedCalculation?.id
       ? `/carbon/calculations/${selectedCalculation.id}`
@@ -91,15 +96,18 @@ export function useCarbonEmissions() {
   );
 
   // Mutations
-  const calculateMutation = useApiMutation<any, any>(
-    "/carbon/calculate",
-    "POST",
-  );
-  const compareMutation = useApiMutation<any, any>(
-    "/carbon/compare-green-route",
-    "POST",
-  );
-  const offsetMutation = useApiMutation<any, any>("/carbon/offset", "POST");
+  const calculateMutation = useApiMutation<
+    { journey: CarbonCalculation },
+    Record<string, unknown>
+  >("/carbon/calculate", "POST");
+  const compareMutation = useApiMutation<
+    { alternatives: GreenAlternative[] },
+    Record<string, unknown>
+  >("/carbon/compare-green-route", "POST");
+  const offsetMutation = useApiMutation<
+    Record<string, unknown>,
+    Record<string, unknown>
+  >("/carbon/offset", "POST");
 
   const handleRunCalculation = async () => {
     try {
@@ -109,16 +117,17 @@ export function useCarbonEmissions() {
         destinationCity: calcDestinationCity,
         legs: calcLegs,
       };
-      const res: any = await calculateMutation.mutateAsync(payload);
+      const res = await calculateMutation.mutateAsync(payload);
       setCalcResult(res.journey);
 
-      const altRes: any = await compareMutation.mutateAsync({ legs: calcLegs });
+      const altRes = await compareMutation.mutateAsync({ legs: calcLegs });
       setGreenAlternatives(altRes.alternatives || []);
 
       refetchSummary();
       refetchCalculations();
-    } catch (err: any) {
-      alert("Error al calcular huella: " + err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert("Error al calcular huella: " + message);
     }
   };
 
@@ -144,7 +153,7 @@ export function useCarbonEmissions() {
   const handleLegChange = (
     index: number,
     field: keyof LegInput,
-    value: any,
+    value: string | number,
   ) => {
     const updated = [...calcLegs];
     updated[index] = { ...updated[index], [field]: value };
@@ -169,12 +178,13 @@ export function useCarbonEmissions() {
       refetchCalculations();
       refetchProjects();
       refetchCertificates();
-    } catch (err: any) {
-      alert("Error en la compensación: " + err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert("Error en la compensación: " + message);
     }
   };
 
-  const handleOpenOffsetForCalc = (calc: any) => {
+  const handleOpenOffsetForCalc = (calc: CarbonCalculation) => {
     setSelectedCalculation(calc);
     setBeneficiaryInput("Iberia Retail Group S.A.");
     setShowOffsetModal(true);

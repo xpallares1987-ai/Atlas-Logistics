@@ -7,7 +7,10 @@
 
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { useResolutionNotesStore } from "../store/useResolutionNotesStore";
+import {
+  useResolutionNotesStore,
+  type ResolutionCategory,
+} from "../store/useResolutionNotesStore";
 import {
   Header,
   Navigation,
@@ -137,7 +140,7 @@ export default function SystemPanelModule() {
   };
 
   const handleAddPredefinedNote = (note: {
-    category: any;
+    category: ResolutionCategory;
     label: string;
     text: string;
   }) => {

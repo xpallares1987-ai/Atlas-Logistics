@@ -63,7 +63,16 @@ export interface DocumentOcrStudioTabProps {
   onClearNotification: () => void;
   ocrAttachment: OcrAttachment | null;
   ocrAiProvenance: OcrAiProvenance | null;
-  shipmentsList: any[];
+  shipmentsList: Array<{
+    id: string;
+    trackingNumber?: string;
+    referenceNumber?: string;
+    bookingId?: string;
+    origin?: string;
+    destination?: string;
+    originPort?: string;
+    destinationPort?: string;
+  }>;
   selectedShipmentId: string;
   onSelectedShipmentIdChange: (id: string) => void;
   onAuditShipmentDocuments: (id: string) => void;

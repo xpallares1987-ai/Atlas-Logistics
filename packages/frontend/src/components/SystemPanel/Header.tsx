@@ -11,7 +11,7 @@ interface HeaderProps {
   role: string;
   isAdmin: boolean;
   simulatedRole: string;
-  onSimulatedRoleChange: (newRole: any) => void;
+  onSimulatedRoleChange: (newRole: string) => void;
 }
 
 export function Header({

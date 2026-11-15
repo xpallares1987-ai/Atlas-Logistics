@@ -82,7 +82,7 @@ export default function OperationsCockpitModule() {
   const [selectedItem, setSelectedItem] = useState<CockpitWorkItem | null>(
     null,
   );
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [lastExecutionResult, setLastExecutionResult] =
@@ -142,7 +142,7 @@ export default function OperationsCockpitModule() {
           setSelectedItem(nextSelected);
 
           // Reset form inputs for next selected item
-          const initialForm: Record<string, any> = {};
+          const initialForm: Record<string, unknown> = {};
           if (nextSelected.primaryAction?.inputFields) {
             for (const f of nextSelected.primaryAction.inputFields) {
               initialForm[f.name] = "";
@@ -188,7 +188,7 @@ export default function OperationsCockpitModule() {
     setSelectedItem(item);
     setLastExecutionResult(null);
 
-    const initialForm: Record<string, any> = {};
+    const initialForm: Record<string, unknown> = {};
     if (item.primaryAction?.inputFields) {
       for (const f of item.primaryAction.inputFields) {
         initialForm[f.name] = "";
@@ -201,7 +201,7 @@ export default function OperationsCockpitModule() {
     setFormData(initialForm);
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 

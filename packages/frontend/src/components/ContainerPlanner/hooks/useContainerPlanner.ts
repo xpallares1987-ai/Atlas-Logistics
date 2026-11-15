@@ -33,20 +33,22 @@ import {
 /**
  * Maps raw SQLite stowage plan cargo items into normalized `CargoItemInput` records.
  */
-export function mapDbStowageItems(rawItems: any[]): CargoItemInput[] {
+export function mapDbStowageItems(
+  rawItems: Array<Record<string, unknown>>,
+): CargoItemInput[] {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     return CANONICAL_FALLBACK_ITEMS;
   }
-  return rawItems.map((it: any) => ({
+  return rawItems.map((it: Record<string, unknown>) => ({
     id: String(it.id),
     name: String(it.label || it.name || "Cargo Item"),
     widthM: Number(it.width || it.widthM || 1.2),
     heightM: Number(it.height || it.heightM || 1.4),
     lengthM: Number(it.depth || it.lengthM || 1.2),
     weightKg: Number(it.weight || it.weightKg || 1000),
-    stackable: it.stackable ?? true,
-    color: it.color || "#3b82f6",
-    hazardClass: it.hazardClass,
+    stackable: (it.stackable as boolean) ?? true,
+    color: (it.color as string) || "#3b82f6",
+    hazardClass: it.hazardClass as CargoItemInput["hazardClass"],
   }));
 }
 
@@ -87,10 +89,9 @@ export function useContainerPlanner() {
   );
 
   // Live SQLite Queries
-  const { data: shipments = [] } = useApiQuery<any[]>(
-    ["/api/shipments"],
-    "/shipments",
-  );
+  const { data: shipments = [] } = useApiQuery<
+    Array<{ id: string; referenceNumber?: string; [key: string]: unknown }>
+  >(["/api/shipments"], "/shipments");
 
   const { data: availablePlans = [] } = useApiQuery<StowagePlanSummary[]>(
     ["stowage-plans-list"],
@@ -101,7 +102,7 @@ export function useContainerPlanner() {
     data: stowagePlan,
     refetch: refetchStowagePlan,
     isLoading: isLoadingPlan,
-  } = useApiQuery<any>(
+  } = useApiQuery<Record<string, unknown>>(
     ["stowage-plan", selectedContainerId],
     `/stowage/plan?containerId=${selectedContainerId}`,
   );
@@ -202,10 +203,12 @@ export function useContainerPlanner() {
         message:
           "Plan de carga 3D y Centro de Gravedad (CoG) certificados oficialmente en SQLite (IMO/CSS Code Anexo 13).",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Error al calcular estabilidad.";
       setCertificationFeedback({
         type: "error",
-        message: err.message || "Error al calcular estabilidad.",
+        message,
       });
     } finally {
       setIsCertifying(false);

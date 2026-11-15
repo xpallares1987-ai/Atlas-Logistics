@@ -2,12 +2,25 @@ import { useState } from "react";
 import { PackageSearch, FileText, Search, PlusCircle } from "lucide-react";
 import { ShipmentTracker } from "../features/portal/ShipmentTracker";
 import { DocumentUpload } from "../features/portal/DocumentUpload";
-import { QuoteWizardModal } from "../features/portal/QuoteWizardModal";
+import {
+  QuoteWizardModal,
+  type PortalBookedQuote,
+} from "../features/portal/QuoteWizardModal";
 import { Button, Input } from "@atlas/ui";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
+
+interface PortalShipmentItem {
+  id: string;
+  referenceNumber: string;
+  poNumber: string;
+  origin: string;
+  destination: string;
+  status: string;
+  progress: number;
+}
 
 export default function CustomerPortalModule() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,24 +35,31 @@ export default function CustomerPortalModule() {
     },
   });
 
-  const shipments = rawShipments.map((s: any) => {
-    let prog = 10;
-    if (s.status === "IN_TRANSIT") prog = 60;
-    if (s.status === "CUSTOMS_CLEARED" || s.status === "CUSTOMS") prog = 80;
-    if (s.status === "DELIVERED") prog = 100;
+  const shipments: PortalShipmentItem[] = rawShipments.map(
+    (s: {
+      id: string;
+      status: string;
+      origin?: string;
+      destination?: string;
+    }) => {
+      let prog = 10;
+      if (s.status === "IN_TRANSIT") prog = 60;
+      if (s.status === "CUSTOMS_CLEARED" || s.status === "CUSTOMS") prog = 80;
+      if (s.status === "DELIVERED") prog = 100;
 
-    return {
-      id: s.id,
-      referenceNumber: s.id.substring(0, 8).toUpperCase(),
-      poNumber: `PO-${s.id.substring(0, 8).toUpperCase()}`,
-      origin: s.origin || "Shanghai",
-      destination: s.destination || "Los Angeles",
-      status: s.status,
-      progress: prog,
-    };
-  });
+      return {
+        id: s.id,
+        referenceNumber: s.id.substring(0, 8).toUpperCase(),
+        poNumber: `PO-${s.id.substring(0, 8).toUpperCase()}`,
+        origin: s.origin || "Shanghai",
+        destination: s.destination || "Los Angeles",
+        status: s.status,
+        progress: prog,
+      };
+    },
+  );
 
-  const downloadHBL = async (shipment: any) => {
+  const downloadHBL = async (shipment: PortalShipmentItem) => {
     try {
       // Backend generated PDF
       window.open(`${API_URL}/documents/hbl/${shipment.id}`, "_blank");
@@ -49,7 +69,7 @@ export default function CustomerPortalModule() {
     }
   };
 
-  const handleBookQuote = async (quote: any) => {
+  const handleBookQuote = async (quote: PortalBookedQuote) => {
     try {
       const res = await fetch(`${API_URL}/tracking/my-shipments`, {
         method: "POST",
@@ -67,7 +87,7 @@ export default function CustomerPortalModule() {
   };
 
   const filteredShipments = shipments.filter(
-    (s: any) =>
+    (s) =>
       s.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (s.poNumber &&
         s.poNumber.toLowerCase().includes(searchQuery.toLowerCase())),
@@ -124,7 +144,7 @@ export default function CustomerPortalModule() {
             </div>
           )}
           {!isLoading &&
-            filteredShipments.map((shipment: any, idx: number) => (
+            filteredShipments.map((shipment, idx: number) => (
               <motion.div
                 key={shipment.id}
                 initial={{ opacity: 0, y: 20 }}

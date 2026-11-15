@@ -69,55 +69,58 @@ export const DEFAULT_FALLBACK_SUSPENSIONS: ClockSuspension[] = [
 /**
  * Normalizes a relational SQLite demurrage invoice record into a CarrierInvoiceData structure.
  */
-export function mapDbInvoiceToCarrierData(inv: any): CarrierInvoiceData {
+export function mapDbInvoiceToCarrierData(
+  inv: Record<string, unknown> | null | undefined,
+): CarrierInvoiceData {
   if (!inv) return CANONICAL_FALLBACK_INVOICE;
   return {
-    invoiceNumber: inv.invoiceNumber || "INV-DEM-2026-9921",
+    invoiceNumber: (inv.invoiceNumber as string) || "INV-DEM-2026-9921",
     invoiceDate: inv.createdAt
-      ? new Date(inv.createdAt).toISOString().split("T")[0]
+      ? new Date(inv.createdAt as string | number).toISOString().split("T")[0]
       : "2026-10-25",
-    carrierName: inv.carrierName || "Maersk Line A/S",
-    carrierScac: inv.carrierScac || "MAEU",
-    billOfLading: inv.billOfLading || "BK-2026-67116",
-    containerNumber: inv.containerNumber || "MSKU9284712",
+    carrierName: (inv.carrierName as string) || "Maersk Line A/S",
+    carrierScac: (inv.carrierScac as string) || "MAEU",
+    billOfLading: (inv.billOfLading as string) || "BK-2026-67116",
+    containerNumber: (inv.containerNumber as string) || "MSKU9284712",
     chargeType: "DEMURRAGE",
     jurisdiction: "US_FMC_OSRA_2022",
     vesselVoyage: "MSC ISABELLA / 2604W",
-    pod: inv.pod || "New York Container Terminal (USNYC)",
-    terminalName: inv.terminalName || "APM Terminals Port Elizabeth",
+    pod: (inv.pod as string) || "New York Container Terminal (USNYC)",
+    terminalName:
+      (inv.terminalName as string) || "APM Terminals Port Elizabeth",
     terminalHoursProvided: true,
     dischargeDate: inv.vesselDischargeDate
-      ? inv.vesselDischargeDate.split("T")[0]
+      ? (inv.vesselDischargeDate as string).split("T")[0]
       : "2026-10-25",
     availableDate: inv.availableDate
-      ? inv.availableDate.split("T")[0]
+      ? (inv.availableDate as string).split("T")[0]
       : "2026-10-25",
     freeTimeStartDate: inv.freeTimeStartDate
-      ? inv.freeTimeStartDate.split("T")[0]
+      ? (inv.freeTimeStartDate as string).split("T")[0]
       : "2026-10-26",
     freeTimeEndDate: inv.freeTimeEndDate
-      ? inv.freeTimeEndDate.split("T")[0]
+      ? (inv.freeTimeEndDate as string).split("T")[0]
       : "2026-10-29",
-    freeDaysGranted: inv.freeDaysGranted ?? 4,
+    freeDaysGranted: (inv.freeDaysGranted as number) ?? 4,
     billedStartDate: inv.freeTimeStartDate
-      ? inv.freeTimeStartDate.split("T")[0]
+      ? (inv.freeTimeStartDate as string).split("T")[0]
       : "2026-10-26",
     billedEndDate: inv.freeTimeEndDate
-      ? inv.freeTimeEndDate.split("T")[0]
+      ? (inv.freeTimeEndDate as string).split("T")[0]
       : "2026-11-02",
     billedTotalDays: 8,
-    billedDailyRate: inv.dailyRateUsd ?? 175,
-    invoicedAmount: inv.totalInvoicedUsd ?? 1400,
+    billedDailyRate: (inv.dailyRateUsd as number) ?? 175,
+    invoicedAmount: (inv.totalInvoicedUsd as number) ?? 1400,
     currency: "USD",
     disputeContactEmail: "disputes.na@maersk.com",
     tariffTiers:
-      inv.tariffTiers && inv.tariffTiers.length > 0
-        ? inv.tariffTiers
+      Array.isArray(inv.tariffTiers) && inv.tariffTiers.length > 0
+        ? (inv.tariffTiers as CarrierInvoiceData["tariffTiers"])
         : [
             {
               fromDay: 1,
               toDay: 4,
-              dailyRate: inv.dailyRateUsd ?? 175,
+              dailyRate: (inv.dailyRateUsd as number) ?? 175,
               currency: "USD",
             },
             { fromDay: 5, toDay: 8, dailyRate: 250, currency: "USD" },
@@ -128,20 +131,28 @@ export function mapDbInvoiceToCarrierData(inv: any): CarrierInvoiceData {
 /**
  * Normalizes a relational SQLite suspension row into a ClockSuspension domain object.
  */
-export function mapDbSuspensionToClockSuspension(s: any): ClockSuspension {
+export function mapDbSuspensionToClockSuspension(
+  s: Record<string, unknown>,
+): ClockSuspension {
+  const startDateStr = s.startDate as string | undefined;
+  const endDateStr = s.endDate as string | undefined;
   return {
-    id: s.id,
-    code: (s.reason || "CUSTOMS_PHYSICAL_EXAM") as SuspensionReasonCode,
-    reason: s.justificationText || s.reason || "Suspensión reglamentaria",
-    startDate: s.startDate?.includes("T")
-      ? s.startDate.split("T")[0]
-      : s.startDate || "2026-10-27",
-    endDate: s.endDate?.includes("T")
-      ? s.endDate.split("T")[0]
-      : s.endDate || "2026-10-29",
-    suspendedDays: s.daysSuspended ?? 2,
+    id: s.id as string,
+    code: ((s.reason as string) ||
+      "CUSTOMS_PHYSICAL_EXAM") as SuspensionReasonCode,
+    reason:
+      (s.justificationText as string) ||
+      (s.reason as string) ||
+      "Suspensión reglamentaria",
+    startDate: startDateStr?.includes("T")
+      ? startDateStr.split("T")[0]
+      : startDateStr || "2026-10-27",
+    endDate: endDateStr?.includes("T")
+      ? endDateStr.split("T")[0]
+      : endDateStr || "2026-10-29",
+    suspendedDays: (s.daysSuspended as number) ?? 2,
     officialNoticeRef:
-      s.officialNoticeRef || "Aviso Oficial de Autoridad Portuaria",
+      (s.officialNoticeRef as string) || "Aviso Oficial de Autoridad Portuaria",
     approved: s.approved !== false,
   };
 }
@@ -149,15 +160,19 @@ export function mapDbSuspensionToClockSuspension(s: any): ClockSuspension {
 /**
  * Generates the verified EDI 315 milestone timeline for the active invoice.
  */
-export function buildEdi315Milestones(activeDbInvoice: any): EDI315Milestone[] {
+export function buildEdi315Milestones(
+  activeDbInvoice: Record<string, unknown> | null | undefined,
+): EDI315Milestone[] {
   const terminalName =
-    activeDbInvoice?.terminalName || "APM Terminals Port Elizabeth";
+    (activeDbInvoice?.terminalName as string) || "APM Terminals Port Elizabeth";
   return [
     {
       id: "m-01",
       code: "VD",
       eventDescription: "Descarga de buque (Vessel Discharge)",
-      timestamp: activeDbInvoice?.vesselDischargeDate || "2026-10-25T08:00:00Z",
+      timestamp:
+        (activeDbInvoice?.vesselDischargeDate as string) ||
+        "2026-10-25T08:00:00Z",
       locationCode: "USNYC",
       locationName: terminalName,
       verified: true,
@@ -167,7 +182,8 @@ export function buildEdi315Milestones(activeDbInvoice: any): EDI315Milestone[] {
       code: "AL",
       eventDescription:
         "Contenedor Disponible en Terminal (Container Available)",
-      timestamp: activeDbInvoice?.availableDate || "2026-10-25T14:00:00Z",
+      timestamp:
+        (activeDbInvoice?.availableDate as string) || "2026-10-25T14:00:00Z",
       locationCode: "USNYC",
       locationName: terminalName,
       verified: true,

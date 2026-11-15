@@ -24,6 +24,67 @@ import {
   DrayageOrderDetails,
 } from "../components/drayage/DigitalGatePassModal";
 
+interface DrayageAddressOption {
+  id: string;
+  companyName: string;
+  city: string;
+  addressType: string;
+  street1?: string;
+  unlocode?: string;
+  unLocode?: string;
+  lat?: number;
+  lon?: number;
+  [key: string]: unknown;
+}
+
+interface DrayageHaulierOption {
+  id: string;
+  companyName: string;
+  city: string;
+  taxId?: string;
+  carrierScac?: string;
+  primaryContact?: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface DrayageCosts {
+  totalGross: number;
+  currency: string;
+  baseRate: number;
+  fuelSurcharge: number;
+  tollsCost: number;
+  extraSurcharges: number;
+  [key: string]: unknown;
+}
+
+interface DrayageEmissions {
+  co2WtwKg: number;
+  co2TtwKg: number;
+  co2WteKg: number;
+  emissionsIntensityFactor: number;
+  [key: string]: unknown;
+}
+
+interface DrayageQuoteResult {
+  distanceKm: number;
+  costs: DrayageCosts;
+  emissions: DrayageEmissions;
+  totalCost?: number;
+  baseRate?: number;
+  fuelSurcharge?: number;
+  tollFees?: number;
+  congestionSurcharge?: number;
+  dgSurcharge?: number;
+  gensetSurcharge?: number;
+  transitTimeHours?: number;
+  [key: string]: unknown;
+}
+
 export default function DrayageHaulageModule() {
   const [activeTab, setActiveTab] = useState<
     "CALCULATOR" | "BOARD" | "HAULIERS"
@@ -34,9 +95,11 @@ export default function DrayageHaulageModule() {
   const [error, setError] = useState<string | null>(null);
 
   // Address Data
-  const [terminals, setTerminals] = useState<any[]>([]);
-  const [deliveryAddresses, setDeliveryAddresses] = useState<any[]>([]);
-  const [hauliers, setHauliers] = useState<any[]>([]);
+  const [terminals, setTerminals] = useState<DrayageAddressOption[]>([]);
+  const [deliveryAddresses, setDeliveryAddresses] = useState<
+    DrayageAddressOption[]
+  >([]);
+  const [hauliers, setHauliers] = useState<DrayageHaulierOption[]>([]);
 
   // Calculator State
   const [selectedTerminalId, setSelectedTerminalId] = useState<string>("");
@@ -48,7 +111,7 @@ export default function DrayageHaulageModule() {
   const [isDangerousGoods, setIsDangerousGoods] = useState<boolean>(false);
   const [requiresGenset, setRequiresGenset] = useState<boolean>(false);
   const [selectedHaulierId, setSelectedHaulierId] = useState<string>("");
-  const [quote, setQuote] = useState<any | null>(null);
+  const [quote, setQuote] = useState<DrayageQuoteResult | null>(null);
 
   // Dispatch Board State
   const [orders, setOrders] = useState<DrayageOrderDetails[]>([]);
@@ -137,8 +200,10 @@ export default function DrayageHaulageModule() {
 
       const data = await res.json();
       setQuote(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Failed to calculate quote",
+      );
     } finally {
       setLoading(false);
     }
@@ -175,8 +240,10 @@ export default function DrayageHaulageModule() {
       setSelectedOrderForPass(newOrder);
       setIsPassModalOpen(true);
       loadOrders();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Failed to calculate quote",
+      );
     } finally {
       setLoading(false);
     }

@@ -38,8 +38,11 @@ export const Company: React.FC = () => {
       } else {
         alert(data.error);
       }
-    } catch (err: any) {
-      alert("Failed to update company: " + err.message);
+    } catch (err: unknown) {
+      alert(
+        "Failed to update company: " +
+          (err instanceof Error ? err.message : String(err)),
+      );
     } finally {
       setLoading(false);
     }

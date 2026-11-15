@@ -59,7 +59,7 @@ export function useDemurrageManager() {
     data: dbInvoices = [],
     refetch: refetchInvoices,
     isLoading: isLoadingInvoices,
-  } = useApiQuery<any[]>(
+  } = useApiQuery<Array<Record<string, unknown>>>(
     ["demurrage-invoices", selectedShipmentId],
     selectedShipmentId
       ? `/demurrage-dispute/invoices?shipmentId=${selectedShipmentId}`
@@ -82,11 +82,11 @@ export function useDemurrageManager() {
   }, [activeDbInvoice]);
 
   const currentSuspensions = useMemo<ClockSuspension[]>(() => {
-    if (
-      activeDbInvoice?.suspensions &&
-      activeDbInvoice.suspensions.length > 0
-    ) {
-      return activeDbInvoice.suspensions.map(mapDbSuspensionToClockSuspension);
+    const rawSuspensions = activeDbInvoice?.suspensions;
+    if (Array.isArray(rawSuspensions) && rawSuspensions.length > 0) {
+      return (rawSuspensions as Record<string, unknown>[]).map(
+        mapDbSuspensionToClockSuspension,
+      );
     }
     return DEFAULT_FALLBACK_SUSPENSIONS;
   }, [activeDbInvoice]);
@@ -141,7 +141,7 @@ export function useDemurrageManager() {
   // 3. MUTATIONS & HANDLERS
   // ============================================================================
   const addSuspensionMutation = useApiMutation<
-    { success: boolean; suspension: any },
+    { success: boolean; suspension: Record<string, unknown> },
     {
       invoiceId: string;
       startDate: string;
@@ -159,7 +159,7 @@ export function useDemurrageManager() {
   const handleAddSuspension = useCallback(
     (input: NewSuspensionInput) => {
       const days = calculateSuspensionDays(input.startDate, input.endDate);
-      const invoiceId = activeDbInvoice?.id || "dinv_sh_demo_01";
+      const invoiceId = (activeDbInvoice?.id as string) || "dinv_sh_demo_01";
       addSuspensionMutation.mutate({
         invoiceId,
         startDate: input.startDate,
@@ -174,13 +174,13 @@ export function useDemurrageManager() {
   );
 
   const submitDisputeMutation = useApiMutation<
-    { success: boolean; dispute: any },
+    { success: boolean; dispute: { id: string; [key: string]: unknown } },
     {
       invoiceId: string;
       disputedAmountUsd: number;
       revisedPayableUsd: number;
       fmcRuleClause: string;
-      formalLetterPayload?: any;
+      formalLetterPayload?: Record<string, unknown>;
     }
   >("/demurrage-dispute/dispute", "POST", {
     onSuccess: (data) => {
@@ -193,7 +193,7 @@ export function useDemurrageManager() {
   });
 
   const handlePresentFmcDispute = useCallback(() => {
-    const invoiceId = activeDbInvoice?.id || "dinv_sh_demo_01";
+    const invoiceId = (activeDbInvoice?.id as string) || "dinv_sh_demo_01";
     submitDisputeMutation.mutate({
       invoiceId,
       disputedAmountUsd: auditResult.disputedWaiverAmount,
@@ -237,20 +237,19 @@ export function useDemurrageManager() {
 
   const handleGenerateGeminiDraft = useCallback(() => {
     generateGeminiFmcDraftMutation.mutate({
-      invoiceId: activeDbInvoice?.id || "dinv_sh_demo_01",
+      invoiceId: (activeDbInvoice?.id as string) || "dinv_sh_demo_01",
       shipmentId: selectedShipmentId || "sh_demo_01",
     });
   }, [activeDbInvoice, selectedShipmentId, generateGeminiFmcDraftMutation]);
 
-  const dispatchMutation = useApiMutation<any, any>(
-    "/demurrage-dispute/dispatch-email",
-    "POST",
-    {
-      onSuccess: (data) => {
-        setDispatchReceipt(data);
-      },
+  const dispatchMutation = useApiMutation<
+    DispatchReceipt,
+    Record<string, unknown>
+  >("/demurrage-dispute/dispatch-email", "POST", {
+    onSuccess: (data) => {
+      setDispatchReceipt(data);
     },
-  );
+  });
 
   const handleDispatchEmail = useCallback(
     (recipientEmail: string) => {

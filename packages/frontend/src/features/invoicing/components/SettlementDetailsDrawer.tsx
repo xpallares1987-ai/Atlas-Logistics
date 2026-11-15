@@ -11,10 +11,31 @@ import {
   TableCell,
 } from "@atlas/ui";
 
+interface SettlementSummary {
+  id: string;
+  status: string;
+  statementNumber?: string;
+  agentName?: string;
+  currency: string;
+  netBalance: number;
+  periodStart: string | Date;
+  periodEnd: string | Date;
+}
+
+interface SettlementInvoice {
+  id: string;
+  invoiceNumber: string;
+  status: string;
+  createdAt: string | Date;
+  shipmentId?: string;
+  currency: string;
+  amount: number;
+}
+
 interface SettlementDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  settlement: any;
+  settlement: SettlementSummary | null;
 }
 
 export function SettlementDetailsDrawer({
@@ -22,8 +43,8 @@ export function SettlementDetailsDrawer({
   onClose,
   settlement,
 }: SettlementDetailsDrawerProps) {
-  const { data: invoices, isLoading } = useApiQuery<any[]>(
-    ["settlement-invoices", settlement?.id],
+  const { data: invoices, isLoading } = useApiQuery<SettlementInvoice[]>(
+    ["settlement-invoices", settlement?.id || ""],
     `/agent-settlements/${settlement?.id}/invoices`,
     { enabled: !!settlement },
   );

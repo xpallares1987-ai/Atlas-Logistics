@@ -71,15 +71,50 @@ export const getSegmentSemantic = (tag: string): string => {
   return semantics[tag] || "Segmento Estándar EDI";
 };
 
+export interface ProcessResultInterchange {
+  controlNumber?: string;
+  senderId?: string;
+  receiverId?: string;
+  ackStatus?: string;
+  [key: string]: unknown;
+}
+
+export interface ProcessResultEvent {
+  milestone?: string;
+  [key: string]: unknown;
+}
+
+export interface ProcessResultData {
+  interchange?: ProcessResultInterchange;
+  events?: ProcessResultEvent[];
+  acknowledgment?: string;
+  [key: string]: unknown;
+}
+
 export interface EdiStudioTabProps {
   ediInput: string;
   onEdiInputChange: (input: string) => void;
   isParsing: boolean;
   isProcessing: boolean;
-  parseResult: any;
-  processResult: any;
-  selectedSegment: any;
-  onSelectSegment: (segment: any) => void;
+  parseResult: {
+    standard?: string;
+    segmentsCount?: number;
+    format?: string;
+    segmentCount?: number;
+    parsedEvents?: Array<{
+      milestone?: string;
+      bookingReference?: string;
+      [key: string]: unknown;
+    }>;
+    segments?: Array<{
+      tag: string;
+      elements: Array<string | { isComposite?: boolean; components: string[] }>;
+    }>;
+    [key: string]: unknown;
+  } | null;
+  processResult: ProcessResultData | null;
+  selectedSegment: Record<string, unknown> | null;
+  onSelectSegment: (segment: Record<string, unknown> | null) => void;
   onParse: () => void;
   onProcessInbound: () => void;
   interchanges: InterchangeRecord[];
@@ -329,7 +364,7 @@ export const EdiStudioTab: React.FC<EdiStudioTabProps> = ({
                   </div>
                 )}
 
-              {parseResult.segments.map((seg: any, idx: number) => (
+              {parseResult.segments?.map((seg, idx: number) => (
                 <div
                   key={idx}
                   onClick={() => onSelectSegment(seg)}
@@ -354,11 +389,17 @@ export const EdiStudioTab: React.FC<EdiStudioTabProps> = ({
                   </div>
 
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {seg.elements.map((el: any, elIdx: number) => {
-                      const isComp = typeof el === "object" && el.isComposite;
+                    {seg.elements.map((el, elIdx: number) => {
+                      const isComp =
+                        typeof el === "object" &&
+                        el !== null &&
+                        "isComposite" in el &&
+                        Boolean(el.isComposite);
                       const displayVal = isComp
-                        ? el.components.join(" : ")
-                        : el || "<vacío>";
+                        ? (el as { components: string[] }).components.join(
+                            " : ",
+                          )
+                        : String(el || "<vacío>");
                       return (
                         <span
                           key={elIdx}

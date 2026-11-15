@@ -122,8 +122,11 @@ export function useSecuritySettings() {
       } else {
         alert(data.error || "Failed to update password");
       }
-    } catch (err: any) {
-      alert("Failed to update password: " + err.message);
+    } catch (err: unknown) {
+      alert(
+        "Failed to update password: " +
+          (err instanceof Error ? err.message : String(err)),
+      );
     } finally {
       setLoadingPassword(false);
     }
@@ -154,8 +157,11 @@ export function useSecuritySettings() {
           read: false,
         });
       }
-    } catch (err: any) {
-      alert("Failed to link Passkey: " + err.message);
+    } catch (err: unknown) {
+      alert(
+        "Failed to link Passkey: " +
+          (err instanceof Error ? err.message : String(err)),
+      );
     }
   };
 
@@ -176,8 +182,11 @@ export function useSecuritySettings() {
           read: false,
         });
       }
-    } catch (err: any) {
-      alert("Error revoking Passkey: " + err.message);
+    } catch (err: unknown) {
+      alert(
+        "Error revoking Passkey: " +
+          (err instanceof Error ? err.message : String(err)),
+      );
     }
   };
 

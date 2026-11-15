@@ -88,13 +88,25 @@ export interface EmittedDocumentModalData {
   downloadUrl: string;
 }
 
+export interface Shipment360Health {
+  status?: string;
+  score?: number;
+  [key: string]: unknown;
+}
+
+export interface Shipment360Summary {
+  shipmentId?: string;
+  health?: Shipment360Health;
+  [key: string]: unknown;
+}
+
 export interface ExecutionResult {
   success: boolean;
   executedWorkItemId: string;
-  completedTask?: any;
-  resolvedException?: any;
+  completedTask?: Record<string, unknown>;
+  resolvedException?: Record<string, unknown>;
   unlockedWorkItems: CockpitWorkItem[];
   workflowStatus?: string;
-  shipment360: any;
+  shipment360: Shipment360Summary | null;
   emittedDocument?: EmittedDocumentModalData | null;
 }

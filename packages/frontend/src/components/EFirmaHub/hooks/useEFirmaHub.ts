@@ -40,7 +40,13 @@ export function useEFirmaHub() {
 
   const { data: documentsData, refetch: refetchDocuments } = useApiQuery<{
     success: boolean;
-    data: any[];
+    data: Array<{
+      id: string;
+      name: string;
+      type?: string;
+      payloadData?: string;
+      [key: string]: unknown;
+    }>;
   }>(
     ["documents-shipment", selectedShipmentId],
     `/documents?shipmentId=${selectedShipmentId}`,
@@ -51,14 +57,14 @@ export function useEFirmaHub() {
 
   const { data: stampsData, refetch: refetchStamps } = useApiQuery<{
     success: boolean;
-    stamps: any[];
+    stamps: EFirmaAuditStamp[];
   }>(
     ["efirma-stamps", selectedShipmentId],
     `/efirma/stamps?shipmentId=${selectedShipmentId}`,
   );
   const stamps = stampsData?.stamps || [];
   const matchingStamp = stamps.find(
-    (s: any) => s.documentId === activeDocument?.id,
+    (s: EFirmaAuditStamp) => s.documentId === activeDocument?.id,
   );
 
   // Volatile In-Memory Key & Certificate State
@@ -113,12 +119,12 @@ export function useEFirmaHub() {
 
   const verifyMutation = useApiMutation<
     { success: boolean; isValid: boolean },
-    any
+    Record<string, unknown>
   >("/efirma/verify", "POST");
 
   const auditStampMutation = useApiMutation<
     { success: boolean; auditStamp: EFirmaAuditStamp },
-    any
+    Record<string, unknown>
   >("/efirma/audit-stamp", "POST", {
     onSuccess: (res) => {
       setActiveAuditStamp(res.auditStamp);
@@ -157,7 +163,10 @@ export function useEFirmaHub() {
 
   useEffect(() => {
     if (activeDocument) {
-      const docTypeMapping: Record<string, any> = {
+      const docTypeMapping: Record<
+        string,
+        EFirmaSigningPayload["documentType"]
+      > = {
         CUSTOMS_DECLARATION: "PEDIMENTO_ADUANAL",
         CARTA_PORTE: "CARTA_PORTE",
         BILL_OF_LADING: "BILL_OF_LADING",
@@ -165,15 +174,18 @@ export function useEFirmaHub() {
         INVOICE: "PEDIMENTO_ADUANAL",
       };
       const mappedType =
-        docTypeMapping[activeDocument.type] || "PEDIMENTO_ADUANAL";
+        docTypeMapping[activeDocument.type as string] || "PEDIMENTO_ADUANAL";
       const newPayload: EFirmaSigningPayload = {
         documentType: mappedType,
-        documentId: activeDocument.id,
+        documentId: (activeDocument.id as string) || "",
         rfcEmisor: "IGE260101XYZ",
         rfcReceptor: "ALH260202ABC",
         declaredAmountUsd: 145000,
         declaredAmountMxn: 2610000,
-        rawContent: activeDocument.payloadData || activeDocument.name,
+        rawContent:
+          (activeDocument.payloadData as string) ||
+          (activeDocument.name as string) ||
+          "",
       };
       setSigningPayload(newPayload);
       setGeneratedCadenaOriginal(generateCanonicalCadenaOriginal(newPayload));
@@ -231,7 +243,7 @@ export function useEFirmaHub() {
         documentType: signingPayload.documentType,
         sealResult: seal,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error signing with WebCrypto:", err);
     } finally {
       setIsSigning(false);

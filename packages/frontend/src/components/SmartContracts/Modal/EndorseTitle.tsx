@@ -74,7 +74,9 @@ export function EndorseTitle({
                   id="endorse-type"
                   name="endorseType"
                   value={endorseType}
-                  onChange={(e) => setEndorseType(e.target.value as any)}
+                  onChange={(e) =>
+                    setEndorseType(e.target.value as typeof endorseType)
+                  }
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs p-2 text-slate-200"
                 >
                   <option value="SPECIAL_ENDORSEMENT">

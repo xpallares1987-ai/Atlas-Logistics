@@ -5,6 +5,7 @@ import React, {
   useState,
   useRef,
 } from "react";
+import type { Notification } from "../store/useAppStore";
 
 type ApiStatus = "connected" | "reconnecting" | "disconnected";
 
@@ -22,7 +23,7 @@ export function ApiStatusProvider({
   onNotification,
 }: {
   children: React.ReactNode;
-  onNotification?: (notification: any) => void;
+  onNotification?: (notification: Notification) => void;
 }) {
   const [status, setStatus] = useState<ApiStatus>("reconnecting");
   const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null);

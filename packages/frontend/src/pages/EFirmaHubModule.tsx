@@ -75,14 +75,14 @@ export default function EFirmaHubModule() {
 
       <RelationalDocumentSelector
         shipments={shipments}
-        activeShipment={activeShipment}
+        activeShipment={activeShipment || null}
         selectedShipmentId={selectedShipmentId}
         onSelectShipmentId={setSelectedShipmentId}
         documents={documents}
-        activeDocument={activeDocument}
+        activeDocument={activeDocument || null}
         selectedDocId={selectedDocId}
         onSelectDocId={setSelectedDocId}
-        matchingStamp={matchingStamp}
+        matchingStamp={matchingStamp || null}
         isSigning={isSigning}
         isVaultUnlocked={isVaultUnlocked}
         onExecuteSign={handleExecuteSign}

@@ -20,7 +20,10 @@ import {
   Ship,
   Truck,
 } from "lucide-react";
-import { ShipmentDrayageDrawer } from "../components/drayage/ShipmentDrayageDrawer";
+import {
+  ShipmentDrayageDrawer,
+  type DrayageShipment,
+} from "../components/drayage/ShipmentDrayageDrawer";
 import {
   ShipmentGreenComplianceReadModel,
   OperationalShipment360View,
@@ -30,6 +33,7 @@ import {
   ShipmentDocumentItem,
   MletrRecordSummary,
   TaskActionMetadata,
+  OperationalExceptionRecord,
 } from "../types/shipment-workspace360.types";
 import {
   ShipmentOverviewTab,
@@ -846,7 +850,9 @@ export default function ShipmentWorkspace360Module() {
                 <ShipmentTasksTab
                   shipmentDetail={shipmentDetail}
                   highlightId={urlHighlight}
-                  onOpenTaskAction={(task: any) => {
+                  onOpenTaskAction={(
+                    task: OperationalShipment360View["tasks"][number],
+                  ) => {
                     setActiveActionModal({
                       type: "COMPLETE_TASK",
                       targetId: task.taskId,
@@ -867,7 +873,9 @@ export default function ShipmentWorkspace360Module() {
                   onOpenRaiseExceptionModal={() =>
                     setShowRaiseExceptionModal(true)
                   }
-                  onOpenResolveExceptionModal={(ex: any) => {
+                  onOpenResolveExceptionModal={(
+                    ex: OperationalExceptionRecord,
+                  ) => {
                     setActiveActionModal({
                       type: "RESOLVE_EXCEPTION",
                       targetId: ex.exceptionId,
@@ -906,7 +914,7 @@ export default function ShipmentWorkspace360Module() {
           onClose={() => setActiveActionModal(null)}
           onSubmit={handleExecuteAction}
           submitting={actionSubmitting}
-          onChangeInputs={(inputs: any) =>
+          onChangeInputs={(inputs: Record<string, string>) =>
             setActiveActionModal((prev) => (prev ? { ...prev, inputs } : null))
           }
         />
@@ -934,7 +942,7 @@ export default function ShipmentWorkspace360Module() {
         <ShipmentDrayageDrawer
           isOpen={showDrayageDrawer}
           onClose={() => setShowDrayageDrawer(false)}
-          shipment={shipmentDetail}
+          shipment={shipmentDetail as unknown as DrayageShipment}
           onOrderCreated={() => {
             if (selectedShipmentId) {
               fetchShipmentDetail(selectedShipmentId);

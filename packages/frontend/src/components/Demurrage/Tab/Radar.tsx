@@ -23,14 +23,31 @@ import {
   mapDbSuspensionToClockSuspension,
 } from "../hooks/demurrageHelpers";
 
+interface RadarInvoice {
+  id?: string;
+  invoiceNumber?: string;
+  containerNumber?: string;
+  billOfLading?: string;
+  carrierName?: string;
+  carrierScac?: string;
+  pod?: string;
+  terminalName?: string;
+  freeDaysGranted?: number;
+  status?: string;
+  totalInvoicedUsd?: number;
+  invoicedAmount?: number;
+  currency?: string;
+  [key: string]: unknown;
+}
+
 interface RadarProps {
-  displayInvoices: any[];
+  displayInvoices: RadarInvoice[];
   isLoadingInvoices: boolean;
-  activeDbInvoice: any;
+  activeDbInvoice: RadarInvoice | null;
   currentInvoice: CarrierInvoiceData;
   searchTerm: string;
   onSearchTermChange: (val: string) => void;
-  onAuditInvoice: (invoice: any) => void;
+  onAuditInvoice: (invoice: RadarInvoice) => void;
 }
 
 export function Radar({
@@ -98,7 +115,10 @@ export function Radar({
             ) : (
               displayInvoices.map((inv) => {
                 const invCarrierData = mapDbInvoiceToCarrierData(inv);
-                const invSuspensions = (inv.suspensions || []).map(
+                const rawSusp = Array.isArray(inv.suspensions)
+                  ? (inv.suspensions as Record<string, unknown>[])
+                  : [];
+                const invSuspensions = rawSusp.map(
                   mapDbSuspensionToClockSuspension,
                 );
                 const pAudit = calculateDemurrageAudit({

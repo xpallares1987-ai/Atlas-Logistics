@@ -61,7 +61,11 @@ export function CreateInvoiceModal({
     setLines(lines.filter((l) => l.id !== id));
   };
 
-  const updateLine = (id: string, field: keyof LineItem, value: any) => {
+  const updateLine = <K extends keyof LineItem>(
+    id: string,
+    field: K,
+    value: LineItem[K],
+  ) => {
     setLines(lines.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
   };
 

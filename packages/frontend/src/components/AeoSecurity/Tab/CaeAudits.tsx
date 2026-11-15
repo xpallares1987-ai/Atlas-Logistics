@@ -13,14 +13,15 @@ import {
   FileCheck2,
 } from "lucide-react";
 import { Input } from "@atlas/ui";
+import type { AeoAuditRecord } from "../types/index";
 
 export interface CaeAuditsProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   loadingAudits: boolean;
-  filteredAudits: any[];
-  selectedAudit: any;
-  onSelectAudit: (audit: any) => void;
+  filteredAudits: AeoAuditRecord[];
+  selectedAudit: AeoAuditRecord | null;
+  onSelectAudit: (audit: AeoAuditRecord) => void;
   itemVariants?: Variants;
 }
 
@@ -58,7 +59,7 @@ export function CaeAudits({
               No se encontraron auditorías con los criterios indicados.
             </div>
           ) : (
-            filteredAudits.map((audit: any) => (
+            filteredAudits.map((audit) => (
               <div
                 key={audit.id}
                 onClick={() => onSelectAudit(audit)}
@@ -155,28 +156,28 @@ export function CaeAudits({
                   { name: "B1: Información General", score: 100, ok: true },
                   {
                     name: "B2: Cumplimiento Aduanero (Art. 39a)",
-                    score: selectedAudit.customsComplianceScore,
-                    ok: selectedAudit.customsComplianceScore >= 90,
+                    score: selectedAudit.customsComplianceScore ?? 0,
+                    ok: (selectedAudit.customsComplianceScore ?? 0) >= 90,
                   },
                   {
                     name: "B3: Registros Comerciales (Art. 39b)",
-                    score: selectedAudit.commercialRecordsScore,
-                    ok: selectedAudit.commercialRecordsScore >= 85,
+                    score: selectedAudit.commercialRecordsScore ?? 0,
+                    ok: (selectedAudit.commercialRecordsScore ?? 0) >= 85,
                   },
                   {
                     name: "B4: Solvencia Financiera (Art. 39c)",
-                    score: selectedAudit.financialSolvencyScore,
-                    ok: selectedAudit.financialSolvencyScore >= 80,
+                    score: selectedAudit.financialSolvencyScore ?? 0,
+                    ok: (selectedAudit.financialSolvencyScore ?? 0) >= 80,
                   },
                   {
                     name: "B5: Cualificación Profesional (Art. 39d)",
-                    score: selectedAudit.competenceScore,
-                    ok: selectedAudit.competenceScore >= 80,
+                    score: selectedAudit.competenceScore ?? 0,
+                    ok: (selectedAudit.competenceScore ?? 0) >= 80,
                   },
                   {
                     name: "B6: Seguridad & Protección (Art. 39e)",
-                    score: selectedAudit.securitySafetyScore,
-                    ok: selectedAudit.securitySafetyScore >= 85,
+                    score: selectedAudit.securitySafetyScore ?? 0,
+                    ok: (selectedAudit.securitySafetyScore ?? 0) >= 85,
                   },
                 ].map((b, i) => (
                   <div

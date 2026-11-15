@@ -7,6 +7,8 @@ import {
   PartnerRecord,
   DcsaEventItem,
   DcsaSubscriptionItem,
+  EdiOutboundResult,
+  EdiScmShipmentOption,
 } from "../types/edi-integration.types";
 
 import {
@@ -48,7 +50,10 @@ export default function EdiIntegrationModule() {
     useState<DcsaEventItem | null>(null);
   const [dcsaFilterType, setDcsaFilterType] = useState<string>("ALL");
   const [isSimulating, setIsSimulating] = useState(false);
-  const [simulationResult, setSimulationResult] = useState<any>(null);
+  const [simulationResult, setSimulationResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   // Simulator Inputs
   const [simCarrier, setSimCarrier] = useState<
@@ -78,9 +83,18 @@ export default function EdiIntegrationModule() {
   const [ediInput, setEdiInput] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [parseResult, setParseResult] = useState<any>(null);
-  const [processResult, setProcessResult] = useState<any>(null);
-  const [selectedSegment, setSelectedSegment] = useState<any>(null);
+  const [parseResult, setParseResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const [processResult, setProcessResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const [selectedSegment, setSelectedSegment] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   // Outbound Generator State
   const [outboundFormat, setOutboundFormat] = useState<
@@ -117,7 +131,8 @@ export default function EdiIntegrationModule() {
   const [thcAmount, setThcAmount] = useState(195);
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [outboundResult, setOutboundResult] = useState<any>(null);
+  const [outboundResult, setOutboundResult] =
+    useState<EdiOutboundResult | null>(null);
 
   // Audit Ledger State
   const [interchanges, setInterchanges] = useState<InterchangeRecord[]>([]);
@@ -129,7 +144,7 @@ export default function EdiIntegrationModule() {
   const [partners, setPartners] = useState<PartnerRecord[]>([]);
 
   // Real SCM Shipments from database
-  const [scmShipments, setScmShipments] = useState<any[]>([]);
+  const [scmShipments, setScmShipments] = useState<EdiScmShipmentOption[]>([]);
 
   useEffect(() => {
     fetchDcsaEvents();
@@ -249,8 +264,10 @@ export default function EdiIntegrationModule() {
       } else {
         alert(`Error al simular evento DCSA: ${data.error}`);
       }
-    } catch (err: any) {
-      alert(`Error en simulación: ${err.message}`);
+    } catch (err: unknown) {
+      alert(
+        `Error en simulación: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setIsSimulating(false);
     }
@@ -277,8 +294,10 @@ export default function EdiIntegrationModule() {
       } else {
         alert(`Error: ${data.error}`);
       }
-    } catch (err: any) {
-      alert(`Error de red: ${err.message}`);
+    } catch (err: unknown) {
+      alert(
+        `Error de red: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setIsSubmittingSub(false);
     }
@@ -301,8 +320,10 @@ export default function EdiIntegrationModule() {
       } else {
         alert(`Error de parsing: ${data.error}`);
       }
-    } catch (err: any) {
-      alert(`Error de red: ${err.message}`);
+    } catch (err: unknown) {
+      alert(
+        `Error de red: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setIsParsing(false);
     }
@@ -324,8 +345,10 @@ export default function EdiIntegrationModule() {
       } else {
         alert(`Error de procesamiento inbound: ${data.error}`);
       }
-    } catch (err: any) {
-      alert(`Error de red: ${err.message}`);
+    } catch (err: unknown) {
+      alert(
+        `Error de red: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -336,7 +359,7 @@ export default function EdiIntegrationModule() {
     setOutboundResult(null);
     try {
       let endpoint = "/api/edi/generate/304";
-      let payloadData: any = {};
+      let payloadData: Record<string, unknown> = {};
 
       if (outboundFormat === "304") {
         endpoint = "/api/edi/generate/304";
@@ -438,8 +461,10 @@ export default function EdiIntegrationModule() {
       } else {
         alert(`Error al generar mensaje EDI outbound: ${data.error}`);
       }
-    } catch (err: any) {
-      alert(`Error de red: ${err.message}`);
+    } catch (err: unknown) {
+      alert(
+        `Error de red: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setIsGenerating(false);
     }

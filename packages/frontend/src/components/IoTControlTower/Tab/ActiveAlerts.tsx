@@ -31,8 +31,8 @@ export function ActiveAlerts({
 
       <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
         <AnimatePresence>
-          {assetDetail?.alerts?.length > 0 ? (
-            assetDetail.alerts.map((alert: any) => (
+          {assetDetail?.alerts && assetDetail.alerts.length > 0 ? (
+            assetDetail.alerts.map((alert) => (
               <motion.div
                 key={alert.id}
                 initial={{ opacity: 0, x: -10 }}

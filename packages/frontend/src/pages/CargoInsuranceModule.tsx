@@ -60,10 +60,12 @@ interface InsuranceCertificateRecord {
   status: string;
 }
 
+type InsuranceTabId =
+  "calculator_quote" | "open_policies" | "certificates_claims";
+
 export default function CargoInsuranceModule() {
-  const [activeTab, setActiveTab] = useState<
-    "calculator_quote" | "open_policies" | "certificates_claims"
-  >("calculator_quote");
+  const [activeTab, setActiveTab] =
+    useState<InsuranceTabId>("calculator_quote");
 
   const [openPolicies] = useState<OpenPolicyRecord[]>([
     {
@@ -348,7 +350,7 @@ export default function CargoInsuranceModule() {
           return (
             <button
               key={t.id}
-              onClick={() => setActiveTab(t.id as any)}
+              onClick={() => setActiveTab(t.id as InsuranceTabId)}
               className={`flex items-center gap-2 pb-3 pt-1 text-sm font-medium border-b-2 transition-colors ${
                 isActive
                   ? "border-sky-500 text-sky-400"

@@ -184,9 +184,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                         </label>
                         <Input
                           value={signerTitle}
-                          onChange={(e: any) =>
-                            onSignerTitleChange(e.target.value)
-                          }
+                          onChange={(e) => onSignerTitleChange(e.target.value)}
                           className="bg-slate-950 border-slate-800 text-xs"
                         />
                       </div>

@@ -38,6 +38,18 @@ const itemVariants: Variants = {
   },
 };
 
+export interface DcsaSimulationResult {
+  verification?: {
+    headerReceived?: string;
+    [key: string]: unknown;
+  };
+  scmIntegration?: {
+    action?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 export interface EdiDcsaTabProps {
   dcsaEvents: DcsaEventItem[];
   dcsaSubscriptions: DcsaSubscriptionItem[];
@@ -46,7 +58,7 @@ export interface EdiDcsaTabProps {
   dcsaFilterType: string;
   onDcsaFilterTypeChange: (filter: string) => void;
   isSimulating: boolean;
-  simulationResult: any;
+  simulationResult: DcsaSimulationResult | null;
   simCarrier: "MSCU" | "MAEU" | "CMDU" | "HLCU";
   onSimCarrierChange: (carrier: "MSCU" | "MAEU" | "CMDU" | "HLCU") => void;
   simEventType: "EQUIPMENT" | "TRANSPORT" | "SHIPMENT";
@@ -371,7 +383,11 @@ export const EdiDcsaTab: React.FC<EdiDcsaTabProps> = ({
                 id="sim-carrier"
                 name="simCarrier"
                 value={simCarrier}
-                onChange={(e: any) => onSimCarrierChange(e.target.value)}
+                onChange={(e) =>
+                  onSimCarrierChange(
+                    e.target.value as "MSCU" | "MAEU" | "CMDU" | "HLCU",
+                  )
+                }
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none focus:border-indigo-500/60"
               >
                 <option value="MSCU">MSC - Mediterranean Shipping Co</option>
@@ -392,7 +408,11 @@ export const EdiDcsaTab: React.FC<EdiDcsaTabProps> = ({
                 id="sim-event-type"
                 name="simEventType"
                 value={simEventType}
-                onChange={(e: any) => onSimEventTypeChange(e.target.value)}
+                onChange={(e) =>
+                  onSimEventTypeChange(
+                    e.target.value as "EQUIPMENT" | "TRANSPORT" | "SHIPMENT",
+                  )
+                }
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none focus:border-indigo-500/60"
               >
                 <option value="EQUIPMENT">EQUIPMENT (Contenedor)</option>
@@ -412,7 +432,7 @@ export const EdiDcsaTab: React.FC<EdiDcsaTabProps> = ({
                 id="sim-event-type-code"
                 name="simEventTypeCode"
                 value={simEventTypeCode}
-                onChange={(e: any) => onSimEventTypeCodeChange(e.target.value)}
+                onChange={(e) => onSimEventTypeCodeChange(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none focus:border-indigo-500/60 font-mono"
               >
                 <option value="LOAD">LOAD - Cargado en Buque</option>
@@ -437,7 +457,7 @@ export const EdiDcsaTab: React.FC<EdiDcsaTabProps> = ({
                 id="sim-locode"
                 name="simLocode"
                 value={simLocode}
-                onChange={(e: any) => onSimLocodeChange(e.target.value)}
+                onChange={(e) => onSimLocodeChange(e.target.value)}
                 className="bg-slate-950 border-slate-800 font-mono"
               />
             </div>
@@ -453,7 +473,7 @@ export const EdiDcsaTab: React.FC<EdiDcsaTabProps> = ({
                 id="sim-booking-ref"
                 name="simBookingRef"
                 value={simBookingRef}
-                onChange={(e: any) => onSimBookingRefChange(e.target.value)}
+                onChange={(e) => onSimBookingRefChange(e.target.value)}
                 className="bg-slate-950 border-slate-800 font-mono"
               />
             </div>
@@ -469,7 +489,7 @@ export const EdiDcsaTab: React.FC<EdiDcsaTabProps> = ({
                 id="sim-container-num"
                 name="simContainerNum"
                 value={simContainerNum}
-                onChange={(e: any) => onSimContainerNumChange(e.target.value)}
+                onChange={(e) => onSimContainerNumChange(e.target.value)}
                 className="bg-slate-950 border-slate-800 font-mono"
               />
             </div>
@@ -503,9 +523,7 @@ export const EdiDcsaTab: React.FC<EdiDcsaTabProps> = ({
                 name="simDisruptionReason"
                 aria-label="Motivo de la disrupción"
                 value={simDisruptionReason}
-                onChange={(e: any) =>
-                  onSimDisruptionReasonChange(e.target.value)
-                }
+                onChange={(e) => onSimDisruptionReasonChange(e.target.value)}
                 placeholder="Motivo de la disrupción..."
                 className="bg-slate-900 border-red-500/30 text-xs text-red-200 mt-1"
               />
@@ -596,7 +614,7 @@ export const EdiDcsaTab: React.FC<EdiDcsaTabProps> = ({
             ) : (
               dcsaSubscriptions.map((sub, idx) => (
                 <div
-                  key={(sub as any).subscriptionId || (sub as any).id || idx}
+                  key={sub.id || idx}
                   className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs"
                 >
                   <div>

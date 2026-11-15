@@ -26,7 +26,13 @@ import type {
 interface DossierProps {
   disputePack: DisputePack;
   activeLetterBody: string;
-  activeDbInvoice: any;
+  activeDbInvoice:
+    | (Record<string, unknown> & {
+        id?: string;
+        status?: string;
+        invoiceNumber?: string;
+      })
+    | null;
   geminiDraftResult: GeminiFmcDraftResult | null;
   onClearGeminiDraft: () => void;
   isGeneratingGeminiDraft: boolean;

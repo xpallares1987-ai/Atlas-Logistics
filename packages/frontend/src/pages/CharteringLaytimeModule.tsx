@@ -46,10 +46,10 @@ interface FixtureRecord {
   status: string;
 }
 
+type CharteringTabId = "fixtures" | "sof_laytime" | "settlements";
+
 export default function CharteringLaytimeModule() {
-  const [activeTab, setActiveTab] = useState<
-    "fixtures" | "sof_laytime" | "settlements"
-  >("fixtures");
+  const [activeTab, setActiveTab] = useState<CharteringTabId>("fixtures");
 
   // Sample Fixtures
   const [fixtures] = useState<FixtureRecord[]>([
@@ -304,7 +304,7 @@ export default function CharteringLaytimeModule() {
           return (
             <button
               key={t.id}
-              onClick={() => setActiveTab(t.id as any)}
+              onClick={() => setActiveTab(t.id as CharteringTabId)}
               className={`flex items-center gap-2 pb-3 pt-1 text-sm font-medium border-b-2 transition-colors ${
                 isActive
                   ? "border-sky-500 text-sky-400"

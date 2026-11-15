@@ -5,17 +5,16 @@ declare module "camunda-bpmn-js-behaviors/lib/camunda-cloud";
 declare module "bpmn-js-properties-panel";
 
 declare module "rates/RateComparer" {
-  const Component: React.ComponentType<any>;
+  const Component: React.ComponentType<Record<string, unknown>>;
   export default Component;
 }
 
 declare module "warehouse/WarehouseOps" {
-  const Component: React.ComponentType<any>;
+  const Component: React.ComponentType<Record<string, unknown>>;
   export default Component;
 }
 
 declare module "dashboard/Dashboard" {
-  const Component: React.ComponentType<any>;
+  const Component: React.ComponentType<Record<string, unknown>>;
   export default Component;
 }
-

@@ -62,8 +62,10 @@ export const CreateEntityLinkModal: React.FC<CreateEntityLinkModalProps> = ({
         verifiedBy: verifiedBy.trim() || undefined,
       });
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Error al vincular entidad");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Error al vincular entidad",
+      );
     }
   };
 

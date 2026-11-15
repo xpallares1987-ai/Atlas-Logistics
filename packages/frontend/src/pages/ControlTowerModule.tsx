@@ -32,7 +32,15 @@ import {
   DisputeLineModal,
   NewIncidentModal,
   NewIcs2Modal,
+  type NewIncidentFormData,
 } from "../components/ControlTower/index";
+import type {
+  ControlTowerKpis,
+  ControlTowerIncident,
+  FreightAuditMatch,
+  CustomsDeclaration,
+  SpotRateQuote,
+} from "../types/control-tower.types";
 
 export default function ControlTowerModule() {
   const { user } = useAuth();
@@ -41,20 +49,21 @@ export default function ControlTowerModule() {
   >("radar");
 
   // State
-  const [kpis, setKpis] = useState<any>(null);
-  const [incidents, setIncidents] = useState<any[]>([]);
+  const [kpis, setKpis] = useState<ControlTowerKpis | null>(null);
+  const [incidents, setIncidents] = useState<ControlTowerIncident[]>([]);
   const [loading, setLoading] = useState(true);
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   // Selected incident for modal resolution
-  const [selectedIncident, setSelectedIncident] = useState<any>(null);
+  const [selectedIncident, setSelectedIncident] =
+    useState<ControlTowerIncident | null>(null);
   const [resolutionNote, setResolutionNote] = useState("");
   const [isResolving, setIsResolving] = useState(false);
 
   // New incident modal
   const [showNewIncidentModal, setShowNewIncidentModal] = useState(false);
-  const [newIncidentData, setNewIncidentData] = useState({
+  const [newIncidentData, setNewIncidentData] = useState<NewIncidentFormData>({
     title: "",
     incidentType: "PORT_CONGESTION",
     severity: "HIGH",
@@ -66,13 +75,14 @@ export default function ControlTowerModule() {
   });
 
   // 3-Way Match Freight Audit
-  const [auditMatches, setAuditMatches] = useState<any[]>([]);
-  const [disputeModalLine, setDisputeModalLine] = useState<any>(null);
+  const [auditMatches, setAuditMatches] = useState<FreightAuditMatch[]>([]);
+  const [disputeModalLine, setDisputeModalLine] =
+    useState<FreightAuditMatch | null>(null);
   const [disputeReason, setDisputeReason] = useState("UNJUSTIFIED_DEMURRAGE");
   const [disputeNote, setDisputeNote] = useState("");
 
   // Customs ICS2 Radar
-  const [customsRadar, setCustomsRadar] = useState<any[]>([]);
+  const [customsRadar, setCustomsRadar] = useState<CustomsDeclaration[]>([]);
   const [showNewIcs2Modal, setShowNewIcs2Modal] = useState(false);
   const [ics2Form, setIcs2Form] = useState({
     declarantEori: "ESB99482716",
@@ -91,7 +101,7 @@ export default function ControlTowerModule() {
     targetMarginPct: 15,
     includeCustoms: true,
   });
-  const [spotQuote, setSpotQuote] = useState<any>(null);
+  const [spotQuote, setSpotQuote] = useState<SpotRateQuote | null>(null);
   const [isCalculatingSpot, setIsCalculatingSpot] = useState(false);
 
   // Autonomous mode threshold toggle
@@ -522,7 +532,7 @@ export default function ControlTowerModule() {
         onClose={() => setShowNewIncidentModal(false)}
         onSubmit={handleCreateIncident}
         data={newIncidentData}
-        onChangeData={(data: any) => setNewIncidentData(data)}
+        onChangeData={setNewIncidentData}
       />
 
       <NewIcs2Modal

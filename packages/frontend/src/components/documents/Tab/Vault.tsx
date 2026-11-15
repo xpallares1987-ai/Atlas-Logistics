@@ -70,7 +70,7 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
             aria-label="Buscar por referencia, hash o firmante"
             placeholder="Buscar por referencia, hash o firmante..."
             value={searchQuery}
-            onChange={(e: any) => onSearchQueryChange(e.target.value)}
+            onChange={(e) => onSearchQueryChange(e.target.value)}
             className="bg-slate-950 border-slate-800 text-xs w-64"
           />
 

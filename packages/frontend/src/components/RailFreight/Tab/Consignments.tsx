@@ -16,7 +16,11 @@ import {
   ArrowRightLeft,
 } from "lucide-react";
 import { Input } from "@atlas/ui";
-import type { RailConsignmentStatus } from "../../../types/rail-freight.types";
+import type {
+  RailConsignmentStatus,
+  RailConsignment,
+  RailTrainConsist,
+} from "../../../types/rail-freight.types";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -41,11 +45,11 @@ export interface ConsignmentsProps {
   activeCorridorFilter: string;
   onSelectCorridorFilter: (corr: string) => void;
   loadingConsignments: boolean;
-  consignments: any[];
-  selectedConsignment: any;
-  onSelectConsignment: (c: any) => void;
-  currentConsignment: any;
-  trains: any[];
+  consignments: RailConsignment[];
+  selectedConsignment: RailConsignment | null;
+  onSelectConsignment: (c: RailConsignment) => void;
+  currentConsignment: RailConsignment | null;
+  trains: RailTrainConsist[];
   onOpenStatusModal: (status: RailConsignmentStatus, remarks: string) => void;
 }
 
@@ -333,38 +337,36 @@ export const Consignments: React.FC<ConsignmentsProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {(currentConsignment.allocations || []).map(
-                      (alloc: any) => (
-                        <tr
-                          key={alloc.id}
-                          className="hover:bg-white/5 transition-colors"
-                        >
-                          <td className="p-3 text-slate-300 font-bold">
-                            #{alloc.positionInTrain || 1}
-                          </td>
-                          <td className="p-3 text-slate-200">
-                            <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold text-[10px]">
-                              {alloc.utiType}
-                            </span>
-                          </td>
-                          <td className="p-3 text-white font-bold">
-                            {alloc.utiIdentification}
-                          </td>
-                          <td className="p-3 text-right font-bold text-white">
-                            {alloc.payloadMassTonnes} t
-                          </td>
-                          <td className="p-3 text-right text-slate-300">
-                            {alloc.grossWagonMassTonnes} t
-                          </td>
-                          <td className="p-3 text-right font-black text-blue-400">
-                            {alloc.calculatedAxleLoadTonnes} t/eje
-                          </td>
-                          <td className="p-3 text-center text-slate-400 text-[11px]">
-                            {alloc.sealNumber || "OK"}
-                          </td>
-                        </tr>
-                      ),
-                    )}
+                    {(currentConsignment.allocations || []).map((alloc) => (
+                      <tr
+                        key={alloc.id}
+                        className="hover:bg-white/5 transition-colors"
+                      >
+                        <td className="p-3 text-slate-300 font-bold">
+                          #{alloc.positionInTrain || 1}
+                        </td>
+                        <td className="p-3 text-slate-200">
+                          <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold text-[10px]">
+                            {alloc.utiType}
+                          </span>
+                        </td>
+                        <td className="p-3 text-white font-bold">
+                          {alloc.utiIdentification}
+                        </td>
+                        <td className="p-3 text-right font-bold text-white">
+                          {alloc.payloadMassTonnes} t
+                        </td>
+                        <td className="p-3 text-right text-slate-300">
+                          {alloc.grossWagonMassTonnes} t
+                        </td>
+                        <td className="p-3 text-right font-black text-blue-400">
+                          {alloc.calculatedAxleLoadTonnes} t/eje
+                        </td>
+                        <td className="p-3 text-center text-slate-400 text-[11px]">
+                          {alloc.sealNumber || "OK"}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

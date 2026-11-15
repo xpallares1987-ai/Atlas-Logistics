@@ -27,24 +27,39 @@ import {
 } from "@atlas/shared";
 import type { CrossBorderTab } from "../../../types/cross-border.types";
 
+export interface CrossBorderDeclarationRecord {
+  id?: string;
+  shipmentId?: string;
+  distanceKm?: number;
+  originDataJson?: string;
+  destinationDataJson?: string;
+  uuidFiscal?: string;
+  idCcp?: string;
+  qrCodeSatUrl?: string;
+  xmlStamped?: string;
+  cfdiFolio?: string;
+  createdAt?: string | number;
+  [key: string]: unknown;
+}
+
 export function mapDbDeclarationToStampingResult(
-  dbDeclaration: any,
+  dbDeclaration: CrossBorderDeclarationRecord,
 ): CartaPorteStampingResult {
   return {
-    uuid: dbDeclaration.uuidFiscal,
+    uuid: (dbDeclaration.uuidFiscal as string) || "UUID-MOCK",
     cfdiVersion: "4.0",
     cartaPorteVersion: "3.1",
-    idCCP: dbDeclaration.idCcp,
-    qrCodeSatUrl: dbDeclaration.qrCodeSatUrl,
-    stampedXml: dbDeclaration.xmlStamped,
+    idCCP: (dbDeclaration.idCcp as string) || "CCP-MOCK",
+    qrCodeSatUrl: (dbDeclaration.qrCodeSatUrl as string) || "",
+    stampedXml: (dbDeclaration.xmlStamped as string) || "",
     pacProvider: "Diverza SAT Autorizado (5819)",
     stampTimestamp: new Date(
-      dbDeclaration.createdAt || Date.now(),
+      (dbDeclaration.createdAt as string | number) || Date.now(),
     ).toISOString(),
     selloDigitalCsd: "SAT-CSD-VALIDATED-SQLITE",
     selloSat: "SAT-SEAL-VALIDATED-SQLITE",
-    cadenaOriginal: `||4.0|${dbDeclaration.cfdiFolio}||`,
-    totalFreightMxn: dbDeclaration.distanceKm * 20 || 45000,
+    cadenaOriginal: `||4.0|${dbDeclaration.cfdiFolio || ""}||`,
+    totalFreightMxn: Number(dbDeclaration.distanceKm) * 20 || 45000,
     totalWeightKg: 24000,
   };
 }
@@ -62,7 +77,7 @@ export function useCrossBorder() {
 
   const { data: declarationsData, refetch: refetchDeclarations } = useApiQuery<{
     success: boolean;
-    declarations: any[];
+    declarations: CrossBorderDeclarationRecord[];
   }>(
     ["cross-border-declarations", selectedShipmentId],
     `/cross-border/declarations?shipmentId=${selectedShipmentId}`,
@@ -81,13 +96,16 @@ export function useCrossBorder() {
   useEffect(() => {
     if (dbDeclaration) {
       setStampingResult(mapDbDeclarationToStampingResult(dbDeclaration));
-      if (dbDeclaration.originDataJson && dbDeclaration.destinationDataJson) {
+      if (
+        typeof dbDeclaration.originDataJson === "string" &&
+        typeof dbDeclaration.destinationDataJson === "string"
+      ) {
         try {
           const origin = JSON.parse(dbDeclaration.originDataJson);
           const dest = JSON.parse(dbDeclaration.destinationDataJson);
           setCartaPorteData((prev) => ({
             ...prev,
-            shipmentRef: dbDeclaration.shipmentId,
+            shipmentRef: dbDeclaration.shipmentId || prev.shipmentRef,
             distanciaRecorridaKm:
               dbDeclaration.distanceKm || prev.distanciaRecorridaKm,
             origen: { ...prev.origen, ...origin },
@@ -128,7 +146,11 @@ export function useCrossBorder() {
   );
 
   const generateMutation = useApiMutation<
-    { success: boolean; declaration: any; document: any },
+    {
+      success: boolean;
+      declaration: Record<string, unknown>;
+      document: Record<string, unknown>;
+    },
     { shipmentId: string }
   >("/cross-border/carta-porte/generate-for-shipment", "POST", {
     onSuccess: (res) => {

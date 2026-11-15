@@ -61,7 +61,7 @@ export const ResolveIncident: React.FC<ResolveIncidentModalProps> = ({
           </h4>
           <div className="flex flex-col gap-2.5">
             {incident.rerouteOptions && incident.rerouteOptions.length > 0 ? (
-              incident.rerouteOptions.map((opt: any) => (
+              incident.rerouteOptions.map((opt) => (
                 <div
                   key={opt.id}
                   className="bg-slate-800 border border-slate-700 hover:border-indigo-500 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors"
@@ -83,29 +83,29 @@ export const ResolveIncident: React.FC<ResolveIncidentModalProps> = ({
                     <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 mt-2">
                       <span
                         className={
-                          (opt.etaDeltaHours ?? opt.delayDeltaHours) < 0
+                          (opt.etaDeltaHours ?? opt.delayDeltaHours ?? 0) < 0
                             ? "text-emerald-400 font-bold"
                             : "text-amber-400"
                         }
                       >
                         ⏱️ ETA:{" "}
-                        {(opt.etaDeltaHours ?? opt.delayDeltaHours) > 0
+                        {(opt.etaDeltaHours ?? opt.delayDeltaHours ?? 0) > 0
                           ? "+"
                           : ""}
-                        {opt.etaDeltaHours ?? opt.delayDeltaHours}h
+                        {opt.etaDeltaHours ?? opt.delayDeltaHours ?? 0}h
                       </span>
                       <span className="text-slate-300">
                         💶 Coste: +€{opt.costDeltaEur}
                       </span>
                       <span
                         className={
-                          opt.co2DeltaKg < 0
+                          (opt.co2DeltaKg ?? 0) < 0
                             ? "text-emerald-400"
                             : "text-rose-400"
                         }
                       >
-                        🌿 CO2: {opt.co2DeltaKg > 0 ? "+" : ""}
-                        {opt.co2DeltaKg}kg
+                        🌿 CO2: {(opt.co2DeltaKg ?? 0) > 0 ? "+" : ""}
+                        {opt.co2DeltaKg ?? 0}kg
                       </span>
                       {opt.feasibilityScore !== undefined && (
                         <span className="text-indigo-400 font-bold">

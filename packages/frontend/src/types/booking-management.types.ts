@@ -4,13 +4,43 @@
  */
 
 import type {
-  OceanBooking,
+  OceanBooking as SharedOceanBooking,
   RateLockQuote,
   validateCutOffDeadlines,
+  ContainerIsoType,
 } from "@atlas/shared";
+
+export type { RateLockQuote };
+export { validateCutOffDeadlines };
 
 export type TabKey =
   "RATE_LOCK" | "CUTOFF_RADAR" | "SI_STUDIO" | "EQUIPMENT_RELEASE";
+
+export interface OceanBookingCargoDetails {
+  commodity?: string;
+  weightKg?: number;
+  containerIsoType?: ContainerIsoType | string;
+  packagesCount?: number;
+  packageType?: string;
+  hsCode?: string;
+  customerName?: string;
+  carrier?: string;
+  incoterm?: string;
+  weight?: number | string;
+  shipmentTrackingNumber?: string;
+  blReference?: string;
+  containerNumber?: string;
+  sealNumber?: string;
+  carrierBookingNumber?: string;
+  [key: string]: unknown;
+}
+
+export interface OceanBooking extends SharedOceanBooking {
+  origin?: string;
+  destination?: string;
+  equipment?: string;
+  parsedCargoDetails?: OceanBookingCargoDetails;
+}
 
 export interface DraftBLPayload {
   blReference: string;
@@ -89,7 +119,8 @@ export interface BookingCutoffRadarTabProps {
 
 export interface BookingSiStudioTabProps {
   activeBooking: OceanBooking;
-  oceanBookingDetail: any;
+  oceanBookingDetail:
+    (OceanBooking & { siStatus?: string; draftBlStatus?: string }) | null;
   dcsaAiAudit: {
     audit: {
       suggestedHsCode: string;
@@ -106,7 +137,7 @@ export interface BookingSiStudioTabProps {
     latencyMs: number;
     quotaRemainingRpm: number;
   } | null;
-  setDcsaAiAudit: (audit: any) => void;
+  setDcsaAiAudit: (audit: BookingSiStudioTabProps["dcsaAiAudit"]) => void;
   isCheckingDcsaAi: boolean;
   onRunDcsaCustomsCheck: () => void;
   extractedDocAi: {
@@ -128,7 +159,7 @@ export interface BookingSiStudioTabProps {
     latencyMs: number;
     quotaRemainingRpm: number;
   } | null;
-  setExtractedDocAi: (doc: any) => void;
+  setExtractedDocAi: (doc: BookingSiStudioTabProps["extractedDocAi"]) => void;
   isExtractingDocAi: boolean;
   onRunMultimodalExtract: () => void;
   onConfirmDcsSi: () => void;
@@ -158,7 +189,7 @@ export interface BookingEquipmentReleaseTabProps {
 // ============================================================================
 
 export interface BookingConfirmModalProps {
-  confirmingBooking: any;
+  confirmingBooking: OceanBooking | null;
   onClose: () => void;
   confirmForm: BookingConfirmFormData;
   setConfirmForm: React.Dispatch<React.SetStateAction<BookingConfirmFormData>>;

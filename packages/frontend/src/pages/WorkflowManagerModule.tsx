@@ -21,7 +21,7 @@ import { MARITIME_TEMPLATES, MaritimeTemplate } from "./maritime-templates";
 
 export default function WorkflowManagerModule() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const modelerRef = useRef<any>(null);
+  const modelerRef = useRef<InstanceType<typeof BpmnModeler> | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [workflowName, setWorkflowName] = useState(
     "Exportación Marítima FCL - ESVLC",
@@ -35,7 +35,7 @@ export default function WorkflowManagerModule() {
 
   useEffect(() => {
     let isDisposed = false;
-    let modeler: any = null;
+    let modeler: InstanceType<typeof BpmnModeler> | null = null;
 
     if (containerRef.current) {
       containerRef.current.innerHTML = "";
@@ -47,14 +47,15 @@ export default function WorkflowManagerModule() {
 
       modeler.on("import.done", () => {
         if (isDisposed) return;
-        const canvas = modeler?.get("canvas");
+        const canvas = modeler?.get("canvas") as
+          { zoom: (scale: string, opt?: string) => void } | undefined;
         if (canvas) {
           canvas.zoom("fit-viewport", "auto");
         }
       });
 
       // Load initial FCL template by default
-      modeler.importXML(MARITIME_TEMPLATES[0].xml).catch((err: any) => {
+      modeler.importXML(MARITIME_TEMPLATES[0].xml).catch((err: unknown) => {
         if (!isDisposed) {
           console.error("Error al importar diagrama BPMN inicial:", err);
         }
@@ -65,7 +66,7 @@ export default function WorkflowManagerModule() {
       isDisposed = true;
       if (modeler) {
         try {
-          modeler.destroy();
+          (modeler as unknown as { destroy: () => void }).destroy();
         } catch {
           // Ignore destroy errors during fast unmount
         }
@@ -76,8 +77,14 @@ export default function WorkflowManagerModule() {
 
   const handleZoomFit = () => {
     if (!modelerRef.current) return;
-    const canvas = modelerRef.current.get("canvas");
-    canvas.zoom("fit-viewport", "auto");
+    const canvas = (
+      modelerRef.current as unknown as {
+        get?: (module: string) => {
+          zoom?: (mode?: string, auto?: string) => void;
+        };
+      }
+    ).get?.("canvas");
+    canvas?.zoom?.("fit-viewport", "auto");
   };
 
   const handleSelectTemplate = async (tmpl: MaritimeTemplate) => {

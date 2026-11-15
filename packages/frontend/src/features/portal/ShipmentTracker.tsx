@@ -1,6 +1,24 @@
 import { PackageSearch, Anchor, Truck, ShieldCheck } from "lucide-react";
 
-export function ShipmentTracker({ shipment }: { shipment: any }) {
+interface ShipmentTrackerEvent {
+  status: string;
+  location: string;
+  date: string | Date;
+}
+
+interface ShipmentTrackerProps {
+  shipment: {
+    status: string;
+    referenceNumber: string;
+    poNumber?: string;
+    origin: string;
+    destination: string;
+    progress: number;
+    events?: ShipmentTrackerEvent[];
+  };
+}
+
+export function ShipmentTracker({ shipment }: ShipmentTrackerProps) {
   const getStatusIcon = (status: string) => {
     if (status === "IN_TRANSIT")
       return <Anchor className="w-5 h-5 text-blue-500" />;
@@ -66,7 +84,7 @@ export function ShipmentTracker({ shipment }: { shipment: any }) {
               Milestones
             </h4>
             <div className="space-y-4">
-              {shipment.events.map((ev: any, idx: number) => (
+              {shipment.events.map((ev, idx: number) => (
                 <div key={idx} className="flex gap-4 items-start">
                   <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
                   <div>

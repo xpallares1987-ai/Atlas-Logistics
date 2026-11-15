@@ -2,7 +2,6 @@
 // Utility to lazily load remote modules via Vite Module Federation
 
 export const remoteModules = {
-  // @ts-ignore
   dashboard: () => import("dashboard/Dashboard"),
 };
 

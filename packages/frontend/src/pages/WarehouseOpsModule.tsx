@@ -23,12 +23,38 @@ const formatEta = (eta?: string) => {
   return eta;
 };
 
+interface WarehouseTrafficItem {
+  id: string;
+  deviceNumber?: string;
+  driverName?: string;
+  status?: string;
+  assignedDock?: number | string;
+  eta?: string;
+  cargoExpected?: string;
+  type?: string;
+  expectedQuantity?: number | string;
+  cargoDescription?: string;
+  [key: string]: unknown;
+}
+
+interface WarehouseInventoryItem {
+  id: string;
+  zone?: string;
+  quantity?: number;
+  description?: string;
+  sku?: string;
+  customer?: string;
+  uom?: string;
+  weight?: number | string;
+  [key: string]: unknown;
+}
+
 // Custom Isometric Grid View
 const IsometricWarehouse = ({
   traffic,
   docks = 8,
 }: {
-  traffic: any[];
+  traffic: WarehouseTrafficItem[];
   docks?: number;
 }) => {
   return (
@@ -62,7 +88,10 @@ const IsometricWarehouse = ({
             {Array.from({ length: docks }).map((_, i) => {
               const dockNum = `DOCK-${String(i + 1).padStart(2, "0")}`;
               const assignedTraffic = traffic?.find(
-                (t) => t.assignedDock === dockNum && t.status !== "Completed",
+                (t) =>
+                  (String(t.assignedDock) === dockNum ||
+                    t.assignedDock === i + 1) &&
+                  t.status !== "Completed",
               );
               const isOccupied = !!assignedTraffic;
 
@@ -126,10 +155,10 @@ export default function WarehouseOpsModule() {
   const inventory = inventoryRes?.data || [];
 
   const activeVehicles = traffic.filter(
-    (t: any) => t.status !== "Completed",
+    (t: WarehouseTrafficItem) => t.status !== "Completed",
   ).length;
   const totalPallets = inventory.reduce(
-    (acc: number, curr: any) => acc + (curr.quantity || 0),
+    (acc: number, curr: WarehouseInventoryItem) => acc + (curr.quantity || 0),
     0,
   );
 
@@ -295,7 +324,7 @@ export default function WarehouseOpsModule() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                          {traffic.map((t: any) => (
+                          {traffic.map((t: WarehouseTrafficItem) => (
                             <tr
                               key={t.id}
                               className="hover:bg-white/5 transition-colors group"
@@ -392,7 +421,7 @@ export default function WarehouseOpsModule() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {inventory.map((inv: any) => (
+                      {inventory.map((inv: WarehouseInventoryItem) => (
                         <div
                           key={inv.id}
                           className="bg-slate-900/80 border border-white/10 rounded-2xl p-5 hover:border-emerald-500/50 transition-colors group"

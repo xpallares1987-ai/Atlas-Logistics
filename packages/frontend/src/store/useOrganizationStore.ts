@@ -130,9 +130,9 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
       } else {
         set({ isLoading: false });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       set({
-        error: err?.message || "Failed to load stations",
+        error: err instanceof Error ? err.message : "Failed to load stations",
         isLoading: false,
       });
     }

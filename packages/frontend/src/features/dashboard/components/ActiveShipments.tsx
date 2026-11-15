@@ -12,29 +12,48 @@ import {
 
 import { useDashboardActiveList } from "../context/DashboardContext";
 
+interface DashboardActiveShipment {
+  rawId: string;
+  id: string;
+  origin: string;
+  destination: string;
+  status: string;
+  progress: number;
+  eta: string;
+  vessel: string;
+  type: string;
+}
+
 export function ActiveShipments() {
   const navigate = useNavigate();
   const { activeList: shipments } = useDashboardActiveList();
 
   // Map backend shipments to UI format
   // If no shipments exist, we could provide some visual defaults, but let's just map real data.
-  const activeShipments = shipments.slice(0, 5).map((s: any) => {
-    // Generate some display logic based on status
-    const isTransit = s.status === "In Transit" || s.status === "Completed";
-    const progress = s.status === "Completed" ? 100 : isTransit ? 65 : 20;
+  const activeShipments: DashboardActiveShipment[] = shipments
+    .slice(0, 5)
+    .map((s: Record<string, unknown>) => {
+      // Generate some display logic based on status
+      const isTransit = s.status === "In Transit" || s.status === "Completed";
+      const progress = s.status === "Completed" ? 100 : isTransit ? 65 : 20;
 
-    return {
-      rawId: s.id || s.referenceNumber,
-      id: s.referenceNumber || s.id?.substring(0, 8).toUpperCase(),
-      origin: s.origin || "Unknown",
-      destination: s.destination || "Unknown",
-      status: s.status || "Pending",
-      progress,
-      eta: s.status === "Completed" ? "Delivered" : "Pending",
-      vessel: s.vessel || "TBA",
-      type: s.equipment || "Ocean",
-    };
-  });
+      const rawId = String(s.id || s.referenceNumber || "");
+      const refNum = s.referenceNumber ? String(s.referenceNumber) : undefined;
+      const shortId =
+        typeof s.id === "string" ? s.id.substring(0, 8).toUpperCase() : "";
+
+      return {
+        rawId,
+        id: refNum || shortId,
+        origin: (s.origin as string) || "Unknown",
+        destination: (s.destination as string) || "Unknown",
+        status: (s.status as string) || "Pending",
+        progress,
+        eta: s.status === "Completed" ? "Delivered" : "Pending",
+        vessel: (s.vessel as string) || "TBA",
+        type: (s.equipment as string) || "Ocean",
+      };
+    });
   return (
     <div className="rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-6 shadow-xl h-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
@@ -53,7 +72,7 @@ export function ActiveShipments() {
       <div className="flex-1 w-full">
         {/* Mobile View: Stacked Cards */}
         <div className="flex flex-col gap-4 md:hidden">
-          {activeShipments.map((shipment: any, idx: number) => (
+          {activeShipments.map((shipment, idx: number) => (
             <motion.div
               key={shipment.id}
               initial={{ opacity: 0, y: 10 }}
@@ -163,7 +182,7 @@ export function ActiveShipments() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {activeShipments.map((shipment: any) => (
+              {activeShipments.map((shipment) => (
                 <TableRow
                   key={shipment.id}
                   onClick={() =>

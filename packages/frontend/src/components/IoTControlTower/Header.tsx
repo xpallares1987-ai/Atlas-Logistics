@@ -69,7 +69,7 @@ export function Header({ summary, assetsCount }: IoTHeaderProps) {
           </span>
           <div className="flex items-baseline gap-2 mt-1">
             <span
-              className={`text-2xl font-extrabold ${summary?.criticalAlertsCount > 0 ? "text-red-400" : "text-emerald-400"}`}
+              className={`text-2xl font-extrabold ${(summary?.criticalAlertsCount ?? 0) > 0 ? "text-red-400" : "text-emerald-400"}`}
             >
               {summary?.criticalAlertsCount ?? 0}
             </span>

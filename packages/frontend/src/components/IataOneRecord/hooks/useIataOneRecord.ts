@@ -216,8 +216,9 @@ export function useIataOneRecord() {
       styles: { fontSize: 8 },
     });
 
-    const finalY = (doc as any).lastAutoTable
-      ? (doc as any).lastAutoTable.finalY + 12
+    const autoDoc = doc as unknown as { lastAutoTable?: { finalY: number } };
+    const finalY = autoDoc.lastAutoTable
+      ? autoDoc.lastAutoTable.finalY + 12
       : 160;
     doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
@@ -283,8 +284,9 @@ export function useIataOneRecord() {
       styles: { fontSize: 9 },
     });
 
-    const finalY = (doc as any).lastAutoTable
-      ? (doc as any).lastAutoTable.finalY + 10
+    const autoDoc = doc as unknown as { lastAutoTable?: { finalY: number } };
+    const finalY = autoDoc.lastAutoTable
+      ? autoDoc.lastAutoTable.finalY + 10
       : 130;
 
     doc.setFontSize(9);

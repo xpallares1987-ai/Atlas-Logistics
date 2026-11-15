@@ -39,8 +39,8 @@ export function useDatabaseManager() {
       } else {
         setError(data.error);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -71,8 +71,8 @@ export function useDatabaseManager() {
       } else {
         alert(data.error);
       }
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -99,8 +99,8 @@ export function useDatabaseManager() {
       } else {
         alert(data.error);
       }
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : String(err));
     }
   };
 

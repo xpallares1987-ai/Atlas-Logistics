@@ -8,6 +8,39 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Calculator, Scale } from "lucide-react";
 import { Input } from "@atlas/ui";
 
+export interface SimModeResult {
+  valid?: boolean;
+  isValid?: boolean;
+  isOptimal?: boolean;
+  explanation?: string;
+  warnings?: string[];
+  recommendation?: string;
+  [key: string]: unknown;
+}
+
+export interface SimCustomsResult {
+  customsValueEur?: number;
+  taxableBaseEur?: number;
+  totalLandedCost?: number;
+  invoiceValue?: number;
+  totalAdditions?: number;
+  totalDeductions?: number;
+  customsValueCif?: number;
+  explanation?: string;
+  breakdown?: Record<string, number>;
+  [key: string]: unknown;
+}
+
+export interface SimInsuranceResult {
+  clauseRequired?: string;
+  minCoverageAmount?: number;
+  complianceStatus?: string;
+  isMandatory?: boolean;
+  minimumInsuredValue?: number;
+  coverageDetails?: string;
+  [key: string]: unknown;
+}
+
 export interface SimulatorModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -35,9 +68,9 @@ export interface SimulatorModalProps {
   setSimDestTransport: (val: number) => void;
   onCalculate: () => void;
   isCalculating: boolean;
-  simModeResult: any;
-  simCustomsResult: any;
-  simInsResult: any;
+  simModeResult: SimModeResult | null;
+  simCustomsResult: SimCustomsResult | null;
+  simInsResult: SimInsuranceResult | null;
 }
 
 export function SimulatorModal({

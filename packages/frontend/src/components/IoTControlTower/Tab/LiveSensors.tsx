@@ -25,13 +25,31 @@ export function LiveSensors({
   liveReading,
   onSimulateAnomaly,
 }: LiveSensorsTabProps) {
+  const temp = liveReading?.temperatureCelsius ?? 0;
+  const shock = liveReading?.shockGForce ?? 0;
+  const battery = liveReading?.batteryPct ?? 0;
+  const lat = liveReading?.lat ?? 0;
+  const lng = liveReading?.lng ?? 0;
+  const speed = liveReading?.speedKnots ?? 0;
+  const altitude = liveReading?.altitudeMeters ?? 0;
+  const hasTempAlert =
+    selectedAsset?.maxTempCelsius != null &&
+    temp > selectedAsset.maxTempCelsius;
+  const minTemp = selectedAsset?.minTempCelsius ?? -20;
+  const maxTemp = selectedAsset?.maxTempCelsius ?? 30;
+  const hasAssetZone =
+    selectedAsset?.minTempCelsius != null &&
+    selectedAsset?.maxTempCelsius != null;
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between pb-3 border-b border-slate-800">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
           <Activity size={16} className="text-cyan-400" />
           HUD de Telemetría en Vivo —{" "}
-          {selectedAsset?.name ?? "Selecciona un activo"}
+          {selectedAsset?.assetName ||
+            selectedAsset?.name ||
+            "Selecciona un activo"}
         </h3>
         {liveReading && (
           <span className="text-[10px] text-slate-400">
@@ -47,8 +65,7 @@ export function LiveSensors({
             {/* Temperature */}
             <div
               className={`p-4 rounded-xl border ${
-                selectedAsset?.maxTempCelsius &&
-                liveReading.temperatureCelsius > selectedAsset.maxTempCelsius
+                hasTempAlert
                   ? "bg-red-950/30 border-red-500/30"
                   : "bg-slate-950/60 border-slate-800"
               }`}
@@ -56,13 +73,7 @@ export function LiveSensors({
               <div className="flex items-center gap-2 mb-3">
                 <Thermometer
                   size={16}
-                  className={
-                    selectedAsset?.maxTempCelsius &&
-                    liveReading.temperatureCelsius >
-                      selectedAsset.maxTempCelsius
-                      ? "text-red-400"
-                      : "text-cyan-400"
-                  }
+                  className={hasTempAlert ? "text-red-400" : "text-cyan-400"}
                 />
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Temperatura
@@ -70,19 +81,16 @@ export function LiveSensors({
               </div>
               <span
                 className={`text-3xl font-black ${
-                  selectedAsset?.maxTempCelsius &&
-                  liveReading.temperatureCelsius > selectedAsset.maxTempCelsius
-                    ? "text-red-400"
-                    : "text-white"
+                  hasTempAlert ? "text-red-400" : "text-white"
                 }`}
               >
-                {liveReading.temperatureCelsius?.toFixed(1)}°C
+                {temp.toFixed(1)}°C
               </span>
-              {selectedAsset?.minTempCelsius !== null && (
+              {hasAssetZone && (
                 <div className="mt-2">
                   <div className="flex justify-between text-[9px] text-slate-500 mb-1">
-                    <span>{selectedAsset.minTempCelsius}°C</span>
-                    <span>{selectedAsset.maxTempCelsius}°C</span>
+                    <span>{minTemp}°C</span>
+                    <span>{maxTemp}°C</span>
                   </div>
                   <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                     <div
@@ -92,19 +100,14 @@ export function LiveSensors({
                           100,
                           Math.max(
                             0,
-                            ((liveReading.temperatureCelsius -
-                              selectedAsset.minTempCelsius) /
-                              (selectedAsset.maxTempCelsius -
-                                selectedAsset.minTempCelsius)) *
-                              100,
+                            ((temp - minTemp) / (maxTemp - minTemp || 1)) * 100,
                           ),
                         )}%`,
                       }}
                     />
                   </div>
                   <span className="text-[9px] text-slate-400 mt-1 block">
-                    Zona segura: [{selectedAsset.minTempCelsius}°C,{" "}
-                    {selectedAsset.maxTempCelsius}°C]
+                    Zona segura: [{minTemp}°C, {maxTemp}°C]
                   </span>
                 </div>
               )}
@@ -119,7 +122,7 @@ export function LiveSensors({
                 </span>
               </div>
               <span className="text-3xl font-black text-white">
-                {liveReading.humidityPct?.toFixed(0)}%
+                {liveReading.humidityPct?.toFixed(0) ?? 0}%
               </span>
               <div className="mt-2 h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div
@@ -134,30 +137,26 @@ export function LiveSensors({
 
             {/* G-Force */}
             <div
-              className={`p-4 rounded-xl border ${liveReading.shockGForce >= 2.5 ? "bg-amber-950/30 border-amber-500/30" : "bg-slate-950/60 border-slate-800"}`}
+              className={`p-4 rounded-xl border ${shock >= 2.5 ? "bg-amber-950/30 border-amber-500/30" : "bg-slate-950/60 border-slate-800"}`}
             >
               <div className="flex items-center gap-2 mb-3">
                 <Zap
                   size={16}
-                  className={
-                    liveReading.shockGForce >= 2.5
-                      ? "text-amber-400"
-                      : "text-slate-400"
-                  }
+                  className={shock >= 2.5 ? "text-amber-400" : "text-slate-400"}
                 />
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Impacto G-Force
                 </span>
               </div>
               <span
-                className={`text-3xl font-black ${liveReading.shockGForce >= 2.5 ? "text-amber-400" : "text-white"}`}
+                className={`text-3xl font-black ${shock >= 2.5 ? "text-amber-400" : "text-white"}`}
               >
-                {liveReading.shockGForce?.toFixed(2)}G
+                {shock.toFixed(2)}G
               </span>
               <p className="text-[9px] text-slate-400 mt-2">
-                {liveReading.shockGForce < 1.0
+                {shock < 1.0
                   ? "✓ Normal"
-                  : liveReading.shockGForce < 2.5
+                  : shock < 2.5
                     ? "⚠ Turbulencia leve"
                     : "🚨 Impacto detectado"}
               </p>
@@ -194,23 +193,17 @@ export function LiveSensors({
               <div className="flex items-center gap-2 mb-3">
                 <Battery
                   size={16}
-                  className={
-                    liveReading.batteryPct < 20
-                      ? "text-red-400"
-                      : "text-green-400"
-                  }
+                  className={battery < 20 ? "text-red-400" : "text-green-400"}
                 />
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Batería Sensor
                 </span>
               </div>
-              <span className="text-3xl font-black text-white">
-                {liveReading.batteryPct}%
-              </span>
+              <span className="text-3xl font-black text-white">{battery}%</span>
               <div className="mt-2 h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full ${liveReading.batteryPct < 20 ? "bg-red-500" : liveReading.batteryPct < 50 ? "bg-amber-500" : "bg-green-500"}`}
-                  style={{ width: `${liveReading.batteryPct}%` }}
+                  className={`h-full rounded-full ${battery < 20 ? "bg-red-500" : battery < 50 ? "bg-amber-500" : "bg-green-500"}`}
+                  style={{ width: `${battery}%` }}
                 />
               </div>
             </div>
@@ -224,14 +217,13 @@ export function LiveSensors({
                 </span>
               </div>
               <span className="text-base font-black text-cyan-400">
-                {liveReading.lat.toFixed(4)}°N
+                {lat.toFixed(4)}°N
               </span>
               <span className="text-base font-black text-cyan-400 block">
-                {liveReading.lng.toFixed(4)}°E
+                {lng.toFixed(4)}°E
               </span>
               <p className="text-[9px] text-slate-400 mt-1">
-                {liveReading.speedKnots.toFixed(1)} kn ·{" "}
-                {liveReading.altitudeMeters.toFixed(0)}m alt
+                {speed.toFixed(1)} kn · {altitude.toFixed(0)}m alt
               </p>
             </div>
           </div>

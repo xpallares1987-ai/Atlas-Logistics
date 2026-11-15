@@ -45,5 +45,6 @@ export {
 export {
   NewIncident,
   NewIncident as NewIncidentModal,
+  type NewIncidentFormData,
 } from "./Modal/NewIncident.js";
 export { NewIcs2, NewIcs2 as NewIcs2Modal } from "./Modal/NewIcs2.js";

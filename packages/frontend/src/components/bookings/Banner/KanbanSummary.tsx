@@ -8,7 +8,7 @@
 import { Clock, CheckCircle2, Ship, ShieldCheck } from "lucide-react";
 
 export interface KanbanSummaryProps {
-  dbBookings: any[];
+  dbBookings: Array<{ status?: string; [key: string]: unknown }>;
 }
 
 export function KanbanSummary({ dbBookings }: KanbanSummaryProps) {

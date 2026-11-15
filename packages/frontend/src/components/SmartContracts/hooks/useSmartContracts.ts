@@ -105,26 +105,25 @@ export function useSmartContracts() {
     `/smart-contracts/ledger?shipmentId=${selectedShipmentId}`,
   );
 
-  const deployMutation = useApiMutation<any, { shipmentId: string }>(
-    "/smart-contracts/deploy-for-shipment",
-    "POST",
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: ["smart-contracts-ledger", selectedShipmentId],
-        });
-        refetchLedger();
-      },
+  const deployMutation = useApiMutation<
+    Record<string, unknown>,
+    { shipmentId: string }
+  >("/smart-contracts/deploy-for-shipment", "POST", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["smart-contracts-ledger", selectedShipmentId],
+      });
+      refetchLedger();
     },
-  );
+  });
 
   const oracleEventMutation = useApiMutation<
-    any,
+    Record<string, unknown>,
     {
       milestoneKey: EscrowMilestoneKey;
       sender: string;
       details: string;
-      iotTelemetry?: any;
+      iotTelemetry?: Record<string, unknown>;
     }
   >("/smart-contracts/oracle-event", "POST", {
     onSuccess: () => {
@@ -136,7 +135,7 @@ export function useSmartContracts() {
   });
 
   const endorseTitleMutation = useApiMutation<
-    any,
+    Record<string, unknown>,
     { toParty: string; transferType: string; signerName?: string }
   >("/smart-contracts/endorse-title", "POST", {
     onSuccess: () => {
@@ -150,37 +149,38 @@ export function useSmartContracts() {
     },
   });
 
-  const triggerDisputeMutation = useApiMutation<any, { reason: string }>(
-    "/smart-contracts/trigger-dispute",
-    "POST",
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: ["smart-contracts-ledger", selectedShipmentId],
-        });
-        refetchLedger();
-        setIsDisputeModalOpen(false);
-        setDisputeReason("");
-      },
+  const triggerDisputeMutation = useApiMutation<
+    Record<string, unknown>,
+    { reason: string }
+  >("/smart-contracts/trigger-dispute", "POST", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["smart-contracts-ledger", selectedShipmentId],
+      });
+      refetchLedger();
+      setIsDisputeModalOpen(false);
+      setDisputeReason("");
     },
-  );
+  });
 
-  const verifyChainMutation = useApiMutation<any, void>(
-    "/smart-contracts/verify-chain",
-    "POST",
+  const verifyChainMutation = useApiMutation<
     {
-      onSuccess: (data) => {
-        setVerificationFeedback({
-          show: true,
-          isValid: data.verification.isValid,
-          totalBlocks: data.totalBlocks,
-          message: data.verification.isValid
-            ? `Cadena criptográfica íntegra: ${data.totalBlocks} bloques validados con hashes SHA-256 y enlaces parentales inalterados.`
-            : `Error de integridad: ${data.verification.reason}`,
-        });
-      },
+      verification: { isValid: boolean; reason?: string };
+      totalBlocks: number;
     },
-  );
+    void
+  >("/smart-contracts/verify-chain", "POST", {
+    onSuccess: (data) => {
+      setVerificationFeedback({
+        show: true,
+        isValid: data.verification.isValid,
+        totalBlocks: data.totalBlocks,
+        message: data.verification.isValid
+          ? `Cadena criptográfica íntegra: ${data.totalBlocks} bloques validados con hashes SHA-256 y enlaces parentales inalterados.`
+          : `Error de integridad: ${data.verification.reason}`,
+      });
+    },
+  });
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);

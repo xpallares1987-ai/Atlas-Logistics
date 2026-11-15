@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import {
   BadgeDollarSign,
   Download,
@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { useApiQuery } from "../hooks/useApiQuery";
 import { Input } from "@atlas/ui";
+import {
+  ReconciliationSimulatorModal,
+  type TreasurySimResult,
+} from "../components/Treasury";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -35,13 +39,83 @@ const itemVariants: Variants = {
   },
 };
 
+interface TreasuryInvoiceLine {
+  id: string;
+  documentNumber?: string;
+  bookingNumber?: string;
+  chargeCode?: string;
+  description?: string;
+  billedAmount?: number;
+  expectedAmount?: number;
+  varianceAmount?: number;
+  matchStatus?: string;
+  disputeCode?: string;
+  disputeReason?: string;
+  [key: string]: unknown;
+}
+
+interface TreasuryInvoice {
+  id: string;
+  invoiceNumber: string;
+  carrierName: string;
+  currency: string;
+  totalAmount: number;
+  disputedAmount: number;
+  lines?: TreasuryInvoiceLine[];
+  matchStatus?: string;
+  status?: string;
+  mode?: string;
+  disputeCode?: string;
+  reconciliationStatus?: string;
+  dueDate?: string;
+  carrierVat?: string;
+  notes?: string;
+  [key: string]: unknown;
+}
+
+interface FxRateRecord {
+  id: string;
+  toCurrency: string;
+  spotRate: number;
+  forward90Rate?: number;
+}
+
+interface FxEvaluationRecord {
+  currency: string;
+  receivablesAmount: number;
+  payablesAmount: number;
+  netExposureAmount: number;
+  unrealizedGainLossEur: number;
+  riskLevel: string;
+  [key: string]: unknown;
+}
+
+interface FxDataResponse {
+  rates?: FxRateRecord[];
+  evaluations?: FxEvaluationRecord[];
+  [key: string]: unknown;
+}
+
+interface CashFlowForecastRecord {
+  periodDays: number;
+  projectedReceivablesEur: number;
+  projectedPayablesEur: number;
+  netCashFlowEur: number;
+}
+
+interface CashFlowResponse {
+  forecasts?: CashFlowForecastRecord[];
+  [key: string]: unknown;
+}
+
 export default function TreasurySettlementsModule() {
   const [activeTab, setActiveTab] = useState<
     "3WAY_MATCH" | "FX_TREASURY" | "DISPUTES"
   >("3WAY_MATCH");
   const [activeModeFilter, setActiveModeFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [selectedInvoice, setSelectedInvoice] =
+    useState<TreasuryInvoice | null>(null);
 
   // Reconciliation Simulator Modal
   const [showSimModal, setShowSimModal] = useState(false);
@@ -52,31 +126,31 @@ export default function TreasurySettlementsModule() {
   const [simDocNumber, setSimDocNumber] = useState("MSK99482015");
   const [simBilledAmount, setSimBilledAmount] = useState(1250);
   const [simExpectedAmount, setSimExpectedAmount] = useState(750);
-  const [simResult, setSimResult] = useState<any>(null);
+  const [simResult, setSimResult] = useState<TreasurySimResult | null>(null);
 
   // Fetch Invoices
   const {
     data: invoices = [],
     isLoading: loadingInvoices,
     refetch: refetchInvoices,
-  } = useApiQuery<any[]>(
+  } = useApiQuery<TreasuryInvoice[]>(
     ["treasury-invoices", activeModeFilter, searchQuery],
     `/treasury/invoices?mode=${activeModeFilter}&q=${encodeURIComponent(searchQuery)}`,
   );
 
   // Fetch Detailed Selected Invoice
-  const { data: invoiceDetails } = useApiQuery<any>(
+  const { data: invoiceDetails } = useApiQuery<TreasuryInvoice>(
     ["treasury-invoice-details", selectedInvoice?.id],
     selectedInvoice?.id ? `/treasury/invoices/${selectedInvoice.id}` : "",
   );
 
   // Fetch FX Exposure & Cash Flow Forecast
-  const { data: fxData } = useApiQuery<any>(
+  const { data: fxData } = useApiQuery<FxDataResponse>(
     ["treasury-fx-exposure"],
     "/treasury/fx-exposure",
   );
 
-  const { data: cashFlowData } = useApiQuery<any>(
+  const { data: cashFlowData } = useApiQuery<CashFlowResponse>(
     ["treasury-cash-flow-forecast"],
     "/treasury/cash-flow-forecast",
   );
@@ -165,7 +239,7 @@ export default function TreasurySettlementsModule() {
   const totalInvoicesCount = invoices.length;
   const totalBilledEur = invoices.reduce((acc, inv) => {
     const rate =
-      fxData?.rates?.find((r: any) => r.toCurrency === inv.currency)
+      fxData?.rates?.find((r: FxRateRecord) => r.toCurrency === inv.currency)
         ?.spotRate || 1.0;
     return (
       acc + (inv.currency === "EUR" ? inv.totalAmount : inv.totalAmount / rate)
@@ -174,7 +248,7 @@ export default function TreasurySettlementsModule() {
 
   const totalDisputedEur = invoices.reduce((acc, inv) => {
     const rate =
-      fxData?.rates?.find((r: any) => r.toCurrency === inv.currency)
+      fxData?.rates?.find((r: FxRateRecord) => r.toCurrency === inv.currency)
         ?.spotRate || 1.0;
     return (
       acc +
@@ -580,62 +654,64 @@ export default function TreasurySettlementsModule() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {(currentInvoice.lines || []).map((line: any) => (
-                          <tr
-                            key={line.id}
-                            className="hover:bg-white/5 transition-colors"
-                          >
-                            <td className="p-3 font-bold text-white">
-                              {line.documentNumber}
-                              {line.bookingNumber && (
-                                <span className="block text-[10px] text-slate-400 font-normal">
-                                  {line.bookingNumber}
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-3 text-slate-300">
-                              {line.description}
-                              {line.disputeReason && (
-                                <span className="block text-[10px] text-rose-300 italic mt-0.5">
-                                  {line.disputeReason}
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-3 text-right font-medium text-white">
-                              {line.billedAmount?.toLocaleString()}{" "}
-                              {currentInvoice.currency}
-                            </td>
-                            <td className="p-3 text-right text-slate-400">
-                              {line.expectedAmount?.toLocaleString()}{" "}
-                              {currentInvoice.currency}
-                            </td>
-                            <td
-                              className={`p-3 text-right font-bold ${
-                                line.varianceAmount > 0
-                                  ? "text-rose-400"
-                                  : "text-emerald-400"
-                              }`}
+                        {(currentInvoice.lines || []).map(
+                          (line: TreasuryInvoiceLine) => (
+                            <tr
+                              key={line.id}
+                              className="hover:bg-white/5 transition-colors"
                             >
-                              {line.varianceAmount > 0
-                                ? `+${line.varianceAmount}`
-                                : "0.00"}{" "}
-                              {currentInvoice.currency}
-                            </td>
-                            <td className="p-3 text-center">
-                              <span
-                                className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                                  line.isWithinTolerance
-                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                    : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                              <td className="p-3 font-bold text-white">
+                                {line.documentNumber}
+                                {line.bookingNumber && (
+                                  <span className="block text-[10px] text-slate-400 font-normal">
+                                    {line.bookingNumber}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 text-slate-300">
+                                {line.description}
+                                {line.disputeReason && (
+                                  <span className="block text-[10px] text-rose-300 italic mt-0.5">
+                                    {line.disputeReason}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 text-right font-medium text-white">
+                                {line.billedAmount?.toLocaleString()}{" "}
+                                {currentInvoice.currency}
+                              </td>
+                              <td className="p-3 text-right text-slate-400">
+                                {line.expectedAmount?.toLocaleString()}{" "}
+                                {currentInvoice.currency}
+                              </td>
+                              <td
+                                className={`p-3 text-right font-bold ${
+                                  (line.varianceAmount ?? 0) > 0
+                                    ? "text-rose-400"
+                                    : "text-emerald-400"
                                 }`}
                               >
-                                {line.isWithinTolerance
-                                  ? "VERIFICADO"
-                                  : "SOBRECARGO"}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
+                                {(line.varianceAmount ?? 0) > 0
+                                  ? `+${line.varianceAmount}`
+                                  : "0.00"}{" "}
+                                {currentInvoice.currency}
+                              </td>
+                              <td className="p-3 text-center">
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                    line.isWithinTolerance
+                                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                      : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                  }`}
+                                >
+                                  {line.isWithinTolerance
+                                    ? "VERIFICADO"
+                                    : "SOBRECARGO"}
+                                </span>
+                              </td>
+                            </tr>
+                          ),
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -669,7 +745,7 @@ export default function TreasurySettlementsModule() {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                {(fxData?.rates || []).map((r: any) => (
+                {(fxData?.rates || []).map((r: FxRateRecord) => (
                   <div
                     key={r.id}
                     className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1"
@@ -696,25 +772,28 @@ export default function TreasurySettlementsModule() {
               </h3>
 
               <div className="space-y-3">
-                {(cashFlowData?.forecasts || []).map((fc: any) => (
-                  <div
-                    key={fc.periodDays}
-                    className="p-3 rounded-xl bg-slate-900/60 border border-white/5 flex justify-between items-center text-xs"
-                  >
-                    <div>
-                      <span className="font-bold text-white">
-                        {fc.periodDays} Días
+                {(cashFlowData?.forecasts || []).map(
+                  (fc: CashFlowForecastRecord) => (
+                    <div
+                      key={fc.periodDays}
+                      className="p-3 rounded-xl bg-slate-900/60 border border-white/5 flex justify-between items-center text-xs"
+                    >
+                      <div>
+                        <span className="font-bold text-white">
+                          {fc.periodDays} Días
+                        </span>
+                        <p className="text-[10px] text-slate-400">
+                          Cobros: {fc.projectedReceivablesEur?.toLocaleString()}{" "}
+                          € | Pagos: {fc.projectedPayablesEur?.toLocaleString()}{" "}
+                          €
+                        </p>
+                      </div>
+                      <span className="text-sm font-black text-emerald-400">
+                        +{fc.netCashFlowEur?.toLocaleString()} €
                       </span>
-                      <p className="text-[10px] text-slate-400">
-                        Cobros: {fc.projectedReceivablesEur?.toLocaleString()} €
-                        | Pagos: {fc.projectedPayablesEur?.toLocaleString()} €
-                      </p>
                     </div>
-                    <span className="text-sm font-black text-emerald-400">
-                      +{fc.netCashFlowEur?.toLocaleString()} €
-                    </span>
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             </div>
           </div>
@@ -740,7 +819,7 @@ export default function TreasurySettlementsModule() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {(fxData?.evaluations || []).map((ev: any) => (
+                  {(fxData?.evaluations || []).map((ev: FxEvaluationRecord) => (
                     <tr
                       key={ev.currency}
                       className="hover:bg-white/5 transition-colors"
@@ -849,129 +928,22 @@ export default function TreasurySettlementsModule() {
       )}
 
       {/* Reconciliation Simulator Modal */}
-      <AnimatePresence>
-        {showSimModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-slate-900 border border-white/10 rounded-3xl p-6 shadow-2xl max-w-xl w-full space-y-4"
-            >
-              <div className="flex justify-between items-center border-b border-white/10 pb-3">
-                <h3 className="text-base font-black text-white">
-                  Motor de Casación 3-Way Match
-                </h3>
-                <button
-                  onClick={() => setShowSimModal(false)}
-                  className="text-slate-400 hover:text-white text-sm font-bold"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">
-                    Tipo de Cargo
-                  </label>
-                  <select
-                    value={simChargeCode}
-                    onChange={(e) => setSimChargeCode(e.target.value)}
-                    className="w-full bg-slate-800/80 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="DEMURRAGE">DEMURRAGE (Demoras)</option>
-                    <option value="BASIC_FREIGHT">
-                      BASIC_FREIGHT (Flete Base)
-                    </option>
-                    <option value="BAF_FUEL">BAF_FUEL (Combustible)</option>
-                    <option value="THC_ORIGIN">
-                      THC_ORIGIN (Terminal Origen)
-                    </option>
-                    <option value="IATA_COMMISSION">
-                      IATA_COMMISSION (Comisión)
-                    </option>
-                    <option value="OTHER_SURCHARGE">
-                      OTHER_SURCHARGE (Otros)
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">
-                    Doc. Embarque (B/L / AWB)
-                  </label>
-                  <Input
-                    type="text"
-                    value={simDocNumber}
-                    onChange={(e) => setSimDocNumber(e.target.value)}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs text-slate-400 block mb-1">
-                    Descripción Concepto
-                  </label>
-                  <Input
-                    type="text"
-                    value={simDescription}
-                    onChange={(e) => setSimDescription(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">
-                    Importe Facturado (€/$)
-                  </label>
-                  <Input
-                    type="number"
-                    value={simBilledAmount}
-                    onChange={(e) => setSimBilledAmount(Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">
-                    Importe Pactado (€/$)
-                  </label>
-                  <Input
-                    type="number"
-                    value={simExpectedAmount}
-                    onChange={(e) =>
-                      setSimExpectedAmount(Number(e.target.value))
-                    }
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={runSimulation}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all"
-              >
-                Evaluar Casación con Tolerancia ±1% / ±5€
-              </button>
-
-              {simResult && (
-                <div className="p-3 rounded-xl bg-slate-950 border border-white/10 text-xs space-y-1.5">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Resultado Casación:</span>
-                    <span
-                      className={`font-bold ${simResult.reconciliationStatus === "AUTO_MATCHED" ? "text-emerald-400" : "text-rose-400"}`}
-                    >
-                      {simResult.reconciliationStatus}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Varianza:</span>
-                    <span className="font-bold text-white">
-                      {simResult.totalVarianceAmount} €
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 italic pt-1">
-                    {simResult.auditNotes}
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ReconciliationSimulatorModal
+        showSimModal={showSimModal}
+        onClose={() => setShowSimModal(false)}
+        simChargeCode={simChargeCode}
+        onSimChargeCodeChange={setSimChargeCode}
+        simDocNumber={simDocNumber}
+        onSimDocNumberChange={setSimDocNumber}
+        simDescription={simDescription}
+        onSimDescriptionChange={setSimDescription}
+        simBilledAmount={simBilledAmount}
+        onSimBilledAmountChange={setSimBilledAmount}
+        simExpectedAmount={simExpectedAmount}
+        onSimExpectedAmountChange={setSimExpectedAmount}
+        onRunSimulation={runSimulation}
+        simResult={simResult}
+      />
     </div>
   );
 }

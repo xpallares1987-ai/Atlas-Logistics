@@ -62,14 +62,14 @@ export function AssetListSidebar({
                   <div
                     className={`p-1.5 rounded-lg ${isCritical ? "bg-red-500/20 text-red-400" : "bg-cyan-500/20 text-cyan-400"}`}
                   >
-                    {getAssetIcon(asset.assetType, 14)}
+                    {getAssetIcon(asset.assetType || "VESSEL", 14)}
                   </div>
                   <span className="font-bold text-xs text-white truncate max-w-[120px]">
                     {asset.assetCode}
                   </span>
                 </div>
                 <span
-                  className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border ${getStatusColor(asset.status)}`}
+                  className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border ${getStatusColor(asset.status || "IDLE")}`}
                 >
                   {asset.status === "IN_TRANSIT"
                     ? "EN RUTA"
@@ -84,10 +84,11 @@ export function AssetListSidebar({
               <div className="flex items-center justify-between text-[10px] text-slate-400">
                 <span className="flex items-center gap-1">
                   <MapPin size={9} />{" "}
-                  {asset.destinationName.split("(")[0].trim()}
+                  {(asset.destinationName || "").split("(")[0].trim()}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Activity size={9} /> {asset.currentSpeedKnots.toFixed(1)} kn
+                  <Activity size={9} />{" "}
+                  {(asset.currentSpeedKnots ?? 0).toFixed(1)} kn
                 </span>
               </div>
             </div>

@@ -17,17 +17,33 @@ export interface ControlTowerKpis {
   activeDisputesCount?: number;
   ics2GreenPercentage?: number;
   autoResolvedPct?: number;
-  [key: string]: any;
+  onTimeSlaPct?: number;
+  activeIncidentsCount?: number;
+  autoResolvedCount?: number;
+  totalDisputedFreightEur?: number;
+  carbonAtRiskTonnes?: number;
+  customsRadar?: {
+    autoClearanceRatePct?: number;
+    green?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
 }
 
 export interface ControlTowerRerouteOption {
   id: string;
-  label: string;
-  delayDeltaHours: number;
-  costDeltaEur: number;
-  co2DeltaKg: number;
+  label?: string;
+  optionName?: string;
+  delayDeltaHours?: number;
+  etaDeltaHours?: number;
+  costDeltaEur?: number;
+  co2DeltaKg?: number;
   recommended?: boolean;
+  isRecommended?: boolean;
   description?: string;
+  corridorDescription?: string;
+  feasibilityScore?: number;
+  [key: string]: unknown;
 }
 
 export interface ControlTowerIncident {
@@ -48,6 +64,7 @@ export interface ControlTowerIncident {
 
 export interface FreightAuditMatch {
   lineId: string;
+  carrierInvoiceId?: string;
   carrierName: string;
   invoiceNumber: string;
   documentNumber: string;
@@ -83,16 +100,31 @@ export interface SpotRateParams {
 }
 
 export interface SpotRateQuote {
-  totalRateEur: number;
-  baseFreightEur: number;
-  bafSurchargeEur: number;
-  customsFeeEur: number;
-  inlandDrayageEur: number;
-  marginEur: number;
-  estimatedTransitDays: number;
-  co2EmissionsKg: number;
+  origin?: string;
+  destination?: string;
+  transportMode?: string;
+  totalRateEur?: number;
+  sellRateTotal?: number;
+  baseFreight?: number;
+  baseFreightEur?: number;
+  fuelSurchargeBaf?: number;
+  bafSurchargeEur?: number;
+  carbonSurchargeEts?: number;
+  originThc?: number;
+  destThc?: number;
+  inlandDrayageAndTolls?: number;
+  inlandDrayageEur?: number;
+  customsClearanceFee?: number;
+  customsFeeEur?: number;
+  buyRateTotal?: number;
+  profitMarginPct?: number;
+  profitMarginAmount?: number;
+  marginEur?: number;
+  estimatedTransitDays?: number;
+  co2eKg?: number;
+  co2EmissionsKg?: number;
   breakdown?: Record<string, number>;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ControlTowerRadarTabProps {

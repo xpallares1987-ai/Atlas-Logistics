@@ -210,7 +210,9 @@ export function usePortCongestion() {
       ],
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    const finalY =
+      (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+        .finalY + 15;
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(71, 85, 105);

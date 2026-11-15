@@ -25,6 +25,7 @@ export interface CustomsDeclaration {
   originCountry?: string;
   destinationCountry?: string;
   riskScore?: number;
+  aiRiskScore?: number;
   riskFlags?: string | string[];
   isDualUse?: boolean | number;
   hasSanctionWarning?: boolean;
@@ -36,7 +37,7 @@ export interface CustomsDeclaration {
   grossWeightKg?: number;
   hasPreferentialOriginCert?: boolean;
   createdAt?: string | number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface StatusVisuals {
@@ -60,15 +61,20 @@ export interface TariffCalcParams {
 
 export interface TariffCalcResult {
   cifValue?: number;
+  customsValueCif?: number;
   adValoremAmount?: number;
   specificAmount?: number;
   totalDuty?: number;
+  importDuty?: number;
   vatBase?: number;
   vatAmount?: number;
   totalPayable?: number;
+  totalCustomsPayable?: number;
   dutyRateFormatted?: string;
   vatRateFormatted?: string;
+  dutyRateApplied?: number | null;
+  vatRateApplied?: number | null;
   isDualUse?: boolean;
   sanctionFlag?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }

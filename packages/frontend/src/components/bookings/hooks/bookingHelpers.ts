@@ -10,6 +10,7 @@ import {
   type OceanBooking,
   type RateLockQuote,
   type CarrierCode,
+  type ContainerIsoType,
 } from "@atlas/shared";
 
 // ============================================================================
@@ -111,21 +112,23 @@ export const CANONICAL_FALLBACK_OCEAN_BOOKING: OceanBooking = {
  * Maps SQLite ocean booking detail and parent booking rows to a domain OceanBooking object.
  */
 export function mapDbToOceanBooking(
-  detail: any,
-  parentBooking: any,
+  detail: Record<string, unknown> | null | undefined,
+  parentBooking: Record<string, unknown> | null | undefined,
 ): OceanBooking {
   if (!detail && !parentBooking) return CANONICAL_FALLBACK_OCEAN_BOOKING;
 
-  const bkg = parentBooking || detail?.booking || {};
-  let parsedCargo: any = {};
+  const bkg = (parentBooking ||
+    (detail?.booking as Record<string, unknown>) ||
+    {}) as Record<string, unknown>;
+  let parsedCargo: Record<string, unknown> = {};
   try {
     parsedCargo =
       typeof bkg.cargoDetails === "string"
-        ? JSON.parse(bkg.cargoDetails)
-        : bkg.cargoDetails || {};
+        ? (JSON.parse(bkg.cargoDetails) as Record<string, unknown>)
+        : (bkg.cargoDetails as Record<string, unknown>) || {};
   } catch {}
 
-  const carrierScac = detail?.carrierScac || "MSCU";
+  const carrierScac = (detail?.carrierScac as string) || "MSCU";
   const carrierCode: CarrierCode =
     carrierScac === "MAEU"
       ? "MAERSK"
@@ -142,45 +145,50 @@ export function mapDbToOceanBooking(
     scac: "MSCU",
   };
 
-  const cargoCutOff = detail?.cargoCutOff || "2026-11-12T18:00:00Z";
-  const vcsCutOff = detail?.vcsCutOff || "2026-11-13T12:00:00Z";
-  const docCutOff = detail?.docCutOff || "2026-11-13T16:00:00Z";
-  const siCutOff = detail?.siCutOff || "2026-11-14T10:00:00Z";
+  const cargoCutOff = (detail?.cargoCutOff as string) || "2026-11-12T18:00:00Z";
+  const vcsCutOff = (detail?.vcsCutOff as string) || "2026-11-13T12:00:00Z";
+  const docCutOff = (detail?.docCutOff as string) || "2026-11-13T16:00:00Z";
+  const siCutOff = (detail?.siCutOff as string) || "2026-11-14T10:00:00Z";
 
   const vgmData =
-    detail?.vgm || (detail?.vgmJson ? JSON.parse(detail.vgmJson) : null);
-  const containerNum = parsedCargo.containerNumber || "MSKU9284712";
-  const sealNum = vgmData?.sealNumber || "ISO-17712-H-881920";
+    (detail?.vgm as Record<string, unknown> | undefined) ||
+    (detail?.vgmJson
+      ? (JSON.parse(detail.vgmJson as string) as Record<string, unknown>)
+      : null);
+  const containerNum = (parsedCargo.containerNumber as string) || "MSKU9284712";
+  const sealNum = (vgmData?.sealNumber as string) || "ISO-17712-H-881920";
   const vgmKg =
-    vgmData?.verifiedGrossMassKg || Number(parsedCargo.weight) || 28450;
+    Number(vgmData?.verifiedGrossMassKg) || Number(parsedCargo.weight) || 28450;
 
   return {
-    id: detail?.bookingId || bkg.id || "bk_demo_01",
-    bookingNumber: bkg.referenceNumber || "BK-2026-67116",
-    referenceNumber: bkg.referenceNumber || "BK-2026-67116",
+    id: (detail?.bookingId as string) || (bkg.id as string) || "bk_demo_01",
+    bookingNumber: (bkg.referenceNumber as string) || "BK-2026-67116",
+    referenceNumber: (bkg.referenceNumber as string) || "BK-2026-67116",
     carrier: carrierCode,
     carrierScac,
-    originPort: bkg.origin || "ESVLC",
-    destinationPort: bkg.destination || "USNYC",
-    vesselName: bkg.vessel || "MSC ISABELLA",
-    voyageNumber: bkg.voyage || "VOY-2026-88",
+    originPort: (bkg.origin as string) || "ESVLC",
+    destinationPort: (bkg.destination as string) || "USNYC",
+    vesselName: (bkg.vessel as string) || "MSC ISABELLA",
+    voyageNumber: (bkg.voyage as string) || "VOY-2026-88",
     commodityDescription:
-      parsedCargo.description || "Industrial Robotics & Tooling",
+      (parsedCargo.description as string) || "Industrial Robotics & Tooling",
     status: (detail?.siStatus === "CONFIRMED"
       ? "CONFIRMED"
-      : bkg.status?.toUpperCase() || "CONFIRMED") as any,
+      : bkg.status
+        ? String(bkg.status).toUpperCase()
+        : "CONFIRMED") as OceanBooking["status"],
     requestedEquipment: {
-      isoType: bkg.equipment || "40HC",
+      isoType: (bkg.equipment as ContainerIsoType) || "40HC",
       quantity: 1,
     },
     rateLock: {
-      quoteId: `QTE-${carrierScac}-${bkg.origin || "ESVLC"}-${bkg.destination || "USNYC"}`,
+      quoteId: `QTE-${carrierScac}-${(bkg.origin as string) || "ESVLC"}-${(bkg.destination as string) || "USNYC"}`,
       carrier: carrierCode,
       carrierName: meta.name,
       carrierScac,
-      originPort: bkg.origin || "ESVLC",
-      destPort: bkg.destination || "USNYC",
-      containerType: bkg.equipment || "40HC",
+      originPort: (bkg.origin as string) || "ESVLC",
+      destPort: (bkg.destination as string) || "USNYC",
+      containerType: (bkg.equipment as ContainerIsoType) || "40HC",
       oceanFreightUsd: 2080,
       bafUsd: 340,
       thcOriginUsd: 140,
@@ -200,16 +208,17 @@ export function mapDbToOceanBooking(
       estimatedArrival: "2026-11-30T14:00:00Z",
     },
     shippingInstructions: {
-      bookingReference: bkg.referenceNumber || "BK-2026-67116",
+      bookingReference: (bkg.referenceNumber as string) || "BK-2026-67116",
       carrierScac,
-      shipperName: bkg.shipperName || "Atlas Global Imports S.L.",
+      shipperName: (bkg.shipperName as string) || "Atlas Global Imports S.L.",
       shipperAddress: "Zaragoza / Barcelona Logistics Park",
-      consigneeName: bkg.consigneeName || "European Distribution Hub B.V.",
+      consigneeName:
+        (bkg.consigneeName as string) || "European Distribution Hub B.V.",
       consigneeAddress: "Port Newark Container Terminal (PNCT), Gate 3",
       notifyPartyName: "System Admin (Global Systems & Logistics Lead)",
       blType: "WAYBILL",
       freightPaymentTerm: "PREPAID",
-      placeOfIssue: (bkg.origin || "Valencia").split(" ")[0],
+      placeOfIssue: ((bkg.origin as string) || "Valencia").split(" ")[0],
       siStatus: detail?.siStatus === "CONFIRMED" ? "ACCEPTED" : "DRAFT",
       containerDetails: [
         {
@@ -220,29 +229,36 @@ export function mapDbToOceanBooking(
           packagesCount: 48,
           packageType: "Industrial Crates",
           cargoDescription:
-            parsedCargo.description || "Industrial Robotics & Tooling",
+            (parsedCargo.description as string) ||
+            "Industrial Robotics & Tooling",
           hsCode: "8479.89",
         },
       ],
     },
     equipmentRelease: {
       releaseOrderNumber: `REL-${carrierScac}-2026-0912`,
-      bookingNumber: bkg.referenceNumber || "BK-2026-67116",
+      bookingNumber: (bkg.referenceNumber as string) || "BK-2026-67116",
       carrier: carrierCode,
       carrierScac,
       depotCode: "DEPOT-VLC-01",
       depotName: "Terminal de Contenedores de Valencia (TCV)",
       depotAddress: "Muelle de Levante s/n, 46024 Valencia",
       containerCount: 1,
-      isoType: bkg.equipment || "40HC",
+      isoType: (bkg.equipment as ContainerIsoType) || "40HC",
       validUntil: cargoCutOff.split("T")[0],
       pickupPin: "8819",
       qrDigest: `SHA256:${sealNum}-REL-VALID`,
       status: "ISSUED",
       sealNumbersAllocated: [sealNum],
     },
-    createdAt: bkg.createdAt || detail?.createdAt || new Date().toISOString(),
-    updatedAt: detail?.updatedAt || bkg.updatedAt || new Date().toISOString(),
+    createdAt:
+      (bkg.createdAt as string) ||
+      (detail?.createdAt as string) ||
+      new Date().toISOString(),
+    updatedAt:
+      (detail?.updatedAt as string) ||
+      (bkg.updatedAt as string) ||
+      new Date().toISOString(),
   };
 }
 

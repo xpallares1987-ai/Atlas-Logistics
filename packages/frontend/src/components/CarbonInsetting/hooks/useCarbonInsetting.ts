@@ -70,24 +70,23 @@ export function useCarbonInsetting() {
   });
 
   // Mutation to persist token & allocation in SQLite
-  const issueTokenMutation = useApiMutation<any, any>(
-    "/carbon-insetting/tokens/issue",
-    "POST",
-    {
-      onSuccess: (res: any) => {
-        if (res?.token) {
-          setTokens((prev) => [res.token, ...prev]);
-        }
-        queryClient.invalidateQueries({
-          queryKey: ["carbon-insetting-tokens"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["carbon-insetting-allocations"],
-        });
-        setActiveTab("TOKENS_LEDGER");
-      },
+  const issueTokenMutation = useApiMutation<
+    { token: InsettingToken },
+    Record<string, unknown>
+  >("/carbon-insetting/tokens/issue", "POST", {
+    onSuccess: (res: { token?: InsettingToken }) => {
+      if (res?.token) {
+        setTokens((prev) => [res.token as InsettingToken, ...prev]);
+      }
+      queryClient.invalidateQueries({
+        queryKey: ["carbon-insetting-tokens"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["carbon-insetting-allocations"],
+      });
+      setActiveTab("TOKENS_LEDGER");
     },
-  );
+  });
 
   // FuelEU Pooling State
   const [poolResult, setPoolResult] = useState<FuelEuPoolResult>(() =>
@@ -217,7 +216,9 @@ export function useCarbonInsetting() {
       ],
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    const finalY =
+      (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+        .finalY + 15;
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(71, 85, 105);

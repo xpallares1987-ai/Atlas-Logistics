@@ -176,7 +176,7 @@ export default function WikiHubModule() {
     }
 
     // Footer
-    const pageCount = (doc.internal as any).getNumberOfPages();
+    const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);

@@ -6,12 +6,20 @@
 
 import { useState } from "react";
 import { useApiQuery } from "../../../hooks/useApiQuery";
-import { AeoTabKey } from "../types/index";
+import type {
+  AeoTabKey,
+  AeoAuditRecord,
+  SevenPointInspectionRecord,
+  IsoSealRecord,
+  LogisticsPartnerRecord,
+} from "../types/index";
 
 export function useAeoSecurity() {
   const [activeTab, setActiveTab] = useState<AeoTabKey>("CAE_AUDITS");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedAudit, setSelectedAudit] = useState<any>(null);
+  const [selectedAudit, setSelectedAudit] = useState<AeoAuditRecord | null>(
+    null,
+  );
 
   // 7-Point Inspection Simulator State
   const [inspEquipId, setInspEquipId] = useState("MSKU-782910-3");
@@ -29,7 +37,10 @@ export function useAeoSecurity() {
   const [p7, setP7] = useState(true);
   const [hasAgri, setHasAgri] = useState(false);
   const [hasTamper, setHasTamper] = useState(false);
-  const [inspectionSimResult, setInspectionSimResult] = useState<any>(null);
+  const [inspectionSimResult, setInspectionSimResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   // Partner Risk Screening Simulator State
   const [partnerName, setPartnerName] = useState(
@@ -41,34 +52,34 @@ export function useAeoSecurity() {
   const [hasIso28000, setHasIso28000] = useState(true);
   const [partnerScore, setPartnerScore] = useState(95);
   const [monthsAudit, setMonthsAudit] = useState(6);
-  const [screeningResult, setScreeningResult] = useState<any>(null);
+  const [screeningResult, setScreeningResult] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   // Fetch Audits
-  const { data: auditsResponse, isLoading: loadingAudits } = useApiQuery<any>(
-    ["aeo-audits"],
-    `/aeo-security/audits`,
-  );
+  const { data: auditsResponse, isLoading: loadingAudits } = useApiQuery<{
+    data: AeoAuditRecord[];
+  }>(["aeo-audits"], `/aeo-security/audits`);
   const audits = auditsResponse?.data || [];
 
   // Fetch Inspections
-  const { data: inspectionsResponse } = useApiQuery<any>(
-    ["aeo-inspections"],
-    `/aeo-security/inspections`,
-  );
+  const { data: inspectionsResponse } = useApiQuery<{
+    data: SevenPointInspectionRecord[];
+  }>(["aeo-inspections"], `/aeo-security/inspections`);
   const inspections = inspectionsResponse?.data || [];
 
   // Fetch Seals
-  const { data: sealsResponse } = useApiQuery<any>(
+  const { data: sealsResponse } = useApiQuery<{ data: IsoSealRecord[] }>(
     ["aeo-seals"],
     `/aeo-security/seals`,
   );
   const seals = sealsResponse?.data || [];
 
   // Fetch Partners
-  const { data: partnersResponse } = useApiQuery<any>(
-    ["aeo-partners"],
-    `/aeo-security/partners`,
-  );
+  const { data: partnersResponse } = useApiQuery<{
+    data: LogisticsPartnerRecord[];
+  }>(["aeo-partners"], `/aeo-security/partners`);
   const partners = partnersResponse?.data || [];
 
   const handleSimulateInspection = async () => {
@@ -126,7 +137,7 @@ export function useAeoSecurity() {
   };
 
   const filteredAudits = audits.filter(
-    (a: any) =>
+    (a: AeoAuditRecord) =>
       a.auditReference?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.leadAuditorName?.toLowerCase().includes(searchQuery.toLowerCase()),
   );

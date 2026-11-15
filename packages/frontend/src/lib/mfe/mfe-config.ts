@@ -47,9 +47,9 @@ export async function probeRemoteEndpoint(
   const isLocalLoopback =
     url.includes("127.0.0.1") || url.includes("localhost");
   const isStandaloneEnabled =
-    (import.meta as any).env?.VITE_ENABLE_MFE_STANDALONE === "true";
+    import.meta.env?.VITE_ENABLE_MFE_STANDALONE === "true";
   const isTest =
-    (import.meta as any).env?.MODE === "test" ||
+    import.meta.env?.MODE === "test" ||
     (typeof process !== "undefined" && process.env?.NODE_ENV === "test");
   if (isLocalLoopback && !isStandaloneEnabled && !isTest) {
     return false;
