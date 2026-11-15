@@ -71,7 +71,7 @@ docs/
 - [**Enterprise Evolution Plan**](architecture/enterprise_evolution_plan.md) — Strategic roadmap for scaling freight forwarding domains and external integrations.
 - [**Comprehensive System Architecture**](architecture/ARCHITECTURE.md) — Monorepo micro-frontends, Fastify backend architecture, and data isolation.
 
-#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0022)
+#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0023)
 
 | ADR | Title | Status | Date | Domain / Bounded Context | Notes / Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -97,6 +97,7 @@ docs/
 | [**0020**](adr/0020-frontend-modular-decomposition-and-file-size-guardrails.md) | Frontend Modularity & File Size Limits | `Accepted` | 2026-11-12 | Frontend Quality | Mandatory <1,000 line limit per page module (`check:file-sizes`) |
 | [**0021**](adr/0021-external-data-governance-and-licensing.md) | External Data Governance & Licensing | `Accepted` | 2026-11-13 | Data Governance / UNLOCODE| Lean 3-table model, memory Trie cache & document GC |
 | [**0022**](adr/0022-enterprise-freight-forwarding-organization-schema-and-governance.md) | Forwarding Organization Schema & Governance | `Accepted` | 2026-11-13 | Master Data / Organization| Forwarding station hierarchy, station RBAC & active context |
+| [**0023**](adr/0023-native-web-crypto-session-migration.md) | Native Web Crypto Session & Scrypt Auth | `Accepted` | 2026-11-15 | Security / Authentication | Native Web Crypto session engine replacing deprecated Lucia/Oslo |
 
 ---
 
