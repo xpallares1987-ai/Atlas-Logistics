@@ -48,6 +48,7 @@ docs/
 - [**Troubleshooting & Preventative Maintenance**](setup-guides/troubleshooting-maintenance.md) — Port freeing on Windows, SQLite WAL lock resolution, and background daemon hygiene.
 - [**Security, Backup & Leak Prevention Policy**](setup-guides/security-backup-policy.md) — Pre-commit leak scanning, secrets rotation, and SQLite online backup routines.
 - [**Production Deployment Handbook**](deployment/DEPLOYMENT_HANDBOOK.md) — Production Compose rollout, load testing, and operational verification.
+- [**GitHub Pages SPA Continuous Deployment Guide**](deployment/pages-spa-deployment.md) — Gated production deployment, ephemeral PR preview environments, and SPA client routing 404 fallback.
 
 ---
 
@@ -71,7 +72,7 @@ docs/
 - [**Enterprise Evolution Plan**](architecture/enterprise_evolution_plan.md) — Strategic roadmap for scaling freight forwarding domains and external integrations.
 - [**Comprehensive System Architecture**](architecture/ARCHITECTURE.md) — Monorepo micro-frontends, Fastify backend architecture, and data isolation.
 
-#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0023)
+#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0024)
 
 | ADR | Title | Status | Date | Domain / Bounded Context | Notes / Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -98,6 +99,7 @@ docs/
 | [**0021**](adr/0021-external-data-governance-and-licensing.md) | External Data Governance & Licensing | `Accepted` | 2026-11-13 | Data Governance / UNLOCODE| Lean 3-table model, memory Trie cache & document GC |
 | [**0022**](adr/0022-enterprise-freight-forwarding-organization-schema-and-governance.md) | Forwarding Organization Schema & Governance | `Accepted` | 2026-11-13 | Master Data / Organization| Forwarding station hierarchy, station RBAC & active context |
 | [**0023**](adr/0023-native-web-crypto-session-migration.md) | Native Web Crypto Session & Scrypt Auth | `Accepted` | 2026-11-15 | Security / Authentication | Native Web Crypto session engine replacing deprecated Lucia/Oslo |
+| [**0024**](adr/0024-github-pages-spa-continuous-deployment.md) | GitHub Pages SPA Continuous Deployment & PR Previews | `Accepted` | 2026-11-15 | CI/CD & Deployment | Gated deployment, ephemeral PR previews & SPA 404 fallback |
 
 ---
 

@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useApiQuery } from "../../../hooks/useApiQuery";
+import { useApiQuery, resolveApiUrl } from "../../../hooks/useApiQuery";
 import type {
   FuelEuTab,
   FuelEuGeographicScope,
@@ -127,19 +127,27 @@ export function useFuelEuMaritime() {
 
   const handleRunEtsCalc = async () => {
     try {
-      const res = await fetch("/api/fueleu/simulate/ets-calculator", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          co2Tonnes: simCo2Tonnes,
-          ch4Tonnes: simCh4Tonnes,
-          n2oTonnes: simN2oTonnes,
-          geographicScope: simScope,
-          euaPriceEur: simEuaPrice,
-          carriedTeus: simCarriedTeus,
-          fueleuPenaltyEur: simFueleuImpact,
-        }),
-      });
+      const res = await fetch(
+        resolveApiUrl("/api/fueleu/simulate/ets-calculator"),
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            co2EmissionsTonnes: simCo2Tonnes,
+            co2Tonnes: simCo2Tonnes,
+            ch4EmissionsTonnes: simCh4Tonnes,
+            ch4Tonnes: simCh4Tonnes,
+            n2oEmissionsTonnes: simN2oTonnes,
+            n2oTonnes: simN2oTonnes,
+            scope: simScope,
+            geographicScope: simScope,
+            euaPriceEurPerTonne: simEuaPrice,
+            euaPriceEur: simEuaPrice,
+            carriedTeus: simCarriedTeus,
+            fueleuPenaltyEur: simFueleuImpact,
+          }),
+        },
+      );
       if (res.ok) {
         const data = await res.json();
         setEtsSimResult(data);
@@ -151,15 +159,25 @@ export function useFuelEuMaritime() {
 
   const handleRunFuelSim = async () => {
     try {
-      const res = await fetch("/api/fueleu/simulate/fuel-ghg-intensity", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          fuelCode: simFuelCode,
-          consumedTonnes: simFuelTonnes,
-          opsElectricityKwh: simOpsKwh,
-        }),
-      });
+      const res = await fetch(
+        resolveApiUrl("/api/fueleu/simulate/fuel-ghg-intensity"),
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            reportingYear: new Date().getFullYear(),
+            fuelCode: simFuelCode,
+            consumedTonnes: simFuelTonnes,
+            fuelConsumptions: [
+              {
+                fuelCode: simFuelCode,
+                fuelConsumptionTonnes: simFuelTonnes,
+              },
+            ],
+            opsElectricityKwh: simOpsKwh,
+          }),
+        },
+      );
       if (res.ok) {
         const data = await res.json();
         setFuelSimResult(data);
@@ -173,7 +191,9 @@ export function useFuelEuMaritime() {
     if (!selectedVoyage) return;
     try {
       const res = await fetch(
-        `/api/fueleu/voyages/${selectedVoyage.id}/verification-status`,
+        resolveApiUrl(
+          `/api/fueleu/voyages/${selectedVoyage.id}/verification-status`,
+        ),
         {
           method: "PATCH",
           headers: getAuthHeaders(),

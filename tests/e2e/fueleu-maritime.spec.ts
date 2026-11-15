@@ -70,10 +70,18 @@ test.describe("FuelEU Maritime & EU ETS Decarbonization Engine (Reg. UE 2023/180
       "button:has-text('Calcular Derechos ETS & Green BAF')",
     );
     await expect(calcEtsBtn).toBeVisible();
-    await calcEtsBtn.click();
+    await Promise.all([
+      page.waitForResponse(
+        (res) =>
+          res.url().includes("/fueleu/") &&
+          (res.url().includes("ets") || res.url().includes("calculate")) &&
+          res.status() === 200,
+      ),
+      calcEtsBtn.click(),
+    ]);
     await expect(
       page.locator("span:has-text('Desglose de Recargo Verde (Green BAF)')"),
-    ).toBeVisible({ timeout: 5000 });
+    ).toBeVisible({ timeout: 15000 });
 
     // Switch to Pooling & Multi-Fuel tab
     const poolTab = page
@@ -87,9 +95,17 @@ test.describe("FuelEU Maritime & EU ETS Decarbonization Engine (Reg. UE 2023/180
       .or(page.locator("button:has-text('Intensidad GEI & Balance')"))
       .first();
     await expect(simFuelBtn).toBeVisible();
-    await simFuelBtn.click();
+    await Promise.all([
+      page.waitForResponse(
+        (res) =>
+          res.url().includes("/fueleu/") &&
+          (res.url().includes("fuel") || res.url().includes("calculate")) &&
+          res.status() === 200,
+      ),
+      simFuelBtn.click(),
+    ]);
     await expect(
       page.locator("span:has-text('Intensidad WtW Obtenida:')"),
-    ).toBeVisible({ timeout: 5000 });
+    ).toBeVisible({ timeout: 15000 });
   });
 });

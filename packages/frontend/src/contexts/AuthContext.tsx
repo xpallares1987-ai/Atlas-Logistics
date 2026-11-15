@@ -5,6 +5,7 @@ import {
   useEffect,
   ReactNode,
 } from "react";
+import { resolveApiUrl } from "../hooks/useApiQuery";
 
 interface User {
   id: string;
@@ -61,14 +62,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         try {
-          const res = await fetch(
-            `${import.meta.env.VITE_API_URL || ""}/api/auth/me`,
-            {
-              headers: {
-                Authorization: `Bearer ${storedToken}`,
-              },
+          const res = await fetch(resolveApiUrl("/api/auth/me"), {
+            headers: {
+              Authorization: `Bearer ${storedToken}`,
             },
-          );
+          });
           if (res.ok) {
             const data = await res.json();
             setToken(storedToken);
@@ -98,7 +96,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("atlas_token");
     setToken(null);
     setUser(null);
-    window.location.href = "/login";
+    const base = import.meta.env.BASE_URL || "/";
+    const loginPath = base.endsWith("/") ? `${base}login` : `${base}/login`;
+    window.location.href = loginPath;
   };
 
   return (

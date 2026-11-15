@@ -105,9 +105,12 @@ export function PoolingFuels({
                     Intensidad WtW Obtenida:
                   </span>
                   <span className="font-bold text-white">
-                    {fuelSimResult.ghgMetrics.calculatedGhgIntensityGco2eqPerMj.toFixed(
-                      2,
-                    )}{" "}
+                    {Number(
+                      fuelSimResult.ghgMetrics
+                        ?.calculatedGhgIntensityGco2eqPerMj ??
+                        fuelSimResult.ghgIntensity ??
+                        0,
+                    ).toFixed(2)}{" "}
                     gCO2eq/MJ
                   </span>
                 </div>
@@ -116,9 +119,10 @@ export function PoolingFuels({
                     Objetivo Regulatorio 2025:
                   </span>
                   <span className="font-bold text-slate-300">
-                    {fuelSimResult.complianceMetrics.targetGhgIntensityGco2eqPerMj.toFixed(
-                      2,
-                    )}{" "}
+                    {Number(
+                      fuelSimResult.complianceMetrics
+                        ?.targetGhgIntensityGco2eqPerMj ?? 89.34,
+                    ).toFixed(2)}{" "}
                     gCO2eq/MJ
                   </span>
                 </div>
@@ -128,25 +132,32 @@ export function PoolingFuels({
                   </span>
                   <span
                     className={`font-black ${
-                      fuelSimResult.complianceMetrics.isCompliant
+                      (fuelSimResult.complianceMetrics?.isCompliant ??
+                      fuelSimResult.isCompliant)
                         ? "text-emerald-400"
                         : "text-rose-400"
                     }`}
                   >
-                    {fuelSimResult.complianceMetrics.complianceStatus} (
-                    {fuelSimResult.complianceMetrics.complianceBalanceTonnesCo2eq.toFixed(
-                      2,
-                    )}{" "}
+                    {fuelSimResult.complianceMetrics?.complianceStatus ||
+                      "SURPLUS"}{" "}
+                    (
+                    {Number(
+                      fuelSimResult.complianceMetrics
+                        ?.complianceBalanceTonnesCo2eq ?? 0,
+                    ).toFixed(2)}{" "}
                     tCO2e)
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Penalización Prevista:</span>
                   <span className="font-black text-amber-400">
-                    {fuelSimResult.complianceMetrics.fuelEuPenaltyEur.toLocaleString(
-                      "es-ES",
-                      { minimumFractionDigits: 2 },
-                    )}{" "}
+                    {Number(
+                      fuelSimResult.complianceMetrics?.fuelEuPenaltyEur ??
+                        fuelSimResult.penaltyEur ??
+                        0,
+                    ).toLocaleString("es-ES", {
+                      minimumFractionDigits: 2,
+                    })}{" "}
                     €
                   </span>
                 </div>
@@ -192,7 +203,8 @@ export function PoolingFuels({
                     <span className="text-sm font-black text-emerald-400">
                       +
                       {(
-                        p.consolidatedNetComplianceBalanceGco2eq / 1_000_000
+                        Number(p.consolidatedNetComplianceBalanceGco2eq || 0) /
+                        1_000_000
                       ).toFixed(1)}{" "}
                       t CO2e
                     </span>

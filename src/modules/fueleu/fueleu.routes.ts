@@ -1,4 +1,4 @@
-import { FastifyPluginAsync } from "fastify";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db/index.js";
 import * as schema from "../../db/schema/index.js";
 import { eq, desc } from "drizzle-orm";
@@ -116,26 +116,49 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // 7. POST /api/fueleu/calculate-fueleu - Simulator for GHG intensity, CB & Penalty
-  fastify.post("/calculate-fueleu", async (request, reply) => {
+  const handleCalculateFuelEu = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) => {
     const body = request.body as {
-      reportingYear: number;
-      fuelConsumptions: FuelConsumptionItem[];
+      reportingYear?: number;
+      fuelConsumptions?: FuelConsumptionItem[];
+      fuelCode?: string;
+      consumedTonnes?: number;
       opsElectricityKwh?: number;
     };
 
-    if (!body.reportingYear || !Array.isArray(body.fuelConsumptions)) {
+    const reportingYear = body.reportingYear || new Date().getFullYear();
+    let consumptions: FuelConsumptionItem[] = body.fuelConsumptions || [];
+
+    if (
+      consumptions.length === 0 &&
+      body.fuelCode &&
+      body.consumedTonnes !== undefined
+    ) {
+      consumptions = [
+        {
+          fuelCode: body.fuelCode,
+          consumedTonnes: Number(body.consumedTonnes),
+          lowerCalorificValueMjPerGram: 0.0199,
+          wtwFactorGco2eqPerMj: 15.0,
+        },
+      ];
+    }
+
+    if (consumptions.length === 0) {
       return reply
         .status(400)
         .send({ error: "Invalid calculation parameters" });
     }
 
     const ghgResult = FuelEuCalculatorService.calculateGhgIntensity(
-      body.fuelConsumptions,
+      consumptions,
       body.opsElectricityKwh || 0,
     );
 
     const cbResult = FuelEuCalculatorService.calculateComplianceBalance(
-      body.reportingYear,
+      reportingYear,
       ghgResult.calculatedGhgIntensityGco2eqPerMj,
       ghgResult.totalEnergyConsumedMj,
     );
@@ -145,32 +168,50 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
       ghgMetrics: ghgResult,
       complianceMetrics: cbResult,
     });
-  });
+  };
+
+  fastify.post("/calculate-fueleu", handleCalculateFuelEu);
+  fastify.post("/simulate/fuel-ghg-intensity", handleCalculateFuelEu);
 
   // 8. POST /api/fueleu/calculate-ets - Simulator for EU ETS & Green BAF per TEU
-  fastify.post("/calculate-ets", async (request, reply) => {
+  const handleCalculateEts = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) => {
     const body = request.body as {
-      co2EmissionsTonnes: number;
+      co2EmissionsTonnes?: number;
+      co2Tonnes?: number;
       ch4EmissionsTonnes?: number;
+      ch4Tonnes?: number;
       n2oEmissionsTonnes?: number;
-      scope: MaritimeScope;
+      n2oTonnes?: number;
+      scope?: MaritimeScope;
+      geographicScope?: MaritimeScope;
       euaPriceEurPerTonne?: number;
+      euaPriceEur?: number;
       carriedTeus?: number;
       fueleuPenaltyEur?: number;
     };
 
-    if (body.co2EmissionsTonnes === undefined || !body.scope) {
+    const co2 = body.co2EmissionsTonnes ?? body.co2Tonnes;
+    const scope = body.scope ?? body.geographicScope;
+
+    if (co2 === undefined || !scope) {
       return reply
         .status(400)
         .send({ error: "Invalid ETS calculation parameters" });
     }
 
     const etsResult = EtsMaritimeService.calculateEtsLiability({
-      co2EmissionsTonnes: Number(body.co2EmissionsTonnes),
-      ch4EmissionsTonnes: Number(body.ch4EmissionsTonnes || 0),
-      n2oEmissionsTonnes: Number(body.n2oEmissionsTonnes || 0),
-      scope: body.scope,
-      euaPriceEurPerTonne: body.euaPriceEurPerTonne,
+      co2EmissionsTonnes: Number(co2),
+      ch4EmissionsTonnes: Number(
+        body.ch4EmissionsTonnes ?? body.ch4Tonnes ?? 0,
+      ),
+      n2oEmissionsTonnes: Number(
+        body.n2oEmissionsTonnes ?? body.n2oTonnes ?? 0,
+      ),
+      scope: scope,
+      euaPriceEurPerTonne: body.euaPriceEurPerTonne ?? body.euaPriceEur,
     });
 
     const greenBafResult = EtsMaritimeService.calculateGreenBaf({
@@ -184,7 +225,10 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
       etsLiability: etsResult,
       greenBaf: greenBafResult,
     });
-  });
+  };
+
+  fastify.post("/calculate-ets", handleCalculateEts);
+  fastify.post("/simulate/ets-calculator", handleCalculateEts);
 
   // 9. POST /api/fueleu/simulate-pool - Fleet Pooling Simulator (Art. 21)
   fastify.post("/simulate-pool", async (request, reply) => {
@@ -213,7 +257,10 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // 10. POST /api/fueleu/voyages/:id/status - Update voyage verification status
-  fastify.post("/voyages/:id/status", async (request, reply) => {
+  const handleUpdateVoyageStatus = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) => {
     const { id } = request.params as { id: string };
     const body = request.body as {
       status: "PLANNED" | "UNDERWAY" | "COMPLETED_VERIFIED" | "AUDITED_THETIS";
@@ -231,7 +278,10 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
       .where(eq(schema.marineVoyages.id, id));
 
     return reply.send({ success: true, status: body.status });
-  });
+  };
+
+  fastify.post("/voyages/:id/status", handleUpdateVoyageStatus);
+  fastify.patch("/voyages/:id/verification-status", handleUpdateVoyageStatus);
 
   // 11. GET /api/fueleu/voyages/:id/thetis-xml - Export EMSA THETIS-MRV XML
   fastify.get("/voyages/:id/thetis-xml", async (request, reply) => {

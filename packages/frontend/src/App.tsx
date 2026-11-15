@@ -32,7 +32,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ApiStatusProvider onNotification={addNotification}>
-        <Router>
+        <Router basename={import.meta.env.BASE_URL}>
           <GlobalNavigationListener />
           <div
             className={`flex h-screen font-sans overflow-hidden ${theme === "dark" ? "dark bg-slate-950 text-white" : "bg-slate-50 text-slate-900"}`}

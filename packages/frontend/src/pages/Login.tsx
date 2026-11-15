@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Lock, Mail, ArrowRight, ShieldCheck } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { resolveApiUrl } from "../hooks/useApiQuery";
 
 export default function Login() {
   const [email, setEmail] = useState("admin@atlas.com");
@@ -19,14 +20,11 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL || ""}/api/auth/login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        },
-      );
+      const res = await fetch(resolveApiUrl("/api/auth/login"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       const data = await res.json();
 
