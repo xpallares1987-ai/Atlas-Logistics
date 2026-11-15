@@ -20,8 +20,12 @@
   - Work and commit directly on the `main` branch.
   - **Authorized Exception for Atlas-Logistics**: Sychronization and execution of `git push origin main` is authorized exclusively for this repository (`xpallares1987-ai/Atlas-Logistics`) to maintain 100% alignment with GitHub and trigger CI/CD pipelines, provided tests and leak audits pass with exit code 0.
   - Never configure unofficial remote repositories or force push to protected branches.
+  - **Explicit File Staging on Windows**: Always stage modified files by explicit path (`git add <file1> <file2>`) rather than `git add -A` or `git add .`, preventing `core.autocrlf` stat-cache refreshes from marking untouched files dirty.
+- **Zero-Cost Infrastructure & CI Mandate**:
+  - Every GitHub Actions workflow, security scanner, and deployment target must operate at **$0.00 cost** (standard `ubuntu-24.04` runners on public GitHub, GitHub Pages, GHCR, native Advisory DB, OpenSSF Scorecard). Never wire automatic `push` triggers to paid cloud compute (e.g., Cloud Run / Railway auto-deploys), and add standalone governance workflows to `ci.yml` `paths-ignore`.
 - **Information Leak Prevention**:
   - Never commit reserved real-world customer or partner identifiers.
+  - When provided live credentials or tokens (e.g., Grafana Cloud `glc_...`), store them exclusively in gitignored `.env.local` and GitHub Actions Secrets (`gh secret set`), referencing `${VAR:-default}` in tracked Compose/Grafana YAML.
   - Before every commit, verify that `pnpm run audit:leaks:staged` (or the guardrail script) exits with code 0 without alerts.
 - **Isolation of C:\PowerShell**: Strictly prohibited from creating git repositories or modifying remotes in `C:\PowerShell`.
 
@@ -30,6 +34,7 @@
 - **TDD & Verification**: Always run unit and integration tests (`pnpm vitest run ...`) before declaring a task complete.
 - **Auth Mocks in Fastify Controller Tests**: In controller test suites (`app.inject()`), explicitly mock `../../middleware/auth.js` (`authMiddleware: vi.fn()`, `requireRole: vi.fn()`) to prevent `401 Unauthorized` failures on protected routes.
 - **Prometheus Registry Ownership**: Metrics use `@prometheus-io/client` (not `prom-client`). `fastify-metrics` owns `http_request_duration_seconds` on the shared global registry — never re-declare it; resolve it via `register.getSingleMetric()`. Proxy wrappers around metric methods must narrow arguments (`typeof x === "number"`) before calling `observe`/`inc`, because the library's strict overloads reject `any` pass-through.
+- **Environment Contract Parity (`src/config/env.ts`)**: Whenever adding a variable to `.env.example`, also register its metadata in `ENV_CONTRACT_CATALOG` and `envSchema` inside `src/config/env.ts` (`tests/env-contract-validation.test.ts` enforces 100% parity in CI). Pure domain engines (`src/scm/engines/**`) must never import `drizzle-orm`, `@libsql/client`, or `fastify` (enforced by ESLint `no-restricted-imports`).
 
 ## 4. UI/Frontend: Live Data Binding & Zero Mocks Standard
 - **Exclusive Consumption of SQLite/Fastify**: Every action, mutation, or visualization in the UI must query and send data to real Fastify endpoints backed by Drizzle ORM and SQLite.
