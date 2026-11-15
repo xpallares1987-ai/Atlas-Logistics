@@ -27,15 +27,15 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: true
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: "pnpm"
@@ -49,6 +49,34 @@ jobs:
           VITE_API_URL: "${{ secrets.VITE_API_URL || 'https://atlas-backend-100198375762.europe-west1.run.app/api' }}"
         run: pnpm run build
 
+      - name: Verify SPA Bundle, Manifest & PWA Icon Integrity
+        run: |
+          node -e '
+            const fs = require("fs");
+            const dist = "./packages/frontend/dist";
+            const manifest = JSON.parse(fs.readFileSync(`${dist}/manifest.webmanifest`, "utf8"));
+            for (const icon of manifest.icons || []) {
+              if (icon.src.startsWith("/")) {
+                throw new Error(`Manifest icon src must be relative for subpath hosting: ${icon.src}`);
+              }
+              const buf = fs.readFileSync(`${dist}/${icon.src}`);
+              const magic = buf.subarray(0, 4).toString("hex");
+              if (magic !== "89504e47") {
+                throw new Error(`Invalid PNG header for ${icon.src}: ${magic}`);
+              }
+              if (buf.length > 256000) {
+                throw new Error(`PWA icon ${icon.src} exceeds 250 KB budget (${buf.length} bytes)`);
+              }
+            }
+            const html = fs.readFileSync(`${dist}/index.html`, "utf8");
+            const preloadMatches = [...html.matchAll(/<link[^>]*rel="modulepreload"[^>]*href="([^"]+)"/g)].map(m => m[1]);
+            const forbidden = preloadMatches.filter(h => /(three-|bpmn-|jspdf-|recharts-|d3-)/.test(h));
+            if (forbidden.length > 0) {
+              throw new Error(`Heavy lazy vendor chunks must not be modulepreloaded: ${forbidden.join(", ")}`);
+            }
+            console.log(`Verified ${preloadMatches.length} modulepreload chunks and ${manifest.icons.length} valid PNG icons.`);
+          '
+
       - name: Deploy to gh-pages branch (Dual Hosting)
         uses: peaceiris/actions-gh-pages@v4
         with:
@@ -57,12 +85,12 @@ jobs:
           keep_files: true
 
       - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: "./packages/frontend/dist"
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
         with:
           timeout: 600000

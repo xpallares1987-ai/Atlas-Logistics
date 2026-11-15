@@ -11,6 +11,9 @@ on:
       - 'LICENSE'
       - '.github/workflows/wiki-sync.yml'
       - '.github/workflows/cache-clean.yml'
+      - '.github/workflows/dependency-review.yml'
+      - '.github/workflows/scorecard.yml'
+      - '.github/workflows/stale.yml'
   pull_request:
     branches:
       - main
@@ -21,6 +24,9 @@ on:
       - 'LICENSE'
       - '.github/workflows/wiki-sync.yml'
       - '.github/workflows/cache-clean.yml'
+      - '.github/workflows/dependency-review.yml'
+      - '.github/workflows/scorecard.yml'
+      - '.github/workflows/stale.yml'
   workflow_dispatch:
 
 concurrency:

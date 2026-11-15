@@ -1,0 +1,33 @@
+name: Dependency Review
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - "**/package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    name: Audit Manifest & Lockfile Diff
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Run GitHub Dependency Review
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
+          comment-summary-in-pr: on-failure

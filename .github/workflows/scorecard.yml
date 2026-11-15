@@ -1,0 +1,49 @@
+name: OpenSSF Scorecard Supply-Chain Audit
+
+on:
+  schedule:
+    # Run weekly on Mondays at 02:30 UTC
+    - cron: "30 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analysis:
+    name: Scorecard Supply-Chain Analysis
+    runs-on: ubuntu-24.04
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Run OpenSSF Scorecard Analysis
+        uses: ossf/scorecard-action@v2.5.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload SARIF Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif

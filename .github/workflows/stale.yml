@@ -1,0 +1,35 @@
+name: Stale Issue & PR Hygiene
+
+on:
+  schedule:
+    # Run weekly on Mondays at 04:00 UTC
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  stale:
+    name: Triage Inactive Issues & PRs
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Mark and Close Stale Items
+        uses: actions/stale@v11
+        with:
+          days-before-issue-stale: 45
+          days-before-issue-close: 14
+          days-before-pr-stale: 30
+          days-before-pr-close: 14
+          stale-issue-label: "stale"
+          stale-pr-label: "stale"
+          exempt-issue-labels: "pinned,security,roadmap,keep-open"
+          exempt-pr-labels: "pinned,security,roadmap,keep-open"
+          stale-issue-message: "This issue has been automatically marked as stale due to 45 days of inactivity. It will be closed in 14 days if no further activity occurs."
+          stale-pr-message: "This pull request has been automatically marked as stale due to 30 days of inactivity. It will be closed in 14 days if no further activity occurs."
+          operations-per-run: 30

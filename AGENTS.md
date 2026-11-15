@@ -29,6 +29,7 @@
 - **Fastify & API Contracts**: All endpoints serving data to the UI must prioritize real relational SQLite entities over in-memory mocks.
 - **TDD & Verification**: Always run unit and integration tests (`pnpm vitest run ...`) before declaring a task complete.
 - **Auth Mocks in Fastify Controller Tests**: In controller test suites (`app.inject()`), explicitly mock `../../middleware/auth.js` (`authMiddleware: vi.fn()`, `requireRole: vi.fn()`) to prevent `401 Unauthorized` failures on protected routes.
+- **Prometheus Registry Ownership**: Metrics use `@prometheus-io/client` (not `prom-client`). `fastify-metrics` owns `http_request_duration_seconds` on the shared global registry — never re-declare it; resolve it via `register.getSingleMetric()`. Proxy wrappers around metric methods must narrow arguments (`typeof x === "number"`) before calling `observe`/`inc`, because the library's strict overloads reject `any` pass-through.
 
 ## 4. UI/Frontend: Live Data Binding & Zero Mocks Standard
 - **Exclusive Consumption of SQLite/Fastify**: Every action, mutation, or visualization in the UI must query and send data to real Fastify endpoints backed by Drizzle ORM and SQLite.
