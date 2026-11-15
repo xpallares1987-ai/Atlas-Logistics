@@ -10,3 +10,18 @@ datasources:
     editable: true
     jsonData:
       timeInterval: 15s
+
+  - name: Grafana Cloud Prometheus (cheerfulmole1135-prom)
+    uid: cheerfulmole1135-prom
+    type: prometheus
+    access: proxy
+    url: ${GRAFANA_CLOUD_PROM_QUERY_URL:-https://prometheus-prod-72-prod-eu-west-4.grafana.net/api/prom}
+    isDefault: false
+    editable: true
+    basicAuth: true
+    basicAuthUser: ${GRAFANA_CLOUD_PROM_USER:-3759940}
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST
+    secureJsonData:
+      basicAuthPassword: ${GRAFANA_CLOUD_PROM_TOKEN}

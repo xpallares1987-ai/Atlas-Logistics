@@ -50,6 +50,12 @@ const RULES = [
     pattern: /(Fr\.\s*Meyer'?s?\s*Sohn|FMS\s+Logistics)/i,
     description: 'Legacy corporate company name'
   },
+  {
+    id: 'SECRET_API_TOKEN',
+    severity: 'CRITICAL',
+    pattern: /\b(glc_[A-Za-z0-9_=+-]{20,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{20,}|AIzaSy[A-Za-z0-9_-]{33})\b/,
+    description: 'Hardcoded live API token (Grafana Cloud glc_, GitHub PAT, or Google AI key)'
+  },
 
   // --- PATH_RULE (Hard-blocking on filename / filepath) ---
   {
@@ -58,6 +64,13 @@ const RULES = [
     isPathRule: true,
     pattern: /\.(msg|pst)$/i,
     description: 'Raw Outlook email storage file (.msg / .pst)'
+  },
+  {
+    id: 'PROHIBITED_ENV_FILE',
+    severity: 'CRITICAL',
+    isPathRule: true,
+    pattern: /(^|\/)\.env\.(local|production|staging)$/i,
+    description: 'Local or production secret environment file (.env.local / .env.production)'
   },
 
   // --- MEDIUM (Informational Warning, Non-blocking) ---
@@ -72,6 +85,8 @@ const RULES = [
 // Default directory / file ignores
 const DEFAULT_IGNORES = [
   '.git',
+  '.env.local',
+  '.env.production',
   'node_modules',
   'dist',
   'dev-dist',

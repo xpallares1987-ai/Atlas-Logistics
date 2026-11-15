@@ -285,7 +285,13 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_USERS_ALLOW_SIGN_UP: 'false'
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3002}
-      GF_INSTALL_PLUGINS: grafana-piechart-panel
+      GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-assistant-app
+      GRAFANA_CLOUD_PROM_QUERY_URL: ${GRAFANA_CLOUD_PROM_QUERY_URL:-https://prometheus-prod-72-prod-eu-west-4.grafana.net/api/prom}
+      GRAFANA_CLOUD_PROM_USER: ${GRAFANA_CLOUD_PROM_USER:-3759940}
+      GRAFANA_CLOUD_PROM_TOKEN: ${GRAFANA_CLOUD_PROM_TOKEN:-}
+      GRAFANA_ASSISTANT_URL: ${GRAFANA_ASSISTANT_URL:-https://assistant-prod-eu-west-2.grafana.net/assistant}
+      GRAFANA_ASSISTANT_INSTANCE_ID: ${GRAFANA_ASSISTANT_INSTANCE_ID:-1917865}
+      GRAFANA_ASSISTANT_TOKEN: ${GRAFANA_ASSISTANT_TOKEN:-}
     depends_on:
       prometheus:
         condition: service_healthy

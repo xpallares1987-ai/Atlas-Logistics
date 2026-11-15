@@ -1,0 +1,11 @@
+apiVersion: 1
+
+apps:
+  - type: grafana-assistant-app
+    org_id: 1
+    disabled: false
+    jsonData:
+      url: ${GRAFANA_ASSISTANT_URL:-https://assistant-prod-eu-west-2.grafana.net/assistant}
+      user: ${GRAFANA_ASSISTANT_INSTANCE_ID:-1917865}
+    secureJsonData:
+      password: ${GRAFANA_ASSISTANT_TOKEN}
