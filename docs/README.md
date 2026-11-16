@@ -61,6 +61,7 @@ docs/
 - [**Authoritative Dev DDL Export**](reference/dev-database-schema-ddl-export.sql) — Clean DDL export snapshot of the active development database schema.
 - [**Project Structure & Module Layout**](reference/PROJECT_STRUCTURE.md) — Monorepo workspace hierarchy, package contracts, and directory conventions.
 - [**Docker & Monorepo Build Optimization Reference**](reference/BUILD_OPTIMIZATION.md) — Multi-stage BuildKit caching, layer ordering, and bundle optimization benchmarks.
+- [**Improvement Plan Traceability Matrix & Dependency Graph (P0–P2)**](reference/improvement-plan-traceability-matrix.md) — Complete P0.1–P2.5 verification matrix, monorepo package dependency graph, bounded context maturity table, and performance budgets.
 - [**Technical Audit Executive Closure**](reference/technical-audit-executive-closure-2026-11-14.md) — Authoritative audit scorecard, risk closure verification, and platform maturity summary.
 - **Regulatory & Domain Standards**:
   - *FMC 46 CFR Part 541*: Mandatory demurrage/detention billing rules and legal dispute parameters.

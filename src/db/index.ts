@@ -1,11 +1,22 @@
+/**
+ * @file index.ts
+ * @description Canonical SQLite/libSQL connection factory and Drizzle ORM instance (P0.2).
+ * Centralizes WAL mode, busy_timeout (5000ms), and mandatory foreign key enforcement.
+ * @module @atlas/backend/db
+ * @see {@link docs/adr/0009-sqlite-wal-mandatory-foreign-keys.md}
+ */
+
 import { drizzle } from "drizzle-orm/libsql";
-import { createClient } from "@libsql/client";
+import { createClient, type Client } from "@libsql/client";
 import * as schema from "./schema/index.js";
 import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
 
-// Load environment-specific configurations with safe local fallback
+// ============================================================================
+// 1. ENVIRONMENT & CANONICAL DATABASE URL RESOLUTION
+// ============================================================================
+
 const isProduction = process.env.NODE_ENV === "production";
 if (isProduction && fs.existsSync(".env.production")) {
   dotenv.config({ path: ".env.production", override: false });
@@ -28,27 +39,52 @@ export const getDatabaseUrl = (): string => {
 
 export const databaseUrl = getDatabaseUrl();
 
-// Ensure parent directory exists for file-based SQLite databases
-if (databaseUrl.startsWith("file:")) {
-  const filePath = databaseUrl.replace(/^file:/, "").split("?")[0];
-  const dir = path.dirname(filePath);
-  if (dir && dir !== "." && !fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+// ============================================================================
+// 2. CENTRALIZED SQLITE / LIBSQL CONNECTION FACTORY (P0.2)
+// ============================================================================
+
+/**
+ * Creates a SQLite/libSQL client pre-configured with Atlas Logistics mandatory PRAGMAs:
+ * - PRAGMA journal_mode = WAL
+ * - PRAGMA busy_timeout = 5000
+ * - PRAGMA foreign_keys = ON
+ */
+export function createConfiguredSqliteClient(
+  targetUrl: string = databaseUrl,
+  authToken: string | undefined = process.env.DATABASE_AUTH_TOKEN,
+): Client {
+  if (targetUrl.startsWith("file:")) {
+    const filePath = targetUrl.replace(/^file:/, "").split("?")[0];
+    const dir = path.dirname(filePath);
+    if (dir && dir !== "." && !fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
   }
+
+  const sqlClient = createClient({
+    url: targetUrl,
+    authToken,
+  });
+
+  if (targetUrl.startsWith("file:")) {
+    sqlClient.execute("PRAGMA journal_mode = WAL;").catch(() => {});
+    sqlClient.execute("PRAGMA busy_timeout = 5000;").catch(() => {});
+    sqlClient.execute("PRAGMA foreign_keys = ON;").catch(() => {});
+  }
+
+  return sqlClient;
 }
 
-export const client = createClient({
-  url: databaseUrl,
-  authToken: process.env.DATABASE_AUTH_TOKEN,
-});
-
-if (databaseUrl.startsWith("file:")) {
-  client.execute("PRAGMA journal_mode = WAL;").catch(() => {});
-  client.execute("PRAGMA busy_timeout = 5000;").catch(() => {});
-  client.execute("PRAGMA foreign_keys = ON;").catch(() => {});
-}
+export const client = createConfiguredSqliteClient(
+  databaseUrl,
+  process.env.DATABASE_AUTH_TOKEN,
+);
 
 export const db = drizzle({ client, schema } as any);
+
+// ============================================================================
+// 3. HEALTH & LIFECYCLE MANAGEMENT
+// ============================================================================
 
 /**
  * Health check for database connectivity.
@@ -57,10 +93,9 @@ export const db = drizzle({ client, schema } as any);
  */
 export const checkDatabaseHealth = async (): Promise<boolean> => {
   try {
-    // Execute a simple query to validate connectivity
     await client.execute("SELECT 1");
     return true;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 };
@@ -74,7 +109,7 @@ export const closeDatabaseConnection = async (): Promise<void> => {
     if (client && typeof client.close === "function") {
       await client.close();
     }
-  } catch (error) {
+  } catch (_error) {
     // Silently ignore errors during close
   }
 };

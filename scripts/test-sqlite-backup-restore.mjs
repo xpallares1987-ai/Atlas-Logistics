@@ -161,6 +161,29 @@ async function runBackupRestoreVerification() {
     console.log(`   ✓ Snapshot completed in ${backupDuration} ms`);
     console.log(`   ✓ Snapshot size: ${(backupStats.size / (1024 * 1024)).toFixed(2)} MB`);
 
+    // Record schema migration version in backup metadata sidecar (P0.5)
+    const drizzleDir = path.resolve(REPO_ROOT, 'drizzle');
+    const migrationFolders = fs.existsSync(drizzleDir)
+      ? fs
+          .readdirSync(drizzleDir, { withFileTypes: true })
+          .filter((d) => d.isDirectory() && /^\d+_/.test(d.name))
+          .map((d) => d.name)
+          .sort()
+      : [];
+    const latestMigrationTag = migrationFolders[migrationFolders.length - 1] || 'unknown';
+    const metaSidecarPath = `${backupFilePath}.meta.json`;
+    const backupMeta = {
+      generatedAtUtc: new Date().toISOString(),
+      engine: 'sqlite-libsql-wal',
+      journalMigrationCount: migrationFolders.length,
+      latestMigrationTag,
+      tableCount: inventory.table.length,
+    };
+    fs.writeFileSync(metaSidecarPath, JSON.stringify(backupMeta, null, 2), 'utf8');
+    console.log(
+      `   ✓ Schema version recorded in sidecar: ${backupMeta.latestMigrationTag} (${backupMeta.journalMigrationCount} migrations)`
+    );
+
     // -------------------------------------------------------------------------
     // Phase 4: Full Parity & Integrity Verification on Snapshot
     // -------------------------------------------------------------------------
@@ -250,6 +273,7 @@ async function runBackupRestoreVerification() {
     // Clean up temporary files
     try {
       await safeUnlink(backupFilePath);
+      await safeUnlink(`${backupFilePath}.meta.json`);
       await safeUnlink(restoredFilePath);
       await safeUnlink(`${backupFilePath}-wal`);
       await safeUnlink(`${backupFilePath}-shm`);
