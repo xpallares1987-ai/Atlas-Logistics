@@ -138,7 +138,7 @@
     "pino-pretty": "^13.2.0",
     "postcss": "^8.5.33",
     "prettier": "^3.10.1",
-    "react-i18next": "^17.1.13",
+    "react-i18next": "^18.0.1",
     "semantic-release": "^25.0.8",
     "supertest": "^7.3.2",
     "tailwindcss": "^4.3.5",
