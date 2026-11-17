@@ -18,9 +18,11 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      # 1. Checkout unconditionally FIRST so Git context exists for removals
       - name: Checkout Repository
         uses: actions/checkout@v7
 
+      # 2. Cleanup step runs if PR is closed
       - name: Cleanup Preview on PR Close
         if: ${{ github.event.action == 'closed' }}
         uses: rossjrw/pr-preview-action@v1
@@ -31,6 +33,7 @@ jobs:
           action: remove
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # 3. Setup and Build steps run only if PR is active
       - name: Setup pnpm
         if: ${{ github.event.action != 'closed' }}
         uses: pnpm/action-setup@v6
