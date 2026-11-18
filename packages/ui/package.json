@@ -11,6 +11,10 @@
     "build-storybook": "storybook build"
   },
   "type": "module",
+  "sideEffects": [
+    "*.css",
+    "./src/components/i18n.ts"
+  ],
   "main": "src/components/index.ts",
   "types": "src/components/index.ts",
   "dependencies": {

@@ -35,8 +35,6 @@ export default defineConfig({
         "react-dom",
         "react-router-dom",
         "@tanstack/react-query",
-        "lucide-react",
-        "tailwindcss",
       ],
     }),
     VitePWA({
@@ -91,9 +89,16 @@ export default defineConfig({
           (dep) =>
             !dep.includes("three-") &&
             !dep.includes("bpmn-") &&
-            !dep.includes("jspdf-") &&
+            !dep.includes("jspdf") &&
             !dep.includes("recharts-") &&
-            !dep.includes("d3-"),
+            !dep.includes("d3-") &&
+            !dep.includes("DynamicRateEngine-") &&
+            !dep.includes("components-") &&
+            !dep.includes("proxy-") &&
+            !dep.includes("src-") &&
+            !dep.includes("html2canvas-") &&
+            !dep.includes("purify") &&
+            !dep.includes("sortable"),
         );
       },
     },
@@ -117,7 +122,7 @@ export default defineConfig({
             if (id.includes("d3-")) {
               return "d3-vendor";
             }
-            if (id.includes("bpmn-js")) {
+            if (id.includes("bpmn-js") && !id.endsWith(".css")) {
               return "bpmn-vendor";
             }
             if (id.includes("pdfjs-dist")) {
@@ -125,6 +130,9 @@ export default defineConfig({
             }
             if (id.includes("jspdf")) {
               return "jspdf-vendor";
+            }
+            if (id.includes("lucide-react")) {
+              return "lucide-icons";
             }
           }
         },

@@ -70,11 +70,27 @@ jobs:
             }
             const html = fs.readFileSync(`${dist}/index.html`, "utf8");
             const preloadMatches = [...html.matchAll(/<link[^>]*rel="modulepreload"[^>]*href="([^"]+)"/g)].map(m => m[1]);
-            const forbidden = preloadMatches.filter(h => /(three-|bpmn-|jspdf-|recharts-|d3-)/.test(h));
+            const forbidden = preloadMatches.filter(h => /(three-|bpmn-|jspdf|recharts-|d3-|DynamicRateEngine-|html2canvas-)/.test(h));
             if (forbidden.length > 0) {
               throw new Error(`Heavy lazy vendor chunks must not be modulepreloaded: ${forbidden.join(", ")}`);
             }
-            console.log(`Verified ${preloadMatches.length} modulepreload chunks and ${manifest.icons.length} valid PNG icons.`);
+            let totalPreloadBytes = 0;
+            for (const href of preloadMatches) {
+              const relAsset = href.replace(/^\/Atlas-Logistics\//, "").replace(/^\//, "");
+              const assetPath = `${dist}/${relAsset}`;
+              if (fs.existsSync(assetPath)) {
+                totalPreloadBytes += fs.statSync(assetPath).size;
+              }
+            }
+            if (totalPreloadBytes > 512000) {
+              throw new Error(`Initial modulepreload JS budget exceeded: ${totalPreloadBytes} bytes (max 512,000 bytes)`);
+            }
+            const assetFiles = fs.readdirSync(`${dist}/assets`);
+            const monolithicShared = assetFiles.filter(f => /^__federation_shared_(lucide-react|tailwindcss)-/.test(f));
+            if (monolithicShared.length > 0) {
+              throw new Error(`Prohibited monolithic federation shared chunks found: ${monolithicShared.join(", ")}`);
+            }
+            console.log(`Verified ${preloadMatches.length} modulepreload chunks (${(totalPreloadBytes / 1024).toFixed(1)} KB total) and ${manifest.icons.length} valid PNG icons.`);
           '
 
       - name: Deploy to gh-pages branch (Dual Hosting)

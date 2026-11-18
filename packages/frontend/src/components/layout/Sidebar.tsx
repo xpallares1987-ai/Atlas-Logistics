@@ -44,7 +44,7 @@ import {
 
 import { useAuth } from "../../contexts/AuthContext";
 import { NavLink } from "../NavLink";
-import { Button } from "@atlas/ui";
+import { Button } from "@atlas/ui/src/components/Button";
 
 interface SidebarProps {
   isMobileMenuOpen: boolean;

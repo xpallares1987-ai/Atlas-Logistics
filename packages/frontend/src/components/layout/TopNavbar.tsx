@@ -9,7 +9,7 @@ import { ApiStatusIndicator } from "../ApiStatusIndicator";
 import { SecurityStatusBadge } from "../SecurityStatusBadge";
 import { AiQuotaStatusBadge } from "../AiQuotaStatusBadge";
 import { StationSelectorPill } from "./StationSelectorPill";
-import { Button } from "@atlas/ui";
+import { Button } from "@atlas/ui/src/components/Button";
 
 interface TopNavbarProps {
   setMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;

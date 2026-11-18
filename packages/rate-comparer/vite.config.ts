@@ -12,12 +12,7 @@ export default defineConfig({
       exposes: {
         "./RateComparer": "./src/index.tsx",
       },
-      shared: [
-        "react",
-        "react-dom",
-        "@tanstack/react-query",
-        "lucide-react",
-      ],
+      shared: ["react", "react-dom", "@tanstack/react-query"],
     }),
   ],
   resolve: {
