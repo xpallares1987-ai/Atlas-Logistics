@@ -21,10 +21,10 @@ jobs:
     name: njsscan code scanning
     steps:
       - name: Checkout the code
-        uses: actions/checkout@v7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: nodejsscan scan
         run: pip install njsscan && njsscan src packages --sarif --output results.sarif --exit-warning
       - name: Upload njsscan report
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@df80e92ca89c402e61c30768e79255073d328328 # v3.28.1
         with:
           sarif_file: results.sarif
