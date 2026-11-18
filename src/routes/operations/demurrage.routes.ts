@@ -15,6 +15,13 @@ import {
 } from "../../db/schema/operations.js";
 import { eq } from "drizzle-orm";
 import { ensureOperationsSeedData } from "./seed-data.js";
+import {
+  DemurrageEngineService,
+  RecordEquipmentEventInput,
+  CalculateDAndDOptions,
+  GenerateDailyAccrualsOptions,
+  CertifySolasVgmInput,
+} from "../../services/equipment/demurrage-engine.service.js";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -172,6 +179,125 @@ export const demurrageOperationsRoutes: FastifyPluginAsync = async (
         const message =
           error instanceof Error ? error.message : "Internal Server Error";
         return reply.code(500).send({ error: message });
+      }
+    },
+  );
+
+  // ============================================================================
+  // EQUIPMENT CONTROL & D&D LIFECYCLE ENDPOINTS
+  // ============================================================================
+
+  // POST /demurrage/events - Record equipment lifecycle milestone
+  fastify.post<{ Body: RecordEquipmentEventInput }>(
+    "/demurrage/events",
+    async (request, reply) => {
+      try {
+        const result = await DemurrageEngineService.recordEquipmentEvent(
+          request.body,
+        );
+        return reply.code(201).send({
+          success: true,
+          data: result,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(400).send({
+          success: false,
+          error: message,
+        });
+      }
+    },
+  );
+
+  // GET /demurrage/containers/:containerNumber/lifecycle - Get container event log
+  fastify.get<{ Params: { containerNumber: string } }>(
+    "/demurrage/containers/:containerNumber/lifecycle",
+    async (request, reply) => {
+      try {
+        const events = await DemurrageEngineService.getContainerLifecycle(
+          request.params.containerNumber,
+        );
+        return reply.send({
+          containerNumber: request.params.containerNumber.toUpperCase(),
+          events,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
+
+  // POST /demurrage/calculate - Calculate Demurrage & Detention dwell and fees
+  fastify.post<{
+    Body: {
+      containerNumber: string;
+      options?: CalculateDAndDOptions;
+    };
+  }>("/demurrage/calculate", async (request, reply) => {
+    try {
+      const { containerNumber, options } = request.body || {};
+      if (!containerNumber) {
+        return reply.code(400).send({ error: "containerNumber is required" });
+      }
+
+      const result = await DemurrageEngineService.calculateEquipmentDAndD(
+        containerNumber,
+        options,
+      );
+      return reply.send({
+        success: true,
+        data: result,
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(400).send({ error: message });
+    }
+  });
+
+  // POST /demurrage/run-accruals - Automated daily penalty accrual worker
+  fastify.post<{ Body?: GenerateDailyAccrualsOptions }>(
+    "/demurrage/run-accruals",
+    async (request, reply) => {
+      try {
+        const summary =
+          await DemurrageEngineService.generateDailyDemurrageAccruals(
+            request.body || {},
+          );
+        return reply.send({
+          success: true,
+          data: summary,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
+
+  // POST /demurrage/vgm-certify - Certify SOLAS Verified Gross Mass (VGM)
+  fastify.post<{ Body: CertifySolasVgmInput }>(
+    "/demurrage/vgm-certify",
+    async (request, reply) => {
+      try {
+        const result = await DemurrageEngineService.certifySolasVgm(
+          request.body,
+        );
+        return reply.code(201).send({
+          success: true,
+          data: result,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(400).send({
+          success: false,
+          error: message,
+        });
       }
     },
   );
