@@ -30,6 +30,7 @@ export default function CustomsClearanceModule() {
     greens,
     oranges,
     isAuditing,
+    isDispatching,
     showCalculatorModal,
     setShowCalculatorModal,
     calcParams,
@@ -37,6 +38,7 @@ export default function CustomsClearanceModule() {
     calcResult,
     isCalculating,
     runComplianceAudit,
+    dispatchCustomsClearance,
     handleCalculateTariff,
     handleCreateNewDeclaration,
     urlShipmentId,
@@ -113,6 +115,8 @@ export default function CustomsClearanceModule() {
           getStatusVisuals={getStatusVisuals}
           isAuditing={isAuditing}
           onAudit={runComplianceAudit}
+          isDispatching={isDispatching}
+          onDispatchClearance={dispatchCustomsClearance}
         />
       </div>
 

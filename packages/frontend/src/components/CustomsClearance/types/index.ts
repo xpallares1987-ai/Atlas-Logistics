@@ -8,6 +8,18 @@ import { LucideIcon } from "lucide-react";
 
 export type DeclarationFilter = "All" | "Hold" | "Pending" | "Cleared";
 
+export interface EfirmaStamp {
+  id: string;
+  certificateSerial: string;
+  rfcTitular: string;
+  razonSocial: string;
+  selloDigital?: string;
+  tamperSealHash: string;
+  status: string;
+  verifiedAt: string;
+  csvCode?: string;
+}
+
 export interface CustomsDeclaration {
   id: string;
   shipmentId?: string;
@@ -37,6 +49,7 @@ export interface CustomsDeclaration {
   grossWeightKg?: number;
   hasPreferentialOriginCert?: boolean;
   createdAt?: string | number;
+  efirma?: EfirmaStamp | null;
   [key: string]: unknown;
 }
 

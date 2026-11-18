@@ -20,6 +20,8 @@ interface DeclarationDetailProps {
   getStatusVisuals: (status: string) => StatusVisuals;
   isAuditing: boolean;
   onAudit: (id: string) => void;
+  isDispatching?: boolean;
+  onDispatchClearance?: (id: string) => void;
 }
 
 export function DeclarationDetail({
@@ -27,6 +29,8 @@ export function DeclarationDetail({
   getStatusVisuals,
   isAuditing,
   onAudit,
+  isDispatching = false,
+  onDispatchClearance,
 }: DeclarationDetailProps) {
   if (!selectedDecl) {
     return (
@@ -103,9 +107,75 @@ export function DeclarationDetail({
                 />
                 Re-Auditar
               </button>
+
+              {onDispatchClearance &&
+                selectedDecl.status !== "Green Channel" &&
+                selectedDecl.status !== "Cleared" && (
+                  <button
+                    disabled={isDispatching}
+                    onClick={() => onDispatchClearance(selectedDecl.id)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-50"
+                    title="Emitir Levante de Importación con e-Firma OEA y asentar suplidos"
+                  >
+                    <ShieldCheck
+                      className={`w-3.5 h-3.5 ${isDispatching ? "animate-spin" : ""}`}
+                    />
+                    {isDispatching ? "Firmando..." : "Levante e-Firma (Verde)"}
+                  </button>
+                )}
             </div>
           </div>
         </div>
+
+        {/* e-Firma / SAT / AEAT Verified Seal Banner */}
+        {(selectedDecl.status === "Green Channel" ||
+          selectedDecl.status === "Cleared") && (
+          <div className="mx-6 mt-6 p-4 bg-emerald-950/40 border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-black text-emerald-200">
+                    Levante de Importación Concedido (Canal Verde)
+                  </h4>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    e-Firma OEA Validada
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-400/80 mt-1">
+                  {selectedDecl.efirma?.tamperSealHash ? (
+                    <>
+                      Sello Digital:{" "}
+                      <span className="font-mono text-[10px] text-white">
+                        {selectedDecl.efirma.tamperSealHash.substring(0, 24)}...
+                      </span>{" "}
+                      | Certificado:{" "}
+                      <span className="font-mono text-[10px] text-white">
+                        {selectedDecl.efirma.certificateSerial}
+                      </span>
+                    </>
+                  ) : (
+                    "Despacho autorizado por la Autoridad Aduanera con firma electrónica OEA."
+                  )}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Suplidos (Arancel + IVA) asentados en el submayor contable sin
+                  margen comercial (Zero-Markup Pass-Through).
+                </p>
+              </div>
+            </div>
+            {selectedDecl.shipmentId && (
+              <a
+                href={`/shipment-360?id=${selectedDecl.shipmentId}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/30 text-xs font-bold rounded-xl transition-all whitespace-nowrap shrink-0"
+              >
+                Ver Hito en Shipment 360 →
+              </a>
+            )}
+          </div>
+        )}
 
         {/* DUA Box Layout Structure */}
         <div className="p-6 space-y-6">

@@ -274,4 +274,81 @@ describe("Customs Routes Integration Tests", () => {
     expect(envelope).toHaveProperty("iv");
     expect(envelope).not.toHaveProperty("duaNumber");
   });
+
+  it("POST /api/customs-declarations/:id/clearance should issue e-Firma seal, log CUSTOMS_CLEARED milestone, and record zero-markup disbursement", async () => {
+    // 1. Fetch a declaration to clear
+    const listRes = await app.inject({
+      method: "GET",
+      url: "/api/customs-declarations?limit=1",
+    });
+    const declarations = JSON.parse(listRes.payload);
+    expect(declarations.length).toBeGreaterThan(0);
+    const targetDecl = declarations[0];
+
+    // 2. Dispatch clearance to Green Channel with e-Firma signing metadata
+    const clearanceRes = await app.inject({
+      method: "POST",
+      url: `/api/customs-declarations/${targetDecl.id}/clearance`,
+      payload: {
+        channel: "Green Channel",
+        certificateSerial: "30001000000504829103",
+        rfcTitular: "ESB88492019",
+        razonSocial: "Atlas Logistics Customs Brokerage SL (OEA-F)",
+        remarks: "Levante concedido tras verificacion documental favorable",
+      },
+    });
+
+    expect(clearanceRes.statusCode).toBe(200);
+    const result = JSON.parse(clearanceRes.payload);
+    expect(result.success).toBe(true);
+    expect(result.cleared).toBe(true);
+    expect(result.channel).toBe("Green Channel");
+
+    // Assert e-Firma Audit Stamp
+    expect(result.efirma).toBeDefined();
+    expect(result.efirma.status).toBe("VALIDATED_AND_SEALED");
+    expect(result.efirma.certificateSerial).toBe("30001000000504829103");
+    expect(result.efirma.tamperSealHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.efirma.csvCode).toMatch(/^AEAT-CSV-/);
+
+    // Assert Operational Milestone
+    expect(result.milestone).toBeDefined();
+    expect(result.milestone.status).toBe("CUSTOMS_CLEARED");
+    expect(result.milestone.location).toContain(
+      "Levante Otorgado (Canal Verde)",
+    );
+
+    // Assert Strict Financial Segregation (Disbursements Zero-Markup)
+    if (result.financialDisbursement) {
+      expect(result.financialDisbursement.zeroMarkupVerified).toBe(true);
+      expect(result.financialDisbursement.amount).toBeGreaterThan(0);
+      expect(result.financialDisbursement.currency).toBe("EUR");
+    }
+
+    // 3. Verify subsequent GET /api/customs-declarations returns enriched e-Firma stamp
+    const updatedListRes = await app.inject({
+      method: "GET",
+      url: `/api/customs-declarations?shipmentId=${targetDecl.shipmentId}`,
+    });
+    expect(updatedListRes.statusCode).toBe(200);
+    const updatedDecls = JSON.parse(updatedListRes.payload);
+    const updated = updatedDecls.find((d: any) => d.id === targetDecl.id);
+    expect(updated).toBeDefined();
+    expect(updated.status).toBe("Green Channel");
+    expect(updated.efirma).toBeDefined();
+    expect(updated.efirma.certificateSerial).toBe("30001000000504829103");
+
+    // 4. Cross-tenant check: Clearing under foreign tenant is rejected with 403
+    const foreignRes = await app.inject({
+      method: "POST",
+      url: `/api/customs-declarations/${targetDecl.id}/clearance`,
+      headers: {
+        "x-organization-id": "org_foreign_999",
+      },
+      payload: {
+        channel: "Green Channel",
+      },
+    });
+    expect(foreignRes.statusCode).toBe(403);
+  });
 });

@@ -71,6 +71,7 @@ export function useCustomsClearance() {
     null,
   );
   const [isAuditing, setIsAuditing] = useState(false);
+  const [isDispatching, setIsDispatching] = useState(false);
   const [showCalculatorModal, setShowCalculatorModal] = useState(false);
 
   useEffect(() => {
@@ -200,6 +201,33 @@ export function useCustomsClearance() {
     }
   };
 
+  const dispatchCustomsClearance = async (
+    id: string,
+    options?: { channel?: string; remarks?: string },
+  ) => {
+    try {
+      setIsDispatching(true);
+      const res = await fetch(`/api/customs-declarations/${id}/clearance`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          channel: options?.channel || "Green Channel",
+          remarks: options?.remarks || "Levante e-Firma OEA concedido",
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        await queryClient.invalidateQueries({ queryKey: ["customs"] });
+        await queryClient.invalidateQueries({ queryKey: ["shipments"] });
+        return data;
+      }
+    } catch (err) {
+      console.error("Dispatch clearance error:", err);
+    } finally {
+      setIsDispatching(false);
+    }
+  };
+
   const handleCalculateTariff = async () => {
     try {
       setIsCalculating(true);
@@ -276,6 +304,7 @@ export function useCustomsClearance() {
     greens,
     oranges,
     isAuditing,
+    isDispatching,
     showCalculatorModal,
     setShowCalculatorModal,
     calcParams,
@@ -284,6 +313,7 @@ export function useCustomsClearance() {
     setCalcResult,
     isCalculating,
     runComplianceAudit,
+    dispatchCustomsClearance,
     handleCalculateTariff,
     handleCreateNewDeclaration,
     urlShipmentId,
