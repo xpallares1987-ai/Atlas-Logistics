@@ -6,11 +6,13 @@
  */
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   ArrowLeft,
   CheckCircle2,
   Compass,
+  ExternalLink,
   Leaf,
   Lock,
   Sparkles,
@@ -45,6 +47,7 @@ export const Overview: React.FC<ShipmentOverviewTabProps> = ({
   handleTabChange,
   setActiveActionModal,
 }) => {
+  const navigate = useNavigate();
   return (
     <div className="space-y-6">
       {/* Top Stats Grid */}
@@ -306,7 +309,7 @@ export const Overview: React.FC<ShipmentOverviewTabProps> = ({
             </div>
 
             {/* Customs DUA KPI */}
-            <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+            <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
               <div className="text-[11px] font-medium text-slate-400 flex items-center justify-between">
                 <span>Aduanas (AEAT DUA)</span>
                 <span
@@ -334,6 +337,18 @@ export const Overview: React.FC<ShipmentOverviewTabProps> = ({
                   </span>
                 )}
               </div>
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/customs?shipmentId=${shipmentDetail.shipmentId}&dua=${greenCompliance.customs.mrnNumber}`,
+                  )
+                }
+                className="w-full mt-1 px-2.5 py-1 text-[11px] font-medium rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>Abrir Expediente en Aduanas</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
             </div>
           </div>
         </div>

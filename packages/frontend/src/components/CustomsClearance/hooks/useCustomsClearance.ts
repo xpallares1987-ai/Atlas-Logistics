@@ -4,7 +4,8 @@
  * @module @atlas/frontend/components/CustomsClearance/hooks
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, AlertCircle, Clock } from "lucide-react";
@@ -54,6 +55,10 @@ export function getStatusVisuals(status: string): StatusVisuals {
 
 export function useCustomsClearance() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlShipmentId = searchParams.get("shipmentId");
+  const urlDuaNumber = searchParams.get("dua");
+
   const { data: customsData, isLoading } = useApiQuery<CustomsDeclaration[]>(
     ["customs"],
     "/customs-declarations",
@@ -67,6 +72,34 @@ export function useCustomsClearance() {
   );
   const [isAuditing, setIsAuditing] = useState(false);
   const [showCalculatorModal, setShowCalculatorModal] = useState(false);
+
+  useEffect(() => {
+    if (declarations.length === 0) return;
+    if (urlShipmentId) {
+      const match = declarations.find(
+        (d) =>
+          d.shipmentId === urlShipmentId ||
+          (d.blNumber && d.blNumber.includes(urlShipmentId)),
+      );
+      if (match) {
+        setSelectedDecl(match);
+      }
+    } else if (urlDuaNumber) {
+      const match = declarations.find((d) => d.duaNumber === urlDuaNumber);
+      if (match) {
+        setSelectedDecl(match);
+      }
+    }
+  }, [declarations, urlShipmentId, urlDuaNumber]);
+
+  const clearUrlFilter = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("shipmentId");
+      next.delete("dua");
+      return next;
+    });
+  };
 
   // Live Tariff Calculator State
   const [calcParams, setCalcParams] = useState<TariffCalcParams>({
@@ -83,11 +116,19 @@ export function useCustomsClearance() {
 
   const filteredDeclarations = useMemo(() => {
     return declarations.filter((dec) => {
+      if (
+        urlShipmentId &&
+        dec.shipmentId !== urlShipmentId &&
+        (!dec.blNumber || !dec.blNumber.includes(urlShipmentId))
+      ) {
+        return false;
+      }
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         (dec.blNumber && dec.blNumber.toLowerCase().includes(q)) ||
         (dec.duaNumber && dec.duaNumber.toLowerCase().includes(q)) ||
         (dec.hsCode && dec.hsCode.toLowerCase().includes(q)) ||
+        (dec.shipmentId && dec.shipmentId.toLowerCase().includes(q)) ||
         dec.id.toLowerCase().includes(q);
 
       const matchesFilter =
@@ -102,7 +143,7 @@ export function useCustomsClearance() {
                 : true;
       return matchesSearch && matchesFilter;
     });
-  }, [declarations, searchQuery, activeFilter]);
+  }, [declarations, searchQuery, activeFilter, urlShipmentId]);
 
   // Set initial selected declaration
   useMemo(() => {
@@ -245,5 +286,7 @@ export function useCustomsClearance() {
     runComplianceAudit,
     handleCalculateTariff,
     handleCreateNewDeclaration,
+    urlShipmentId,
+    clearUrlFilter,
   };
 }

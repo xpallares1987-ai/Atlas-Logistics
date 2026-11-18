@@ -91,6 +91,7 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         limit?: string;
         offset?: string;
         cursor?: string;
+        shipmentId?: string;
       };
       const boundedLimit = Math.min(
         Math.max(parseInt(query.limit || "100", 10) || 100, 1),
@@ -102,6 +103,11 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
       );
 
       const tenantCondition = scopeByTenant(shipments.companyId);
+      const conditions: any[] = [];
+      if (tenantCondition) conditions.push(tenantCondition);
+      if (query.shipmentId) {
+        conditions.push(eq(customsDeclarations.shipmentId, query.shipmentId));
+      }
 
       const baseQuery = db
         .select({
@@ -114,7 +120,7 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
         .leftJoin(shipments, eq(customsDeclarations.shipmentId, shipments.id));
 
       const records = await (
-        tenantCondition ? baseQuery.where(tenantCondition) : baseQuery
+        conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery
       )
         .orderBy(desc(customsDeclarations.createdAt))
         .limit(boundedLimit)

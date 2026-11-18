@@ -5,6 +5,8 @@ import {
   bookings,
   shipments,
   shipmentContainers,
+  customsDeclarations,
+  hsCodes,
 } from "../db/schema/operations.js";
 import { shipmentEventLogs } from "../db/schema/audit.js";
 import { documents } from "../db/schema/support.js";
@@ -556,6 +558,11 @@ export async function confirmBookingToShipment(
       .from(drayageTransportOrders)
       .where(eq(drayageTransportOrders.shipmentId, details.shipmentId))
       .limit(1);
+    const existingDecl = await db
+      .select()
+      .from(customsDeclarations)
+      .where(eq(customsDeclarations.shipmentId, details.shipmentId))
+      .limit(1);
 
     return {
       alreadyConfirmed: true,
@@ -570,6 +577,7 @@ export async function confirmBookingToShipment(
       events: existingEvents,
       blDocument: existingDoc[0] || null,
       drayageOrder: existingDrayage[0] || null,
+      customsDeclaration: existingDecl[0] || null,
     };
   }
 
@@ -993,6 +1001,141 @@ export async function confirmBookingToShipment(
     }
   }
 
+  // 5.5 Auto-Materialize Customs Clearance Declaration Docket (DUA) if not present
+  let createdCustomsDeclaration: any = null;
+  try {
+    const existingDecl = await db
+      .select()
+      .from(customsDeclarations)
+      .where(eq(customsDeclarations.shipmentId, shipmentId))
+      .limit(1);
+
+    if (existingDecl.length > 0) {
+      createdCustomsDeclaration = existingDecl[0];
+    } else {
+      const destUnlocode = (bkg.destination || "ESBCN").toUpperCase();
+      const brokerCandidates = await db
+        .select()
+        .from(addresses)
+        .where(
+          and(
+            or(
+              eq(addresses.addressType, "CB"),
+              eq(addresses.addressType, "CUSTOMS_BROKER"),
+            ),
+            eq(addresses.unLocode, destUnlocode),
+          ),
+        )
+        .limit(1);
+
+      const resolvedBroker =
+        brokerCandidates[0] ||
+        (
+          await db
+            .select()
+            .from(addresses)
+            .where(
+              or(
+                eq(addresses.addressType, "CB"),
+                eq(addresses.addressType, "CUSTOMS_BROKER"),
+              ),
+            )
+            .limit(1)
+        )[0];
+
+      const hsCodeRows = await db
+        .select()
+        .from(hsCodes)
+        .where(eq(hsCodes.code, "8504.40.90.90"))
+        .limit(1);
+      const resolvedHs =
+        hsCodeRows[0] || (await db.select().from(hsCodes).limit(1))[0];
+
+      const declId = `dec_${uuidv4().substring(0, 8)}`;
+      const randDua = crypto.randomInt(10000000, 99999999);
+      const duaNumber = `26ES000811${randDua}`;
+      const customsVal = details.rateAmount ? details.rateAmount * 8 : 25000;
+      const dutyRate = resolvedHs?.adValoremDuty ?? 0.033;
+      const vatRateVal = resolvedHs?.vatRate ?? 0.21;
+      const dutyAmt = Math.round(customsVal * dutyRate * 100) / 100;
+      const taxAmt =
+        Math.round((customsVal + dutyAmt) * vatRateVal * 100) / 100;
+      const totalPay = Math.round((dutyAmt + taxAmt) * 100) / 100;
+      const origCountry =
+        bkg.origin && bkg.origin.length >= 2
+          ? bkg.origin.substring(0, 2).toUpperCase()
+          : "CN";
+      const destCountry =
+        bkg.destination && bkg.destination.length >= 2
+          ? bkg.destination.substring(0, 2).toUpperCase()
+          : "ES";
+
+      const duaDataJson = JSON.stringify({
+        box1_declaration: "IM",
+        box2_consignor: shipperNameVal,
+        box8_consignee: consigneeNameVal,
+        box14_declarant: resolvedBroker?.companyName || "AEO Customs Broker",
+        box15_countryOfExport: origCountry,
+        box17_countryOfDestination: destCountry,
+        box33_commodityCode: resolvedHs?.code || "8504.40.90.90",
+        box38_netMassKg: weightKg,
+        box47_calculationOfTaxes: {
+          customsValue: customsVal,
+          dutiesAmount: dutyAmt,
+          taxesAmount: taxAmt,
+          totalPayable: totalPay,
+        },
+      });
+
+      await db.insert(customsDeclarations).values({
+        id: declId,
+        shipmentId,
+        brokerId: resolvedBroker ? resolvedBroker.id : null,
+        hsCodeId: resolvedHs ? resolvedHs.id : null,
+        blNumber: blReference,
+        duaNumber,
+        type: "Import",
+        customsValue: customsVal,
+        dutiesAmount: dutyAmt,
+        taxesAmount: taxAmt,
+        totalPayable: totalPay,
+        status: "Orange Channel",
+        eoriNumber: "ESA12345678",
+        originCountry: origCountry,
+        destinationCountry: destCountry,
+        duaData: duaDataJson,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const customsEvt = {
+        id: `evt_${uuidv4().substring(0, 8)}`,
+        shipmentId,
+        status: "CUSTOMS_DECLARATION_LODGED",
+        location: `Customs Port Entry (${destUnlocode}) — DUA ${duaNumber} (Canal Naranja)`,
+        recordedAt: new Date(now.getTime() + 4000),
+      };
+      await db.insert(shipmentEventLogs).values(customsEvt);
+      milestoneEvents.push(customsEvt);
+
+      createdCustomsDeclaration = {
+        id: declId,
+        shipmentId,
+        duaNumber,
+        blNumber: blReference,
+        status: "Orange Channel",
+        customsValue: customsVal,
+        totalPayable: totalPay,
+        brokerName: resolvedBroker?.companyName || "AEO Customs Broker",
+      };
+    }
+  } catch (customsErr) {
+    console.error(
+      "Failed to auto-materialize customs declaration:",
+      customsErr,
+    );
+  }
+
   // 6. Update Booking Status to CONFIRMED with full linkage
   const updatedDetails = {
     ...details,
@@ -1004,6 +1147,7 @@ export async function confirmBookingToShipment(
     containerNumber,
     sealNumber,
     drayageOrderId: createdDrayageOrder?.id || details.drayageOrderId || null,
+    customsDeclarationId: createdCustomsDeclaration?.id || null,
     confirmedAt: now.toISOString(),
   };
 
@@ -1069,6 +1213,7 @@ export async function confirmBookingToShipment(
       payloadData: blPayload,
     },
     drayageOrder: createdDrayageOrder,
+    customsDeclaration: createdCustomsDeclaration,
   };
 }
 

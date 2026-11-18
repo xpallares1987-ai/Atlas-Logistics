@@ -5,7 +5,15 @@
  * @see {@link docs/adr/0020-modular-decomposition-guardrails.md}
  */
 
-import { Package, CheckCircle2, Truck, X, Download } from "lucide-react";
+import {
+  Package,
+  CheckCircle2,
+  Truck,
+  X,
+  Download,
+  ExternalLink,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@atlas/ui";
 import { downloadDraftBLModalPdf } from "../../../utils/booking-pdf.utils";
 
@@ -51,9 +59,10 @@ export interface BookingInboxItem {
 
 export interface ConversionResult {
   booking?: { referenceNumber?: string };
-  shipment?: { trackingNumber?: string };
+  shipment?: { id?: string; trackingNumber?: string };
   milestones?: unknown[];
   blDocument?: { documentReference?: string };
+  customsDeclaration?: { id?: string; duaNumber?: string; status?: string };
   [key: string]: unknown;
 }
 
@@ -82,6 +91,7 @@ export function BookingInbox({
   onOpenConfirmModal,
   onCancelBooking,
 }: BookingInboxProps) {
+  const navigate = useNavigate();
   return (
     <div className="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
@@ -111,34 +121,81 @@ export function BookingInbox({
       </div>
 
       {lastConversionResult && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-            <div className="text-xs">
-              <span className="font-bold text-emerald-300">
-                ¡Conversión Operativa Completada!
-              </span>{" "}
-              Reserva{" "}
-              <span className="font-mono font-bold text-white">
-                {lastConversionResult.booking?.referenceNumber}
-              </span>{" "}
-              → Expedición Activa{" "}
-              <span className="font-mono font-bold text-emerald-400">
-                {lastConversionResult.shipment?.trackingNumber}
-              </span>{" "}
-              ({lastConversionResult.milestones?.length || 3} hitos creados) y
-              Borrador B/L{" "}
-              <span className="font-mono font-bold text-indigo-300">
-                {lastConversionResult.blDocument?.documentReference}
-              </span>
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg shadow-emerald-950/20">
+          <div className="flex items-start sm:items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5 sm:mt-0" />
+            <div className="text-xs space-y-1">
+              <div>
+                <span className="font-bold text-emerald-300">
+                  ¡Conversión Operativa Completada!
+                </span>{" "}
+                Reserva{" "}
+                <span className="font-mono font-bold text-white">
+                  {lastConversionResult.booking?.referenceNumber}
+                </span>{" "}
+                → Expedición Activa{" "}
+                <span className="font-mono font-bold text-emerald-400">
+                  {lastConversionResult.shipment?.trackingNumber}
+                </span>{" "}
+                ({lastConversionResult.milestones?.length || 3} hitos creados)
+              </div>
+              <div className="text-slate-300 flex flex-wrap items-center gap-x-2 font-mono text-[11px]">
+                <span>
+                  B/L:{" "}
+                  <strong className="text-indigo-300">
+                    {lastConversionResult.blDocument?.documentReference ||
+                      "Generado"}
+                  </strong>
+                </span>
+                {lastConversionResult.customsDeclaration?.duaNumber && (
+                  <span>
+                    • DUA:{" "}
+                    <strong className="text-amber-300">
+                      {lastConversionResult.customsDeclaration.duaNumber}
+                    </strong>{" "}
+                    ({lastConversionResult.customsDeclaration.status})
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <button
-            onClick={onClearConversionResult}
-            className="text-xs text-slate-400 hover:text-white self-end sm:self-center"
-          >
-            Cerrar
-          </button>
+          <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+            {lastConversionResult.shipment?.id && (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/shipment-360?id=${lastConversionResult.shipment?.id}`,
+                  )
+                }
+                className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors flex items-center gap-1.5 shadow"
+              >
+                <span>Shipment 360</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {lastConversionResult.shipment?.id && (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/customs?shipmentId=${lastConversionResult.shipment?.id}`,
+                  )
+                }
+                className="px-3 py-1.5 rounded-lg bg-amber-600/90 hover:bg-amber-500 text-white text-xs font-medium transition-colors flex items-center gap-1.5 shadow"
+              >
+                <span>Aduanas (DUA)</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              onClick={onClearConversionResult}
+              className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+              title="Cerrar notificación"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 

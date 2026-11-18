@@ -100,15 +100,22 @@ describe("2-Phase Booking-to-Shipment Conversion Lifecycle", () => {
     expect(result.container).toBeDefined();
     expect(result.container.containerNumber).toBe("MSKU8473621");
 
-    // 4. 3 Standard Operational Milestones initialized
+    // 4. 4 Standard Operational Milestones initialized
     expect(Array.isArray(result.milestones)).toBe(true);
-    expect(result.milestones.length).toBe(3);
+    expect(result.milestones.length).toBe(4);
     const statuses = result.milestones.map((m: any) => m.status);
     expect(statuses).toContain("BOOKING_CONFIRMED");
     expect(statuses).toContain("CONTAINER_ASSIGNED");
     expect(statuses).toContain("CARGO_READY_FOR_RECEIPT");
+    expect(statuses).toContain("CUSTOMS_DECLARATION_LODGED");
 
-    // 5. Draft Bill of Lading emitted and persisted in documents
+    // 5. Customs Declaration Docket initialized
+    expect(result.customsDeclaration).toBeDefined();
+    expect(result.customsDeclaration.duaNumber).toMatch(/^26ES000811\d{8}$/);
+    expect(result.customsDeclaration.status).toBe("Orange Channel");
+    expect(result.customsDeclaration.shipmentId).toBe(result.shipment.id);
+
+    // 6. Draft Bill of Lading emitted and persisted in documents
     expect(result.blDocument).toBeDefined();
     expect(result.blDocument.type).toBe("BILL_OF_LADING");
     expect(result.blDocument.status).toBe("DRAFT");
@@ -132,6 +139,7 @@ describe("2-Phase Booking-to-Shipment Conversion Lifecycle", () => {
     expect(body.alreadyConfirmed).toBe(true);
     expect(body.shipment).toBeDefined();
     expect(body.blDocument).toBeDefined();
+    expect(body.customsDeclaration).toBeDefined();
   });
 
   it("retrieves the generated Draft Bill of Lading via GET /api/bookings/:id/bol", async () => {
