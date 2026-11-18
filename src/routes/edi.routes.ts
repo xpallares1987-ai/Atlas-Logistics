@@ -15,6 +15,14 @@ import {
   EdiDispatcherService,
 } from "../services/edi/index.js";
 import { z } from "zod";
+import { db } from "../db/index.js";
+import {
+  shipments,
+  shipmentContainers,
+  customsDeclarations,
+} from "../db/schema/operations.js";
+import { shipmentEventLogs } from "../db/schema/audit.js";
+import { eq } from "drizzle-orm";
 
 // ============================================================================
 // SCHEMAS & TYPE DEFINITIONS
@@ -25,7 +33,7 @@ const inboundSchema = z.object({
 });
 
 const generateSchema = z.object({
-  format: z.enum(["IFTMIN", "204", "304", "310"]),
+  format: z.enum(["IFTMIN", "204", "304", "310", "315", "IFTSTA"]),
   bookingReference: z.string().min(1),
   partnerId: z.string().optional(),
   senderId: z.string().optional(),
@@ -207,6 +215,294 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
   });
+
+  /**
+   * Dispatch Carrier Customs Release Status (ANSI X12 315 / UN/EDIFACT IFTSTA)
+   */
+  fastify.post(
+    "/shipments/:shipmentId/dispatch-customs-release",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const body = (request.body || {}) as {
+          standard?: "ANSI_X12" | "EDIFACT";
+          carrierScac?: string;
+          remarks?: string;
+        };
+
+        const [shipment] = await db
+          .select()
+          .from(shipments)
+          .where(eq(shipments.id, shipmentId))
+          .limit(1);
+
+        if (!shipment) {
+          return reply.status(404).send({
+            success: false,
+            error: `Shipment '${shipmentId}' not found`,
+          });
+        }
+
+        const containers = await db
+          .select()
+          .from(shipmentContainers)
+          .where(eq(shipmentContainers.shipmentId, shipmentId))
+          .limit(1);
+        const primaryContainer = containers[0];
+
+        const declarations = await db
+          .select()
+          .from(customsDeclarations)
+          .where(eq(customsDeclarations.shipmentId, shipmentId))
+          .limit(1);
+        const declaration = declarations[0];
+
+        const standard = body.standard || "ANSI_X12";
+        const carrierScac = body.carrierScac || "MSCU";
+        const bookingRef =
+          shipment.trackingNumber || `BK-${shipmentId.slice(0, 8)}`;
+        const blNumber = `BL-${shipment.trackingNumber || shipmentId.slice(0, 8)}`;
+        const containerNumber =
+          primaryContainer?.containerNumber || "MSKU9284712";
+        const sealNumber = primaryContainer?.sealNumber || "SL-928471";
+        const portLocode = shipment.destination?.slice(0, 5) || "ESVLC";
+
+        let result;
+        if (standard === "ANSI_X12") {
+          result = await EdiDispatcherService.generateOutbound({
+            format: "315",
+            bookingReference: bookingRef,
+            senderId: "ATLASLOG",
+            receiverId: carrierScac,
+            instructionData: {
+              senderId: "ATLASLOG",
+              receiverId: carrierScac,
+              controlNumber: Math.floor(
+                100000000 + Math.random() * 900000000,
+              ).toString(),
+              bookingReference: bookingRef,
+              billOfLadingNumber: blNumber,
+              containerNumber,
+              sealNumber,
+              vesselName: shipment.vesselName || "VESSEL",
+              voyageNumber: shipment.voyageNumber || "2601W",
+              carrierScac,
+              statusCode: "CR",
+              milestone: "CUSTOMS_CLEARED",
+              portLocode,
+              eventTimestamp: new Date().toISOString(),
+              isException: false,
+            },
+          });
+        } else {
+          result = await EdiDispatcherService.generateOutbound({
+            format: "IFTSTA",
+            bookingReference: bookingRef,
+            senderId: "ATLASLOG",
+            receiverId: carrierScac,
+            instructionData: {
+              statusCode: "74",
+              bookingReference: bookingRef,
+              billOfLading: blNumber,
+              containerNumber,
+              vesselName: shipment.vesselName || "VESSEL",
+              voyageNumber: shipment.voyageNumber || "2601W",
+              locationCode: portLocode,
+              locationName: "PORT TERMINAL",
+              eventTimestamp: new Date().toISOString(),
+              exceptionReason:
+                body.remarks ||
+                (declaration
+                  ? `DUA ${declaration.duaNumber} CLEARED`
+                  : undefined),
+            },
+          });
+        }
+
+        const eventId = `evt_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
+        await db.insert(shipmentEventLogs).values({
+          id: eventId,
+          shipmentId,
+          status: "CARRIER_EDI_NOTIFIED",
+          location: `${portLocode} — Dispatched ${standard} status (${result.format}) to ${carrierScac}`,
+          recordedAt: new Date(),
+        });
+
+        return reply.status(201).send({
+          success: true,
+          data: result,
+          milestone: {
+            id: eventId,
+            status: "CARRIER_EDI_NOTIFIED",
+          },
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to dispatch carrier customs release EDI";
+        return reply.status(500).send({
+          success: false,
+          error: message,
+        });
+      }
+    },
+  );
+
+  /**
+   * Dispatch Shipping Instructions (ANSI X12 304 / UN/EDIFACT IFTMIN) with SOLAS VGM
+   */
+  fastify.post(
+    "/shipments/:shipmentId/dispatch-shipping-instructions",
+    async (request, reply) => {
+      try {
+        const { shipmentId } = request.params as { shipmentId: string };
+        const body = (request.body || {}) as {
+          standard?: "ANSI_X12" | "EDIFACT";
+          carrierScac?: string;
+          vgmWeightKg?: number;
+        };
+
+        const [shipment] = await db
+          .select()
+          .from(shipments)
+          .where(eq(shipments.id, shipmentId))
+          .limit(1);
+
+        if (!shipment) {
+          return reply.status(404).send({
+            success: false,
+            error: `Shipment '${shipmentId}' not found`,
+          });
+        }
+
+        const containers = await db
+          .select()
+          .from(shipmentContainers)
+          .where(eq(shipmentContainers.shipmentId, shipmentId))
+          .limit(1);
+        const primaryContainer = containers[0];
+
+        const standard = body.standard || "ANSI_X12";
+        const carrierScac = body.carrierScac || "MSCU";
+        const bookingRef =
+          shipment.trackingNumber || `BK-${shipmentId.slice(0, 8)}`;
+        const blNumber = `BL-${shipment.trackingNumber || shipmentId.slice(0, 8)}`;
+        const containerNumber =
+          primaryContainer?.containerNumber || "MSKU9284712";
+        const sealNumber = primaryContainer?.sealNumber || "SL-928471";
+        const vgmKg = body.vgmWeightKg || primaryContainer?.weight || 24500;
+
+        let result;
+        if (standard === "ANSI_X12") {
+          result = await EdiDispatcherService.generateOutbound({
+            format: "304",
+            bookingReference: bookingRef,
+            senderId: "ATLASLOG",
+            receiverId: carrierScac,
+            instructionData: {
+              bookingReference: bookingRef,
+              billOfLadingNumber: blNumber,
+              carrierScac,
+              vesselName: shipment.vesselName || "MSC OSCAR",
+              voyageNumber: shipment.voyageNumber || "2601W",
+              shipper: {
+                name: "Atlas Global Forwarding SL",
+                address: "Av. Port 42",
+                city: "Barcelona",
+                state: "CT",
+                postalCode: "08039",
+                countryCode: "ES",
+              },
+              consignee: {
+                name: "Continental Distribution Hub LLC",
+                address: "420 Broadway Ave",
+                city: "New York",
+                state: "NY",
+                postalCode: "10013",
+                countryCode: "US",
+              },
+              portOfLoading: {
+                locode: "ESBCN",
+                portName: "Barcelona Container Terminal",
+              },
+              portOfDischarge: {
+                locode: "USNYC",
+                portName: "New York Red Hook Terminal",
+              },
+              container: {
+                containerNumber,
+                equipmentType: "40HC",
+                sealNumber,
+                grossWeightKg: vgmKg,
+                verifiedGrossMassKg: vgmKg,
+                vgmVerificationMethod: "METHOD_1",
+                vgmAuthorizedPerson: "ATLAS LOGISTICS DECLARANT",
+              },
+              cargo: {
+                description:
+                  "Commercial Freight Goods - Electronics & Industrial Components",
+                hsCode: "85044090",
+                grossWeightKg: vgmKg - 3800,
+                volumeCbm: 65.4,
+                packageCount: 480,
+                packageType: "PK",
+              },
+            },
+          });
+        } else {
+          result = await EdiDispatcherService.generateOutbound({
+            format: "IFTMIN",
+            bookingReference: bookingRef,
+            senderId: "ATLASLOG",
+            receiverId: carrierScac,
+            instructionData: {
+              bookingReference: bookingRef,
+              vesselName: shipment.vesselName || "MSC OSCAR",
+              voyageNumber: shipment.voyageNumber || "2601W",
+              portOfLoading: "ESBCN",
+              portOfDischarge: "USNYC",
+              shipperName: "Atlas Global Forwarding SL",
+              consigneeName: "Continental Distribution Hub LLC",
+              containerNumber,
+              sealNumber,
+              grossWeightKg: vgmKg,
+              verifiedGrossMassKg: vgmKg,
+              goodsDescription:
+                "Commercial Freight Goods - Electronics & Industrial Components",
+            },
+          });
+        }
+
+        const eventId = `evt_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
+        await db.insert(shipmentEventLogs).values({
+          id: eventId,
+          shipmentId,
+          status: "SHIPPING_INSTRUCTIONS_FILED",
+          location: `Barcelona Terminal — Dispatched Shipping Instructions (${result.format}) to ${carrierScac} [VGM: ${vgmKg}kg]`,
+          recordedAt: new Date(),
+        });
+
+        return reply.status(201).send({
+          success: true,
+          data: result,
+          milestone: {
+            id: eventId,
+            status: "SHIPPING_INSTRUCTIONS_FILED",
+          },
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to dispatch Shipping Instructions EDI";
+        return reply.status(500).send({
+          success: false,
+          error: message,
+        });
+      }
+    },
+  );
 
   /**
    * Retrieve historical audit ledger of interchanges

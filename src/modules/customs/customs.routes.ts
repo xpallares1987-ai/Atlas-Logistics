@@ -10,6 +10,7 @@ import {
 import { efirmaAuditStamps } from "../../db/schema/efirma.js";
 import { costs, revenues } from "../../db/schema/finance.js";
 import { shipmentEventLogs } from "../../db/schema/audit.js";
+import { scmOutboxMessages } from "../../db/schema/scm_foundation.js";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { PDFService, CustomsData } from "../../services/pdf.service.js";
 import { TariffService } from "./tariff.service.js";
@@ -512,6 +513,37 @@ const customsRoutes: FastifyPluginAsync = async (fastify, opts) => {
             channel: "GREEN",
             duaReference: decl.duaNumber || decl.id,
             totalDutyPayable: totalDisbursement,
+          });
+
+          // 6. Asynchronous Outbox Enqueue (Rule 3 of atlas-b2b-edi-gateway)
+          const outboxEventId = `evt_outbox_cr_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
+          await db.insert(scmOutboxMessages).values({
+            eventId: outboxEventId,
+            eventType: "CARRIER_EDI_CUSTOMS_RELEASE",
+            schemaVersion: 1,
+            producerContext: "customs-clearance",
+            aggregateType: "SHIPMENT",
+            aggregateId: decl.shipmentId,
+            aggregateVersion: 1,
+            correlationId: decl.duaNumber || decl.id,
+            causationId: decl.id,
+            actorContextJson: JSON.stringify({
+              userId: "customs_broker",
+              role: "CUSTOMS_AGENT",
+              stationLocode: "ESBCN",
+            }),
+            payloadJson: JSON.stringify({
+              declarationId: decl.id,
+              duaNumber: decl.duaNumber,
+              shipmentId: decl.shipmentId,
+              status: "CUSTOMS_CLEARED",
+              channel: "Green Channel",
+              csvCode: csvRef,
+              clearedAt: now.toISOString(),
+              totalDisbursement,
+            }),
+            status: "PENDING",
+            occurredAt: now,
           });
         }
 

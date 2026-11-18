@@ -399,4 +399,84 @@ describe("B2B Interoperability Suite: DCSA 3.0 Event Hub & Ocean EDI (304, 310, 
       expect(result.acknowledgment).toContain("AK9*A");
     });
   });
+
+  // ==========================================================================
+  // SECTION 5: OUTBOUND CARRIER DISPATCH (EDI 315 / 304) & OUTBOX PATTERN
+  // ==========================================================================
+  describe("Outbound Carrier EDI Dispatch & Outbox Automation", () => {
+    it("generates and round-trips ANSI X12 315 Customs Release status event", () => {
+      const statusEvent = {
+        senderId: "ATLASLOG",
+        receiverId: "MSCU",
+        controlNumber: "000000995",
+        bookingReference: "BK-2026-67116",
+        billOfLadingNumber: "BL-ATLS-2026-00001",
+        containerNumber: "MSKU9284712",
+        sealNumber: "SL-928471",
+        vesselName: "MAERSK MC-KINNEY MOLLER",
+        voyageNumber: "614W",
+        statusCode: "CR",
+        milestone: "CUSTOMS_CLEARED",
+        portLocode: "ESBCN",
+        eventTimestamp: new Date().toISOString(),
+        isException: false,
+      };
+
+      const payload = X12Service.generate315(statusEvent, "ATLASLOG", "MSCU");
+
+      expect(payload).toContain("GS*QO*ATLASLOG*MSCU*");
+      expect(payload).toContain("ST*315*0001~");
+      expect(payload).toContain("*CR*");
+      expect(payload).toContain("N9*BM*BL-ATLS-2026-00001~");
+      expect(payload).toContain("N9*BN*BK-2026-67116~");
+
+      const ast = EdiTokenizer.tokenize(payload);
+      const parsed = X12Service.parse315(ast);
+      expect(parsed.length).toBe(1);
+      expect(parsed[0].milestone).toBe("CUSTOMS_CLEARED");
+      expect(parsed[0].statusCode).toBe("CR");
+      expect(parsed[0].bookingReference).toBe("BK-2026-67116");
+    });
+
+    it("POST /api/edi/shipments/:id/dispatch-customs-release generates EDI 315 and enqueues outbox task", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/edi/shipments/sh_demo_01/dispatch-customs-release",
+        payload: {
+          standard: "ANSI_X12",
+          carrierScac: "MSCU",
+          remarks: "Levante concedido e-Firma OEA",
+        },
+      });
+
+      expect(res.statusCode).toBe(201);
+      const json = JSON.parse(res.payload);
+      expect(json.success).toBe(true);
+      expect(json.data.format).toBe("315");
+      expect(json.data.rawPayload).toContain("ST*315*0001~");
+      expect(json.data.outboxEventId).toMatch(/^evt_outbox_edi_/);
+      expect(json.milestone.status).toBe("CARRIER_EDI_NOTIFIED");
+    });
+
+    it("POST /api/edi/shipments/:id/dispatch-shipping-instructions generates EDI 304 with SOLAS VGM", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/edi/shipments/sh_demo_01/dispatch-shipping-instructions",
+        payload: {
+          standard: "ANSI_X12",
+          carrierScac: "MSCU",
+          vgmWeightKg: 24500,
+        },
+      });
+
+      expect(res.statusCode).toBe(201);
+      const json = JSON.parse(res.payload);
+      expect(json.success).toBe(true);
+      expect(json.data.format).toBe("304");
+      expect(json.data.rawPayload).toContain("ST*304*0001~");
+      expect(json.data.rawPayload).toContain("W09*24500*K*SM1*");
+      expect(json.data.outboxEventId).toMatch(/^evt_outbox_edi_/);
+      expect(json.milestone.status).toBe("SHIPPING_INSTRUCTIONS_FILED");
+    });
+  });
 });

@@ -280,6 +280,10 @@ export class X12Service {
         isException = true;
         reason = "Retención aduanera o inspección en terminal.";
         break;
+      case "CR":
+      case "CL":
+        milestone = "CUSTOMS_CLEARED";
+        break;
       case "RL":
       case "RO":
         milestone = "ROLLOVER";
@@ -452,6 +456,75 @@ export class X12Service {
     segments.push(
       `L3*${invoice.totalWeightKg.toFixed(0)}*K*${invoice.totalVolumeCbm.toFixed(1)}*X*${invoice.totalAmount.toFixed(2)}~`,
     );
+
+    const seCount = segments.length - 2 + 1;
+    segments.push(`SE*${seCount}*0001~`);
+    segments.push(`GE*1*${grpCtrl}~`);
+    segments.push(`IEA*1*${controlNum}~`);
+
+    return segments.join("\n");
+  }
+
+  /**
+   * Generate an official ANSI X12 315 (Ocean Status Details - e.g. Customs Release, Departure, Arrival)
+   */
+  public static generate315(
+    event: X12OceanStatusEvent,
+    senderId: string = "ATLASLOG",
+    receiverId: string = "CARRIER_EDI",
+  ): string {
+    const now = new Date();
+    const dateStr = now.toISOString().slice(2, 10).replace(/-/g, "");
+    const fullDate = now.toISOString().slice(0, 10).replace(/-/g, "");
+    const timeStr = now.toTimeString().slice(0, 4).replace(/:/g, "");
+    const controlNum = (
+      event.controlNumber ||
+      Math.floor(100000000 + Math.random() * 900000000).toString()
+    ).padStart(9, "0");
+    const grpCtrl = Math.floor(1000 + Math.random() * 9000).toString();
+
+    const paddedSender = senderId.padEnd(15, " ");
+    const paddedReceiver = receiverId.padEnd(15, " ");
+
+    const segments: string[] = [];
+
+    segments.push(
+      `ISA*00*          *00*          *ZZ*${paddedSender}*ZZ*${paddedReceiver}*${dateStr}*${timeStr}*U*00401*${controlNum}*0*P*>~`,
+    );
+    segments.push(
+      `GS*QO*${senderId}*${receiverId}*${fullDate}*${timeStr}*${grpCtrl}*X*004010~`,
+    );
+    segments.push(`ST*315*0001~`);
+
+    const containerFull = event.containerNumber || "MSKU0000000";
+    const prefix = containerFull.slice(0, 4);
+    const num = containerFull.slice(4);
+    const loc = event.portLocode || "ESVLC";
+    const status = event.statusCode || "CR";
+
+    segments.push(
+      `B4*N*12*${status}*${fullDate}*${timeStr}*${loc}*${prefix}*${num}~`,
+    );
+
+    if (event.billOfLadingNumber) {
+      segments.push(`N9*BM*${event.billOfLadingNumber}~`);
+    }
+    if (event.bookingReference) {
+      segments.push(`N9*BN*${event.bookingReference}~`);
+    }
+    if (event.sealNumber) {
+      segments.push(`N9*SN*${event.sealNumber}~`);
+    }
+
+    if (event.vesselName || event.voyageNumber) {
+      segments.push(
+        `Q2*9839420*US*${fullDate}***24500*K*${event.voyageNumber || "V001"}**${event.vesselName || "VESSEL"}~`,
+      );
+    }
+
+    if (event.portLocode) {
+      segments.push(`R4*R*UN*${event.portLocode}***PORT TERMINAL~`);
+    }
 
     const seCount = segments.length - 2 + 1;
     segments.push(`SE*${seCount}*0001~`);

@@ -7,6 +7,7 @@ import {
   shipments,
 } from "../../db/schema/index.js";
 import { eq, desc } from "drizzle-orm";
+import { scmOutboxMessages } from "../../db/schema/scm_foundation.js";
 import { EdiTokenizer, EdiDocumentAST } from "./edi-tokenizer.js";
 import { EdifactService, EdifactIftminInstruction } from "./edifact.service.js";
 import { EdifactDesadvService } from "./edifact-desadv.service.js";
@@ -490,10 +491,10 @@ export class EdiDispatcherService {
   }
 
   /**
-   * Generate and persist an outbound EDI message (e.g. IFTMIN or X12 204)
+   * Generate and persist an outbound EDI message (e.g. IFTMIN, 304, 315, 310, IFTSTA, 204)
    */
   public static async generateOutbound(options: {
-    format: "IFTMIN" | "204" | "304" | "310";
+    format: "IFTMIN" | "204" | "304" | "310" | "315" | "IFTSTA";
     bookingReference: string;
     partnerId?: string;
     senderId?: string;
@@ -504,6 +505,7 @@ export class EdiDispatcherService {
     controlNumber: string;
     rawPayload: string;
     format: string;
+    outboxEventId: string;
   }> {
     const interchangeId = `ic_out_${crypto.randomUUID().substring(0, 8)}`;
     const controlNum = Math.floor(100000 + Math.random() * 900000).toString();
@@ -517,12 +519,26 @@ export class EdiDispatcherService {
         options.senderId || "ATLASLOG",
         options.receiverId || "MAERSKLINE",
       );
+    } else if (options.format === "IFTSTA") {
+      standard = "EDIFACT";
+      rawPayload = EdifactIftstaService.generateIFTSTA(
+        options.instructionData as any,
+        options.senderId || "ATLASLOG",
+        options.receiverId || "CARRIER_EDI",
+      );
     } else if (options.format === "304") {
       standard = "ANSI_X12";
       rawPayload = X12Service.generate304(
         options.instructionData as X12OceanShippingInstruction,
         options.senderId || "ATLASLOG",
         options.receiverId || "MAERSKLINE",
+      );
+    } else if (options.format === "315") {
+      standard = "ANSI_X12";
+      rawPayload = X12Service.generate315(
+        options.instructionData as X12OceanStatusEvent,
+        options.senderId || "ATLASLOG",
+        options.receiverId || "CARRIER_EDI",
       );
     } else if (options.format === "310") {
       standard = "ANSI_X12";
@@ -567,6 +583,32 @@ export class EdiDispatcherService {
       processedAt: new Date(),
     });
 
+    // Enqueue into platform_gov_outbox_messages (Transactional Outbox Pattern - Rule 3 of atlas-b2b-edi-gateway)
+    const outboxEventId = `evt_outbox_edi_${crypto.randomUUID().substring(0, 8)}`;
+    await db.insert(scmOutboxMessages).values({
+      eventId: outboxEventId,
+      eventType: "EDI_INTERCHANGE_DISPATCHED",
+      schemaVersion: 1,
+      producerContext: "edi-dispatcher",
+      aggregateType: "EDI_INTERCHANGE",
+      aggregateId: interchangeId,
+      aggregateVersion: 1,
+      correlationId: controlNum,
+      causationId: options.bookingReference || interchangeId,
+      actorContextJson: JSON.stringify(DEFAULT_OPERATOR_ACTOR),
+      payloadJson: JSON.stringify({
+        interchangeId,
+        controlNumber: controlNum,
+        format: options.format,
+        standard,
+        senderId: options.senderId || "ATLASLOG",
+        receiverId: options.receiverId || "CARRIER_EDI",
+        bookingReference: options.bookingReference,
+      }),
+      status: "PENDING",
+      occurredAt: new Date(),
+    });
+
     await eventBus.publish("edi:interchange-processed", interchangeId, {
       interchangeId,
       controlNumber: controlNum,
@@ -583,6 +625,7 @@ export class EdiDispatcherService {
       controlNumber: controlNum,
       rawPayload,
       format: options.format,
+      outboxEventId,
     };
   }
 
