@@ -44,4 +44,4 @@ jobs:
       - name: Semantic Release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
-        run: pnpm dlx semantic-release
+        run: pnpm dlx semantic-release@25
