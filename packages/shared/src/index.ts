@@ -42,3 +42,5 @@ export * from "./bl-party-formatter.js";
 export * from "./drayage-calculator.js";
 export * from "./external-governance/external-governance.types.js";
 export * from "./iso6346.js";
+export * from "./logistics/consolidation-math.js";
+export * from "./logistics/tariff-engine.js";

@@ -18,6 +18,7 @@ import { v4 as uuidv4 } from "uuid";
 import { pubsub } from "../../services/pubsub.service.js";
 import { PDFService, InvoiceData } from "../../services/pdf.service.js";
 import { ensureFinancialSeedData } from "./seed-data.js";
+import { GlSyncService } from "../../services/accounting/gl-sync.service.js";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -250,6 +251,15 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
           .set({ status, updatedAt: new Date() })
           .where(eq(invoices.id, id));
 
+        if (status === "Issued" || status === "Paid") {
+          // Asynchronously trigger GL ERP synchronization outbox event
+          await GlSyncService.enqueueInvoiceGlSync({ invoiceId: id }).catch(
+            (err) => {
+              fastify.log.warn({ err }, "GL Sync enqueue notice");
+            },
+          );
+        }
+
         if (status === "Paid") {
           pubsub.emit("accounting.sync.requested", {
             invoiceId: id,
@@ -319,6 +329,32 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
         const message =
           error instanceof Error ? error.message : "Internal Server Error";
         return reply.code(500).send({ error: message });
+      }
+    },
+  );
+
+  fastify.post<{ Params: InvoiceIdParams }>(
+    "/invoices/:id/sync-gl",
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+        const syncResult = await GlSyncService.enqueueInvoiceGlSync({
+          invoiceId: id,
+        });
+        return reply.code(200).send({
+          success: true,
+          message:
+            "Invoice enqueued for asynchronous General Ledger synchronization",
+          syncResult,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        const statusCode =
+          error instanceof Error && error.message.includes("not found")
+            ? 404
+            : 500;
+        return reply.code(statusCode).send({ error: message });
       }
     },
   );

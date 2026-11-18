@@ -104,6 +104,7 @@ docs/
 | [**0022**](adr/0022-enterprise-freight-forwarding-organization-schema-and-governance.md) | Forwarding Organization Schema & Governance | `Accepted` | 2026-11-13 | Master Data / Organization| Forwarding station hierarchy, station RBAC & active context |
 | [**0023**](adr/0023-native-web-crypto-session-migration.md) | Native Web Crypto Session & Scrypt Auth | `Accepted` | 2026-11-15 | Security / Authentication | Native Web Crypto session engine replacing deprecated Lucia/Oslo |
 | [**0024**](adr/0024-github-pages-spa-continuous-deployment.md) | GitHub Pages SPA Continuous Deployment & PR Previews | `Accepted` | 2026-11-15 | CI/CD & Deployment | Gated deployment, ephemeral PR previews & SPA 404 fallback |
+| [**0025**](adr/0025-commercial-pricing-tariff-engine-and-gl-sync.md) | Commercial Pricing, Tariff Engine & GL Sync | `Accepted` | 2026-11-18 | Commercial / Finance | Dynamic formula surcharges, penny-perfect CW prorating & SAP/NetSuite GL outbox sync |
 
 ---
 

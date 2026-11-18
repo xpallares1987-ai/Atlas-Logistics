@@ -19,6 +19,11 @@ import {
   EQUIPMENT_CATALOG,
   optimizeStowage3D,
   CargoItemInput,
+  calculateChargeableWeight,
+  prorateMasterCosts,
+  calculateConsolidationProfitability,
+  TransportConsolidationMode,
+  CostAllocationBasis,
 } from "@atlas/shared";
 
 // ============================================================================
@@ -525,4 +530,147 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
       }
     },
   );
+
+  // Consolidation Math & Freight Rating Endpoints (atlas-consolidation-math)
+  fastify.post<{
+    Body: {
+      grossWeightKg: number;
+      volumeCbm: number;
+      mode?: TransportConsolidationMode;
+    };
+  }>("/lcl/calculate-cw", async (request, reply) => {
+    try {
+      const {
+        grossWeightKg,
+        volumeCbm,
+        mode = "OCEAN_LCL",
+      } = request.body || {};
+
+      if (grossWeightKg === undefined || volumeCbm === undefined) {
+        return reply
+          .code(400)
+          .send({ error: "grossWeightKg and volumeCbm are required numbers." });
+      }
+
+      const result = calculateChargeableWeight({
+        grossWeightKg,
+        volumeCbm,
+        mode,
+      });
+
+      return reply.send({
+        success: true,
+        result,
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
+    }
+  });
+
+  fastify.post<{
+    Body: {
+      masterCostId?: string;
+      masterCostName?: string;
+      masterAmount: number;
+      currency?: string;
+      allocationBasis?: CostAllocationBasis;
+      houseItems: Array<{
+        shipmentId: string;
+        houseDocumentNumber: string;
+        grossWeightKg: number;
+        volumeCbm: number;
+        chargeableWeightKg: number;
+      }>;
+    };
+  }>("/lcl/prorate-costs", async (request, reply) => {
+    try {
+      const {
+        masterCostId = "mcost_default",
+        masterCostName = "Master Ocean Freight",
+        masterAmount,
+        currency = "USD",
+        allocationBasis = "CHARGEABLE_WEIGHT",
+        houseItems,
+      } = request.body || {};
+
+      if (masterAmount === undefined || !Array.isArray(houseItems)) {
+        return reply.code(400).send({
+          error: "masterAmount and houseItems array are required fields.",
+        });
+      }
+
+      const proratedResult = prorateMasterCosts({
+        masterCostId,
+        masterCostName,
+        masterAmount,
+        currency,
+        allocationBasis,
+        houseItems,
+      });
+
+      return reply.send({
+        success: true,
+        proratedResult,
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
+    }
+  });
+
+  fastify.post<{
+    Body: {
+      consolidationReference: string;
+      currency?: string;
+      masterCosts: Array<{ name: string; amount: number }>;
+      houseShipments: Array<{
+        shipmentId: string;
+        houseDocumentNumber: string;
+        grossWeightKg: number;
+        volumeCbm: number;
+        chargeableWeightKg: number;
+        revenueAmount: number;
+        houseSpecificCosts: number;
+      }>;
+    };
+  }>("/lcl/profitability", async (request, reply) => {
+    try {
+      const {
+        consolidationReference,
+        currency = "USD",
+        masterCosts,
+        houseShipments,
+      } = request.body || {};
+
+      if (
+        !consolidationReference ||
+        !Array.isArray(masterCosts) ||
+        !Array.isArray(houseShipments)
+      ) {
+        return reply.code(400).send({
+          error:
+            "consolidationReference, masterCosts, and houseShipments are required.",
+        });
+      }
+
+      const pnl = calculateConsolidationProfitability({
+        consolidationReference,
+        currency,
+        masterCosts,
+        houseShipments,
+      });
+
+      return reply.send({
+        success: true,
+        pnl,
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
+    }
+  });
 };

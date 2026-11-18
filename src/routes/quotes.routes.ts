@@ -35,6 +35,7 @@ import {
 } from "../services/booking-lifecycle.service.js";
 import { recordEscrowDeposit } from "../modules/smart-contracts/smart-contracts.routes.js";
 import { DcsaHubService } from "../services/dcsa/dcsa-hub.service.js";
+import { TariffResolutionService } from "../services/pricing/tariff-resolution.service.js";
 
 // ============================================================================
 // TYPE DEFINITIONS & SCHEMAS
@@ -907,6 +908,124 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       }
     },
   );
+
+  // Dynamic Commercial Pricing & Tariff Engine Endpoints (atlas-billing-tariff-engine)
+  fastify.post<{
+    Body: {
+      originLocode: string;
+      destinationLocode: string;
+      containerType?: string;
+      etd: string;
+      carrierId?: string;
+      containerCount?: number;
+      targetCurrency?: string;
+      currentBunkerPrice?: number;
+    };
+  }>("/resolve-tariff", async (request, reply) => {
+    try {
+      const {
+        originLocode,
+        destinationLocode,
+        containerType = "40HC",
+        etd,
+        carrierId,
+        containerCount = 1,
+        targetCurrency = "USD",
+        currentBunkerPrice,
+      } = request.body || {};
+
+      if (!originLocode || !destinationLocode || !etd) {
+        return reply.code(400).send({
+          error:
+            "originLocode, destinationLocode, and etd are required parameters.",
+        });
+      }
+
+      const ratedQuotes = await TariffResolutionService.resolveRatesForETD({
+        originLocode,
+        destinationLocode,
+        containerType,
+        etd,
+        carrierId,
+        containerCount,
+        targetCurrency,
+        currentBunkerPrice,
+      });
+
+      return reply.send({
+        success: true,
+        count: ratedQuotes.length,
+        quotes: ratedQuotes,
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
+    }
+  });
+
+  fastify.post<{ Params: { id: string } }>(
+    "/rates/:id/invalidate-early",
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+        const result = await TariffResolutionService.invalidateRateEarly(id);
+        return reply.send({
+          success: true,
+          message: "Rate invalidated early according to append-only policy",
+          result,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        const code =
+          error instanceof Error && error.message.includes("not found")
+            ? 404
+            : 500;
+        return reply.code(code).send({ error: message });
+      }
+    },
+  );
+
+  fastify.post<{
+    Body: {
+      buyRateTotal: number;
+      sellRateTotal: number;
+      minMarginPercent?: number;
+      currency?: string;
+    };
+  }>("/validate-margin", async (request, reply) => {
+    try {
+      const {
+        buyRateTotal,
+        sellRateTotal,
+        minMarginPercent = 15.0,
+        currency = "USD",
+      } = request.body || {};
+
+      if (buyRateTotal === undefined || sellRateTotal === undefined) {
+        return reply.code(400).send({
+          error: "buyRateTotal and sellRateTotal are required numbers.",
+        });
+      }
+
+      const marginResult = TariffResolutionService.evaluateQuoteMargin(
+        buyRateTotal,
+        sellRateTotal,
+        minMarginPercent,
+        currency,
+      );
+
+      return reply.send({
+        success: true,
+        margin: marginResult,
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Internal Server Error";
+      return reply.code(500).send({ error: message });
+    }
+  });
 };
 
 export default quotesRoutes;
