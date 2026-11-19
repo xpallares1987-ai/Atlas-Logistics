@@ -63,6 +63,7 @@ import externalGovernanceRoutes from "./external-governance.routes.js";
 import { organizationRoutes } from "./organization.routes.js";
 import carrierIntegrationsRoutes from "./carrier/carrier-integrations.routes.js";
 import customsBrokerageRoutes from "./customs/customs-brokerage.routes.js";
+import airCargoClearingRoutes from "./air-cargo/air-cargo-clearing.routes.js";
 
 export {
   shipmentsRoutes,
@@ -250,6 +251,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(customsBrokerageRoutes, {
     prefix: "/api/customs/brokerage",
+  });
+  await fastify.register(airCargoClearingRoutes, {
+    prefix: "/api/air",
   });
 };
 
