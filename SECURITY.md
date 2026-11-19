@@ -77,5 +77,5 @@ gh attestation verify oci://ghcr.io/xpallares1987-ai/atlas-worker:latest \
 If you discover a security vulnerability in Atlas Logistics:
 
 1. **Do not report it in public GitHub issues**.
-2. Please submit a private security advisory report via the [GitHub Security Advisory Reporting Form](https://github.com/xpallares1987-ai/Atlas-Logistics/security/advisories/new) or contact the lead architecture team directly at `security@atlas-logistics.org`.
+2. Please submit a private security advisory report via the [GitHub Security Advisory Reporting Form](https://github.com/xpallares1987-ai/Atlas-Logistics/security/advisories/new) or contact the lead architecture team directly at `onysablet1987@gmail.com`.
 3. We acknowledge security reports within **24 hours** and aim to deploy verified patches within **48 hours**.
