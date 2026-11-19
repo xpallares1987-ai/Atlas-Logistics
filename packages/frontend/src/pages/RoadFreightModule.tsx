@@ -213,7 +213,7 @@ export default function RoadFreightModule() {
   ).length;
 
   return (
-    <div className="h-full flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto font-sans relative">
       {/* Gradients */}
       <div className="absolute top-0 right-1/3 w-[600px] h-[300px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none" />
       <div className="absolute bottom-10 left-10 w-[500px] h-[300px] bg-emerald-500/10 blur-[140px] rounded-full pointer-events-none" />
@@ -335,7 +335,7 @@ export default function RoadFreightModule() {
       </div>
 
       {/* Main Split Pane */}
-      <div className="flex-1 px-4 md:px-8 pb-8 flex flex-col lg:flex-row gap-6 min-h-0 z-10 relative overflow-y-auto lg:overflow-hidden">
+      <div className="flex-1 px-4 md:px-8 pb-6 flex flex-col lg:flex-row gap-6 min-h-[540px] z-10 relative">
         {/* Left Column: Consignments List */}
         <div className="w-full lg:w-1/3 flex flex-col bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl min-h-[400px] lg:min-h-0">
           <div className="p-4 border-b border-white/10 space-y-3">
@@ -947,7 +947,7 @@ export default function RoadFreightModule() {
       </AnimatePresence>
 
       {/* Embedded Official UNECE Road Freight Benchmark (STAT__40-TRTRANS) */}
-      <div className="mt-6">
+      <div className="px-4 md:px-8 pb-8 shrink-0 z-10 relative">
         <UneceTransportBenchmarkWidget variant="ROAD" defaultCountry="ES" />
       </div>
     </div>
