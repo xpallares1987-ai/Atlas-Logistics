@@ -76,7 +76,7 @@ docs/
 - [**Enterprise Evolution Plan**](architecture/enterprise_evolution_plan.md) — Strategic roadmap for scaling freight forwarding domains and external integrations.
 - [**Comprehensive System Architecture**](architecture/ARCHITECTURE.md) — Monorepo micro-frontends, Fastify backend architecture, and data isolation.
 
-#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0029)
+#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0030)
 
 | ADR | Title | Status | Date | Domain / Bounded Context | Notes / Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -109,6 +109,7 @@ docs/
 | [**0027**](adr/0027-carrier-integrations-ocean-schedules-ebl-lifecycle.md) | Carrier Integrations, Ocean Schedules & eBL Lifecycle | `Accepted` | 2026-11-19 | Carrier Integration / Gateways | Master carrier schedules & rotations, outbox EDI 301/DCSA dispatch, M365 DLQ alert & UNCITRAL MLETR eBL ledger |
 | [**0028**](adr/0028-customs-brokerage-dua-mrn-disbursements-and-cbam-compliance.md) | Customs Brokerage, DUA/MRN, Disbursements & CBAM | `Accepted` | 2026-11-19 | Customs / Compliance / ESG | 18-char MRN validation, 1:N shipment grouping, zero-markup suplidos, T1 guarantees & EU CBAM transitional XML |
 | [**0029**](adr/0029-air-cargo-messaging-cass-and-agent-network-clearing.md) | Air Cargo Messaging, CASS & Agent Clearing | `Accepted` | 2026-11-19 | Air Freight / Clearing | IATA Res 600a Mod-7, TACT weight, Cargo-IMP FWB/FHL/FSU, CASS reconciliation & partner clearing ledger |
+| [**0030**](adr/0030-logistics-entity-taxonomy-and-unece-standards-integration.md) | 25-Code Logistics Taxonomy & UNECE / UN/CEFACT Standards | `Accepted` | 2026-11-19 | Master Data / UNECE / EDI | Strict 25-code taxonomy, Noatum real-world master data, UN/LOCODE 2022-2 (115,841), UN/EDIFACT (212), UN/CEFACT XML (CII/MMT-RDM) & STAT__40-TRTRANS |
 
 ---
 

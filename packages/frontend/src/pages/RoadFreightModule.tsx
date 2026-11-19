@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useApiQuery } from "../hooks/useApiQuery";
 import { Input } from "@atlas/ui";
+import { UneceTransportBenchmarkWidget } from "../components/Analytics";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -944,6 +945,11 @@ export default function RoadFreightModule() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Embedded Official UNECE Road Freight Benchmark (STAT__40-TRTRANS) */}
+      <div className="mt-6">
+        <UneceTransportBenchmarkWidget variant="ROAD" defaultCountry="ES" />
+      </div>
     </div>
   );
 }

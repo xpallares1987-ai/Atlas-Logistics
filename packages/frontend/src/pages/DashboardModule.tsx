@@ -8,6 +8,7 @@ import { DashboardProvider } from "../features/dashboard/context/DashboardContex
 import { useQueryClient } from "@tanstack/react-query";
 import { useDashboardStore } from "../features/dashboard/store";
 import { useAppWebSocket } from "../hooks/useAppWebSocket";
+import { UneceTransportBenchmarkWidget } from "../components/Analytics";
 
 interface DashboardStatsPayload {
   type?: string;
@@ -86,6 +87,14 @@ function DashboardContent() {
         </div>
         <div className="col-span-1 lg:col-span-6 h-[400px]">
           <ShipmentVolumeChart />
+        </div>
+
+        {/* Fourth Row: Official UNECE Multimodal Macro Freight Split */}
+        <div className="col-span-1 md:col-span-12">
+          <UneceTransportBenchmarkWidget
+            variant="MULTIMODAL"
+            defaultCountry="ES"
+          />
         </div>
 
         {/* Bottom Row: Active Shipments */}

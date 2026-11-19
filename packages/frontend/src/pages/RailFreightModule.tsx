@@ -13,6 +13,7 @@ import {
   UpdateConsignmentStatus,
   useRailFreight,
 } from "../components/RailFreight";
+import { UneceTransportBenchmarkWidget } from "../components/Analytics";
 
 export default function RailFreightModule() {
   const {
@@ -154,6 +155,9 @@ export default function RailFreightModule() {
         setRemarksInput={setRemarksInput}
         onSave={handleSaveStatus}
       />
+
+      {/* Embedded Official UNECE Rail Freight Benchmark (STAT__40-TRTRANS) */}
+      <UneceTransportBenchmarkWidget variant="RAIL" defaultCountry="ES" />
     </div>
   );
 }

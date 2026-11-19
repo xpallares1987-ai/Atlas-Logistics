@@ -178,7 +178,7 @@ export async function queryUnlocodeDirectory(options: {
       status: item.status,
     })),
     source: "in_memory_fallback",
-    totalIndexed: getUnlocodeStats().totalEntries,
+    totalIndexed: getUnlocodeStats().trie.indexedLocations,
   };
 }
 
