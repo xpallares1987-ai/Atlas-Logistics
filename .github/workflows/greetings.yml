@@ -13,7 +13,7 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-    - uses: actions/first-interaction@118832cf373f1672e478e2355f7129a57b194114 # v1.3.0
+    - uses: actions/first-interaction@34f15e814fe48ac9312ccf29db4e74fa767cbab7 # v1.3.0
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         issue_message: "👋 Welcome to Atlas Logistics! Thank you for opening your first issue in this repository. Our team will review it shortly. Please ensure your report includes clear reproduction steps and relevant logs."

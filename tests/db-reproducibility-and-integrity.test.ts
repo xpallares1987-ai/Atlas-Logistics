@@ -72,8 +72,8 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%' ORDER BY name;",
     );
     const tables = res.rows.map((r: any) => String(r.name));
-    // 236 operational domain tables (+ 1 __drizzle_migrations table = 237 total physical tables)
-    expect(tables.length).toBe(236);
+    // 244 operational domain tables (+ 1 __drizzle_migrations table = 245 total physical tables)
+    expect(tables.length).toBe(244);
 
     // Assert canonical core bounded context tables exist
     expect(tables).toContain("companies");
@@ -88,6 +88,12 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
     expect(tables).toContain("shipments");
     expect(tables).toContain("container_iso_types");
     expect(tables).toContain("shipment_containers");
+    expect(tables).toContain("containers");
+    expect(tables).toContain("demurrage_accruals");
+    expect(tables).toContain("carrier_services");
+    expect(tables).toContain("vessels");
+    expect(tables).toContain("voyages");
+    expect(tables).toContain("port_calls");
     expect(tables).toContain("op_intelligence_cockpit_items_v2");
     expect(tables).toContain("shipment_exec_shipments_v2");
     expect(tables).toContain("dcsa_event_subscriptions");
@@ -123,7 +129,7 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
     const tablesRes = await scratchClient.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%' ORDER BY name;",
     );
-    expect(tablesRes.rows.length).toBe(236);
+    expect(tablesRes.rows.length).toBe(244);
   }, 30000);
 
   it("proves forward migration upgrade continuity and data preservation from an earlier baseline snapshot (E4 verification)", async () => {
@@ -231,16 +237,16 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
     const fkRes = await upgradeClient.execute("PRAGMA foreign_key_check;");
     expect(fkRes.rows.length).toBe(0);
 
-    // 7. Verify all 236 domain tables exist after forward upgrade
+    // 7. Verify all 244 domain tables exist after forward upgrade
     const tablesRes = await upgradeClient.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%' ORDER BY name;",
     );
-    expect(tablesRes.rows.length).toBe(236);
+    expect(tablesRes.rows.length).toBe(244);
 
-    // 8. Verify all 33 migrations recorded in __drizzle_migrations
+    // 8. Verify all 35 migrations recorded in __drizzle_migrations
     const migCount = await upgradeClient.execute(
       "SELECT count(*) as c FROM __drizzle_migrations;",
     );
-    expect(Number((migCount.rows[0] as any).c)).toBe(33);
+    expect(Number((migCount.rows[0] as any).c)).toBe(35);
   }, 45000);
 });

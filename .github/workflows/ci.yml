@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@a3252b78c470c02df07e9d79298aaedc2f701c95 # v4.0.0
+        uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
@@ -105,7 +105,7 @@ jobs:
         run: pnpm test -- --coverage
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@0565863a31f2c77d69f057f12593b490f23d1838 # v5.0.2
+        uses: codecov/codecov-action@5c47607acb93fed5485fdbf7232e8a31425f672a # v5.0.2
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -211,7 +211,7 @@ jobs:
             PNPM_VERSION=11.5.1
 
       - name: Generate SLSA artifact attestation
-        uses: actions/attest-build-provenance@c074443f1b0a72465646197063d8d697858c8ecb # v2.2.0
+        uses: actions/attest-build-provenance@520d128f165991a6c774bcb264f323e3d70747f4 # v2.2.0
         with:
           subject-name: ${{ steps.img-names.outputs.ghcr_image }}
           subject-digest: ${{ steps.build.outputs.digest }}
@@ -225,7 +225,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@a3252b78c470c02df07e9d79298aaedc2f701c95 # v4.0.0
+        uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
 
       - name: Setup Node.js
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0

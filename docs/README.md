@@ -76,7 +76,7 @@ docs/
 - [**Enterprise Evolution Plan**](architecture/enterprise_evolution_plan.md) — Strategic roadmap for scaling freight forwarding domains and external integrations.
 - [**Comprehensive System Architecture**](architecture/ARCHITECTURE.md) — Monorepo micro-frontends, Fastify backend architecture, and data isolation.
 
-#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0026)
+#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0027)
 
 | ADR | Title | Status | Date | Domain / Bounded Context | Notes / Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -106,6 +106,7 @@ docs/
 | [**0024**](adr/0024-github-pages-spa-continuous-deployment.md) | GitHub Pages SPA Continuous Deployment & PR Previews | `Accepted` | 2026-11-15 | CI/CD & Deployment | Gated deployment, ephemeral PR previews & SPA 404 fallback |
 | [**0025**](adr/0025-commercial-pricing-tariff-engine-and-gl-sync.md) | Commercial Pricing, Tariff Engine & GL Sync | `Accepted` | 2026-11-18 | Commercial / Finance | Dynamic formula surcharges, penny-perfect CW prorating & SAP/NetSuite GL outbox sync |
 | [**0026**](adr/0026-equipment-control-and-demurrage-engine.md) | Equipment Control & Demurrage Engine | `Accepted` | 2026-11-18 | Equipment / Operations | Decoupled equipment lifecycle state machine, D&D clock engine, idempotent daily accruals & SOLAS VGM |
+| [**0027**](adr/0027-carrier-integrations-ocean-schedules-ebl-lifecycle.md) | Carrier Integrations, Ocean Schedules & eBL Lifecycle | `Accepted` | 2026-11-19 | Carrier Integration / Gateways | Master carrier schedules & rotations, outbox EDI 301/DCSA dispatch, M365 DLQ alert & UNCITRAL MLETR eBL ledger |
 
 ---
 

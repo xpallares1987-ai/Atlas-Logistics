@@ -61,6 +61,7 @@ import addressesRoutes from "./addresses.routes.js";
 import drayageRoutes from "./drayage.routes.js";
 import externalGovernanceRoutes from "./external-governance.routes.js";
 import { organizationRoutes } from "./organization.routes.js";
+import carrierIntegrationsRoutes from "./carrier/carrier-integrations.routes.js";
 
 export {
   shipmentsRoutes,
@@ -242,6 +243,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(organizationRoutes, {
     prefix: "/api/v1/organization",
+  });
+  await fastify.register(carrierIntegrationsRoutes, {
+    prefix: "/api/carrier",
   });
 };
 
