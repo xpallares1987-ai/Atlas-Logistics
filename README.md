@@ -4,7 +4,7 @@ Atlas Logistics is an **enterprise-grade, multimodal Supply Chain Management (SC
 
 The platform is architected as a modular monorepo combining a high-throughput Fastify backend, a modern Progressive Web App (PWA) host in `packages/frontend` (React 19, Vite, TailwindCSS), reusable design primitives in `packages/ui`, shared cryptographic and domain types in `packages/shared`, and specialized modules for freight rate comparison, visual BPMN process modeling, and warehouse digital twin operations.
 
-![Atlas Logistics Status](https://img.shields.io/badge/Status-Active-success) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue) ![pnpm](https://img.shields.io/badge/pnpm-v10-orange) ![Fastify](https://img.shields.io/badge/Fastify-5.2+-emerald) ![SLSA Provenance](https://img.shields.io/badge/SLSA%20v1.0-Build%20Level%202-brightgreen) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Atlas Logistics Status](https://img.shields.io/badge/Status-Active-success) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16834/badge)](https://www.bestpractices.dev/projects/16834) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue) ![pnpm](https://img.shields.io/badge/pnpm-v10-orange) ![Fastify](https://img.shields.io/badge/Fastify-5.2+-emerald) ![SLSA Provenance](https://img.shields.io/badge/SLSA%20v1.0-Build%20Level%202-brightgreen) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
 ---
 
