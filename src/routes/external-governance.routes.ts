@@ -19,18 +19,21 @@ import {
   ingestSourceRecordRequestSchema,
   createEntityLinkRequestSchema,
   upsertUnlocodeRequestSchema,
-  searchUnlocodes,
   upsertUnlocode,
-  DEFAULT_UNLOCODE_HUBS,
   getUnlocodeStats,
   UnlocodeEntry,
   escapeHTML,
 } from "@atlas/shared";
 import { outboxBus } from "../scm/kernel/outbox-bus.js";
+import {
+  queryUnlocodeDirectory,
+  getUnlocodeCountrySummaries,
+} from "../services/unlocode-directory.service.js";
 
 interface UnlocodeLookupQuery {
   q?: string;
   country?: string;
+  mode?: string;
   limit?: string;
 }
 
@@ -401,47 +404,63 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const rawQ = (request.query?.q || "").trim();
         const rawCountry = request.query?.country;
-        const q = escapeHTML(rawQ);
         const country = rawCountry
-          ? escapeHTML(String(rawCountry).trim())
+          ? String(rawCountry).trim().toUpperCase()
+          : undefined;
+        const rawMode = (request.query?.mode || "").trim().toLowerCase();
+        const validModes = new Set(["port", "rail", "road", "airport", "icd"]);
+        const mode = validModes.has(rawMode)
+          ? (rawMode as "port" | "rail" | "road" | "airport" | "icd")
           : undefined;
         const limit = Math.min(100, parseInt(request.query?.limit || "20", 10));
 
-        if (!q) {
-          const defaultHubs = DEFAULT_UNLOCODE_HUBS.slice(0, limit).map(
-            (h) => ({
-              location: escapeHTML(h.location),
-              name: escapeHTML(h.name),
-              country: escapeHTML(h.country),
-              coordinates: h.coordinates
-                ? escapeHTML(h.coordinates)
-                : undefined,
-              status: h.status ? escapeHTML(h.status) : undefined,
-            }),
-          );
-          return reply.type("application/json").send({
-            success: true,
-            data: defaultHubs,
-            stats: getUnlocodeStats(),
-          });
-        }
+        const { items, source, totalIndexed } = await queryUnlocodeDirectory({
+          q: rawQ,
+          country,
+          mode,
+          limit,
+        });
 
-        const results = searchUnlocodes(q, country, limit);
-        const sanitized = results.map((item) => ({
+        const sanitized = items.map((item) => ({
           location: escapeHTML(item.location),
           name: escapeHTML(item.name),
           country: escapeHTML(item.country),
+          subdivision: item.subdivision
+            ? escapeHTML(item.subdivision)
+            : undefined,
+          functionClassifier: item.functionClassifier
+            ? escapeHTML(item.functionClassifier)
+            : undefined,
+          isPort: item.isPort,
+          isRailTerminal: item.isRailTerminal,
+          isAirport: item.isAirport,
+          isMultimodalIcd: item.isMultimodalIcd,
+          iataCode: item.iataCode ? escapeHTML(item.iataCode) : undefined,
           coordinates: item.coordinates
             ? escapeHTML(item.coordinates)
             : undefined,
           status: item.status ? escapeHTML(item.status) : undefined,
         }));
 
+        const memStats = getUnlocodeStats();
+        const memTotal = Number(
+          (memStats as unknown as { totalEntries?: number; total?: number })
+            .totalEntries ??
+            (memStats as unknown as { total?: number }).total ??
+            0,
+        );
         return reply.type("application/json").send({
           success: true,
           count: sanitized.length,
+          source,
           data: sanitized,
-          stats: getUnlocodeStats(),
+          stats: {
+            ...memStats,
+            totalEntries: Math.max(
+              Number.isFinite(memTotal) ? memTotal : 0,
+              totalIndexed,
+            ),
+          },
         });
       } catch (err: unknown) {
         const message =
@@ -450,6 +469,21 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
       }
     },
   );
+
+  // 6b. Official UN/LOCODE Country & Territory Summary Catalog (249 ISO 3166-1 territories)
+  fastify.get("/unlocode/countries", async (_request, reply) => {
+    try {
+      const summary = await getUnlocodeCountrySummaries();
+      return reply.type("application/json").send({
+        success: true,
+        ...summary,
+      });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Internal Server Error";
+      return reply.status(500).send({ success: false, error: message });
+    }
+  });
 
   // 7. Write-Through Cache: Update/Upsert UN/LOCODE in Hot Memory + SQLite
   fastify.post("/unlocode/upsert", async (request, reply) => {

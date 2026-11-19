@@ -32,12 +32,50 @@ export async function seedExternalGovernance(
     {
       id: "src_unlocode",
       code: "UNLOCODE",
-      name: "United Nations Code for Trade and Transport Locations (UNECE)",
+      name: "United Nations Code for Trade and Transport Locations (UNECE 2022-2)",
       type: "AUTHORITY" as const,
-      websiteUrl: "https://unece.org/trade/cefact/unlocode",
+      websiteUrl:
+        "https://unece.org/trade/cefact/unlocode-code-list-country-and-territory",
       termsUrl: "https://unece.org/trade/terms-of-use",
       description:
-        "Official UN/CEFACT geographic coding standard for world ports and logistics hubs.",
+        "Official UN/CEFACT geographic coding standard (115,841 locations, 249 countries/territories, 4,676 subdivisions).",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "src_unedifact",
+      code: "UNEDIFACT",
+      name: "UN/EDIFACT Standard Message Directory (UNECE / UN/CEFACT)",
+      type: "AUTHORITY" as const,
+      websiteUrl: "https://unece.org/trade/uncefact/introducing-unedifact",
+      termsUrl: "https://unece.org/trade/terms-of-use",
+      description:
+        "Official United Nations Electronic Data Interchange for Administration, Commerce and Transport message catalog (~190 message types).",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "src_uncefact_xml",
+      code: "UNCEFACT_XML",
+      name: "UN/CEFACT XML Schemas (CII, MMT-RDM, SCRDM)",
+      type: "AUTHORITY" as const,
+      websiteUrl: "https://unece.org/trade/uncefact/xml-schemas",
+      termsUrl: "https://unece.org/trade/terms-of-use",
+      description:
+        "Official UN/CEFACT XML schema library for Cross Industry Invoice (CII), Multimodal Transport (MMT-RDM), and Supply Chain documents.",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "src_unece_trtrans",
+      code: "UNECE_PXWEB_TRTRANS",
+      name: "UNECE Statistical Database — Transport Statistics (STAT__40-TRTRANS)",
+      type: "OPEN_DATA" as const,
+      websiteUrl:
+        "https://w3.unece.org/PXWeb2015/pxweb/en/STAT/STAT__40-TRTRANS/",
+      termsUrl: "https://unece.org/terms-and-conditions-use",
+      description:
+        "Official UNECE PX-Web REST API for Road, Rail, Inland Waterway freight tonne-km and Transport Infrastructure datasets.",
       createdAt: now,
       updatedAt: now,
     },

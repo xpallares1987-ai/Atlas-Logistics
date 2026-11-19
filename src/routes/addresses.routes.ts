@@ -28,7 +28,6 @@ import { eq, and, or, like, desc, inArray, SQL } from "drizzle-orm";
 import {
   searchUnlocodes,
   formatAllBlBoxes,
-  DEFAULT_UNLOCODE_HUBS,
   escapeHTML,
   isCanonicalAddressTypeCode,
   requiresUnLocodeForAddressType,
@@ -37,6 +36,7 @@ import {
 } from "@atlas/shared";
 import { getCurrentTenant } from "../lib/tenancy/tenancy-context.js";
 import { addressGeocodingService } from "../services/address-geocoding.service.js";
+import { queryUnlocodeDirectory } from "../services/unlocode-directory.service.js";
 
 /**
  * Clean & normalize string for fuzzy duplicate comparison
@@ -390,28 +390,34 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
 
   // UN/LOCODE Lookup
   fastify.get<{
-    Querystring: { q?: string };
+    Querystring: { q?: string; country?: string; mode?: string };
   }>("/unlocode-lookup", async (request, reply) => {
     try {
       const rawQ = (request.query?.q || "").trim();
-      const q = escapeHTML(rawQ);
-      if (!q) {
-        const hubs = DEFAULT_UNLOCODE_HUBS.slice(0, 15).map((item) => ({
-          location: escapeHTML(item.location),
-          name: escapeHTML(item.name),
-          country: escapeHTML(item.country),
-          coordinates: item.coordinates
-            ? escapeHTML(item.coordinates)
-            : undefined,
-          status: item.status ? escapeHTML(item.status) : undefined,
-        }));
-        return reply.type("application/json").send(hubs);
-      }
-      const results = searchUnlocodes(q, undefined, 20);
-      const sanitized = results.map((item) => ({
+      const country = (request.query?.country || "").trim().toUpperCase();
+      const rawMode = (request.query?.mode || "").trim().toLowerCase();
+      const validModes = new Set(["port", "rail", "road", "airport", "icd"]);
+      const mode = validModes.has(rawMode)
+        ? (rawMode as "port" | "rail" | "road" | "airport" | "icd")
+        : undefined;
+
+      const { items } = await queryUnlocodeDirectory({
+        q: rawQ,
+        country: country || undefined,
+        mode,
+        limit: rawQ ? 20 : 15,
+      });
+
+      const sanitized = items.map((item) => ({
         location: escapeHTML(item.location),
         name: escapeHTML(item.name),
         country: escapeHTML(item.country),
+        subdivision: item.subdivision
+          ? escapeHTML(item.subdivision)
+          : undefined,
+        functionClassifier: item.functionClassifier
+          ? escapeHTML(item.functionClassifier)
+          : undefined,
         coordinates: item.coordinates
           ? escapeHTML(item.coordinates)
           : undefined,
