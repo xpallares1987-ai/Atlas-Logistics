@@ -79,3 +79,45 @@ If you discover a security vulnerability in Atlas Logistics:
 1. **Do not report it in public GitHub issues**.
 2. Please submit a private security advisory report via the [GitHub Security Advisory Reporting Form](https://github.com/xpallares1987-ai/Atlas-Logistics/security/advisories/new) or contact the lead architecture team directly at `onysablet1987@gmail.com`.
 3. We acknowledge security reports within **24 hours** and aim to deploy verified patches within **48 hours**.
+
+---
+
+## Security Assurance Case & Threat Model
+
+Atlas-Logistics provides this formal Security Assurance Case justifying why and how its security requirements and regulatory compliance standards are satisfied:
+
+### 1. Threat Model & Assets at Risk
+- **Assets Protected**:
+  - Operational freight execution data (House & Master Bills of Lading, AWB tracking, container manifests).
+  - Financial records (job costing accruals, freight invoices, carrier/agent clearing ledgers, credit notes).
+  - Regulatory compliance filings (EU CBAM declarations, customs DUA/MRN filings, VGM weight certificates).
+  - Authentication credentials and session tokens (JWT keys, user passwords, API integration secrets).
+- **Adversary Capabilities & Threat Vectors**:
+  - Malicious External Actors: Network MITM, automated brute-force attacks, XSS payload delivery, SQL injection attempts, and forged carrier webhook callbacks.
+  - Compromised / Malicious Trading Partners: Forged shipment consignee reassignment, tampered container weights, or illicit invoice tampering.
+  - Software Supply Chain Attackers: Malicious upstream npm dependencies or compromised build pipeline runners.
+
+### 2. Identification of Trust Boundaries
+- **Boundary A: Public Web / Client Browser $\rightarrow$ Fastify API Gateway**:
+  - All incoming HTTP/WebSocket traffic is untrusted.
+  - Strictly guarded by TLS 1.3/1.2, HSTS headers, `@fastify/rate-limit`, CORS policies, and mandatory JWT signature verification (`@fastify/jwt`).
+- **Boundary B: API Gateway $\rightarrow$ Domain Services & Persistence Layer**:
+  - All input payloads, parameters, and query strings undergo strict allowlist validation via TypeBox and Zod schemas (`additionalProperties: false`).
+  - Direct SQL string interpolation is strictly prohibited; all database interaction executes through Drizzle ORM parameterized prepared statements.
+- **Boundary C: External Carrier Webhooks & Third-Party APIs $\rightarrow$ Ingestion Pipeline**:
+  - External status updates (IATA Cargo-XML, EDIFACT, ocean carrier tracking) are routed through asynchronous outbox staging queues, authenticated via HMAC signatures or mutual TLS.
+- **Boundary D: CI/CD Build Environment $\rightarrow$ Artifact Deployment (GHCR / GitHub Pages)**:
+  - Immutable production container images are cryptographically signed using GitHub OIDC and Sigstore Cosign (SLSA Level 2 build provenance attestations).
+
+### 3. Application of Secure Design Principles
+- **Least Privilege & Role-Based Access Control (RBAC)**: Route-level permissions strictly constrain operations by role (`ADMIN`, `OPERATIONS`, `EXECUTIVE`, `SALES`, `CUSTOMER`, `DRIVER`).
+- **Defense-in-Depth**: Multi-layered controls combine network security headers (CSP, HSTS), runtime schema enforcement, transactional ACID locking on ledger updates, and immutable audit logging.
+- **Fail-Safe Defaults & Complete Mediation**: Unauthenticated or unauthorized requests fail closed (`401 Unauthorized` / `403 Forbidden`). Every request must re-verify authentication and permissions on every transaction.
+- **Zero-Trust Input Sanitization**: Domain algorithms enforce mathematical checksums (IATA Modulo-7, ISO 6346 Modulo-11) before committing operational records.
+
+### 4. Countermeasures Against Common Implementation Weaknesses
+- **Injection (CWE-89 / CWE-77)**: Parameterized queries in Drizzle ORM guarantee complete separation between SQL code and user data.
+- **Cross-Site Scripting (CWE-79)**: Adherence to strict Zero-innerHTML and programmatic DOM construction (`element.textContent`) permanently severs taint-tracking flows in CodeQL AST analysis.
+- **Sensitive Data Exposure & Timing Attacks (CWE-208 / CWE-312)**: Constant-time comparisons (`crypto.timingSafeEqual`) prevent timing side-channels; secrets are segregated into gitignored `.env.local` with pre-commit leak scanning.
+- **Supply Chain Vulnerabilities**: Pinned dependency digests in `pnpm-lock.yaml`, Dependabot automated CVE monitoring, and automated SAST auditing via CodeQL and njsscan.
+

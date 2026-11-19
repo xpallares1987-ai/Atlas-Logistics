@@ -1,0 +1,52 @@
+header:
+  schema-version: 2.2.0
+  expiration-date: 2027-11-19T00:00:00Z
+  url: https://github.com/xpallares1987-ai/Atlas-Logistics/blob/main/.github/security-insights.yml
+  last-updated: 2026-11-19
+  last-reviewed: 2026-11-19
+
+project-lifecycle:
+  status: active
+  bug-fixes-only: false
+  core-team:
+    - name: Oxydian
+      contact: onysablet1987@gmail.com
+
+contribution-policy:
+  accepts-contributions: true
+  accepts-pull-requests: true
+  code-of-conduct: https://github.com/xpallares1987-ai/Atlas-Logistics/blob/main/CODE_OF_CONDUCT.md
+  contributing-policy: https://github.com/xpallares1987-ai/Atlas-Logistics/blob/main/CONTRIBUTING.md
+
+documentation:
+  - https://github.com/xpallares1987-ai/Atlas-Logistics#readme
+  - https://github.com/xpallares1987-ai/Atlas-Logistics/blob/main/docs/architecture/ARCHITECTURE.md
+  - https://github.com/xpallares1987-ai/Atlas-Logistics/blob/main/docs/api/API_REFERENCE.md
+
+security-assessments:
+  - tool:
+      name: GitHub CodeQL
+      url: https://github.com/github/codeql
+    type: automated
+    frequency: on-commit
+  - tool:
+      name: njsscan
+      url: https://github.com/ajinabraham/NodeJsScan
+    type: automated
+    frequency: on-commit
+  - tool:
+      name: OpenSSF Scorecard
+      url: https://github.com/ossf/scorecard-action
+    type: automated
+    frequency: weekly
+  - tool:
+      name: OpenSSF Best Practices Badge
+      url: https://www.bestpractices.dev/en/projects/16834
+    type: self-attested
+    frequency: continuous
+
+vulnerability-reporting:
+  accepts-vulnerability-reports: true
+  email-contact: onysablet1987@gmail.com
+  security-policy: https://github.com/xpallares1987-ai/Atlas-Logistics/blob/main/SECURITY.md
+  advisory-database: https://github.com/xpallares1987-ai/Atlas-Logistics/security/advisories
