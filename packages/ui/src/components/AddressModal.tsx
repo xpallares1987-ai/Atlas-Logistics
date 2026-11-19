@@ -21,16 +21,94 @@ import { DuplicateWarningModal } from "./DuplicateWarningModal";
 import { BlCardPreview } from "./BlCardPreview";
 
 export const ADDRESS_TYPES = [
-  { value: "CUS", label: "CUS — Customer (Cliente Directo / BCO)" },
-  { value: "CB", label: "CB — Customs Broker (Agente de Aduanas)" },
-  { value: "AG", label: "AG — Agent (Agente / Representante Portuario)" },
-  { value: "HAU", label: "HAU — Haulier (Transportista Terrestre / Acarreo)" },
-  { value: "CAR", label: "CAR — Carrier (Naviera / Aerolínea / Operador)" },
+  {
+    value: "MCC",
+    label: "MCC — Main Customer Company (Cliente / BCO / Cargador)",
+  },
+  { value: "OCA", label: "OCA — Ocean Carrier (Naviera / Línea Marítima)" },
+  { value: "ACA", label: "ACA — Airline Carrier (Aerolínea de Carga)" },
+  { value: "RCA", label: "RCA — Rail Carrier (Operador Ferroviario)" },
+  {
+    value: "CLA",
+    label: "CLA — Carrier Line Agency (Agencia Consignataria Naviera)",
+  },
+  {
+    value: "CBA",
+    label: "CBA — Customs Broker Agency (Agencia de Aduanas / OEA)",
+  },
+  {
+    value: "OAG",
+    label: "OAG — Representative Agent Origin (Agente en Origen)",
+  },
+  {
+    value: "DAG",
+    label: "DAG — Representative Agent Destination (Agente en Destino)",
+  },
+  {
+    value: "FFC",
+    label: "FFC — Freight Forwarding Company (Transitario / NVOCC)",
+  },
+  {
+    value: "SPT",
+    label: "SPT — Seaport Terminal (Terminal Portuaria Marítima)",
+  },
+  {
+    value: "RST",
+    label: "RST — Railway Station Terminal (Terminal Ferroviaria)",
+  },
+  {
+    value: "OIC",
+    label: "OIC — Inland Container Terminal Origin (Depósito Origen)",
+  },
+  {
+    value: "DIC",
+    label: "DIC — Inland Container Terminal Destination (Depósito Destino)",
+  },
+  {
+    value: "OEW",
+    label: "OEW — External Warehouse Origin (Almacén Externo 3PL Origen)",
+  },
+  {
+    value: "DEW",
+    label: "DEW — External Warehouse Destination (Almacén Externo 3PL Destino)",
+  },
+  {
+    value: "OWO",
+    label: "OWO — Owned Warehouse Origin (Almacén Propio Origen)",
+  },
+  {
+    value: "DWO",
+    label: "DWO — Owned Warehouse Destination (Almacén Propio Destino)",
+  },
+  {
+    value: "OHA",
+    label: "OHA — Haulier Origin (Transportista Acarreo Origen)",
+  },
+  {
+    value: "DHA",
+    label: "DHA — Haulier Destination (Transportista Acarreo Destino)",
+  },
   { value: "INS", label: "INS — Insurance (Aseguradora Marítima / P&I)" },
-  { value: "CAA", label: "CAA — Carrier Agent (Agente Consignatario Naviero)" },
-  { value: "WH", label: "WH — Warehouse (Almacén / Depósito / CFS)" },
-  { value: "FW", label: "FW — Forwarder (Transitario / NVOCC / 3PL)" },
-  { value: "TRM", label: "TRM — Terminal (Terminal Portuaria / Estibadora)" },
+  {
+    value: "PLL",
+    label: "PLL — Place of Loading Location (Lugar / Instalación de Carga)",
+  },
+  {
+    value: "PDL",
+    label: "PDL — Place of Delivery Location (Lugar / Instalación de Entrega)",
+  },
+  {
+    value: "POL",
+    label: "POL — Port of Loading (Puerto / Aeropuerto de Carga)",
+  },
+  {
+    value: "POD",
+    label: "POD — Port of Discharge (Puerto / Aeropuerto de Descarga)",
+  },
+  {
+    value: "TSP",
+    label: "TSP — Transhipment Port (Puerto / Hub de Transbordo)",
+  },
 ] as const;
 
 export const CONTACT_ROLES = [
@@ -107,7 +185,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
   corporateGroups = [],
 }) => {
   // Main form state
-  const [addressType, setAddressType] = useState<string>("CUS");
+  const [addressType, setAddressType] = useState<string>("MCC");
   const [selectedCompanyGroupId, setSelectedCompanyGroupId] = useState<string>(
     companyId || "",
   );
@@ -176,7 +254,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
   // Populate state when editing
   useEffect(() => {
     if (addressToEdit) {
-      setAddressType(addressToEdit.addressType || "CUS");
+      setAddressType(addressToEdit.addressType || "MCC");
       setSelectedCompanyGroupId(addressToEdit.companyId || companyId || "");
       setCompanyName(addressToEdit.companyName || "");
       setTradeName(addressToEdit.tradeName || "");

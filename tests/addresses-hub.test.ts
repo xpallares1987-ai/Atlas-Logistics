@@ -101,7 +101,7 @@ describe("Addresses Hub & Entity Directory (Tenant-Scoped)", () => {
     const body = res.json();
     expect(body.id).toBeDefined();
     expect(body.companyName).toBe("Mediterranean Shipping Agency S.L.");
-    expect(body.addressType).toBe("CAA");
+    expect(body.addressType).toBe("CLA");
     expect(body.unLocode).toBe("ESBCN");
     expect(body.contacts.length).toBe(2);
     expect(body.contacts[0].isPrimary).toBe(true);
@@ -159,7 +159,7 @@ describe("Addresses Hub & Entity Directory (Tenant-Scoped)", () => {
     expect(res.statusCode).toBe(201);
     const body = res.json();
     expect(body.id).toBeDefined();
-    expect(body.addressType).toBe("TRM");
+    expect(body.addressType).toBe("SPT");
   });
 
   it("fetches single address with linked contacts and pre-formatted B/L party boxes", async () => {
@@ -194,10 +194,10 @@ describe("Addresses Hub & Entity Directory (Tenant-Scoped)", () => {
     const body = res.json();
     expect(Array.isArray(body)).toBe(true);
     expect(body.length).toBe(1);
-    expect(body[0].addressType).toBe("CAA");
+    expect(body[0].addressType).toBe("CLA");
   });
 
-  it("exposes master address_types catalog without CONSIGNEE_NOTIFY", async () => {
+  it("exposes master address_types catalog with 25 unique 3-letter codes and without CONSIGNEE_NOTIFY", async () => {
     const res = await app.inject({
       method: "GET",
       url: "/api/addresses/types",
@@ -206,21 +206,46 @@ describe("Addresses Hub & Entity Directory (Tenant-Scoped)", () => {
     expect(res.statusCode).toBe(200);
     const types = res.json();
     const codes = types.map((t: any) => t.code);
-    expect(codes).toEqual(
-      expect.arrayContaining([
-        "CUS",
-        "CB",
-        "AG",
-        "HAU",
-        "CAR",
-        "INS",
-        "CAA",
-        "WH",
-        "FW",
-        "TRM",
-      ]),
-    );
+
+    const expectedCodes = [
+      "MCC",
+      "OCA",
+      "ACA",
+      "RCA",
+      "CLA",
+      "CBA",
+      "OAG",
+      "DAG",
+      "FFC",
+      "SPT",
+      "RST",
+      "OIC",
+      "DIC",
+      "OEW",
+      "DEW",
+      "OWO",
+      "DWO",
+      "OHA",
+      "DHA",
+      "INS",
+      "PLL",
+      "PDL",
+      "POL",
+      "POD",
+      "TSP",
+    ];
+
+    expect(codes).toEqual(expect.arrayContaining(expectedCodes));
     expect(codes).not.toContain("CONSIGNEE_NOTIFY");
+
+    // Strict uniqueness check: no duplicated codes in catalog
+    const uniqueCodes = new Set(codes);
+    expect(uniqueCodes.size).toBe(codes.length);
+
+    // Each code must be strictly 3 uppercase alphabetic characters
+    for (const code of expectedCodes) {
+      expect(code).toMatch(/^[A-Z]{3}$/);
+    }
   });
 
   it("restricts Corporate Group management to ACCOUNTING, CONTROLLING, and ADMIN roles", async () => {

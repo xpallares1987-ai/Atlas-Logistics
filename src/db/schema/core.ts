@@ -99,32 +99,83 @@ export const workflows = sqliteTable("workflows", {
 });
 
 export const addressTypeCodeEnum = [
+  "MCC",
+  "OCA",
+  "ACA",
+  "RCA",
+  "CLA",
+  "CBA",
+  "OAG",
+  "DAG",
+  "FFC",
+  "SPT",
+  "RST",
+  "OIC",
+  "DIC",
+  "OEW",
+  "DEW",
+  "OWO",
+  "DWO",
+  "OHA",
+  "DHA",
+  "INS",
+  "PLL",
+  "PDL",
+  "POL",
+  "POD",
+  "TSP",
+  // Legacy compatibility short codes
   "CUS",
   "CB",
   "AG",
   "HAU",
   "CAR",
-  "INS",
   "CAA",
   "WH",
   "FW",
+  "FWD",
   "TRM",
 ] as const;
 
 export type AddressTypeCode = (typeof addressTypeCodeEnum)[number];
 
 export const addressTypeEnum = [
+  "MCC",
+  "OCA",
+  "ACA",
+  "RCA",
+  "CLA",
+  "CBA",
+  "OAG",
+  "DAG",
+  "FFC",
+  "SPT",
+  "RST",
+  "OIC",
+  "DIC",
+  "OEW",
+  "DEW",
+  "OWO",
+  "DWO",
+  "OHA",
+  "DHA",
+  "INS",
+  "PLL",
+  "PDL",
+  "POL",
+  "POD",
+  "TSP",
+  // Legacy compatibility short codes and literals normalized at runtime
   "CUS",
   "CB",
   "AG",
   "HAU",
   "CAR",
-  "INS",
   "CAA",
   "WH",
   "FW",
+  "FWD",
   "TRM",
-  // Legacy compatibility literals normalized at runtime
   "CUSTOMER",
   "CARRIER",
   "CARRIER_AGENT",
@@ -149,101 +200,261 @@ export interface AddressTypeDefinition {
 
 export const ADDRESS_TYPE_DEFINITIONS: readonly AddressTypeDefinition[] = [
   {
-    code: "CUS",
-    name: "Customer",
+    code: "MCC",
+    name: "Main Customer Company",
     description:
-      "Beneficial cargo owner (BCO), shipper, importer, exporter, or consignee party.",
+      "Beneficial cargo owner (BCO), primary merchant, shipper, importer, exporter, or consignee party.",
   },
   {
-    code: "CB",
-    name: "Customs Broker",
+    code: "OCA",
+    name: "Ocean Carrier",
     description:
-      "Licensed customs house broker, fiscal representative, and tariff clearance agency.",
+      "Vessel-operating common carrier (VOCC), container liner service, or ocean shipping company.",
   },
   {
-    code: "AG",
-    name: "Agent",
+    code: "ACA",
+    name: "Airline Carrier",
     description:
-      "Port agency, handling agent, surveyor, or regional logistics representative.",
+      "Commercial cargo airline, air freight carrier, or scheduled freighter operator.",
   },
   {
-    code: "HAU",
-    name: "Haulier",
+    code: "RCA",
+    name: "Rail Carrier",
     description:
-      "Road transport operator, drayage carrier, and intermodal trucking fleet.",
+      "Intermodal freight rail operator, railway undertaking, or rail shuttle service.",
   },
   {
-    code: "CAR",
-    name: "Carrier",
+    code: "CLA",
+    name: "Carrier Line Agency",
     description:
-      "Vessel-operating common carrier (VOCC), airline, or rail operator.",
+      "Authorized liner shipping agency representing an ocean or air carrier at port (agencia consignataria).",
+  },
+  {
+    code: "CBA",
+    name: "Customs Broker Agency",
+    description:
+      "AEO-licensed customs house broker agency, fiscal representative, and tariff clearance provider.",
+  },
+  {
+    code: "OAG",
+    name: "Representative Agent (Origin)",
+    description:
+      "Freight forwarding representative and handling partner for the country of origin.",
+  },
+  {
+    code: "DAG",
+    name: "Representative Agent (Destination)",
+    description:
+      "Freight forwarding representative and breakbulk delivery partner for the country of destination.",
+  },
+  {
+    code: "FFC",
+    name: "Freight Forwarding Company",
+    description:
+      "Non-vessel operating common carrier (NVOCC), international freight forwarder, or 3PL orchestrator.",
+  },
+  {
+    code: "SPT",
+    name: "Seaport Terminal",
+    description:
+      "Deep-sea maritime container terminal, stevedoring facility, or seaport container quay.",
+  },
+  {
+    code: "RST",
+    name: "Railway Station Terminal",
+    description:
+      "Intermodal rail freight terminal, container railhead depot, or marshalling yard.",
+  },
+  {
+    code: "OIC",
+    name: "Inland Container Terminal (Origin)",
+    description:
+      "Inland dry port, container depot, or off-dock intermodal facility at origin.",
+  },
+  {
+    code: "DIC",
+    name: "Inland Container Terminal (Destination)",
+    description:
+      "Inland dry port, container depot, or off-dock intermodal facility at destination.",
+  },
+  {
+    code: "OEW",
+    name: "External Warehouse (Origin)",
+    description:
+      "Third-party (3PL) contracted consolidation warehouse, CFS, or distribution facility at origin.",
+  },
+  {
+    code: "DEW",
+    name: "External Warehouse (Destination)",
+    description:
+      "Third-party (3PL) contracted deconsolidation warehouse, CFS, or bonded distribution facility at destination.",
+  },
+  {
+    code: "OWO",
+    name: "Owned Warehouse (Origin)",
+    description:
+      "Company-owned and operated cross-dock facility, customs warehouse, or distribution hub at origin.",
+  },
+  {
+    code: "DWO",
+    name: "Owned Warehouse (Destination)",
+    description:
+      "Company-owned and operated cross-dock facility, bonded depot, or delivery hub at destination.",
+  },
+  {
+    code: "OHA",
+    name: "Haulier (Origin)",
+    description:
+      "Pre-carriage road transport operator, drayage trucker, or inland carrier at origin.",
+  },
+  {
+    code: "DHA",
+    name: "Haulier (Destination)",
+    description:
+      "On-carriage road transport operator, final-mile delivery trucker, or drayage carrier at destination.",
   },
   {
     code: "INS",
     name: "Insurance",
     description:
-      "Marine cargo insurer, P&I club, underwriter, or claims average adjuster.",
+      "Marine cargo insurer, P&I club, cargo underwriter, or claims average adjuster.",
   },
   {
-    code: "CAA",
-    name: "Carrier Agent",
+    code: "PLL",
+    name: "Place of Loading Location",
     description:
-      "Authorized liner shipping agency representing an ocean or air carrier at port.",
+      "Designated origin place, factory, farm, or cargo consolidation location where freight is loaded.",
   },
   {
-    code: "WH",
-    name: "Warehouse",
+    code: "PDL",
+    name: "Place of Delivery Location",
     description:
-      "Logistics distribution center, bonded warehouse, CFS, or inland container depot.",
+      "Designated destination place, consignee facility, or cargo delivery location where freight is surrendered.",
   },
   {
-    code: "FW",
-    name: "Forwarder",
-    description: "Freight forwarder, NVOCC, or 3PL/4PL logistics orchestrator.",
-  },
-  {
-    code: "TRM",
-    name: "Terminal",
+    code: "POL",
+    name: "Port of Loading",
     description:
-      "Maritime container terminal, stevedoring facility, or air cargo terminal.",
+      "Origin maritime seaport, airport, or railhead where goods are laden on board the main international conveyance.",
+  },
+  {
+    code: "POD",
+    name: "Port of Discharge",
+    description:
+      "Destination maritime seaport, airport, or railhead where goods are unladen from the main international conveyance.",
+  },
+  {
+    code: "TSP",
+    name: "Transhipment Port",
+    description:
+      "Intermediate transfer port or airport hub where containers/cargo undergo vessel-to-vessel or multimodal relay.",
   },
 ] as const;
 
 const LEGACY_ADDRESS_TYPE_TO_CODE: Record<string, AddressTypeCode> = {
-  CUS: "CUS",
-  CUSTOMER: "CUS",
-  CONSIGNEE_NOTIFY: "CUS",
-  CB: "CB",
-  CUSTOMS_BROKER: "CB",
-  AG: "AG",
-  AGENT: "AG",
-  PORT_AUTHORITY: "AG",
-  HAU: "HAU",
-  HAULIER: "HAU",
-  CAR: "CAR",
-  CARRIER: "CAR",
+  // Canonical identity mappings
+  MCC: "MCC",
+  MAIN_CUSTOMER_COMPANY: "MCC",
+  CUS: "MCC",
+  CUST: "MCC",
+  CUSTOMER: "MCC",
+  CONSIGNEE_NOTIFY: "MCC",
+
+  OCA: "OCA",
+  OCEAN_CARRIER: "OCA",
+  ACA: "ACA",
+  AIRLINE_CARRIER: "ACA",
+  RCA: "RCA",
+  RAIL_CARRIER: "RCA",
+
+  CLA: "CLA",
+  CARRIER_LINE_AGENCY: "CLA",
+  CAA: "CLA",
+  CARRIER_AGENT: "CLA",
+
+  CBA: "CBA",
+  CUSTOMS_BROKER_AGENCY: "CBA",
+  CB: "CBA",
+  CUSTOMS_BROKER: "CBA",
+
+  OAG: "OAG",
+  ORIGIN_AGENT: "OAG",
+  DAG: "DAG",
+  DESTINATION_AGENT: "DAG",
+  AG: "DAG",
+  AGENT: "DAG",
+  PORT_AUTHORITY: "DAG",
+
+  FFC: "FFC",
+  FREIGHT_FORWARDING_COMPANY: "FFC",
+  FW: "FFC",
+  FWD: "FFC",
+  FORWARDER: "FFC",
+
+  SPT: "SPT",
+  SEAPORT_TERMINAL: "SPT",
+  RST: "RST",
+  RAILWAY_STATION_TERMINAL: "RST",
+  OIC: "OIC",
+  ORIGIN_INLAND_CONTAINER: "OIC",
+  DIC: "DIC",
+  DESTINATION_INLAND_CONTAINER: "DIC",
+  TRM: "SPT",
+  TERMINAL: "SPT",
+
+  OEW: "OEW",
+  ORIGIN_EXTERNAL_WAREHOUSE: "OEW",
+  DEW: "DEW",
+  DESTINATION_EXTERNAL_WAREHOUSE: "DEW",
+  OWO: "OWO",
+  ORIGIN_OWNED_WAREHOUSE: "OWO",
+  DWO: "DWO",
+  DESTINATION_OWNED_WAREHOUSE: "DWO",
+  WH: "OEW",
+  WAREHOUSE: "OEW",
+  INLAND_DEPOT: "OIC",
+  INLAND_CONTAINER_DEPOT: "OIC",
+
+  OHA: "OHA",
+  ORIGIN_HAULIER: "OHA",
+  DHA: "DHA",
+  DESTINATION_HAULIER: "DHA",
+  HAU: "OHA",
+  HAULIER: "OHA",
+
+  CAR: "OCA",
+  CARRIER: "OCA",
+
   INS: "INS",
   INSURANCE: "INS",
-  CAA: "CAA",
-  CARRIER_AGENT: "CAA",
-  WH: "WH",
-  WAREHOUSE: "WH",
-  INLAND_DEPOT: "WH",
-  INLAND_CONTAINER_DEPOT: "WH",
-  FW: "FW",
-  FORWARDER: "FW",
-  TRM: "TRM",
-  TERMINAL: "TRM",
+
+  PLL: "PLL",
+  PLACE_OF_LOADING: "PLL",
+  PLACE_OF_LOADING_LOCATION: "PLL",
+
+  PDL: "PDL",
+  PLACE_OF_DELIVERY: "PDL",
+  PLACE_OF_DELIVERY_LOCATION: "PDL",
+
+  POL: "POL",
+  PORT_OF_LOADING: "POL",
+
+  POD: "POD",
+  PORT_OF_DISCHARGE: "POD",
+
+  TSP: "TSP",
+  TRANSHIPMENT_PORT: "TSP",
+  TRANSSHIPMENT_PORT: "TSP",
 };
 
 /**
  * Normalizes any short code or legacy addressType value to its canonical `address_types.code`.
- * Eliminates CONSIGNEE_NOTIFY by mapping it to CUS (Customer).
+ * Eliminates CONSIGNEE_NOTIFY by mapping it to MCC (Main Customer Company).
  */
 export function normalizeAddressTypeCode(raw?: string | null): AddressTypeCode {
-  if (!raw) return "CUS";
+  if (!raw) return "MCC";
   const key = raw.trim().toUpperCase();
-  return LEGACY_ADDRESS_TYPE_TO_CODE[key] ?? "CUS";
+  return LEGACY_ADDRESS_TYPE_TO_CODE[key] ?? "MCC";
 }
 
 export const CORPORATE_GROUP_AUTHORIZED_ROLES = [
@@ -464,12 +675,21 @@ export function inferEnterpriseGroupId(
     return "grp_customs_iberia";
 
   const code = normalizeAddressTypeCode(addressType);
-  if (code === "CUS") return explicitCompanyId || "grp_euro_bco";
-  if (code === "CB") return "grp_customs_iberia";
-  if (code === "HAU") return "grp_sese";
+  if (code === "MCC" || (code as string) === "CUS")
+    return explicitCompanyId || "grp_euro_bco";
+  if (code === "CBA" || (code as string) === "CB") return "grp_customs_iberia";
+  if (code === "OHA" || code === "DHA" || (code as string) === "HAU")
+    return "grp_sese";
   if (code === "INS") return "grp_allianz";
-  if (code === "FW") return "grp_atlas";
-  if (code === "TRM") return "grp_apm_terminals";
+  if (code === "FFC" || (code as string) === "FW") return "grp_atlas";
+  if (
+    code === "SPT" ||
+    code === "RST" ||
+    code === "OIC" ||
+    code === "DIC" ||
+    (code as string) === "TRM"
+  )
+    return "grp_apm_terminals";
   return explicitCompanyId || "c-1";
 }
 

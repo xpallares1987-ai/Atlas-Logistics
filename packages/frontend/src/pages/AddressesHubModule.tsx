@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Building2,
   MapPin,
@@ -10,12 +10,8 @@ import {
   FileText,
   Edit,
   Trash2,
-  Anchor,
-  Ship,
   Truck,
-  Warehouse,
   Shield,
-  Layers,
   Loader2,
   Star,
   Check,
@@ -35,87 +31,7 @@ import {
 import { authFetch } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useAppStore, canManageCorporateGroups } from "../store/useAppStore";
-
-const TYPE_CONFIG: Record<
-  string,
-  {
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    color: string;
-    badgeClass: string;
-  }
-> = {
-  CUS: {
-    label: "CUS · Customer",
-    icon: Building2,
-    color: "indigo",
-    badgeClass:
-      "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
-  },
-  CB: {
-    label: "CB · Customs Broker",
-    icon: Shield,
-    color: "emerald",
-    badgeClass:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
-  },
-  AG: {
-    label: "AG · Agent",
-    icon: Anchor,
-    color: "sky",
-    badgeClass:
-      "bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-800",
-  },
-  HAU: {
-    label: "HAU · Haulier",
-    icon: Truck,
-    color: "violet",
-    badgeClass:
-      "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border-violet-200 dark:border-violet-800",
-  },
-  CAR: {
-    label: "CAR · Carrier",
-    icon: Ship,
-    color: "blue",
-    badgeClass:
-      "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800",
-  },
-  INS: {
-    label: "INS · Insurance",
-    icon: Shield,
-    color: "rose",
-    badgeClass:
-      "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800",
-  },
-  CAA: {
-    label: "CAA · Carrier Agent",
-    icon: Anchor,
-    color: "cyan",
-    badgeClass:
-      "bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
-  },
-  WH: {
-    label: "WH · Warehouse",
-    icon: Warehouse,
-    color: "amber",
-    badgeClass:
-      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800",
-  },
-  FW: {
-    label: "FW · Forwarder",
-    icon: Layers,
-    color: "teal",
-    badgeClass:
-      "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border-teal-200 dark:border-teal-800",
-  },
-  TRM: {
-    label: "TRM · Terminal",
-    icon: Layers,
-    color: "orange",
-    badgeClass:
-      "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border-orange-200 dark:border-orange-800",
-  },
-};
+import { TYPE_CONFIG } from "../components/Addresses/index.js";
 
 interface LinkedAddressSummary {
   id: string;
@@ -289,16 +205,41 @@ export default function AddressesHubModule() {
   const stats = useMemo(() => {
     const total = addresses.length;
     const customers = addresses.filter(
-      (a) => a.addressType === "CUS" || a.addressType === "FW",
+      (a) =>
+        a.addressType === "MCC" ||
+        a.addressType === "CUS" ||
+        a.addressType === "FFC" ||
+        a.addressType === "FW",
     ).length;
     const carriers = addresses.filter(
       (a) =>
-        a.addressType === "CAR" ||
+        a.addressType === "OCA" ||
+        a.addressType === "ACA" ||
+        a.addressType === "RCA" ||
+        a.addressType === "CLA" ||
         a.addressType === "CAA" ||
-        a.addressType === "AG",
+        a.addressType === "OAG" ||
+        a.addressType === "DAG" ||
+        a.addressType === "AG" ||
+        a.addressType === "CAR",
     ).length;
     const infrastructure = addresses.filter(
       (a) =>
+        a.addressType === "SPT" ||
+        a.addressType === "RST" ||
+        a.addressType === "OIC" ||
+        a.addressType === "DIC" ||
+        a.addressType === "OEW" ||
+        a.addressType === "DEW" ||
+        a.addressType === "OWO" ||
+        a.addressType === "DWO" ||
+        a.addressType === "OHA" ||
+        a.addressType === "DHA" ||
+        a.addressType === "PLL" ||
+        a.addressType === "PDL" ||
+        a.addressType === "POL" ||
+        a.addressType === "POD" ||
+        a.addressType === "TSP" ||
         a.addressType === "TRM" ||
         a.addressType === "WH" ||
         a.addressType === "HAU",

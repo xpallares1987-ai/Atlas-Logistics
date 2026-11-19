@@ -699,28 +699,87 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
           expandedTypes.add(canonical);
           expandedTypes.add(token.toUpperCase());
           // Also include legacy equivalents so any un-migrated test fixtures match
-          if (canonical === "CUS") {
+          if (canonical === "MCC" || (canonical as string) === "CUS") {
+            expandedTypes.add("MCC");
+            expandedTypes.add("CUS");
+            expandedTypes.add("CUST");
             expandedTypes.add("CUSTOMER");
             expandedTypes.add("CONSIGNEE_NOTIFY");
-          } else if (canonical === "CB") {
+          } else if (canonical === "CBA" || (canonical as string) === "CB") {
+            expandedTypes.add("CBA");
+            expandedTypes.add("CB");
             expandedTypes.add("CUSTOMS_BROKER");
-          } else if (canonical === "AG") {
+            expandedTypes.add("CUSTOMS_BROKER_AGENCY");
+          } else if (canonical === "CLA" || (canonical as string) === "CAA") {
+            expandedTypes.add("CLA");
+            expandedTypes.add("CAA");
+            expandedTypes.add("CARRIER_LINE_AGENCY");
+            expandedTypes.add("CARRIER_AGENT");
+          } else if (
+            canonical === "OAG" ||
+            canonical === "DAG" ||
+            (canonical as string) === "AG"
+          ) {
+            expandedTypes.add("OAG");
+            expandedTypes.add("DAG");
+            expandedTypes.add("AG");
             expandedTypes.add("AGENT");
             expandedTypes.add("PORT_AUTHORITY");
-          } else if (canonical === "HAU") {
+          } else if (
+            canonical === "OHA" ||
+            canonical === "DHA" ||
+            (canonical as string) === "HAU"
+          ) {
+            expandedTypes.add("OHA");
+            expandedTypes.add("DHA");
+            expandedTypes.add("HAU");
             expandedTypes.add("HAULIER");
-          } else if (canonical === "CAR") {
+          } else if (
+            canonical === "OCA" ||
+            canonical === "ACA" ||
+            canonical === "RCA" ||
+            (canonical as string) === "CAR"
+          ) {
+            expandedTypes.add("OCA");
+            expandedTypes.add("ACA");
+            expandedTypes.add("RCA");
+            expandedTypes.add("CAR");
             expandedTypes.add("CARRIER");
           } else if (canonical === "INS") {
+            expandedTypes.add("INS");
             expandedTypes.add("INSURANCE");
-          } else if (canonical === "CAA") {
-            expandedTypes.add("CARRIER_AGENT");
-          } else if (canonical === "WH") {
+          } else if (
+            canonical === "OEW" ||
+            canonical === "DEW" ||
+            canonical === "OWO" ||
+            canonical === "DWO" ||
+            (canonical as string) === "WH"
+          ) {
+            expandedTypes.add("OEW");
+            expandedTypes.add("DEW");
+            expandedTypes.add("OWO");
+            expandedTypes.add("DWO");
+            expandedTypes.add("WH");
             expandedTypes.add("WAREHOUSE");
             expandedTypes.add("INLAND_DEPOT");
-          } else if (canonical === "FW") {
+          } else if (canonical === "FFC" || (canonical as string) === "FW") {
+            expandedTypes.add("FFC");
+            expandedTypes.add("FW");
+            expandedTypes.add("FWD");
             expandedTypes.add("FORWARDER");
-          } else if (canonical === "TRM") {
+            expandedTypes.add("FREIGHT_FORWARDING_COMPANY");
+          } else if (
+            canonical === "SPT" ||
+            canonical === "RST" ||
+            canonical === "OIC" ||
+            canonical === "DIC" ||
+            (canonical as string) === "TRM"
+          ) {
+            expandedTypes.add("SPT");
+            expandedTypes.add("RST");
+            expandedTypes.add("OIC");
+            expandedTypes.add("DIC");
+            expandedTypes.add("TRM");
             expandedTypes.add("TERMINAL");
           }
         }

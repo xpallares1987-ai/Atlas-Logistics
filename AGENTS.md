@@ -110,13 +110,33 @@
   - **Prohibited**: Corporate groups must NEVER be selectable or displayed as operational addresses, pickup/delivery locations, or terminal facilities across shipment workflows.
 - **Single Canonical Registry for Logistics Entities (`addresses`)**:
   - Logistics trading partners must NEVER be scattered across isolated legacy tables (`carriers`, `customs_brokers`, `destination_agents`).
-  - All operational logistics entities belong strictly to `addresses` with explicit `address_type` tags:
-    - `'CAR'`: Ocean / Air / Rail Carrier
-    - `'CB'`: AEO-Licensed Customs Broker
-    - `'AG'`: Destination / Origin Forwarding Agent
-    - `'FWD'`: Freight Forwarder
-    - `'TRM'`: Port / Rail / Inland Container Terminal
-    - `'WH'`: Customs Warehouse / Depósito Aduanero
+  - All operational logistics entities and gateway locations belong strictly to `addresses` with explicit, unique 3-letter `address_type` tags:
+    - **`'MCC'`**: Main Customer Company (Beneficial Cargo Owner / Shipper / Consignee / Merchant)
+    - **`'OCA'`**: Ocean Carrier (Vessel-Operating Common Carrier / Shipping Line)
+    - **`'ACA'`**: Airline Carrier (Commercial Air Cargo Carrier / Cargo Airline)
+    - **`'RCA'`**: Rail Carrier (Intermodal Freight Rail Operator / Railway Undertaking)
+    - **`'CLA'`**: Carrier Line Agency (Authorized Liner Shipping Agency / Agencia Consignataria)
+    - **`'CBA'`**: Customs Broker Agency (AEO-Licensed Customs House Broker / Fiscal Representative)
+    - **`'OAG'`**: Representative Agent for the country of Origin (Origin Forwarding Agent)
+    - **`'DAG'`**: Representative Agent for the country of Destination (Destination Delivery Agent)
+    - **`'FFC'`**: Freight Forwarding Company (NVOCC / Freight Forwarder / 3PL Orchestrator)
+    - **`'SPT'`**: Seaport Terminal (Deep-sea Container Terminal / Stevedoring Port Facility)
+    - **`'RST'`**: Railway Station Terminal (Intermodal Railhead Freight Depot / Rail Container Terminal)
+    - **`'OIC'`**: Inland Container Terminal at Origin (Origin Dry Port / Inland Container Yard)
+    - **`'DIC'`**: Inland Container Terminal at Destination (Destination Dry Port / Inland Container Depot)
+    - **`'OEW'`**: External Warehouse at Origin (Third-party 3PL Contracted Warehouse at Origin)
+    - **`'DEW'`**: External Warehouse at Destination (Third-party 3PL Contracted Warehouse at Destination)
+    - **`'OWO'`**: Owned Warehouse at Origin (Company-owned & Operated Warehouse at Origin)
+    - **`'DWO'`**: Owned Warehouse at Destination (Company-owned & Operated Warehouse at Destination)
+    - **`'OHA'`**: Haulier at Origin (Pre-carriage Drayage / Trucking Fleet at Origin)
+    - **`'DHA'`**: Haulier at Destination (On-carriage Drayage / Delivery Trucking Fleet at Destination)
+    - **`'INS'`**: Marine Cargo Insurer (Cargo Underwriter / P&I Club / Claims Adjuster)
+    - **`'PLL'`**: Place of Loading Location (Factory / Farm / Consolidation Loading Point)
+    - **`'PDL'`**: Place of Delivery Location (Consignee Facility / Final Receiver Delivery Point)
+    - **`'POL'`**: Port of Loading (Origin Seaport / Airport of Loading)
+    - **`'POD'`**: Port of Discharge (Destination Seaport / Airport of Discharge)
+    - **`'TSP'`**: Transhipment Port (Intermediate Transshipment Port / Hub)
+  - **Strict Code Uniqueness**: Every entity code in this taxonomy MUST be strictly unique across the system without collisions.
   - Official industry codes (SCAC, IATA, EORI, AEO, UN/LOCODE, IMO, UIC) must be stored in `address_identifiers`.
 - **Top-Tier Realistic Domain Entities**:
   - Master catalogs and seeders must prioritize top-tier, realistic industry actors (e.g., Top 10 ocean container carriers, verified AEO customs brokers) over arbitrary synthetic Faker noise.
