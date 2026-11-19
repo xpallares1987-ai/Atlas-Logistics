@@ -38,7 +38,7 @@ export default function WorkflowManagerModule() {
     let modeler: InstanceType<typeof BpmnModeler> | null = null;
 
     if (containerRef.current) {
-      containerRef.current.innerHTML = "";
+      containerRef.current.replaceChildren();
 
       modeler = new BpmnModeler({
         container: containerRef.current,

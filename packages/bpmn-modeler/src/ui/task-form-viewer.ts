@@ -1,3 +1,45 @@
+/**
+ * @file task-form-viewer.ts
+ * @description Preview renderer for BPMN UserTask form definitions using safe DOM construction.
+ * @module @atlas/bpmn-modeler/ui/task-form-viewer
+ */
+
+interface FormEnumValue {
+  id: string;
+  name: string;
+}
+
+interface FormFieldDefinition {
+  id: string;
+  label?: string;
+  type?: string;
+  defaultValue?: string;
+  values?: FormEnumValue[];
+}
+
+interface ExtensionElement {
+  $type: string;
+  fields?: FormFieldDefinition[];
+  formKey?: string;
+}
+
+interface SelectedBpmnTask {
+  type: string;
+  businessObject: {
+    name?: string;
+    extensionElements?: {
+      values?: ExtensionElement[];
+    };
+  };
+}
+
+interface ModelerEventBus {
+  on: (
+    event: string,
+    listener: (e: { newSelection?: SelectedBpmnTask[] }) => void,
+  ) => void;
+}
+
 let container: HTMLElement | null = null;
 
 export function initTaskFormViewer() {
@@ -20,8 +62,8 @@ export function initTaskFormViewer() {
   document.body.appendChild(container);
 }
 
-export function bindTaskFormViewerEvents(modeler: any) {
-  modeler.on("selection.changed", (e: any) => {
+export function bindTaskFormViewerEvents(modeler: ModelerEventBus) {
+  modeler.on("selection.changed", (e) => {
     const newSelection = e.newSelection;
     if (newSelection && newSelection.length === 1) {
       const element = newSelection[0];
@@ -42,7 +84,7 @@ function hideForm() {
   }
 }
 
-function renderFormForTask(element: any) {
+function renderFormForTask(element: SelectedBpmnTask) {
   if (!container) return;
 
   const businessObject = element.businessObject;
@@ -53,28 +95,35 @@ function renderFormForTask(element: any) {
     return;
   }
 
-  let formFields: any[] = [];
+  let formFields: FormFieldDefinition[] = [];
   const values = extensionElements.values || [];
 
-  const formData = values.find((v: any) => v.$type === "camunda:FormData");
+  const formData = values.find((v) => v.$type === "camunda:FormData");
   if (formData && formData.fields) {
     formFields = formData.fields;
   } else {
-    const zeebeForm = values.find(
-      (v: any) => v.$type === "zeebe:FormDefinition",
-    );
+    const zeebeForm = values.find((v) => v.$type === "zeebe:FormDefinition");
     if (zeebeForm) {
       container.style.display = "block";
-      container.innerHTML = `
-        <h4>Formulario de Tarea (Zeebe)</h4>
-        <p>Clave de Formulario: ${zeebeForm.formKey}</p>
-        <p><em>Los formularios de Zeebe requieren cargar una definición de formulario separada.</em></p>
-      `;
-      return;
-    } else {
-      hideForm();
+
+      const heading = document.createElement("h4");
+      heading.textContent = "Task Form (Zeebe)";
+
+      const keyParagraph = document.createElement("p");
+      keyParagraph.textContent = `Form Key: ${zeebeForm.formKey ?? ""}`;
+
+      const noteParagraph = document.createElement("p");
+      const noteEm = document.createElement("em");
+      noteEm.textContent =
+        "Zeebe forms require loading a separate form definition.";
+      noteParagraph.appendChild(noteEm);
+
+      container.replaceChildren(heading, keyParagraph, noteParagraph);
       return;
     }
+
+    hideForm();
+    return;
   }
 
   if (formFields.length === 0) {
@@ -83,31 +132,66 @@ function renderFormForTask(element: any) {
   }
 
   container.style.display = "block";
-  let html = `<h4>${businessObject.name || "Formulario de Tarea"}</h4>`;
-  html += '<form onsubmit="event.preventDefault()">';
 
-  formFields.forEach((field) => {
-    html += `
-      <div style="margin-bottom: 10px;">
-        <label style="display:block; font-size: 0.9rem; margin-bottom: 5px;">${field.label || field.id}</label>
-    `;
-    if (field.type === "enum" && field.values) {
-      html += `<select style="width: 100%; padding: 5px;" id="${field.id}">`;
-      field.values.forEach((val: any) => {
-        html += `<option value="${val.id}">${val.name}</option>`;
-      });
-      html += "</select>";
-    } else if (field.type === "boolean") {
-      html += `<input type="checkbox" id="${field.id}">`;
-    } else {
-      html += `<input type="text" style="width: 100%; padding: 5px;" id="${field.id}" placeholder="${field.defaultValue || ""}">`;
-    }
-    html += "</div>";
+  const heading = document.createElement("h4");
+  heading.textContent = businessObject.name || "Task Form";
+
+  const form = document.createElement("form");
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
   });
 
-  html +=
-    '<button class="btn btn-primary btn-sm" style="margin-top: 10px; width: 100%">Enviar (Vista Previa)</button>';
-  html += "</form>";
+  formFields.forEach((field) => {
+    const fieldGroup = document.createElement("div");
+    fieldGroup.style.marginBottom = "10px";
 
-  container.innerHTML = html;
+    const label = document.createElement("label");
+    label.style.display = "block";
+    label.style.fontSize = "0.9rem";
+    label.style.marginBottom = "5px";
+    label.htmlFor = field.id;
+    label.textContent = field.label || field.id;
+    fieldGroup.appendChild(label);
+
+    if (field.type === "enum" && field.values) {
+      const select = document.createElement("select");
+      select.style.width = "100%";
+      select.style.padding = "5px";
+      select.id = field.id;
+
+      field.values.forEach((val) => {
+        const option = document.createElement("option");
+        option.value = val.id;
+        option.textContent = val.name;
+        select.appendChild(option);
+      });
+
+      fieldGroup.appendChild(select);
+    } else if (field.type === "boolean") {
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.id = field.id;
+      fieldGroup.appendChild(checkbox);
+    } else {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.style.width = "100%";
+      input.style.padding = "5px";
+      input.id = field.id;
+      input.placeholder = field.defaultValue || "";
+      fieldGroup.appendChild(input);
+    }
+
+    form.appendChild(fieldGroup);
+  });
+
+  const submitBtn = document.createElement("button");
+  submitBtn.type = "submit";
+  submitBtn.className = "btn btn-primary btn-sm";
+  submitBtn.style.marginTop = "10px";
+  submitBtn.style.width = "100%";
+  submitBtn.textContent = "Submit (Preview)";
+  form.appendChild(submitBtn);
+
+  container.replaceChildren(heading, form);
 }

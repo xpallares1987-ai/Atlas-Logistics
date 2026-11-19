@@ -72,6 +72,7 @@ docs/
 ---
 
 ### 4. 🏛️ Architecture & Architectural Decision Records (*Understanding-Oriented*)
+- [**Joint Platform & Skills Improvement Plan (Terminal A + Terminal B)**](architecture/atlas-joint-improvement-plan.md) — Empirical baseline audit, closed P0 security/hygiene remediations (`T-3`/`T-4`), and phased P1–P2 roadmap for backend OpenAPI/type safety, RBAC enforcement, and 72 `atlas-*` skills alignment.
 - [**SCM Platform Architecture**](architecture/SCM_PLATFORM_ARCHITECTURE.md) — Domain aggregates, Transactional Outbox pattern, DAG cycle validation, and CQRS BFF projections.
 - [**Enterprise Evolution Plan**](architecture/enterprise_evolution_plan.md) — Strategic roadmap for scaling freight forwarding domains and external integrations.
 - [**Comprehensive System Architecture**](architecture/ARCHITECTURE.md) — Monorepo micro-frontends, Fastify backend architecture, and data isolation.

@@ -32,10 +32,18 @@ import {
 import {
   createBookingRequest,
   confirmBookingToShipment,
+  type DrayageQuotePayload,
 } from "../services/booking-lifecycle.service.js";
 import { recordEscrowDeposit } from "../modules/smart-contracts/smart-contracts.routes.js";
 import { DcsaHubService } from "../services/dcsa/dcsa-hub.service.js";
 import { TariffResolutionService } from "../services/pricing/tariff-resolution.service.js";
+import {
+  OPENAPI_ID_PARAMS_SCHEMA,
+  OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  buildErrorResponses,
+  openApiObject,
+} from "./openapi.schemas.js";
 
 // ============================================================================
 // TYPE DEFINITIONS & SCHEMAS
@@ -98,7 +106,7 @@ interface AcceptAndBookBody {
   currency?: string;
   paymentMode?: "ESCROW_SMART_CONTRACT" | "NET_30_CREDIT";
   transitDays?: number;
-  drayageQuote?: string | null;
+  drayageQuote?: DrayageQuotePayload | string | null;
   haulierAddressId?: string | null;
   drayageDestinationAddressId?: string | null;
   vesselName?: string;
@@ -146,6 +154,19 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.get<{ Querystring: RatesQuerystring }>(
     "/",
     {
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary: "List commercial freight quotes or cached ocean freight rates",
+        querystring: openApiObject({
+          origin: { type: "string" },
+          destination: { type: "string" },
+          containerType: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 100,
@@ -296,6 +317,22 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.get<{ Querystring: AnalyticsQuerystring }>(
     "/analytics",
     {
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary: "Retrieve 6-month lane rate benchmark trend series",
+        querystring: openApiObject({
+          origin: { type: "string" },
+          destination: { type: "string" },
+        }),
+        response: {
+          200: openApiObject({
+            months: { type: "array", items: { type: "string" } },
+            marketRates: { type: "array", items: { type: "number" } },
+            atlasRates: { type: "array", items: { type: "number" } },
+          }),
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 100,
@@ -333,6 +370,19 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.post<{ Body: CompareBody }>(
     "/compare",
     {
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary: "Trigger lane rate comparison workflow",
+        body: openApiObject({
+          origin: { type: "string" },
+          destination: { type: "string" },
+          containerType: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 10,
@@ -401,6 +451,26 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     "/",
     {
       preHandler: [validate(CreateQuoteSchema)],
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary: "Create a new commercial freight quotation",
+        body: openApiObject({
+          customerId: { type: "string" },
+          quoteNumber: { type: "string" },
+          originLocationId: { type: "string" },
+          destinationLocationId: { type: "string" },
+          equipment: { type: "string" },
+          buyRateTotal: { type: "number" },
+          sellMargin: { type: "number" },
+          sellRateTotal: { type: "number" },
+          status: { type: "string" },
+          validTo: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 50,
@@ -450,6 +520,16 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.put<{ Params: QuoteParams; Body: Record<string, unknown> }>(
     "/:id",
     {
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary: "Update commercial quotation fields",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 50,
@@ -478,6 +558,27 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.post<{ Params: QuoteParams; Body: AcceptAndBookBody }>(
     "/:id/accept-and-book",
     {
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary:
+          "Accept quotation, create and confirm booking, materialize shipment, and optionally open escrow",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: openApiObject({
+          origin: { type: "string" },
+          destination: { type: "string" },
+          carrier: { type: "string" },
+          equipment: { type: "string" },
+          paymentMode: { type: "string" },
+          vesselName: { type: "string" },
+          voyageNumber: { type: "string" },
+          containerNumber: { type: "string" },
+          sealNumber: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 50,
@@ -590,7 +691,10 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
           currency,
           transitDays: Number(body.transitDays || 28),
           status: "PENDING",
-          drayageQuote: body.drayageQuote || null,
+          drayageQuote:
+            typeof body.drayageQuote === "object" && body.drayageQuote !== null
+              ? body.drayageQuote
+              : null,
           haulierAddressId: body.haulierAddressId || undefined,
           drayageDestinationAddressId:
             body.drayageDestinationAddressId || undefined,
@@ -648,8 +752,9 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
             eventTypeCode: "CONF",
             bookingReference:
               confirmed.booking?.carrierBookingNumber ||
-              createdBooking.referenceNumber,
-            containerNumber: confirmed.container?.containerNumber,
+              createdBooking.referenceNumber ||
+              undefined,
+            containerNumber: confirmed.container?.containerNumber ?? undefined,
             locode: origin,
           });
         } catch (dcsaErr: unknown) {
@@ -719,43 +824,79 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     },
   );
 
-  fastify.get<{ Params: QuoteParams }>("/:id/pdf", async (request, reply) => {
-    try {
-      const { id } = request.params;
-      const quoteList = await db.select().from(quotes).where(eq(quotes.id, id));
-      if (!quoteList.length) {
-        return reply.code(404).send({ error: "Quote not found" });
+  fastify.get<{ Params: QuoteParams }>(
+    "/:id/pdf",
+    {
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary: "Render and download an official commercial quotation PDF",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+        const quoteList = await db
+          .select()
+          .from(quotes)
+          .where(eq(quotes.id, id));
+        if (!quoteList.length) {
+          return reply.code(404).send({ error: "Quote not found" });
+        }
+        const q = quoteList[0];
+        const pdfBuffer = await PDFService.generateQuote({
+          quoteNumber: q.quoteNumber,
+          customer: "Client From Portal",
+          origin: q.originLocationId || "Origin Port",
+          destination: q.destinationLocationId || "Destination Port",
+          equipment: q.equipment,
+          buyRateTotal: q.buyRateTotal,
+          sellMargin: q.sellMargin,
+          sellRateTotal: q.sellRateTotal,
+          validTo: q.validTo
+            ? new Date(q.validTo).toISOString().split("T")[0]
+            : "2026-12-31",
+        });
+        reply.header("Content-Type", "application/pdf");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="Quote-${q.quoteNumber}.pdf"`,
+        );
+        return reply.send(pdfBuffer);
+      } catch (error: unknown) {
+        fastify.log.error({ err: error }, "Failed to generate quote PDF");
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
-      const q = quoteList[0];
-      const pdfBuffer = await PDFService.generateQuote({
-        quoteNumber: q.quoteNumber,
-        customer: "Client From Portal",
-        origin: q.originLocationId || "Origin Port",
-        destination: q.destinationLocationId || "Destination Port",
-        equipment: q.equipment,
-        buyRateTotal: q.buyRateTotal,
-        sellMargin: q.sellMargin,
-        sellRateTotal: q.sellRateTotal,
-        validTo: q.validTo
-          ? new Date(q.validTo).toISOString().split("T")[0]
-          : "2026-12-31",
-      });
-      reply.header("Content-Type", "application/pdf");
-      reply.header(
-        "Content-Disposition",
-        `attachment; filename="Quote-${q.quoteNumber}.pdf"`,
-      );
-      return reply.send(pdfBuffer);
-    } catch (error: unknown) {
-      fastify.log.error({ err: error }, "Failed to generate quote PDF");
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   fastify.post<{ Body: GeneratePdfBody }>(
     "/generate-pdf",
+    {
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary: "Render an ad-hoc commercial freight quotation PDF",
+        body: openApiObject({
+          quoteNumber: { type: "string" },
+          customer: { type: "string" },
+          origin: { type: "string" },
+          destination: { type: "string" },
+          carrier: { type: "string" },
+          equipment: { type: "string" },
+          sellRateTotal: { type: "number" },
+          currency: { type: "string" },
+          validTo: { type: "string" },
+        }),
+        response: {
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const body = request.body;
@@ -797,6 +938,21 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.post<{ Body: PreviewRatesBody }>(
     "/preview",
     {
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary: "Preview and validate tabular carrier rate sheet rows",
+        body: openApiObject({
+          rows: {
+            type: "array",
+            items: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          },
+          defaultCarrier: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 50,
@@ -827,6 +983,22 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.post<{ Body: BulkImportRatesBody }>(
     "/bulk-import",
     {
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary: "Execute bulk carrier freight rate ingestion batch",
+        body: openApiObject({
+          fileName: { type: "string" },
+          carrierId: { type: "string" },
+          rates: {
+            type: "array",
+            items: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 50,
@@ -863,6 +1035,17 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.get<{ Querystring: ImportBatchesQuery }>(
     "/import-batches",
     {
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary: "List historical carrier rate ingestion batches",
+        querystring: openApiObject({
+          limit: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 100,
@@ -888,6 +1071,18 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.get<{ Querystring: UnlocodeLookupQuery }>(
     "/unlocode-lookup",
     {
+      schema: {
+        tags: ["Quotes & Rates"],
+        summary:
+          "Resolve a port alias or query string to a canonical UN/LOCODE",
+        querystring: openApiObject({
+          q: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 100,
@@ -921,51 +1116,95 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       targetCurrency?: string;
       currentBunkerPrice?: number;
     };
-  }>("/resolve-tariff", async (request, reply) => {
-    try {
-      const {
-        originLocode,
-        destinationLocode,
-        containerType = "40HC",
-        etd,
-        carrierId,
-        containerCount = 1,
-        targetCurrency = "USD",
-        currentBunkerPrice,
-      } = request.body || {};
+  }>(
+    "/resolve-tariff",
+    {
+      schema: {
+        tags: ["Quotes & Rates", "Tariff Engine"],
+        summary:
+          "Resolve temporal contract tariffs and dynamic surcharges for an ETD",
+        body: openApiObject({
+          originLocode: { type: "string" },
+          destinationLocode: { type: "string" },
+          containerType: { type: "string" },
+          etd: { type: "string" },
+          carrierId: { type: "string" },
+          containerCount: { type: "number" },
+          targetCurrency: { type: "string" },
+          currentBunkerPrice: { type: "number" },
+        }),
+        response: {
+          200: openApiObject({
+            success: { type: "boolean" },
+            count: { type: "number" },
+            quotes: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          }),
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const {
+          originLocode,
+          destinationLocode,
+          containerType = "40HC",
+          etd,
+          carrierId,
+          containerCount = 1,
+          targetCurrency = "USD",
+          currentBunkerPrice,
+        } = request.body || {};
 
-      if (!originLocode || !destinationLocode || !etd) {
-        return reply.code(400).send({
-          error:
-            "originLocode, destinationLocode, and etd are required parameters.",
+        if (!originLocode || !destinationLocode || !etd) {
+          return reply.code(400).send({
+            error:
+              "originLocode, destinationLocode, and etd are required parameters.",
+          });
+        }
+
+        const ratedQuotes = await TariffResolutionService.resolveRatesForETD({
+          originLocode,
+          destinationLocode,
+          containerType,
+          etd,
+          carrierId,
+          containerCount,
+          targetCurrency,
+          currentBunkerPrice,
         });
+
+        return reply.send({
+          success: true,
+          count: ratedQuotes.length,
+          quotes: ratedQuotes,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
-
-      const ratedQuotes = await TariffResolutionService.resolveRatesForETD({
-        originLocode,
-        destinationLocode,
-        containerType,
-        etd,
-        carrierId,
-        containerCount,
-        targetCurrency,
-        currentBunkerPrice,
-      });
-
-      return reply.send({
-        success: true,
-        count: ratedQuotes.length,
-        quotes: ratedQuotes,
-      });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   fastify.post<{ Params: { id: string } }>(
     "/rates/:id/invalidate-early",
+    {
+      schema: {
+        tags: ["Quotes & Rates", "Tariff Engine"],
+        summary:
+          "Invalidate a contract rate early under append-only tariff policy",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: openApiObject({
+            success: { type: "boolean" },
+            message: { type: "string" },
+            result: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          }),
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -994,38 +1233,60 @@ const quotesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       minMarginPercent?: number;
       currency?: string;
     };
-  }>("/validate-margin", async (request, reply) => {
-    try {
-      const {
-        buyRateTotal,
-        sellRateTotal,
-        minMarginPercent = 15.0,
-        currency = "USD",
-      } = request.body || {};
+  }>(
+    "/validate-margin",
+    {
+      schema: {
+        tags: ["Quotes & Rates", "Tariff Engine"],
+        summary: "Evaluate commercial buy/sell margin threshold compliance",
+        body: openApiObject({
+          buyRateTotal: { type: "number" },
+          sellRateTotal: { type: "number" },
+          minMarginPercent: { type: "number" },
+          currency: { type: "string" },
+        }),
+        response: {
+          200: openApiObject({
+            success: { type: "boolean" },
+            margin: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          }),
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const {
+          buyRateTotal,
+          sellRateTotal,
+          minMarginPercent = 15.0,
+          currency = "USD",
+        } = request.body || {};
 
-      if (buyRateTotal === undefined || sellRateTotal === undefined) {
-        return reply.code(400).send({
-          error: "buyRateTotal and sellRateTotal are required numbers.",
+        if (buyRateTotal === undefined || sellRateTotal === undefined) {
+          return reply.code(400).send({
+            error: "buyRateTotal and sellRateTotal are required numbers.",
+          });
+        }
+
+        const marginResult = TariffResolutionService.evaluateQuoteMargin(
+          buyRateTotal,
+          sellRateTotal,
+          minMarginPercent,
+          currency,
+        );
+
+        return reply.send({
+          success: true,
+          margin: marginResult,
         });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
-
-      const marginResult = TariffResolutionService.evaluateQuoteMargin(
-        buyRateTotal,
-        sellRateTotal,
-        minMarginPercent,
-        currency,
-      );
-
-      return reply.send({
-        success: true,
-        margin: marginResult,
-      });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 };
 
 export default quotesRoutes;

@@ -273,9 +273,7 @@ export default function WikiHubModule() {
                 key={idx}
                 className="ml-5 list-disc text-sm text-slate-300 marker:text-indigo-400"
               >
-                <span
-                  dangerouslySetInnerHTML={{ __html: formatInline(itemText) }}
-                />
+                <span>{renderInline(itemText)}</span>
               </li>
             );
           }
@@ -289,9 +287,7 @@ export default function WikiHubModule() {
                   <span className="font-bold text-indigo-400 shrink-0">
                     {match[1]}
                   </span>
-                  <span
-                    dangerouslySetInnerHTML={{ __html: formatInline(match[2]) }}
-                  />
+                  <span>{renderInline(match[2])}</span>
                 </div>
               );
             }
@@ -300,11 +296,9 @@ export default function WikiHubModule() {
           // Regular paragraph
           if (trimmed.length > 0) {
             return (
-              <p
-                key={idx}
-                className="text-sm text-slate-300"
-                dangerouslySetInnerHTML={{ __html: formatInline(trimmed) }}
-              />
+              <p key={idx} className="text-sm text-slate-300">
+                {renderInline(trimmed)}
+              </p>
             );
           }
 
@@ -314,25 +308,50 @@ export default function WikiHubModule() {
     );
   };
 
-  // Simple inline parser for bold, code, and LaTeX badges
-  const formatInline = (text: string) => {
-    return text
-      .replace(
-        /\*\*(.*?)\*\*/g,
-        '<strong class="text-white font-semibold">$1</strong>',
-      )
-      .replace(
-        /`([^`]+)`/g,
-        '<code class="px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300 font-mono text-xs border border-slate-700">$1</code>',
-      )
-      .replace(
-        /\$\$(.*?)\$\$/g,
-        '<span class="inline-block px-2 py-1 rounded bg-indigo-950/50 text-indigo-200 border border-indigo-800/60 font-mono text-xs my-1">$1</span>',
-      )
-      .replace(
-        /\$(.*?)\$/g,
-        '<span class="px-1.5 py-0.5 rounded bg-indigo-950/40 text-indigo-200 font-mono text-xs">$1</span>',
-      );
+  // Safe React JSX inline tokenizer for bold, code, and LaTeX badges (zero raw HTML sinks)
+  const renderInline = (text: string): React.ReactNode[] => {
+    const tokenRegex = /(\*\*[^*]+\*\*|`[^`]+`|\$\$[^$]+\$\$|\$[^$]+\$)/g;
+    const parts = text.split(tokenRegex);
+    return parts.map((part, tokenIdx) => {
+      if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+        return (
+          <strong key={tokenIdx} className="text-white font-semibold">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+        return (
+          <code
+            key={tokenIdx}
+            className="px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300 font-mono text-xs border border-slate-700"
+          >
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      if (part.startsWith("$$") && part.endsWith("$$") && part.length > 4) {
+        return (
+          <span
+            key={tokenIdx}
+            className="inline-block px-2 py-1 rounded bg-indigo-950/50 text-indigo-200 border border-indigo-800/60 font-mono text-xs my-1"
+          >
+            {part.slice(2, -2)}
+          </span>
+        );
+      }
+      if (part.startsWith("$") && part.endsWith("$") && part.length > 2) {
+        return (
+          <span
+            key={tokenIdx}
+            className="px-1.5 py-0.5 rounded bg-indigo-950/40 text-indigo-200 font-mono text-xs"
+          >
+            {part.slice(1, -1)}
+          </span>
+        );
+      }
+      return <React.Fragment key={tokenIdx}>{part}</React.Fragment>;
+    });
   };
 
   return (

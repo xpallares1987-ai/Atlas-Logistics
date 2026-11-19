@@ -19,6 +19,25 @@ import { pubsub } from "../../services/pubsub.service.js";
 import { PDFService, InvoiceData } from "../../services/pdf.service.js";
 import { ensureFinancialSeedData } from "./seed-data.js";
 import { GlSyncService } from "../../services/accounting/gl-sync.service.js";
+import {
+  OPENAPI_ID_PARAMS_SCHEMA,
+  OPENAPI_SUCCESS_FLAG_SCHEMA,
+  buildErrorResponses,
+  openApiArray,
+  openApiObject,
+} from "../openapi.schemas.js";
+
+const INVOICE_RECORD_PROPERTIES = {
+  id: { type: "string" },
+  invoiceNumber: { type: "string" },
+  type: { type: "string" },
+  party: { type: ["string", "null"] },
+  partyId: { type: ["string", "null"] },
+  amount: { type: "number" },
+  currency: { type: "string" },
+  status: { type: "string" },
+  shipmentId: { type: ["string", "null"] },
+} as const;
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -56,34 +75,67 @@ interface UpdateInvoiceStatusBody {
 // ============================================================================
 
 export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get("/invoices", async (_request, reply) => {
-    try {
-      const allInvoices = await db
-        .select({
-          id: invoices.id,
-          invoiceNumber: invoices.invoiceNumber,
-          type: invoices.type,
-          party: companies.name,
-          partyId: invoices.companyId,
-          amount: invoices.amount,
-          currency: invoices.currency,
-          status: invoices.status,
-          dueDate: invoices.dueDate,
-          shipmentId: invoices.shipmentId,
-        })
-        .from(invoices)
-        .leftJoin(companies, eq(invoices.companyId, companies.id));
+  fastify.get(
+    "/invoices",
+    {
+      schema: {
+        tags: ["Invoices"],
+        summary: "List AR/AP invoices with counterparty summary",
+        response: {
+          200: openApiArray(INVOICE_RECORD_PROPERTIES, "Invoice list"),
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        const allInvoices = await db
+          .select({
+            id: invoices.id,
+            invoiceNumber: invoices.invoiceNumber,
+            type: invoices.type,
+            party: companies.name,
+            partyId: invoices.companyId,
+            amount: invoices.amount,
+            currency: invoices.currency,
+            status: invoices.status,
+            dueDate: invoices.dueDate,
+            shipmentId: invoices.shipmentId,
+          })
+          .from(invoices)
+          .leftJoin(companies, eq(invoices.companyId, companies.id));
 
-      return reply.send(allInvoices);
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ error: message });
-    }
-  });
+        return reply.send(allInvoices);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 
   fastify.get<{ Params: InvoiceIdParams }>(
     "/invoices/:id",
+    {
+      schema: {
+        tags: ["Invoices"],
+        summary: "Get invoice detail with itemized line items",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: openApiObject(
+            {
+              ...INVOICE_RECORD_PROPERTIES,
+              lines: {
+                type: "array",
+                items: { type: "object", additionalProperties: true },
+              },
+            },
+            "Invoice detail with line items",
+          ),
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -128,6 +180,16 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get<{ Params: InvoiceIdParams }>(
     "/invoices/:id/pdf",
+    {
+      schema: {
+        tags: ["Invoices"],
+        summary: "Render and stream an official commercial invoice PDF",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -187,6 +249,30 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Body: CreateInvoiceBody }>(
     "/invoices",
+    {
+      schema: {
+        tags: ["Invoices"],
+        summary: "Create a draft AR/AP invoice and enqueue accounting sync",
+        body: openApiObject({
+          partyId: { type: "string" },
+          invoiceNumber: { type: "string" },
+          type: { type: "string" },
+          shipmentId: { type: "string" },
+          totalAmount: { type: "number" },
+          taxAmount: { type: "number" },
+          currency: { type: "string" },
+          dueDate: { type: "string" },
+          lines: {
+            type: "array",
+            items: { type: "object", additionalProperties: true },
+          },
+        }),
+        response: {
+          201: openApiObject({ id: { type: "string" } }, "Created invoice ID"),
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         await ensureFinancialSeedData();
@@ -241,6 +327,25 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.put<{ Params: InvoiceIdParams; Body: UpdateInvoiceStatusBody }>(
     "/invoices/:id/status",
+    {
+      schema: {
+        tags: ["Invoices"],
+        summary:
+          "Transition invoice status and trigger GL sync / agent profit-share settlement",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: openApiObject({
+          status: {
+            type: "string",
+            description:
+              "Target invoice lifecycle state (Draft, Issued, Paid).",
+          },
+        }),
+        response: {
+          200: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -335,6 +440,24 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Params: InvoiceIdParams }>(
     "/invoices/:id/sync-gl",
+    {
+      schema: {
+        tags: ["Invoices"],
+        summary: "Enqueue asynchronous General Ledger ERP synchronization",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: openApiObject(
+            {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              syncResult: { type: "object", additionalProperties: true },
+            },
+            "GL synchronization enqueue confirmation",
+          ),
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;

@@ -22,6 +22,27 @@ import {
   AddressType,
 } from "../db/schema/index.js";
 import { eq, desc, and, inArray, SQL } from "drizzle-orm";
+import {
+  OPENAPI_ID_PARAMS_SCHEMA,
+  OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  buildErrorResponses,
+  openApiArray,
+  openApiObject,
+} from "./openapi.schemas.js";
+
+const DRAYAGE_ORDER_PROPERTIES = {
+  id: { type: "string" },
+  orderNumber: { type: "string" },
+  status: { type: "string" },
+  shipmentId: { type: ["string", "null"] },
+  bookingReference: { type: ["string", "null"] },
+  containerNumber: { type: ["string", "null"] },
+  containerType: { type: "string" },
+  distanceKm: { type: "number" },
+  totalGrossCost: { type: "number" },
+  currency: { type: "string" },
+} as const;
 
 const CoordinatesSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -71,466 +92,612 @@ interface CreateDrayageOrderBody {
 
 const drayageRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/drayage/quote - Calculate road drayage distance, costs and GLEC v3.0 emissions
-  fastify.post("/quote", async (request, reply) => {
-    try {
-      const body = DrayageQuoteRequestSchema.parse(request.body || {});
-      const quote = await drayageEngineService.calculateQuote(
-        body as DrayageQuoteRequest,
-      );
-      return reply.send(quote);
-    } catch (err: unknown) {
-      fastify.log.error(err, "Failed to calculate drayage quote");
-      const message =
-        err instanceof Error ? err.message : "Failed to calculate quote";
-      return reply.code(400).send({ error: message });
-    }
-  });
+  fastify.post(
+    "/quote",
+    {
+      schema: {
+        tags: ["Drayage"],
+        summary:
+          "Calculate road drayage distance, pricing, and GLEC v3.0 emissions",
+        body: openApiObject({
+          originAddressId: { type: "string" },
+          destinationAddressId: { type: "string" },
+          containerType: { type: "string" },
+          cargoWeightKg: { type: "number" },
+          isDangerousGoods: { type: "boolean" },
+          requiresGenset: { type: "boolean" },
+          baseRateEuro: { type: "number" },
+          perKmRateEuro: { type: "number" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const body = DrayageQuoteRequestSchema.parse(request.body || {});
+        const quote = await drayageEngineService.calculateQuote(
+          body as DrayageQuoteRequest,
+        );
+        return reply.send(quote);
+      } catch (err: unknown) {
+        fastify.log.error(err, "Failed to calculate drayage quote");
+        const message =
+          err instanceof Error ? err.message : "Failed to calculate quote";
+        return reply.code(400).send({ error: message });
+      }
+    },
+  );
 
   // GET /api/drayage/nearest-terminals - Find closest maritime port terminals and ICDs
   fastify.get<{
     Querystring: NearestTerminalsQuery;
-  }>("/nearest-terminals", async (request, reply) => {
-    try {
-      const query = request.query;
-      let lat = query.lat ? Number(query.lat) : null;
-      let lon = query.lon ? Number(query.lon) : null;
+  }>(
+    "/nearest-terminals",
+    {
+      schema: {
+        tags: ["Drayage"],
+        summary:
+          "Find closest maritime port terminals and inland depots (ICDs)",
+        querystring: openApiObject({
+          lat: { type: "string" },
+          lon: { type: "string" },
+          addressId: { type: "string" },
+          limit: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const query = request.query;
+        let lat = query.lat ? Number(query.lat) : null;
+        let lon = query.lon ? Number(query.lon) : null;
 
-      if (
-        (lat === null || lon === null || isNaN(lat) || isNaN(lon)) &&
-        query.addressId
-      ) {
-        const addr = await db
-          .select()
-          .from(addresses)
-          .where(eq(addresses.id, query.addressId))
-          .limit(1);
-        if (addr[0] && addr[0].lat !== null && addr[0].lon !== null) {
-          lat = addr[0].lat;
-          lon = addr[0].lon;
+        if (
+          (lat === null || lon === null || isNaN(lat) || isNaN(lon)) &&
+          query.addressId
+        ) {
+          const addr = await db
+            .select()
+            .from(addresses)
+            .where(eq(addresses.id, query.addressId))
+            .limit(1);
+          if (addr[0] && addr[0].lat !== null && addr[0].lon !== null) {
+            lat = addr[0].lat;
+            lon = addr[0].lon;
+          }
         }
-      }
 
-      if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) {
-        return reply.code(400).send({
-          error:
-            "Valid coordinates (lat, lon) or addressId with coordinates are required.",
-        });
-      }
+        if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) {
+          return reply.code(400).send({
+            error:
+              "Valid coordinates (lat, lon) or addressId with coordinates are required.",
+          });
+        }
 
-      const limit = query.limit ? Number(query.limit) : 5;
-      const terminals = await drayageEngineService.findNearestTerminals(
-        { lat, lon },
-        limit,
-      );
-      return reply.send(terminals);
-    } catch (err: unknown) {
-      fastify.log.error(err, "Failed to find nearest terminals");
-      const message =
-        err instanceof Error ? err.message : "Failed to find nearest terminals";
-      return reply.code(500).send({ error: message });
-    }
-  });
+        const limit = query.limit ? Number(query.limit) : 5;
+        const terminals = await drayageEngineService.findNearestTerminals(
+          { lat, lon },
+          limit,
+        );
+        return reply.send(terminals);
+      } catch (err: unknown) {
+        fastify.log.error(err, "Failed to find nearest terminals");
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to find nearest terminals";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 
   // GET /api/drayage/hauliers - List registered hauliers with primary contact
-  fastify.get("/hauliers", async (_request, reply) => {
-    try {
-      const hauliers = await db
-        .select()
-        .from(addresses)
-        .where(
-          inArray(addresses.addressType, [...HAULIER_CODES] as AddressType[]),
-        );
-
-      const results = [];
-      for (const h of hauliers) {
-        const contacts = await db
+  fastify.get(
+    "/hauliers",
+    {
+      schema: {
+        tags: ["Drayage"],
+        summary: "List registered road hauliers with primary contacts",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        const hauliers = await db
           .select()
-          .from(addressContacts)
-          .where(eq(addressContacts.addressId, h.id));
-        const primary =
-          contacts.find((c) => c.isPrimary) || contacts[0] || null;
+          .from(addresses)
+          .where(
+            inArray(addresses.addressType, [...HAULIER_CODES] as AddressType[]),
+          );
 
-        results.push({
-          ...h,
-          contacts,
-          primaryContact: primary,
-        });
+        const results = [];
+        for (const h of hauliers) {
+          const contacts = await db
+            .select()
+            .from(addressContacts)
+            .where(eq(addressContacts.addressId, h.id));
+          const primary =
+            contacts.find((c) => c.isPrimary) || contacts[0] || null;
+
+          results.push({
+            ...h,
+            contacts,
+            primaryContact: primary,
+          });
+        }
+
+        return reply.send(results);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to list hauliers";
+        return reply.code(500).send({ error: message });
       }
-
-      return reply.send(results);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to list hauliers";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   // GET /api/drayage/orders - List dispatched orders with parties & quote details
   fastify.get<{
     Querystring: DrayageOrdersQuery;
-  }>("/orders", async (request, reply) => {
-    try {
-      const query = request.query;
-      const conditions: SQL[] = [];
-
-      if (query.status && query.status !== "ALL") {
-        conditions.push(
-          eq(
-            drayageTransportOrders.status,
-            query.status as typeof drayageTransportOrders.$inferSelect.status,
-          ),
-        );
-      }
-      if (query.shipmentId) {
-        conditions.push(
-          eq(drayageTransportOrders.shipmentId, query.shipmentId),
-        );
-      }
-
-      const orders = await db
-        .select()
-        .from(drayageTransportOrders)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(drayageTransportOrders.createdAt));
-
-      // Enrich with parties
-      const enrichedOrders = await Promise.all(
-        orders.map(async (o) => {
-          const [haulier] = await db
-            .select()
-            .from(addresses)
-            .where(eq(addresses.id, o.haulierAddressId))
-            .limit(1);
-
-          const [origin] = await db
-            .select()
-            .from(addresses)
-            .where(eq(addresses.id, o.originAddressId))
-            .limit(1);
-
-          const [destination] = await db
-            .select()
-            .from(addresses)
-            .where(eq(addresses.id, o.destinationAddressId))
-            .limit(1);
-
-          return {
-            ...o,
-            haulier: haulier
-              ? {
-                  id: haulier.id,
-                  companyName: haulier.companyName,
-                  city: haulier.city,
-                  taxId: haulier.taxId,
-                }
-              : null,
-            origin: origin
-              ? {
-                  id: origin.id,
-                  companyName: origin.companyName,
-                  street1: origin.street1,
-                  city: origin.city,
-                  zipCode: origin.zipCode,
-                  country: origin.country,
-                  unLocode: origin.unLocode,
-                  lat: origin.lat,
-                  lon: origin.lon,
-                }
-              : null,
-            destination: destination
-              ? {
-                  id: destination.id,
-                  companyName: destination.companyName,
-                  street1: destination.street1,
-                  city: destination.city,
-                  zipCode: destination.zipCode,
-                  country: destination.country,
-                  unLocode: destination.unLocode,
-                  lat: destination.lat,
-                  lon: destination.lon,
-                }
-              : null,
-          };
+  }>(
+    "/orders",
+    {
+      schema: {
+        tags: ["Drayage"],
+        summary: "List dispatched drayage transport orders with parties",
+        querystring: openApiObject({
+          status: { type: "string" },
+          shipmentId: { type: "string" },
         }),
-      );
+        response: {
+          200: openApiArray(DRAYAGE_ORDER_PROPERTIES, "Drayage orders"),
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const query = request.query;
+        const conditions: SQL[] = [];
 
-      return reply.send(enrichedOrders);
-    } catch (err: unknown) {
-      fastify.log.error(err, "Failed to list drayage transport orders");
-      const message =
-        err instanceof Error ? err.message : "Failed to list drayage orders";
-      return reply.code(500).send({ error: message });
-    }
-  });
+        if (query.status && query.status !== "ALL") {
+          conditions.push(
+            eq(
+              drayageTransportOrders.status,
+              query.status as typeof drayageTransportOrders.$inferSelect.status,
+            ),
+          );
+        }
+        if (query.shipmentId) {
+          conditions.push(
+            eq(drayageTransportOrders.shipmentId, query.shipmentId),
+          );
+        }
+
+        const orders = await db
+          .select()
+          .from(drayageTransportOrders)
+          .where(conditions.length > 0 ? and(...conditions) : undefined)
+          .orderBy(desc(drayageTransportOrders.createdAt));
+
+        // Enrich with parties
+        const enrichedOrders = await Promise.all(
+          orders.map(async (o) => {
+            const [haulier] = await db
+              .select()
+              .from(addresses)
+              .where(eq(addresses.id, o.haulierAddressId))
+              .limit(1);
+
+            const [origin] = await db
+              .select()
+              .from(addresses)
+              .where(eq(addresses.id, o.originAddressId))
+              .limit(1);
+
+            const [destination] = await db
+              .select()
+              .from(addresses)
+              .where(eq(addresses.id, o.destinationAddressId))
+              .limit(1);
+
+            return {
+              ...o,
+              haulier: haulier
+                ? {
+                    id: haulier.id,
+                    companyName: haulier.companyName,
+                    city: haulier.city,
+                    taxId: haulier.taxId,
+                  }
+                : null,
+              origin: origin
+                ? {
+                    id: origin.id,
+                    companyName: origin.companyName,
+                    street1: origin.street1,
+                    city: origin.city,
+                    zipCode: origin.zipCode,
+                    country: origin.country,
+                    unLocode: origin.unLocode,
+                    lat: origin.lat,
+                    lon: origin.lon,
+                  }
+                : null,
+              destination: destination
+                ? {
+                    id: destination.id,
+                    companyName: destination.companyName,
+                    street1: destination.street1,
+                    city: destination.city,
+                    zipCode: destination.zipCode,
+                    country: destination.country,
+                    unLocode: destination.unLocode,
+                    lat: destination.lat,
+                    lon: destination.lon,
+                  }
+                : null,
+            };
+          }),
+        );
+
+        return reply.send(enrichedOrders);
+      } catch (err: unknown) {
+        fastify.log.error(err, "Failed to list drayage transport orders");
+        const message =
+          err instanceof Error ? err.message : "Failed to list drayage orders";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 
   // GET /api/drayage/orders/:id - Get single order details
   fastify.get<{
     Params: { id: string };
-  }>("/orders/:id", async (request, reply) => {
-    try {
-      const { id } = request.params;
-      const [order] = await db
-        .select()
-        .from(drayageTransportOrders)
-        .where(eq(drayageTransportOrders.id, id))
-        .limit(1);
+  }>(
+    "/orders/:id",
+    {
+      schema: {
+        tags: ["Drayage"],
+        summary: "Get single drayage transport order details",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: openApiObject(DRAYAGE_ORDER_PROPERTIES, "Drayage order detail"),
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+        const [order] = await db
+          .select()
+          .from(drayageTransportOrders)
+          .where(eq(drayageTransportOrders.id, id))
+          .limit(1);
 
-      if (!order) {
-        return reply.code(404).send({ error: "Drayage order not found" });
+        if (!order) {
+          return reply.code(404).send({ error: "Drayage order not found" });
+        }
+
+        const [haulier] = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.id, order.haulierAddressId))
+          .limit(1);
+
+        const [origin] = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.id, order.originAddressId))
+          .limit(1);
+
+        const [destination] = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.id, order.destinationAddressId))
+          .limit(1);
+
+        return reply.send({
+          ...order,
+          haulier,
+          origin,
+          destination,
+        });
+      } catch (err: unknown) {
+        fastify.log.error(err, "Failed to retrieve drayage order");
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to retrieve drayage order";
+        return reply.code(500).send({ error: message });
       }
-
-      const [haulier] = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.id, order.haulierAddressId))
-        .limit(1);
-
-      const [origin] = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.id, order.originAddressId))
-        .limit(1);
-
-      const [destination] = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.id, order.destinationAddressId))
-        .limit(1);
-
-      return reply.send({
-        ...order,
-        haulier,
-        origin,
-        destination,
-      });
-    } catch (err: unknown) {
-      fastify.log.error(err, "Failed to retrieve drayage order");
-      const message =
-        err instanceof Error ? err.message : "Failed to retrieve drayage order";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   // PATCH /api/drayage/orders/:id/status - Update order lifecycle state
   fastify.patch<{
     Params: { id: string };
     Body: { status: string };
-  }>("/orders/:id/status", async (request, reply) => {
-    try {
-      const { id } = request.params;
-      const body = request.body;
+  }>(
+    "/orders/:id/status",
+    {
+      schema: {
+        tags: ["Drayage"],
+        summary: "Update drayage transport order lifecycle status",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: openApiObject({
+          status: { type: "string" },
+        }),
+        response: {
+          200: openApiObject(
+            DRAYAGE_ORDER_PROPERTIES,
+            "Updated drayage transport order",
+          ),
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+        const body = request.body;
 
-      const validStatuses = [
-        "DRAFT",
-        "DISPATCHED",
-        "ACCEPTED",
-        "GATE_IN",
-        "IN_TRANSIT",
-        "DELIVERED",
-        "CANCELLED",
-      ] as const;
+        const validStatuses = [
+          "DRAFT",
+          "DISPATCHED",
+          "ACCEPTED",
+          "GATE_IN",
+          "IN_TRANSIT",
+          "DELIVERED",
+          "CANCELLED",
+        ] as const;
 
-      type ValidStatus = (typeof validStatuses)[number];
+        type ValidStatus = (typeof validStatuses)[number];
 
-      if (!body.status || !validStatuses.includes(body.status as ValidStatus)) {
-        return reply.code(400).send({
-          error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
-        });
+        if (
+          !body.status ||
+          !validStatuses.includes(body.status as ValidStatus)
+        ) {
+          return reply.code(400).send({
+            error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+          });
+        }
+
+        const now = new Date().toISOString();
+        await db
+          .update(drayageTransportOrders)
+          .set({
+            status: body.status as ValidStatus,
+            updatedAt: now,
+          })
+          .where(eq(drayageTransportOrders.id, id));
+
+        const [updated] = await db
+          .select()
+          .from(drayageTransportOrders)
+          .where(eq(drayageTransportOrders.id, id))
+          .limit(1);
+
+        return reply.send(updated);
+      } catch (err: unknown) {
+        fastify.log.error(err, "Failed to update drayage order status");
+        const message =
+          err instanceof Error ? err.message : "Failed to update status";
+        return reply.code(500).send({ error: message });
       }
-
-      const now = new Date().toISOString();
-      await db
-        .update(drayageTransportOrders)
-        .set({
-          status: body.status as ValidStatus,
-          updatedAt: now,
-        })
-        .where(eq(drayageTransportOrders.id, id));
-
-      const [updated] = await db
-        .select()
-        .from(drayageTransportOrders)
-        .where(eq(drayageTransportOrders.id, id))
-        .limit(1);
-
-      return reply.send(updated);
-    } catch (err: unknown) {
-      fastify.log.error(err, "Failed to update drayage order status");
-      const message =
-        err instanceof Error ? err.message : "Failed to update status";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   // POST /api/drayage/orders - Generate, persist and dispatch a Drayage Transport Order
   fastify.post<{
     Body: CreateDrayageOrderBody;
-  }>("/orders", async (request, reply) => {
-    try {
-      const body = request.body;
-      if (
-        !body.haulierAddressId ||
-        !body.originAddressId ||
-        !body.destinationAddressId
-      ) {
-        return reply.code(400).send({
-          error:
-            "haulierAddressId, originAddressId, and destinationAddressId are required.",
+  }>(
+    "/orders",
+    {
+      schema: {
+        tags: ["Drayage"],
+        summary: "Create and dispatch a road drayage transport order",
+        body: openApiObject({
+          haulierAddressId: { type: "string" },
+          originAddressId: { type: "string" },
+          destinationAddressId: { type: "string" },
+          shipmentId: { type: "string" },
+          bookingReference: { type: "string" },
+          containerNumber: { type: "string" },
+          containerType: { type: "string" },
+          cargoWeightKg: { type: "number" },
+          isDangerousGoods: { type: "boolean" },
+          requiresGenset: { type: "boolean" },
+          appointmentWindowStart: { type: "string" },
+          appointmentWindowEnd: { type: "string" },
+          notes: { type: "string" },
+        }),
+        response: {
+          201: openApiObject(
+            DRAYAGE_ORDER_PROPERTIES,
+            "Dispatched drayage transport order",
+          ),
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const body = request.body;
+        if (
+          !body.haulierAddressId ||
+          !body.originAddressId ||
+          !body.destinationAddressId
+        ) {
+          return reply.code(400).send({
+            error:
+              "haulierAddressId, originAddressId, and destinationAddressId are required.",
+          });
+        }
+
+        const orderId = `dry_${uuidv4().substring(0, 8)}`;
+        const now = new Date();
+        const orderNumber = `DRY-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        // Fetch parties
+        const [haulier] = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.id, body.haulierAddressId))
+          .limit(1);
+
+        const [origin] = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.id, body.originAddressId))
+          .limit(1);
+
+        const [dest] = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.id, body.destinationAddressId))
+          .limit(1);
+
+        if (!haulier || !origin || !dest) {
+          return reply
+            .code(404)
+            .send({ error: "One or more addresses not found in directory." });
+        }
+
+        const quote = await drayageEngineService.calculateQuote({
+          originCoords: { lat: origin.lat!, lon: origin.lon! },
+          destinationCoords: { lat: dest.lat!, lon: dest.lon! },
+          containerType: body.containerType || "40HC",
+          cargoWeightKg: body.cargoWeightKg || 18500,
+          isDangerousGoods: body.isDangerousGoods,
+          requiresGenset: body.requiresGenset,
         });
+
+        const driverPickupPin = String(crypto.randomInt(1000, 10000));
+        const qrDigest = crypto
+          .createHash("sha256")
+          .update(
+            `${orderNumber}:${haulier.companyName}:${quote.costs.totalGross}:${driverPickupPin}`,
+          )
+          .digest("hex");
+
+        const windowStart = body.appointmentWindowStart || now.toISOString();
+        const windowEnd =
+          body.appointmentWindowEnd ||
+          new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
+
+        await db.insert(drayageTransportOrders).values({
+          id: orderId,
+          orderNumber,
+          status: "DISPATCHED",
+          shipmentId: body.shipmentId || null,
+          bookingReference: body.bookingReference || null,
+          containerNumber: body.containerNumber || null,
+          containerType: body.containerType || "40HC",
+          cargoWeightKg: body.cargoWeightKg || 18500,
+          isDangerousGoods: !!body.isDangerousGoods,
+          requiresGenset: !!body.requiresGenset,
+          haulierAddressId: haulier.id,
+          originAddressId: origin.id,
+          destinationAddressId: dest.id,
+          distanceKm: quote.distanceKm,
+          baseRate: quote.costs.baseRate,
+          fuelSurcharge: quote.costs.fuelSurcharge,
+          tollsCost: quote.costs.tollsEurovignette,
+          extraSurcharges:
+            quote.costs.equipmentSurcharge +
+            quote.costs.dangerousGoodsSurcharge +
+            quote.costs.heavyWeightSurcharge,
+          subtotalCost: quote.costs.subtotalNet,
+          profitMargin: Number((quote.costs.subtotalNet * 0.15).toFixed(2)),
+          totalGrossCost: quote.costs.totalGross,
+          currency: quote.costs.currency,
+          co2WtwKg: quote.emissions.conventionalDieselKgCO2e,
+          co2TtwKg: quote.emissions.hvo100RenewableKgCO2e,
+          co2WteKg: quote.emissions.co2eSavingsKg,
+          emissionsIntensityFactor:
+            quote.emissions.tonnesKm > 0
+              ? Number(
+                  (
+                    quote.emissions.conventionalDieselKgCO2e /
+                    quote.emissions.tonnesKm
+                  ).toFixed(4),
+                )
+              : 0.085,
+          driverPickupPin,
+          qrDigest,
+          appointmentWindowStart: windowStart,
+          appointmentWindowEnd: windowEnd,
+          notes: body.notes || null,
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        });
+
+        const orderPayload = {
+          id: orderId,
+          orderId,
+          orderNumber,
+          status: "DISPATCHED",
+          haulier: {
+            id: haulier.id,
+            companyName: haulier.companyName,
+            taxId: haulier.taxId,
+            city: haulier.city,
+          },
+          origin: {
+            id: origin.id,
+            companyName: origin.companyName,
+            street1: origin.street1,
+            city: origin.city,
+            zipCode: origin.zipCode,
+            country: origin.country,
+            unLocode: origin.unLocode,
+            lat: origin.lat,
+            lon: origin.lon,
+          },
+          destination: {
+            id: dest.id,
+            companyName: dest.companyName,
+            street1: dest.street1,
+            city: dest.city,
+            zipCode: dest.zipCode,
+            country: dest.country,
+            unLocode: dest.unLocode,
+            lat: dest.lat,
+            lon: dest.lon,
+          },
+          bookingReference: body.bookingReference || null,
+          containerNumber: body.containerNumber || null,
+          containerType: body.containerType || "40HC",
+          cargoWeightKg: body.cargoWeightKg || 18500,
+          appointmentWindowStart: windowStart,
+          appointmentWindowEnd: windowEnd,
+          quote,
+          driverPickupPin,
+          notes: body.notes || null,
+          qrDigest,
+          createdAt: now.toISOString(),
+        };
+
+        return reply.code(201).send(orderPayload);
+      } catch (err: unknown) {
+        fastify.log.error(err, "Failed to create drayage transport order");
+        const message =
+          err instanceof Error ? err.message : "Failed to create drayage order";
+        return reply.code(500).send({ error: message });
       }
-
-      const orderId = `dry_${uuidv4().substring(0, 8)}`;
-      const now = new Date();
-      const orderNumber = `DRY-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      // Fetch parties
-      const [haulier] = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.id, body.haulierAddressId))
-        .limit(1);
-
-      const [origin] = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.id, body.originAddressId))
-        .limit(1);
-
-      const [dest] = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.id, body.destinationAddressId))
-        .limit(1);
-
-      if (!haulier || !origin || !dest) {
-        return reply
-          .code(404)
-          .send({ error: "One or more addresses not found in directory." });
-      }
-
-      const quote = await drayageEngineService.calculateQuote({
-        originCoords: { lat: origin.lat!, lon: origin.lon! },
-        destinationCoords: { lat: dest.lat!, lon: dest.lon! },
-        containerType: body.containerType || "40HC",
-        cargoWeightKg: body.cargoWeightKg || 18500,
-        isDangerousGoods: body.isDangerousGoods,
-        requiresGenset: body.requiresGenset,
-      });
-
-      const driverPickupPin = String(crypto.randomInt(1000, 10000));
-      const qrDigest = crypto
-        .createHash("sha256")
-        .update(
-          `${orderNumber}:${haulier.companyName}:${quote.costs.totalGross}:${driverPickupPin}`,
-        )
-        .digest("hex");
-
-      const windowStart = body.appointmentWindowStart || now.toISOString();
-      const windowEnd =
-        body.appointmentWindowEnd ||
-        new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
-
-      await db.insert(drayageTransportOrders).values({
-        id: orderId,
-        orderNumber,
-        status: "DISPATCHED",
-        shipmentId: body.shipmentId || null,
-        bookingReference: body.bookingReference || null,
-        containerNumber: body.containerNumber || null,
-        containerType: body.containerType || "40HC",
-        cargoWeightKg: body.cargoWeightKg || 18500,
-        isDangerousGoods: !!body.isDangerousGoods,
-        requiresGenset: !!body.requiresGenset,
-        haulierAddressId: haulier.id,
-        originAddressId: origin.id,
-        destinationAddressId: dest.id,
-        distanceKm: quote.distanceKm,
-        baseRate: quote.costs.baseRate,
-        fuelSurcharge: quote.costs.fuelSurcharge,
-        tollsCost: quote.costs.tollsEurovignette,
-        extraSurcharges:
-          quote.costs.equipmentSurcharge +
-          quote.costs.dangerousGoodsSurcharge +
-          quote.costs.heavyWeightSurcharge,
-        subtotalCost: quote.costs.subtotalNet,
-        profitMargin: Number((quote.costs.subtotalNet * 0.15).toFixed(2)),
-        totalGrossCost: quote.costs.totalGross,
-        currency: quote.costs.currency,
-        co2WtwKg: quote.emissions.conventionalDieselKgCO2e,
-        co2TtwKg: quote.emissions.hvo100RenewableKgCO2e,
-        co2WteKg: quote.emissions.co2eSavingsKg,
-        emissionsIntensityFactor:
-          quote.emissions.tonnesKm > 0
-            ? Number(
-                (
-                  quote.emissions.conventionalDieselKgCO2e /
-                  quote.emissions.tonnesKm
-                ).toFixed(4),
-              )
-            : 0.085,
-        driverPickupPin,
-        qrDigest,
-        appointmentWindowStart: windowStart,
-        appointmentWindowEnd: windowEnd,
-        notes: body.notes || null,
-        createdAt: now.toISOString(),
-        updatedAt: now.toISOString(),
-      });
-
-      const orderPayload = {
-        id: orderId,
-        orderId,
-        orderNumber,
-        status: "DISPATCHED",
-        haulier: {
-          id: haulier.id,
-          companyName: haulier.companyName,
-          taxId: haulier.taxId,
-          city: haulier.city,
-        },
-        origin: {
-          id: origin.id,
-          companyName: origin.companyName,
-          street1: origin.street1,
-          city: origin.city,
-          zipCode: origin.zipCode,
-          country: origin.country,
-          unLocode: origin.unLocode,
-          lat: origin.lat,
-          lon: origin.lon,
-        },
-        destination: {
-          id: dest.id,
-          companyName: dest.companyName,
-          street1: dest.street1,
-          city: dest.city,
-          zipCode: dest.zipCode,
-          country: dest.country,
-          unLocode: dest.unLocode,
-          lat: dest.lat,
-          lon: dest.lon,
-        },
-        bookingReference: body.bookingReference || null,
-        containerNumber: body.containerNumber || null,
-        containerType: body.containerType || "40HC",
-        cargoWeightKg: body.cargoWeightKg || 18500,
-        appointmentWindowStart: windowStart,
-        appointmentWindowEnd: windowEnd,
-        quote,
-        driverPickupPin,
-        notes: body.notes || null,
-        qrDigest,
-        createdAt: now.toISOString(),
-      };
-
-      return reply.code(201).send(orderPayload);
-    } catch (err: unknown) {
-      fastify.log.error(err, "Failed to create drayage transport order");
-      const message =
-        err instanceof Error ? err.message : "Failed to create drayage order";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 };
 
 export default drayageRoutes;

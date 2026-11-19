@@ -12,6 +12,26 @@ import { eq } from "drizzle-orm";
 import { validate } from "../middleware/validate.js";
 import { ShipmentIdParamsSchema } from "./shipments.schemas.js";
 import { CreateShipmentSchema } from "@atlas/shared/src/logistics-schemas.js";
+import {
+  OPENAPI_ID_PARAMS_SCHEMA,
+  OPENAPI_SUCCESS_FLAG_SCHEMA,
+  buildErrorResponses,
+  openApiArray,
+  openApiObject,
+} from "./openapi.schemas.js";
+
+const SHIPMENT_RECORD_PROPERTIES = {
+  id: { type: "string" },
+  companyId: { type: "string" },
+  status: { type: "string" },
+  trackingNumber: { type: "string" },
+  origin: { type: "string" },
+  destination: { type: "string" },
+  weight: { type: ["number", "null"] },
+  distanceKm: { type: ["number", "null"] },
+  co2eTonnes: { type: ["number", "null"] },
+  serviceType: { type: ["string", "null"] },
+} as const;
 
 interface CreateShipmentBody {
   status?: string;
@@ -28,21 +48,58 @@ interface CreateShipmentBody {
 }
 
 const shipmentsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
-  fastify.get("/", async (_request, _reply) => {
-    try {
-      const allShipments = await db.select().from(shipments);
-      return allShipments;
-    } catch {
-      fastify.log.warn("DB unavailable for shipments, returning fallback data");
-      return [];
-    }
-  });
+  fastify.get(
+    "/",
+    {
+      schema: {
+        tags: ["Shipments"],
+        summary: "List all operational shipments",
+        description:
+          "Returns all persisted shipment records from the SQLite operational ledger.",
+        response: {
+          200: openApiArray(SHIPMENT_RECORD_PROPERTIES, "Shipment collection"),
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, _reply) => {
+      try {
+        const allShipments = await db.select().from(shipments);
+        return allShipments;
+      } catch {
+        fastify.log.warn(
+          "DB unavailable for shipments, returning fallback data",
+        );
+        return [];
+      }
+    },
+  );
 
   fastify.get<{
     Params: { id: string };
   }>(
     "/:id",
-    { preHandler: [validate(ShipmentIdParamsSchema)] },
+    {
+      preHandler: [validate(ShipmentIdParamsSchema)],
+      schema: {
+        tags: ["Shipments"],
+        summary: "Retrieve shipment detail with milestone events",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: openApiObject(
+            {
+              ...SHIPMENT_RECORD_PROPERTIES,
+              events: {
+                type: "array",
+                items: { type: "object", additionalProperties: true },
+              },
+            },
+            "Shipment detail with chronological milestone events",
+          ),
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -77,7 +134,29 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     Body: CreateShipmentBody;
   }>(
     "/",
-    { preHandler: [validate(CreateShipmentSchema)] },
+    {
+      preHandler: [validate(CreateShipmentSchema)],
+      schema: {
+        tags: ["Shipments"],
+        summary: "Create an operational shipment",
+        body: openApiObject({
+          status: { type: "string" },
+          origin: { type: "string" },
+          destination: { type: "string" },
+          weight: { type: ["number", "null"] },
+          distanceKm: { type: ["number", "null"] },
+          co2eTonnes: { type: ["number", "null"] },
+          mode: { type: "string" },
+          documentBase64: { type: "string" },
+          documentMimeType: { type: "string" },
+          documentName: { type: "string" },
+        }),
+        response: {
+          200: openApiObject(SHIPMENT_RECORD_PROPERTIES, "Created shipment"),
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const {
@@ -91,7 +170,7 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
           .insert(shipments)
           .values({
             id: "s-" + Date.now(),
-            companyId: "c-1", // default mock company
+            companyId: "c-1",
             status: (shipmentData.status as string) || "PENDING",
             trackingNumber: `SHP-${Date.now()}`,
             origin: (shipmentData.origin as string) || "UNKNOWN",
@@ -125,7 +204,18 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     Params: { id: string };
   }>(
     "/:id",
-    { preHandler: [validate(ShipmentIdParamsSchema)] },
+    {
+      preHandler: [validate(ShipmentIdParamsSchema)],
+      schema: {
+        tags: ["Shipments"],
+        summary: "Delete a shipment by identifier",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;

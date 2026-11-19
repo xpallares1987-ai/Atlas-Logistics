@@ -16,6 +16,7 @@ import { redis, USE_MOCK } from "./config/redis.js";
 import "./cron/backup-scheduler.js"; // start cron scheduler
 import { logger } from "./config/logger.js";
 import { authMiddleware } from "./middleware/auth.js";
+import { requiresGlobalApiAuth } from "./middleware/public-routes.js";
 import { correlationIdPlugin } from "./middleware/correlation-id.js";
 import { stationContextHook } from "./middleware/station-context.js";
 import { registerAllRoutes } from "./routes/index.js";
@@ -330,49 +331,9 @@ app.register(fastifyJwt, {
   secret: getJWTConfig().secret,
 });
 
-// Protect API routes with an onRequest hook
+// Protect API routes with a hardened pathname-based onRequest hook
 app.addHook("onRequest", async (request, reply) => {
-  if (
-    request.url.startsWith("/api/events") ||
-    request.url.startsWith("/api/shipments/exceptions") ||
-    request.url === "/api/demo/trigger-alert" ||
-    request.url === "/api/sync/batch" ||
-    request.url.startsWith("/api/tracking/") ||
-    request.url.startsWith("/api/auth/") ||
-    request.url.startsWith("/api/addresses") ||
-    request.url.startsWith("/admin/") ||
-    request.url.startsWith("/api/admin/seed") ||
-    request.url.startsWith("/api/warehouse/ws") ||
-    request.url.startsWith("/api/dashboard/live") ||
-    request.url.startsWith("/api/edi/inbound") ||
-    request.url.startsWith("/api/dcsa/v3/events") ||
-    request.url.startsWith("/api/documents/verify/") ||
-    request.url.startsWith("/api/ai/config-status") ||
-    request.url.startsWith("/api/ai/status") ||
-    request.url.includes("/pdf") ||
-    request.url.includes("-pdf") ||
-    request.url.includes("/xml") ||
-    request.url.includes("/xfwb") ||
-    request.url.includes("/fwb") ||
-    request.url.includes("/csv") ||
-    request.url.startsWith("/api/air-cargo/awb/") ||
-    request.url.startsWith("/api/road-freight/") ||
-    request.url.startsWith("/api/rail/") ||
-    request.url.startsWith("/api/bulk-operations/") ||
-    request.url.startsWith("/api/bulk/") ||
-    request.url.startsWith("/api/chartering/") ||
-    request.url.startsWith("/api/customs/") ||
-    request.url.startsWith("/api/operations/lcl/manifest/") ||
-    request.url === "/api/health" ||
-    request.url === "/health" ||
-    request.url === "/metrics" ||
-    request.url === "/favicon.ico" ||
-    request.url === "/favicon.png" ||
-    request.url.startsWith("/docs")
-  ) {
-    return;
-  }
-  if (request.url.startsWith("/api/")) {
+  if (requiresGlobalApiAuth(request.url)) {
     await authMiddleware(request, reply);
   }
 });

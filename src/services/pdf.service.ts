@@ -1,4 +1,10 @@
-import PDFDocument from "pdfkit";
+/**
+ * @file pdf.service.ts
+ * @description Unified facade delegating official logistics, customs, compliance, and financial PDF document generation to domain-specific PDFKit generators.
+ * @module @atlas/api/services/pdf
+ * @see {@link docs/architecture/atlas-joint-improvement-plan.md}
+ */
+
 import { BulkOperationsPdfGenerator } from "./pdf/generators/bulk-operations.pdf.js";
 import { CargoInsurancePdfGenerator } from "./pdf/generators/cargo-insurance.pdf.js";
 import { DangerousGoodsPdfGenerator } from "./pdf/generators/dangerous-goods.pdf.js";
@@ -29,6 +35,10 @@ import {
   QuotePdfData,
 } from "./pdf/generators/core-operations.pdf.js";
 
+// ============================================================================
+// 1. TYPE DEFINITIONS & EXPORTED DTO CONTRACTS
+// ============================================================================
+
 export type {
   HBLData,
   InvoiceData,
@@ -37,6 +47,107 @@ export type {
   QuotePdfData,
   CustomsData,
 };
+
+/**
+ * Structural domain record accepted by modular PDFKit generators whose internal
+ * formatters read normalized entity fields from Drizzle rows or DTOs.
+ */
+export type PdfDomainRecord = Readonly<Record<string, unknown>> | object;
+
+/**
+ * Nullable/optional domain record for secondary PDF document context blocks
+ * such as company profiles, pools, or open cover policies.
+ */
+export type PdfOptionalDomainRecord = PdfDomainRecord | null | undefined;
+
+/**
+ * Read-only collection of structured domain records passed to tabular PDF sections.
+ */
+export type PdfDomainRecordList = readonly PdfDomainRecord[];
+
+export type AirWaybillPdfInput = Parameters<
+  typeof AirCargoPdfGenerator.generateAirWaybill
+>[0];
+
+export type CommercialContractPdfInput = Parameters<
+  typeof IncotermsPdfGenerator.generateCommercialContract
+>[0];
+
+export type CarrierProtestLetterPdfInput = Parameters<
+  typeof ClaimsPdfGenerator.generateCarrierProtestLetter
+>[0];
+
+export type SubrogationReceiptPdfInput = Parameters<
+  typeof ClaimsPdfGenerator.generateSubrogationReceipt
+>[0];
+
+export type EcmrWaybillPdfInput = Parameters<
+  typeof RoadFreightPdfGenerator.generateEcmrWaybill
+>[0];
+
+export type CartaDePortePdfInput = Parameters<
+  typeof RoadFreightPdfGenerator.generateCartaDePorte
+>[0];
+
+export interface LclManifestCargoItem {
+  id?: string;
+  hblNumber?: string;
+  shipper?: string;
+  consignee?: string;
+  description?: string;
+  packages?: number;
+  weight?: number;
+  weightKg?: number;
+  volume?: number;
+  volumeCbm?: number;
+  [key: string]: unknown;
+}
+
+export interface LclManifestPdfData {
+  containerId: string;
+  specId?: string;
+  route?: string;
+  cargoItems: LclManifestCargoItem[];
+  totalWeight: number;
+}
+
+export interface TradeCreditPresentationDossierData {
+  instrument: PdfDomainRecord;
+  documents: PdfDomainRecord[];
+  discrepancies?: PdfDomainRecord[];
+}
+
+export interface UcpDiscrepancyAuditReportData {
+  instrument: PdfDomainRecord;
+  discrepancies: PdfDomainRecord[];
+}
+
+export interface DemandGuaranteeCertificateData {
+  guarantee?: PdfOptionalDomainRecord;
+  instrument?: PdfOptionalDomainRecord;
+}
+
+export interface AeoCaeAuditReportData {
+  audit: PdfDomainRecord;
+  sections: PdfDomainRecord[];
+}
+
+export interface SevenPointInspectionCertificateData {
+  inspection: PdfDomainRecord;
+}
+
+export interface Iso17712SealCustodyCertificateData {
+  custody?: PdfOptionalDomainRecord;
+  seal?: PdfOptionalDomainRecord;
+}
+
+export interface BusinessPartnerRiskMatrixData {
+  partners: PdfDomainRecord[];
+}
+
+// ============================================================================
+// 2. PDF SERVICE FACADE
+// ============================================================================
 
 export class PDFService {
   /**
@@ -64,16 +175,15 @@ export class PDFService {
   }
 
   /**
-   * Generates a Booking Confirmation PDF in memory.
-   */
-
-  /**
    * Generates an official Commercial Freight Quotation PDF in memory.
    */
   public static async generateQuote(data: QuotePdfData): Promise<Buffer> {
     return CoreOperationsPdfGenerator.generateQuote(data);
   }
 
+  /**
+   * Generates a Booking Confirmation PDF in memory.
+   */
   public static async generateBookingConfirmation(
     data: BookingConfirmationData,
   ): Promise<Buffer> {
@@ -83,13 +193,9 @@ export class PDFService {
   /**
    * Generates an LCL Container Consolidation Manifest PDF.
    */
-  public static async generateLclManifest(data: {
-    containerId: string;
-    specId?: string;
-    route?: string;
-    cargoItems: any[];
-    totalWeight: number;
-  }): Promise<Buffer> {
+  public static async generateLclManifest(
+    data: LclManifestPdfData,
+  ): Promise<Buffer> {
     return CoreOperationsPdfGenerator.generateLclManifest(data);
   }
 
@@ -103,56 +209,66 @@ export class PDFService {
   }
 
   /**
-   * Generates official IATA Air Waybill (AWB) Document (neutral / airline standard)
+   * Generates an official IATA Air Waybill (AWB) document (neutral / airline standard).
    */
-  public static async generateAirWaybill(data: any): Promise<Buffer> {
+  public static async generateAirWaybill(
+    data: AirWaybillPdfInput,
+  ): Promise<Buffer> {
     return AirCargoPdfGenerator.generateAirWaybill(data);
   }
 
   /**
-   * Generates official bilingual commercial freight & sales contract PDF with ICC Incoterms® 2020 clauses
+   * Generates an official bilingual commercial freight and sales contract PDF with ICC Incoterms 2020 clauses.
    */
-  public static async generateCommercialContract(data: any): Promise<Buffer> {
+  public static async generateCommercialContract(
+    data: CommercialContractPdfInput,
+  ): Promise<Buffer> {
     return IncotermsPdfGenerator.generateCommercialContract(data);
   }
 
   /**
-   * Generates formal Notice of Claim & Carrier Protest Letter (Carta de Reserva al Porteador)
+   * Generates a formal Notice of Claim and Carrier Protest Letter.
    */
   public static async generateCarrierProtestLetter(
-    claim: any,
+    claim: CarrierProtestLetterPdfInput,
   ): Promise<Buffer> {
     return ClaimsPdfGenerator.generateCarrierProtestLetter(claim);
   }
 
   /**
-   * Generates official Subrogation Receipt & Assignment of Rights (Recibo de Finiquito y Subrogación de Derechos)
+   * Generates an official Subrogation Receipt and Assignment of Rights PDF.
    */
-  public static async generateSubrogationReceipt(claim: any): Promise<Buffer> {
+  public static async generateSubrogationReceipt(
+    claim: SubrogationReceiptPdfInput,
+  ): Promise<Buffer> {
     return ClaimsPdfGenerator.generateSubrogationReceipt(claim);
   }
 
   /**
-   * Generates official Geneva 24-Box e-CMR Consignment Note (CMR Waybill)
+   * Generates an official Geneva 24-Box e-CMR Consignment Note (CMR Waybill).
    */
-  public static async generateEcmrWaybill(c: any): Promise<Buffer> {
-    return RoadFreightPdfGenerator.generateEcmrWaybill(c);
+  public static async generateEcmrWaybill(
+    consignment: EcmrWaybillPdfInput,
+  ): Promise<Buffer> {
+    return RoadFreightPdfGenerator.generateEcmrWaybill(consignment);
   }
 
   /**
-   * Generates official Spanish National Carta de Porte (LOTT / Ley 15/2009)
+   * Generates an official Spanish National Road Consignment Note (LOTT / Law 15/2009).
    */
-  public static async generateCartaDePorte(c: any): Promise<Buffer> {
-    return RoadFreightPdfGenerator.generateCartaDePorte(c);
+  public static async generateCartaDePorte(
+    consignment: CartaDePortePdfInput,
+  ): Promise<Buffer> {
+    return RoadFreightPdfGenerator.generateCartaDePorte(consignment);
   }
 
   /**
-   * Generates a Carrier Freight Dispute / Debit Note PDF (Nota de Cargo y Carta de Discrepancia).
+   * Generates a Carrier Freight Dispute / Debit Note PDF.
    */
   public static async generateCarrierDisputeLetter(
-    invoice: any,
-    disputedLines: any[],
-    company?: any,
+    invoice: PdfDomainRecord,
+    disputedLines: PdfDomainRecord[],
+    company?: PdfOptionalDomainRecord,
   ): Promise<Buffer> {
     return TreasuryPdfGenerator.generateCarrierDisputeLetter(
       invoice,
@@ -162,12 +278,12 @@ export class PDFService {
   }
 
   /**
-   * Generates an Official Carrier Payment Settlement Statement PDF (Liquidación y Finiquito de Fletes).
+   * Generates an official Carrier Payment Settlement Statement PDF.
    */
   public static async generateCarrierSettlementStatement(
-    batch: any,
-    invoices: any[] = [],
-    company?: any,
+    batch: PdfDomainRecord,
+    invoices: PdfDomainRecord[] = [],
+    company?: PdfOptionalDomainRecord,
   ): Promise<Buffer> {
     return TreasuryPdfGenerator.generateCarrierSettlementStatement(
       batch,
@@ -177,13 +293,13 @@ export class PDFService {
   }
 
   /**
-   * Generates an Official Pharma Cold Chain & GDP Release Certificate PDF (EN 12830).
+   * Generates an official Pharma Cold Chain and GDP Release Certificate PDF (EN 12830).
    */
   public static async generateGdpReleaseCertificate(
-    shipment: any,
-    readings: any[] = [],
-    profile?: any,
-    company?: any,
+    shipment: PdfDomainRecord,
+    readings: PdfDomainRecord[] = [],
+    profile?: PdfOptionalDomainRecord,
+    company?: PdfOptionalDomainRecord,
   ): Promise<Buffer> {
     return ColdChainPdfGenerator.generateGdpReleaseCertificate(
       shipment,
@@ -194,12 +310,12 @@ export class PDFService {
   }
 
   /**
-   * Generates an Official CBAM Embedded Emissions & Carbon Liability Declaration Certificate PDF (EU Reg. 2023/956).
+   * Generates an official CBAM Embedded Emissions and Carbon Liability Declaration Certificate PDF (EU Reg. 2023/956).
    */
   public static async generateCbamDeclarationCertificate(
-    declaration: any,
-    lines: any[] = [],
-    company?: any,
+    declaration: PdfDomainRecord,
+    lines: PdfDomainRecord[] = [],
+    company?: PdfOptionalDomainRecord,
   ): Promise<Buffer> {
     return CbamPdfGenerator.generateCbamDeclarationCertificate(
       declaration,
@@ -209,12 +325,12 @@ export class PDFService {
   }
 
   /**
-   * Generates an Official International Consignment Note for Rail (CIM / COTIF Appendix B, UIC 992 format).
+   * Generates an official International Consignment Note for Rail (CIM / COTIF Appendix B, UIC 992 format).
    */
   public static async generateCimConsignmentNote(
-    consignment: any,
-    allocations: any[] = [],
-    company?: any,
+    consignment: PdfDomainRecord,
+    allocations: PdfDomainRecord[] = [],
+    company?: PdfOptionalDomainRecord,
   ): Promise<Buffer> {
     return RailPdfGenerator.generateCimConsignmentNote(
       consignment,
@@ -224,29 +340,29 @@ export class PDFService {
   }
 
   /**
-   * Generates an Official Train Composition and Braking Sheet (Boletín de Composición y Frenado UIC/ERA).
+   * Generates an official Train Composition and Braking Sheet (UIC/ERA).
    */
   public static async generateTrainBrakingSheet(
-    sheet: any,
-    allocations: any[] = [],
+    sheet: PdfDomainRecord,
+    allocations: PdfDomainRecord[] = [],
   ): Promise<Buffer> {
     return RailPdfGenerator.generateTrainBrakingSheet(sheet, allocations);
   }
 
   /**
-   * Generates Official Customs Bonding / Discharge Document (Documento DVD / DUA 7100/7600 PDF)
+   * Generates an official Customs Bonding / Discharge Document PDF (DVD / DUA 7100/7600).
    */
   public static async generateCustomsBondingDocumentPdf(
-    data: any,
+    data: PdfDomainRecord,
   ): Promise<Buffer> {
     return CustomsWarehousePdfGenerator.generateCustomsBondingDocumentPdf(data);
   }
 
   /**
-   * Generates Official Customs Stock & Warranty Liability Audit Certificate (PDF)
+   * Generates an official Customs Stock and Warranty Liability Audit Certificate PDF.
    */
   public static async generateCustomsStockCertificatePdf(
-    data: any,
+    data: PdfDomainRecord,
   ): Promise<Buffer> {
     return CustomsWarehousePdfGenerator.generateCustomsStockCertificatePdf(
       data,
@@ -254,12 +370,12 @@ export class PDFService {
   }
 
   /**
-   * Generates Official FuelEU Maritime Compliance & EU ETS Settlement Certificate (PDF)
+   * Generates an official FuelEU Maritime Compliance and EU ETS Settlement Certificate PDF.
    */
   public static async generateFuelEuComplianceCertificatePdf(
-    account: any,
-    vessel: any,
-    pool?: any,
+    account: PdfDomainRecord,
+    vessel: PdfDomainRecord,
+    pool?: PdfOptionalDomainRecord,
   ): Promise<Buffer> {
     return FuelEuPdfGenerator.generateFuelEuComplianceCertificatePdf(
       account,
@@ -269,12 +385,12 @@ export class PDFService {
   }
 
   /**
-   * Generates Bunker Delivery Note & Voyage GHG Emissions Audit Sheet (PDF)
+   * Generates a Bunker Delivery Note and Voyage GHG Emissions Audit Sheet PDF.
    */
   public static async generateBunkerDeliveryNoteAuditPdf(
-    voyage: any,
-    vessel: any,
-    fuel: any,
+    voyage: PdfDomainRecord,
+    vessel: PdfDomainRecord,
+    fuel: PdfDomainRecord,
   ): Promise<Buffer> {
     return FuelEuPdfGenerator.generateBunkerDeliveryNoteAuditPdf(
       voyage,
@@ -284,106 +400,102 @@ export class PDFService {
   }
 
   /**
-   * Generates Official Trade Credit Presentation Dossier & Cover Letter PDF (UCP 600 / URC 522).
+   * Generates an official Trade Credit Presentation Dossier and Cover Letter PDF (UCP 600 / URC 522).
    */
-  public static async generateTradeCreditPresentationDossierPdf(data: {
-    instrument: any;
-    documents: any[];
-    discrepancies?: any[];
-  }): Promise<Buffer> {
+  public static async generateTradeCreditPresentationDossierPdf(
+    data: TradeCreditPresentationDossierData,
+  ): Promise<Buffer> {
     return TradeFinancePdfGenerator.generateTradeCreditPresentationDossierPdf(
       data,
     );
   }
 
   /**
-   * Generates Official UCP 600 Discrepancy Notice & Examination Audit Report PDF.
+   * Generates an official UCP 600 Discrepancy Notice and Examination Audit Report PDF.
    */
-  public static async generateUcpDiscrepancyAuditReportPdf(data: {
-    instrument: any;
-    discrepancies: any[];
-  }): Promise<Buffer> {
+  public static async generateUcpDiscrepancyAuditReportPdf(
+    data: UcpDiscrepancyAuditReportData,
+  ): Promise<Buffer> {
     return TradeFinancePdfGenerator.generateUcpDiscrepancyAuditReportPdf(data);
   }
 
   /**
-   * Generates Official Demand Guarantee & Standby LC Undertaking Certificate PDF (URDG 758 / ISP98).
+   * Generates an official Demand Guarantee and Standby LC Undertaking Certificate PDF (URDG 758 / ISP98).
    */
-  public static async generateDemandGuaranteeCertificatePdf(data: {
-    guarantee?: any;
-    instrument?: any;
-  }): Promise<Buffer> {
+  public static async generateDemandGuaranteeCertificatePdf(
+    data: DemandGuaranteeCertificateData,
+  ): Promise<Buffer> {
     return TradeFinancePdfGenerator.generateDemandGuaranteeCertificatePdf({
       instrument: data.instrument || data.guarantee,
     });
   }
 
   /**
-   * Generates Official AEO Self-Assessment Audit Report PDF (CAE AEAT / DG TAXUD).
+   * Generates an official AEO Self-Assessment Audit Report PDF (CAE AEAT / DG TAXUD).
    */
-  public static async generateAeoCaeAuditReportPdf(data: {
-    audit: any;
-    sections: any[];
-  }): Promise<Buffer> {
+  public static async generateAeoCaeAuditReportPdf(
+    data: AeoCaeAuditReportData,
+  ): Promise<Buffer> {
     return AeoSecurityPdfGenerator.generateAeoCaeAuditReportPdf(data);
   }
 
   /**
-   * Generates Official 7-Point Container Security Inspection Certificate PDF (WCO SAFE / C-TPAT).
+   * Generates an official 7-Point Container Security Inspection Certificate PDF (WCO SAFE / C-TPAT).
    */
-  public static async generateSevenPointInspectionCertificatePdf(data: {
-    inspection: any;
-  }): Promise<Buffer> {
+  public static async generateSevenPointInspectionCertificatePdf(
+    data: SevenPointInspectionCertificateData,
+  ): Promise<Buffer> {
     return AeoSecurityPdfGenerator.generateSevenPointInspectionCertificatePdf(
       data,
     );
   }
 
   /**
-   * Generates Official High-Security ISO 17712 Seal Custody & Verification Certificate PDF.
+   * Generates an official High-Security ISO 17712 Seal Custody and Verification Certificate PDF.
    */
-  public static async generateIso17712SealCustodyCertificatePdf(data: {
-    custody?: any;
-    seal?: any;
-  }): Promise<Buffer> {
+  public static async generateIso17712SealCustodyCertificatePdf(
+    data: Iso17712SealCustodyCertificateData,
+  ): Promise<Buffer> {
     return AeoSecurityPdfGenerator.generateIso17712SealCustodyCertificatePdf({
       seal: data.seal || data.custody,
     });
   }
 
   /**
-   * Generates Business Partner AEO Security Screening & Risk Matrix PDF.
+   * Generates a Business Partner AEO Security Screening and Risk Matrix PDF.
    */
-  public static async generateBusinessPartnerRiskMatrixPdf(data: {
-    partners: any[];
-  }): Promise<Buffer> {
+  public static async generateBusinessPartnerRiskMatrixPdf(
+    data: BusinessPartnerRiskMatrixData,
+  ): Promise<Buffer> {
     return AeoSecurityPdfGenerator.generateBusinessPartnerRiskMatrixPdf(data);
   }
 
   /**
-   * 1. Official Charter Party Fixture Recap PDF (BIMCO Gencon 2022 / NYPE 2015)
+   * Generates an official Charter Party Fixture Recap PDF (BIMCO Gencon 2022 / NYPE 2015).
    */
-  public static async generateCharterPartyPdf(charter: any): Promise<Buffer> {
+  public static async generateCharterPartyPdf(
+    charter: PdfDomainRecord,
+  ): Promise<Buffer> {
     return CharteringPdfGenerator.generateCharterPartyPdf(charter);
   }
 
   /**
-   * 2. Official Statement of Facts (SOF) PDF
+   * Generates an official Statement of Facts (SOF) PDF.
    */
   public static async generateStatementOfFactsPdf(
-    sof: any,
-    events: any[],
+    sof: PdfDomainRecord,
+    events: PdfDomainRecord[],
   ): Promise<Buffer> {
     return CharteringPdfGenerator.generateStatementOfFactsPdf(sof, events);
   }
 
   /**
-   * 3. Official Laytime Calculation Sheet PDF (Demurrage/Despatch)
+   * Generates an official Laytime Calculation Sheet PDF (Demurrage / Despatch).
    */
   public static async generateLaytimeCalculationSheetPdf(
-    calc: any,
-    charterOrPeriods: any,
-    breakdowns?: any[],
+    calc: PdfDomainRecord,
+    charterOrPeriods: PdfDomainRecord | PdfDomainRecordList,
+    breakdowns?: PdfDomainRecord[],
   ): Promise<Buffer> {
     return CharteringPdfGenerator.generateLaytimeCalculationSheetPdf(
       calc,
@@ -393,11 +505,11 @@ export class PDFService {
   }
 
   /**
-   * 4. Official Time Charter Hire & Off-Hire Deduction Statement PDF
+   * Generates an official Time Charter Hire and Off-Hire Deduction Statement PDF.
    */
   public static async generateTimeCharterHireStatementPdf(
-    hire: any,
-    hireCalc: any,
+    hire: PdfDomainRecord,
+    hireCalc: PdfDomainRecord,
   ): Promise<Buffer> {
     return CharteringPdfGenerator.generateTimeCharterHireStatementPdf(
       hire,
@@ -406,10 +518,10 @@ export class PDFService {
   }
 
   /**
-   * 1. Generates an Official Master's Declaration of General Average & Sea Protest PDF (YAR 2016).
+   * Generates an official Master's Declaration of General Average and Sea Protest PDF (YAR 2016).
    */
   public static async generateMasterGeneralAverageDeclarationPdf(
-    gaCase: any,
+    gaCase: PdfDomainRecord,
   ): Promise<Buffer> {
     return GeneralAveragePdfGenerator.generateMasterGeneralAverageDeclarationPdf(
       gaCase,
@@ -417,11 +529,11 @@ export class PDFService {
   }
 
   /**
-   * 2. Generates an Official Lloyd's Average Bond (LAB 77) Form PDF.
+   * Generates an official Lloyd's Average Bond (LAB 77) Form PDF.
    */
   public static async generateLloydsAverageBondPdf(
-    bond: any,
-    gaCase: any,
+    bond: PdfDomainRecord,
+    gaCase: PdfDomainRecord,
   ): Promise<Buffer> {
     return GeneralAveragePdfGenerator.generateLloydsAverageBondPdf(
       bond,
@@ -430,11 +542,11 @@ export class PDFService {
   }
 
   /**
-   * 3. Generates an Official Underwriters Average Guarantee PDF (Cargo Insurers Security).
+   * Generates an official Underwriters Average Guarantee PDF (Cargo Insurers Security).
    */
   public static async generateUnderwritersAverageGuaranteePdf(
-    guarantee: any,
-    gaCase: any,
+    guarantee: PdfDomainRecord,
+    gaCase: PdfDomainRecord,
   ): Promise<Buffer> {
     return GeneralAveragePdfGenerator.generateUnderwritersAverageGuaranteePdf(
       guarantee,
@@ -443,12 +555,12 @@ export class PDFService {
   }
 
   /**
-   * 4. Generates an Official General Average Adjustment & Contribution Statement PDF.
+   * Generates an official General Average Adjustment and Contribution Statement PDF.
    */
   public static async generateGeneralAverageAdjustmentStatementPdf(
-    adjustment: any,
-    gaCase: any,
-    items: any[],
+    adjustment: PdfDomainRecord,
+    gaCase: PdfDomainRecord,
+    items: PdfDomainRecord[],
   ): Promise<Buffer> {
     return GeneralAveragePdfGenerator.generateGeneralAverageAdjustmentStatementPdf(
       adjustment,
@@ -458,11 +570,11 @@ export class PDFService {
   }
 
   /**
-   * 1. Generates an Official Multimodal Dangerous Goods Declaration Form PDF (IMO IMDG / UNECE ADR).
+   * Generates an official Multimodal Dangerous Goods Declaration Form PDF (IMO IMDG / UNECE ADR).
    */
   public static async generateMultimodalDangerousGoodsDeclarationPdf(
-    shipment: any,
-    items: any[],
+    shipment: PdfDomainRecord,
+    items: PdfDomainRecord[],
   ): Promise<Buffer> {
     return DangerousGoodsPdfGenerator.generateMultimodalDangerousGoodsDeclarationPdf(
       shipment,
@@ -471,11 +583,11 @@ export class PDFService {
   }
 
   /**
-   * 2. Generates an Official IATA Shipper's Declaration for Dangerous Goods PDF (Air Cargo DGR).
+   * Generates an official IATA Shipper's Declaration for Dangerous Goods PDF (Air Cargo DGR).
    */
   public static async generateIataShippersDeclarationPdf(
-    shipment: any,
-    items: any[],
+    shipment: PdfDomainRecord,
+    items: PdfDomainRecord[],
   ): Promise<Buffer> {
     return DangerousGoodsPdfGenerator.generateIataShippersDeclarationPdf(
       shipment,
@@ -484,12 +596,12 @@ export class PDFService {
   }
 
   /**
-   * 3. Generates an Official Dangerous Goods Emergency Response Card & Instructions in Writing PDF.
+   * Generates an official Dangerous Goods Emergency Response Card and Instructions in Writing PDF.
    */
   public static async generateDangerousGoodsEmergencyCardPdf(
-    emergencyCard: any,
-    shipment: any,
-    items: any[],
+    emergencyCard: PdfDomainRecord,
+    shipment: PdfDomainRecord,
+    items: PdfDomainRecord[],
   ): Promise<Buffer> {
     return DangerousGoodsPdfGenerator.generateDangerousGoodsEmergencyCardPdf(
       emergencyCard,
@@ -499,11 +611,11 @@ export class PDFService {
   }
 
   /**
-   * 4. Generates an Official Container/Vehicle Packing Certificate PDF (IMDG 5.4.2 / ADR 5.4.2).
+   * Generates an official Container/Vehicle Packing Certificate PDF (IMDG 5.4.2 / ADR 5.4.2).
    */
   public static async generateContainerPackingCertificatePdf(
-    packingCert: any,
-    shipment: any,
+    packingCert: PdfDomainRecord,
+    shipment: PdfDomainRecord,
   ): Promise<Buffer> {
     return DangerousGoodsPdfGenerator.generateContainerPackingCertificatePdf(
       packingCert,
@@ -512,11 +624,11 @@ export class PDFService {
   }
 
   /**
-   * 1. Generates an Official Marine/Air/Road Cargo Insurance Certificate PDF (UCP 600 Art. 28 / Incoterms® 2020 CIF/CIP).
+   * Generates an official Marine/Air/Road Cargo Insurance Certificate PDF (UCP 600 Art. 28 / Incoterms 2020 CIF/CIP).
    */
   public static async generateCargoInsuranceCertificatePdf(
-    certificate: any,
-    openPolicy?: any,
+    certificate: PdfDomainRecord,
+    openPolicy?: PdfOptionalDomainRecord,
   ): Promise<Buffer> {
     return CargoInsurancePdfGenerator.generateCargoInsuranceCertificatePdf(
       certificate,
@@ -525,10 +637,10 @@ export class PDFService {
   }
 
   /**
-   * 2. Generates an Open Cover Policy Schedule PDF.
+   * Generates an Open Cover Policy Schedule PDF.
    */
   public static async generateOpenCoverPolicySchedulePdf(
-    openPolicy: any,
+    openPolicy: PdfDomainRecord,
   ): Promise<Buffer> {
     return CargoInsurancePdfGenerator.generateOpenCoverPolicySchedulePdf(
       openPolicy,
@@ -536,12 +648,12 @@ export class PDFService {
   }
 
   /**
-   * 3. Generates a Monthly Insurance Declaration Bordereau PDF.
+   * Generates a Monthly Insurance Declaration Bordereau PDF.
    */
   public static async generateInsuranceBordereauPdf(
-    bordereau: any,
-    openPolicy: any,
-    lines: any[],
+    bordereau: PdfDomainRecord,
+    openPolicy: PdfDomainRecord,
+    lines: PdfDomainRecord[],
   ): Promise<Buffer> {
     return CargoInsurancePdfGenerator.generateInsuranceBordereauPdf(
       bordereau,
@@ -551,11 +663,11 @@ export class PDFService {
   }
 
   /**
-   * 4. Generates an Insurance Claim Adjustment Statement PDF.
+   * Generates an Insurance Claim Adjustment Statement PDF.
    */
   public static async generateInsuranceClaimAdjustmentPdf(
-    claim: any,
-    certificate: any,
+    claim: PdfDomainRecord,
+    certificate: PdfDomainRecord,
   ): Promise<Buffer> {
     return CargoInsurancePdfGenerator.generateInsuranceClaimAdjustmentPdf(
       claim,
@@ -564,11 +676,11 @@ export class PDFService {
   }
 
   /**
-   * 1. Generates an Official Hydrostatic Draft Survey Report & Displacement Certificate PDF.
+   * Generates an official Hydrostatic Draft Survey Report and Displacement Certificate PDF.
    */
   public static async generateDraftSurveyReportPdf(
-    survey: any,
-    vesselOp: any,
+    survey: PdfDomainRecord,
+    vesselOp: PdfDomainRecord,
   ): Promise<Buffer> {
     return BulkOperationsPdfGenerator.generateDraftSurveyReportPdf(
       survey,
@@ -577,11 +689,11 @@ export class PDFService {
   }
 
   /**
-   * 2. Generates an IMSBC Code Bulk Cargo Declaration & TML Certificate PDF.
+   * Generates an IMSBC Code Bulk Cargo Declaration and TML Certificate PDF.
    */
   public static async generateImsbcCargoDeclarationPdf(
-    imsbc: any,
-    vesselOp: any,
+    imsbc: PdfDomainRecord,
+    vesselOp: PdfDomainRecord,
   ): Promise<Buffer> {
     return BulkOperationsPdfGenerator.generateImsbcCargoDeclarationPdf(
       imsbc,
@@ -590,11 +702,11 @@ export class PDFService {
   }
 
   /**
-   * 3. Generates an IMO Grain Code Stability & Loading Plan Certificate PDF.
+   * Generates an IMO Grain Code Stability and Loading Plan Certificate PDF.
    */
   public static async generateGrainStabilityPlanPdf(
-    grainPlan: any,
-    vesselOp: any,
+    grainPlan: PdfDomainRecord,
+    vesselOp: PdfDomainRecord,
   ): Promise<Buffer> {
     return BulkOperationsPdfGenerator.generateGrainStabilityPlanPdf(
       grainPlan,
@@ -603,11 +715,11 @@ export class PDFService {
   }
 
   /**
-   * 4. Generates a Tanker Liquid Quantity Survey Report PDF (ASTM-IP Table 54).
+   * Generates a Tanker Liquid Quantity Survey Report PDF (ASTM-IP Table 54).
    */
   public static async generateUllageTankSurveyPdf(
-    ullageSurvey: any,
-    vesselOp: any,
+    ullageSurvey: PdfDomainRecord,
+    vesselOp: PdfDomainRecord,
   ): Promise<Buffer> {
     return BulkOperationsPdfGenerator.generateUllageTankSurveyPdf(
       ullageSurvey,

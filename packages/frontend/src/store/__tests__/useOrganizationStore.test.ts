@@ -9,20 +9,28 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Mock localStorage and window for Node environment
 const storageMap = new Map<string, string>();
-const localStorageMock = {
+const localStorageMock: Storage = {
+  get length() {
+    return storageMap.size;
+  },
+  key: (index: number) => Array.from(storageMap.keys())[index] ?? null,
   getItem: (key: string) => storageMap.get(key) || null,
   setItem: (key: string, val: string) => storageMap.set(key, String(val)),
   removeItem: (key: string) => storageMap.delete(key),
   clear: () => storageMap.clear(),
 };
 
-globalThis.localStorage = localStorageMock as any;
-(globalThis as any).window = {
-  localStorage: localStorageMock,
-  dispatchEvent: vi.fn(),
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-};
+globalThis.localStorage = localStorageMock;
+Object.defineProperty(globalThis, "window", {
+  configurable: true,
+  writable: true,
+  value: {
+    localStorage: localStorageMock,
+    dispatchEvent: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  },
+});
 
 import {
   useOrganizationStore,
@@ -107,10 +115,10 @@ describe("useOrganizationStore - Station Context & RBAC Governance", () => {
   });
 
   it("fetches and populates stations correctly", async () => {
-    (authFetch as any).mockResolvedValueOnce({
+    vi.mocked(authFetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ success: true, stations: mockStations }),
-    });
+    } as unknown as Response);
 
     await useOrganizationStore.getState().fetchStations();
 

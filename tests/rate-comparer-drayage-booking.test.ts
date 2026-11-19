@@ -205,8 +205,14 @@ describe("Rate-Comparer Port Drayage End-to-End Booking Lifecycle", () => {
     expect(confirmed).toBeDefined();
     expect(confirmed.shipment).toBeDefined();
     expect(confirmed.drayageOrder).toBeDefined();
+    expect(confirmed.drayageOrder).not.toBeNull();
 
     const drayageOrder = confirmed.drayageOrder;
+    if (!drayageOrder) {
+      throw new Error(
+        "Expected drayageOrder to be materialized on booking confirmation",
+      );
+    }
     expect(drayageOrder.status).toBe("DISPATCHED");
     expect(drayageOrder.orderNumber).toMatch(/^DRY-\d{6}-\d{4}$/);
     expect(drayageOrder.distanceKm).toBe(25.4);

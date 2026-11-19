@@ -34,10 +34,18 @@ describe("CrossBorder domain helpers", () => {
 
   it("calculates USMCA Regional Value Content (RVC) and IMMEX savings", () => {
     const preset = USMCA_DEMO_PRESETS["laredo_automotive_immex"];
-    const rvc = calculateUsmcaRegionalValueContent(preset.rvcInput as any);
+    const rvc = calculateUsmcaRegionalValueContent(
+      preset.rvcInput as unknown as Parameters<
+        typeof calculateUsmcaRegionalValueContent
+      >[0],
+    );
     expect(rvc.rvcPercentage).toBeGreaterThan(0);
 
-    const immex = calculateImmexTariffOptimization(preset.immexInput as any);
+    const immex = calculateImmexTariffOptimization(
+      preset.immexInput as unknown as Parameters<
+        typeof calculateImmexTariffOptimization
+      >[0],
+    );
     expect(immex.dutySavingsUsd).toBeGreaterThanOrEqual(0);
     expect(immex.recommendedPedimentoType).toBeDefined();
   });

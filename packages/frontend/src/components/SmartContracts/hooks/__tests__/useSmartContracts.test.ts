@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import { filterLedgerBlocks, getEventBadgeClass } from "../useSmartContracts";
 
 describe("useSmartContracts helpers", () => {
-  const sampleLedger: any[] = [
+  const sampleLedger: Parameters<typeof filterLedgerBlocks>[0] = [
     {
       blockNumber: 0,
       txHash: "0xabc123",
@@ -27,7 +27,7 @@ describe("useSmartContracts helpers", () => {
         details: "Digital Bill of Lading issued",
       },
     },
-  ];
+  ] as unknown as Parameters<typeof filterLedgerBlocks>[0];
 
   it("filters DLT ledger blocks by search query and event type", () => {
     expect(filterLedgerBlocks(sampleLedger, "maersk", "ALL")).toHaveLength(1);

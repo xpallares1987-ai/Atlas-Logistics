@@ -1,3 +1,10 @@
+/**
+ * @file booking-lifecycle.service.ts
+ * @description End-to-end ocean and multimodal booking lifecycle service covering creation, B/L party resolution, shipment materialization, drayage dispatch, and customs declaration auto-lodging.
+ * @module @atlas/api/services/booking-lifecycle
+ * @see {@link docs/adr/0014-rate-comparer-port-drayage-booking-dispatch.md}
+ */
+
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { db, client } from "../db/index.js";
@@ -21,10 +28,119 @@ import { eq, desc, or, and, inArray } from "drizzle-orm";
 import { ensureOperationsSeedData } from "../routes/operations/seed-data.js";
 import {
   formatAllBlBoxes,
+  type BlAddressInput,
+  type BlContactInput,
+  type FormattedBlBox,
   TERMINAL_CODES,
   PICKUP_DELIVERY_LOCATION_CODES,
   HAULIER_CODES,
 } from "@atlas/shared";
+
+// ============================================================================
+// 1. TYPE DEFINITIONS & DOMAIN CONTRACTS
+// ============================================================================
+
+type AddressRow = typeof addresses.$inferSelect;
+type AddressContactRow = typeof addressContacts.$inferSelect;
+type ShipmentEventLogRow = typeof shipmentEventLogs.$inferSelect;
+type CustomsDeclarationRow = typeof customsDeclarations.$inferSelect;
+
+export interface BlPartiesBoxesSnapshot {
+  shipper: FormattedBlBox;
+  consignee: FormattedBlBox;
+  notify: FormattedBlBox;
+  agent: FormattedBlBox;
+}
+
+export type BlPartiesSnapshotInput =
+  BlPartiesBoxesSnapshot | Record<string, unknown>;
+
+export interface BookingCommodityItem {
+  description: string;
+  grossWeightKg: number;
+}
+
+export interface DrayageQuotePayload {
+  destinationAddressId?: string | null;
+  haulierAddressId?: string | null;
+  distanceKm?: number;
+  baseRate?: number;
+  baseRateEuro?: number;
+  fuelSurcharge?: number;
+  fuelSurchargeEuro?: number;
+  tollsCost?: number;
+  tollsEurovignette?: number;
+  extraSurcharges?: number;
+  subtotalCost?: number;
+  subtotalNet?: number;
+  profitMargin?: number;
+  totalGrossCost?: number;
+  totalGross?: number;
+  currency?: string;
+  co2WtwKg?: number;
+  conventionalDieselKgCO2e?: number;
+  co2TtwKg?: number;
+  co2WteKg?: number;
+  emissionsIntensityFactor?: number;
+  isDangerousGoods?: boolean;
+  requiresGenset?: boolean;
+  [key: string]: unknown;
+}
+
+export interface BookingCargoDetails {
+  carrier?: string;
+  commodity?: string;
+  commodities?: BookingCommodityItem[];
+  weightKg?: number;
+  weight?: number;
+  poNumber?: string;
+  incoterm?: string;
+  rateAmount?: number;
+  currency?: string;
+  transitDays?: number;
+  customerName?: string;
+  consigneeName?: string;
+  carrierBookingNumber?: string | null;
+  shipmentId?: string | null;
+  trackingNumber?: string | null;
+  blDocumentId?: string | null;
+  blReference?: string | null;
+  containerNumber?: string | null;
+  sealNumber?: string | null;
+  confirmedAt?: string | null;
+  drayageQuote?: DrayageQuotePayload | null;
+  drayageOrderId?: string | null;
+  haulierAddressId?: string | null;
+  drayageDestinationAddressId?: string | null;
+  customsDeclarationId?: string | null;
+  cancelReason?: string;
+  cancelledAt?: string;
+  [key: string]: unknown;
+}
+
+export interface MaterializedDrayageOrderSummary {
+  id: string;
+  orderNumber: string;
+  status: string;
+  originTerminal: string;
+  destination: string;
+  haulier: string;
+  distanceKm: number;
+  totalGrossCost: number;
+  currency: string;
+  co2WtwKg: number;
+}
+
+export interface MaterializedCustomsDeclarationSummary {
+  id: string;
+  shipmentId: string;
+  duaNumber: string;
+  blNumber: string;
+  status: string;
+  customsValue: number;
+  totalPayable: number;
+  brokerName: string;
+}
 
 export interface CreateBookingInput {
   referenceNumber?: string;
@@ -40,7 +156,7 @@ export interface CreateBookingInput {
   vessel?: string;
   voyage?: string;
   commodity?: string;
-  commodities?: { description: string; grossWeightKg: number }[];
+  commodities?: BookingCommodityItem[];
   weight?: number;
   poNumber?: string;
   incoterm?: string;
@@ -57,10 +173,10 @@ export interface CreateBookingInput {
   dischargeAgentAddressId?: string;
   isToOrder?: boolean;
   orderOf?: string;
-  blPartiesSnapshot?: any;
+  blPartiesSnapshot?: BlPartiesSnapshotInput | null;
 
   // Drayage Port-to-Door Integration
-  drayageQuote?: any;
+  drayageQuote?: DrayageQuotePayload | null;
   haulierAddressId?: string;
   drayageDestinationAddressId?: string;
 }
@@ -84,12 +200,44 @@ export interface ConfirmBookingInput {
   dischargeAgentAddressId?: string;
   isToOrder?: boolean;
   orderOf?: string;
-  blPartiesSnapshot?: any;
+  blPartiesSnapshot?: BlPartiesSnapshotInput | null;
 
   // Drayage Port-to-Door Integration
   haulierAddressId?: string;
   drayageDestinationAddressId?: string;
 }
+
+function toBlAddressInput(addr: AddressRow | null): BlAddressInput | undefined {
+  if (!addr) return undefined;
+  return {
+    companyName: addr.companyName,
+    tradeName: addr.tradeName ?? undefined,
+    taxId: addr.taxId ?? undefined,
+    street1: addr.street1,
+    street2: addr.street2 ?? undefined,
+    zipCode: addr.zipCode,
+    city: addr.city,
+    federalState: addr.federalState ?? undefined,
+    country: addr.country,
+    unLocode: addr.unLocode ?? undefined,
+  };
+}
+
+function toBlContactInput(
+  contact: AddressContactRow | null,
+): BlContactInput | undefined {
+  if (!contact) return undefined;
+  return {
+    fullName: contact.fullName,
+    email: contact.email ?? undefined,
+    phone: contact.phone ?? undefined,
+    roleCategory: contact.roleCategory ?? undefined,
+  };
+}
+
+// ============================================================================
+// 2. SCHEMA GUARD & B/L PARTY RESOLUTION
+// ============================================================================
 
 let bookingsColumnsEnsured = false;
 export async function ensureBookingsColumns() {
@@ -121,14 +269,14 @@ export async function resolveBlPartiesSnapshot(params: {
   fallbackShipperName?: string;
   fallbackConsigneeName?: string;
 }) {
-  let shipperAddr: any = null;
-  let shipperContact: any = null;
-  let consigneeAddr: any = null;
-  let consigneeContact: any = null;
-  let notifyAddr: any = null;
-  let notifyContact: any = null;
-  let agentAddr: any = null;
-  let agentContact: any = null;
+  let shipperAddr: AddressRow | null = null;
+  let shipperContact: AddressContactRow | null = null;
+  let consigneeAddr: AddressRow | null = null;
+  let consigneeContact: AddressContactRow | null = null;
+  let notifyAddr: AddressRow | null = null;
+  let notifyContact: AddressContactRow | null = null;
+  let agentAddr: AddressRow | null = null;
+  let agentContact: AddressContactRow | null = null;
 
   if (params.shipperAddressId) {
     const res = await db
@@ -142,7 +290,7 @@ export async function resolveBlPartiesSnapshot(params: {
         .select()
         .from(addressContacts)
         .where(eq(addressContacts.addressId, res[0].id));
-      shipperContact = contacts.find((c) => c.isPrimary) || contacts[0];
+      shipperContact = contacts.find((c) => c.isPrimary) || contacts[0] || null;
     }
   }
 
@@ -158,7 +306,8 @@ export async function resolveBlPartiesSnapshot(params: {
         .select()
         .from(addressContacts)
         .where(eq(addressContacts.addressId, res[0].id));
-      consigneeContact = contacts.find((c) => c.isPrimary) || contacts[0];
+      consigneeContact =
+        contacts.find((c) => c.isPrimary) || contacts[0] || null;
     }
   }
 
@@ -174,7 +323,7 @@ export async function resolveBlPartiesSnapshot(params: {
         .select()
         .from(addressContacts)
         .where(eq(addressContacts.addressId, res[0].id));
-      notifyContact = contacts.find((c) => c.isPrimary) || contacts[0];
+      notifyContact = contacts.find((c) => c.isPrimary) || contacts[0] || null;
     }
   }
 
@@ -190,13 +339,13 @@ export async function resolveBlPartiesSnapshot(params: {
         .select()
         .from(addressContacts)
         .where(eq(addressContacts.addressId, res[0].id));
-      agentContact = contacts.find((c) => c.isPrimary) || contacts[0];
+      agentContact = contacts.find((c) => c.isPrimary) || contacts[0] || null;
     }
   }
 
   return formatAllBlBoxes({
     shipper:
-      shipperAddr ||
+      toBlAddressInput(shipperAddr) ||
       (params.fallbackShipperName
         ? {
             companyName: params.fallbackShipperName,
@@ -206,9 +355,9 @@ export async function resolveBlPartiesSnapshot(params: {
             country: "ES",
           }
         : undefined),
-    shipperContact,
+    shipperContact: toBlContactInput(shipperContact),
     consignee:
-      consigneeAddr ||
+      toBlAddressInput(consigneeAddr) ||
       (params.fallbackConsigneeName
         ? {
             companyName: params.fallbackConsigneeName,
@@ -218,34 +367,50 @@ export async function resolveBlPartiesSnapshot(params: {
             country: "NL",
           }
         : undefined),
-    consigneeContact,
+    consigneeContact: toBlContactInput(consigneeContact),
     isToOrder: params.isToOrder,
     orderOf: params.orderOf,
-    notify: notifyAddr,
-    notifyContact,
-    agent: agentAddr,
-    agentContact,
+    notify: toBlAddressInput(notifyAddr),
+    notifyContact: toBlContactInput(notifyContact),
+    agent: toBlAddressInput(agentAddr),
+    agentContact: toBlContactInput(agentContact),
   });
 }
 
 function parseCargoDetails(
   raw: string | null | undefined,
-): Record<string, any> {
+): BookingCargoDetails {
   if (!raw) return {};
   try {
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      const first = parsed[0] || {};
+      const items: BookingCommodityItem[] = parsed.map((entry) => {
+        const record =
+          entry && typeof entry === "object"
+            ? (entry as Record<string, unknown>)
+            : {};
+        return {
+          description:
+            typeof record.description === "string"
+              ? record.description
+              : "General Cargo",
+          grossWeightKg: Number(record.grossWeightKg) || 0,
+        };
+      });
+      const first = items[0];
       return {
-        commodities: parsed,
-        commodity: first.description || "General Cargo",
-        weightKg: parsed.reduce(
-          (acc: number, item: any) => acc + (Number(item.grossWeightKg) || 0),
+        commodities: items,
+        commodity: first?.description || "General Cargo",
+        weightKg: items.reduce(
+          (acc: number, item) => acc + (Number(item.grossWeightKg) || 0),
           0,
         ),
       };
     }
-    return parsed;
+    if (parsed && typeof parsed === "object") {
+      return parsed as BookingCargoDetails;
+    }
+    return {};
   } catch {
     return {};
   }
@@ -491,7 +656,7 @@ export async function getBookingById(idOrRef: string) {
   const formatted = formatBookingRecord(rows[0]);
 
   let linkedShipment = null;
-  let linkedEvents: any[] = [];
+  let linkedEvents: ShipmentEventLogRow[] = [];
   let linkedDocument = null;
 
   if (formatted.shipmentId) {
@@ -705,20 +870,17 @@ export async function confirmBookingToShipment(
 
   const resolvedBlSnapshot = await resolveBlPartiesSnapshot({
     shipperAddressId:
-      input.shipperAddressId || (bkg as any).shipperAddressId || undefined,
+      input.shipperAddressId || bkg.shipperAddressId || undefined,
     consigneeAddressId:
-      input.consigneeAddressId || (bkg as any).consigneeAddressId || undefined,
-    notifyAddressId:
-      input.notifyAddressId || (bkg as any).notifyAddressId || undefined,
+      input.consigneeAddressId || bkg.consigneeAddressId || undefined,
+    notifyAddressId: input.notifyAddressId || bkg.notifyAddressId || undefined,
     dischargeAgentAddressId:
-      input.dischargeAgentAddressId ||
-      (bkg as any).dischargeAgentAddressId ||
-      undefined,
+      input.dischargeAgentAddressId || bkg.dischargeAgentAddressId || undefined,
     isToOrder:
       input.isToOrder !== undefined
         ? input.isToOrder
-        : (bkg as any).isToOrder || undefined,
-    orderOf: input.orderOf || (bkg as any).orderOf || undefined,
+        : bkg.isToOrder || undefined,
+    orderOf: input.orderOf || bkg.orderOf || undefined,
     fallbackShipperName: shipperNameVal,
     fallbackConsigneeName: consigneeNameVal,
   });
@@ -775,7 +937,7 @@ export async function confirmBookingToShipment(
       documentReference: blReference,
       sha256Hash,
       status: "DRAFT",
-      payloadData: blPayload as any,
+      payloadData: blPayload,
       fileSize: 48200,
       url: `/api/bookings/${bkg.id}/bol`,
       createdAt: now,
@@ -784,7 +946,7 @@ export async function confirmBookingToShipment(
     .onConflictDoNothing();
 
   // 5. Materialize Port Drayage Transport Order if drayageQuote is present
-  let createdDrayageOrder: any = null;
+  let createdDrayageOrder: MaterializedDrayageOrderSummary | null = null;
   const drayageData = details.drayageQuote;
   if (drayageData) {
     try {
@@ -803,7 +965,7 @@ export async function confirmBookingToShipment(
         )
         .limit(1);
 
-      let originTerminal = terminalCandidates[0];
+      let originTerminal: AddressRow | undefined = terminalCandidates[0];
       if (!originTerminal) {
         const anyTerminal = await db
           .select()
@@ -823,9 +985,9 @@ export async function confirmBookingToShipment(
         drayageData.destinationAddressId ||
         details.drayageDestinationAddressId ||
         input.consigneeAddressId ||
-        (bkg as any).consigneeAddressId;
+        bkg.consigneeAddressId;
 
-      let destinationAddress: any = null;
+      let destinationAddress: AddressRow | null = null;
       if (targetDestId) {
         const destRows = await db
           .select()
@@ -854,7 +1016,7 @@ export async function confirmBookingToShipment(
         drayageData.haulierAddressId ||
         details.haulierAddressId;
 
-      let haulierAddress: any = null;
+      let haulierAddress: AddressRow | null = null;
       if (targetHaulierId) {
         const haulierRows = await db
           .select()
@@ -1005,7 +1167,8 @@ export async function confirmBookingToShipment(
   }
 
   // 5.5 Auto-Materialize Customs Clearance Declaration Docket (DUA) if not present
-  let createdCustomsDeclaration: any = null;
+  let createdCustomsDeclaration:
+    CustomsDeclarationRow | MaterializedCustomsDeclarationSummary | null = null;
   try {
     const existingDecl = await db
       .select()
@@ -1153,24 +1316,16 @@ export async function confirmBookingToShipment(
       vessel: vesselName,
       voyage: voyageNumber,
       cargoDetails: JSON.stringify(updatedDetails),
-      shipperAddressId:
-        input.shipperAddressId || (bkg as any).shipperAddressId || null,
+      shipperAddressId: input.shipperAddressId || bkg.shipperAddressId || null,
       consigneeAddressId:
-        input.consigneeAddressId || (bkg as any).consigneeAddressId || null,
-      notifyAddressId:
-        input.notifyAddressId || (bkg as any).notifyAddressId || null,
+        input.consigneeAddressId || bkg.consigneeAddressId || null,
+      notifyAddressId: input.notifyAddressId || bkg.notifyAddressId || null,
       dischargeAgentAddressId:
-        input.dischargeAgentAddressId ||
-        (bkg as any).dischargeAgentAddressId ||
-        null,
+        input.dischargeAgentAddressId || bkg.dischargeAgentAddressId || null,
       isToOrder:
-        input.isToOrder !== undefined
-          ? !!input.isToOrder
-          : !!(bkg as any).isToOrder,
+        input.isToOrder !== undefined ? !!input.isToOrder : !!bkg.isToOrder,
       orderOf:
-        input.orderOf !== undefined
-          ? input.orderOf
-          : (bkg as any).orderOf || null,
+        input.orderOf !== undefined ? input.orderOf : bkg.orderOf || null,
       blPartiesSnapshot: JSON.stringify(resolvedBlSnapshot),
       updatedAt: now,
     })

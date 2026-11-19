@@ -14,6 +14,7 @@ import {
   sourceRecords,
   entitySourceLinks,
 } from "../db/schema/external_governance.js";
+import { unlocodeLocations } from "../db/schema/unlocode.js";
 import { eq, and, desc } from "drizzle-orm";
 import {
   ingestSourceRecordRequestSchema,
@@ -516,6 +517,53 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Write-Through: Update In-Memory Trie and LRU immediately without server restart
       upsertUnlocode(entry);
+
+      // Write-Through: Also persist to canonical SQLite unlocode_locations catalog
+      const upperLocode = entry.location.toUpperCase();
+      const upperCountry = entry.country.toUpperCase().slice(0, 2);
+      const locCode = upperLocode.slice(2, 5);
+      const fnClassifier = entry.function || "1-------";
+      const normalizedNoDiacritics = entry.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      const nowTimestamp = new Date();
+      try {
+        await db
+          .insert(unlocodeLocations)
+          .values({
+            unLocode: upperLocode,
+            countryCode: upperCountry,
+            locationCode: locCode,
+            name: entry.name,
+            nameWoDiacritics: normalizedNoDiacritics,
+            subdivisionCode: entry.subdivision ?? null,
+            functionClassifier: fnClassifier,
+            isPort: fnClassifier.includes("1"),
+            isRailTerminal: fnClassifier.includes("2"),
+            isRoadTerminal: fnClassifier.includes("3"),
+            isAirport: fnClassifier.includes("4"),
+            isPostalHub: fnClassifier.includes("5"),
+            isMultimodalIcd: fnClassifier.includes("6"),
+            isBorderCrossing: fnClassifier.includes("B"),
+            status: entry.status || "AI",
+            rawCoordinates: entry.coordinates ?? null,
+            createdAt: nowTimestamp,
+            updatedAt: nowTimestamp,
+          })
+          .onConflictDoUpdate({
+            target: unlocodeLocations.unLocode,
+            set: {
+              name: entry.name,
+              nameWoDiacritics: normalizedNoDiacritics,
+              subdivisionCode: entry.subdivision ?? null,
+              status: entry.status || "AI",
+              rawCoordinates: entry.coordinates ?? null,
+              updatedAt: nowTimestamp,
+            },
+          });
+      } catch {
+        // Non-fatal if unlocode_locations table is not yet migrated in isolated unit DBs
+      }
 
       // Persist raw source record if UN/LOCODE data source exists
       const [src] = await db

@@ -1,25 +1,57 @@
-// import { getDiagramVersions, saveDiagramVersion } from '../services/firestoreService';
+/**
+ * @file version-history.ts
+ * @description SQLite-backed BPMN diagram version history panel using safe DOM APIs.
+ * @module @atlas/bpmn-modeler/ui/version-history
+ */
+
 import { loadDiagramInNewTab } from "../state/tab-manager";
 import { state } from "../state";
 import { getDiagramXml } from "../services/xml-service";
-import { on, escapeHTML } from "@atlas/shared";
+import { on } from "@atlas/shared";
 import { Toast } from "@atlas/ui";
+
+interface RemoteDiagramVersion {
+  id: string;
+  label?: string;
+  createdAt?: string;
+  xmlContent: string;
+  versionNumber?: number;
+}
 
 let container: HTMLElement | null = null;
 let currentDiagramId: string | null = null;
 
+function createStatusNode(className: string, message: string): HTMLDivElement {
+  const el = document.createElement("div");
+  el.className = className;
+  el.textContent = message;
+  return el;
+}
+
 export function initVersionHistory() {
   container = document.createElement("div");
   container.className = "version-history-panel";
-  container.innerHTML = `
-    <div class="version-history-header">
-      <h3>Historial de Versiones</h3>
-      <button id="btn-save-version" class="btn btn-primary btn-sm">Guardar Versión</button>
-    </div>
-    <div class="version-history-list" id="version-list">
-      <div class="empty-state">No hay versiones guardadas todavía.</div>
-    </div>
-  `;
+
+  const header = document.createElement("div");
+  header.className = "version-history-header";
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Version History";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.id = "btn-save-version";
+  saveBtn.type = "button";
+  saveBtn.className = "btn btn-primary btn-sm";
+  saveBtn.textContent = "Save Version";
+
+  header.append(heading, saveBtn);
+
+  const listEl = document.createElement("div");
+  listEl.className = "version-history-list";
+  listEl.id = "version-list";
+  listEl.appendChild(createStatusNode("empty-state", "No saved versions yet."));
+
+  container.append(header, listEl);
 
   container.style.display = "none";
   container.style.position = "absolute";
@@ -36,34 +68,32 @@ export function initVersionHistory() {
 
   document.body.appendChild(container);
 
-  on(document.getElementById("btn-save-version")!, "click", async () => {
+  on(saveBtn, "click", async () => {
     if (!state.modeler || !state.activeTabId) return;
-    const label = prompt("Introduce una etiqueta para esta versión:");
+    const label = prompt("Enter a label for this version:");
     if (label === null) return;
 
     const xml = await getDiagramXml(state.modeler);
     try {
       if (!currentDiagramId) {
-        // Create new diagram
         const res = await fetch("/api/bpmn/diagrams", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: label || "Untitled", xmlContent: xml }),
         });
-        const data = await res.json();
+        const data = (await res.json()) as { data: { id: string } };
         currentDiagramId = data.data.id;
       } else {
-        // Save new version
         await fetch(`/api/bpmn/diagrams/${currentDiagramId}/versions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ xmlContent: xml }),
         });
       }
-      Toast.show("Versión guardada exitosamente (SQLite)", "success");
+      Toast.show("Version saved successfully (SQLite)", "success");
       await refreshVersions();
-    } catch (e) {
-      Toast.show("Error al guardar versión", "error");
+    } catch {
+      Toast.show("Failed to save version", "error");
     }
   });
 }
@@ -72,7 +102,7 @@ export function toggleVersionHistory() {
   if (!container) return;
   if (container.style.display === "none") {
     container.style.display = "block";
-    refreshVersions();
+    void refreshVersions();
   } else {
     container.style.display = "none";
   }
@@ -80,66 +110,84 @@ export function toggleVersionHistory() {
 
 export async function refreshVersions() {
   if (!state.activeTabId) return;
-  // If no known diagram ID, we could map activeTabId, but for simplicity let's use global state or create a new one
-  if (!currentDiagramId) {
-    const listEl = document.getElementById("version-list");
-    if (listEl)
-      listEl.innerHTML =
-        '<div class="empty-state">Guarda el diagrama primero para ver el historial.</div>';
-    return;
-  }
+
   const listEl = document.getElementById("version-list");
   if (!listEl) return;
 
-  listEl.innerHTML = '<div class="loading">Cargando versiones...</div>';
+  if (!currentDiagramId) {
+    listEl.replaceChildren(
+      createStatusNode(
+        "empty-state",
+        "Save the diagram first to view version history.",
+      ),
+    );
+    return;
+  }
+
+  listEl.replaceChildren(createStatusNode("loading", "Loading versions..."));
 
   try {
     const res = await fetch(`/api/bpmn/diagrams/${currentDiagramId}/versions`);
-    const data = await res.json();
+    const data = (await res.json()) as { data?: RemoteDiagramVersion[] };
     const versions = data.data || [];
+
     if (versions.length === 0) {
-      listEl.innerHTML =
-        '<div class="empty-state">No hay versiones guardadas todavía.</div>';
+      listEl.replaceChildren(
+        createStatusNode("empty-state", "No saved versions yet."),
+      );
       return;
     }
 
-    listEl.innerHTML = versions
-      .map((v: any) => {
-        const dateStr = v.createdAt
-          ? new Date(v.createdAt).toLocaleString()
-          : new Date().toLocaleString();
-        return `
-      <div class="version-item" style="padding: 10px; border-bottom: 1px solid var(--border); margin-bottom: 5px;">
-        <div style="font-weight: 500;">${escapeHTML(v.label || "Versión sin título")}</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHTML(dateStr)}</div>
-        <button class="btn btn-secondary btn-sm restore-btn" data-id="${escapeHTML(v.id)}" style="margin-top: 5px;">Restaurar</button>
-      </div>
-    `;
-      })
-      .join("");
+    const versionNodes = versions.map((v) => {
+      const dateStr = v.createdAt
+        ? new Date(v.createdAt).toLocaleString()
+        : new Date().toLocaleString();
 
-    listEl.querySelectorAll(".restore-btn").forEach((btn) => {
-      on(btn as HTMLElement, "click", async (e: any) => {
-        const id = (e.target as HTMLElement).getAttribute("data-id");
-        const version = versions.find((v: any) => v.id === id);
-        if (version) {
-          if (
-            confirm(
-              "¿Estás seguro de que deseas restaurar esta versión? Los cambios actuales no guardados se perderán.",
-            )
-          ) {
-            await loadDiagramInNewTab(
-              state,
-              version.xmlContent,
-              `Versión ${version.versionNumber}.bpmn`,
-            );
-            toggleVersionHistory();
-          }
+      const item = document.createElement("div");
+      item.className = "version-item";
+      item.style.padding = "10px";
+      item.style.borderBottom = "1px solid var(--border)";
+      item.style.marginBottom = "5px";
+
+      const titleEl = document.createElement("div");
+      titleEl.style.fontWeight = "500";
+      titleEl.textContent = v.label || "Untitled Version";
+
+      const dateEl = document.createElement("div");
+      dateEl.style.fontSize = "0.8rem";
+      dateEl.style.color = "var(--text-muted)";
+      dateEl.textContent = dateStr;
+
+      const restoreBtn = document.createElement("button");
+      restoreBtn.type = "button";
+      restoreBtn.className = "btn btn-secondary btn-sm restore-btn";
+      restoreBtn.setAttribute("data-id", v.id);
+      restoreBtn.style.marginTop = "5px";
+      restoreBtn.textContent = "Restore";
+
+      on(restoreBtn, "click", async () => {
+        if (
+          confirm(
+            "Are you sure you want to restore this version? Unsaved current changes will be lost.",
+          )
+        ) {
+          await loadDiagramInNewTab(
+            state,
+            v.xmlContent,
+            `Version ${v.versionNumber ?? v.id}.bpmn`,
+          );
+          toggleVersionHistory();
         }
       });
+
+      item.append(titleEl, dateEl, restoreBtn);
+      return item;
     });
-  } catch (e) {
-    listEl.innerHTML =
-      '<div class="error">Error al cargar las versiones (API SQLite).</div>';
+
+    listEl.replaceChildren(...versionNodes);
+  } catch {
+    listEl.replaceChildren(
+      createStatusNode("error", "Failed to load versions (SQLite API)."),
+    );
   }
 }

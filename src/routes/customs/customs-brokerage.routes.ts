@@ -10,6 +10,12 @@ import { z } from "zod";
 import { CustomsClearanceService } from "../../services/customs/customs-clearance.service.js";
 import { CbamComplianceService } from "../../services/cbam/cbam-compliance.service.js";
 import { logger } from "../../config/logger.js";
+import {
+  OPENAPI_ID_PARAMS_SCHEMA,
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  buildErrorResponses,
+  openApiObject,
+} from "../openapi.schemas.js";
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -122,30 +128,77 @@ export const customsBrokerageRoutes: FastifyPluginAsync = async (fastify) => {
   const cbamService = new CbamComplianceService();
 
   // 1. Register a new Customs Clearance (DUA / MRN)
-  fastify.post("/clearances", async (request, reply) => {
-    try {
-      const parsed = createClearanceSchema.safeParse(request.body);
-      if (!parsed.success) {
+  fastify.post(
+    "/clearances",
+    {
+      schema: {
+        tags: ["Customs Brokerage"],
+        summary: "Register a new Customs Clearance declaration (DUA / MRN)",
+        body: openApiObject({
+          clearanceNumber: { type: "string" },
+          mrn: { type: "string" },
+          procedureType: { type: "string" },
+          customsOfficeCode: { type: "string" },
+          importerCompanyId: { type: "string" },
+          declarantAddressId: { type: "string" },
+          taricCode: { type: "string" },
+          goodsDescription: { type: "string" },
+          originCountryCode: { type: "string" },
+          grossMassKg: { type: "number" },
+          netMassKg: { type: "number" },
+          customsValueEur: { type: "number" },
+        }),
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parsed = createClearanceSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            error: "Validation failed",
+            details: parsed.error.format(),
+          });
+        }
+
+        const result = await clearanceService.createClearance(parsed.data);
+        return reply.status(201).send(result);
+      } catch (error: unknown) {
+        logger.error({ err: error }, "Error creating customs clearance");
         return reply.status(400).send({
-          error: "Validation failed",
-          details: parsed.error.format(),
+          error: "Failed to create customs clearance",
+          message: error instanceof Error ? error.message : String(error),
         });
       }
-
-      const result = await clearanceService.createClearance(parsed.data);
-      return reply.status(201).send(result);
-    } catch (error: unknown) {
-      logger.error({ err: error }, "Error creating customs clearance");
-      return reply.status(400).send({
-        error: "Failed to create customs clearance",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
+    },
+  );
 
   // 2. Allocate 1:N shipments to a clearance and prorate taxes
   fastify.post<{ Params: { id: string } }>(
     "/clearances/:id/allocate-shipments",
+    {
+      schema: {
+        tags: ["Customs Brokerage"],
+        summary:
+          "Allocate 1:N shipments to a customs clearance and prorate taxes",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: openApiObject({
+          allocations: {
+            type: "array",
+            items: { type: "object", additionalProperties: true },
+          },
+          apInvoiceReference: { type: "string" },
+          officialVoucherNumber: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -178,6 +231,20 @@ export const customsBrokerageRoutes: FastifyPluginAsync = async (fastify) => {
   // 3. Assign inspection channel (GREEN, ORANGE, RED)
   fastify.post<{ Params: { id: string } }>(
     "/clearances/:id/channel",
+    {
+      schema: {
+        tags: ["Customs Brokerage"],
+        summary: "Assign customs inspection channel (GREEN, ORANGE, RED)",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: openApiObject({
+          channel: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -207,6 +274,17 @@ export const customsBrokerageRoutes: FastifyPluginAsync = async (fastify) => {
   // 4. Release Levante
   fastify.post<{ Params: { id: string } }>(
     "/clearances/:id/levante",
+    {
+      schema: {
+        tags: ["Customs Brokerage"],
+        summary: "Release customs Levante clearance authorization",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -225,6 +303,17 @@ export const customsBrokerageRoutes: FastifyPluginAsync = async (fastify) => {
   // 5. Discharge T1 Bonded Transit Guarantee
   fastify.post<{ Params: { id: string } }>(
     "/clearances/:id/discharge-t1",
+    {
+      schema: {
+        tags: ["Customs Brokerage"],
+        summary: "Discharge T1 bonded transit customs guarantee",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -241,30 +330,63 @@ export const customsBrokerageRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // 6. Record Zero-Markup Disbursement
-  fastify.post("/disbursements", async (request, reply) => {
-    try {
-      const parsed = recordDisbursementSchema.safeParse(request.body);
-      if (!parsed.success) {
+  fastify.post(
+    "/disbursements",
+    {
+      schema: {
+        tags: ["Customs Brokerage"],
+        summary: "Record zero-markup customs disbursement (Suplido)",
+        body: openApiObject({
+          clearanceId: { type: "string" },
+          shipmentId: { type: "string" },
+          disbursementType: { type: "string" },
+          officialVoucherNumber: { type: "string" },
+          incurredCostAmountEur: { type: "number" },
+          billedRevenueAmountEur: { type: "number" },
+          apInvoiceReference: { type: "string" },
+        }),
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parsed = recordDisbursementSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            error: "Validation failed",
+            details: parsed.error.format(),
+          });
+        }
+
+        const result = await clearanceService.recordDisbursement(parsed.data);
+        return reply.status(201).send(result);
+      } catch (error: unknown) {
+        logger.error({ err: error }, "Error recording disbursement");
         return reply.status(400).send({
-          error: "Validation failed",
-          details: parsed.error.format(),
+          error: "Failed to record disbursement",
+          message: error instanceof Error ? error.message : String(error),
         });
       }
-
-      const result = await clearanceService.recordDisbursement(parsed.data);
-      return reply.status(201).send(result);
-    } catch (error: unknown) {
-      logger.error({ err: error }, "Error recording disbursement");
-      return reply.status(400).send({
-        error: "Failed to record disbursement",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
+    },
+  );
 
   // 7. Get Clearance Details
   fastify.get<{ Params: { id: string } }>(
     "/clearances/:id",
+    {
+      schema: {
+        tags: ["Customs Brokerage"],
+        summary: "Retrieve customs clearance details by identifier",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -284,52 +406,107 @@ export const customsBrokerageRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // 8. Evaluate commodity for EU CBAM liability
-  fastify.post("/cbam/evaluate", async (request, reply) => {
-    try {
-      const parsed = cbamEvaluateSchema.safeParse(request.body);
-      if (!parsed.success) {
+  fastify.post(
+    "/cbam/evaluate",
+    {
+      schema: {
+        tags: ["Customs Brokerage", "CBAM"],
+        summary: "Evaluate commodity embedded emissions and EU CBAM liability",
+        body: openApiObject({
+          cnCode: { type: "string" },
+          netMassTonnes: { type: "number" },
+          directEmissionFactor: { type: "number" },
+          indirectEmissionFactor: { type: "number" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parsed = cbamEvaluateSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            error: "Validation failed",
+            details: parsed.error.format(),
+          });
+        }
+
+        const result = cbamService.evaluateCommodity(parsed.data);
+        return reply.status(200).send(result);
+      } catch (error: unknown) {
+        logger.error({ err: error }, "Error evaluating CBAM commodity");
         return reply.status(400).send({
-          error: "Validation failed",
-          details: parsed.error.format(),
+          error: "Failed to evaluate CBAM commodity",
+          message: error instanceof Error ? error.message : String(error),
         });
       }
-
-      const result = cbamService.evaluateCommodity(parsed.data);
-      return reply.status(200).send(result);
-    } catch (error: unknown) {
-      logger.error({ err: error }, "Error evaluating CBAM commodity");
-      return reply.status(400).send({
-        error: "Failed to evaluate CBAM commodity",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
+    },
+  );
 
   // 9. Create Quarterly CBAM Declaration
-  fastify.post("/cbam/declarations", async (request, reply) => {
-    try {
-      const parsed = createCbamDeclarationSchema.safeParse(request.body);
-      if (!parsed.success) {
+  fastify.post(
+    "/cbam/declarations",
+    {
+      schema: {
+        tags: ["Customs Brokerage", "CBAM"],
+        summary: "Create a quarterly EU CBAM transitional declaration",
+        body: openApiObject({
+          reportingPeriod: { type: "string" },
+          declarantVat: { type: "string" },
+          declarantName: { type: "string" },
+          importerVat: { type: "string" },
+          importerName: { type: "string" },
+          items: {
+            type: "array",
+            items: { type: "object", additionalProperties: true },
+          },
+        }),
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parsed = createCbamDeclarationSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            error: "Validation failed",
+            details: parsed.error.format(),
+          });
+        }
+
+        const result = await cbamService.createQuarterlyDeclaration(
+          parsed.data,
+        );
+        return reply.status(201).send(result);
+      } catch (error: unknown) {
+        logger.error({ err: error }, "Error creating CBAM declaration");
         return reply.status(400).send({
-          error: "Validation failed",
-          details: parsed.error.format(),
+          error: "Failed to create CBAM declaration",
+          message: error instanceof Error ? error.message : String(error),
         });
       }
-
-      const result = await cbamService.createQuarterlyDeclaration(parsed.data);
-      return reply.status(201).send(result);
-    } catch (error: unknown) {
-      logger.error({ err: error }, "Error creating CBAM declaration");
-      return reply.status(400).send({
-        error: "Failed to create CBAM declaration",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
+    },
+  );
 
   // 10. Export CBAM Transitional XML
   fastify.get<{ Params: { id: string } }>(
     "/cbam/declarations/:id/xml",
+    {
+      schema: {
+        tags: ["Customs Brokerage", "CBAM"],
+        summary: "Export quarterly EU CBAM declaration as transitional XML",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
