@@ -16,6 +16,8 @@ import {
   DrayageContainerType,
   DrayageQuoteResult,
   DrayageCoordinates,
+  DRAYAGE_TERMINAL_NODE_CODES,
+  WAREHOUSE_CODES,
 } from "@atlas/shared";
 import { db } from "../db/index.js";
 import { addresses, AddressType } from "../db/schema/index.js";
@@ -260,13 +262,9 @@ class DrayageEngineService {
       .from(addresses)
       .where(
         inArray(addresses.addressType, [
-          "TRM",
-          "AG",
-          "WH",
-          "TERMINAL",
-          "PORT_AUTHORITY",
-          "INLAND_DEPOT",
-        ]),
+          ...DRAYAGE_TERMINAL_NODE_CODES,
+          ...WAREHOUSE_CODES,
+        ] as AddressType[]),
       );
 
     const valid = terminals.filter(

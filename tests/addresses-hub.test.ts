@@ -60,7 +60,7 @@ describe("Addresses Hub & Entity Directory (Tenant-Scoped)", () => {
   it("creates a new logistics address with multiple individual contacts", async () => {
     const payload = {
       companyId: testTenantId,
-      addressType: "CARRIER_AGENT",
+      addressType: "CLA",
       companyName: "Mediterranean Shipping Agency S.L.",
       tradeName: "MSC Barcelona Agency",
       taxId: "ESB12345678",
@@ -112,7 +112,7 @@ describe("Addresses Hub & Entity Directory (Tenant-Scoped)", () => {
   it("detects potential duplicate by Tax ID and returns 409 warning without saving", async () => {
     const duplicatePayload = {
       companyId: testTenantId,
-      addressType: "CARRIER",
+      addressType: "OCA",
       companyName: "MSC Mediterranean Shipping Agency",
       street1: "Moll de Ponent",
       zipCode: "08039",
@@ -140,7 +140,7 @@ describe("Addresses Hub & Entity Directory (Tenant-Scoped)", () => {
   it("overrides duplicate warning when user explicitly confirms overrideWarning: true", async () => {
     const duplicateOverridePayload = {
       companyId: testTenantId,
-      addressType: "TERMINAL",
+      addressType: "SPT",
       companyName: "MSC Mediterranean Shipping Terminal 2",
       street1: "Moll de Ponent s/n",
       zipCode: "08039",
@@ -238,14 +238,69 @@ describe("Addresses Hub & Entity Directory (Tenant-Scoped)", () => {
     expect(codes).toEqual(expect.arrayContaining(expectedCodes));
     expect(codes).not.toContain("CONSIGNEE_NOTIFY");
 
-    // Strict uniqueness check: no duplicated codes in catalog
+    // Strict uniqueness check: strictly 25 unique codes in catalog (zero legacy rows)
+    expect(codes.length).toBe(25);
     const uniqueCodes = new Set(codes);
-    expect(uniqueCodes.size).toBe(codes.length);
+    expect(uniqueCodes.size).toBe(25);
 
     // Each code must be strictly 3 uppercase alphabetic characters
     for (const code of expectedCodes) {
       expect(code).toMatch(/^[A-Z]{3}$/);
     }
+  });
+
+  it("rejects legacy or invalid addressType codes on POST with HTTP 400", async () => {
+    const legacyRes = await app.inject({
+      method: "POST",
+      url: "/api/addresses",
+      payload: {
+        companyId: testTenantId,
+        addressType: "CAR",
+        companyName: "Legacy Carrier Payload Test",
+        street1: "Test Street 1",
+        zipCode: "08039",
+        city: "Barcelona",
+        country: "ES",
+      },
+    });
+    expect(legacyRes.statusCode).toBe(400);
+    expect(legacyRes.json().error).toBe("INVALID_ADDRESS_TYPE");
+  });
+
+  it("enforces valid 5-character UN/LOCODE on POL, POD, and TSP writes", async () => {
+    const missingUnlocodeRes = await app.inject({
+      method: "POST",
+      url: "/api/addresses",
+      payload: {
+        companyId: testTenantId,
+        addressType: "POL",
+        companyName: "Invalid Port Without UNLOCODE",
+        street1: "Harbor Road 1",
+        zipCode: "08039",
+        city: "Barcelona",
+        country: "ES",
+      },
+    });
+    expect(missingUnlocodeRes.statusCode).toBe(400);
+    expect(missingUnlocodeRes.json().error).toBe("INVALID_UNLOCODE");
+
+    const validPortRes = await app.inject({
+      method: "POST",
+      url: "/api/addresses",
+      payload: {
+        companyId: testTenantId,
+        addressType: "POL",
+        companyName: "Test Verified Port Gateway",
+        street1: "Harbor Road 2",
+        zipCode: "08039",
+        city: "Barcelona",
+        country: "ES",
+        unLocode: "ESBCN",
+        overrideWarning: true,
+      },
+    });
+    expect(validPortRes.statusCode).toBe(201);
+    expect(validPortRes.json().addressType).toBe("POL");
   });
 
   it("restricts Corporate Group management to ACCOUNTING, CONTROLLING, and ADMIN roles", async () => {

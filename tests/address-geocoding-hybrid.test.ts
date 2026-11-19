@@ -119,7 +119,7 @@ describe("Hybrid Address Geocoding & Verification Engine", () => {
       url: "/api/addresses",
       payload: {
         companyId: testTenantId,
-        addressType: "TRM",
+        addressType: "SPT",
         companyName: "BEST Hutchison Port Barcelona",
         street1: "Moll Prat s/n",
         zipCode: "08039",
@@ -159,7 +159,7 @@ describe("Hybrid Address Geocoding & Verification Engine", () => {
       url: `/api/addresses/${createdAddressId}`,
       payload: {
         companyName: "BEST Hutchison Port Barcelona - Extended Gate",
-        addressType: "TRM",
+        addressType: "SPT",
         street1: "Moll Prat, Entrada Camions Puerta 2",
         zipCode: "08039",
         city: "Barcelona",

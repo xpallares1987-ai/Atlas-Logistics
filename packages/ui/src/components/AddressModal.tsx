@@ -19,6 +19,10 @@ import { Modal } from "./Modal";
 import { Button } from "./Button";
 import { DuplicateWarningModal } from "./DuplicateWarningModal";
 import { BlCardPreview } from "./BlCardPreview";
+import {
+  ADDRESS_TYPE_CATEGORIES,
+  requiresUnLocodeForAddressType,
+} from "@atlas/shared";
 
 export const ADDRESS_TYPES = [
   {
@@ -742,12 +746,27 @@ export const AddressModal: React.FC<AddressModalProps> = ({
                       onChange={(e) => setAddressType(e.target.value)}
                       className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                     >
-                      {ADDRESS_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.label}
-                        </option>
+                      {ADDRESS_TYPE_CATEGORIES.map((category) => (
+                        <optgroup key={category.id} label={category.label}>
+                          {category.codes.map((code) => {
+                            const option = ADDRESS_TYPES.find(
+                              (t) => t.value === code,
+                            );
+                            return (
+                              <option key={code} value={code}>
+                                {option?.label || code}
+                              </option>
+                            );
+                          })}
+                        </optgroup>
                       ))}
                     </select>
+                    {requiresUnLocodeForAddressType(addressType) && (
+                      <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+                        UN/LOCODE obligatorio (5 caracteres) para puertos de
+                        carga, descarga o transbordo ({addressType}).
+                      </p>
+                    )}
                   </div>
 
                   <div>

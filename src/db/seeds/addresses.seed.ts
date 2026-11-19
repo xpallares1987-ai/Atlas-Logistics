@@ -26,19 +26,46 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
   await ensureAddressesTables();
   await ensureBookingsColumns();
 
-  // Ensure tenant company exists
-  await db
-    .insert(companies)
-    .values({
-      id: tenantCompanyId,
-      name: "Atlas Global Freight Forwarding S.L.",
-      taxId: "ESB99887766",
-      creditLimit: 5000000,
-    })
-    .onConflictDoNothing();
+  // Ensure all enterprise corporate holding groups exist before inserting addresses
+  for (const grp of ENTERPRISE_COMPANY_GROUPS) {
+    await db
+      .insert(companies)
+      .values({
+        id: grp.id,
+        name: grp.name,
+        groupCode: grp.groupCode,
+        sector: grp.sector,
+        headquartersCountry: grp.headquartersCountry,
+        taxId: grp.taxId,
+        creditLimit: grp.creditLimit,
+      })
+      .onConflictDoUpdate({
+        target: companies.id,
+        set: {
+          name: grp.name,
+          groupCode: grp.groupCode,
+          sector: grp.sector,
+          headquartersCountry: grp.headquartersCountry,
+          taxId: grp.taxId,
+        },
+      });
+  }
+
+  // Ensure tenant company exists if custom tenantCompanyId was passed
+  if (tenantCompanyId !== "c-1") {
+    await db
+      .insert(companies)
+      .values({
+        id: tenantCompanyId,
+        name: "Noatum Logistics Enterprise Group",
+        taxId: "ES-A28219553",
+        creditLimit: 5000000,
+      })
+      .onConflictDoNothing();
+  }
 
   console.log(
-    "🌱 [Seed:Addresses] Injecting realistic maritime & logistics master directory...",
+    "🌱 [Seed:Addresses] Injecting realistic maritime & logistics master directory across all 25 canonical codes...",
   );
 
   // 1. Definition of Realistic Master Directory Entities across all 10 types
@@ -47,7 +74,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_cust_iberian",
       companyId: tenantCompanyId,
-      addressType: "CUSTOMER",
+      addressType: "MCC",
       companyName: "Iberian Chemicals & Polymers S.A.",
       tradeName: "Iberian Polymers Export",
       taxId: "ESA08234567",
@@ -88,7 +115,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_cust_valencia_citrus",
       companyId: tenantCompanyId,
-      addressType: "CUSTOMER",
+      addressType: "MCC",
       companyName: "Valencia Citrus & Fresh Agro S.L.",
       tradeName: "Valencitrus Premium",
       taxId: "ESB46123456",
@@ -120,7 +147,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_cust_bavarian",
       companyId: tenantCompanyId,
-      addressType: "CUSTOMER",
+      addressType: "MCC",
       companyName: "Bavarian Automotive Components GmbH",
       tradeName: "BAV Automatics",
       taxId: "DE812345678",
@@ -152,7 +179,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_carr_maersk",
       companyId: tenantCompanyId,
-      addressType: "CARRIER",
+      addressType: "OCA",
       companyName: "Maersk Line Spain A/S",
       tradeName: "A.P. Moller - Maersk",
       taxId: "ESA28109876",
@@ -183,7 +210,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_carr_msc",
       companyId: tenantCompanyId,
-      addressType: "CARRIER",
+      addressType: "OCA",
       companyName: "MSC Mediterranean Shipping Company S.A.",
       tradeName: "MSC Global Headquarters",
       taxId: "CHE105952874",
@@ -214,7 +241,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_carr_hapag",
       companyId: tenantCompanyId,
-      addressType: "CARRIER",
+      addressType: "OCA",
       companyName: "Hapag-Lloyd AG",
       tradeName: "Hapag-Lloyd",
       taxId: "DE118519504",
@@ -247,7 +274,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_agent_msc_bcn",
       companyId: tenantCompanyId,
-      addressType: "CARRIER_AGENT",
+      addressType: "CLA",
       companyName: "Mediterranean Shipping Agency Barcelona S.L.",
       tradeName: "MSC Barcelona Agency",
       taxId: "ESB60987654",
@@ -288,7 +315,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_agent_maersk_rtm",
       companyId: tenantCompanyId,
-      addressType: "CARRIER_AGENT",
+      addressType: "CLA",
       companyName: "Maersk Port Services Rotterdam B.V.",
       tradeName: "Maersk Rotterdam Discharge Desk",
       taxId: "NL801234567B01",
@@ -320,7 +347,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_agent_pacific_lax",
       companyId: tenantCompanyId,
-      addressType: "CARRIER_AGENT",
+      addressType: "CLA",
       companyName: "Pacific Maritime Agency Los Angeles Inc.",
       tradeName: "Pacific LAX Vessel Services",
       taxId: "US951234567",
@@ -353,7 +380,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_broker_bcn",
       companyId: tenantCompanyId,
-      addressType: "CUSTOMS_BROKER",
+      addressType: "CBA",
       companyName: "Aduanas Trans-Mediterráneo S.L.P.",
       tradeName: "Trans-Med Customs OEA",
       taxId: "ESB08554433",
@@ -385,7 +412,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_broker_vlc",
       companyId: tenantCompanyId,
-      addressType: "CUSTOMS_BROKER",
+      addressType: "CBA",
       companyName: "Iberia Customs & Trade Compliance S.A.",
       tradeName: "Iberia Customs Valencia",
       taxId: "ESA46998877",
@@ -418,7 +445,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_port_bcn",
       companyId: tenantCompanyId,
-      addressType: "PORT_AUTHORITY",
+      addressType: "POL",
       companyName: "Autoridad Portuaria de Barcelona",
       tradeName: "Port de Barcelona",
       taxId: "ESQ0867012G",
@@ -449,7 +476,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_term_best_bcn",
       companyId: tenantCompanyId,
-      addressType: "TERMINAL",
+      addressType: "SPT",
       companyName: "Hutchison Ports BEST (Barcelona Europe South Terminal)",
       tradeName: "BEST Terminal Muelle Prat",
       taxId: "ESA63456789",
@@ -480,7 +507,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_term_apm_vlc",
       companyId: tenantCompanyId,
-      addressType: "TERMINAL",
+      addressType: "SPT",
       companyName: "APM Terminals Valencia S.A.U.",
       tradeName: "APMT Valencia",
       taxId: "ESA46112233",
@@ -513,7 +540,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_icd_coslada",
       companyId: tenantCompanyId,
-      addressType: "INLAND_CONTAINER_DEPOT",
+      addressType: "OIC",
       companyName: "Puerto Seco de Coslada S.A.",
       tradeName: "Terminal Intermodal Coslada",
       taxId: "ESA81223344",
@@ -546,7 +573,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_haul_transmaritim",
       companyId: tenantCompanyId,
-      addressType: "HAULIER",
+      addressType: "OHA",
       companyName: "Transportes Portuarios Trans-Marítim S.L.",
       tradeName: "Trans-Marítim Haulage",
       taxId: "ESB08112233",
@@ -580,7 +607,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_consignee_continental",
       companyId: tenantCompanyId,
-      addressType: "CONSIGNEE_NOTIFY",
+      addressType: "MCC",
       companyName: "Continental Distribution Logistics B.V.",
       tradeName: "Continental Euro-Hub",
       taxId: "NL847291039B01",
@@ -610,11 +637,11 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     },
     {
       id: "addr_notify_atlas_desk",
-      companyId: tenantCompanyId,
-      addressType: "CONSIGNEE_NOTIFY",
-      companyName: "Atlas Global Freight Forwarding (Local Notify Desk)",
-      tradeName: "Atlas 24/7 Operations Duty",
-      taxId: "ESB99887766",
+      companyId: "grp_noatum",
+      addressType: "FFC",
+      companyName: "Noatum Logistics Spain S.A.U. (Maritime Notify Desk)",
+      tradeName: "Noatum 24/7 Operations Duty",
+      taxId: "ES-A28219553",
       street1: "Moll de Barcelona s/n",
       street2: "World Trade Center, Edifici Est, Planta 4",
       zipCode: "08039",
@@ -631,12 +658,12 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
       isDefaultConsignee: false,
       isDefaultNotify: true,
       notes:
-        "Casilla 3 Notify Party predeterminada para seguimiento automatizado de llegadas.",
+        "Default Notify Party desk for automated maritime arrival and release tracking.",
       contacts: [
         {
           id: "cnt_atls_duty",
-          fullName: "Atlas Port Ops Duty Team",
-          email: "notify-ops@atlas-logistics.com",
+          fullName: "Noatum Port Ops Duty Team",
+          email: "notify-ops@noatumlogistics.com",
           phone: "+34 934 999 100",
           roleCategory: "OPERATIONS",
           jobTitle: "24/7 Maritime Desk Officer",
@@ -651,7 +678,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_cust_zaragoza_rail",
       companyId: tenantCompanyId,
-      addressType: "CUSTOMER",
+      addressType: "MCC",
       companyName: "Zaragoza Intermodal Machinery S.A.",
       tradeName: "ZIM Heavy Industry",
       taxId: "ESA50119988",
@@ -688,7 +715,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_cust_algeciras_fish",
       companyId: tenantCompanyId,
-      addressType: "CUSTOMER",
+      addressType: "MCC",
       companyName: "Marítima del Estrecho Seafood S.L.",
       tradeName: "Estrecho Seafood Coldstore",
       taxId: "ESB11887766",
@@ -724,7 +751,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_cust_bilbao_steel",
       companyId: tenantCompanyId,
-      addressType: "CUSTOMER",
+      addressType: "MCC",
       companyName: "Aceros del Cantábrico Bilbao S.A.",
       tradeName: "Cantábrico Steel Co.",
       taxId: "ESA48223344",
@@ -760,7 +787,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_cust_shanghai_tech",
       companyId: tenantCompanyId,
-      addressType: "CUSTOMER",
+      addressType: "MCC",
       companyName: "Shanghai Apex Microelectronics Corp.",
       tradeName: "Apex Micro Silicon",
       taxId: "CN91310000781293021X",
@@ -798,7 +825,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_consignee_hamburg_retail",
       companyId: tenantCompanyId,
-      addressType: "CONSIGNEE_NOTIFY",
+      addressType: "MCC",
       companyName: "Nordics & Central European Retail Logistics GmbH",
       tradeName: "Nordic Distribution Hub",
       taxId: "DE298104921",
@@ -834,7 +861,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_consignee_antwerp_chem",
       companyId: tenantCompanyId,
-      addressType: "CONSIGNEE_NOTIFY",
+      addressType: "MCC",
       companyName: "Antwerp Chemical Storage & Blending N.V.",
       tradeName: "Antwerp ChemHub",
       taxId: "BE0482910381",
@@ -870,7 +897,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_consignee_usa_chicago",
       companyId: tenantCompanyId,
-      addressType: "CONSIGNEE_NOTIFY",
+      addressType: "MCC",
       companyName: "MidWest Distribution Hub LLC",
       tradeName: "Chicago Intermodal Gateway",
       taxId: "US364920194",
@@ -908,7 +935,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_carr_one",
       companyId: tenantCompanyId,
-      addressType: "CARRIER",
+      addressType: "OCA",
       companyName: "Ocean Network Express (Spain) S.L.",
       tradeName: "ONE (Ocean Network Express)",
       taxId: "ESB67123984",
@@ -944,7 +971,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_carr_cosco",
       companyId: tenantCompanyId,
-      addressType: "CARRIER",
+      addressType: "OCA",
       companyName: "COSCO SHIPPING Lines (Spain) S.A.",
       tradeName: "COSCO SHIPPING Lines",
       taxId: "ESA08992341",
@@ -980,7 +1007,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_carr_evergreen",
       companyId: tenantCompanyId,
-      addressType: "CARRIER",
+      addressType: "OCA",
       companyName: "Evergreen Shipping Agency (Spain) S.L.",
       tradeName: "Evergreen Marine Corp.",
       taxId: "ESB61229988",
@@ -1019,7 +1046,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_term_apm_alg",
       companyId: tenantCompanyId,
-      addressType: "TERMINAL",
+      addressType: "SPT",
       companyName: "APM Terminals Algeciras S.A.",
       tradeName: "APMT Algeciras Muelle Juan Carlos I",
       taxId: "ESA11029481",
@@ -1055,7 +1082,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_term_csp_vlc",
       companyId: tenantCompanyId,
-      addressType: "TERMINAL",
+      addressType: "SPT",
       companyName: "CSP Iberian Valencia Terminal S.A.U.",
       tradeName: "CSP Valencia (Noatum)",
       taxId: "ESA46291039",
@@ -1091,7 +1118,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_term_rwg_rtm",
       companyId: tenantCompanyId,
-      addressType: "TERMINAL",
+      addressType: "SPT",
       companyName: "Rotterdam World Gateway (RWG) B.V.",
       tradeName: "RWG Deepsea Terminal",
       taxId: "NL819234819B01",
@@ -1127,7 +1154,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_icd_zaragoza_plaza",
       companyId: tenantCompanyId,
-      addressType: "INLAND_DEPOT",
+      addressType: "OIC",
       companyName: "Terminal Marítima de Zaragoza S.L. (tmZ)",
       tradeName: "tmZ Puerto Seco Plaza",
       taxId: "ESB99012345",
@@ -1165,7 +1192,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_haul_sese",
       companyId: tenantCompanyId,
-      addressType: "HAULIER",
+      addressType: "OHA",
       companyName: "Grupo Logístico Sesé S.L.",
       tradeName: "Sesé Container Drayage",
       taxId: "ESB50091234",
@@ -1202,7 +1229,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_haul_primafrio",
       companyId: tenantCompanyId,
-      addressType: "HAULIER",
+      addressType: "OHA",
       companyName: "Primafrio Intermodal Logistics S.L.",
       tradeName: "Primafrio Reefer Drayage",
       taxId: "ESB30129481",
@@ -1239,7 +1266,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_haul_marcotran",
       companyId: tenantCompanyId,
-      addressType: "HAULIER",
+      addressType: "OHA",
       companyName: "Marcotran Transportes Internacionales S.A.",
       tradeName: "Marcotran Heavy Haulage",
       taxId: "ESA50392817",
@@ -1277,7 +1304,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_term_apm_bcn",
       companyId: "grp_apm_terminals",
-      addressType: "TRM",
+      addressType: "SPT",
       companyName: "APM Terminals Barcelona S.L.U.",
       tradeName: "APMT Barcelona South Quay",
       taxId: "ESB64182910",
@@ -1314,7 +1341,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_term_apm_rtm",
       companyId: "grp_apm_terminals",
-      addressType: "TRM",
+      addressType: "SPT",
       companyName: "APM Terminals Maasvlakte II B.V.",
       tradeName: "APMT Rotterdam Maasvlakte II",
       taxId: "NL851928371B01",
@@ -1351,7 +1378,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     {
       id: "addr_term_apm_tng",
       companyId: "grp_apm_terminals",
-      addressType: "TRM",
+      addressType: "SPT",
       companyName: "APM Terminals Tangier Med S.A.",
       tradeName: "APMT MedPort Tangier",
       taxId: "MA10293847",
@@ -1425,10 +1452,10 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     },
     {
       id: "addr_fw_atlas_rtm",
-      companyId: "grp_atlas",
-      addressType: "FW",
-      companyName: "Atlas Global Freight Forwarding Benelux B.V.",
-      tradeName: "Atlas Forwarding Rotterdam Hub",
+      companyId: "grp_noatum",
+      addressType: "FFC",
+      companyName: "Noatum Logistics Benelux B.V.",
+      tradeName: "Noatum Forwarding Rotterdam Hub",
       taxId: "NL823910441B01",
       street1: "Waalhaven Zuidzijde 21",
       street2: "Port Building Floor 4",
@@ -1447,12 +1474,12 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
       isDefaultConsignee: false,
       isDefaultNotify: true,
       notes:
-        "Oficina corresponsal NVOCC y consolidador de carga del Grupo Atlas en el puerto de Róterdam.",
+        "Noatum Logistics NVOCC correspondent office and LCL consolidation desk at Port of Rotterdam.",
       contacts: [
         {
           id: "cnt_fw_atlas_rtm_1",
           fullName: "Sander de Vries",
-          email: "rotterdam.desk@atlas-logistics.eu",
+          email: "rotterdam.desk@noatumlogistics.com",
           phone: "+31 10 429 8810",
           mobile: "+31 6 2291 0482",
           roleCategory: "OPERATIONS",
@@ -1461,6 +1488,564 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
         },
       ],
     },
+
+    // =========================================================================
+    // FULL 25-CODE REAL-WORLD MASTER DIRECTORY COVERAGE
+    // =========================================================================
+
+    // EXTERNAL FREIGHT FORWARDERS (FFC)
+    {
+      id: "addr_ffc_dsv_bcn",
+      companyId: "grp_dsv",
+      addressType: "FFC",
+      companyName: "DSV Air & Sea S.A.U.",
+      tradeName: "DSV Barcelona Ocean & Air Hub",
+      taxId: "ESA58833245",
+      street1: "Calle 2, Sector C, Zona Franca",
+      zipCode: "08040",
+      city: "Barcelona",
+      federalState: "Cataluña",
+      country: "ES",
+      unLocode: "ESBCN",
+      lat: 41.3395,
+      lon: 2.1312,
+      formattedAddress:
+        "Calle 2, Sector C, Zona Franca, 08040 Barcelona, Spain",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Global NVOCC & co-loader partner for Iberian sea and air consolidation.",
+      contacts: [],
+    },
+    {
+      id: "addr_ffc_kn_mad",
+      companyId: "grp_kuehne_nagel",
+      addressType: "FFC",
+      companyName: "Kuehne+Nagel S.A.",
+      tradeName: "Kuehne+Nagel Iberia HQ",
+      taxId: "ESA28279227",
+      street1: "Avenida de la Industria 32",
+      zipCode: "28823",
+      city: "Coslada",
+      federalState: "Madrid",
+      country: "ES",
+      unLocode: "ESMAD",
+      lat: 40.4258,
+      lon: -3.5419,
+      formattedAddress:
+        "Avenida de la Industria 32, 28823 Coslada, Madrid, Spain",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes: "Tier-1 global freight forwarder & air/sea freight partner.",
+      contacts: [],
+    },
+
+    // AIRLINE CARRIERS (ACA)
+    {
+      id: "addr_aca_lufthansa_fra",
+      companyId: "grp_lufthansa_cargo",
+      addressType: "ACA",
+      companyName: "Lufthansa Cargo AG",
+      tradeName: "Lufthansa Cargo Frankfurt Hub (LH / 020)",
+      taxId: "DE114109549",
+      street1: "Frankfurt Airport, Gate 25, Building 451",
+      zipCode: "60546",
+      city: "Frankfurt am Main",
+      federalState: "Hessen",
+      country: "DE",
+      unLocode: "DEFRA",
+      lat: 50.0379,
+      lon: 8.5622,
+      formattedAddress:
+        "Frankfurt Airport Gate 25, 60546 Frankfurt am Main, Germany",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Scheduled wide-body B777F freighter & belly cargo airline (IATA: LH, Prefix: 020).",
+      contacts: [],
+    },
+    {
+      id: "addr_aca_iag_mad",
+      companyId: "grp_lufthansa_cargo",
+      addressType: "ACA",
+      companyName: "IAG Cargo (Iberia Líneas Aéreas de España S.A.)",
+      tradeName: "IAG Cargo Madrid-Barajas Hub (IB / 075)",
+      taxId: "ESA85850394",
+      street1: "Centro de Carga Aérea Madrid-Barajas, Terminal IAG",
+      zipCode: "28042",
+      city: "Madrid",
+      federalState: "Madrid",
+      country: "ES",
+      unLocode: "ESMAD",
+      lat: 40.4719,
+      lon: -3.5626,
+      formattedAddress: "Centro de Carga Aérea Barajas, 28042 Madrid, Spain",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Primary Europe-LatAm air cargo carrier & pharmaceutical cold-chain gateway (IATA: IB, Prefix: 075).",
+      contacts: [],
+    },
+
+    // RAIL CARRIERS (RCA)
+    {
+      id: "addr_rca_renfe_mad",
+      companyId: "grp_rail_cargo",
+      addressType: "RCA",
+      companyName: "Renfe Mercancías S.M.E., S.A.",
+      tradeName: "Renfe Mercancías Intermodal",
+      taxId: "ESA86868189",
+      street1: "Avenida Ciudad de Barcelona 4",
+      zipCode: "28007",
+      city: "Madrid",
+      federalState: "Madrid",
+      country: "ES",
+      unLocode: "ESMAD",
+      lat: 40.4061,
+      lon: -3.6883,
+      formattedAddress: "Avenida Ciudad de Barcelona 4, 28007 Madrid, Spain",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "National Iberian intermodal container rail traction operator (UIC 2171).",
+      contacts: [],
+    },
+    {
+      id: "addr_rca_dbcargo_fra",
+      companyId: "grp_rail_cargo",
+      addressType: "RCA",
+      companyName: "DB Cargo AG",
+      tradeName: "DB Cargo Trans-European Freight",
+      taxId: "DE812609283",
+      street1: "Rheinstraße 2",
+      zipCode: "55116",
+      city: "Mainz",
+      federalState: "Rheinland-Pfalz",
+      country: "DE",
+      unLocode: "DEMAI",
+      lat: 49.999,
+      lon: 8.2791,
+      formattedAddress: "Rheinstraße 2, 55116 Mainz, Germany",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Pan-European electric rail freight operator connecting Rotterdam, Duisburg, and Mediterranean corridors.",
+      contacts: [],
+    },
+
+    // RAILWAY STATION TERMINALS (RST)
+    {
+      id: "addr_rst_bcn_morrot",
+      companyId: "grp_rail_cargo",
+      addressType: "RST",
+      companyName: "ADIF Terminal Ferroviaria de Barcelona Can Tunis / Morrot",
+      tradeName: "Barcelona Morrot Railhead Terminal",
+      taxId: "ESQ2801660H",
+      street1: "Carretera de Circunvalación Tram VI, Can Tunis",
+      zipCode: "08040",
+      city: "Barcelona",
+      federalState: "Cataluña",
+      country: "ES",
+      unLocode: "ESBCN",
+      lat: 41.3452,
+      lon: 2.1508,
+      formattedAddress: "Can Tunis / Morrot Railhead, 08040 Barcelona, Spain",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Dual-gauge (Iberian & UIC standard) intermodal container rail terminal serving Port of Barcelona.",
+      contacts: [],
+    },
+    {
+      id: "addr_rst_mad_abronigal",
+      companyId: "grp_rail_cargo",
+      addressType: "RST",
+      companyName: "ADIF Terminal Ferroviaria Madrid-Abroñigal",
+      tradeName: "Madrid-Abroñigal Intermodal Railhead",
+      taxId: "ESQ2801660H",
+      street1: "Calle de Méndez Álvaro s/n, Estación Abroñigal",
+      zipCode: "28053",
+      city: "Madrid",
+      federalState: "Madrid",
+      country: "ES",
+      unLocode: "ESMAD",
+      lat: 40.3886,
+      lon: -3.6716,
+      formattedAddress: "Estación Madrid-Abroñigal, 28053 Madrid, Spain",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Primary central Spain TEU rail container depot with daily shuttles to Valencia, Algeciras, and Barcelona.",
+      contacts: [],
+    },
+
+    // DESTINATION INLAND CONTAINER TERMINALS (DIC)
+    {
+      id: "addr_dic_duisburg_dit",
+      companyId: "grp_apm_terminals",
+      addressType: "DIC",
+      companyName: "Duisburg Intermodal Terminal GmbH (DIT)",
+      tradeName: "duisport Logport I Inland Terminal",
+      taxId: "DE221304981",
+      street1: "Gaterweg 110, Logport I",
+      zipCode: "47229",
+      city: "Duisburg",
+      federalState: "Nordrhein-Westfalen",
+      country: "DE",
+      unLocode: "DEDUI",
+      lat: 51.4048,
+      lon: 6.7124,
+      formattedAddress: "Gaterweg 110, 47229 Duisburg, Germany",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "World largest trimodal inland container terminal (Rhine barge, rail, and road drayage).",
+      contacts: [],
+    },
+
+    // DESTINATION EXTERNAL WAREHOUSES (DEW)
+    {
+      id: "addr_dew_ceva_rtm",
+      companyId: "grp_ceva",
+      addressType: "DEW",
+      companyName: "CEVA Logistics Netherlands B.V. (Maasvlakte CFS)",
+      tradeName: "CEVA Rotterdam Bonded Deconsolidation Warehouse",
+      taxId: "NL806412398B01",
+      street1: "Distripark Maasvlakte, Antarcticaweg 151",
+      zipCode: "3199 KA",
+      city: "Rotterdam",
+      federalState: "Zuid-Holland",
+      country: "NL",
+      unLocode: "NLRTM",
+      lat: 51.9462,
+      lon: 4.0419,
+      formattedAddress:
+        "Antarcticaweg 151, 3199 KA Maasvlakte Rotterdam, Netherlands",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Contracted 3PL bonded CFS deconsolidation and cross-dock warehouse at Rotterdam Maasvlakte.",
+      contacts: [],
+    },
+    {
+      id: "addr_dew_dhl_ewr",
+      companyId: "grp_dhl",
+      addressType: "DEW",
+      companyName: "DHL Global Forwarding (USA) Inc. — Newark CFS",
+      tradeName: "DHL Newark Bonded Import CFS",
+      taxId: "US94-2615880",
+      street1: "1100 Corbin Street, Port Elizabeth",
+      zipCode: "07201",
+      city: "Elizabeth",
+      federalState: "NJ",
+      country: "US",
+      unLocode: "USNYC",
+      lat: 40.6743,
+      lon: -74.1604,
+      formattedAddress: "1100 Corbin Street, Elizabeth, NJ 07201, USA",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "US CBP-bonded destination CFS warehouse adjacent to Port Newark / Elizabeth.",
+      contacts: [],
+    },
+
+    // DESTINATION OWNED WAREHOUSES (DWO)
+    {
+      id: "addr_dwo_noatum_rtm",
+      companyId: "grp_noatum",
+      addressType: "DWO",
+      companyName: "Noatum Logistics Netherlands B.V. (Waalhaven Warehouse)",
+      tradeName: "Noatum Rotterdam Owned Distribution Hub",
+      taxId: "NL823910441B01",
+      street1: "Waalhaven Noordzijde 60",
+      zipCode: "3087 BL",
+      city: "Rotterdam",
+      federalState: "Zuid-Holland",
+      country: "NL",
+      unLocode: "NLRTM",
+      lat: 51.8915,
+      lon: 4.4328,
+      formattedAddress:
+        "Waalhaven Noordzijde 60, 3087 BL Rotterdam, Netherlands",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Company-owned bonded destination cross-dock hub in Port of Rotterdam.",
+      contacts: [],
+    },
+    {
+      id: "addr_dwo_noatum_mia",
+      companyId: "grp_noatum",
+      addressType: "DWO",
+      companyName: "Noatum Logistics USA Inc. (Miami FTZ Warehouse)",
+      tradeName: "Noatum Miami Foreign Trade Zone Hub",
+      taxId: "US59-1234567",
+      street1: "10205 NW 19th Street, Suite 101",
+      zipCode: "33172",
+      city: "Miami",
+      federalState: "FL",
+      country: "US",
+      unLocode: "USMIA",
+      lat: 25.7921,
+      lon: -80.3624,
+      formattedAddress: "10205 NW 19th Street, Miami, FL 33172, USA",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Company-owned US destination FTZ warehouse serving US East Coast and LatAm distribution.",
+      contacts: [],
+    },
+
+    // DESTINATION HAULIERS (DHA)
+    {
+      id: "addr_dha_vandenbosch_nl",
+      companyId: "grp_sese",
+      addressType: "DHA",
+      companyName: "Van den Bosch Transporten B.V.",
+      tradeName: "Van den Bosch Benelux Intermodal Trucking",
+      taxId: "NL005612980B01",
+      street1: "Hoogven 10",
+      zipCode: "5469 KG",
+      city: "Erp",
+      federalState: "Noord-Brabant",
+      country: "NL",
+      unLocode: "NLRTM",
+      lat: 51.6012,
+      lon: 5.6058,
+      formattedAddress: "Hoogven 10, 5469 KG Erp, Netherlands",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Destination container & ISO-tank drayage fleet serving Rotterdam and Antwerp ports.",
+      contacts: [],
+    },
+    {
+      id: "addr_dha_jbhunt_us",
+      companyId: "grp_sese",
+      addressType: "DHA",
+      companyName: "J.B. Hunt Transport Services, Inc. (Northeast Drayage)",
+      tradeName: "J.B. Hunt Port Newark On-Carriage Fleet",
+      taxId: "US71-0335111",
+      street1: "450 Port Newark Street",
+      zipCode: "07114",
+      city: "Newark",
+      federalState: "NJ",
+      country: "US",
+      unLocode: "USNYC",
+      lat: 40.6901,
+      lon: -74.1512,
+      formattedAddress: "450 Port Newark Street, Newark, NJ 07114, USA",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "US destination port drayage & final-mile container delivery operator.",
+      contacts: [],
+    },
+
+    // PLACE OF LOADING LOCATIONS (PLL)
+    {
+      id: "addr_pll_basf_tarragona",
+      companyId: "grp_iberian_chem",
+      addressType: "PLL",
+      companyName: "BASF Española S.L. — Tarragona Production Site",
+      tradeName: "BASF Tarragona Chemical Loading Plant",
+      taxId: "ESB08005449",
+      street1: "Carretera Nacional 340, Km 1156, La Canonja",
+      zipCode: "43110",
+      city: "Tarragona",
+      federalState: "Cataluña",
+      country: "ES",
+      unLocode: "ESTAR",
+      lat: 41.1167,
+      lon: 1.1833,
+      formattedAddress: "N-340 Km 1156, 43110 La Canonja, Tarragona, Spain",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Export origin chemical loading bay with ADR/IMDG container stuffing gates.",
+      contacts: [],
+    },
+    {
+      id: "addr_pll_seat_martorell",
+      companyId: "grp_euro_bco",
+      addressType: "PLL",
+      companyName: "SEAT, S.A. — Martorell Export Logistics Gate",
+      tradeName: "SEAT Martorell CKD & Parts Loading Plant",
+      taxId: "ESA28049161",
+      street1: "Autovía A-2, Km 585",
+      zipCode: "08760",
+      city: "Martorell",
+      federalState: "Cataluña",
+      country: "ES",
+      unLocode: "ESBCN",
+      lat: 41.4988,
+      lon: 1.9082,
+      formattedAddress: "Autovía A-2 Km 585, 08760 Martorell, Barcelona, Spain",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Automotive CKD export loading facility with direct rail and port drayage linkage.",
+      contacts: [],
+    },
+
+    // PLACE OF DELIVERY LOCATIONS (PDL)
+    {
+      id: "addr_pdl_bosch_stuttgart",
+      companyId: "grp_euro_bco",
+      addressType: "PDL",
+      companyName: "Robert Bosch GmbH — Feuerbach Receiving Plant",
+      tradeName: "Bosch Stuttgart Industrial Delivery Gate",
+      taxId: "DE811128135",
+      street1: "Borsigstraße 14",
+      zipCode: "70469",
+      city: "Stuttgart",
+      federalState: "Baden-Württemberg",
+      country: "DE",
+      unLocode: "DESTR",
+      lat: 48.8142,
+      lon: 9.1665,
+      formattedAddress: "Borsigstraße 14, 70469 Stuttgart, Germany",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Final consignee delivery dock with time-slot appointment requirement.",
+      contacts: [],
+    },
+    {
+      id: "addr_pdl_homedepot_nj",
+      companyId: "grp_euro_bco",
+      addressType: "PDL",
+      companyName: "The Home Depot — Perth Amboy Import Distribution Center",
+      tradeName: "Home Depot NJ Import RDC",
+      taxId: "US95-3261426",
+      street1: "1000 High Street",
+      zipCode: "08861",
+      city: "Perth Amboy",
+      federalState: "NJ",
+      country: "US",
+      unLocode: "USNYC",
+      lat: 40.5256,
+      lon: -74.2671,
+      formattedAddress: "1000 High Street, Perth Amboy, NJ 08861, USA",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes: "High-volume retail import receiving distribution center.",
+      contacts: [],
+    },
+
+    // PORTS OF LOADING (POL) — Port of Barcelona (addr_port_bcn) + Port of Valencia
+    {
+      id: "addr_pol_valencia",
+      companyId: "grp_apm_terminals",
+      addressType: "POL",
+      companyName: "Autoridad Portuaria de Valencia (Valenciaport)",
+      tradeName: "Port of Valencia (ESVLC)",
+      taxId: "ESQ4667047G",
+      street1: "Avenida del Muelle del Turia s/n",
+      zipCode: "46024",
+      city: "Valencia",
+      federalState: "Comunitat Valenciana",
+      country: "ES",
+      unLocode: "ESVLC",
+      lat: 39.4461,
+      lon: -0.3178,
+      formattedAddress: "Av. Muelle del Turia s/n, 46024 Valencia, Spain",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes: "Primary Western Mediterranean export container port of loading.",
+      contacts: [],
+    },
+
+    // PORTS OF DISCHARGE (POD)
+    {
+      id: "addr_pod_rotterdam",
+      companyId: "grp_apm_terminals",
+      addressType: "POD",
+      companyName: "Port of Rotterdam Authority (Havenbedrijf Rotterdam N.V.)",
+      tradeName: "Port of Rotterdam (NLRTM)",
+      taxId: "NL812512894B01",
+      street1: "Wilhelminakade 909, World Port Center",
+      zipCode: "3072 AP",
+      city: "Rotterdam",
+      federalState: "Zuid-Holland",
+      country: "NL",
+      unLocode: "NLRTM",
+      lat: 51.9044,
+      lon: 4.4867,
+      formattedAddress: "Wilhelminakade 909, 3072 AP Rotterdam, Netherlands",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Europe's largest deep-sea maritime gateway and primary North Range Port of Discharge.",
+      contacts: [],
+    },
+    {
+      id: "addr_pod_nynj",
+      companyId: "grp_apm_terminals",
+      addressType: "POD",
+      companyName: "The Port Authority of New York and New Jersey",
+      tradeName: "Port of New York & New Jersey (USNYC)",
+      taxId: "US13-6400854",
+      street1: "4 World Trade Center, 150 Greenwich Street",
+      zipCode: "10007",
+      city: "New York",
+      federalState: "NY",
+      country: "US",
+      unLocode: "USNYC",
+      lat: 40.684,
+      lon: -74.1465,
+      formattedAddress: "150 Greenwich Street, New York, NY 10007, USA",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes: "Primary US East Coast deep-sea Port of Discharge.",
+      contacts: [],
+    },
+
+    // TRANSHIPMENT PORTS (TSP)
+    {
+      id: "addr_tsp_algeciras",
+      companyId: "grp_apm_terminals",
+      addressType: "TSP",
+      companyName: "Autoridad Portuaria de la Bahía de Algeciras (APBA)",
+      tradeName: "Port of Algeciras Strait Hub (ESALG)",
+      taxId: "ESQ1167006D",
+      street1: "Avenida de la Hispanidad 2",
+      zipCode: "11207",
+      city: "Algeciras",
+      federalState: "Andalucía",
+      country: "ES",
+      unLocode: "ESALG",
+      lat: 36.1275,
+      lon: -5.4419,
+      formattedAddress: "Av. de la Hispanidad 2, 11207 Algeciras, Cádiz, Spain",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "Strategic Strait of Gibraltar transhipment hub connecting Asia-Europe, West Africa, and Americas loops.",
+      contacts: [],
+    },
+    {
+      id: "addr_tsp_singapore",
+      companyId: "grp_apm_terminals",
+      addressType: "TSP",
+      companyName: "Maritime and Port Authority of Singapore (MPA / PSA)",
+      tradeName: "Port of Singapore Global Transhipment Hub (SGSIN)",
+      taxId: "SG-T08GB0018E",
+      street1: "460 Alexandra Road, PSA Building",
+      zipCode: "119963",
+      city: "Singapore",
+      country: "SG",
+      unLocode: "SGSIN",
+      lat: 1.2741,
+      lon: 103.8012,
+      formattedAddress: "460 Alexandra Road, Singapore 119963",
+      verificationStatus: "VERIFIED",
+      verificationProvider: "GOOGLE_MAPS",
+      notes:
+        "World's premier maritime container transhipment hub (PSA / Tuas Mega Port).",
+      contacts: [],
+    },
   ];
 
   // Insert or update addresses and linked contacts using canonical address_types codes and Corporate Groups
@@ -1468,8 +2053,12 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     const { contacts, ...addressFields } = entity;
     const canonicalType =
       entity.id === "addr_notify_atlas_desk"
-        ? "FW"
-        : normalizeAddressTypeCode(addressFields.addressType);
+        ? "FFC"
+        : entity.id === "addr_port_bcn"
+          ? "POL"
+          : entity.id.startsWith("addr_icd_")
+            ? "OIC"
+            : normalizeAddressTypeCode(addressFields.addressType);
     const corporateGroupId = inferEnterpriseGroupId(
       addressFields.companyName,
       canonicalType,
@@ -1536,13 +2125,17 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
     }
   }
 
-  // Also normalize any other pre-existing rows in addresses so 0 legacy or CONSIGNEE_NOTIFY types remain
+  // Also normalize any other pre-existing rows in addresses so 0 legacy types remain
   const allExistingAddresses = await db.select().from(addresses);
   for (const row of allExistingAddresses) {
     const canonicalType =
       row.id === "addr_notify_atlas_desk"
-        ? "FW"
-        : normalizeAddressTypeCode(row.addressType);
+        ? "FFC"
+        : row.id === "addr_port_bcn"
+          ? "POL"
+          : row.id.startsWith("addr_icd_")
+            ? "OIC"
+            : normalizeAddressTypeCode(row.addressType);
     const corporateGroupId = inferEnterpriseGroupId(
       row.companyName,
       canonicalType,

@@ -139,7 +139,8 @@ export const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
               <AddressSelector
                 id="confirm-bkg-shipper"
                 label="1. Shipper / Exportador (B/L)"
-                roleType={["CUS", "FW"]}
+                roleType={["MCC", "FFC"]}
+                preferredDirection="ORIGIN"
                 selectedAddressId={confirmForm.shipperAddressId}
                 onAddressSelect={(addr) => {
                   setConfirmForm((prev) => ({
@@ -166,7 +167,8 @@ export const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
                       : prev.consigneeName,
                   }));
                 }}
-                roleType={["CUS", "FW"]}
+                roleType={["MCC", "FFC"]}
+                preferredDirection="DESTINATION"
                 selectedAddressId={confirmForm.consigneeAddressId}
                 onAddressSelect={(addr) => {
                   setConfirmForm((prev) => ({
@@ -182,7 +184,7 @@ export const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
               <AddressSelector
                 id="confirm-bkg-notify"
                 label="3. Notify Party / Notificar a (B/L)"
-                roleType={["CUS", "FW", "CB", "AG"]}
+                roleType={["MCC", "FFC", "CBA", "OAG", "DAG"]}
                 selectedAddressId={confirmForm.notifyAddressId}
                 onAddressSelect={(addr) => {
                   setConfirmForm((prev) => ({
@@ -195,7 +197,8 @@ export const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
               <AddressSelector
                 id="confirm-bkg-agent"
                 label="4. Delivery / Discharge Agent (B/L)"
-                roleType={["CAA", "AG", "FW"]}
+                roleType={["CLA", "DAG", "OAG", "FFC"]}
+                preferredDirection="DESTINATION"
                 suggestedUnLocode={confirmingBooking?.destination}
                 suggestedCarrier={
                   confirmingBooking?.carrier ||

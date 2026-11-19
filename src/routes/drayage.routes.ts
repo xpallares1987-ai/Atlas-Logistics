@@ -13,14 +13,15 @@ import {
   drayageEngineService,
   DrayageQuoteRequest,
 } from "../services/drayage-engine.service.js";
-import { DrayageContainerType } from "@atlas/shared";
+import { DrayageContainerType, HAULIER_CODES } from "@atlas/shared";
 import { db } from "../db/index.js";
 import {
   addresses,
   addressContacts,
   drayageTransportOrders,
+  AddressType,
 } from "../db/schema/index.js";
-import { eq, desc, and, or, SQL } from "drizzle-orm";
+import { eq, desc, and, inArray, SQL } from "drizzle-orm";
 
 const CoordinatesSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -137,10 +138,7 @@ const drayageRoutes: FastifyPluginAsync = async (fastify) => {
         .select()
         .from(addresses)
         .where(
-          or(
-            eq(addresses.addressType, "HAU"),
-            eq(addresses.addressType, "HAULIER"),
-          ),
+          inArray(addresses.addressType, [...HAULIER_CODES] as AddressType[]),
         );
 
       const results = [];

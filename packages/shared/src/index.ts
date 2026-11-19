@@ -48,3 +48,4 @@ export * from "./logistics/equipment-control.js";
 export * from "./logistics/carrier-integration.js";
 export * from "./logistics/customs-cbam.js";
 export * from "./logistics/air-cargo-clearing.js";
+export * from "./logistics/address-taxonomy.js";

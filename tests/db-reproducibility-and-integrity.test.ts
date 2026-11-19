@@ -248,10 +248,10 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
     );
     expect(tablesRes.rows.length).toBe(249);
 
-    // 8. Verify all 37 migrations recorded in __drizzle_migrations
+    // 8. Verify all Drizzle migrations are recorded in __drizzle_migrations
     const migCount = await upgradeClient.execute(
       "SELECT count(*) as c FROM __drizzle_migrations;",
     );
-    expect(Number((migCount.rows[0] as any).c)).toBe(37);
+    expect(Number((migCount.rows[0] as any).c)).toBe(migrations.length);
   }, 45000);
 });

@@ -492,12 +492,12 @@ export const ENTERPRISE_COMPANY_GROUPS: readonly EnterpriseCompanyGroupDefinitio
   [
     {
       id: "c-1",
-      name: "Atlas Logistics Enterprise Group",
-      groupCode: "ATLAS-HQ",
-      sector: "Global Control Tower & 4PL",
+      name: "Noatum Logistics Enterprise Group",
+      groupCode: "NOATUM-HQ",
+      sector: "Global Supply Chain & Multimodal 4PL",
       headquartersCountry: "ES",
-      taxId: "US-99887766",
-      creditLimit: 500000,
+      taxId: "ES-A28219553",
+      creditLimit: 2500000,
     },
     {
       id: "grp_apm_terminals",
@@ -572,13 +572,67 @@ export const ENTERPRISE_COMPANY_GROUPS: readonly EnterpriseCompanyGroupDefinitio
       creditLimit: 2500000,
     },
     {
-      id: "grp_atlas",
-      name: "Atlas Global Freight Forwarding",
-      groupCode: "ATLS",
+      id: "grp_noatum",
+      name: "Noatum Logistics Global Forwarding",
+      groupCode: "NOAT",
       sector: "Freight Forwarding & NVOCC",
       headquartersCountry: "ES",
-      taxId: "ES-B88990011",
-      creditLimit: 1500000,
+      taxId: "ES-B84129901",
+      creditLimit: 2000000,
+    },
+    {
+      id: "grp_dsv",
+      name: "DSV A/S",
+      groupCode: "DSV",
+      sector: "Global Freight Forwarding & Contract Logistics",
+      headquartersCountry: "DK",
+      taxId: "DK-58233528",
+      creditLimit: 4000000,
+    },
+    {
+      id: "grp_kuehne_nagel",
+      name: "Kuehne+Nagel International AG",
+      groupCode: "KNIG",
+      sector: "Sea & Air Freight Forwarding",
+      headquartersCountry: "CH",
+      taxId: "CHE-105.986.210",
+      creditLimit: 4500000,
+    },
+    {
+      id: "grp_dhl",
+      name: "DHL Global Forwarding",
+      groupCode: "DHLGF",
+      sector: "Global Freight Forwarding & Customs",
+      headquartersCountry: "DE",
+      taxId: "DE-169838187",
+      creditLimit: 4500000,
+    },
+    {
+      id: "grp_ceva",
+      name: "CEVA Logistics",
+      groupCode: "CEVA",
+      sector: "Contract Logistics & Freight Management",
+      headquartersCountry: "FR",
+      taxId: "FR-64844121992",
+      creditLimit: 3000000,
+    },
+    {
+      id: "grp_lufthansa_cargo",
+      name: "Lufthansa Cargo AG",
+      groupCode: "LHCG",
+      sector: "Air Cargo Carrier",
+      headquartersCountry: "DE",
+      taxId: "DE-114109549",
+      creditLimit: 3500000,
+    },
+    {
+      id: "grp_rail_cargo",
+      name: "European Intermodal Rail Freight Operators",
+      groupCode: "EIRF",
+      sector: "Rail Freight & Intermodal Traction",
+      headquartersCountry: "DE",
+      taxId: "DE-812609283",
+      creditLimit: 2500000,
     },
     {
       id: "grp_iberian_chem",
@@ -651,8 +705,24 @@ export function inferEnterpriseGroupId(
   if (name.includes("evergreen")) return "grp_evergreen";
   if (name.includes("hutchison") || name.includes("best"))
     return "grp_hutchison";
-  if (name.includes("atlas global") || name.includes("atlas logistics"))
-    return "grp_atlas";
+  if (name.includes("noatum")) return "grp_noatum";
+  if (name.includes("dsv")) return "grp_dsv";
+  if (name.includes("kuehne") || name.includes("nagel"))
+    return "grp_kuehne_nagel";
+  if (name.includes("dhl")) return "grp_dhl";
+  if (name.includes("ceva")) return "grp_ceva";
+  if (
+    name.includes("lufthansa") ||
+    name.includes("iag cargo") ||
+    name.includes("emirates skycargo")
+  )
+    return "grp_lufthansa_cargo";
+  if (
+    name.includes("renfe") ||
+    name.includes("db cargo") ||
+    name.includes("medway")
+  )
+    return "grp_rail_cargo";
   if (name.includes("iberian chem")) return "grp_iberian_chem";
   if (
     name.includes("sesé") ||
@@ -681,10 +751,11 @@ export function inferEnterpriseGroupId(
   if (code === "OHA" || code === "DHA" || (code as string) === "HAU")
     return "grp_sese";
   if (code === "INS") return "grp_allianz";
-  if (code === "FFC" || (code as string) === "FW") return "grp_atlas";
+  if (code === "ACA") return "grp_lufthansa_cargo";
+  if (code === "RCA" || code === "RST") return "grp_rail_cargo";
+  if (code === "FFC" || (code as string) === "FW") return "grp_noatum";
   if (
     code === "SPT" ||
-    code === "RST" ||
     code === "OIC" ||
     code === "DIC" ||
     (code as string) === "TRM"

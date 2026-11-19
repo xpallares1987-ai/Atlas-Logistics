@@ -53,7 +53,7 @@ describe("Container Drayage Road Haulage & Carbon Engine (GLEC v3.0)", () => {
       .values({
         id: testOriginAddressId,
         companyId: testCompanyId,
-        addressType: "WH",
+        addressType: "OEW",
         companyName: "Zaragoza Distribution Hub S.L.",
         street1: "Plaza Logistics Platform, Parcela 12",
         zipCode: "50197",
@@ -72,7 +72,7 @@ describe("Container Drayage Road Haulage & Carbon Engine (GLEC v3.0)", () => {
       .values({
         id: testTerminalAddressId,
         companyId: testCompanyId,
-        addressType: "TRM",
+        addressType: "SPT",
         companyName: "BEST Terminal - Hutchison Ports",
         tradeName: "Barcelona Europe South Terminal",
         street1: "Moll Prat, s/n, Port de Barcelona",
@@ -93,7 +93,7 @@ describe("Container Drayage Road Haulage & Carbon Engine (GLEC v3.0)", () => {
       .values({
         id: testHaulierAddressId,
         companyId: testCompanyId,
-        addressType: "HAU",
+        addressType: "OHA",
         companyName: "Trans-Marítim Container Services S.L.",
         street1: "Sector 3, Zona Franca",
         zipCode: "08040",

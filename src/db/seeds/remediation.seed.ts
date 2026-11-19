@@ -156,7 +156,7 @@ async function seedEmptyTables(): Promise<void> {
   const primaryCompanyId = companyIds[0] || "c-1";
 
   const carriersRes = await client.execute(
-    `SELECT id FROM addresses WHERE address_type = 'CAR' LIMIT 10;`,
+    `SELECT id FROM addresses WHERE address_type IN ('OCA', 'ACA', 'RCA') LIMIT 10;`,
   );
   const carrierIds = carriersRes.rows.map((r) => String(r.id));
 
@@ -1441,7 +1441,7 @@ async function backfillNullForeignKeys(): Promise<void> {
   const assetIds = assetsRes.rows.map((r) => String(r.id));
 
   const carriersRes = await client.execute(
-    `SELECT id FROM addresses WHERE address_type = 'CAR' LIMIT 10;`,
+    `SELECT id FROM addresses WHERE address_type IN ('OCA', 'ACA', 'RCA') LIMIT 10;`,
   );
   const carrierIds = carriersRes.rows.map((r) => String(r.id));
 

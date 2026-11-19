@@ -9,7 +9,7 @@ import {
   rateImportBatches,
   surcharges,
 } from "../db/schema/index.js";
-import { eq, and, or, sql } from "drizzle-orm";
+import { eq, and, or, inArray, sql } from "drizzle-orm";
 import { redis } from "../config/redis.js";
 import { logger } from "../config/logger.js";
 
@@ -259,7 +259,7 @@ export async function ensureCarrierExists(
       .from(addresses)
       .where(
         and(
-          eq(addresses.addressType, "CAR"),
+          inArray(addresses.addressType, ["OCA", "ACA", "RCA"]),
           or(
             sql`upper(${addresses.tradeName}) = ${cleanName.toUpperCase()}`,
             sql`upper(${addresses.companyName}) = ${cleanName.toUpperCase()}`,
@@ -275,20 +275,20 @@ export async function ensureCarrierExists(
     }
 
     const newId = `addr_carr_${uuidv4().substring(0, 8)}`;
-    // Defensively ensure parent company and address_types exist
+    // Defensively ensure parent company and canonical OCA address_type exist
     await db.run(sql`
       INSERT OR IGNORE INTO companies (id, name, created_at, is_active)
-      VALUES ('c-1', 'Default Enterprise Carrier Group', strftime('%s', 'now'), 1)
+      VALUES ('c-1', 'Noatum Logistics Enterprise Group', strftime('%s', 'now'), 1)
     `);
     await db.run(sql`
       INSERT OR IGNORE INTO address_types (code, name, created_at, is_active)
-      VALUES ('CAR', 'Carrier', strftime('%s', 'now'), 1)
+      VALUES ('OCA', 'Ocean Carrier', strftime('%s', 'now'), 1)
     `);
 
     await db.insert(addresses).values({
       id: newId,
       companyId: "c-1",
-      addressType: "CAR",
+      addressType: "OCA",
       companyName: cleanName,
       tradeName: cleanName,
       street1: "Port Terminal Access Way",

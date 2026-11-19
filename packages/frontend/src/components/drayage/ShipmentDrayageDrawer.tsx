@@ -169,8 +169,8 @@ export const ShipmentDrayageDrawer: React.FC<ShipmentDrayageDrawerProps> = ({
   const loadTerminalsAndAddresses = async () => {
     try {
       const [termRes, addrRes] = await Promise.all([
-        fetch("/api/addresses?addressType=TERMINAL"),
-        fetch("/api/addresses?addressType=CUSTOMER"),
+        fetch("/api/addresses?addressType=SPT,RST,OIC,DIC"),
+        fetch("/api/addresses?addressType=MCC,OEW,DEW,OWO,DWO,PLL,PDL"),
       ]);
 
       if (termRes.ok && addrRes.ok) {

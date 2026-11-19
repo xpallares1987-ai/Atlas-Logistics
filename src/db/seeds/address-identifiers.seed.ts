@@ -17,6 +17,7 @@ import { eq } from "drizzle-orm";
 interface FacilityAddressDef {
   facilityId: string;
   addressId: string;
+  addressType: "OWO" | "OEW";
   companyName: string;
   tradeName: string;
   taxId: string;
@@ -32,7 +33,8 @@ const CUSTOMS_FACILITY_ADDRESSES: readonly FacilityAddressDef[] = [
   {
     facilityId: "fac_da_bcn_zal",
     addressId: "addr_fac_da_bcn_zal",
-    companyName: "Atlas Logistics Port Services S.A. (ZAL BCN)",
+    addressType: "OWO",
+    companyName: "Noatum Logistics Port Services S.A. (ZAL BCN)",
     tradeName: "Depósito Aduanero ZAL Port Barcelona",
     taxId: "ESA08991122",
     street1: "Av. Ports d'Europa 100, Sector ZAL Prat",
@@ -45,7 +47,8 @@ const CUSTOMS_FACILITY_ADDRESSES: readonly FacilityAddressDef[] = [
   {
     facilityId: "fac_dda_mad_cos",
     addressId: "addr_fac_dda_mad_cos",
-    companyName: "Atlas Logistics Central Hub S.L. (DDA Coslada)",
+    addressType: "OWO",
+    companyName: "Noatum Logistics Central Hub S.L. (DDA Coslada)",
     tradeName: "Depósito Distinto del Aduanero Coslada Hub",
     taxId: "ESB28114455",
     street1: "Centro de Carga Aérea & Intermodal Coslada, Nave 4",
@@ -58,7 +61,8 @@ const CUSTOMS_FACILITY_ADDRESSES: readonly FacilityAddressDef[] = [
   {
     facilityId: "fac_adt_vlc_port",
     addressId: "addr_fac_adt_vlc_port",
-    companyName: "Atlas Intermodal Valencia S.L. (ADT Muelle Sur)",
+    addressType: "OWO",
+    companyName: "Noatum Intermodal Valencia S.L. (ADT Muelle Sur)",
     tradeName: "Almacén de Depósito Temporal Valencia Muelle Sur",
     taxId: "ESB46882211",
     street1: "Muelle de la Xitxarra s/n, Recinto Portuario",
@@ -71,6 +75,7 @@ const CUSTOMS_FACILITY_ADDRESSES: readonly FacilityAddressDef[] = [
   {
     facilityId: "fac_zf_cadiz",
     addressId: "addr_fac_zf_cadiz",
+    addressType: "OEW",
     companyName: "Consorcio de la Zona Franca de Cádiz",
     tradeName: "Consorcio Zona Franca de Cádiz - Recinto Fiscal",
     taxId: "ESQ1118001A",
@@ -286,7 +291,11 @@ export async function seedAddressIdentifiers(): Promise<void> {
 
   // 1. Ensure facility addresses exist in addresses table
   for (const f of CUSTOMS_FACILITY_ADDRESSES) {
-    const corporateGroupId = inferEnterpriseGroupId(f.companyName, "WH", "c-1");
+    const corporateGroupId = inferEnterpriseGroupId(
+      f.companyName,
+      f.addressType,
+      "c-1",
+    );
     const now = new Date();
 
     await db
@@ -294,7 +303,7 @@ export async function seedAddressIdentifiers(): Promise<void> {
       .values({
         id: f.addressId,
         companyId: corporateGroupId,
-        addressType: "WH",
+        addressType: f.addressType,
         companyName: f.companyName,
         tradeName: f.tradeName,
         taxId: f.taxId,
@@ -312,6 +321,8 @@ export async function seedAddressIdentifiers(): Promise<void> {
       .onConflictDoUpdate({
         target: addresses.id,
         set: {
+          companyId: corporateGroupId,
+          addressType: f.addressType,
           companyName: f.companyName,
           tradeName: f.tradeName,
           taxId: f.taxId,

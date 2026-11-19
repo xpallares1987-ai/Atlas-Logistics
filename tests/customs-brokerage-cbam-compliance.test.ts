@@ -66,7 +66,7 @@ describe("Customs Brokerage, DUA/MRN, Suplidos & CBAM Compliance Suite", () => {
       .values({
         id: testBrokerAddressId,
         companyId: testImporterId,
-        addressType: "CB",
+        addressType: "CBA",
         companyName: "Agencia Aduanera Marítima & Brokers S.L.",
         street1: "Moll d'Adossat, Edifici Tir",
         zipCode: "08039",

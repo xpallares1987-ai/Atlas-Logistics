@@ -87,7 +87,7 @@ describe("Track A: Commercial Pricing, Tariff Engine & GL Sync Test Suite", () =
         .values({
           id: carrierAddrId,
           companyId: "comp-track-a",
-          addressType: "CAR",
+          addressType: "OCA",
           companyName: "Maersk Line A/S",
           tradeName: "Maersk",
           street1: "Esplanaden 50",

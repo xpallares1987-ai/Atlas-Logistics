@@ -32,6 +32,7 @@ import { authFetch } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useAppStore, canManageCorporateGroups } from "../store/useAppStore";
 import { TYPE_CONFIG } from "../components/Addresses/index.js";
+import { ADDRESS_TYPE_CATEGORIES, type AddressCategoryId } from "@atlas/shared";
 
 interface LinkedAddressSummary {
   id: string;
@@ -106,8 +107,15 @@ export default function AddressesHubModule() {
   const [showCorporateGroupsPanel, setShowCorporateGroupsPanel] =
     useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<
+    "ALL" | AddressCategoryId
+  >("ALL");
   const [selectedType, setSelectedType] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const activeCategoryGroup = ADDRESS_TYPE_CATEGORIES.find(
+    (c) => c.id === selectedCategory,
+  );
 
   // Modals state
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -126,7 +134,11 @@ export default function AddressesHubModule() {
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
-      if (selectedType !== "ALL") params.append("type", selectedType);
+      if (selectedType !== "ALL") {
+        params.append("type", selectedType);
+      } else if (selectedCategory !== "ALL") {
+        params.append("type", selectedCategory);
+      }
       if (searchQuery.trim()) params.append("search", searchQuery.trim());
 
       const res = await authFetch(`/api/addresses?${params.toString()}`);
@@ -146,7 +158,7 @@ export default function AddressesHubModule() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedType, searchQuery, hasCorporateGroupAccess]);
+  }, [selectedCategory, selectedType, searchQuery, hasCorporateGroupAccess]);
 
   useEffect(() => {
     fetchAddresses();
@@ -443,45 +455,92 @@ export default function AddressesHubModule() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
         </div>
 
-        {/* Role Classification Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-          <span className="text-slate-400 font-medium px-2 flex items-center gap-1 shrink-0">
-            <Filter className="w-3.5 h-3.5" />
-            <span>Filtro:</span>
-          </span>
+        {/* Tier 1: 7 Semantic Category Tabs */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+            <span className="text-slate-400 font-medium px-2 flex items-center gap-1 shrink-0">
+              <Filter className="w-3.5 h-3.5" />
+              <span>Categoría:</span>
+            </span>
 
-          <button
-            type="button"
-            onClick={() => setSelectedType("ALL")}
-            className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
-              selectedType === "ALL"
-                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-            }`}
-          >
-            Todos ({stats.total})
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategory("ALL");
+                setSelectedType("ALL");
+              }}
+              className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
+                selectedCategory === "ALL"
+                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+              }`}
+            >
+              Todos ({stats.total})
+            </button>
 
-          {ADDRESS_TYPES.map((type) => {
-            const count = addresses.filter(
-              (a) => a.addressType === type.value,
-            ).length;
-            const isSelected = selectedType === type.value;
-            return (
+            {ADDRESS_TYPE_CATEGORIES.map((category) => {
+              const isSelected = selectedCategory === category.id;
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory(category.id);
+                    setSelectedType("ALL");
+                  }}
+                  className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
+                    isSelected
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {category.shortLabel} ({category.codes.length})
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tier 2: Sub-Code Chips for Active Category */}
+          {activeCategoryGroup && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pl-2 pb-1 text-xs border-t border-slate-100 dark:border-slate-800 pt-2">
+              <span className="text-slate-400 font-medium shrink-0">
+                Código ({activeCategoryGroup.shortLabel}):
+              </span>
               <button
-                key={type.value}
                 type="button"
-                onClick={() => setSelectedType(type.value)}
-                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
-                  isSelected
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                onClick={() => setSelectedType("ALL")}
+                className={`px-2.5 py-1 rounded-md font-medium whitespace-nowrap transition-colors ${
+                  selectedType === "ALL"
+                    ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-700"
+                    : "bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                 }`}
               >
-                {type.label.split("/")[0].trim()} {count > 0 && `(${count})`}
+                Todos en grupo
               </button>
-            );
-          })}
+              {activeCategoryGroup.codes.map((code) => {
+                const typeDef = ADDRESS_TYPES.find((t) => t.value === code);
+                const count = addresses.filter(
+                  (a) => a.addressType === code,
+                ).length;
+                const isSelected = selectedType === code;
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => setSelectedType(code)}
+                    className={`px-2.5 py-1 rounded-md font-medium whitespace-nowrap transition-colors ${
+                      isSelected
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {typeDef ? typeDef.label.split("(")[0].trim() : code}{" "}
+                    {count > 0 && `(${count})`}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

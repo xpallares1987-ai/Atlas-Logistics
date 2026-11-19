@@ -128,8 +128,8 @@ export default function DrayageHaulageModule() {
   const loadMasterData = async () => {
     try {
       const [termRes, addrRes, haulRes] = await Promise.all([
-        fetch("/api/addresses?addressType=TRM"),
-        fetch("/api/addresses?addressType=CUS,WH"),
+        fetch("/api/addresses?addressType=SPT,RST,OIC,DIC"),
+        fetch("/api/addresses?addressType=MCC,OEW,DEW,OWO,DWO,PLL,PDL"),
         fetch("/api/drayage/hauliers"),
       ]);
 

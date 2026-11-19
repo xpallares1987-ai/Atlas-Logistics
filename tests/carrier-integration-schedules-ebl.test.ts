@@ -57,7 +57,7 @@ describe("Track C: Carrier Integrations, Ocean Schedules & eBL Lifecycle", () =>
         companyId: testCarrierCompanyId,
         companyName: "A.P. Moller - Maersk",
         tradeName: "Maersk Line",
-        addressType: "CAR",
+        addressType: "OCA",
         country: "DK",
         city: "Copenhagen",
         street1: "Esplanaden 50",

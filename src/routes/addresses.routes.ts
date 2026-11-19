@@ -13,6 +13,7 @@ import {
   addressContacts,
   addressTypes,
   companies,
+  unlocodeLocations,
   AddressType,
   ADDRESS_TYPE_DEFINITIONS,
   ENTERPRISE_COMPANY_GROUPS,
@@ -29,6 +30,10 @@ import {
   formatAllBlBoxes,
   DEFAULT_UNLOCODE_HUBS,
   escapeHTML,
+  isCanonicalAddressTypeCode,
+  requiresUnLocodeForAddressType,
+  expandAddressTypeFilter,
+  CANONICAL_ADDRESS_TYPE_CODES,
 } from "@atlas/shared";
 import { getCurrentTenant } from "../lib/tenancy/tenancy-context.js";
 import { addressGeocodingService } from "../services/address-geocoding.service.js";
@@ -46,6 +51,29 @@ function normalizeString(str: string): string {
     .replace(/\b(s\.?l\.?|s\.?a\.?|ltd|llc|gmbh|inc|corp|co)\b/gi, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/**
+ * Validates a 5-character UN/LOCODE against SQLite unlocode_locations and the in-memory fallback index.
+ */
+async function isValidUnLocode(rawCode?: string | null): Promise<boolean> {
+  if (!rawCode || typeof rawCode !== "string") return false;
+  const code = rawCode.trim().toUpperCase();
+  if (!/^[A-Z]{2}[A-Z0-9]{3}$/.test(code)) return false;
+
+  try {
+    const dbMatch = await db
+      .select({ unLocode: unlocodeLocations.unLocode })
+      .from(unlocodeLocations)
+      .where(eq(unlocodeLocations.unLocode, code))
+      .limit(1);
+    if (dbMatch.length > 0) return true;
+  } catch {
+    // Table may not exist in isolated unit tests; fall through to in-memory index
+  }
+
+  const memResults = searchUnlocodes(code, undefined, 10);
+  return memResults.some((item) => item.location.toUpperCase() === code);
 }
 
 /**
@@ -689,106 +717,12 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
 
       const rawTypeFilter = query.type || query.addressType;
       if (rawTypeFilter && rawTypeFilter !== "ALL") {
-        const rawTokens = String(rawTypeFilter)
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-        const expandedTypes = new Set<string>();
-        for (const token of rawTokens) {
-          const canonical = normalizeAddressTypeCode(token);
-          expandedTypes.add(canonical);
-          expandedTypes.add(token.toUpperCase());
-          // Also include legacy equivalents so any un-migrated test fixtures match
-          if (canonical === "MCC" || (canonical as string) === "CUS") {
-            expandedTypes.add("MCC");
-            expandedTypes.add("CUS");
-            expandedTypes.add("CUST");
-            expandedTypes.add("CUSTOMER");
-            expandedTypes.add("CONSIGNEE_NOTIFY");
-          } else if (canonical === "CBA" || (canonical as string) === "CB") {
-            expandedTypes.add("CBA");
-            expandedTypes.add("CB");
-            expandedTypes.add("CUSTOMS_BROKER");
-            expandedTypes.add("CUSTOMS_BROKER_AGENCY");
-          } else if (canonical === "CLA" || (canonical as string) === "CAA") {
-            expandedTypes.add("CLA");
-            expandedTypes.add("CAA");
-            expandedTypes.add("CARRIER_LINE_AGENCY");
-            expandedTypes.add("CARRIER_AGENT");
-          } else if (
-            canonical === "OAG" ||
-            canonical === "DAG" ||
-            (canonical as string) === "AG"
-          ) {
-            expandedTypes.add("OAG");
-            expandedTypes.add("DAG");
-            expandedTypes.add("AG");
-            expandedTypes.add("AGENT");
-            expandedTypes.add("PORT_AUTHORITY");
-          } else if (
-            canonical === "OHA" ||
-            canonical === "DHA" ||
-            (canonical as string) === "HAU"
-          ) {
-            expandedTypes.add("OHA");
-            expandedTypes.add("DHA");
-            expandedTypes.add("HAU");
-            expandedTypes.add("HAULIER");
-          } else if (
-            canonical === "OCA" ||
-            canonical === "ACA" ||
-            canonical === "RCA" ||
-            (canonical as string) === "CAR"
-          ) {
-            expandedTypes.add("OCA");
-            expandedTypes.add("ACA");
-            expandedTypes.add("RCA");
-            expandedTypes.add("CAR");
-            expandedTypes.add("CARRIER");
-          } else if (canonical === "INS") {
-            expandedTypes.add("INS");
-            expandedTypes.add("INSURANCE");
-          } else if (
-            canonical === "OEW" ||
-            canonical === "DEW" ||
-            canonical === "OWO" ||
-            canonical === "DWO" ||
-            (canonical as string) === "WH"
-          ) {
-            expandedTypes.add("OEW");
-            expandedTypes.add("DEW");
-            expandedTypes.add("OWO");
-            expandedTypes.add("DWO");
-            expandedTypes.add("WH");
-            expandedTypes.add("WAREHOUSE");
-            expandedTypes.add("INLAND_DEPOT");
-          } else if (canonical === "FFC" || (canonical as string) === "FW") {
-            expandedTypes.add("FFC");
-            expandedTypes.add("FW");
-            expandedTypes.add("FWD");
-            expandedTypes.add("FORWARDER");
-            expandedTypes.add("FREIGHT_FORWARDING_COMPANY");
-          } else if (
-            canonical === "SPT" ||
-            canonical === "RST" ||
-            canonical === "OIC" ||
-            canonical === "DIC" ||
-            (canonical as string) === "TRM"
-          ) {
-            expandedTypes.add("SPT");
-            expandedTypes.add("RST");
-            expandedTypes.add("OIC");
-            expandedTypes.add("DIC");
-            expandedTypes.add("TRM");
-            expandedTypes.add("TERMINAL");
-          }
+        const expanded = expandAddressTypeFilter(String(rawTypeFilter));
+        if (expanded.length > 0) {
+          conditions.push(
+            inArray(addresses.addressType, expanded as AddressType[]),
+          );
         }
-        conditions.push(
-          inArray(
-            addresses.addressType,
-            Array.from(expandedTypes) as AddressType[],
-          ),
-        );
       }
 
       if (query.unLocode) {
@@ -866,9 +800,29 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     try {
       const tenant = getCurrentTenant();
       const body = request.body || {};
-      const normalizedType = normalizeAddressTypeCode(
-        body.addressType as string,
-      );
+      const rawAddressType = String(body.addressType || "")
+        .trim()
+        .toUpperCase();
+      if (!isCanonicalAddressTypeCode(rawAddressType)) {
+        return reply.code(400).send({
+          error: "INVALID_ADDRESS_TYPE",
+          message: `Invalid or legacy addressType '${String(body.addressType || "")}'. Must be one of the 25 canonical 3-letter taxonomy codes.`,
+          allowedCodes: CANONICAL_ADDRESS_TYPE_CODES,
+        });
+      }
+      const normalizedType = rawAddressType;
+
+      if (requiresUnLocodeForAddressType(normalizedType)) {
+        const unLocodeOk = await isValidUnLocode(
+          body.unLocode as string | undefined,
+        );
+        if (!unLocodeOk) {
+          return reply.code(400).send({
+            error: "INVALID_UNLOCODE",
+            message: `Address type '${normalizedType}' requires a valid 5-character UN/LOCODE present in the UNECE catalog.`,
+          });
+        }
+      }
 
       const tenantId =
         (body.companyId as string) ||
@@ -1230,9 +1184,34 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     try {
       const { id } = request.params;
       const body = request.body || {};
-      const normalizedType = body.addressType
-        ? normalizeAddressTypeCode(body.addressType as string)
-        : undefined;
+      let normalizedType: string | undefined = undefined;
+      if (body.addressType !== undefined && body.addressType !== null) {
+        const rawAddressType = String(body.addressType).trim().toUpperCase();
+        if (!isCanonicalAddressTypeCode(rawAddressType)) {
+          return reply.code(400).send({
+            error: "INVALID_ADDRESS_TYPE",
+            message: `Invalid or legacy addressType '${String(body.addressType)}'. Must be one of the 25 canonical 3-letter taxonomy codes.`,
+            allowedCodes: CANONICAL_ADDRESS_TYPE_CODES,
+          });
+        }
+        normalizedType = rawAddressType;
+      }
+
+      if (
+        normalizedType &&
+        requiresUnLocodeForAddressType(normalizedType) &&
+        body.unLocode !== undefined
+      ) {
+        const unLocodeOk = await isValidUnLocode(
+          body.unLocode as string | undefined,
+        );
+        if (!unLocodeOk) {
+          return reply.code(400).send({
+            error: "INVALID_UNLOCODE",
+            message: `Address type '${normalizedType}' requires a valid 5-character UN/LOCODE present in the UNECE catalog.`,
+          });
+        }
+      }
 
       if (typeof body.companyId === "string") {
         const existingGroup = await db

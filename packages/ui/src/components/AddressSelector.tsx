@@ -12,12 +12,17 @@ import {
 } from "lucide-react";
 import { Button } from "./Button";
 import { AddressModal } from "./AddressModal";
+import {
+  expandAddressTypeFilter,
+  sortByPreferredDirection,
+} from "@atlas/shared";
 
 export interface AddressSelectorProps {
   id: string;
   name?: string;
   label: string;
-  roleType?: string | string[]; // e.g. "CUSTOMER", "CARRIER_AGENT", or ["CUSTOMER", "CONSIGNEE_NOTIFY"]
+  roleType?: string | string[]; // e.g. "MCC", "CLA", or ["MCC", "FFC"]
+  preferredDirection?: "ORIGIN" | "DESTINATION";
   selectedAddressId?: string | null;
   selectedContactId?: string | null;
   onAddressSelect: (address: any | null, contact: any | null) => void;
@@ -40,6 +45,7 @@ export const AddressSelector: React.FC<AddressSelectorProps> = ({
   name,
   label,
   roleType,
+  preferredDirection,
   selectedAddressId,
   selectedContactId,
   onAddressSelect,
@@ -86,22 +92,26 @@ export const AddressSelector: React.FC<AddressSelectorProps> = ({
         setIsLoading(true);
         const params = new URLSearchParams();
         if (searchQuery.trim()) params.append("search", searchQuery.trim());
-        if (roleType && typeof roleType === "string") {
-          params.append("type", roleType);
+        const expandedRoleCodes = roleType
+          ? expandAddressTypeFilter(roleType)
+          : [];
+        if (expandedRoleCodes.length > 0) {
+          params.append("type", expandedRoleCodes.join(","));
         }
 
         const res = await fetch(`/api/addresses?${params.toString()}`);
         if (res.ok) {
           const data = await res.json();
           if (isMounted) {
-            // If roleType is array, filter client-side if needed
             let filtered = data;
-            if (Array.isArray(roleType) && roleType.length > 0) {
+            if (expandedRoleCodes.length > 0) {
               filtered = data.filter((item: any) =>
-                roleType.includes(item.addressType),
+                expandedRoleCodes.includes(item.addressType),
               );
             }
-            setAddresses(filtered);
+            setAddresses(
+              sortByPreferredDirection(filtered, preferredDirection),
+            );
 
             // Populate selectedEntity if selectedAddressId is set
             if (selectedAddressId) {
@@ -121,7 +131,7 @@ export const AddressSelector: React.FC<AddressSelectorProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, searchQuery, roleType, selectedAddressId]);
+  }, [isOpen, searchQuery, roleType, preferredDirection, selectedAddressId]);
 
   // Select an address
   const handleSelect = (addr: any) => {

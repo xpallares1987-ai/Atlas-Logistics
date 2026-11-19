@@ -10,11 +10,21 @@ import {
 } from "../db/schema/operations.js";
 import { shipmentEventLogs } from "../db/schema/audit.js";
 import { documents } from "../db/schema/support.js";
-import { companies, addresses, addressContacts } from "../db/schema/core.js";
+import {
+  companies,
+  addresses,
+  addressContacts,
+  AddressType,
+} from "../db/schema/core.js";
 import { drayageTransportOrders } from "../db/schema/drayage.js";
-import { eq, desc, or, and } from "drizzle-orm";
+import { eq, desc, or, and, inArray } from "drizzle-orm";
 import { ensureOperationsSeedData } from "../routes/operations/seed-data.js";
-import { formatAllBlBoxes } from "@atlas/shared";
+import {
+  formatAllBlBoxes,
+  TERMINAL_CODES,
+  PICKUP_DELIVERY_LOCATION_CODES,
+  HAULIER_CODES,
+} from "@atlas/shared";
 
 export interface CreateBookingInput {
   referenceNumber?: string;
@@ -785,10 +795,9 @@ export async function confirmBookingToShipment(
         .from(addresses)
         .where(
           and(
-            or(
-              eq(addresses.addressType, "TRM"),
-              eq(addresses.addressType, "TERMINAL"),
-            ),
+            inArray(addresses.addressType, [
+              ...TERMINAL_CODES,
+            ] as AddressType[]),
             eq(addresses.unLocode, terminalUnLocode),
           ),
         )
@@ -800,10 +809,9 @@ export async function confirmBookingToShipment(
           .select()
           .from(addresses)
           .where(
-            or(
-              eq(addresses.addressType, "TRM"),
-              eq(addresses.addressType, "TERMINAL"),
-            ),
+            inArray(addresses.addressType, [
+              ...TERMINAL_CODES,
+            ] as AddressType[]),
           )
           .limit(1);
         originTerminal = anyTerminal[0];
@@ -832,11 +840,9 @@ export async function confirmBookingToShipment(
           .select()
           .from(addresses)
           .where(
-            or(
-              eq(addresses.addressType, "WH"),
-              eq(addresses.addressType, "CUS"),
-              eq(addresses.addressType, "WAREHOUSE"),
-            ),
+            inArray(addresses.addressType, [
+              ...PICKUP_DELIVERY_LOCATION_CODES,
+            ] as AddressType[]),
           )
           .limit(1);
         destinationAddress = warehouseRows[0] || null;
@@ -863,10 +869,7 @@ export async function confirmBookingToShipment(
           .select()
           .from(addresses)
           .where(
-            or(
-              eq(addresses.addressType, "HAU"),
-              eq(addresses.addressType, "HAULIER"),
-            ),
+            inArray(addresses.addressType, [...HAULIER_CODES] as AddressType[]),
           )
           .limit(1);
         haulierAddress = anyHaulier[0] || null;
@@ -1019,10 +1022,7 @@ export async function confirmBookingToShipment(
         .from(addresses)
         .where(
           and(
-            or(
-              eq(addresses.addressType, "CB"),
-              eq(addresses.addressType, "CUSTOMS_BROKER"),
-            ),
+            eq(addresses.addressType, "CBA"),
             eq(addresses.unLocode, destUnlocode),
           ),
         )
@@ -1034,12 +1034,7 @@ export async function confirmBookingToShipment(
           await db
             .select()
             .from(addresses)
-            .where(
-              or(
-                eq(addresses.addressType, "CB"),
-                eq(addresses.addressType, "CUSTOMS_BROKER"),
-              ),
-            )
+            .where(eq(addresses.addressType, "CBA"))
             .limit(1)
         )[0];
 
