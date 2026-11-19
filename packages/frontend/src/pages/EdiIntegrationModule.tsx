@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, Variants } from "framer-motion";
-import { Layers, Radio, FileCode2, Send, Users } from "lucide-react";
+import { Layers, Radio, FileCode2, Send, Users, BookOpen } from "lucide-react";
 
 import {
   InterchangeRecord,
@@ -17,6 +17,7 @@ import {
   EdiOutboundTab,
   EdiAuditTab,
   EdiPartnersTab,
+  EdiCatalogTab,
 } from "../components/edi/index";
 
 const containerVariants: Variants = {
@@ -38,7 +39,7 @@ const itemVariants: Variants = {
 
 export default function EdiIntegrationModule() {
   const [activeTab, setActiveTab] = useState<
-    "DCSA" | "STUDIO" | "OUTBOUND" | "AUDIT" | "PARTNERS"
+    "DCSA" | "STUDIO" | "OUTBOUND" | "AUDIT" | "PARTNERS" | "CATALOG"
   >("DCSA");
 
   // DCSA 3.0 Hub State
@@ -605,6 +606,17 @@ export default function EdiIntegrationModule() {
             <Users size={16} />
             Directorio de Trading Partners ({partners.length})
           </button>
+          <button
+            onClick={() => setActiveTab("CATALOG")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeTab === "CATALOG"
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <BookOpen size={16} />
+            UN/EDIFACT & UN/CEFACT XML
+          </button>
         </div>
       </motion.div>
 
@@ -734,6 +746,9 @@ export default function EdiIntegrationModule() {
 
       {/* TAB 5: PARTNERS DIRECTORY */}
       {activeTab === "PARTNERS" && <EdiPartnersTab partners={partners} />}
+
+      {/* TAB 6: UN/EDIFACT & UN/CEFACT XML CATALOG + GENERATORS */}
+      {activeTab === "CATALOG" && <EdiCatalogTab />}
     </motion.div>
   );
 }

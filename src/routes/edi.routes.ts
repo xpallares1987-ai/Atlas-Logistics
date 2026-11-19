@@ -22,7 +22,15 @@ import {
   customsDeclarations,
 } from "../db/schema/operations.js";
 import { shipmentEventLogs } from "../db/schema/audit.js";
-import { eq } from "drizzle-orm";
+import {
+  edifactMessageTypes,
+  uncefactXmlSchemas,
+} from "../db/schema/unece_standards.js";
+import {
+  generateCrossIndustryInvoiceXml,
+  generateMmtRdmConsignmentXml,
+} from "../services/edi/uncefact-xml.service.js";
+import { eq, asc, and, or, like, SQL } from "drizzle-orm";
 
 // ============================================================================
 // SCHEMAS & TYPE DEFINITIONS
@@ -842,6 +850,138 @@ export const ediRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
   });
+
+  // ==========================================================================
+  // UN/EDIFACT & UN/CEFACT XML MASTER CATALOGS + LIVE XML GENERATORS
+  // ==========================================================================
+
+  /**
+   * GET /api/edi/edifact-catalog — Browse official UN/EDIFACT message directory (~212 codes)
+   */
+  fastify.get<{
+    Querystring: {
+      domain?: string;
+      isLogisticsCore?: string;
+      entityType?: string;
+      q?: string;
+    };
+  }>("/edifact-catalog", async (request, reply) => {
+    try {
+      const { domain, isLogisticsCore, entityType, q } = request.query || {};
+      const conditions: SQL[] = [];
+      if (domain && domain !== "ALL") {
+        conditions.push(eq(edifactMessageTypes.functionalDomain, domain));
+      }
+      if (isLogisticsCore === "true") {
+        conditions.push(eq(edifactMessageTypes.isLogisticsCore, true));
+      }
+      if (q && q.trim()) {
+        const term = `%${q.trim()}%`;
+        const searchCond = or(
+          like(edifactMessageTypes.code, term.toUpperCase()),
+          like(edifactMessageTypes.nameEn, term),
+          like(edifactMessageTypes.nameEs, term),
+        );
+        if (searchCond) conditions.push(searchCond);
+      }
+
+      let rows = await db
+        .select()
+        .from(edifactMessageTypes)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(asc(edifactMessageTypes.code));
+
+      if (entityType && entityType !== "ALL") {
+        const targetCode = entityType.trim().toUpperCase();
+        rows = rows.filter(
+          (r) =>
+            (r.typicalSenderTypes || []).includes(targetCode) ||
+            (r.typicalReceiverTypes || []).includes(targetCode),
+        );
+      }
+
+      return reply.send({
+        success: true,
+        count: rows.length,
+        data: rows,
+      });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to load UN/EDIFACT catalog";
+      return reply.status(500).send({ success: false, error: message });
+    }
+  });
+
+  /**
+   * GET /api/edi/uncefact-catalog — Browse official UN/CEFACT XML Schemas registry
+   */
+  fastify.get("/uncefact-catalog", async (_request, reply) => {
+    try {
+      const rows = await db
+        .select()
+        .from(uncefactXmlSchemas)
+        .orderBy(asc(uncefactXmlSchemas.code));
+      return reply.send({
+        success: true,
+        count: rows.length,
+        data: rows,
+      });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to load UN/CEFACT XML schema catalog";
+      return reply.status(500).send({ success: false, error: message });
+    }
+  });
+
+  /**
+   * POST /api/edi/uncefact/generate/cii — Generate UN/CEFACT Cross Industry Invoice (CII D23B) XML
+   */
+  fastify.post<{ Body: { invoiceId?: string } }>(
+    "/uncefact/generate/cii",
+    async (request, reply) => {
+      try {
+        const invoiceId = request.body?.invoiceId;
+        const result = await generateCrossIndustryInvoiceXml(invoiceId);
+        return reply.send({
+          success: true,
+          data: result,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to generate UN/CEFACT CII XML";
+        return reply.status(500).send({ success: false, error: message });
+      }
+    },
+  );
+
+  /**
+   * POST /api/edi/uncefact/generate/mmt-rdm — Generate UN/CEFACT MMT-RDM Consignment XML
+   */
+  fastify.post<{ Body: { shipmentId?: string } }>(
+    "/uncefact/generate/mmt-rdm",
+    async (request, reply) => {
+      try {
+        const shipmentId = request.body?.shipmentId || "sh_demo_01";
+        const result = await generateMmtRdmConsignmentXml(shipmentId);
+        return reply.send({
+          success: true,
+          data: result,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to generate UN/CEFACT MMT-RDM XML";
+        return reply.status(500).send({ success: false, error: message });
+      }
+    },
+  );
 };
 
 export default ediRoutes;

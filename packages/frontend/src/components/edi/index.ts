@@ -9,6 +9,7 @@ export { EdiStudioTab, EdiStudioTab as Studio } from "./Tab/Studio.js";
 export { EdiOutboundTab, EdiOutboundTab as Outbound } from "./Tab/Outbound.js";
 export { EdiAuditTab, EdiAuditTab as Audit } from "./Tab/Audit.js";
 export { EdiPartnersTab, EdiPartnersTab as Partners } from "./Tab/Partners.js";
+export { EdiCatalogTab, EdiCatalogTab as Catalog } from "./Tab/Catalog.js";
 
 export {
   DcsaSubscriptionModal,
