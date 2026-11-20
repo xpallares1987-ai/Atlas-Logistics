@@ -92,6 +92,15 @@ jobs:
             if (monolithicShared.length > 0) {
               throw new Error(`Prohibited monolithic federation shared chunks found: ${monolithicShared.join(", ")}`);
             }
+            for (const sharedFile of assetFiles.filter(f => f.startsWith("__federation_shared_") && f.endsWith(".js"))) {
+              const code = fs.readFileSync(`${dist}/assets/${sharedFile}`, "utf8");
+              const badDeps = [...code.matchAll(/from\s*["']\.\/([^"']+)["']/g)]
+                .map(m => m[1])
+                .filter(dep => /(recharts-|lucide-icons-|three-|bpmn-|jspdf-|d3-)/.test(dep));
+              if (badDeps.length > 0) {
+                throw new Error(`Circular TLA deadlock risk: ${sharedFile} statically imports ${badDeps.join(", ")}`);
+              }
+            }
             console.log(`Verified ${preloadMatches.length} modulepreload chunks (${(totalPreloadBytes / 1024).toFixed(1)} KB total) and ${manifest.icons.length} valid PNG icons.`);
           '
 

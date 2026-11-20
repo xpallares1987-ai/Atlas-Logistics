@@ -107,7 +107,23 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // Isolate Module Federation runtime helper so it is never hoisted into
+          // TLA chunks like lucide-icons or recharts-vendor (prevents ES module TLA deadlock).
+          if (
+            id.includes("__federation_fn_import") ||
+            id.includes("__federation_fn_satisfy")
+          ) {
+            return "federation-runtime";
+          }
           if (id.includes("node_modules")) {
+            // Isolate React core & scheduler so __federation_shared_react never imports
+            // from recharts-vendor or another chunk that awaits importShared("react").
+            if (/[\\/]node_modules[\\/](react|scheduler)[\\/]/.test(id)) {
+              return "react-core";
+            }
+            if (/[\\/]node_modules[\\/]react-dom[\\/]/.test(id)) {
+              return "react-dom-core";
+            }
             if (id.includes("@react-three/drei")) {
               return "three-drei-vendor";
             }
