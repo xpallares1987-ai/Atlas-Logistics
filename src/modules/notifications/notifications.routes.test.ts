@@ -74,7 +74,11 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
       for (const [targetWebhookUrl, expectedStatus, expectedFetchCalls] of [
         ["https://example.com/webhook", "SIMULATED", 0],
         ["https://hooks.example.com/webhook", "SIMULATED", 0],
-        ["https://evil.test/example.com/webhook", "DELIVERED", 1],
+        [
+          "https://tenant.webhook.office.com/example.com/webhook",
+          "DELIVERED",
+          1,
+        ],
       ] as const) {
         fetchMock.mockClear();
         const response = await app.inject({

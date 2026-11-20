@@ -72,6 +72,23 @@ export interface DocumentVerificationResult {
 
 const STORAGE_DIR = path.resolve(process.cwd(), "data", "documents");
 
+const DOCUMENT_FILE_PREFIX: ReadonlyMap<OfficialDocumentType, string> = new Map(
+  [
+    ["HBL", "hbl"],
+    ["DUA", "dua"],
+    ["ECMR", "ecmr"],
+    ["AWB", "awb"],
+    ["CIM", "cim"],
+    ["INSURANCE_CERT", "insurance_cert"],
+    ["CONTRACT", "contract"],
+    ["GDP_CERT", "gdp_cert"],
+    ["CBAM_DECLARATION", "cbam_declaration"],
+    ["DGR_DECLARATION", "dgr_declaration"],
+    ["AEO_7POINT", "aeo_7point"],
+    ["LAYTIME_SHEET", "laytime_sheet"],
+  ],
+);
+
 export class DocumentSignerService {
   /**
    * Ensure local storage directory exists
@@ -285,7 +302,11 @@ export class DocumentSignerService {
   public static async emitDocument(params: EmitDocumentParams) {
     this.ensureStorageDir();
 
-    const docId = `doc_${params.type.toLowerCase()}_${crypto.randomUUID().substring(0, 8)}`;
+    const safePrefix = DOCUMENT_FILE_PREFIX.get(params.type);
+    if (!safePrefix) {
+      throw new Error(`Unsupported document type: ${String(params.type)}`);
+    }
+    const docId = `doc_${safePrefix}_${crypto.randomUUID().substring(0, 8)}`;
     const ref =
       params.documentReference ||
       `${params.type}-${new Date().getFullYear()}-${crypto.randomInt(1000, 10000)}`;
@@ -299,8 +320,12 @@ export class DocumentSignerService {
       .update(pdfBuffer)
       .digest("hex");
 
-    // 3. Save PDF to local disk
-    const filePath = path.join(STORAGE_DIR, `${docId}.pdf`);
+    // 3. Save PDF to local disk inside bounded STORAGE_DIR
+    const resolvedStorageDir = path.resolve(STORAGE_DIR);
+    const filePath = path.resolve(resolvedStorageDir, `${docId}.pdf`);
+    if (!filePath.startsWith(`${resolvedStorageDir}${path.sep}`)) {
+      throw new Error("Resolved document path escapes storage directory");
+    }
     fs.writeFileSync(filePath, pdfBuffer);
 
     const isSigned = !!params.signer;

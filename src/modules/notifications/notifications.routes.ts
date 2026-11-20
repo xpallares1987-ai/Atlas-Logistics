@@ -5,6 +5,7 @@
  */
 
 import crypto from "node:crypto";
+import net from "node:net";
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import {
@@ -180,6 +181,51 @@ const isExampleWebhookUrl = (url: string) => {
   }
 };
 
+const ALLOWED_TEAMS_EXACT_HOSTS = new Set<string>([
+  "outlook.office.com",
+  "outlook.office365.com",
+]);
+
+const ALLOWED_TEAMS_HOST_SUFFIXES = [
+  ".webhook.office.com",
+  ".logic.azure.com",
+] as const;
+
+function resolveValidatedTeamsWebhookUrl(rawUrl: string): URL {
+  const parsed = new URL(rawUrl);
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password) {
+    throw new Error(
+      "Teams webhook URL must use HTTPS without embedded credentials",
+    );
+  }
+  const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
+  if (
+    !hostname ||
+    net.isIP(hostname) !== 0 ||
+    !/^[a-z0-9.-]+$/.test(hostname)
+  ) {
+    throw new Error("Teams webhook host must be an allowlisted public FQDN");
+  }
+
+  const matchedExact = Array.from(ALLOWED_TEAMS_EXACT_HOSTS).find(
+    (allowed) => allowed === hostname,
+  );
+  const isAllowedSuffix = ALLOWED_TEAMS_HOST_SUFFIXES.some(
+    (suffix) => hostname.endsWith(suffix) && hostname.length > suffix.length,
+  );
+
+  if (!matchedExact && !isAllowedSuffix) {
+    throw new Error(
+      `Disallowed webhook host '${hostname}'; only official Microsoft Teams / Logic Apps HTTPS endpoints are permitted`,
+    );
+  }
+
+  const safeOrigin = matchedExact
+    ? `https://${matchedExact}`
+    : `https://${hostname}`;
+  return new URL(`${parsed.pathname}${parsed.search}`, safeOrigin);
+}
+
 // ============================================================================
 // 2. FASTIFY ROUTE PLUGIN REGISTRATION
 // ============================================================================
@@ -259,26 +305,35 @@ export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
           isExampleWebhookUrl(targetUrl) ||
           targetUrl.toLowerCase() === "simulated";
 
+        const validatedWebhookUrl = isSimulated
+          ? null
+          : resolveValidatedTeamsWebhookUrl(targetUrl);
+
         const logEntry: WebhookAuditLog = {
           id: `wh-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
           anomalyType,
           gsid: context.gsid,
           dispatchedAt: new Date().toISOString(),
-          targetUrl: targetUrl
-            ? targetUrl.length > 35
-              ? `${targetUrl.substring(0, 32)}...`
-              : targetUrl
-            : "SIMULATED_LOCAL",
+          targetUrl: validatedWebhookUrl
+            ? validatedWebhookUrl.href.length > 35
+              ? `${validatedWebhookUrl.href.substring(0, 32)}...`
+              : validatedWebhookUrl.href
+            : targetUrl
+              ? targetUrl.length > 35
+                ? `${targetUrl.substring(0, 32)}...`
+                : targetUrl
+              : "SIMULATED_LOCAL",
           status: isSimulated ? "SIMULATED" : "DELIVERED",
           httpStatus: 200,
           payloadPreview: cardPayload,
           hmacSignature: `sha256=${signature}`,
         };
 
-        if (!isSimulated && typeof fetch !== "undefined") {
+        if (validatedWebhookUrl && typeof fetch !== "undefined") {
           try {
-            const res = await fetch(targetUrl, {
+            const res = await fetch(validatedWebhookUrl.href, {
               method: "POST",
+              redirect: "error",
               headers: {
                 "Content-Type": "application/json",
                 "X-Hub-Signature-256": `sha256=${signature}`,

@@ -96,14 +96,16 @@ export interface SemanticSearchResultItem extends SemanticSearchCandidate {
 }
 
 // Per-model Free Tier limits (Google AI Studio Free Tier pools are independent per model)
-const MODEL_LIMITS: Record<
+const MODEL_LIMITS = new Map<
   GeminiFreeTierModel,
   { maxRpm: number; maxRpd: number }
-> = {
-  "gemini-2.5-flash": { maxRpm: 12, maxRpd: 1400 },
-  "gemini-2.5-flash-lite": { maxRpm: 15, maxRpd: 1400 },
-  "text-embedding-004": { maxRpm: 100, maxRpd: 5000 },
-};
+>([
+  ["gemini-2.5-flash", { maxRpm: 12, maxRpd: 1400 }],
+  ["gemini-2.5-flash-lite", { maxRpm: 15, maxRpd: 1400 }],
+  ["text-embedding-004", { maxRpm: 100, maxRpd: 5000 }],
+]);
+
+const DEFAULT_LIMITS = { maxRpm: 12, maxRpd: 1400 };
 
 const DEFAULT_MODEL: "gemini-2.5-flash" | "gemini-2.5-flash-lite" =
   (process.env.GEMINI_MODEL as "gemini-2.5-flash" | "gemini-2.5-flash-lite") ||
@@ -119,34 +121,57 @@ interface ModelUsageBucket {
   dailyResetDate: string;
 }
 
-const modelBuckets: Record<GeminiFreeTierModel, ModelUsageBucket> = {
-  "gemini-2.5-flash": {
-    timestamps: [],
-    dailyCounter: 0,
-    dailyResetDate: new Date().toISOString().slice(0, 10),
-  },
-  "gemini-2.5-flash-lite": {
-    timestamps: [],
-    dailyCounter: 0,
-    dailyResetDate: new Date().toISOString().slice(0, 10),
-  },
-  "text-embedding-004": {
-    timestamps: [],
-    dailyCounter: 0,
-    dailyResetDate: new Date().toISOString().slice(0, 10),
-  },
-};
+const modelBuckets = new Map<GeminiFreeTierModel, ModelUsageBucket>([
+  [
+    "gemini-2.5-flash",
+    {
+      timestamps: [],
+      dailyCounter: 0,
+      dailyResetDate: new Date().toISOString().slice(0, 10),
+    },
+  ],
+  [
+    "gemini-2.5-flash-lite",
+    {
+      timestamps: [],
+      dailyCounter: 0,
+      dailyResetDate: new Date().toISOString().slice(0, 10),
+    },
+  ],
+  [
+    "text-embedding-004",
+    {
+      timestamps: [],
+      dailyCounter: 0,
+      dailyResetDate: new Date().toISOString().slice(0, 10),
+    },
+  ],
+]);
+
+function getOrFallbackBucket(model: GeminiFreeTierModel): ModelUsageBucket {
+  return (
+    modelBuckets.get(model) ??
+    (modelBuckets.get("gemini-2.5-flash") as ModelUsageBucket)
+  );
+}
+
+function getOrFallbackLimits(model: GeminiFreeTierModel): {
+  maxRpm: number;
+  maxRpd: number;
+} {
+  return MODEL_LIMITS.get(model) ?? DEFAULT_LIMITS;
+}
 
 let runtimeApiKeyOverride: string | null = null;
 
 // Dynamic model alias resolution: if Google AI Studio retires a model ID for newer keys
 // (e.g. gemini-2.5-flash -> gemini-3.8-flash, gemini-2.5-flash-lite -> gemini-3.5-flash-lite,
 // text-embedding-004 -> gemini-embedding-001), remember the active upstream model ID so we never waste a retry.
-const resolvedModelAlias: Record<string, string> = {
-  "gemini-2.5-flash": "gemini-3.5-flash-lite",
-  "gemini-2.5-flash-lite": "gemini-3.5-flash-lite",
-  "text-embedding-004": "gemini-embedding-001",
-};
+const resolvedModelAlias = new Map<string, string>([
+  ["gemini-2.5-flash", "gemini-3.5-flash-lite"],
+  ["gemini-2.5-flash-lite", "gemini-3.5-flash-lite"],
+  ["text-embedding-004", "gemini-embedding-001"],
+]);
 
 function withTimeout<T>(promise: Promise<T>, ms = 6500): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -167,7 +192,7 @@ function withTimeout<T>(promise: Promise<T>, ms = 6500): Promise<T> {
 }
 
 function resolveUpstreamModelId(requestedModel: string): string {
-  return resolvedModelAlias[requestedModel] || requestedModel;
+  return resolvedModelAlias.get(requestedModel) || requestedModel;
 }
 
 function detectReplacementModelFromError(
@@ -187,19 +212,21 @@ function detectReplacementModelFromError(
   }
   const match = msg.match(/use models\/([a-zA-Z0-9._-]+)/i);
   if (match && match[1]) {
-    resolvedModelAlias[requestedModel] = match[1];
+    if (MODEL_LIMITS.has(requestedModel as GeminiFreeTierModel)) {
+      resolvedModelAlias.set(requestedModel, match[1]);
+    }
     return match[1];
   }
   if (requestedModel === "gemini-2.5-flash") {
-    resolvedModelAlias[requestedModel] = "gemini-3.5-flash-lite";
+    resolvedModelAlias.set(requestedModel, "gemini-3.5-flash-lite");
     return "gemini-3.5-flash-lite";
   }
   if (requestedModel === "gemini-2.5-flash-lite") {
-    resolvedModelAlias[requestedModel] = "gemini-3.5-flash-lite";
+    resolvedModelAlias.set(requestedModel, "gemini-3.5-flash-lite");
     return "gemini-3.5-flash-lite";
   }
   if (requestedModel === "text-embedding-004") {
-    resolvedModelAlias[requestedModel] = "gemini-embedding-001";
+    resolvedModelAlias.set(requestedModel, "gemini-embedding-001");
     return "gemini-embedding-001";
   }
   return null;
@@ -242,8 +269,8 @@ function pruneAndCheckModelQuota(model: GeminiFreeTierModel): {
   snapshot: ModelQuotaSnapshot;
   reason?: string;
 } {
-  const bucket = modelBuckets[model] || modelBuckets["gemini-2.5-flash"];
-  const limits = MODEL_LIMITS[model] || MODEL_LIMITS["gemini-2.5-flash"];
+  const bucket = getOrFallbackBucket(model);
+  const limits = getOrFallbackLimits(model);
   const now = Date.now();
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -288,7 +315,7 @@ function pruneAndCheckModelQuota(model: GeminiFreeTierModel): {
 }
 
 function recordModelUsage(model: GeminiFreeTierModel): ModelQuotaSnapshot {
-  const bucket = modelBuckets[model] || modelBuckets["gemini-2.5-flash"];
+  const bucket = getOrFallbackBucket(model);
   bucket.timestamps.push(Date.now());
   bucket.dailyCounter += 1;
   return pruneAndCheckModelQuota(model).snapshot;
@@ -319,10 +346,10 @@ export function getGeminiServiceStatus() {
     mode: "ON_DEMAND_FREE_TIER",
     tier: "Google AI Studio Free Tier (On-Demand)",
     freeTierGuardrails: {
-      maxRpm: MODEL_LIMITS["gemini-2.5-flash"].maxRpm,
-      maxRpd: MODEL_LIMITS["gemini-2.5-flash"].maxRpd,
-      flashLiteMaxRpm: MODEL_LIMITS["gemini-2.5-flash-lite"].maxRpm,
-      embeddingMaxRpm: MODEL_LIMITS["text-embedding-004"].maxRpm,
+      maxRpm: getOrFallbackLimits("gemini-2.5-flash").maxRpm,
+      maxRpd: getOrFallbackLimits("gemini-2.5-flash").maxRpd,
+      flashLiteMaxRpm: getOrFallbackLimits("gemini-2.5-flash-lite").maxRpm,
+      embeddingMaxRpm: getOrFallbackLimits("text-embedding-004").maxRpm,
       cacheTtlSeconds: 1800,
       maxOutputTokens: 650,
     },
