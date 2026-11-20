@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@11.5.1",
   "engines": {
-    "node": ">=20.0.0"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "concurrently -k -p \"[{name}]\" -n \"REDIS,BACKEND,MFE\" -c \"red,cyan,magenta\" \"docker compose up redis --remove-orphans\" \"pnpm run start:backend\" \"wait-on http://127.0.0.1:3001/health -t 30000 && turbo run dev\"",
