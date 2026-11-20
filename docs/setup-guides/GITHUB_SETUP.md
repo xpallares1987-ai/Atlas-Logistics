@@ -37,7 +37,6 @@ Add the following secrets:
 |---|---|---|
 | `JWT_SECRET` | (generated 32+ char hex) | Fastify JWT signing token secret |
 | `COOKIE_SECRET` | (generated 32+ char hex) | Fastify cookie signing secret |
-| `GRAFANA_ADMIN_PASSWORD` | (generate new) | Grafana dashboard admin password |
 
 ### Optional Secrets (for external integrations):
 
@@ -45,7 +44,6 @@ Add the following secrets:
 |---|---|---|
 | `DOCKER_USERNAME` | `xpallares1987-ai` | Docker Hub username (if mirroring from GHCR) |
 | `DOCKER_PASSWORD` | (Docker token) | Docker Hub access token |
-| `CODECOV_TOKEN` | (from codecov.io) | Code coverage reporting token |
 | `DATABASE_URL` | `file:/app/data/prod.db` | Overrides default SQLite database path |
 | `DATABASE_AUTH_TOKEN` | (optional) | Auth token for remote libSQL/Turso clusters |
 
@@ -60,7 +58,6 @@ gh auth login
 # Set secrets for your repository
 gh secret set JWT_SECRET --body "$(node -e 'console.log(require("crypto").randomBytes(32).toString("hex"))')"
 gh secret set COOKIE_SECRET --body "$(node -e 'console.log(require("crypto").randomBytes(32).toString("hex"))')"
-gh secret set GRAFANA_ADMIN_PASSWORD --body "$(openssl rand -base64 32)"
 
 # Verify secrets are set
 gh secret list

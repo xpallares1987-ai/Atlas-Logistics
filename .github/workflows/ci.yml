@@ -98,20 +98,37 @@ jobs:
       - name: Verify markdown relative link integrity
         run: pnpm run audit:links
 
+      - name: Verify zero-innerHTML DOM safety
+        run: pnpm run audit:innerhtml
+
       - name: Verify SQLite WAL backup and restoration test
         run: pnpm run test:backup-restore
 
       - name: Run Vitest unit & integration tests with coverage
         run: pnpm test -- --coverage
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@5c47607acb93fed5485fdbf7232e8a31425f672a # v5.0.2
-        continue-on-error: true
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+      - name: Publish native coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e '
+              const fs = require("node:fs");
+              const t = JSON.parse(fs.readFileSync("coverage/coverage-summary.json", "utf8")).total;
+              const lines = [
+                "### Native Vitest Coverage Summary (Zero External SaaS)",
+                "| Metric | Covered / Total | Percentage |",
+                "| :--- | :---: | :---: |",
+                `| Lines | ${t.lines.covered} / ${t.lines.total} | **${t.lines.pct}%** |`,
+                `| Statements | ${t.statements.covered} / ${t.statements.total} | **${t.statements.pct}%** |`,
+                `| Functions | ${t.functions.covered} / ${t.functions.total} | **${t.functions.pct}%** |`,
+                `| Branches | ${t.branches.covered} / ${t.branches.total} | **${t.branches.pct}%** |`
+              ].join("\n") + "\n";
+              if (process.env.GITHUB_STEP_SUMMARY) {
+                fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines);
+              }
+              console.log(lines);
+            '
+          fi
 
   build-images:
     name: Build & Publish ${{ matrix.component }} Image
