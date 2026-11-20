@@ -105,3 +105,44 @@ export function openApiArray(
     items: openApiObject(itemProperties),
   };
 }
+
+/**
+ * Builds a single-parameter path schema for custom route param names (e.g. :recordId, :code).
+ */
+export function buildParamSchema(
+  paramName: string,
+  description = "Unique route parameter identifier.",
+): Record<string, unknown> {
+  return {
+    type: "object",
+    required: [paramName],
+    properties: {
+      [paramName]: {
+        type: "string",
+        minLength: 1,
+        description,
+      },
+    },
+  };
+}
+
+/**
+ * Safely extracts a human-readable error message from an unknown catch binding without using `any`.
+ */
+export function getErrorMessage(
+  error: unknown,
+  fallback = "Unexpected server error",
+): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message: unknown }).message === "string"
+  ) {
+    return (error as { message: string }).message;
+  }
+  return fallback;
+}

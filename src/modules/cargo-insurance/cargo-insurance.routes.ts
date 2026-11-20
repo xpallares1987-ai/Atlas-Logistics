@@ -1,3 +1,9 @@
+/**
+ * @file cargo-insurance.routes.ts
+ * @description Fastify routes for Marine Cargo Insurance Open Cover Policies, Institute Cargo Clauses (ICC A/B/C) certificates, UCP 600 110% CIF valuation, actuarial premium rating, bordereaux, claim adjustments, and PDF certificates.
+ * @module @atlas/api/modules/cargo-insurance/routes
+ */
+
 import { FastifyInstance, FastifyPluginAsync } from "fastify";
 import { eq, desc } from "drizzle-orm";
 import { db } from "../../db/index.js";
@@ -7,417 +13,659 @@ import { ActuarialPremiumRatingService } from "./actuarial-premium-rating.servic
 import { ClaimAdjustmentSettlementService } from "./claim-adjustment-settlement.service.js";
 import { PDFService } from "../../services/pdf.service.js";
 import crypto from "crypto";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  buildErrorResponses,
+  getErrorMessage,
+} from "../../routes/openapi.schemas.js";
+
+// ============================================================================
+// 1. DOMAIN PAYLOAD INTERFACES
+// ============================================================================
+
+type OpenPolicyInsert = typeof schema.insuranceOpenPolicies.$inferInsert;
+type CertificateInsert = typeof schema.insuranceCertificates.$inferInsert;
+type CalculateInsuredValueInput = Parameters<
+  typeof InsuredValueCalculatorService.calculateInsuredValue
+>[0];
+type CalculatePremiumInput = Parameters<
+  typeof ActuarialPremiumRatingService.calculatePremium
+>[0];
+type AdjustClaimInput = Parameters<
+  typeof ClaimAdjustmentSettlementService.adjustClaim
+>[0];
+
+type CreateOpenPolicyBody = Partial<OpenPolicyInsert>;
+type CreateCertificateBody = Partial<CertificateInsert> & {
+  commodityType?: CalculatePremiumInput["commodityType"];
+};
+
+// ============================================================================
+// 2. FASTIFY ROUTE PLUGIN REGISTRATION
+// ============================================================================
 
 export const cargoInsuranceRoutes: FastifyPluginAsync = async (
   fastify: FastifyInstance,
 ) => {
   // 1. List Open Cover Policies
-  fastify.get("/open-policies", async (request, reply) => {
-    try {
-      const policies = await db
-        .select()
-        .from(schema.insuranceOpenPolicies)
-        .orderBy(desc(schema.insuranceOpenPolicies.createdAt));
-      return reply.send({ success: true, data: policies });
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
-
-  // 2. Get Open Policy Details with Certificates & Bordereaux
-  fastify.get("/open-policies/:id", async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
-      const [policy] = await db
-        .select()
-        .from(schema.insuranceOpenPolicies)
-        .where(eq(schema.insuranceOpenPolicies.id, id));
-
-      if (!policy) {
-        return reply
-          .status(404)
-          .send({ success: false, error: "Open Policy not found" });
-      }
-
-      const certificates = await db
-        .select()
-        .from(schema.insuranceCertificates)
-        .where(eq(schema.insuranceCertificates.openPolicyId, id));
-
-      const bordereaux = await db
-        .select()
-        .from(schema.insuranceBordereaux)
-        .where(eq(schema.insuranceBordereaux.openPolicyId, id));
-
-      return reply.send({
-        success: true,
-        data: {
-          ...policy,
-          certificates,
-          bordereaux,
+  fastify.get(
+    "/open-policies",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary: "List all Marine Cargo Open Cover Insurance Policies",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
         },
-      });
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
-
-  // 3. Create Open Cover Policy
-  fastify.post("/open-policies", async (request, reply) => {
-    try {
-      const body = request.body as any;
-      const policyId = `open_pol_${crypto.randomUUID().slice(0, 8)}`;
-      const polNumber =
-        body.policyNumber ||
-        `POL-MAR-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`;
-
-      await db.insert(schema.insuranceOpenPolicies).values({
-        id: policyId,
-        policyNumber: polNumber,
-        insurerName: body.insurerName || "Zurich Insurance plc",
-        brokerName: body.brokerName || "Aon Marine",
-        policyHolderName:
-          body.policyHolderName || "Atlas Logistics Forwarding SL",
-        policyHolderTaxId: body.policyHolderTaxId || "B-99201452",
-        currency: body.currency || "EUR",
-        startDate: body.startDate || "2026-01-01",
-        endDate: body.endDate || "2026-12-31",
-        conveyanceLimitAmount: body.conveyanceLimitAmount || 2500000.0,
-        annualEstimatedTurnover: body.annualEstimatedTurnover || 15000000.0,
-        baseRatePercentage: body.baseRatePercentage || 0.2,
-        warStrikeRatePercentage: body.warStrikeRatePercentage || 0.04,
-        defaultDeductibleAmount: body.defaultDeductibleAmount || 500.0,
-        deductibleType: body.deductibleType || "FIXED_AMOUNT",
-        minPremiumPerShipment: body.minPremiumPerShipment || 50.0,
-        status: body.status || "ACTIVE",
-        termsAndConditionsText: body.termsAndConditionsText || null,
-      });
-
-      const [newPolicy] = await db
-        .select()
-        .from(schema.insuranceOpenPolicies)
-        .where(eq(schema.insuranceOpenPolicies.id, policyId));
-
-      return reply.status(201).send({ success: true, data: newPolicy });
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
-
-  // 4. List Insurance Certificates
-  fastify.get("/certificates", async (request, reply) => {
-    try {
-      const certs = await db
-        .select()
-        .from(schema.insuranceCertificates)
-        .orderBy(desc(schema.insuranceCertificates.createdAt));
-      return reply.send({ success: true, data: certs });
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
-
-  // 5. Get Certificate by ID with Claims
-  fastify.get("/certificates/:id", async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
-      const [cert] = await db
-        .select()
-        .from(schema.insuranceCertificates)
-        .where(eq(schema.insuranceCertificates.id, id));
-
-      if (!cert) {
-        return reply
-          .status(404)
-          .send({ success: false, error: "Insurance Certificate not found" });
-      }
-
-      const claims = await db
-        .select()
-        .from(schema.insuranceClaimsSettlements)
-        .where(eq(schema.insuranceClaimsSettlements.certificateId, id));
-
-      return reply.send({ success: true, data: { ...cert, claims } });
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
-
-  // 6. Issue New Insurance Certificate
-  fastify.post("/certificates", async (request, reply) => {
-    try {
-      const body = request.body as any;
-      const certId = `ins_cert_${crypto.randomUUID().slice(0, 8)}`;
-      const certNum =
-        body.certificateNumber ||
-        `INS-CERT-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`;
-
-      // Calculate Insured Value (110% CIF)
-      const insuredValRes = InsuredValueCalculatorService.calculateInsuredValue(
-        {
-          commercialInvoiceValue: body.commercialInvoiceValue || 100000,
-          freightAmount: body.freightAmount || 0,
-          estimatedInsuranceAmount: body.estimatedInsuranceAmount || 0,
-          markupPercentage: body.markupPercentage || 10.0,
-        },
-      );
-
-      // Calculate Premium
-      const premiumRes = ActuarialPremiumRatingService.calculatePremium({
-        insuredValue: insuredValRes.totalInsuredValue,
-        coverageClause: body.coverageClause || "ICC_A_ALL_RISKS_2009",
-        commodityType: body.commodityType || "GENERAL_CARGO",
-        transportMode: body.transportMode || "MARITIME_OCEAN_FCL",
-        hasWarStrikesCover: body.hasWarStrikesCover !== false,
-      });
-
-      await db.insert(schema.insuranceCertificates).values({
-        id: certId,
-        openPolicyId: body.openPolicyId || null,
-        certificateNumber: certNum,
-        shipmentReference: body.shipmentReference || "SH-2026-001",
-        transportMode: body.transportMode || "MARITIME_OCEAN",
-        carrierName: body.carrierName || "Ocean Carrier",
-        vesselOrFlightOrVehiclePlate:
-          body.vesselOrFlightOrVehiclePlate || "MV Vessel",
-        voyageNumber: body.voyageNumber || "V.2608W",
-        originPortOrCountry:
-          body.originPortOrCountry || "Puerto de Valencia (ESVLC)",
-        destinationPortOrCountry:
-          body.destinationPortOrCountry || "Puerto de Singapur (SGSIN)",
-        departureDate:
-          body.departureDate || new Date().toISOString().substring(0, 10),
-        estimatedArrivalDate: body.estimatedArrivalDate || null,
-        insuredPartyName:
-          body.insuredPartyName || "Iberica Export Solutions SL",
-        insuredPartyAddress: body.insuredPartyAddress || "Valencia, Spain",
-        consigneeOrToOrderName: body.consigneeOrToOrderName || "TO ORDER",
-        claimSurveyAgentNameAddress:
-          body.claimSurveyAgentNameAddress ||
-          "Lloyd's Agency, Destination Port",
-        claimPayableAtCity: body.claimPayableAtCity || "Madrid",
-        goodsDescription: body.goodsDescription || "General Cargo",
-        packageCount: body.packageCount || 1,
-        grossWeightKg: body.grossWeightKg || 1000,
-        commercialInvoiceValue: insuredValRes.commercialInvoiceValue,
-        commercialCurrency: body.commercialCurrency || "EUR",
-        freightAmount: insuredValRes.freightAmount,
-        estimatedInsuranceAmount: body.estimatedInsuranceAmount || 0,
-        markupPercentage: insuredValRes.markupPercentage,
-        totalInsuredValue: insuredValRes.totalInsuredValue,
-        coverageClause: body.coverageClause || "ICC_A_ALL_RISKS_2009",
-        hasWarStrikesCover: Boolean(body.hasWarStrikesCover !== false),
-        hasCyberExclusionCl380: Boolean(body.hasCyberExclusionCl380 !== false),
-        hasSanctionsClauseJc2010: Boolean(
-          body.hasSanctionsClauseJc2010 !== false,
-        ),
-        appliedRatePercentage: premiumRes.totalAppliedRatePercentage,
-        netPremiumAmount: premiumRes.netPremiumFinal,
-        ipsTaxPercentage: premiumRes.ipsTaxPercentage,
-        ccsConsorcioSurchargePercentage: premiumRes.ccsConsorcioPercentage,
-        grossPremiumPayable: premiumRes.grossPremiumPayable,
-        deductibleAmount: body.deductibleAmount || 500.0,
-        issueDate: body.issueDate || new Date().toISOString().substring(0, 10),
-        status: body.status || "ISSUED_CERTIFIED",
-      });
-
-      const [newCert] = await db
-        .select()
-        .from(schema.insuranceCertificates)
-        .where(eq(schema.insuranceCertificates.id, certId));
-
-      return reply.status(201).send({ success: true, data: newCert });
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
-
-  // 7. Calculate Insured Value (UCP 600)
-  fastify.post("/calculate-insured-value", async (request, reply) => {
-    try {
-      const body = request.body as any;
-      const res = InsuredValueCalculatorService.calculateInsuredValue(body);
-      return reply.send({ success: true, calculation: res });
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
-
-  // 8. Calculate Actuarial Premium
-  fastify.post("/calculate-premium", async (request, reply) => {
-    try {
-      const body = request.body as any;
-      const res = ActuarialPremiumRatingService.calculatePremium(body);
-      return reply.send({ success: true, rating: res });
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
-
-  // 9. Adjust & Settle Claim
-  fastify.post("/adjust-claim", async (request, reply) => {
-    try {
-      const body = request.body as any;
-      const res = ClaimAdjustmentSettlementService.adjustClaim(body);
-      return reply.send({ success: true, claimAdjustment: res });
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
-
-  // 10. PDF: Cargo Insurance Certificate PDF
-  fastify.get("/certificates/:id/certificate-pdf", async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
-      const [cert] = await db
-        .select()
-        .from(schema.insuranceCertificates)
-        .where(eq(schema.insuranceCertificates.id, id));
-
-      if (!cert) {
-        return reply
-          .status(404)
-          .send({ success: false, error: "Certificate not found" });
-      }
-
-      let openPolicy = null;
-      if (cert.openPolicyId) {
-        const [pol] = await db
+      },
+    },
+    async (request, reply) => {
+      try {
+        const policies = await db
           .select()
           .from(schema.insuranceOpenPolicies)
-          .where(eq(schema.insuranceOpenPolicies.id, cert.openPolicyId));
-        openPolicy = pol;
+          .orderBy(desc(schema.insuranceOpenPolicies.createdAt));
+        return reply.send({ success: true, data: policies });
+      } catch (err: unknown) {
+        request.log.error(err);
+        return reply
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
       }
+    },
+  );
 
-      const pdfBuffer = await PDFService.generateCargoInsuranceCertificatePdf(
-        cert,
-        openPolicy,
-      );
-      reply.header("Content-Type", "application/pdf");
-      reply.header(
-        "Content-Disposition",
-        `attachment; filename="Insurance_Certificate_${cert.certificateNumber}.pdf"`,
-      );
-      return reply.send(pdfBuffer);
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
+  // 2. Get Open Policy Details with Certificates & Bordereaux
+  fastify.get(
+    "/open-policies/:id",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary:
+          "Retrieve Open Cover Policy detail with issued certificates and bordereaux",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const [policy] = await db
+          .select()
+          .from(schema.insuranceOpenPolicies)
+          .where(eq(schema.insuranceOpenPolicies.id, id));
+
+        if (!policy) {
+          return reply
+            .status(404)
+            .send({ success: false, error: "Open Policy not found" });
+        }
+
+        const certificates = await db
+          .select()
+          .from(schema.insuranceCertificates)
+          .where(eq(schema.insuranceCertificates.openPolicyId, id));
+
+        const bordereaux = await db
+          .select()
+          .from(schema.insuranceBordereaux)
+          .where(eq(schema.insuranceBordereaux.openPolicyId, id));
+
+        return reply.send({
+          success: true,
+          data: {
+            ...policy,
+            certificates,
+            bordereaux,
+          },
+        });
+      } catch (err: unknown) {
+        request.log.error(err);
+        return reply
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
+
+  // 3. Create Open Cover Policy
+  fastify.post(
+    "/open-policies",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary: "Create a new Marine Cargo Open Cover Policy",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const body = (request.body as CreateOpenPolicyBody | undefined) || {};
+        const policyId = `open_pol_${crypto.randomUUID().slice(0, 8)}`;
+        const polNumber =
+          body.policyNumber ||
+          `POL-MAR-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`;
+
+        await db.insert(schema.insuranceOpenPolicies).values({
+          id: policyId,
+          policyNumber: polNumber,
+          insurerName: body.insurerName || "Zurich Insurance plc",
+          brokerName: body.brokerName || "Aon Marine",
+          policyHolderName:
+            body.policyHolderName || "Atlas Logistics Forwarding SL",
+          policyHolderTaxId: body.policyHolderTaxId || "B-99201452",
+          currency: body.currency || "EUR",
+          startDate: body.startDate || "2026-01-01",
+          endDate: body.endDate || "2026-12-31",
+          conveyanceLimitAmount: body.conveyanceLimitAmount || 2500000.0,
+          annualEstimatedTurnover: body.annualEstimatedTurnover || 15000000.0,
+          baseRatePercentage: body.baseRatePercentage || 0.2,
+          warStrikeRatePercentage: body.warStrikeRatePercentage || 0.04,
+          defaultDeductibleAmount: body.defaultDeductibleAmount || 500.0,
+          deductibleType: body.deductibleType || "FIXED_AMOUNT",
+          minPremiumPerShipment: body.minPremiumPerShipment || 50.0,
+          status: body.status || "ACTIVE",
+          termsAndConditionsText: body.termsAndConditionsText || null,
+        });
+
+        const [newPolicy] = await db
+          .select()
+          .from(schema.insuranceOpenPolicies)
+          .where(eq(schema.insuranceOpenPolicies.id, policyId));
+
+        return reply.status(201).send({ success: true, data: newPolicy });
+      } catch (err: unknown) {
+        request.log.error(err);
+        return reply
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
+
+  // 4. List Insurance Certificates
+  fastify.get(
+    "/certificates",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary: "List all issued Cargo Insurance Certificates",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const certs = await db
+          .select()
+          .from(schema.insuranceCertificates)
+          .orderBy(desc(schema.insuranceCertificates.createdAt));
+        return reply.send({ success: true, data: certs });
+      } catch (err: unknown) {
+        request.log.error(err);
+        return reply
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
+
+  // 5. Get Certificate by ID with Claims
+  fastify.get(
+    "/certificates/:id",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary:
+          "Retrieve Cargo Insurance Certificate detail with associated claims",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const [cert] = await db
+          .select()
+          .from(schema.insuranceCertificates)
+          .where(eq(schema.insuranceCertificates.id, id));
+
+        if (!cert) {
+          return reply
+            .status(404)
+            .send({ success: false, error: "Insurance Certificate not found" });
+        }
+
+        const claims = await db
+          .select()
+          .from(schema.insuranceClaimsSettlements)
+          .where(eq(schema.insuranceClaimsSettlements.certificateId, id));
+
+        return reply.send({ success: true, data: { ...cert, claims } });
+      } catch (err: unknown) {
+        request.log.error(err);
+        return reply
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
+
+  // 6. Issue New Insurance Certificate
+  fastify.post(
+    "/certificates",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary:
+          "Issue a new Cargo Insurance Certificate with UCP 600 110% CIF and actuarial rating",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const body = (request.body as CreateCertificateBody | undefined) || {};
+        const certId = `ins_cert_${crypto.randomUUID().slice(0, 8)}`;
+        const certNum =
+          body.certificateNumber ||
+          `INS-CERT-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`;
+
+        const insuredValRes =
+          InsuredValueCalculatorService.calculateInsuredValue({
+            commercialInvoiceValue: body.commercialInvoiceValue || 100000,
+            freightAmount: body.freightAmount || 0,
+            estimatedInsuranceAmount: body.estimatedInsuranceAmount || 0,
+            markupPercentage: body.markupPercentage || 10.0,
+          });
+
+        const premiumRes = ActuarialPremiumRatingService.calculatePremium({
+          insuredValue: insuredValRes.totalInsuredValue,
+          coverageClause:
+            (body.coverageClause as CalculatePremiumInput["coverageClause"]) ||
+            "ICC_A_ALL_RISKS_2009",
+          commodityType: body.commodityType || "GENERAL_CARGO",
+          transportMode:
+            (body.transportMode as CalculatePremiumInput["transportMode"]) ||
+            "MARITIME_OCEAN_FCL",
+          hasWarStrikesCover: body.hasWarStrikesCover !== false,
+        });
+
+        await db.insert(schema.insuranceCertificates).values({
+          id: certId,
+          openPolicyId: body.openPolicyId || null,
+          certificateNumber: certNum,
+          shipmentReference: body.shipmentReference || "SH-2026-001",
+          transportMode: body.transportMode || "MARITIME_OCEAN",
+          carrierName: body.carrierName || "Ocean Carrier",
+          vesselOrFlightOrVehiclePlate:
+            body.vesselOrFlightOrVehiclePlate || "MV Vessel",
+          voyageNumber: body.voyageNumber || "V.2608W",
+          originPortOrCountry:
+            body.originPortOrCountry || "Puerto de Valencia (ESVLC)",
+          destinationPortOrCountry:
+            body.destinationPortOrCountry || "Puerto de Singapur (SGSIN)",
+          departureDate:
+            body.departureDate || new Date().toISOString().substring(0, 10),
+          estimatedArrivalDate: body.estimatedArrivalDate || null,
+          insuredPartyName:
+            body.insuredPartyName || "Iberica Export Solutions SL",
+          insuredPartyAddress: body.insuredPartyAddress || "Valencia, Spain",
+          consigneeOrToOrderName: body.consigneeOrToOrderName || "TO ORDER",
+          claimSurveyAgentNameAddress:
+            body.claimSurveyAgentNameAddress ||
+            "Lloyd's Agency, Destination Port",
+          claimPayableAtCity: body.claimPayableAtCity || "Madrid",
+          goodsDescription: body.goodsDescription || "General Cargo",
+          packageCount: body.packageCount || 1,
+          grossWeightKg: body.grossWeightKg || 1000,
+          commercialInvoiceValue: insuredValRes.commercialInvoiceValue,
+          commercialCurrency: body.commercialCurrency || "EUR",
+          freightAmount: insuredValRes.freightAmount,
+          estimatedInsuranceAmount: body.estimatedInsuranceAmount || 0,
+          markupPercentage: insuredValRes.markupPercentage,
+          totalInsuredValue: insuredValRes.totalInsuredValue,
+          coverageClause: body.coverageClause || "ICC_A_ALL_RISKS_2009",
+          hasWarStrikesCover: Boolean(body.hasWarStrikesCover !== false),
+          hasCyberExclusionCl380: Boolean(
+            body.hasCyberExclusionCl380 !== false,
+          ),
+          hasSanctionsClauseJc2010: Boolean(
+            body.hasSanctionsClauseJc2010 !== false,
+          ),
+          appliedRatePercentage: premiumRes.totalAppliedRatePercentage,
+          netPremiumAmount: premiumRes.netPremiumFinal,
+          ipsTaxPercentage: premiumRes.ipsTaxPercentage,
+          ccsConsorcioSurchargePercentage: premiumRes.ccsConsorcioPercentage,
+          grossPremiumPayable: premiumRes.grossPremiumPayable,
+          deductibleAmount: body.deductibleAmount || 500.0,
+          issueDate:
+            body.issueDate || new Date().toISOString().substring(0, 10),
+          status: body.status || "ISSUED_CERTIFIED",
+        });
+
+        const [newCert] = await db
+          .select()
+          .from(schema.insuranceCertificates)
+          .where(eq(schema.insuranceCertificates.id, certId));
+
+        return reply.status(201).send({ success: true, data: newCert });
+      } catch (err: unknown) {
+        request.log.error(err);
+        return reply
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
+
+  // 7. Calculate Insured Value (UCP 600)
+  fastify.post(
+    "/calculate-insured-value",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary: "Calculate UCP 600 Art. 28 110% CIF insured cargo value",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const body = request.body as CalculateInsuredValueInput;
+        const res = InsuredValueCalculatorService.calculateInsuredValue(body);
+        return reply.send({ success: true, calculation: res });
+      } catch (err: unknown) {
+        request.log.error(err);
+        return reply
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
+
+  // 8. Calculate Actuarial Premium
+  fastify.post(
+    "/calculate-premium",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary:
+          "Calculate actuarial cargo insurance premium, IPS tax, and CCS surcharge",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const body = request.body as CalculatePremiumInput;
+        const res = ActuarialPremiumRatingService.calculatePremium(body);
+        return reply.send({ success: true, rating: res });
+      } catch (err: unknown) {
+        request.log.error(err);
+        return reply
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
+
+  // 9. Adjust & Settle Claim
+  fastify.post(
+    "/adjust-claim",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary:
+          "Calculate marine cargo claim adjustment and subrogation recovery",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const body = request.body as AdjustClaimInput;
+        const res = ClaimAdjustmentSettlementService.adjustClaim(body);
+        return reply.send({ success: true, claimAdjustment: res });
+      } catch (err: unknown) {
+        request.log.error(err);
+        return reply
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
+
+  // 10. PDF: Cargo Insurance Certificate PDF
+  fastify.get(
+    "/certificates/:id/certificate-pdf",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary: "Download Cargo Insurance Certificate PDF",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const [cert] = await db
+          .select()
+          .from(schema.insuranceCertificates)
+          .where(eq(schema.insuranceCertificates.id, id));
+
+        if (!cert) {
+          return reply
+            .status(404)
+            .send({ success: false, error: "Certificate not found" });
+        }
+
+        let openPolicy = null;
+        if (cert.openPolicyId) {
+          const [pol] = await db
+            .select()
+            .from(schema.insuranceOpenPolicies)
+            .where(eq(schema.insuranceOpenPolicies.id, cert.openPolicyId));
+          openPolicy = pol;
+        }
+
+        const pdfBuffer = await PDFService.generateCargoInsuranceCertificatePdf(
+          cert,
+          openPolicy,
+        );
+        reply.header("Content-Type", "application/pdf");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="Insurance_Certificate_${cert.certificateNumber}.pdf"`,
+        );
+        return reply.send(pdfBuffer);
+      } catch (err: unknown) {
+        request.log.error(err);
+        return reply
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
 
   // 11. PDF: Open Policy Schedule PDF
-  fastify.get("/open-policies/:id/policy-pdf", async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
-      const [policy] = await db
-        .select()
-        .from(schema.insuranceOpenPolicies)
-        .where(eq(schema.insuranceOpenPolicies.id, id));
+  fastify.get(
+    "/open-policies/:id/policy-pdf",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary: "Download Open Cover Policy Schedule PDF",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const [policy] = await db
+          .select()
+          .from(schema.insuranceOpenPolicies)
+          .where(eq(schema.insuranceOpenPolicies.id, id));
 
-      if (!policy) {
+        if (!policy) {
+          return reply
+            .status(404)
+            .send({ success: false, error: "Open Policy not found" });
+        }
+
+        const pdfBuffer =
+          await PDFService.generateOpenCoverPolicySchedulePdf(policy);
+        reply.header("Content-Type", "application/pdf");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="Open_Policy_${policy.policyNumber}.pdf"`,
+        );
+        return reply.send(pdfBuffer);
+      } catch (err: unknown) {
+        request.log.error(err);
         return reply
-          .status(404)
-          .send({ success: false, error: "Open Policy not found" });
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
       }
-
-      const pdfBuffer =
-        await PDFService.generateOpenCoverPolicySchedulePdf(policy);
-      reply.header("Content-Type", "application/pdf");
-      reply.header(
-        "Content-Disposition",
-        `attachment; filename="Open_Policy_${policy.policyNumber}.pdf"`,
-      );
-      return reply.send(pdfBuffer);
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
+    },
+  );
 
   // 12. PDF: Bordereau PDF
-  fastify.get("/bordereaux/:id/bordereau-pdf", async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
-      const [bdx] = await db
-        .select()
-        .from(schema.insuranceBordereaux)
-        .where(eq(schema.insuranceBordereaux.id, id));
+  fastify.get(
+    "/bordereaux/:id/bordereau-pdf",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary: "Download Monthly Insurance Declaration Bordereau PDF",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const [bdx] = await db
+          .select()
+          .from(schema.insuranceBordereaux)
+          .where(eq(schema.insuranceBordereaux.id, id));
 
-      if (!bdx) {
+        if (!bdx) {
+          return reply
+            .status(404)
+            .send({ success: false, error: "Bordereau not found" });
+        }
+
+        const [policy] = await db
+          .select()
+          .from(schema.insuranceOpenPolicies)
+          .where(eq(schema.insuranceOpenPolicies.id, bdx.openPolicyId));
+
+        const lines = await db
+          .select()
+          .from(schema.insuranceBordereauLines)
+          .where(eq(schema.insuranceBordereauLines.bordereauId, id));
+
+        const pdfBuffer = await PDFService.generateInsuranceBordereauPdf(
+          bdx,
+          policy,
+          lines,
+        );
+        reply.header("Content-Type", "application/pdf");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="Bordereau_${bdx.bordereauReference}.pdf"`,
+        );
+        return reply.send(pdfBuffer);
+      } catch (err: unknown) {
+        request.log.error(err);
         return reply
-          .status(404)
-          .send({ success: false, error: "Bordereau not found" });
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
       }
-
-      const [policy] = await db
-        .select()
-        .from(schema.insuranceOpenPolicies)
-        .where(eq(schema.insuranceOpenPolicies.id, bdx.openPolicyId));
-
-      const lines = await db
-        .select()
-        .from(schema.insuranceBordereauLines)
-        .where(eq(schema.insuranceBordereauLines.bordereauId, id));
-
-      const pdfBuffer = await PDFService.generateInsuranceBordereauPdf(
-        bdx,
-        policy,
-        lines,
-      );
-      reply.header("Content-Type", "application/pdf");
-      reply.header(
-        "Content-Disposition",
-        `attachment; filename="Bordereau_${bdx.bordereauReference}.pdf"`,
-      );
-      return reply.send(pdfBuffer);
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
+    },
+  );
 
   // 13. PDF: Claim Adjustment Statement PDF
-  fastify.get("/claims/:id/adjustment-pdf", async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
-      const [claim] = await db
-        .select()
-        .from(schema.insuranceClaimsSettlements)
-        .where(eq(schema.insuranceClaimsSettlements.id, id));
+  fastify.get(
+    "/claims/:id/adjustment-pdf",
+    {
+      schema: {
+        tags: ["Cargo Insurance"],
+        summary: "Download Marine Cargo Claim Adjustment Statement PDF",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const [claim] = await db
+          .select()
+          .from(schema.insuranceClaimsSettlements)
+          .where(eq(schema.insuranceClaimsSettlements.id, id));
 
-      if (!claim) {
+        if (!claim) {
+          return reply
+            .status(404)
+            .send({ success: false, error: "Claim Settlement not found" });
+        }
+
+        const [cert] = await db
+          .select()
+          .from(schema.insuranceCertificates)
+          .where(eq(schema.insuranceCertificates.id, claim.certificateId));
+
+        const pdfBuffer = await PDFService.generateInsuranceClaimAdjustmentPdf(
+          claim,
+          cert,
+        );
+        reply.header("Content-Type", "application/pdf");
+        reply.header(
+          "Content-Disposition",
+          `attachment; filename="Claim_Adjustment_${claim.claimReference}.pdf"`,
+        );
+        return reply.send(pdfBuffer);
+      } catch (err: unknown) {
+        request.log.error(err);
         return reply
-          .status(404)
-          .send({ success: false, error: "Claim Settlement not found" });
+          .status(500)
+          .send({ success: false, error: getErrorMessage(err) });
       }
-
-      const [cert] = await db
-        .select()
-        .from(schema.insuranceCertificates)
-        .where(eq(schema.insuranceCertificates.id, claim.certificateId));
-
-      const pdfBuffer = await PDFService.generateInsuranceClaimAdjustmentPdf(
-        claim,
-        cert,
-      );
-      reply.header("Content-Type", "application/pdf");
-      reply.header(
-        "Content-Disposition",
-        `attachment; filename="Claim_Adjustment_${claim.claimReference}.pdf"`,
-      );
-      return reply.send(pdfBuffer);
-    } catch (err: any) {
-      request.log.error(err);
-      return reply.status(500).send({ success: false, error: err.message });
-    }
-  });
+    },
+  );
 };
