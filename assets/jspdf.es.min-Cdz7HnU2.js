@@ -1,0 +1,1 @@
+export{n as default,n as jsPDF}from"./jspdf-vendor-vl3N19b1.js";
