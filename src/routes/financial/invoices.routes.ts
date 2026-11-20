@@ -20,6 +20,12 @@ import { PDFService, InvoiceData } from "../../services/pdf.service.js";
 import { ensureFinancialSeedData } from "./seed-data.js";
 import { GlSyncService } from "../../services/accounting/gl-sync.service.js";
 import {
+  scopeByTenant,
+  getCurrentTenant,
+  assertTenantAccess,
+  TenantAccessDeniedError,
+} from "../../lib/tenancy/index.js";
+import {
   OPENAPI_ID_PARAMS_SCHEMA,
   OPENAPI_SUCCESS_FLAG_SCHEMA,
   buildErrorResponses,
@@ -89,7 +95,8 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (_request, reply) => {
       try {
-        const allInvoices = await db
+        const tenantCondition = scopeByTenant(invoices.companyId);
+        const baseQuery = db
           .select({
             id: invoices.id,
             invoiceNumber: invoices.invoiceNumber,
@@ -104,6 +111,10 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
           })
           .from(invoices)
           .leftJoin(companies, eq(invoices.companyId, companies.id));
+
+        const allInvoices = await (tenantCondition
+          ? baseQuery.where(tenantCondition)
+          : baseQuery);
 
         return reply.send(allInvoices);
       } catch (error: unknown) {
@@ -161,6 +172,8 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
           return reply.code(404).send({ error: "Invoice not found" });
         }
 
+        assertTenantAccess(invoiceRecords[0].partyId);
+
         const items = await db
           .select()
           .from(invoiceItems)
@@ -171,6 +184,9 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
           lines: items,
         });
       } catch (error: unknown) {
+        if (error instanceof TenantAccessDeniedError) {
+          return reply.code(403).send({ error: error.message });
+        }
         const message =
           error instanceof Error ? error.message : "Internal Server Error";
         return reply.code(500).send({ error: message });
@@ -196,6 +212,7 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
 
         const invoiceRecords = await db
           .select({
+            companyId: invoices.companyId,
             invoiceNumber: invoices.invoiceNumber,
             type: invoices.type,
             party: companies.name,
@@ -211,6 +228,8 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
         if (invoiceRecords.length === 0) {
           return reply.code(404).send({ error: "Invoice not found" });
         }
+
+        assertTenantAccess(invoiceRecords[0].companyId);
 
         const items = await db
           .select()
@@ -240,6 +259,9 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
         );
         return reply.send(pdfBuffer);
       } catch (error: unknown) {
+        if (error instanceof TenantAccessDeniedError) {
+          return reply.code(403).send({ error: error.message });
+        }
         const message =
           error instanceof Error ? error.message : "Internal Server Error";
         return reply.code(500).send({ error: message });
@@ -278,7 +300,26 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
         await ensureFinancialSeedData();
         const data = request.body;
         const invoiceId = uuidv4();
-        const companyId = data.partyId || "comp-2";
+        const tenant = getCurrentTenant();
+        let companyId = data.partyId || "comp-2";
+        if (tenant && !tenant.isSuperAdmin) {
+          if (
+            !tenant.organizationId ||
+            tenant.organizationId === "org_default"
+          ) {
+            return reply.code(403).send({
+              error:
+                "Access denied: authenticated tenant organization context is missing",
+            });
+          }
+          if (data.partyId && data.partyId !== tenant.organizationId) {
+            return reply.code(403).send({
+              error:
+                "Access denied: cannot create invoice for another organization",
+            });
+          }
+          companyId = tenant.organizationId;
+        }
 
         await db.transaction(async (tx) => {
           await tx.insert(invoices).values({
@@ -318,6 +359,9 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.code(201).send({ id: invoiceId });
       } catch (error: unknown) {
+        if (error instanceof TenantAccessDeniedError) {
+          return reply.code(403).send({ error: error.message });
+        }
         const message =
           error instanceof Error ? error.message : "Internal Server Error";
         return reply.code(500).send({ error: message });
@@ -350,6 +394,16 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const { id } = request.params;
         const { status } = request.body;
+
+        const existingRows = await db
+          .select({ id: invoices.id, companyId: invoices.companyId })
+          .from(invoices)
+          .where(eq(invoices.id, id))
+          .limit(1);
+        if (existingRows.length === 0) {
+          return reply.code(404).send({ error: "Invoice not found" });
+        }
+        assertTenantAccess(existingRows[0].companyId);
 
         await db
           .update(invoices)
@@ -431,6 +485,9 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.send({ success: true });
       } catch (error: unknown) {
+        if (error instanceof TenantAccessDeniedError) {
+          return reply.code(403).send({ error: error.message });
+        }
         const message =
           error instanceof Error ? error.message : "Internal Server Error";
         return reply.code(500).send({ error: message });
@@ -461,6 +518,16 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { id } = request.params;
+        const existingRows = await db
+          .select({ id: invoices.id, companyId: invoices.companyId })
+          .from(invoices)
+          .where(eq(invoices.id, id))
+          .limit(1);
+        if (existingRows.length === 0) {
+          return reply.code(404).send({ error: "Invoice not found" });
+        }
+        assertTenantAccess(existingRows[0].companyId);
+
         const syncResult = await GlSyncService.enqueueInvoiceGlSync({
           invoiceId: id,
         });
@@ -471,6 +538,9 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
           syncResult,
         });
       } catch (error: unknown) {
+        if (error instanceof TenantAccessDeniedError) {
+          return reply.code(403).send({ error: error.message });
+        }
         const message =
           error instanceof Error ? error.message : "Internal Server Error";
         const statusCode =

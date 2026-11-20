@@ -13,7 +13,8 @@ import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
 import metrics from "fastify-metrics";
 import { redis, USE_MOCK } from "./config/redis.js";
-import "./cron/backup-scheduler.js"; // start cron scheduler
+import * as dbModule from "./db/index.js";
+import { stopBackupScheduler } from "./cron/backup-scheduler.js"; // start cron scheduler
 import { logger } from "./config/logger.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { requiresGlobalApiAuth } from "./middleware/public-routes.js";
@@ -362,9 +363,17 @@ app.register(tenancyPlugin);
 // Register all application routes
 app.register(registerAllRoutes);
 
-// Graceful shutdown: close Redis and other resources
+// Ensure SQLite PRAGMAs (WAL, busy_timeout, foreign_keys) are initialized before serving traffic
+app.addHook("onReady", async () => {
+  if (Object.keys(dbModule).includes("dbReady") && dbModule.dbReady) {
+    await dbModule.dbReady;
+  }
+});
+
+// Graceful shutdown: close Redis, cron scheduler, and other resources
 app.addHook("onClose", async (_instance) => {
   logger.info("Shutting down gracefully...");
+  stopBackupScheduler();
   const redisStatus =
     "status" in redis ? (redis as { status?: string }).status : undefined;
   // Check if Redis is not already closed

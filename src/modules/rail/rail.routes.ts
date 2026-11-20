@@ -38,14 +38,15 @@ import {
 const RAIL_TAG = ["Intermodal Rail Freight"] as const;
 
 export const railRoutes: FastifyPluginAsync = async (fastify) => {
-  // Authentication hook (parent app.ts authMiddleware already enforces authentication)
-  fastify.addHook("onRequest", async (req) => {
-    try {
-      if (req.headers.authorization) {
+  // Authentication hook (parent app.ts authMiddleware enforces authentication;
+  // fail closed on malformed Bearer headers even when mounted standalone)
+  fastify.addHook("onRequest", async (req, reply) => {
+    if (req.headers.authorization) {
+      try {
         await req.jwtVerify();
+      } catch {
+        return reply.code(401).send({ error: "Invalid authentication token" });
       }
-    } catch {
-      // Allow gracefully if parent authMiddleware validated or for dev/test
     }
   });
 

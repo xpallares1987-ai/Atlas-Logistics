@@ -13,6 +13,12 @@ import { validate } from "../middleware/validate.js";
 import { ShipmentIdParamsSchema } from "./shipments.schemas.js";
 import { CreateShipmentSchema } from "@atlas/shared/src/logistics-schemas.js";
 import {
+  scopeByTenant,
+  getCurrentTenant,
+  assertTenantAccess,
+  TenantAccessDeniedError,
+} from "../lib/tenancy/index.js";
+import {
   OPENAPI_ID_PARAMS_SCHEMA,
   OPENAPI_SUCCESS_FLAG_SCHEMA,
   buildErrorResponses,
@@ -64,7 +70,10 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     },
     async (_request, _reply) => {
       try {
-        const allShipments = await db.select().from(shipments);
+        const tenantCondition = scopeByTenant(shipments.companyId);
+        const allShipments = await (tenantCondition
+          ? db.select().from(shipments).where(tenantCondition)
+          : db.select().from(shipments));
         return allShipments;
       } catch {
         fastify.log.warn(
@@ -113,6 +122,8 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
           return reply.code(404).send({ error: "Shipment not found" });
         }
 
+        assertTenantAccess(shipment[0].companyId);
+
         const events = await db
           .select()
           .from(shipmentEventLogs)
@@ -123,6 +134,9 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
           events,
         };
       } catch (error: unknown) {
+        if (error instanceof TenantAccessDeniedError) {
+          return reply.code(403).send({ error: error.message });
+        }
         const message =
           error instanceof Error ? error.message : "Failed to fetch shipment";
         return reply.code(500).send({ error: message });
@@ -166,11 +180,25 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
           ...shipmentData
         } = request.body as Record<string, unknown>;
 
+        const tenant = getCurrentTenant();
+        if (
+          tenant &&
+          !tenant.isSuperAdmin &&
+          (!tenant.organizationId || tenant.organizationId === "org_default")
+        ) {
+          return reply.code(403).send({
+            error:
+              "Access denied: authenticated tenant organization context is missing",
+          });
+        }
+        const resolvedCompanyId =
+          tenant && !tenant.isSuperAdmin ? tenant.organizationId : "c-1";
+
         const newShipment = await db
           .insert(shipments)
           .values({
             id: "s-" + Date.now(),
-            companyId: "c-1",
+            companyId: resolvedCompanyId,
             status: (shipmentData.status as string) || "PENDING",
             trackingNumber: `SHP-${Date.now()}`,
             origin: (shipmentData.origin as string) || "UNKNOWN",
@@ -219,9 +247,24 @@ const shipmentsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     async (request, reply) => {
       try {
         const { id } = request.params;
+        const existing = await db
+          .select({ id: shipments.id, companyId: shipments.companyId })
+          .from(shipments)
+          .where(eq(shipments.id, id))
+          .limit(1);
+
+        if (existing.length === 0) {
+          return reply.code(404).send({ error: "Shipment not found" });
+        }
+
+        assertTenantAccess(existing[0].companyId);
+
         await db.delete(shipments).where(eq(shipments.id, id));
         return { success: true };
       } catch (error: unknown) {
+        if (error instanceof TenantAccessDeniedError) {
+          return reply.code(403).send({ error: error.message });
+        }
         const message =
           error instanceof Error ? error.message : "Failed to delete shipment";
         return reply.code(500).send({ error: message });

@@ -1,11 +1,27 @@
+/**
+ * @file auth.routes.ts
+ * @description Authentication endpoints for JWT login, session introspection, and logout.
+ * @module @atlas/api/routes/auth
+ */
+
 import { FastifyPluginAsync, FastifyReply } from "fastify";
 import { db } from "../db/index.js";
 import { users } from "../db/schema/core.js";
 import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+import { getJWTConfig } from "../config/jwt.js";
+import {
+  verifyPassword,
+  invalidateSession,
+  SESSION_COOKIE_NAME,
+} from "../lib/auth.js";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_SUCCESS_FLAG_SCHEMA,
+  buildErrorResponses,
+} from "./openapi.schemas.js";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "atlas-logistics-jwt-secret-key-super-secure";
+const AUTH_TAG = ["Authentication"] as const;
 
 interface LoginBody {
   email?: string;
@@ -16,6 +32,15 @@ const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.post<{ Body: LoginBody }>(
     "/login",
     {
+      schema: {
+        tags: [...AUTH_TAG],
+        summary: "Authenticate user credentials and issue a signed JWT token",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.NODE_ENV === "test" || process.env.CI ? 10000 : 20,
@@ -46,9 +71,15 @@ const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
 
         const user = userResult[0];
 
-        // In a real app we'd bcrypt.compare(password, user.passwordHash)
-        // For this demo/ERP prototype, we'll allow mock passwords if they match 'password123' or their role
-        if (password !== "password123" && password !== "admin") {
+        if (!user.hashedPassword) {
+          return reply.code(401).send({ error: "Invalid credentials" });
+        }
+
+        const isPasswordValid = await verifyPassword(
+          password,
+          user.hashedPassword,
+        );
+        if (!isPasswordValid) {
           return reply.code(401).send({ error: "Invalid credentials" });
         }
 
@@ -66,14 +97,16 @@ const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
             ? `${firstName} ${lastName}`
             : user.email.split("@")[0];
 
+        const { secret } = getJWTConfig();
         const token = jwt.sign(
           {
             id: user.id,
             email: user.email,
             role: user.role,
             name: userName,
+            companyId: user.companyId,
           },
-          JWT_SECRET,
+          secret,
           { expiresIn: "24h" },
         );
 
@@ -85,6 +118,7 @@ const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
             email: user.email,
             name: userName,
             role: user.role,
+            companyId: user.companyId,
           },
         });
       } catch (error: unknown) {
@@ -97,6 +131,14 @@ const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.get(
     "/me",
     {
+      schema: {
+        tags: [...AUTH_TAG],
+        summary: "Inspect current authenticated user session from Bearer token",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.NODE_ENV === "test" || process.env.CI ? 10000 : 500,
@@ -117,7 +159,7 @@ const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         }
 
         const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, getJWTConfig().secret);
 
         return reply.send({
           success: true,
@@ -130,23 +172,40 @@ const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     },
   );
 
-  fastify.post("/logout", async (_request, reply) => {
-    try {
-      const replyWithCookie = reply as FastifyReply & {
-        clearCookie?: (name: string) => void;
-      };
-      if (typeof replyWithCookie.clearCookie === "function") {
-        replyWithCookie.clearCookie("token");
-        replyWithCookie.clearCookie("auth_session");
+  fastify.post(
+    "/logout",
+    {
+      schema: {
+        tags: [...AUTH_TAG],
+        summary: "Clear session cookies and log out current user",
+        response: {
+          200: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const sessionToken = request.cookies?.[SESSION_COOKIE_NAME];
+        if (sessionToken) {
+          await invalidateSession(sessionToken);
+        }
+        const replyWithCookie = reply as FastifyReply & {
+          clearCookie?: (name: string) => void;
+        };
+        if (typeof replyWithCookie.clearCookie === "function") {
+          replyWithCookie.clearCookie("token");
+          replyWithCookie.clearCookie("auth_session");
+        }
+        return reply.send({
+          success: true,
+          message: "Logged out successfully",
+        });
+      } catch {
+        return reply.send({ success: true });
       }
-      return reply.send({
-        success: true,
-        message: "Logged out successfully",
-      });
-    } catch {
-      return reply.send({ success: true });
-    }
-  });
+    },
+  );
 };
 
 export default authRoutes;

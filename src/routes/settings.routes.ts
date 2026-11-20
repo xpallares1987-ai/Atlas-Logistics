@@ -1,3 +1,9 @@
+/**
+ * @file settings.routes.ts
+ * @description User profile, password rotation, and tenant company settings routes.
+ * @module @atlas/api/routes/settings
+ */
+
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db/index.js";
@@ -8,6 +14,14 @@ import {
   hashPassword,
   invalidateUserSessions,
 } from "../lib/auth.js";
+import { getJWTConfig } from "../config/jwt.js";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_SUCCESS_FLAG_SCHEMA,
+  buildErrorResponses,
+} from "./openapi.schemas.js";
+
+const SETTINGS_TAG = ["Account Settings"] as const;
 
 const profileSchema = z.object({
   firstName: z.string().min(1),
@@ -38,6 +52,15 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
   fastify.put(
     "/profile",
     {
+      schema: {
+        tags: [...SETTINGS_TAG],
+        summary: "Update authenticated user profile preferences",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([400, 401, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 10,
@@ -70,6 +93,16 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
   fastify.put(
     "/password",
     {
+      schema: {
+        tags: [...SETTINGS_TAG],
+        summary:
+          "Rotate authenticated user password and invalidate active sessions",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([400, 401, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 5,
@@ -87,20 +120,21 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
           if (authHeader && authHeader.startsWith("Bearer ")) {
             try {
               const jwt = await import("jsonwebtoken");
-              const JWT_SECRET =
-                process.env.JWT_SECRET ||
-                "atlas-logistics-jwt-secret-key-super-secure";
               const decoded = jwt.default.verify(
                 authHeader.substring(7),
-                JWT_SECRET,
+                getJWTConfig().secret,
               );
               if (typeof decoded === "object" && decoded !== null) {
                 user = decoded as AuthUserPayload;
               }
             } catch {
-              // fallback below
+              return reply.code(401).send({ error: "Unauthorized" });
             }
           }
+        }
+
+        if (!user || (!user.id && !user.email)) {
+          return reply.code(401).send({ error: "Unauthorized" });
         }
 
         const { currentPassword, newPassword } = passwordSchema.parse(
@@ -108,14 +142,14 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
         );
 
         let existingUser: typeof users.$inferSelect | null = null;
-        if (user?.id) {
+        if (user.id) {
           const rows = await db
             .select()
             .from(users)
             .where(eq(users.id, user.id))
             .limit(1);
           existingUser = rows[0] || null;
-        } else if (user?.email) {
+        } else if (user.email) {
           const rows = await db
             .select()
             .from(users)
@@ -125,20 +159,13 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
         }
 
         if (!existingUser) {
-          const allUsers = await db.select().from(users).limit(1);
-          existingUser = allUsers[0] || null;
-        }
-
-        if (!existingUser) {
-          return reply.code(400).send({
-            error: "User not found or no user registered in database",
+          return reply.code(401).send({
+            error: "Unauthorized: authenticated user record not found",
           });
         }
 
         let isPasswordCorrect = false;
-        if (currentPassword === "password123" || currentPassword === "admin") {
-          isPasswordCorrect = true;
-        } else if (existingUser.hashedPassword) {
+        if (existingUser.hashedPassword) {
           try {
             isPasswordCorrect = await verifyPassword(
               currentPassword,
@@ -183,6 +210,15 @@ export default async function settingsRoutes(fastify: FastifyInstance) {
   fastify.put(
     "/company",
     {
+      schema: {
+        tags: [...SETTINGS_TAG],
+        summary: "Update tenant company legal name and tax identifier",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([400, 401, 500]),
+        },
+      },
       config: {
         rateLimit: {
           max: process.env.CI ? 10000 : 10,

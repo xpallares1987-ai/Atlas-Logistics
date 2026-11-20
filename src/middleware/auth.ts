@@ -8,6 +8,7 @@
 
 import { FastifyRequest, FastifyReply } from "fastify";
 import { logger } from "../config/logger.js";
+import { getJWTConfig } from "../config/jwt.js";
 import {
   validateSession,
   createSessionCookie,
@@ -16,9 +17,6 @@ import {
   type Session,
 } from "../lib/auth.js";
 import jwt from "jsonwebtoken";
-
-// JWT_SECRET is guaranteed to exist due to validation in server.ts
-const JWT_SECRET = process.env.JWT_SECRET!;
 
 export interface AuthUserContext {
   id: string;
@@ -52,7 +50,7 @@ export const authMiddleware = async (
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
       try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, getJWTConfig().secret);
         if (typeof decoded === "object" && decoded !== null) {
           request.user = decoded as unknown as AuthUserContext;
         }
@@ -99,6 +97,7 @@ export const authMiddleware = async (
           id: user.id,
           email: user.email,
           role: user.role,
+          companyId: user.companyId ?? null,
         }
       : null;
     request.session = session;

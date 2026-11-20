@@ -95,22 +95,29 @@ export async function checkpointDatabase(dbFilePath) {
   if (!existsSync(dbFilePath)) {
     return false;
   }
+  let client = null;
   try {
     console.log(
       `🔄 Checkpointing SQLite WAL for: ${path.basename(dbFilePath)}...`,
     );
-    const client = createClient({ url: `file:${dbFilePath}` });
+    client = createClient({ url: `file:${dbFilePath}` });
+    await client.execute("PRAGMA busy_timeout = 5000;");
     await client.execute("PRAGMA wal_checkpoint(TRUNCATE);");
-    await client.close();
     console.log(
       "✓ WAL checkpoint completed (all transactions flushed into main DB).",
     );
     return true;
   } catch (err) {
     console.warn(
-      `⚠ WAL checkpoint warning: ${err.message}. Proceeding with file copy.`,
+      `⚠ WAL checkpoint warning: ${err.message}. Proceeding with backup.`,
     );
     return false;
+  } finally {
+    if (client) {
+      try {
+        await client.close();
+      } catch {}
+    }
   }
 }
 
@@ -121,6 +128,7 @@ export async function pruneOldBackups(
   try {
     const entries = await fs.readdir(targetDir, { withFileTypes: true });
     const backupItems = [];
+    const envBakGroups = new Map();
 
     for (const entry of entries) {
       const fullPath = path.resolve(targetDir, entry.name);
@@ -130,6 +138,10 @@ export async function pruneOldBackups(
         entry.isFile() &&
         entry.name.startsWith("atlas-erp-v2-") &&
         entry.name.endsWith(".db");
+      const isEnvBakFile =
+        entry.isFile() &&
+        entry.name.startsWith(".env") &&
+        entry.name.endsWith(".bak");
 
       if (isBackupFolder || isLegacyDbFile) {
         const stats = await fs.stat(fullPath);
@@ -139,6 +151,17 @@ export async function pruneOldBackups(
           mtime: stats.mtimeMs,
           isDirectory: entry.isDirectory(),
         });
+      } else if (isEnvBakFile) {
+        const stats = await fs.stat(fullPath);
+        const envMatch = /^(\.env(?:\.[a-z0-9_]+)?)-/i.exec(entry.name);
+        const groupKey = envMatch ? envMatch[1] : ".env";
+        const list = envBakGroups.get(groupKey) || [];
+        list.push({
+          name: entry.name,
+          fullPath,
+          mtime: stats.mtimeMs,
+        });
+        envBakGroups.set(groupKey, list);
       }
     }
 
@@ -151,6 +174,18 @@ export async function pruneOldBackups(
         console.log(
           `🗑️ Pruned old backup (${maxToKeep} retention limit): ${item.name}`,
         );
+      }
+    }
+
+    for (const groupItems of envBakGroups.values()) {
+      groupItems.sort((a, b) => b.mtime - a.mtime);
+      if (groupItems.length > maxToKeep) {
+        for (const item of groupItems.slice(maxToKeep)) {
+          await fs.rm(item.fullPath, { force: true });
+          console.log(
+            `🗑️ Pruned old env backup (${maxToKeep} retention limit): ${item.name}`,
+          );
+        }
       }
     }
   } catch (err) {
@@ -176,11 +211,14 @@ export async function backup() {
       await checkpointDatabase(dbSource);
       // Use native SQLite VACUUM INTO for 100% ACID snapshot without file-level tearing
       let nativeBackupSuccess = false;
+      let vacuumClient = null;
       try {
-        const client = createClient({ url: `file:${dbSource}` });
-        const backupSqlPath = backupFile.replace(/\\/g, "/");
-        await client.execute(`VACUUM INTO '${backupSqlPath}';`);
-        await client.close();
+        vacuumClient = createClient({ url: `file:${dbSource}` });
+        await vacuumClient.execute("PRAGMA busy_timeout = 5000;");
+        const backupSqlPath = backupFile
+          .replace(/\\/g, "/")
+          .replace(/'/g, "''");
+        await vacuumClient.execute(`VACUUM INTO '${backupSqlPath}';`);
         nativeBackupSuccess = true;
         console.log(
           `✅ Database snapshot created via native SQLite VACUUM INTO: ${backupFile}`,
@@ -189,6 +227,12 @@ export async function backup() {
         console.warn(
           `⚠ Native VACUUM INTO warning (${vacuumErr.message}), falling back to file copy.`,
         );
+      } finally {
+        if (vacuumClient) {
+          try {
+            await vacuumClient.close();
+          } catch {}
+        }
       }
 
       if (!nativeBackupSuccess) {

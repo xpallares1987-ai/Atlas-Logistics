@@ -5,7 +5,9 @@ import { db } from "../../db/index.js";
 
 // Mock auth middleware for unit tests
 vi.mock("../../middleware/auth.js", () => ({
-  authMiddleware: vi.fn(async () => {}),
+  authMiddleware: vi.fn(async (req: { user?: unknown }) => {
+    req.user = { id: "test-admin", role: "ADMIN", companyId: "c-1" };
+  }),
   requireRole: vi.fn(() => async () => {}),
 }));
 

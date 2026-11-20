@@ -64,6 +64,7 @@ export interface User {
   id: string;
   email: string;
   role: string;
+  companyId: string | null;
 }
 
 export type SessionValidationResult =
@@ -185,6 +186,7 @@ export async function validateSession(
       expiresAt: sessions.expiresAt,
       userEmail: users.email,
       userRole: users.role,
+      userCompanyId: users.companyId,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
@@ -203,6 +205,7 @@ export async function validateSession(
         expiresAt: sessions.expiresAt,
         userEmail: users.email,
         userRole: users.role,
+        userCompanyId: users.companyId,
       })
       .from(sessions)
       .innerJoin(users, eq(sessions.userId, users.id))
@@ -262,6 +265,7 @@ export async function validateSession(
       id: sessionRow.userId,
       email: sessionRow.userEmail,
       role: sessionRow.userRole,
+      companyId: sessionRow.userCompanyId ?? null,
     },
   };
 }

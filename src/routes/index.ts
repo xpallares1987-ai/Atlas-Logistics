@@ -139,7 +139,6 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(quotesRoutes, { prefix: "/api/rates" });
   await fastify.register(financialRoutes, { prefix: "/api" });
   await fastify.register(eventsRoutes, { prefix: "/api" });
-  await fastify.register(eventsRoutes);
   await fastify.register(documentsRoutes, { prefix: "/api/documents" });
   await fastify.register(authRoutes, { prefix: "/api/auth" });
   await fastify.register(adminRoutes);
@@ -151,7 +150,6 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(schedulesRoutes, { prefix: "/api/schedules" });
   await fastify.register(tasksRoutes, { prefix: "/api/tasks" });
   await fastify.register(aiRoutes, { prefix: "/api/ai" });
-  await fastify.register(aiRoutes, { prefix: "/api" });
   await fastify.register(bpmnRoutes, { prefix: "/api" });
   await fastify.register(dashboardRoutes, { prefix: "/api/dashboard" });
   await fastify.register(healthRoutes, { prefix: "/api" });

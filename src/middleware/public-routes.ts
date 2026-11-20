@@ -10,43 +10,46 @@
 // ============================================================================
 
 const PUBLIC_EXACT_PATHS: ReadonlySet<string> = new Set([
-  "/api/demo/trigger-alert",
-  "/api/sync/batch",
   "/api/health",
+  "/api/healthz",
+  "/api/readyz",
   "/health",
+  "/healthz",
+  "/readyz",
   "/metrics",
   "/favicon.ico",
   "/favicon.png",
+  "/api/tracking/webhook/ais",
 ]);
 
 /**
  * Segment-bounded public path prefixes (matched as exact path or `<prefix>/...`).
  */
 const PUBLIC_SEGMENT_PREFIXES: readonly string[] = [
-  "/api/events",
-  "/api/shipments/exceptions",
-  "/api/tracking",
   "/api/auth",
-  "/api/addresses",
-  "/admin",
-  "/api/admin/seed",
-  "/api/warehouse/ws",
-  "/api/dashboard/live",
   "/api/edi/inbound",
   "/api/dcsa/v3/events",
   "/api/documents/verify",
   "/api/ai/config-status",
   "/api/ai/status",
-  "/api/air-cargo/awb",
-  "/api/road-freight",
-  "/api/rail",
-  "/api/bulk-operations",
-  "/api/bulk",
-  "/api/chartering",
-  "/api/customs",
-  "/api/operations/lcl/manifest",
+  "/api/warehouse/ws",
   "/docs",
 ];
+
+/**
+ * Confidential financial, document-vault, and customs export prefixes that must ALWAYS
+ * require authenticated sessions (auth_session cookie or Bearer JWT), even when ending in
+ * an export suffix like `/pdf` or `/xml`.
+ */
+const CONFIDENTIAL_EXPORT_PREFIXES: readonly string[] = [
+  "/api/invoices/",
+  "/api/agent-settlements/",
+  "/api/documents/",
+  "/api/scm/v1/",
+  "/api/customs-declarations/",
+];
+
+const PUBLIC_TRACKING_LOOKUP_REGEX = /^\/api\/tracking\/([^/]+)$/i;
 
 /**
  * Terminal document/export pathname suffixes allowed without session headers.
@@ -145,7 +148,22 @@ export function isPublicRoute(rawUrl: string): boolean {
     }
   }
 
-  if (PUBLIC_EXPORT_SUFFIX_REGEX.test(pathname)) {
+  // Public single-segment cargo tracking reference lookup (/api/tracking/:ref),
+  // excluding authenticated customer portal routes (/api/tracking/my-shipments)
+  const trackingMatch = PUBLIC_TRACKING_LOOKUP_REGEX.exec(pathname);
+  if (
+    trackingMatch &&
+    trackingMatch[1].toLowerCase() !== "my-shipments" &&
+    trackingMatch[1].toLowerCase() !== "webhook"
+  ) {
+    return true;
+  }
+
+  const lowerPathname = pathname.toLowerCase();
+  const isConfidentialExport = CONFIDENTIAL_EXPORT_PREFIXES.some((prefix) =>
+    lowerPathname.startsWith(prefix),
+  );
+  if (!isConfidentialExport && PUBLIC_EXPORT_SUFFIX_REGEX.test(pathname)) {
     return true;
   }
 
@@ -159,12 +177,16 @@ export function requiresGlobalApiAuth(rawUrl: string): boolean {
   const rawPath = stripQueryAndFragment(rawUrl || "/");
   const pathname = normalizeRequestPathname(rawUrl);
   const lowerPathname = pathname.toLowerCase();
-  const isApiPath =
+  const lowerRaw = rawPath.toLowerCase();
+  const isProtectedPath =
     lowerPathname === "/api" ||
     lowerPathname.startsWith("/api/") ||
-    rawPath.toLowerCase().startsWith("/api/");
+    lowerRaw.startsWith("/api/") ||
+    lowerPathname === "/admin" ||
+    lowerPathname.startsWith("/admin/") ||
+    lowerRaw.startsWith("/admin/");
 
-  if (!isApiPath) {
+  if (!isProtectedPath) {
     return false;
   }
 

@@ -6,6 +6,15 @@ import { workflowQueue } from "../bpm/workflow-engine.service.js";
 import { logger } from "../config/logger.js";
 
 export default async function adminRoutes(app: FastifyInstance) {
+  app.addHook("onRequest", async (request, reply) => {
+    const user = request.user;
+    if (!user || user.role !== "ADMIN") {
+      return reply
+        .status(403)
+        .send({ error: "Forbidden: ADMIN role required" });
+    }
+  });
+
   logger.info("Initializing BullMQ Dashboard on /admin/queues");
 
   const serverAdapter = new FastifyAdapter();

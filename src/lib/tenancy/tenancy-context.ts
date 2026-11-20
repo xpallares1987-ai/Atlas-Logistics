@@ -61,7 +61,12 @@ export function assertTenantAccess(
   const current = context ?? getCurrentTenant();
   if (!current) return; // Unscoped / system background task
   if (current.isSuperAdmin) return; // Super admin bypass
-  if (current.organizationId === "org_default") return; // Default single-tenant context
+
+  if (!current.organizationId || current.organizationId === "org_default") {
+    throw new TenantAccessDeniedError(
+      "Access denied: authenticated tenant organization context is missing",
+    );
+  }
 
   if (resourceOrgId && resourceOrgId !== current.organizationId) {
     throw new TenantAccessDeniedError(
@@ -81,15 +86,19 @@ export function scopeByTenant(
   tableColumn: Column,
   explicitOrgId?: string,
 ): SQL | undefined {
-  const orgId = explicitOrgId ?? getCurrentTenant()?.organizationId;
   const current = getCurrentTenant();
+  if (!current && !explicitOrgId) {
+    return undefined; // Outside HTTP request tenant context (e.g. background jobs / unit tests)
+  }
 
   if (current?.isSuperAdmin && !explicitOrgId) {
     return undefined; // Super admins see all records unless explicitly filtered
   }
 
-  if (!orgId || (orgId === "org_default" && !explicitOrgId)) {
-    return undefined;
+  const orgId = explicitOrgId ?? current?.organizationId;
+  if (!orgId || orgId === "org_default") {
+    // Fail-closed: never return unscoped rows when inside a non-admin request context lacking companyId
+    return eq(tableColumn, "__UNBOUNDED_TENANT_DENIED__");
   }
 
   return eq(tableColumn, orgId);
@@ -99,23 +108,28 @@ export function scopeByTenant(
  * Fastify Plugin to bind tenant context to the asynchronous request execution tree.
  */
 export const tenancyPluginAsync: FastifyPluginAsync = async (fastify) => {
-  fastify.addHook("onRequest", (request, _reply, done) => {
+  const resolveTenantFromRequest = (request: FastifyRequest): TenantContext => {
     const user = getRequestUser(request);
-    const headerOrgId = request.headers["x-organization-id"] as
-      string | undefined;
+    const headerOrgId =
+      process.env.NODE_ENV === "test"
+        ? (request.headers["x-organization-id"] as string | undefined)
+        : undefined;
 
     const organizationId =
-      user?.companyId || user?.organizationId || headerOrgId || "org_default";
+      user?.companyId || user?.organizationId || headerOrgId || "";
     const role = user?.role || "USER";
     const isSuperAdmin = role === "SUPER_ADMIN" || role === "ADMIN";
 
-    const context: TenantContext = {
+    return {
       organizationId,
       userId: user?.id,
       role,
       isSuperAdmin,
     };
+  };
 
+  fastify.addHook("onRequest", (request, _reply, done) => {
+    const context = resolveTenantFromRequest(request);
     tenantStorage.run(context, () => {
       done();
     });
@@ -123,19 +137,14 @@ export const tenancyPluginAsync: FastifyPluginAsync = async (fastify) => {
 
   fastify.addHook("preHandler", (request, _reply, done) => {
     const store = tenantStorage.getStore();
-    const user = getRequestUser(request);
-    const headerOrgId = request.headers["x-organization-id"] as
-      string | undefined;
-    if (store && (user || headerOrgId)) {
-      store.organizationId =
-        user?.companyId ||
-        user?.organizationId ||
-        headerOrgId ||
-        store.organizationId;
-      store.userId = user?.id ?? store.userId;
-      store.role = user?.role ?? store.role;
-      store.isSuperAdmin =
-        store.role === "SUPER_ADMIN" || store.role === "ADMIN";
+    if (store) {
+      const updated = resolveTenantFromRequest(request);
+      if (updated.organizationId || updated.userId) {
+        store.organizationId = updated.organizationId;
+        store.userId = updated.userId;
+        store.role = updated.role;
+        store.isSuperAdmin = updated.isSuperAdmin;
+      }
     }
     done();
   });

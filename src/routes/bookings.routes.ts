@@ -16,6 +16,11 @@ import {
   ConfirmBookingInput,
 } from "../services/booking-lifecycle.service.js";
 import {
+  getCurrentTenant,
+  assertTenantAccess,
+  TenantAccessDeniedError,
+} from "../lib/tenancy/index.js";
+import {
   OPENAPI_ID_PARAMS_SCHEMA,
   OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
   buildErrorResponses,
@@ -71,9 +76,20 @@ const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const query = request.query || {};
+        const tenant = getCurrentTenant();
+        let effectiveCustomerId = query.customerId;
+        if (tenant && !tenant.isSuperAdmin) {
+          if (
+            !tenant.organizationId ||
+            tenant.organizationId === "org_default"
+          ) {
+            return reply.send([]);
+          }
+          effectiveCustomerId = tenant.organizationId;
+        }
         const items = await listBookings({
           status: query.status,
-          customerId: query.customerId,
+          customerId: effectiveCustomerId,
           limit: query.limit ? Number(query.limit) : 100,
         });
         return reply.send(items);
@@ -126,8 +142,12 @@ const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
         if (!booking) {
           return reply.code(404).send({ error: "Booking not found" });
         }
+        assertTenantAccess(booking.customerId);
         return reply.send(booking);
       } catch (error: unknown) {
+        if (error instanceof TenantAccessDeniedError) {
+          return reply.code(403).send({ error: error.message });
+        }
         fastify.log.error(error, "Error fetching booking detail");
         const message =
           error instanceof Error
@@ -182,7 +202,27 @@ const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
             .code(400)
             .send({ error: "Fields 'origin' and 'destination' are required." });
         }
-        const created = await createBookingRequest(body);
+        const tenant = getCurrentTenant();
+        let scopedBody = body;
+        if (tenant && !tenant.isSuperAdmin) {
+          if (
+            !tenant.organizationId ||
+            tenant.organizationId === "org_default"
+          ) {
+            return reply.code(403).send({
+              error:
+                "Access denied: authenticated tenant organization context is missing",
+            });
+          }
+          if (body.customerId && body.customerId !== tenant.organizationId) {
+            return reply.code(403).send({
+              error:
+                "Access denied: cannot create booking for another organization",
+            });
+          }
+          scopedBody = { ...body, customerId: tenant.organizationId };
+        }
+        const created = await createBookingRequest(scopedBody);
         return reply.code(201).send(created);
       } catch (error: unknown) {
         fastify.log.error(error, "Error creating booking request");
@@ -246,10 +286,18 @@ const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { id } = request.params;
+        const existing = await getBookingById(id);
+        if (!existing) {
+          return reply.code(404).send({ error: "Booking not found" });
+        }
+        assertTenantAccess(existing.customerId);
         const body = request.body || ({} as ConfirmBookingInput);
         const result = await confirmBookingToShipment(id, body);
         return reply.send(result);
       } catch (error: unknown) {
+        if (error instanceof TenantAccessDeniedError) {
+          return reply.code(403).send({ error: error.message });
+        }
         const message =
           error instanceof Error ? error.message : "Error confirming booking";
         if (message.includes("not found")) {
@@ -284,10 +332,18 @@ const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { id } = request.params;
+        const existing = await getBookingById(id);
+        if (!existing) {
+          return reply.code(404).send({ error: "Booking not found" });
+        }
+        assertTenantAccess(existing.customerId);
         const body = request.body || {};
         const cancelled = await cancelBookingRequest(id, body.reason);
         return reply.send(cancelled);
       } catch (error: unknown) {
+        if (error instanceof TenantAccessDeniedError) {
+          return reply.code(403).send({ error: error.message });
+        }
         const message =
           error instanceof Error ? error.message : "Error cancelling booking";
         if (message.includes("not found")) {
@@ -330,15 +386,17 @@ const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
         if (!detail) {
           return reply.code(404).send({ error: "Booking not found" });
         }
+        assertTenantAccess(detail.customerId);
         if (!detail.blDocument) {
-          return reply
-            .code(404)
-            .send({
-              error: "Bill of Lading not yet generated for this booking",
-            });
+          return reply.code(404).send({
+            error: "Bill of Lading not yet generated for this booking",
+          });
         }
         return reply.send(detail.blDocument);
       } catch (error: unknown) {
+        if (error instanceof TenantAccessDeniedError) {
+          return reply.code(403).send({ error: error.message });
+        }
         const message =
           error instanceof Error
             ? error.message

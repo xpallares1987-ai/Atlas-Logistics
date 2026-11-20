@@ -1044,23 +1044,17 @@ export function resolveDepartmentForTask(
   return "OCEAN_OPS";
 }
 
-export async function refreshShipmentProjections(
+export async function persistShipmentProjections(
   shipmentId: string,
+  view: OperationalShipment360View,
+  writer: Pick<typeof db, "insert" | "update"> = db,
 ): Promise<OperationalShipment360View> {
-  await ensureOperationalBffTables();
-
-  const view = await computeShipment360View(shipmentId);
   const now = new Date();
 
   // 1. Upsert scmOperationalShipment360ViewsV2
-  const existingView = await db
-    .select()
-    .from(scmOperationalShipment360ViewsV2)
-    .where(eq(scmOperationalShipment360ViewsV2.shipmentId, shipmentId))
-    .limit(1);
-
-  if (existingView.length === 0) {
-    await db.insert(scmOperationalShipment360ViewsV2).values({
+  await writer
+    .insert(scmOperationalShipment360ViewsV2)
+    .values({
       shipmentId,
       shipmentReference: view.shipmentReference,
       serviceType: view.serviceType,
@@ -1077,11 +1071,10 @@ export async function refreshShipmentProjections(
       projectionVersion: 1,
       viewJson: JSON.stringify(view),
       updatedAt: now,
-    });
-  } else {
-    await db
-      .update(scmOperationalShipment360ViewsV2)
-      .set({
+    })
+    .onConflictDoUpdate({
+      target: scmOperationalShipment360ViewsV2.shipmentId,
+      set: {
         shipmentReference: view.shipmentReference,
         serviceType: view.serviceType,
         lifecycle: view.lifecycle,
@@ -1094,12 +1087,11 @@ export async function refreshShipmentProjections(
         openTasksCount: view.metrics.openTasks,
         blockedTasksCount: view.metrics.blockedTasks,
         completedTasksCount: view.metrics.completedTasks,
-        projectionVersion: existingView[0].projectionVersion + 1,
+        projectionVersion: sql`${scmOperationalShipment360ViewsV2.projectionVersion} + 1`,
         viewJson: JSON.stringify(view),
         updatedAt: now,
-      })
-      .where(eq(scmOperationalShipment360ViewsV2.shipmentId, shipmentId));
-  }
+      },
+    });
 
   // 2. Resolve Station attribution from shipment route legs or branchId
   const originLoc = view.routePlan?.legs?.[0]?.originLocationId;
@@ -1175,14 +1167,9 @@ export async function refreshShipmentProjections(
       updatedAt: now.toISOString(),
     };
 
-    const existingItem = await db
-      .select()
-      .from(scmOperationalCockpitWorkItemsV2)
-      .where(eq(scmOperationalCockpitWorkItemsV2.workItemId, task.taskId))
-      .limit(1);
-
-    if (existingItem.length === 0) {
-      await db.insert(scmOperationalCockpitWorkItemsV2).values({
+    await writer
+      .insert(scmOperationalCockpitWorkItemsV2)
+      .values({
         workItemId: task.taskId,
         taskId: task.taskId,
         shipmentId,
@@ -1198,11 +1185,10 @@ export async function refreshShipmentProjections(
         workflowInstanceId: view.workflow?.instanceId || null,
         itemJson: JSON.stringify(cockpitItem),
         updatedAt: now,
-      });
-    } else {
-      await db
-        .update(scmOperationalCockpitWorkItemsV2)
-        .set({
+      })
+      .onConflictDoUpdate({
+        target: scmOperationalCockpitWorkItemsV2.workItemId,
+        set: {
           shipmentReference: view.shipmentReference,
           serviceType: view.serviceType,
           taskTypeCode: task.taskType,
@@ -1215,12 +1201,11 @@ export async function refreshShipmentProjections(
           workflowInstanceId: view.workflow?.instanceId || null,
           itemJson: JSON.stringify(cockpitItem),
           updatedAt: now,
-        })
-        .where(eq(scmOperationalCockpitWorkItemsV2.workItemId, task.taskId));
-    }
+        },
+      });
   }
 
-  // 3. Upsert Cockpit Items for each active exception
+  // 3b. Upsert Cockpit Items for each active exception
   const activeExceptions = view.exceptions.filter(
     (e) => e.status !== "RESOLVED" && e.status !== "WAIVED",
   );
@@ -1280,14 +1265,9 @@ export async function refreshShipmentProjections(
       updatedAt: now.toISOString(),
     };
 
-    const existingExcItem = await db
-      .select()
-      .from(scmOperationalCockpitWorkItemsV2)
-      .where(eq(scmOperationalCockpitWorkItemsV2.workItemId, exc.exceptionId))
-      .limit(1);
-
-    if (existingExcItem.length === 0) {
-      await db.insert(scmOperationalCockpitWorkItemsV2).values({
+    await writer
+      .insert(scmOperationalCockpitWorkItemsV2)
+      .values({
         workItemId: exc.exceptionId,
         taskId: exc.exceptionId,
         shipmentId,
@@ -1303,11 +1283,10 @@ export async function refreshShipmentProjections(
         workflowInstanceId: view.workflow?.instanceId || null,
         itemJson: JSON.stringify(excWorkItem),
         updatedAt: now,
-      });
-    } else {
-      await db
-        .update(scmOperationalCockpitWorkItemsV2)
-        .set({
+      })
+      .onConflictDoUpdate({
+        target: scmOperationalCockpitWorkItemsV2.workItemId,
+        set: {
           shipmentReference: view.shipmentReference,
           serviceType: view.serviceType,
           taskTypeCode: exc.category,
@@ -1320,11 +1299,8 @@ export async function refreshShipmentProjections(
           workflowInstanceId: view.workflow?.instanceId || null,
           itemJson: JSON.stringify(excWorkItem),
           updatedAt: now,
-        })
-        .where(
-          eq(scmOperationalCockpitWorkItemsV2.workItemId, exc.exceptionId),
-        );
-    }
+        },
+      });
   }
 
   // 4. Update resolved exceptions in Cockpit to COMPLETED
@@ -1332,7 +1308,7 @@ export async function refreshShipmentProjections(
     (e) => e.status === "RESOLVED" || e.status === "WAIVED",
   );
   for (const exc of resolvedExceptions) {
-    await db
+    await writer
       .update(scmOperationalCockpitWorkItemsV2)
       .set({
         status: "COMPLETED",
@@ -1344,6 +1320,14 @@ export async function refreshShipmentProjections(
   }
 
   return view;
+}
+
+export async function refreshShipmentProjections(
+  shipmentId: string,
+): Promise<OperationalShipment360View> {
+  await ensureOperationalBffTables();
+  const view = await computeShipment360View(shipmentId);
+  return persistShipmentProjections(shipmentId, view, db);
 }
 
 // ============================================================================
@@ -2299,52 +2283,89 @@ export async function getShipmentOperationalTimeline(
 export async function getProjectionsHealth(): Promise<ProjectionsHealthReport> {
   await ensureOperationalBffTables();
 
-  const outboxRows = await db.select().from(scmOutboxMessages);
-  const dlq = await outboxBus.getDeadLetterQueue();
-
-  const pendingCount = outboxRows.filter((r) => r.status === "PENDING").length;
-  const processingCount = outboxRows.filter(
-    (r) => r.status === "PROCESSING",
-  ).length;
-  const processedCount = outboxRows.filter(
-    (r) => r.status === "PROCESSED",
-  ).length;
-  const failedCount = outboxRows.filter((r) => r.status === "FAILED").length;
-
-  const [shp360Rows, cockpitRows, excRows] = await Promise.all([
-    db.select().from(scmOperationalShipment360ViewsV2),
-    db.select().from(scmOperationalCockpitWorkItemsV2),
-    db.select().from(scmOperationalExceptionsV2),
+  const [outboxStats, shp360Stats, cockpitStats, excStats] = await Promise.all([
+    db
+      .select({
+        status: scmOutboxMessages.status,
+        count: sql<number>`count(*)`,
+        maxOccurredAt: sql<
+          number | string | null
+        >`max(${scmOutboxMessages.occurredAt})`,
+      })
+      .from(scmOutboxMessages)
+      .groupBy(scmOutboxMessages.status),
+    db
+      .select({
+        count: sql<number>`count(*)`,
+        maxUpdatedAt: sql<
+          string | null
+        >`max(${scmOperationalShipment360ViewsV2.updatedAt})`,
+      })
+      .from(scmOperationalShipment360ViewsV2),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(scmOperationalCockpitWorkItemsV2),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(scmOperationalExceptionsV2),
   ]);
 
-  // Compute lag
+  let pendingCount = 0;
+  let processingCount = 0;
+  let processedCount = 0;
+  let failedCount = 0;
   let latestOutboxMs = 0;
   let lastOutboxTimestamp: string | null = null;
-  for (const r of outboxRows) {
-    const t = new Date(r.occurredAt).getTime();
-    if (t > latestOutboxMs) {
-      latestOutboxMs = t;
-      lastOutboxTimestamp = new Date(r.occurredAt).toISOString();
+
+  const parseSqlTimestamp = (rawVal: unknown): Date | null => {
+    if (rawVal === null || rawVal === undefined) return null;
+    if (typeof rawVal === "number") {
+      const dt = new Date(rawVal > 1e11 ? rawVal : rawVal * 1000);
+      return Number.isFinite(dt.getTime()) ? dt : null;
+    }
+    if (typeof rawVal === "string" && /^\d+$/.test(rawVal.trim())) {
+      const num = Number(rawVal.trim());
+      const dt = new Date(num > 1e11 ? num : num * 1000);
+      return Number.isFinite(dt.getTime()) ? dt : null;
+    }
+    const dt = new Date(String(rawVal));
+    return Number.isFinite(dt.getTime()) ? dt : null;
+  };
+
+  for (const row of outboxStats) {
+    const cnt = Number(row.count) || 0;
+    if (row.status === "PENDING") pendingCount = cnt;
+    else if (row.status === "PROCESSING") processingCount = cnt;
+    else if (row.status === "PROCESSED") processedCount = cnt;
+    else if (row.status === "FAILED") failedCount = cnt;
+
+    const dt = parseSqlTimestamp(row.maxOccurredAt);
+    if (dt && dt.getTime() > latestOutboxMs) {
+      latestOutboxMs = dt.getTime();
+      lastOutboxTimestamp = dt.toISOString();
     }
   }
+
+  const shipment360Count = Number(shp360Stats[0]?.count) || 0;
+  const cockpitItemsCount = Number(cockpitStats[0]?.count) || 0;
+  const exceptionsCount = Number(excStats[0]?.count) || 0;
 
   let latestProjMs = 0;
   let lastProcessedTimestamp: string | null = null;
-  for (const p of shp360Rows) {
-    const t = new Date(p.updatedAt).getTime();
-    if (t > latestProjMs) {
-      latestProjMs = t;
-      lastProcessedTimestamp = new Date(p.updatedAt).toISOString();
-    }
+  const projDt = parseSqlTimestamp(shp360Stats[0]?.maxUpdatedAt);
+  if (projDt) {
+    latestProjMs = projDt.getTime();
+    lastProcessedTimestamp = projDt.toISOString();
   }
 
+  const dlqCount = failedCount;
   const lagMs =
     pendingCount > 0 && latestOutboxMs > latestProjMs
       ? latestOutboxMs - latestProjMs
       : 0;
 
   let healthStatus: ProjectionsHealthReport["status"] = "HEALTHY";
-  if (dlq.length > 0 || failedCount > 0) {
+  if (dlqCount > 0 || failedCount > 0) {
     healthStatus = "DEGRADED";
   } else if (pendingCount > 25 || lagMs > 30000) {
     healthStatus = "OUT_OF_SYNC";
@@ -2357,12 +2378,12 @@ export async function getProjectionsHealth(): Promise<ProjectionsHealthReport> {
       processingCount,
       processedCount,
       failedCount,
-      dlqCount: dlq.length,
+      dlqCount,
     },
     projectionMetrics: {
-      shipment360Count: shp360Rows.length,
-      cockpitItemsCount: cockpitRows.length,
-      exceptionsCount: excRows.length,
+      shipment360Count,
+      cockpitItemsCount,
+      exceptionsCount,
     },
     projectorLagMs: lagMs,
     lastProcessedEventTimestamp: lastProcessedTimestamp,
@@ -2382,9 +2403,18 @@ export async function rebuildAllOperationalProjections(): Promise<{
   const shipments = await db.select().from(scmLogicalShipments);
   let cockpitItemsCount = 0;
 
-  for (const shp of shipments) {
-    const view = await refreshShipmentProjections(shp.shipmentId);
-    cockpitItemsCount += view.tasks.length;
+  const REBUILD_BATCH_SIZE = 50;
+  for (let i = 0; i < shipments.length; i += REBUILD_BATCH_SIZE) {
+    const batch = shipments.slice(i, i + REBUILD_BATCH_SIZE);
+    const views = await Promise.all(
+      batch.map((shp) => computeShipment360View(shp.shipmentId)),
+    );
+    await db.transaction(async (tx) => {
+      for (let j = 0; j < batch.length; j++) {
+        await persistShipmentProjections(batch[j].shipmentId, views[j], tx);
+        cockpitItemsCount += views[j].tasks.length;
+      }
+    });
   }
 
   const durationMs = Date.now() - startTime;

@@ -42,6 +42,31 @@ export const databaseUrl = getDatabaseUrl();
 // 2. CENTRALIZED SQLITE / LIBSQL CONNECTION FACTORY (P0.2)
 // ============================================================================
 
+const clientPragmasMap = new WeakMap<Client, Promise<void>>();
+
+/**
+ * Applies mandatory SQLite PRAGMAs sequentially and returns an awaitable Promise.
+ */
+export async function applyMandatorySqlitePragmas(
+  sqlClient: Client,
+): Promise<void> {
+  await sqlClient.execute("PRAGMA busy_timeout = 5000;");
+  await sqlClient.execute("PRAGMA journal_mode = WAL;");
+  await sqlClient.execute("PRAGMA foreign_keys = ON;");
+}
+
+/**
+ * Awaits PRAGMA initialization for a client created by `createConfiguredSqliteClient`.
+ */
+export async function ensureSqlitePragmas(
+  sqlClient: Client = client,
+): Promise<void> {
+  const pending = clientPragmasMap.get(sqlClient);
+  if (pending) {
+    await pending;
+  }
+}
+
 /**
  * Creates a SQLite/libSQL client pre-configured with Atlas Logistics mandatory PRAGMAs:
  * - PRAGMA journal_mode = WAL
@@ -66,9 +91,8 @@ export function createConfiguredSqliteClient(
   });
 
   if (targetUrl.startsWith("file:")) {
-    sqlClient.execute("PRAGMA journal_mode = WAL;").catch(() => {});
-    sqlClient.execute("PRAGMA busy_timeout = 5000;").catch(() => {});
-    sqlClient.execute("PRAGMA foreign_keys = ON;").catch(() => {});
+    const initPromise = applyMandatorySqlitePragmas(sqlClient).catch(() => {});
+    clientPragmasMap.set(sqlClient, initPromise);
   }
 
   return sqlClient;
@@ -78,6 +102,8 @@ export const client = createConfiguredSqliteClient(
   databaseUrl,
   process.env.DATABASE_AUTH_TOKEN,
 );
+
+export const dbReady: Promise<void> = ensureSqlitePragmas(client);
 
 export const db = drizzle({ client });
 

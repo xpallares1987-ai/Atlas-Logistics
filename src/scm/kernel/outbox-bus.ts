@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { and, eq, desc } from "drizzle-orm";
-import { client, db } from "../../db/index.js";
+import * as dbModule from "../../db/index.js";
+const { client, db } = dbModule;
 import {
   scmOutboxMessages,
   scmInboxProcessedMessages,
@@ -36,6 +37,9 @@ let tablesInitialized = false;
  */
 export async function ensureScmFoundationTables(): Promise<void> {
   if (tablesInitialized) return;
+  if (Object.keys(dbModule).includes("dbReady") && dbModule.dbReady) {
+    await dbModule.dbReady;
+  }
 
   const folderMigrationPath = path.resolve(
     process.cwd(),

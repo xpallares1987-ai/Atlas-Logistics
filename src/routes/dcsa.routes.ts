@@ -12,6 +12,15 @@ import {
   DcsaEventType,
 } from "../services/dcsa/dcsa-hub.service.js";
 import { DcsaEblService } from "../services/dcsa/dcsa-ebl.service.js";
+import { authMiddleware } from "../middleware/auth.js";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  buildErrorResponses,
+  openApiObject,
+} from "./openapi.schemas.js";
+
+const DCSA_TAG = ["DCSA v3.0 & e-BL"] as const;
 
 // ============================================================================
 // SCHEMAS & TYPE DEFINITIONS
@@ -134,163 +143,245 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * Ingest DCSA 3.0 Telemetry Event (from Ocean Carrier Webhook or Terminal)
    */
-  fastify.post("/events", async (request, reply) => {
-    try {
-      const parsed = dcsaEventSchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({
+  fastify.post(
+    "/events",
+    {
+      schema: {
+        tags: [...DCSA_TAG],
+        summary:
+          "Ingest a DCSA 3.0 Track & Trace equipment, transport, or shipment event",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parsed = dcsaEventSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            success: false,
+            error: "Invalid DCSA event payload",
+            details: parsed.error.issues,
+          });
+        }
+
+        const sigHeader =
+          (request.headers["x-dcsa-signature"] as string) ||
+          (request.headers["dcsa-signature"] as string) ||
+          undefined;
+
+        const carrierCode =
+          (request.headers["x-carrier-code"] as string) || undefined;
+        const rawPayload = JSON.stringify(request.body);
+
+        if (!sigHeader && !request.user) {
+          return reply.status(401).send({
+            success: false,
+            error: "Missing DCSA HMAC signature header (x-dcsa-signature)",
+          });
+        }
+
+        const result = await DcsaHubService.processEvent(parsed.data, {
+          rawPayload,
+          signatureHeader: sigHeader,
+          carrierCode,
+          skipSignatureCheck: !sigHeader && Boolean(request.user),
+        });
+
+        return reply.status(201).send({
+          success: true,
+          data: result,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to process DCSA event";
+        return reply.status(500).send({
           success: false,
-          error: "Invalid DCSA event payload",
-          details: parsed.error.issues,
+          error: message,
         });
       }
-
-      const sigHeader =
-        (request.headers["x-dcsa-signature"] as string) ||
-        (request.headers["dcsa-signature"] as string) ||
-        undefined;
-
-      const carrierCode =
-        (request.headers["x-carrier-code"] as string) || undefined;
-      const rawPayload = JSON.stringify(request.body);
-
-      const result = await DcsaHubService.processEvent(parsed.data, {
-        rawPayload,
-        signatureHeader: sigHeader,
-        carrierCode,
-        skipSignatureCheck: !sigHeader,
-      });
-
-      return reply.status(201).send({
-        success: true,
-        data: result,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to process DCSA event";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+    },
+  );
 
   /**
    * Query historical DCSA telemetry event ledger
    */
-  fastify.get("/events", async (request, reply) => {
-    try {
-      const query = request.query as { limit?: string };
-      const limit = query.limit ? parseInt(query.limit, 10) : 50;
-      const events = await DcsaHubService.listEvents(limit);
+  fastify.get(
+    "/events",
+    {
+      preHandler: [authMiddleware],
+      schema: {
+        tags: [...DCSA_TAG],
+        summary: "Query historical DCSA 3.0 telemetry event ledger",
+        querystring: openApiObject({
+          limit: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const query = request.query as { limit?: string };
+        const limit = query.limit ? parseInt(query.limit, 10) : 50;
+        const events = await DcsaHubService.listEvents(limit);
 
-      return reply.send({
-        success: true,
-        data: events,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to list DCSA events";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+        return reply.send({
+          success: true,
+          data: events,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to list DCSA events";
+        return reply.status(500).send({
+          success: false,
+          error: message,
+        });
+      }
+    },
+  );
 
   /**
    * Create a Webhook Subscription (DCSA Event Subscriptions API v3)
    */
-  fastify.post("/event-subscriptions", async (request, reply) => {
-    try {
-      const parsed = subscriptionSchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({
+  fastify.post(
+    "/event-subscriptions",
+    {
+      schema: {
+        tags: [...DCSA_TAG],
+        summary: "Create a DCSA v3.0 carrier event webhook subscription",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parsed = subscriptionSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            success: false,
+            error: "Invalid subscription payload",
+            details: parsed.error.issues,
+          });
+        }
+
+        const subscription = await DcsaHubService.createSubscription(
+          parsed.data,
+        );
+
+        return reply.status(201).send({
+          success: true,
+          data: subscription,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to create DCSA subscription";
+        return reply.status(500).send({
           success: false,
-          error: "Invalid subscription payload",
-          details: parsed.error.issues,
+          error: message,
         });
       }
-
-      const subscription = await DcsaHubService.createSubscription(parsed.data);
-
-      return reply.status(201).send({
-        success: true,
-        data: subscription,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to create DCSA subscription";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+    },
+  );
 
   /**
    * Query registered DCSA webhook subscriptions
    */
-  fastify.get("/event-subscriptions", async (_request, reply) => {
-    try {
-      const subscriptions = await DcsaHubService.listSubscriptions();
-      return reply.send({
-        success: true,
-        data: subscriptions,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to list DCSA subscriptions";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+  fastify.get(
+    "/event-subscriptions",
+    {
+      schema: {
+        tags: [...DCSA_TAG],
+        summary:
+          "List registered DCSA v3.0 carrier event webhook subscriptions",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        const subscriptions = await DcsaHubService.listSubscriptions();
+        return reply.send({
+          success: true,
+          data: subscriptions,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to list DCSA subscriptions";
+        return reply.status(500).send({
+          success: false,
+          error: message,
+        });
+      }
+    },
+  );
 
   /**
    * Interactive Simulator: Trigger realistic carrier event with HMAC signature
    */
-  fastify.post("/simulate-event", async (request, reply) => {
-    try {
-      const body = (request.body || {}) as {
-        carrierCode?: "MSCU" | "MAEU" | "CMDU" | "HLCU";
-        eventType?: DcsaEventType;
-        eventTypeCode?: string;
-        bookingReference?: string;
-        containerNumber?: string;
-        locode?: string;
-        isDisruption?: boolean;
-        disruptionReason?: string;
-      };
+  fastify.post(
+    "/simulate-event",
+    {
+      schema: {
+        tags: [...DCSA_TAG],
+        summary: "Simulate a signed DCSA 3.0 carrier telemetry event",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const body = (request.body || {}) as {
+          carrierCode?: "MSCU" | "MAEU" | "CMDU" | "HLCU";
+          eventType?: DcsaEventType;
+          eventTypeCode?: string;
+          bookingReference?: string;
+          containerNumber?: string;
+          locode?: string;
+          isDisruption?: boolean;
+          disruptionReason?: string;
+        };
 
-      const result = await DcsaHubService.simulateCarrierEvent({
-        carrierCode: body.carrierCode || "MSCU",
-        eventType: body.eventType || "EQUIPMENT",
-        eventTypeCode: body.eventTypeCode || "LOAD",
-        bookingReference: body.bookingReference,
-        containerNumber: body.containerNumber,
-        locode: body.locode,
-        isDisruption: body.isDisruption,
-        disruptionReason: body.disruptionReason,
-      });
+        const result = await DcsaHubService.simulateCarrierEvent({
+          carrierCode: body.carrierCode || "MSCU",
+          eventType: body.eventType || "EQUIPMENT",
+          eventTypeCode: body.eventTypeCode || "LOAD",
+          bookingReference: body.bookingReference,
+          containerNumber: body.containerNumber,
+          locode: body.locode,
+          isDisruption: body.isDisruption,
+          disruptionReason: body.disruptionReason,
+        });
 
-      return reply.status(200).send(result);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to simulate DCSA carrier event";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+        return reply.status(200).send(result);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to simulate DCSA carrier event";
+        return reply.status(500).send({
+          success: false,
+          error: message,
+        });
+      }
+    },
+  );
 
   // ==========================================================================
   // DCSA e-BL v3.0 Maritime Lifecycle & UNCITRAL MLETR Endpoints
@@ -300,196 +391,306 @@ export const dcsaRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/dcsa/ebl/issue
    * Issue a canonical DCSA 3.0 Electronic Bill of Lading
    */
-  fastify.post("/ebl/issue", async (request, reply) => {
-    try {
-      const parsed = issueEblSchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({
+  fastify.post(
+    "/ebl/issue",
+    {
+      schema: {
+        tags: [...DCSA_TAG],
+        summary:
+          "Issue a canonical DCSA 3.0 MLETR Electronic Bill of Lading (e-BL)",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parsed = issueEblSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            success: false,
+            error: "Invalid DCSA e-BL payload",
+            details: parsed.error.issues,
+          });
+        }
+
+        const result = await DcsaEblService.issueEbl(parsed.data);
+        return reply.status(201).send(result);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to issue DCSA e-BL";
+        return reply.status(500).send({
           success: false,
-          error: "Invalid DCSA e-BL payload",
-          details: parsed.error.issues,
+          error: message,
         });
       }
-
-      const result = await DcsaEblService.issueEbl(parsed.data);
-      return reply.status(201).send(result);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to issue DCSA e-BL";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+    },
+  );
 
   /**
    * GET /api/dcsa/ebl
    * List transferable electronic Bills of Lading
    */
-  fastify.get("/ebl", async (request, reply) => {
-    try {
-      const query = request.query as { shipmentId?: string };
-      const ebls = await DcsaEblService.listEbls(query.shipmentId);
-      return reply.send({
-        success: true,
-        count: ebls.length,
-        data: ebls,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to list DCSA e-BLs";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+  fastify.get(
+    "/ebl",
+    {
+      schema: {
+        tags: [...DCSA_TAG],
+        summary: "List DCSA 3.0 Electronic Bills of Lading",
+        querystring: openApiObject({
+          shipmentId: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const query = request.query as { shipmentId?: string };
+        const ebls = await DcsaEblService.listEbls(query.shipmentId);
+        return reply.send({
+          success: true,
+          count: ebls.length,
+          data: ebls,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to list DCSA e-BLs";
+        return reply.status(500).send({
+          success: false,
+          error: message,
+        });
+      }
+    },
+  );
 
   /**
    * GET /api/dcsa/ebl/:id
    * Get single e-BL with endorsement ledger history
    */
-  fastify.get("/ebl/:id", async (request, reply) => {
-    try {
-      const params = request.params as { id: string };
-      const ebl = await DcsaEblService.getEbl(params.id);
-      if (!ebl) {
-        return reply.status(404).send({
+  fastify.get(
+    "/ebl/:id",
+    {
+      schema: {
+        tags: [...DCSA_TAG],
+        summary:
+          "Retrieve a single DCSA e-BL with title endorsement ledger history",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const params = request.params as { id: string };
+        const ebl = await DcsaEblService.getEbl(params.id);
+        if (!ebl) {
+          return reply.status(404).send({
+            success: false,
+            error: `DCSA e-BL '${params.id}' not found`,
+          });
+        }
+        return reply.send({
+          success: true,
+          data: ebl,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to get DCSA e-BL";
+        return reply.status(500).send({
           success: false,
-          error: `DCSA e-BL '${params.id}' not found`,
+          error: message,
         });
       }
-      return reply.send({
-        success: true,
-        data: ebl,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to get DCSA e-BL";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+    },
+  );
 
   /**
    * POST /api/dcsa/ebl/:id/transfer
    * Transfer title of property to a new legitimate holder
    */
-  fastify.post("/ebl/:id/transfer", async (request, reply) => {
-    try {
-      const params = request.params as { id: string };
-      const parsed = transferEblSchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({
+  fastify.post(
+    "/ebl/:id/transfer",
+    {
+      schema: {
+        tags: [...DCSA_TAG],
+        summary:
+          "Transfer DCSA e-BL title of property to a new legitimate holder",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const params = request.params as { id: string };
+        const parsed = transferEblSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            success: false,
+            error: "Invalid transfer payload",
+            details: parsed.error.issues,
+          });
+        }
+
+        const result = await DcsaEblService.transferEbl(params.id, {
+          recordId: params.id,
+          ...parsed.data,
+        });
+        return reply.send(result);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to transfer DCSA e-BL title";
+        return reply.status(500).send({
           success: false,
-          error: "Invalid transfer payload",
-          details: parsed.error.issues,
+          error: message,
         });
       }
-
-      const result = await DcsaEblService.transferEbl(params.id, {
-        recordId: params.id,
-        ...parsed.data,
-      });
-      return reply.send(result);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to transfer DCSA e-BL title";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+    },
+  );
 
   /**
    * POST /api/dcsa/ebl/:id/endorse
    * Endorse e-BL (alias for special endorsement or bank pledge)
    */
-  fastify.post("/ebl/:id/endorse", async (request, reply) => {
-    try {
-      const params = request.params as { id: string };
-      const parsed = transferEblSchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({
+  fastify.post(
+    "/ebl/:id/endorse",
+    {
+      schema: {
+        tags: [...DCSA_TAG],
+        summary: "Record a special endorsement or bank pledge on a DCSA e-BL",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const params = request.params as { id: string };
+        const parsed = transferEblSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            success: false,
+            error: "Invalid endorsement payload",
+            details: parsed.error.issues,
+          });
+        }
+
+        const result = await DcsaEblService.endorseEbl(params.id, {
+          recordId: params.id,
+          ...parsed.data,
+        });
+        return reply.send(result);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to endorse DCSA e-BL";
+        return reply.status(500).send({
           success: false,
-          error: "Invalid endorsement payload",
-          details: parsed.error.issues,
+          error: message,
         });
       }
-
-      const result = await DcsaEblService.endorseEbl(params.id, {
-        recordId: params.id,
-        ...parsed.data,
-      });
-      return reply.send(result);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to endorse DCSA e-BL";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+    },
+  );
 
   /**
    * POST /api/dcsa/ebl/:id/surrender
    * Surrender e-BL to ocean carrier to authorize cargo release
    */
-  fastify.post("/ebl/:id/surrender", async (request, reply) => {
-    try {
-      const params = request.params as { id: string };
-      const parsed = surrenderEblSchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({
+  fastify.post(
+    "/ebl/:id/surrender",
+    {
+      schema: {
+        tags: [...DCSA_TAG],
+        summary:
+          "Surrender a DCSA e-BL to the carrier to authorize cargo release",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const params = request.params as { id: string };
+        const parsed = surrenderEblSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            success: false,
+            error: "Invalid surrender payload",
+            details: parsed.error.issues,
+          });
+        }
+
+        const result = await DcsaEblService.surrenderEbl(params.id, {
+          recordId: params.id,
+          ...parsed.data,
+        });
+        return reply.send(result);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to surrender DCSA e-BL";
+        return reply.status(500).send({
           success: false,
-          error: "Invalid surrender payload",
-          details: parsed.error.issues,
+          error: message,
         });
       }
-
-      const result = await DcsaEblService.surrenderEbl(params.id, {
-        recordId: params.id,
-        ...parsed.data,
-      });
-      return reply.send(result);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to surrender DCSA e-BL";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+    },
+  );
 
   /**
    * GET /api/dcsa/ebl/:id/verify
    * Verify cryptographic hash chain integrity of the endorsements ledger
    */
-  fastify.get("/ebl/:id/verify", async (request, reply) => {
-    try {
-      const params = request.params as { id: string };
-      const result = await DcsaEblService.verifyEblChain(params.id);
-      return reply.send({
-        success: true,
-        data: result,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to verify DCSA e-BL chain";
-      return reply.status(500).send({
-        success: false,
-        error: message,
-      });
-    }
-  });
+  fastify.get(
+    "/ebl/:id/verify",
+    {
+      schema: {
+        tags: [...DCSA_TAG],
+        summary:
+          "Verify cryptographic hash-chain integrity of a DCSA e-BL ledger",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const params = request.params as { id: string };
+        const result = await DcsaEblService.verifyEblChain(params.id);
+        return reply.send({
+          success: true,
+          data: result,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to verify DCSA e-BL chain";
+        return reply.status(500).send({
+          success: false,
+          error: message,
+        });
+      }
+    },
+  );
 };
 
 export default dcsaRoutes;

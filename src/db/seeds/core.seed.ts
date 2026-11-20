@@ -2,6 +2,7 @@ import { db } from "../index.js";
 import * as schema from "../schema/index.js";
 import { faker } from "@faker-js/faker";
 import { sql } from "drizzle-orm";
+import { hashPassword } from "../../lib/auth.js";
 
 export interface StandardHsCodeSeed {
   id: string;
@@ -71,9 +72,12 @@ export async function seedCore(): Promise<CoreSeedContext> {
         },
       });
   }
-  console.log(`✅ Creados ${companyIds.length} grupos corporativos.`);
+  console.log(`✅ Seeded ${companyIds.length} corporate groups.`);
 
   // 2. USERS & CONTACTS (Deterministic Demo Roles + Realistic Team)
+  const demoPassword = process.env.DEMO_USER_PASSWORD || "password123";
+  const hashedDemoPassword = await hashPassword(demoPassword);
+
   const demoUsers = [
     {
       id: "admin_user_id",
@@ -144,8 +148,16 @@ export async function seedCore(): Promise<CoreSeedContext> {
         companyId: u.companyId,
         email: u.email,
         role: u.role,
+        hashedPassword: hashedDemoPassword,
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: schema.users.id,
+        set: {
+          companyId: u.companyId,
+          role: u.role,
+          hashedPassword: sql`COALESCE(${schema.users.hashedPassword}, ${hashedDemoPassword})`,
+        },
+      });
 
     await db
       .insert(schema.contacts)
@@ -186,7 +198,7 @@ export async function seedCore(): Promise<CoreSeedContext> {
     }
   }
   console.log(
-    `✅ Creados ${userIds.length} usuarios y contactos (5 perfiles demo + equipo).`,
+    `✅ Seeded ${userIds.length} users and contacts (7 demo profiles + team).`,
   );
 
   // 3. LOCATIONS (Ports, Warehouses)
@@ -226,10 +238,10 @@ export async function seedCore(): Promise<CoreSeedContext> {
     });
   }
   console.log(
-    `✅ Creadas ${locationIds.length} ubicaciones (puertos principales).`,
+    `✅ Seeded ${locationIds.length} locations (major maritime ports).`,
   );
 
-  // 4. LANES (Rutas)
+  // 4. LANES (Trade Routes)
   const laneIds = [];
   for (let i = 0; i < 20; i++) {
     const origin = faker.helpers.arrayElement(locationIds);
@@ -245,7 +257,7 @@ export async function seedCore(): Promise<CoreSeedContext> {
       distance: faker.number.int({ min: 1000, max: 15000 }),
     });
   }
-  console.log(`✅ Creadas ${laneIds.length} rutas (lanes).`);
+  console.log(`✅ Seeded ${laneIds.length} trade lanes.`);
 
   // 5. CARRIERS & OTHER AGENTS
   // 5. CARRIERS & CUSTOMS BROKERS (Referenced from canonical addresses registry)
@@ -421,7 +433,7 @@ export async function seedCore(): Promise<CoreSeedContext> {
     await db.insert(schema.tradeSanctions).values(s).onConflictDoNothing();
   }
   console.log(
-    `✅ Creados ${hsCodeIds.length} códigos arancelarios TARIC y ${sanctions.length} sanciones comerciales.`,
+    `✅ Seeded ${hsCodeIds.length} TARIC HS tariff codes and ${sanctions.length} trade sanctions.`,
   );
 
   return {

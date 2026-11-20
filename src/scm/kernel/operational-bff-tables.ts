@@ -1,11 +1,15 @@
 import { sql } from "drizzle-orm";
-import { db } from "../../db/index.js";
+import * as dbModule from "../../db/index.js";
+const { db } = dbModule;
 import { ensureWorkflowEngineTables } from "./workflow-engine-tables.js";
 
 let bffTablesInitialized = false;
 
 export async function ensureOperationalBffTables(): Promise<void> {
   if (bffTablesInitialized) return;
+  if (Object.keys(dbModule).includes("dbReady") && dbModule.dbReady) {
+    await dbModule.dbReady;
+  }
   await ensureWorkflowEngineTables();
 
   const statements = [

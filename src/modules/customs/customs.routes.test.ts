@@ -2,7 +2,24 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 
 // Mock auth middleware for integration tests
 vi.mock("../../middleware/auth.js", () => ({
-  authMiddleware: vi.fn(async () => {}),
+  authMiddleware: vi.fn(
+    async (req: { headers?: Record<string, unknown>; user?: unknown }) => {
+      const orgHeader = req.headers?.["x-organization-id"];
+      if (typeof orgHeader === "string" && orgHeader.trim()) {
+        req.user = {
+          id: "test-tenant-user",
+          role: "CUSTOMER",
+          companyId: orgHeader.trim(),
+        };
+      } else {
+        req.user = {
+          id: "test-admin",
+          role: "ADMIN",
+          companyId: "c-1",
+        };
+      }
+    },
+  ),
   requireRole: vi.fn(() => async () => {}),
 }));
 

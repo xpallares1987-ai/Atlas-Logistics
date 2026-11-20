@@ -202,7 +202,7 @@ export async function validateStationWriteAccess(
   targetBranchId?: string | null,
 ): Promise<{ allowed: boolean; error?: string; message?: string }> {
   let user = request.user;
-  if (!user || !user.id) {
+  if ((!user || !user.id) && process.env.NODE_ENV === "test") {
     const headers = request.headers;
     const userId = headers["x-user-id"] as string | undefined;
     if (userId) {
@@ -218,7 +218,7 @@ export async function validateStationWriteAccess(
   }
 
   if (!user || !user.id) {
-    if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+    if (process.env.NODE_ENV === "test") {
       return { allowed: true };
     }
     return {

@@ -37,6 +37,16 @@ import {
 import { getCurrentTenant } from "../lib/tenancy/tenancy-context.js";
 import { addressGeocodingService } from "../services/address-geocoding.service.js";
 import { queryUnlocodeDirectory } from "../services/unlocode-directory.service.js";
+import {
+  OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  OPENAPI_SUCCESS_FLAG_SCHEMA,
+  buildErrorResponses,
+  openApiObject,
+} from "./openapi.schemas.js";
+
+const ADDRESSES_TAG = ["Addresses & Master Entities"] as const;
 
 /**
  * Clean & normalize string for fuzzy duplicate comparison
@@ -391,104 +401,174 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   // UN/LOCODE Lookup
   fastify.get<{
     Querystring: { q?: string; country?: string; mode?: string };
-  }>("/unlocode-lookup", async (request, reply) => {
-    try {
-      const rawQ = (request.query?.q || "").trim();
-      const country = (request.query?.country || "").trim().toUpperCase();
-      const rawMode = (request.query?.mode || "").trim().toLowerCase();
-      const validModes = new Set(["port", "rail", "road", "airport", "icd"]);
-      const mode = validModes.has(rawMode)
-        ? (rawMode as "port" | "rail" | "road" | "airport" | "icd")
-        : undefined;
+  }>(
+    "/unlocode-lookup",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "Search UN/LOCODE port and multimodal terminal directory entries",
+        querystring: openApiObject({
+          q: { type: "string" },
+          country: { type: "string" },
+          mode: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const rawQ = (request.query?.q || "").trim();
+        const country = (request.query?.country || "").trim().toUpperCase();
+        const rawMode = (request.query?.mode || "").trim().toLowerCase();
+        const validModes = new Set(["port", "rail", "road", "airport", "icd"]);
+        const mode = validModes.has(rawMode)
+          ? (rawMode as "port" | "rail" | "road" | "airport" | "icd")
+          : undefined;
 
-      const { items } = await queryUnlocodeDirectory({
-        q: rawQ,
-        country: country || undefined,
-        mode,
-        limit: rawQ ? 20 : 15,
-      });
+        const { items } = await queryUnlocodeDirectory({
+          q: rawQ,
+          country: country || undefined,
+          mode,
+          limit: rawQ ? 20 : 15,
+        });
 
-      const sanitized = items.map((item) => ({
-        location: escapeHTML(item.location),
-        name: escapeHTML(item.name),
-        country: escapeHTML(item.country),
-        subdivision: item.subdivision
-          ? escapeHTML(item.subdivision)
-          : undefined,
-        functionClassifier: item.functionClassifier
-          ? escapeHTML(item.functionClassifier)
-          : undefined,
-        coordinates: item.coordinates
-          ? escapeHTML(item.coordinates)
-          : undefined,
-        status: item.status ? escapeHTML(item.status) : undefined,
-      }));
-      return reply.type("application/json").send(sanitized);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to lookup UN/LOCODE";
-      return reply.code(500).send({ error: message });
-    }
-  });
+        const sanitized = items.map((item) => ({
+          location: escapeHTML(item.location),
+          name: escapeHTML(item.name),
+          country: escapeHTML(item.country),
+          subdivision: item.subdivision
+            ? escapeHTML(item.subdivision)
+            : undefined,
+          functionClassifier: item.functionClassifier
+            ? escapeHTML(item.functionClassifier)
+            : undefined,
+          coordinates: item.coordinates
+            ? escapeHTML(item.coordinates)
+            : undefined,
+          status: item.status ? escapeHTML(item.status) : undefined,
+        }));
+        return reply.type("application/json").send(sanitized);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to lookup UN/LOCODE";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 
   // Smart Autocomplete Address Search (Hybrid: Google Maps + OSM Nominatim / Photon)
   fastify.get<{
     Querystring: { q?: string; country?: string };
-  }>("/autocomplete", async (request, reply) => {
-    try {
-      const q = (request.query?.q || "").trim();
-      const country = request.query?.country;
-      if (!q || q.length < 2) {
-        return [];
+  }>(
+    "/autocomplete",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "Hybrid address autocomplete search via Google Maps and OSM Photon/Nominatim",
+        querystring: openApiObject({
+          q: { type: "string" },
+          country: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const q = (request.query?.q || "").trim();
+        const country = request.query?.country;
+        if (!q || q.length < 2) {
+          return [];
+        }
+        const results = await addressGeocodingService.searchAutocomplete(
+          q,
+          country,
+        );
+        return results;
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to autocomplete address";
+        return reply.code(500).send({ error: message });
       }
-      const results = await addressGeocodingService.searchAutocomplete(
-        q,
-        country,
-      );
-      return results;
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to autocomplete address";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   // Geocode address structured fields
-  fastify.post("/geocode", async (request, reply) => {
-    try {
-      const body = (request.body as Record<string, unknown>) || {};
-      const result = await addressGeocodingService.geocodeAddress(body);
-      return result || { error: "Address could not be geocoded", found: false };
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to geocode address";
-      return reply.code(500).send({ error: message });
-    }
-  });
+  fastify.post(
+    "/geocode",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "Geocode structured postal address fields into latitude and longitude",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const body = (request.body as Record<string, unknown>) || {};
+        const result = await addressGeocodingService.geocodeAddress(body);
+        return (
+          result || { error: "Address could not be geocoded", found: false }
+        );
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to geocode address";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 
   // Helper to resolve caller role for Corporate Group Accounting/Controlling RBAC
   const resolveCallerRole = (request: FastifyRequest): string => {
-    return (
-      request.user?.role ||
-      (request.headers?.["x-user-role"] as string) ||
-      "ADMIN"
-    );
+    if (request.user?.role) {
+      return request.user.role;
+    }
+    if (process.env.NODE_ENV === "test" && request.headers?.["x-user-role"]) {
+      return String(request.headers["x-user-role"]).trim();
+    }
+    return "USER";
   };
 
   // GET /api/addresses/types - Master Address Types catalog (CUS, CB, AG, HAU, CAR, INS, CAA, WH, FW, TRM)
-  fastify.get("/types", async (_request, reply) => {
-    try {
-      const rows = await db.select().from(addressTypes);
-      if (rows.length === 0) {
-        return ADDRESS_TYPE_DEFINITIONS;
+  fastify.get(
+    "/types",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "List canonical 3-letter logistics address taxonomy definitions",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        const rows = await db.select().from(addressTypes);
+        if (rows.length === 0) {
+          return ADDRESS_TYPE_DEFINITIONS;
+        }
+        return rows;
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to fetch address types";
+        return reply.code(500).send({ error: message });
       }
-      return rows;
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to fetch address types";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   // GET /api/addresses/groups (and /companies) - Corporate Groups (Restricted to ACCOUNTING, CONTROLLING, ADMIN)
   const listEnterpriseGroupsHandler = async (
@@ -552,8 +632,36 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
     }
   };
 
-  fastify.get("/groups", listEnterpriseGroupsHandler);
-  fastify.get("/companies", listEnterpriseGroupsHandler);
+  fastify.get(
+    "/groups",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "List Corporate Holding Groups and linked operational subsidiary counts",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    listEnterpriseGroupsHandler,
+  );
+  fastify.get(
+    "/companies",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "Alias to list Corporate Holding Groups and linked subsidiary counts",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    listEnterpriseGroupsHandler,
+  );
 
   // POST /api/addresses/groups - Create or update a Corporate Group (Restricted to ACCOUNTING, CONTROLLING, ADMIN)
   fastify.post<{
@@ -566,50 +674,48 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       taxId?: string;
       creditLimit?: number | string;
     };
-  }>("/groups", async (request, reply) => {
-    try {
-      const callerRole = resolveCallerRole(request);
-      if (!canManageCorporateGroups(callerRole)) {
-        return reply.code(403).send({
-          error:
-            "Forbidden: Corporate Groups are restricted to Accounting, Controlling, and Admin users.",
-        });
-      }
+  }>(
+    "/groups",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "Create or update a Corporate Holding Group (Accounting/Controlling/Admin)",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const callerRole = resolveCallerRole(request);
+        if (!canManageCorporateGroups(callerRole)) {
+          return reply.code(403).send({
+            error:
+              "Forbidden: Corporate Groups are restricted to Accounting, Controlling, and Admin users.",
+          });
+        }
 
-      const body = request.body || {};
-      if (!body.name || !body.name.trim()) {
-        return reply
-          .code(400)
-          .send({ error: "Corporate group name is required" });
-      }
-      const slug = body.name
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_|_$/g, "");
-      const groupId = body.id || `grp_${slug.substring(0, 24)}`;
-      const now = new Date();
+        const body = request.body || {};
+        if (!body.name || !body.name.trim()) {
+          return reply
+            .code(400)
+            .send({ error: "Corporate group name is required" });
+        }
+        const slug = body.name
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_|_$/g, "");
+        const groupId = body.id || `grp_${slug.substring(0, 24)}`;
+        const now = new Date();
 
-      await db
-        .insert(companies)
-        .values({
-          id: groupId,
-          name: body.name.trim(),
-          groupCode:
-            body.groupCode?.trim().toUpperCase() ||
-            slug.substring(0, 6).toUpperCase(),
-          sector: body.sector || "Global Logistics & Maritime",
-          headquartersCountry:
-            body.headquartersCountry?.trim().toUpperCase() || "ES",
-          taxId: body.taxId?.trim().toUpperCase() || null,
-          creditLimit:
-            body.creditLimit !== undefined ? Number(body.creditLimit) : 1000000,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .onConflictDoUpdate({
-          target: companies.id,
-          set: {
+        await db
+          .insert(companies)
+          .values({
+            id: groupId,
             name: body.name.trim(),
             groupCode:
               body.groupCode?.trim().toUpperCase() ||
@@ -617,85 +723,122 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
             sector: body.sector || "Global Logistics & Maritime",
             headquartersCountry:
               body.headquartersCountry?.trim().toUpperCase() || "ES",
-            taxId: body.taxId?.trim().toUpperCase() || undefined,
+            taxId: body.taxId?.trim().toUpperCase() || null,
             creditLimit:
               body.creditLimit !== undefined
                 ? Number(body.creditLimit)
-                : undefined,
+                : 1000000,
+            createdAt: now,
             updatedAt: now,
-          },
-        });
+          })
+          .onConflictDoUpdate({
+            target: companies.id,
+            set: {
+              name: body.name.trim(),
+              groupCode:
+                body.groupCode?.trim().toUpperCase() ||
+                slug.substring(0, 6).toUpperCase(),
+              sector: body.sector || "Global Logistics & Maritime",
+              headquartersCountry:
+                body.headquartersCountry?.trim().toUpperCase() || "ES",
+              taxId: body.taxId?.trim().toUpperCase() || undefined,
+              creditLimit:
+                body.creditLimit !== undefined
+                  ? Number(body.creditLimit)
+                  : undefined,
+              updatedAt: now,
+            },
+          });
 
-      const created = await db
-        .select()
-        .from(companies)
-        .where(eq(companies.id, groupId))
-        .limit(1);
-      return reply.code(201).send(created[0]);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create corporate group";
-      return reply.code(500).send({ error: message });
-    }
-  });
+        const created = await db
+          .select()
+          .from(companies)
+          .where(eq(companies.id, groupId))
+          .limit(1);
+        return reply.code(201).send(created[0]);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to create corporate group";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 
   // PATCH /api/addresses/:id/corporate-group - Link a registered Address to a Corporate Group (Restricted to ACCOUNTING, CONTROLLING, ADMIN)
   fastify.patch<{
     Params: { id: string };
     Body: { companyId?: string; groupId?: string };
-  }>("/:id/corporate-group", async (request, reply) => {
-    try {
-      const callerRole = resolveCallerRole(request);
-      if (!canManageCorporateGroups(callerRole)) {
-        return reply.code(403).send({
-          error:
-            "Forbidden: Linking addresses to a Corporate Group requires Accounting, Controlling, or Admin permissions.",
-        });
+  }>(
+    "/:id/corporate-group",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "Link an operational address entity to a Corporate Holding Group",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const callerRole = resolveCallerRole(request);
+        if (!canManageCorporateGroups(callerRole)) {
+          return reply.code(403).send({
+            error:
+              "Forbidden: Linking addresses to a Corporate Group requires Accounting, Controlling, or Admin permissions.",
+          });
+        }
+
+        const { id } = request.params;
+        const body = request.body || {};
+        const targetGroupId = body.companyId || body.groupId;
+        if (!targetGroupId) {
+          return reply
+            .code(400)
+            .send({ error: "companyId (Corporate Group ID) is required" });
+        }
+
+        const groupRow = await db
+          .select()
+          .from(companies)
+          .where(eq(companies.id, targetGroupId))
+          .limit(1);
+        if (groupRow.length === 0) {
+          return reply.code(404).send({ error: "Corporate Group not found" });
+        }
+
+        const updated = await db
+          .update(addresses)
+          .set({
+            companyId: targetGroupId,
+            updatedAt: new Date(),
+          })
+          .where(eq(addresses.id, id))
+          .returning();
+
+        if (updated.length === 0) {
+          return reply.code(404).send({ error: "Address not found" });
+        }
+
+        return {
+          ...updated[0],
+          addressType: normalizeAddressTypeCode(updated[0].addressType),
+          companyGroupName: groupRow[0].name,
+          companyGroupCode: groupRow[0].groupCode,
+        };
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to link corporate group";
+        return reply.code(500).send({ error: message });
       }
-
-      const { id } = request.params;
-      const body = request.body || {};
-      const targetGroupId = body.companyId || body.groupId;
-      if (!targetGroupId) {
-        return reply
-          .code(400)
-          .send({ error: "companyId (Corporate Group ID) is required" });
-      }
-
-      const groupRow = await db
-        .select()
-        .from(companies)
-        .where(eq(companies.id, targetGroupId))
-        .limit(1);
-      if (groupRow.length === 0) {
-        return reply.code(404).send({ error: "Corporate Group not found" });
-      }
-
-      const updated = await db
-        .update(addresses)
-        .set({
-          companyId: targetGroupId,
-          updatedAt: new Date(),
-        })
-        .where(eq(addresses.id, id))
-        .returning();
-
-      if (updated.length === 0) {
-        return reply.code(404).send({ error: "Address not found" });
-      }
-
-      return {
-        ...updated[0],
-        addressType: normalizeAddressTypeCode(updated[0].addressType),
-        companyGroupName: groupRow[0].name,
-        companyGroupCode: groupRow[0].groupCode,
-      };
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to link corporate group";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   // GET /api/addresses - List addresses with optional filters
   fastify.get<{
@@ -711,67 +854,112 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       isDefaultNotify?: string;
       limit?: string;
     };
-  }>("/", async (request, reply) => {
-    try {
-      const query = request.query || {};
+  }>(
+    "/",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "List master operational logistics addresses with taxonomy and UN/LOCODE filters",
+        querystring: openApiObject({
+          companyId: { type: "string" },
+          groupId: { type: "string" },
+          type: { type: "string" },
+          addressType: { type: "string" },
+          search: { type: "string" },
+          unLocode: { type: "string" },
+          isDefaultShipper: { type: "string" },
+          isDefaultConsignee: { type: "string" },
+          isDefaultNotify: { type: "string" },
+          limit: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const query = request.query || {};
 
-      const conditions: SQL[] = [];
-      const groupFilter = query.companyId || query.groupId;
-      if (groupFilter && groupFilter !== "ALL") {
-        conditions.push(eq(addresses.companyId, groupFilter));
-      }
+        const conditions: SQL[] = [];
+        const groupFilter = query.companyId || query.groupId;
+        if (groupFilter && groupFilter !== "ALL") {
+          conditions.push(eq(addresses.companyId, groupFilter));
+        }
 
-      const rawTypeFilter = query.type || query.addressType;
-      if (rawTypeFilter && rawTypeFilter !== "ALL") {
-        const expanded = expandAddressTypeFilter(String(rawTypeFilter));
-        if (expanded.length > 0) {
-          conditions.push(
-            inArray(addresses.addressType, expanded as AddressType[]),
+        const rawTypeFilter = query.type || query.addressType;
+        if (rawTypeFilter && rawTypeFilter !== "ALL") {
+          const expanded = expandAddressTypeFilter(String(rawTypeFilter));
+          if (expanded.length > 0) {
+            conditions.push(
+              inArray(addresses.addressType, expanded as AddressType[]),
+            );
+          }
+        }
+
+        if (query.unLocode) {
+          conditions.push(eq(addresses.unLocode, query.unLocode.toUpperCase()));
+        }
+        if (query.search) {
+          const term = `%${query.search}%`;
+          const searchOr = or(
+            like(addresses.companyName, term),
+            like(addresses.tradeName, term),
+            like(addresses.city, term),
+            like(addresses.taxId, term),
+            like(addresses.unLocode, term),
           );
+          if (searchOr) {
+            conditions.push(searchOr);
+          }
         }
-      }
 
-      if (query.unLocode) {
-        conditions.push(eq(addresses.unLocode, query.unLocode.toUpperCase()));
-      }
-      if (query.search) {
-        const term = `%${query.search}%`;
-        const searchOr = or(
-          like(addresses.companyName, term),
-          like(addresses.tradeName, term),
-          like(addresses.city, term),
-          like(addresses.taxId, term),
-          like(addresses.unLocode, term),
+        const boundedLimit = Math.min(
+          Math.max(Number.parseInt(query.limit || "100", 10) || 100, 1),
+          500,
         );
-        if (searchOr) {
-          conditions.push(searchOr);
-        }
-      }
 
-      const [rows, allGroups, allTypes] = await Promise.all([
-        db
-          .select()
-          .from(addresses)
-          .where(conditions.length > 0 ? and(...conditions) : undefined)
-          .orderBy(desc(addresses.createdAt)),
-        db.select().from(companies),
-        db.select().from(addressTypes),
-      ]);
-
-      const groupMap = new Map(allGroups.map((g) => [g.id, g]));
-      const typeMap = new Map(allTypes.map((t) => [t.code, t]));
-      const includeCorporateGroup = canManageCorporateGroups(
-        resolveCallerRole(request),
-      );
-
-      // Fetch linked contacts for each address and enrich with Address Type definition
-      // Corporate Group metadata is only exposed to ACCOUNTING, CONTROLLING, and ADMIN roles
-      const results = await Promise.all(
-        rows.map(async (addr) => {
-          const contacts = await db
+        const [rows, allGroups, allTypes] = await Promise.all([
+          db
             .select()
-            .from(addressContacts)
-            .where(eq(addressContacts.addressId, addr.id));
+            .from(addresses)
+            .where(conditions.length > 0 ? and(...conditions) : undefined)
+            .orderBy(desc(addresses.createdAt))
+            .limit(boundedLimit),
+          db.select().from(companies),
+          db.select().from(addressTypes),
+        ]);
+
+        const groupMap = new Map(allGroups.map((g) => [g.id, g]));
+        const typeMap = new Map(allTypes.map((t) => [t.code, t]));
+        const includeCorporateGroup = canManageCorporateGroups(
+          resolveCallerRole(request),
+        );
+
+        const addressIds = rows.map((r) => r.id);
+        const allContacts =
+          addressIds.length > 0
+            ? await db
+                .select()
+                .from(addressContacts)
+                .where(inArray(addressContacts.addressId, addressIds))
+            : [];
+        const contactsByAddressId = new Map<
+          string,
+          (typeof addressContacts.$inferSelect)[]
+        >();
+        for (const contact of allContacts) {
+          const list = contactsByAddressId.get(contact.addressId) || [];
+          list.push(contact);
+          contactsByAddressId.set(contact.addressId, list);
+        }
+
+        // Enrich with batched contacts and Address Type definition
+        // Corporate Group metadata is only exposed to ACCOUNTING, CONTROLLING, and ADMIN roles
+        const results = rows.map((addr) => {
+          const contacts = contactsByAddressId.get(addr.id) || [];
           const canonicalCode = normalizeAddressTypeCode(addr.addressType);
           const group = groupMap.get(addr.companyId);
           const typeDef = typeMap.get(canonicalCode);
@@ -787,463 +975,100 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
               : {}),
             contacts,
           };
-        }),
-      );
+        });
 
-      return results;
-    } catch (err: unknown) {
-      fastify.log.error(err, "Failed to list addresses");
-      const message =
-        err instanceof Error ? err.message : "Failed to list addresses";
-      return reply.code(500).send({ error: message });
-    }
-  });
+        return results;
+      } catch (err: unknown) {
+        fastify.log.error(err, "Failed to list addresses");
+        const message =
+          err instanceof Error ? err.message : "Failed to list addresses";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 
   // POST /api/addresses - Create address with duplicate detection & contacts
   fastify.post<{
     Body: Record<string, unknown>;
-  }>("/", async (request, reply) => {
-    try {
-      const tenant = getCurrentTenant();
-      const body = request.body || {};
-      const rawAddressType = String(body.addressType || "")
-        .trim()
-        .toUpperCase();
-      if (!isCanonicalAddressTypeCode(rawAddressType)) {
-        return reply.code(400).send({
-          error: "INVALID_ADDRESS_TYPE",
-          message: `Invalid or legacy addressType '${String(body.addressType || "")}'. Must be one of the 25 canonical 3-letter taxonomy codes.`,
-          allowedCodes: CANONICAL_ADDRESS_TYPE_CODES,
-        });
-      }
-      const normalizedType = rawAddressType;
-
-      if (requiresUnLocodeForAddressType(normalizedType)) {
-        const unLocodeOk = await isValidUnLocode(
-          body.unLocode as string | undefined,
-        );
-        if (!unLocodeOk) {
-          return reply.code(400).send({
-            error: "INVALID_UNLOCODE",
-            message: `Address type '${normalizedType}' requires a valid 5-character UN/LOCODE present in the UNECE catalog.`,
-          });
-        }
-      }
-
-      const tenantId =
-        (body.companyId as string) ||
-        inferEnterpriseGroupId(
-          body.companyName as string,
-          normalizedType,
-          tenant?.organizationId,
-        );
-
-      // Defensive guarantee that parent Enterprise Group exists in companies
-      const existingGroup = await db
-        .select()
-        .from(companies)
-        .where(eq(companies.id, tenantId))
-        .limit(1);
-      if (existingGroup.length === 0) {
-        const knownDef = ENTERPRISE_COMPANY_GROUPS.find(
-          (g) => g.id === tenantId,
-        );
-        await db
-          .insert(companies)
-          .values({
-            id: tenantId,
-            name:
-              knownDef?.name ||
-              (body.companyGroupName as string) ||
-              (body.companyName as string) ||
-              tenantId,
-            groupCode:
-              knownDef?.groupCode ||
-              tenantId.replace(/^grp_/, "").substring(0, 6).toUpperCase(),
-            sector: knownDef?.sector || "Global Logistics & Supply Chain",
-            headquartersCountry:
-              knownDef?.headquartersCountry || (body.country as string) || "ES",
-            taxId: knownDef?.taxId || null,
-            creditLimit: knownDef?.creditLimit || 1000000,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .onConflictDoNothing();
-      }
-
-      // Check existing addresses for duplicate detection
-      const existing = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.companyId, tenantId));
-
-      let matchedDuplicate: typeof addresses.$inferSelect | null = null;
-      let highestScore = 0;
-
-      for (const item of existing) {
-        // 1. Tax ID Exact match
-        if (
-          typeof body.taxId === "string" &&
-          item.taxId &&
-          body.taxId.trim().toUpperCase() === item.taxId.trim().toUpperCase()
-        ) {
-          matchedDuplicate = item;
-          highestScore = 1.0;
-          break;
-        }
-
-        // 2. Fuzzy text similarity match
-        const proposedCombined = `${(body.companyName as string) || ""} ${(body.street1 as string) || ""} ${(body.city as string) || ""}`;
-        const existingCombined = `${item.companyName || ""} ${item.street1 || ""} ${item.city || ""}`;
-        const score = calculateSimilarity(proposedCombined, existingCombined);
-
-        if (score > highestScore) {
-          highestScore = score;
-          if (score >= 0.8) {
-            matchedDuplicate = item;
-          }
-        }
-      }
-
-      // If duplicate detected and overrideWarning is NOT confirmed:
-      if (highestScore >= 0.8 && matchedDuplicate && !body.overrideWarning) {
-        return reply.code(409).send({
-          duplicateWarning: true,
-          message:
-            "A similar registered address was detected for this company.",
-          matchScore: Math.round(highestScore * 100) / 100,
-          matchedAddress: {
-            id: matchedDuplicate.id,
-            companyName: matchedDuplicate.companyName,
-            addressType: matchedDuplicate.addressType,
-            street1: matchedDuplicate.street1,
-            city: matchedDuplicate.city,
-            unLocode: matchedDuplicate.unLocode,
-            taxId: matchedDuplicate.taxId,
-          },
-        });
-      }
-
-      const addressId =
-        typeof body.id === "string" && body.id
-          ? body.id
-          : `addr_${uuidv4().substring(0, 8)}`;
-      const now = new Date();
-
-      // Geocoding & Verification Handling
-      let lat =
-        body.lat !== undefined && body.lat !== null && body.lat !== ""
-          ? Number(body.lat)
-          : null;
-      let lon =
-        body.lon !== undefined && body.lon !== null && body.lon !== ""
-          ? Number(body.lon)
-          : null;
-      let formattedAddress = (body.formattedAddress as string) || null;
-      let verificationStatus: AddressVerificationStatus =
-        (body.verificationStatus as AddressVerificationStatus) || "NOT_CHECKED";
-      let verificationProvider: AddressVerificationProvider | null =
-        (body.verificationProvider as AddressVerificationProvider) || null;
-
-      // If coordinates not already supplied from UI, attempt backend geocoding (with strict timeout)
-      if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) {
-        if (process.env.NODE_ENV === "test") {
-          verificationStatus = "MANUAL_UNVERIFIED";
-          verificationProvider = "MANUAL";
-        } else {
-          try {
-            const timeoutPromise = new Promise<null>((_, reject) =>
-              setTimeout(() => reject(new Error("Geocode timeout")), 1200),
-            );
-            const geo = await Promise.race([
-              addressGeocodingService.geocodeAddress({
-                street1: (body.street1 as string) || "",
-                zipCode: (body.zipCode as string) || "",
-                city: (body.city as string) || "",
-                federalState: (body.federalState as string) || undefined,
-                country: (body.country as string) || "ES",
-              }),
-              timeoutPromise,
-            ]);
-            if (geo && !isNaN(geo.lat) && !isNaN(geo.lon)) {
-              lat = geo.lat;
-              lon = geo.lon;
-              formattedAddress = formattedAddress || geo.formattedAddress;
-              verificationStatus = "VERIFIED";
-              verificationProvider =
-                geo.provider as AddressVerificationProvider;
-            } else {
-              verificationStatus = "MANUAL_UNVERIFIED";
-              verificationProvider = "MANUAL";
-            }
-          } catch {
-            verificationStatus = "MANUAL_UNVERIFIED";
-            verificationProvider = "MANUAL";
-          }
-        }
-      } else {
-        if (!verificationStatus || verificationStatus === "NOT_CHECKED") {
-          verificationStatus = "VERIFIED";
-        }
-        if (!verificationProvider) {
-          verificationProvider = "MANUAL";
-        }
-      }
-
-      const inserted = await db
-        .insert(addresses)
-        .values({
-          id: addressId,
-          companyId: tenantId,
-          addressType: normalizedType as AddressType,
-          companyName: (body.companyName as string) || "",
-          tradeName: (body.tradeName as string) || null,
-          taxId:
-            typeof body.taxId === "string"
-              ? body.taxId.trim().toUpperCase()
-              : null,
-          street1: (body.street1 as string) || "",
-          street2: (body.street2 as string) || null,
-          zipCode: (body.zipCode as string) || "",
-          city: (body.city as string) || "",
-          federalState: (body.federalState as string) || null,
-          country: (body.country as string) || "ES",
-          unLocode:
-            typeof body.unLocode === "string"
-              ? body.unLocode.trim().toUpperCase()
-              : null,
-          isDefaultShipper: Boolean(body.isDefaultShipper),
-          isDefaultConsignee: Boolean(body.isDefaultConsignee),
-          isDefaultNotify: Boolean(body.isDefaultNotify),
-          notes: (body.notes as string) || null,
-          lat,
-          lon,
-          formattedAddress,
-          verificationStatus,
-          verificationProvider,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning();
-
-      const createdAddress = inserted[0];
-      const createdContacts: (typeof addressContacts.$inferSelect)[] = [];
-
-      if (Array.isArray(body.contacts) && body.contacts.length > 0) {
-        for (const c of body.contacts as Record<string, unknown>[]) {
-          const contactId = `ct_${uuidv4().substring(0, 8)}`;
-          const insertedContact = await db
-            .insert(addressContacts)
-            .values({
-              id: contactId,
-              addressId: createdAddress.id,
-              fullName: c.fullName as string,
-              email: c.email as string,
-              phone: (c.phone as string) || null,
-              mobile: (c.mobile as string) || null,
-              roleCategory: ((c.roleCategory as string) ||
-                "OPERATIONS") as ContactRoleCategory,
-              jobTitle: (c.jobTitle as string) || null,
-              isPrimary: Boolean(c.isPrimary),
-              createdAt: now,
-              updatedAt: now,
-            })
-            .returning();
-          createdContacts.push(insertedContact[0]);
-        }
-      }
-
-      return reply.code(201).send({
-        ...createdAddress,
-        contacts: createdContacts,
-      });
-    } catch (err: unknown) {
-      fastify.log.error(err, "Failed to create address");
-      const message =
-        err instanceof Error ? err.message : "Failed to create address";
-      return reply.code(500).send({ error: message });
-    }
-  });
-
-  // GET /api/addresses/:id - Get address with contacts and B/L format blocks
-  fastify.get<{
-    Params: { id: string };
-  }>("/:id", async (request, reply) => {
-    try {
-      const { id } = request.params;
-      const rows = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.id, id))
-        .limit(1);
-
-      if (rows.length === 0) {
-        return reply.code(404).send({ error: "Address not found" });
-      }
-
-      const addr = rows[0];
-      const canonicalCode = normalizeAddressTypeCode(addr.addressType);
-      const [contacts, groupRows, typeRows] = await Promise.all([
-        db
-          .select()
-          .from(addressContacts)
-          .where(eq(addressContacts.addressId, id)),
-        db
-          .select()
-          .from(companies)
-          .where(eq(companies.id, addr.companyId))
-          .limit(1),
-        db
-          .select()
-          .from(addressTypes)
-          .where(eq(addressTypes.code, canonicalCode))
-          .limit(1),
-      ]);
-
-      const primaryContact = contacts.find((c) => c.isPrimary) || contacts[0];
-
-      // Generate pre-rendered Maritime B/L party shape boxes
-      const blBoxes = formatAllBlBoxes({
-        shipper: {
-          companyName: addr.companyName,
-          tradeName: addr.tradeName || undefined,
-          taxId: addr.taxId || undefined,
-          street1: addr.street1,
-          street2: addr.street2 || undefined,
-          zipCode: addr.zipCode,
-          city: addr.city,
-          country: addr.country,
-          unLocode: addr.unLocode || undefined,
+  }>(
+    "/",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "Register a canonical logistics address with fuzzy duplicate detection and contacts",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 409, 500]),
         },
-        shipperContact: primaryContact
-          ? {
-              fullName: primaryContact.fullName,
-              email: primaryContact.email,
-              phone: primaryContact.phone || undefined,
-            }
-          : undefined,
-        consignee: {
-          companyName: addr.companyName,
-          tradeName: addr.tradeName || undefined,
-          taxId: addr.taxId || undefined,
-          street1: addr.street1,
-          street2: addr.street2 || undefined,
-          zipCode: addr.zipCode,
-          city: addr.city,
-          country: addr.country,
-          unLocode: addr.unLocode || undefined,
-        },
-        notify: {
-          companyName: addr.companyName,
-          taxId: addr.taxId || undefined,
-          street1: addr.street1,
-          street2: addr.street2 || undefined,
-          zipCode: addr.zipCode,
-          city: addr.city,
-          country: addr.country,
-          unLocode: addr.unLocode || undefined,
-        },
-        notifyContact: primaryContact
-          ? {
-              fullName: primaryContact.fullName,
-              email: primaryContact.email,
-              phone: primaryContact.phone || undefined,
-            }
-          : undefined,
-        agent: {
-          companyName: addr.companyName,
-          street1: addr.street1,
-          zipCode: addr.zipCode,
-          city: addr.city,
-          country: addr.country,
-          unLocode: addr.unLocode || undefined,
-        },
-        agentContact: primaryContact
-          ? {
-              fullName: primaryContact.fullName,
-              phone: primaryContact.phone || undefined,
-            }
-          : undefined,
-      });
-
-      return {
-        ...addr,
-        addressType: canonicalCode,
-        addressTypeName: typeRows[0]?.name || canonicalCode,
-        companyGroupName: groupRows[0]?.name || addr.companyId,
-        companyGroupCode: groupRows[0]?.groupCode || null,
-        contacts,
-        blBoxes,
-      };
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to fetch address";
-      return reply.code(500).send({ error: message });
-    }
-  });
-
-  // PUT /api/addresses/:id - Update address & sync contacts
-  fastify.put<{
-    Params: { id: string };
-    Body: Record<string, unknown>;
-  }>("/:id", async (request, reply) => {
-    try {
-      const { id } = request.params;
-      const body = request.body || {};
-      let normalizedType: string | undefined = undefined;
-      if (body.addressType !== undefined && body.addressType !== null) {
-        const rawAddressType = String(body.addressType).trim().toUpperCase();
+      },
+    },
+    async (request, reply) => {
+      try {
+        const tenant = getCurrentTenant();
+        const body = request.body || {};
+        const rawAddressType = String(body.addressType || "")
+          .trim()
+          .toUpperCase();
         if (!isCanonicalAddressTypeCode(rawAddressType)) {
           return reply.code(400).send({
             error: "INVALID_ADDRESS_TYPE",
-            message: `Invalid or legacy addressType '${String(body.addressType)}'. Must be one of the 25 canonical 3-letter taxonomy codes.`,
+            message: `Invalid or legacy addressType '${String(body.addressType || "")}'. Must be one of the 25 canonical 3-letter taxonomy codes.`,
             allowedCodes: CANONICAL_ADDRESS_TYPE_CODES,
           });
         }
-        normalizedType = rawAddressType;
-      }
+        const normalizedType = rawAddressType;
 
-      if (
-        normalizedType &&
-        requiresUnLocodeForAddressType(normalizedType) &&
-        body.unLocode !== undefined
-      ) {
-        const unLocodeOk = await isValidUnLocode(
-          body.unLocode as string | undefined,
-        );
-        if (!unLocodeOk) {
-          return reply.code(400).send({
-            error: "INVALID_UNLOCODE",
-            message: `Address type '${normalizedType}' requires a valid 5-character UN/LOCODE present in the UNECE catalog.`,
-          });
+        if (requiresUnLocodeForAddressType(normalizedType)) {
+          const unLocodeOk = await isValidUnLocode(
+            body.unLocode as string | undefined,
+          );
+          if (!unLocodeOk) {
+            return reply.code(400).send({
+              error: "INVALID_UNLOCODE",
+              message: `Address type '${normalizedType}' requires a valid 5-character UN/LOCODE present in the UNECE catalog.`,
+            });
+          }
         }
-      }
 
-      if (typeof body.companyId === "string") {
+        const tenantId =
+          (body.companyId as string) ||
+          inferEnterpriseGroupId(
+            body.companyName as string,
+            normalizedType,
+            tenant?.organizationId,
+          );
+
+        // Defensive guarantee that parent Enterprise Group exists in companies
         const existingGroup = await db
           .select()
           .from(companies)
-          .where(eq(companies.id, body.companyId))
+          .where(eq(companies.id, tenantId))
           .limit(1);
         if (existingGroup.length === 0) {
+          if (!canManageCorporateGroups(resolveCallerRole(request))) {
+            return reply.code(403).send({
+              error: "FORBIDDEN",
+              message:
+                "Creating a new Corporate Group requires Accounting, Controlling, or Admin permissions.",
+            });
+          }
           const knownDef = ENTERPRISE_COMPANY_GROUPS.find(
-            (g) => g.id === body.companyId,
+            (g) => g.id === tenantId,
           );
           await db
             .insert(companies)
             .values({
-              id: body.companyId,
+              id: tenantId,
               name:
                 knownDef?.name ||
                 (body.companyGroupName as string) ||
                 (body.companyName as string) ||
-                body.companyId,
+                tenantId,
               groupCode:
                 knownDef?.groupCode ||
-                body.companyId
-                  .replace(/^grp_/, "")
-                  .substring(0, 6)
-                  .toUpperCase(),
+                tenantId.replace(/^grp_/, "").substring(0, 6).toUpperCase(),
               sector: knownDef?.sector || "Global Logistics & Supply Chain",
               headquartersCountry:
                 knownDef?.headquartersCountry ||
@@ -1256,130 +1081,593 @@ const addressesRoutes: FastifyPluginAsync = async (fastify, _opts) => {
             })
             .onConflictDoNothing();
         }
-      }
 
-      const updated = await db
-        .update(addresses)
-        .set({
-          companyId: (body.companyId as string) || undefined,
-          addressType: normalizedType as AddressType | undefined,
-          companyName: body.companyName as string,
-          tradeName: (body.tradeName as string) || null,
-          taxId: body.taxId
-            ? (body.taxId as string).trim().toUpperCase()
-            : null,
-          street1: body.street1 as string,
-          street2: (body.street2 as string) || null,
-          zipCode: body.zipCode as string,
-          city: body.city as string,
-          federalState: (body.federalState as string) || null,
-          country: body.country as string,
-          unLocode: body.unLocode
-            ? (body.unLocode as string).trim().toUpperCase()
-            : null,
-          isDefaultShipper: Boolean(body.isDefaultShipper),
-          isDefaultConsignee: Boolean(body.isDefaultConsignee),
-          isDefaultNotify: Boolean(body.isDefaultNotify),
-          notes: (body.notes as string) || null,
-          lat:
-            body.lat !== undefined
-              ? body.lat !== null && body.lat !== ""
-                ? Number(body.lat)
-                : null
-              : undefined,
-          lon:
-            body.lon !== undefined
-              ? body.lon !== null && body.lon !== ""
-                ? Number(body.lon)
-                : null
-              : undefined,
-          formattedAddress:
-            body.formattedAddress !== undefined
-              ? (body.formattedAddress as string)
-              : undefined,
-          verificationStatus:
-            (body.verificationStatus as AddressVerificationStatus) || undefined,
-          verificationProvider:
-            (body.verificationProvider as AddressVerificationProvider) ||
-            undefined,
-          updatedAt: new Date(),
-        })
-        .where(eq(addresses.id, id))
-        .returning();
+        // Check existing addresses for duplicate detection
+        const existing = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.companyId, tenantId));
 
-      if (updated.length === 0) {
-        return reply.code(404).send({ error: "Address not found" });
-      }
+        let matchedDuplicate: typeof addresses.$inferSelect | null = null;
+        let highestScore = 0;
 
-      // If contacts array provided, refresh contacts
-      if (Array.isArray(body.contacts)) {
-        await db
-          .delete(addressContacts)
-          .where(eq(addressContacts.addressId, id));
-        for (const c of body.contacts as Record<string, unknown>[]) {
-          await db.insert(addressContacts).values({
-            id: (c.id as string) || `ct_${uuidv4().substring(0, 8)}`,
-            addressId: id,
-            fullName: c.fullName as string,
-            email: c.email as string,
-            phone: (c.phone as string) || null,
-            mobile: (c.mobile as string) || null,
-            roleCategory: ((c.roleCategory as string) ||
-              "OPERATIONS") as ContactRoleCategory,
-            jobTitle: (c.jobTitle as string) || null,
-            isPrimary: Boolean(c.isPrimary),
-            createdAt: new Date(),
-            updatedAt: new Date(),
+        for (const item of existing) {
+          // 1. Tax ID Exact match
+          if (
+            typeof body.taxId === "string" &&
+            item.taxId &&
+            body.taxId.trim().toUpperCase() === item.taxId.trim().toUpperCase()
+          ) {
+            matchedDuplicate = item;
+            highestScore = 1.0;
+            break;
+          }
+
+          // 2. Fuzzy text similarity match
+          const proposedCombined = `${(body.companyName as string) || ""} ${(body.street1 as string) || ""} ${(body.city as string) || ""}`;
+          const existingCombined = `${item.companyName || ""} ${item.street1 || ""} ${item.city || ""}`;
+          const score = calculateSimilarity(proposedCombined, existingCombined);
+
+          if (score > highestScore) {
+            highestScore = score;
+            if (score >= 0.8) {
+              matchedDuplicate = item;
+            }
+          }
+        }
+
+        // If duplicate detected and overrideWarning is NOT confirmed:
+        if (highestScore >= 0.8 && matchedDuplicate && !body.overrideWarning) {
+          return reply.code(409).send({
+            duplicateWarning: true,
+            message:
+              "A similar registered address was detected for this company.",
+            matchScore: Math.round(highestScore * 100) / 100,
+            matchedAddress: {
+              id: matchedDuplicate.id,
+              companyName: matchedDuplicate.companyName,
+              addressType: matchedDuplicate.addressType,
+              street1: matchedDuplicate.street1,
+              city: matchedDuplicate.city,
+              unLocode: matchedDuplicate.unLocode,
+              taxId: matchedDuplicate.taxId,
+            },
           });
         }
+
+        const addressId =
+          typeof body.id === "string" && body.id
+            ? body.id
+            : `addr_${uuidv4().substring(0, 8)}`;
+        const now = new Date();
+
+        // Geocoding & Verification Handling
+        let lat =
+          body.lat !== undefined && body.lat !== null && body.lat !== ""
+            ? Number(body.lat)
+            : null;
+        let lon =
+          body.lon !== undefined && body.lon !== null && body.lon !== ""
+            ? Number(body.lon)
+            : null;
+        let formattedAddress = (body.formattedAddress as string) || null;
+        let verificationStatus: AddressVerificationStatus =
+          (body.verificationStatus as AddressVerificationStatus) ||
+          "NOT_CHECKED";
+        let verificationProvider: AddressVerificationProvider | null =
+          (body.verificationProvider as AddressVerificationProvider) || null;
+
+        // If coordinates not already supplied from UI, attempt backend geocoding (with strict timeout)
+        if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) {
+          if (process.env.NODE_ENV === "test") {
+            verificationStatus = "MANUAL_UNVERIFIED";
+            verificationProvider = "MANUAL";
+          } else {
+            try {
+              const timeoutPromise = new Promise<null>((_, reject) =>
+                setTimeout(() => reject(new Error("Geocode timeout")), 1200),
+              );
+              const geo = await Promise.race([
+                addressGeocodingService.geocodeAddress({
+                  street1: (body.street1 as string) || "",
+                  zipCode: (body.zipCode as string) || "",
+                  city: (body.city as string) || "",
+                  federalState: (body.federalState as string) || undefined,
+                  country: (body.country as string) || "ES",
+                }),
+                timeoutPromise,
+              ]);
+              if (geo && !isNaN(geo.lat) && !isNaN(geo.lon)) {
+                lat = geo.lat;
+                lon = geo.lon;
+                formattedAddress = formattedAddress || geo.formattedAddress;
+                verificationStatus = "VERIFIED";
+                verificationProvider =
+                  geo.provider as AddressVerificationProvider;
+              } else {
+                verificationStatus = "MANUAL_UNVERIFIED";
+                verificationProvider = "MANUAL";
+              }
+            } catch {
+              verificationStatus = "MANUAL_UNVERIFIED";
+              verificationProvider = "MANUAL";
+            }
+          }
+        } else {
+          if (!verificationStatus || verificationStatus === "NOT_CHECKED") {
+            verificationStatus = "VERIFIED";
+          }
+          if (!verificationProvider) {
+            verificationProvider = "MANUAL";
+          }
+        }
+
+        const txCreated = await db.transaction(async (tx) => {
+          const inserted = await tx
+            .insert(addresses)
+            .values({
+              id: addressId,
+              companyId: tenantId,
+              addressType: normalizedType as AddressType,
+              companyName: (body.companyName as string) || "",
+              tradeName: (body.tradeName as string) || null,
+              taxId:
+                typeof body.taxId === "string"
+                  ? body.taxId.trim().toUpperCase()
+                  : null,
+              street1: (body.street1 as string) || "",
+              street2: (body.street2 as string) || null,
+              zipCode: (body.zipCode as string) || "",
+              city: (body.city as string) || "",
+              federalState: (body.federalState as string) || null,
+              country: (body.country as string) || "ES",
+              unLocode:
+                typeof body.unLocode === "string"
+                  ? body.unLocode.trim().toUpperCase()
+                  : null,
+              isDefaultShipper: Boolean(body.isDefaultShipper),
+              isDefaultConsignee: Boolean(body.isDefaultConsignee),
+              isDefaultNotify: Boolean(body.isDefaultNotify),
+              notes: (body.notes as string) || null,
+              lat,
+              lon,
+              formattedAddress,
+              verificationStatus,
+              verificationProvider,
+              createdAt: now,
+              updatedAt: now,
+            })
+            .returning();
+
+          const createdAddress = inserted[0];
+          const createdContacts: (typeof addressContacts.$inferSelect)[] = [];
+
+          if (Array.isArray(body.contacts) && body.contacts.length > 0) {
+            for (const c of body.contacts as Record<string, unknown>[]) {
+              const contactId = `ct_${uuidv4().substring(0, 8)}`;
+              const insertedContact = await tx
+                .insert(addressContacts)
+                .values({
+                  id: contactId,
+                  addressId: createdAddress.id,
+                  fullName: c.fullName as string,
+                  email: c.email as string,
+                  phone: (c.phone as string) || null,
+                  mobile: (c.mobile as string) || null,
+                  roleCategory: ((c.roleCategory as string) ||
+                    "OPERATIONS") as ContactRoleCategory,
+                  jobTitle: (c.jobTitle as string) || null,
+                  isPrimary: Boolean(c.isPrimary),
+                  createdAt: now,
+                  updatedAt: now,
+                })
+                .returning();
+              createdContacts.push(insertedContact[0]);
+            }
+          }
+
+          return {
+            ...createdAddress,
+            contacts: createdContacts,
+          };
+        });
+
+        return reply.code(201).send(txCreated);
+      } catch (err: unknown) {
+        fastify.log.error(err, "Failed to create address");
+        const message =
+          err instanceof Error ? err.message : "Failed to create address";
+        return reply.code(500).send({ error: message });
       }
+    },
+  );
 
-      const finalContacts = await db
-        .select()
-        .from(addressContacts)
-        .where(eq(addressContacts.addressId, id));
+  // GET /api/addresses/:id - Get address with contacts and B/L format blocks
+  fastify.get<{
+    Params: { id: string };
+  }>(
+    "/:id",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "Retrieve a logistics address with contacts and formatted Bill of Lading blocks",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+        const rows = await db
+          .select()
+          .from(addresses)
+          .where(eq(addresses.id, id))
+          .limit(1);
 
-      return {
-        ...updated[0],
-        contacts: finalContacts,
-      };
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to update address";
-      return reply.code(500).send({ error: message });
-    }
-  });
+        if (rows.length === 0) {
+          return reply.code(404).send({ error: "Address not found" });
+        }
+
+        const addr = rows[0];
+        const canonicalCode = normalizeAddressTypeCode(addr.addressType);
+        const [contacts, groupRows, typeRows] = await Promise.all([
+          db
+            .select()
+            .from(addressContacts)
+            .where(eq(addressContacts.addressId, id)),
+          db
+            .select()
+            .from(companies)
+            .where(eq(companies.id, addr.companyId))
+            .limit(1),
+          db
+            .select()
+            .from(addressTypes)
+            .where(eq(addressTypes.code, canonicalCode))
+            .limit(1),
+        ]);
+
+        const primaryContact = contacts.find((c) => c.isPrimary) || contacts[0];
+
+        // Generate pre-rendered Maritime B/L party shape boxes
+        const blBoxes = formatAllBlBoxes({
+          shipper: {
+            companyName: addr.companyName,
+            tradeName: addr.tradeName || undefined,
+            taxId: addr.taxId || undefined,
+            street1: addr.street1,
+            street2: addr.street2 || undefined,
+            zipCode: addr.zipCode,
+            city: addr.city,
+            country: addr.country,
+            unLocode: addr.unLocode || undefined,
+          },
+          shipperContact: primaryContact
+            ? {
+                fullName: primaryContact.fullName,
+                email: primaryContact.email,
+                phone: primaryContact.phone || undefined,
+              }
+            : undefined,
+          consignee: {
+            companyName: addr.companyName,
+            tradeName: addr.tradeName || undefined,
+            taxId: addr.taxId || undefined,
+            street1: addr.street1,
+            street2: addr.street2 || undefined,
+            zipCode: addr.zipCode,
+            city: addr.city,
+            country: addr.country,
+            unLocode: addr.unLocode || undefined,
+          },
+          notify: {
+            companyName: addr.companyName,
+            taxId: addr.taxId || undefined,
+            street1: addr.street1,
+            street2: addr.street2 || undefined,
+            zipCode: addr.zipCode,
+            city: addr.city,
+            country: addr.country,
+            unLocode: addr.unLocode || undefined,
+          },
+          notifyContact: primaryContact
+            ? {
+                fullName: primaryContact.fullName,
+                email: primaryContact.email,
+                phone: primaryContact.phone || undefined,
+              }
+            : undefined,
+          agent: {
+            companyName: addr.companyName,
+            street1: addr.street1,
+            zipCode: addr.zipCode,
+            city: addr.city,
+            country: addr.country,
+            unLocode: addr.unLocode || undefined,
+          },
+          agentContact: primaryContact
+            ? {
+                fullName: primaryContact.fullName,
+                phone: primaryContact.phone || undefined,
+              }
+            : undefined,
+        });
+
+        const includeCorporateGroup = canManageCorporateGroups(
+          resolveCallerRole(request),
+        );
+        return {
+          ...addr,
+          addressType: canonicalCode,
+          addressTypeName: typeRows[0]?.name || canonicalCode,
+          ...(includeCorporateGroup
+            ? {
+                companyGroupName: groupRows[0]?.name || addr.companyId,
+                companyGroupCode: groupRows[0]?.groupCode || null,
+              }
+            : {}),
+          contacts,
+          blBoxes,
+        };
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to fetch address";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
+
+  // PUT /api/addresses/:id - Update address & sync contacts
+  fastify.put<{
+    Params: { id: string };
+    Body: Record<string, unknown>;
+  }>(
+    "/:id",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary:
+          "Update a master logistics address and synchronize associated contacts",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+        const body = request.body || {};
+        let normalizedType: string | undefined = undefined;
+        if (body.addressType !== undefined && body.addressType !== null) {
+          const rawAddressType = String(body.addressType).trim().toUpperCase();
+          if (!isCanonicalAddressTypeCode(rawAddressType)) {
+            return reply.code(400).send({
+              error: "INVALID_ADDRESS_TYPE",
+              message: `Invalid or legacy addressType '${String(body.addressType)}'. Must be one of the 25 canonical 3-letter taxonomy codes.`,
+              allowedCodes: CANONICAL_ADDRESS_TYPE_CODES,
+            });
+          }
+          normalizedType = rawAddressType;
+        }
+
+        if (
+          normalizedType &&
+          requiresUnLocodeForAddressType(normalizedType) &&
+          body.unLocode !== undefined
+        ) {
+          const unLocodeOk = await isValidUnLocode(
+            body.unLocode as string | undefined,
+          );
+          if (!unLocodeOk) {
+            return reply.code(400).send({
+              error: "INVALID_UNLOCODE",
+              message: `Address type '${normalizedType}' requires a valid 5-character UN/LOCODE present in the UNECE catalog.`,
+            });
+          }
+        }
+
+        if (typeof body.companyId === "string") {
+          const existingGroup = await db
+            .select()
+            .from(companies)
+            .where(eq(companies.id, body.companyId))
+            .limit(1);
+          if (existingGroup.length === 0) {
+            if (!canManageCorporateGroups(resolveCallerRole(request))) {
+              return reply.code(403).send({
+                error: "FORBIDDEN",
+                message:
+                  "Creating a new Corporate Group requires Accounting, Controlling, or Admin permissions.",
+              });
+            }
+            const knownDef = ENTERPRISE_COMPANY_GROUPS.find(
+              (g) => g.id === body.companyId,
+            );
+            await db
+              .insert(companies)
+              .values({
+                id: body.companyId,
+                name:
+                  knownDef?.name ||
+                  (body.companyGroupName as string) ||
+                  (body.companyName as string) ||
+                  body.companyId,
+                groupCode:
+                  knownDef?.groupCode ||
+                  body.companyId
+                    .replace(/^grp_/, "")
+                    .substring(0, 6)
+                    .toUpperCase(),
+                sector: knownDef?.sector || "Global Logistics & Supply Chain",
+                headquartersCountry:
+                  knownDef?.headquartersCountry ||
+                  (body.country as string) ||
+                  "ES",
+                taxId: knownDef?.taxId || null,
+                creditLimit: knownDef?.creditLimit || 1000000,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              })
+              .onConflictDoNothing();
+          }
+        }
+
+        const txResult = await db.transaction(async (tx) => {
+          const updated = await tx
+            .update(addresses)
+            .set({
+              companyId: (body.companyId as string) || undefined,
+              addressType: normalizedType as AddressType | undefined,
+              companyName: body.companyName as string,
+              tradeName: (body.tradeName as string) || null,
+              taxId: body.taxId
+                ? (body.taxId as string).trim().toUpperCase()
+                : null,
+              street1: body.street1 as string,
+              street2: (body.street2 as string) || null,
+              zipCode: body.zipCode as string,
+              city: body.city as string,
+              federalState: (body.federalState as string) || null,
+              country: body.country as string,
+              unLocode: body.unLocode
+                ? (body.unLocode as string).trim().toUpperCase()
+                : null,
+              isDefaultShipper: Boolean(body.isDefaultShipper),
+              isDefaultConsignee: Boolean(body.isDefaultConsignee),
+              isDefaultNotify: Boolean(body.isDefaultNotify),
+              notes: (body.notes as string) || null,
+              lat:
+                body.lat !== undefined
+                  ? body.lat !== null && body.lat !== ""
+                    ? Number(body.lat)
+                    : null
+                  : undefined,
+              lon:
+                body.lon !== undefined
+                  ? body.lon !== null && body.lon !== ""
+                    ? Number(body.lon)
+                    : null
+                  : undefined,
+              formattedAddress:
+                body.formattedAddress !== undefined
+                  ? (body.formattedAddress as string)
+                  : undefined,
+              verificationStatus:
+                (body.verificationStatus as AddressVerificationStatus) ||
+                undefined,
+              verificationProvider:
+                (body.verificationProvider as AddressVerificationProvider) ||
+                undefined,
+              updatedAt: new Date(),
+            })
+            .where(eq(addresses.id, id))
+            .returning();
+
+          if (updated.length === 0) {
+            return null;
+          }
+
+          // If contacts array provided, refresh contacts atomically inside the transaction
+          if (Array.isArray(body.contacts)) {
+            await tx
+              .delete(addressContacts)
+              .where(eq(addressContacts.addressId, id));
+            for (const c of body.contacts as Record<string, unknown>[]) {
+              await tx.insert(addressContacts).values({
+                id: (c.id as string) || `ct_${uuidv4().substring(0, 8)}`,
+                addressId: id,
+                fullName: c.fullName as string,
+                email: c.email as string,
+                phone: (c.phone as string) || null,
+                mobile: (c.mobile as string) || null,
+                roleCategory: ((c.roleCategory as string) ||
+                  "OPERATIONS") as ContactRoleCategory,
+                jobTitle: (c.jobTitle as string) || null,
+                isPrimary: Boolean(c.isPrimary),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              });
+            }
+          }
+
+          const finalContacts = await tx
+            .select()
+            .from(addressContacts)
+            .where(eq(addressContacts.addressId, id));
+
+          return {
+            ...updated[0],
+            contacts: finalContacts,
+          };
+        });
+
+        if (!txResult) {
+          return reply.code(404).send({ error: "Address not found" });
+        }
+
+        return txResult;
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to update address";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 
   // DELETE /api/addresses/:id - Delete address and cascade contacts
   fastify.delete<{
     Params: { id: string };
-  }>("/:id", async (request, reply) => {
-    try {
-      const { id } = request.params;
+  }>(
+    "/:id",
+    {
+      schema: {
+        tags: [...ADDRESSES_TAG],
+        summary: "Delete a logistics address and cascade remove its contacts",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
 
-      // Delete contacts first
-      await db.delete(addressContacts).where(eq(addressContacts.addressId, id));
+        const deleted = await db.transaction(async (tx) => {
+          await tx
+            .delete(addressContacts)
+            .where(eq(addressContacts.addressId, id));
 
-      const deleted = await db
-        .delete(addresses)
-        .where(eq(addresses.id, id))
-        .returning();
+          return await tx
+            .delete(addresses)
+            .where(eq(addresses.id, id))
+            .returning();
+        });
 
-      if (deleted.length === 0) {
-        return reply.code(404).send({ error: "Address not found" });
+        if (deleted.length === 0) {
+          return reply.code(404).send({ error: "Address not found" });
+        }
+
+        return {
+          success: true,
+          message: "Address and contacts successfully deleted",
+          id,
+        };
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to delete address";
+        return reply.code(500).send({ error: message });
       }
-
-      return {
-        success: true,
-        message: "Address and contacts successfully deleted",
-        id,
-      };
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete address";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 };
 
 export default addressesRoutes;

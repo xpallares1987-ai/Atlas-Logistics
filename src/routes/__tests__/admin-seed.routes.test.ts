@@ -1,19 +1,43 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import jwt from "jsonwebtoken";
 import app from "../../app.js";
+import { getJWTConfig } from "../../config/jwt.js";
 
 describe("Admin Seed Management Routes", () => {
+  let adminHeaders: { authorization: string };
+
   beforeAll(async () => {
     await app.ready();
+    const token = jwt.sign(
+      {
+        id: "admin_user_id",
+        email: "admin@atlas.com",
+        role: "ADMIN",
+        companyId: "c-1",
+      },
+      getJWTConfig().secret,
+      { expiresIn: "1h" },
+    );
+    adminHeaders = { authorization: `Bearer ${token}` };
   });
 
   afterAll(async () => {
     await app.close();
   });
 
+  it("rejects unauthenticated requests to /api/admin/seed/status with 401", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/admin/seed/status",
+    });
+    expect(response.statusCode).toBe(401);
+  });
+
   it("GET /api/admin/seed/status returns statistics for all 3 phases", async () => {
     const response = await app.inject({
       method: "GET",
       url: "/api/admin/seed/status",
+      headers: adminHeaders,
     });
 
     expect(response.statusCode).toBe(200);
@@ -31,6 +55,7 @@ describe("Admin Seed Management Routes", () => {
     const response = await app.inject({
       method: "POST",
       url: "/api/admin/seed/unknown",
+      headers: adminHeaders,
     });
 
     expect(response.statusCode).toBe(400);
@@ -43,6 +68,7 @@ describe("Admin Seed Management Routes", () => {
     const response = await app.inject({
       method: "POST",
       url: "/api/admin/seed/2",
+      headers: adminHeaders,
     });
 
     expect(response.statusCode).toBe(200);
