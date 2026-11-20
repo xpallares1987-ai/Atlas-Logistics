@@ -2,7 +2,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { FreightRate, TranslationSet } from "../types";
-import { formatCurrency } from "./currencyService";
+import { formatCurrency } from "./currency.service";
 
 /**
  * Service to generate professional executive PDF reports for freight comparisons.

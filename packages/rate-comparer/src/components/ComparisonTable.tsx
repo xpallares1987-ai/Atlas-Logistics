@@ -30,16 +30,16 @@ import { saveAs } from "file-saver";
 import {
   estimateCarbonFootprint,
   getCarbonRating,
-} from "../services/carbonService";
+} from "../services/carbon.service";
 import {
   convertCurrency,
   formatCurrency,
   CURRENCY_RATES,
-} from "../services/currencyService";
+} from "../services/currency.service";
 import {
   generateExecutiveReport,
   generateCustomerQuote,
-} from "../services/PDFService";
+} from "../services/pdf.service";
 
 interface ComparisonTableProps {
   t: TranslationSet;

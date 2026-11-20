@@ -1,6 +1,6 @@
 import { logger } from "../../config/logger.js";
 import { AtlasWorker, AtlasWorkerJob } from "../utils/worker-base.js";
-import { processAiTask } from "../../services/geminiService.js";
+import { processAiTask } from "../../services/gemini.service.js";
 
 interface AiWorkerVariables {
   documentUrl?: string;

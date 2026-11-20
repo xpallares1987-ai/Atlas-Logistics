@@ -9,7 +9,7 @@ import {
   CheckCircle,
   Truck,
 } from "lucide-react";
-import { drizzleRateService } from "../services/drizzleRateService";
+import { drizzleRateService } from "../../services/drizzle-rate.service";
 
 interface BookingDrawerProps {
   rate: any;

@@ -24,7 +24,7 @@ import {
   setRuntimeGeminiApiKey,
   clearGeminiMemoryCache,
   SemanticSearchCandidate,
-} from "../services/geminiService.js";
+} from "../services/gemini.service.js";
 import {
   OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
   buildErrorResponses,

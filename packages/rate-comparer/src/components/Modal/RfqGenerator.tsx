@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Switch, Checkbox } from "@atlas/ui";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import { useAppStore } from "../store";
+import { useAppStore } from "../../store";
 
 interface RfqGeneratorModalProps {
   rate: any | null;

@@ -8,9 +8,9 @@ import React, { useState, useEffect } from "react";
 import { useAppStore } from "./store";
 import RateTable from "./components/RateTable";
 import LocationAutocomplete from "./components/LocationAutocomplete";
-import AdvancedFiltersDrawer from "./components/AdvancedFiltersDrawer";
+import AdvancedFiltersDrawer from "./components/Drawer/AdvancedFilters";
 import RouteAnalyticsChart from "./components/RouteAnalyticsChart";
-import { drizzleRateService } from "./services/drizzleRateService";
+import { drizzleRateService } from "./services/drizzle-rate.service";
 import {
   Search,
   Ship,

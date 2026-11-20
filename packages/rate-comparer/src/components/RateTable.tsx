@@ -18,12 +18,12 @@ import {
   Leaf,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
-import RfqGeneratorModal from "./RfqGeneratorModal";
-import BookingDrawer from "./BookingDrawer";
-import DrayageRouteModal from "./DrayageRouteModal";
+import RfqGeneratorModal from "./Modal/RfqGenerator";
+import BookingDrawer from "./Drawer/Booking";
+import DrayageRouteModal from "./Modal/DrayageRoute";
 import { QuoteBookingModal } from "@atlas/ui";
 import { useAppStore } from "../store";
-import { drizzleRateService } from "../services/drizzleRateService";
+import { drizzleRateService } from "../services/drizzle-rate.service";
 
 interface RateTableProps {
   rates: any[];

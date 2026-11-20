@@ -21,7 +21,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAppStore } from "../store";
-import { drizzleRateService } from "../services/drizzleRateService";
+import { drizzleRateService } from "../services/drizzle-rate.service";
 
 ChartJS.register(
   CategoryScale,

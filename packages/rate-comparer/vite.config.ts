@@ -10,7 +10,7 @@ export default defineConfig({
       name: "rates",
       filename: "remoteEntry.js",
       exposes: {
-        "./RateComparer": "./src/index.tsx",
+        "./RateComparer": "./src/FreightComparerApp.tsx",
       },
       shared: ["react", "react-dom", "@tanstack/react-query"],
     }),

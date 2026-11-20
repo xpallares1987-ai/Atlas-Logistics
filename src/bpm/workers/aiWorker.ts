@@ -1,5 +1,5 @@
 import { Worker, Job } from "bullmq";
-import { processAiTask } from "../../services/geminiService.js";
+import { processAiTask } from "../../services/gemini.service.js";
 import { db } from "../../db/index.js";
 import { pendingAiReviews } from "../../db/schema/index.js";
 import { eq } from "drizzle-orm";
