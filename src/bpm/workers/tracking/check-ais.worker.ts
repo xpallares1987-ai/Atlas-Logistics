@@ -1,4 +1,8 @@
-import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
+import {
+  AtlasWorker,
+  AtlasWorkerJob,
+  AtlasBpmnError,
+} from "../../utils/worker-base.js";
 import { AIS_UNAVAILABLE, VESSEL_NOT_FOUND } from "../../utils/error-codes.js";
 import { webcrypto } from "crypto";
 
@@ -31,7 +35,7 @@ interface CheckAisOutput {
 class CheckAisWorker extends AtlasWorker<CheckAisInput, CheckAisOutput> {
   readonly taskType = "atlas.tracking.check-ais";
 
-  async execute(job: any): Promise<CheckAisOutput> {
+  async execute(job: AtlasWorkerJob<CheckAisInput>): Promise<CheckAisOutput> {
     const { vessel } = job.variables;
 
     console.log(`[CheckAIS] Querying position for vessel: ${vessel}`);

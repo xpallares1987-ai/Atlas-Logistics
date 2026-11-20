@@ -317,7 +317,7 @@ export async function seedAddressIdentifiers(): Promise<void> {
         isDefaultNotify: false,
         createdAt: now,
         updatedAt: now,
-      } as any)
+      })
       .onConflictDoUpdate({
         target: addresses.id,
         set: {
@@ -353,25 +353,31 @@ export async function seedAddressIdentifiers(): Promise<void> {
 
     if (existingAddress.length > 0) {
       const now = new Date();
+      type IdentifierScheme =
+        (typeof addressIdentifiers.$inferInsert)["scheme"];
+      type IdentifierMode =
+        (typeof addressIdentifiers.$inferInsert)["transportMode"];
+      const schemeValue = item.scheme as IdentifierScheme;
+      const transportModeValue = (item.transportMode ?? null) as IdentifierMode;
       await db
         .insert(addressIdentifiers)
         .values({
           id: item.id,
           addressId: item.addressId,
-          scheme: item.scheme as any,
+          scheme: schemeValue,
           value: item.value,
-          transportMode: item.transportMode as any,
+          transportMode: transportModeValue,
           isPrimary: item.isPrimary ?? true,
           issuedBy: item.issuedBy || null,
           createdAt: now,
           updatedAt: now,
-        } as any)
+        })
         .onConflictDoUpdate({
           target: addressIdentifiers.id,
           set: {
             value: item.value,
-            scheme: item.scheme as any,
-            transportMode: item.transportMode as any,
+            scheme: schemeValue,
+            transportMode: transportModeValue,
             issuedBy: item.issuedBy || null,
             updatedAt: now,
           },

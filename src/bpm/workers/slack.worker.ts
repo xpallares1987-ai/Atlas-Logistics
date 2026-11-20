@@ -1,10 +1,23 @@
 import { logger } from "../../config/logger.js";
-import { AtlasWorker } from "../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../utils/worker-base.js";
 
-class SlackWorker extends AtlasWorker {
+interface SlackWorkerVariables {
+  slackMessage?: string;
+  message?: string;
+  slackChannel?: string;
+}
+
+interface SlackWorkerOutput {
+  slackDeliveryStatus: "mocked" | "success";
+  messageTimestamp?: string;
+}
+
+class SlackWorker extends AtlasWorker<SlackWorkerVariables, SlackWorkerOutput> {
   readonly taskType = "slack-connector";
 
-  async execute(job: any): Promise<any> {
+  async execute(
+    job: AtlasWorkerJob<SlackWorkerVariables>,
+  ): Promise<SlackWorkerOutput> {
     logger.info(
       `[SlackWorker] Handling job ${job.key} for workflow ${job.processInstanceKey}`,
     );
@@ -42,15 +55,20 @@ class SlackWorker extends AtlasWorker {
         );
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        ts?: string;
+      };
       if (!data.ok) {
         throw new Error(`Slack API error: ${data.error}`);
       }
 
       logger.info(`[SlackWorker] Successfully sent message to ${channel}`);
       return { slackDeliveryStatus: "success", messageTimestamp: data.ts };
-    } catch (err: any) {
-      logger.error(`[SlackWorker] Failed to send message: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(`[SlackWorker] Failed to send message: ${msg}`);
       throw err;
     }
   }

@@ -47,24 +47,33 @@ export function getTracer(
  * @param fn Asynchronous handler receiving the active span
  * @returns Result of the executed handler
  */
-export async function traceSpan<T>(
-  name: string,
-  attributes: Record<string, any> = {},
-  fn: (span: Span) => Promise<T>,
-): Promise<T> {
-  const tracer = getTracer();
-
-  // Format attributes safely for OpenTelemetry
+function sanitizeSpanAttributes(
+  attributes: Record<string, unknown>,
+): Attributes {
   const sanitizedAttributes: Attributes = {};
   for (const [key, value] of Object.entries(attributes)) {
     if (value !== undefined && value !== null) {
-      if (typeof value === "object") {
-        sanitizedAttributes[key] = JSON.stringify(value);
+      if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        sanitizedAttributes[key] = value;
       } else {
-        sanitizedAttributes[key] = value as any;
+        sanitizedAttributes[key] = JSON.stringify(value);
       }
     }
   }
+  return sanitizedAttributes;
+}
+
+export async function traceSpan<T>(
+  name: string,
+  attributes: Record<string, unknown> = {},
+  fn: (span: Span) => Promise<T>,
+): Promise<T> {
+  const tracer = getTracer();
+  const sanitizedAttributes = sanitizeSpanAttributes(attributes);
 
   return tracer.startActiveSpan(
     name,
@@ -74,11 +83,12 @@ export async function traceSpan<T>(
         const result = await fn(span);
         span.setStatus({ code: SpanStatusCode.OK });
         return result;
-      } catch (error: any) {
-        span.recordException(error);
+      } catch (error: unknown) {
+        const exceptionInput = error instanceof Error ? error : String(error);
+        span.recordException(exceptionInput);
         span.setStatus({
           code: SpanStatusCode.ERROR,
-          message: error?.message || String(error),
+          message: error instanceof Error ? error.message : String(error),
         });
         throw error;
       } finally {
@@ -96,16 +106,10 @@ export async function traceSpan<T>(
  */
 export function startSpan(
   name: string,
-  attributes: Record<string, any> = {},
+  attributes: Record<string, unknown> = {},
 ): Span {
   const tracer = getTracer();
-  const sanitizedAttributes: Attributes = {};
-  for (const [key, value] of Object.entries(attributes)) {
-    if (value !== undefined && value !== null) {
-      sanitizedAttributes[key] =
-        typeof value === "object" ? JSON.stringify(value) : (value as any);
-    }
-  }
+  const sanitizedAttributes = sanitizeSpanAttributes(attributes);
   return tracer.startSpan(name, { attributes: sanitizedAttributes });
 }
 

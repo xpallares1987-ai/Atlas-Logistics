@@ -1,4 +1,8 @@
-import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
+import {
+  AtlasWorker,
+  AtlasWorkerJob,
+  AtlasBpmnError,
+} from "../../utils/worker-base.js";
 
 interface OptimizeLoadingInput {
   shipments: Array<{
@@ -47,7 +51,9 @@ class OptimizeLoadingWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.lcl.optimize-loading";
 
-  async execute(job: any): Promise<OptimizeLoadingOutput> {
+  async execute(
+    job: AtlasWorkerJob<OptimizeLoadingInput>,
+  ): Promise<OptimizeLoadingOutput> {
     const { shipments = [], containerType = "20DC" } = job.variables;
 
     console.log(
@@ -73,9 +79,7 @@ class OptimizeLoadingWorker extends AtlasWorker<
     const maxVolume = maxVolumes[containerType] || 33.2;
 
     // Sort shipments by volume descending (first-fit-decreasing)
-    const sorted = [...shipments].sort(
-      (a: any, b: any) => b.volumeCbm - a.volumeCbm,
-    );
+    const sorted = [...shipments].sort((a, b) => b.volumeCbm - a.volumeCbm);
 
     let totalWeight = 0;
     let totalVolume = 0;

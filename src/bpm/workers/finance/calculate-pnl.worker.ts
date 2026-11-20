@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface CalculatePnLInput {
   shipmentId: string;
@@ -20,7 +20,9 @@ class CalculatePnLWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.invoice.calculate-pnl";
 
-  async execute(job: any): Promise<CalculatePnLOutput> {
+  async execute(
+    job: AtlasWorkerJob<CalculatePnLInput>,
+  ): Promise<CalculatePnLOutput> {
     const { shipmentId, expectedCost = 1000 } = job.variables;
 
     console.log(

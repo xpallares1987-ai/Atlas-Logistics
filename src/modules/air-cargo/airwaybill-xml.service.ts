@@ -43,7 +43,13 @@ export interface AirwayBillXmlData {
   natureOfGoods: string;
   specialHandlingCodes?: string[];
   handlingInfo?: string;
-  consolidatedHawbs?: any[];
+  consolidatedHawbs?: ReadonlyArray<{
+    awbNumber: string;
+    pieces: number;
+    grossWeightKg: number;
+    chargeableWeightKg: number;
+    natureOfGoods: string;
+  }>;
 }
 
 export class AirwayBillXmlService {

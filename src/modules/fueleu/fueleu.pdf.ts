@@ -1,14 +1,80 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface FuelEuAccountPdfInput {
+  reportingYear: number;
+  targetGhgIntensityGco2eqPerMj: number;
+  actualAttainedGhgIntensityGco2eqPerMj: number;
+  totalAnnualEnergyMj: number;
+  complianceStatus: string;
+  complianceBalanceGco2eq: number;
+  calculatedFuelEuPenaltyEur: number;
+  verifierAccreditationNumber?: string | null;
+}
+
+interface FuelEuVesselPdfInput {
+  vesselName: string;
+  imoNumber: string;
+  flagState?: string | null;
+  grossTonnageGt: number;
+  mainEngineType?: string | null;
+  operatingShippingLine?: string | null;
+  classificationSociety?: string | null;
+  hasOpsConnectionInstalled?: boolean | null;
+  docHolderCompany?: string | null;
+}
+
+interface FuelEuPoolPdfInput {
+  poolCode: string;
+  status: string;
+  managingOperatorName: string;
+  consolidatedNetComplianceBalanceGco2eq: number;
+}
+
+interface FuelEuVoyagePdfInput {
+  voyageReferenceNumber: string;
+  geographicScope: string;
+  departurePortName: string;
+  departurePortLocode: string;
+  arrivalPortName: string;
+  arrivalPortLocode: string;
+  distanceNauticalMiles: number;
+  navigationHours: number;
+  berthHours: number;
+  carriedTeuCount: number;
+  fuelConsumedTonnes: number;
+  opsElectricityConsumedKwh: number;
+  totalEnergyConsumedMj: number;
+  calculatedGhgIntensityGco2eqPerMj: number;
+  co2EmissionsTonnes: number;
+  ch4EmissionsTonnes: number;
+  n2oEmissionsTonnes: number;
+  totalGhgEmissionsScopeTco2eq: number;
+  etsApplicableScopeEmissionsTco2eq: number;
+  leadAuditorVerifier?: string | null;
+}
+
+interface FuelEuFuelPdfInput {
+  fuelName: string;
+  fuelCode: string;
+  fuelCategory: string;
+  lowerCalorificValueMjPerGram: number;
+  totalWtwFactorGco2eqPerMj: number;
+}
+
 export class FuelEuPdfGenerator {
   /**
    * Generates Official FuelEU Maritime Compliance & EU ETS Settlement Certificate (PDF)
    */
   static generateFuelEuComplianceCertificatePdf(
-    account: any,
-    vessel: any,
-    pool?: any,
+    rawAccount: PdfInputRecord,
+    rawVessel: PdfInputRecord,
+    rawPool?: PdfInputRecord | null,
   ): Promise<Buffer> {
+    const account = rawAccount as FuelEuAccountPdfInput;
+    const vessel = rawVessel as FuelEuVesselPdfInput;
+    const pool = (rawPool ?? undefined) as FuelEuPoolPdfInput | undefined;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -234,10 +300,13 @@ export class FuelEuPdfGenerator {
    * Generates Bunker Delivery Note & Voyage GHG Emissions Audit Sheet (PDF)
    */
   static generateBunkerDeliveryNoteAuditPdf(
-    voyage: any,
-    vessel: any,
-    fuel: any,
+    rawVoyage: PdfInputRecord,
+    rawVessel: PdfInputRecord,
+    rawFuel: PdfInputRecord,
   ): Promise<Buffer> {
+    const voyage = rawVoyage as FuelEuVoyagePdfInput;
+    const vessel = rawVessel as FuelEuVesselPdfInput;
+    const fuel = rawFuel as FuelEuFuelPdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });

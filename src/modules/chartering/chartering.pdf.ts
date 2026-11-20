@@ -1,10 +1,117 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface CharterPartyPdfInput {
+  contractForm?: string | null;
+  fixtureReference?: string | null;
+  charterType?: string | null;
+  ownerName?: string | null;
+  chartererName?: string | null;
+  vesselName?: string | null;
+  imoNumber?: string | null;
+  flagState?: string | null;
+  summerDwtMt?: number | null;
+  grossTonnage?: number | null;
+  cargoDescription?: string | null;
+  cargoQuantityMt?: number | null;
+  quantityMarginPercentage?: number | null;
+  loadingPort?: string | null;
+  dischargingPort?: string | null;
+  laycanStart?: string | null;
+  laycanEnd?: string | null;
+  status?: string | null;
+  dailyHireRateUsd?: number | null;
+  freightRateUsdPerMt?: number | null;
+  demurrageRateUsdPerDay?: number | null;
+  despatchRateUsdPerDay?: number | null;
+  despatchCalculationBasis?: string | null;
+  laytimeTerms?: string | null;
+  loadRateMtPerDay?: number | null;
+  dischargeRateMtPerDay?: number | null;
+  turnTimeHours?: number | null;
+  norClausesJson?: string | null;
+  laytimeReversibility?: string | null;
+}
+
+interface StatementOfFactsPdfInput {
+  sofReference?: string | null;
+  portName?: string | null;
+  portCode?: string | null;
+  portOperation?: string | null;
+  terminalBerth?: string | null;
+  actualCargoHandledMt?: number | null;
+  norTenderedTimestamp?: string | null;
+  norAcceptedTimestamp?: string | null;
+  turnTimeExpiryTimestamp?: string | null;
+  masterName?: string | null;
+  vesselAgentName?: string | null;
+}
+
+interface SofEventPdfInput {
+  eventStartTimestamp?: string | null;
+  eventEndTimestamp?: string | null;
+  durationMinutes?: number | null;
+  eventType?: string | null;
+  interruptionReason?: string | null;
+  laytimeCountingPercentage?: number | null;
+  isCountedAgainstLaytime?: boolean | null;
+}
+
+interface LaytimeCalcPdfInput {
+  calculationReference?: string | null;
+  portOperation?: string | null;
+  laytimeCommencedTimestamp?: string | null;
+  laytimeCeasedTimestamp?: string | null;
+  allowedLaytimeFormatted?: string | null;
+  netLaytimeUsedFormatted?: string | null;
+  isDemurrage?: boolean | null;
+  timeDifferenceFormatted?: string | null;
+  totalDemurrageAmountUsd?: number | null;
+  totalDespatchAmountUsd?: number | null;
+  demurrageRatePerDayUsd?: number | null;
+  despatchRatePerDayUsd?: number | null;
+  calculationMethod?: string | null;
+}
+
+interface LaytimeBreakdownPdfInput {
+  startTime?: string | null;
+  endTime?: string | null;
+  reason?: string | null;
+  eventType?: string | null;
+  durationMinutes?: number | null;
+  deductedMinutes?: number | null;
+  countedMinutes?: number | null;
+  isOnDemurrageDuringEvent?: boolean | null;
+}
+
+interface OffHireEntryPdfInput {
+  offHireReference?: string | null;
+  offHireReason?: string | null;
+  start?: string | null;
+  end?: string | null;
+  durationDaysDecimal?: number | null;
+  hireDeductionUsd?: number | null;
+  bunkerCompensationUsd?: number | null;
+}
+
+interface TimeCharterHireCalcPdfInput {
+  grossPeriodDaysDecimal?: number | null;
+  grossHireAmountUsd?: number | null;
+  totalOffHireDaysDecimal?: number | null;
+  totalOffHireClaimsUsd?: number | null;
+  netPayableToOwnerUsd?: number | null;
+  offHires?: readonly OffHireEntryPdfInput[] | null;
+}
+
 export class CharteringPdfGenerator {
   /**
    * 1. Official Charter Party Fixture Recap PDF (BIMCO Gencon 2022 / NYPE 2015)
    */
-  public static async generateCharterPartyPdf(charter: any): Promise<Buffer> {
+  public static async generateCharterPartyPdf(
+    rawCharter: PdfInputRecord | null | undefined,
+  ): Promise<Buffer> {
+    const charter = (rawCharter ?? {}) as CharterPartyPdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -204,9 +311,11 @@ export class CharteringPdfGenerator {
    * 2. Official Statement of Facts (SOF) PDF
    */
   public static async generateStatementOfFactsPdf(
-    sof: any,
-    events: any[],
+    rawSof: PdfInputRecord | null | undefined,
+    rawEvents: readonly PdfInputRecord[],
   ): Promise<Buffer> {
+    const sof = (rawSof ?? {}) as StatementOfFactsPdfInput;
+    const events = (rawEvents ?? []) as readonly SofEventPdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -281,12 +390,12 @@ export class CharteringPdfGenerator {
           doc.rect(36, curY, 523, 18).strokeColor("#e2e8f0").stroke();
           doc.font("Helvetica").fontSize(7).fillColor("#0f172a");
           doc.text(
-            ev.eventStartTimestamp?.substring(0, 16).replace("T", " "),
+            ev.eventStartTimestamp?.substring(0, 16).replace("T", " ") || "-",
             44,
             curY + 4,
           );
           doc.text(
-            ev.eventEndTimestamp?.substring(0, 16).replace("T", " "),
+            ev.eventEndTimestamp?.substring(0, 16).replace("T", " ") || "-",
             140,
             curY + 4,
           );
@@ -337,10 +446,14 @@ export class CharteringPdfGenerator {
    * 3. Official Laytime Calculation Sheet & Demurrage/Despatch Settlement PDF
    */
   public static async generateLaytimeCalculationSheetPdf(
-    calc: any,
-    charter: any,
-    breakdowns: any[],
+    rawCalc: PdfInputRecord | null | undefined,
+    rawCharter: PdfInputRecord | null | undefined,
+    rawBreakdowns: readonly PdfInputRecord[],
   ): Promise<Buffer> {
+    const calc = (rawCalc ?? {}) as LaytimeCalcPdfInput;
+    const charter = (rawCharter ?? {}) as CharterPartyPdfInput;
+    const breakdowns = (rawBreakdowns ??
+      []) as readonly LaytimeBreakdownPdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -471,7 +584,9 @@ export class CharteringPdfGenerator {
             44,
             curY + 4,
           );
-          doc.text(b.reason || b.eventType, 190, curY + 4, { width: 145 });
+          doc.text(b.reason || b.eventType || "-", 190, curY + 4, {
+            width: 145,
+          });
           doc.text(`${b.durationMinutes}m`, 340, curY + 4);
           doc.text(`${b.deductedMinutes}m`, 400, curY + 4);
           doc
@@ -495,9 +610,11 @@ export class CharteringPdfGenerator {
    * 4. Official Time Charter Hire & Off-Hire Audit Statement PDF
    */
   public static async generateTimeCharterHireStatementPdf(
-    charter: any,
-    hireCalc: any,
+    rawCharter: PdfInputRecord | null | undefined,
+    rawHireCalc: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const charter = (rawCharter ?? {}) as CharterPartyPdfInput;
+    const hireCalc = (rawHireCalc ?? {}) as TimeCharterHireCalcPdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -575,10 +692,15 @@ export class CharteringPdfGenerator {
         for (const off of hireCalc?.offHires || []) {
           doc.rect(36, curY, 523, 18).strokeColor("#e2e8f0").stroke();
           doc.font("Helvetica").fontSize(7).fillColor("#0f172a");
-          doc.text(off.offHireReference, 44, curY + 4);
-          doc.text(off.offHireReason?.replace(/_/g, " "), 100, curY + 4, {
-            width: 115,
-          });
+          doc.text(off.offHireReference || "-", 44, curY + 4);
+          doc.text(
+            off.offHireReason?.replace(/_/g, " ") || "-",
+            100,
+            curY + 4,
+            {
+              width: 115,
+            },
+          );
           doc.text(
             `${off.start?.substring(0, 10)} to ${off.end?.substring(0, 10)}`,
             220,

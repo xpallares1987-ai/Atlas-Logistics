@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface GenerateHblInput {
   shipmentId: string;
@@ -33,7 +33,9 @@ class GenerateHblWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.docs.generate-hbl";
 
-  async execute(job: any): Promise<GenerateHblOutput> {
+  async execute(
+    job: AtlasWorkerJob<GenerateHblInput>,
+  ): Promise<GenerateHblOutput> {
     const {
       referenceNumber,
       shipperName,

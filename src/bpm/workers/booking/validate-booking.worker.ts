@@ -1,8 +1,13 @@
-import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
+import {
+  AtlasWorker,
+  AtlasWorkerJob,
+  AtlasBpmnError,
+} from "../../utils/worker-base.js";
 import { MISSING_DATA } from "../../utils/error-codes.js";
 import { shipments } from "../../../db/schema/index.js";
 
 interface ValidateBookingInput {
+  companyId?: string;
   shipperName: string;
   consigneeName: string;
   origin: string;
@@ -32,7 +37,9 @@ class ValidateBookingWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.booking.validate";
 
-  async execute(job: any): Promise<ValidateBookingOutput> {
+  async execute(
+    job: AtlasWorkerJob<ValidateBookingInput>,
+  ): Promise<ValidateBookingOutput> {
     const vars = job.variables;
     const errors: string[] = [];
 

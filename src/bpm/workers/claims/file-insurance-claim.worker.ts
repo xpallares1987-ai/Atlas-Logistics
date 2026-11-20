@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface FileInsuranceClaimInput {
   claimId: string;
@@ -24,7 +24,9 @@ class FileInsuranceClaimWorker extends AtlasWorker<
 > {
   readonly taskType = "file-insurance-claim";
 
-  async execute(job: any): Promise<FileInsuranceClaimOutput> {
+  async execute(
+    job: AtlasWorkerJob<FileInsuranceClaimInput>,
+  ): Promise<FileInsuranceClaimOutput> {
     const {
       claimId,
       shipmentId,

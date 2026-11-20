@@ -9,6 +9,50 @@ export type BPMNNodeType =
   | "parallelGateway"
   | "sequenceFlow";
 
+export interface RawBpmnSequenceFlow {
+  "@_id": string;
+  "@_targetRef"?: string;
+  "@_sourceRef"?: string;
+  [key: string]: unknown;
+}
+
+export interface RawBpmnExtensionElements {
+  "zeebe:taskDefinition"?: Array<{ "@_type"?: string }>;
+  [key: string]: unknown;
+}
+
+export interface RawBpmnElement {
+  "@_id": string;
+  "@_name"?: string;
+  "@_camunda:type"?: string;
+  "@_zeebe:taskDefinition:type"?: string;
+  "bpmn:extensionElements"?: RawBpmnExtensionElements;
+  "bpmn:incoming"?: string | string[];
+  "bpmn:outgoing"?: string | string[];
+  [key: string]: unknown;
+}
+
+interface RawBpmnProcess {
+  "bpmn:sequenceFlow"?: RawBpmnSequenceFlow[];
+  "bpmn:startEvent"?: RawBpmnElement[];
+  "bpmn:endEvent"?: RawBpmnElement[];
+  "bpmn:serviceTask"?: RawBpmnElement[];
+  "bpmn:userTask"?: RawBpmnElement[];
+  "bpmn:exclusiveGateway"?: RawBpmnElement[];
+  "bpmn:parallelGateway"?: RawBpmnElement[];
+}
+
+interface ParsedBpmnDocument {
+  "bpmn:definitions"?: {
+    "bpmn:process"?: RawBpmnProcess | RawBpmnProcess[];
+    process?: RawBpmnProcess | RawBpmnProcess[];
+  };
+  definitions?: {
+    "bpmn:process"?: RawBpmnProcess | RawBpmnProcess[];
+    process?: RawBpmnProcess | RawBpmnProcess[];
+  };
+}
+
 export interface BPMNNode {
   id: string;
   type: BPMNNodeType;
@@ -16,13 +60,13 @@ export interface BPMNNode {
   taskType?: string; // For service tasks (e.g. zeebe:taskDefinition type)
   outgoing: string[];
   incoming: string[];
-  rawElement: any;
+  rawElement: RawBpmnElement;
 }
 
 export class BPMNParser {
-  private parsedData: any;
+  private parsedData: ParsedBpmnDocument;
   private nodes: Map<string, BPMNNode> = new Map();
-  private flows: Map<string, any> = new Map();
+  private flows: Map<string, RawBpmnSequenceFlow> = new Map();
 
   constructor(xmlContent: string) {
     const parser = new XMLParser({
@@ -43,7 +87,7 @@ export class BPMNParser {
         ].includes(name);
       },
     });
-    this.parsedData = parser.parse(xmlContent);
+    this.parsedData = parser.parse(xmlContent) as ParsedBpmnDocument;
     this.indexNodes();
   }
 
@@ -65,12 +109,15 @@ export class BPMNParser {
       }
 
       // Helper to process nodes
-      const processNodes = (elements: any[], type: BPMNNodeType) => {
+      const processNodes = (
+        elements: RawBpmnElement[] | undefined,
+        type: BPMNNodeType,
+      ) => {
         if (!elements) return;
         for (const el of elements) {
           const id = el["@_id"];
           const name = el["@_name"];
-          let taskType = undefined;
+          let taskType: string | undefined = undefined;
 
           // Try to extract task definition from camunda or zeebe extensions
           const extensionElements = el["bpmn:extensionElements"];

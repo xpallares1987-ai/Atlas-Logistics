@@ -1,10 +1,26 @@
 import { logger } from "../../config/logger.js";
-import { AtlasWorker } from "../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../utils/worker-base.js";
 
-class EmailWorker extends AtlasWorker {
+interface EmailWorkerVariables {
+  emailTo?: string;
+  to?: string;
+  emailSubject?: string;
+  subject?: string;
+  emailBody?: string;
+  body?: string;
+}
+
+interface EmailWorkerOutput {
+  emailDeliveryStatus: "failed" | "mocked" | "success";
+  emailError?: string;
+}
+
+class EmailWorker extends AtlasWorker<EmailWorkerVariables, EmailWorkerOutput> {
   readonly taskType = "sendgrid-email";
 
-  async execute(job: any): Promise<any> {
+  async execute(
+    job: AtlasWorkerJob<EmailWorkerVariables>,
+  ): Promise<EmailWorkerOutput> {
     logger.info(
       `[EmailWorker] Handling job ${job.key} for workflow ${job.processInstanceKey}`,
     );
@@ -59,8 +75,9 @@ class EmailWorker extends AtlasWorker {
 
       logger.info(`[EmailWorker] Successfully sent email to ${to}`);
       return { emailDeliveryStatus: "success" };
-    } catch (err: any) {
-      logger.error(`[EmailWorker] Failed to send email: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(`[EmailWorker] Failed to send email: ${msg}`);
       throw err;
     }
   }

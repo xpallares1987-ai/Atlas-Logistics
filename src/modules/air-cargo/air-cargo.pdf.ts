@@ -1,5 +1,21 @@
 import PDFDocument from "pdfkit";
 
+export interface AirWaybillPartyData {
+  name?: string | null;
+  address?: string | null;
+  country?: string | null;
+  contact?: string | null;
+  [key: string]: unknown;
+}
+
+export interface AirWaybillIssuingAgentData {
+  name?: string | null;
+  city?: string | null;
+  iataCode?: string | null;
+  cassAddress?: string | null;
+  [key: string]: unknown;
+}
+
 export class AirCargoPdfGenerator {
   static generateAirWaybill(data: {
     awbNumber: string;
@@ -10,9 +26,9 @@ export class AirCargoPdfGenerator {
     destinationAirport: string;
     flightNumber?: string;
     flightDate?: Date | string;
-    shipperData: any;
-    consigneeData: any;
-    issuingAgentData?: any;
+    shipperData?: AirWaybillPartyData | null;
+    consigneeData?: AirWaybillPartyData | null;
+    issuingAgentData?: AirWaybillIssuingAgentData | null;
     pieces: number;
     grossWeightKg: number;
     volumeCbm?: number;

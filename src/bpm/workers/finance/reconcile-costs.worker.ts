@@ -1,4 +1,8 @@
-import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
+import {
+  AtlasWorker,
+  AtlasWorkerJob,
+  AtlasBpmnError,
+} from "../../utils/worker-base.js";
 import { INVOICE_MISMATCH } from "../../utils/error-codes.js";
 
 interface ReconcileCostsInput {
@@ -37,7 +41,9 @@ class ReconcileCostsWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.invoice.reconcile-costs";
 
-  async execute(job: any): Promise<ReconcileCostsOutput> {
+  async execute(
+    job: AtlasWorkerJob<ReconcileCostsInput>,
+  ): Promise<ReconcileCostsOutput> {
     const { referenceNumber, expectedCosts = [] } = job.variables;
 
     console.log(`[ReconcileCosts] Reconciling costs for ${referenceNumber}`);

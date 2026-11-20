@@ -1,3 +1,9 @@
+/**
+ * @file erp-integrations.routes.ts
+ * @description Fastify routes for SAP S/4HANA and Oracle NetSuite ERP connectors, purchase order synchronization, inbound delivery ASN posting, freight accrual Service Entry Sheets, and audit logs.
+ * @module @atlas/api/modules/erp-integrations/routes
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { createHash } from "node:crypto";
@@ -6,8 +12,16 @@ import { ERP_DEMO_PRESETS } from "@atlas/shared";
 import { db } from "../../db/index.js";
 import * as schema from "../../db/schema/index.js";
 import { erpIntegrationService } from "./erp-integrations.service.js";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  buildErrorResponses,
+  openApiObject,
+} from "../../routes/openapi.schemas.js";
 
-// Validation Schemas
+// ============================================================================
+// 1. ZOD VALIDATION SCHEMAS
+// ============================================================================
+
 const SyncSapPoSchema = z.object({
   poNumber: z.string().min(1),
 });
@@ -71,414 +85,576 @@ const DirectSyncSchema = z.object({
   erpSystem: z.enum(["SAP_S4HANA", "ORACLE_NETSUITE"]).optional(),
 });
 
+// ============================================================================
+// 2. FASTIFY ROUTE PLUGIN REGISTRATION
+// ============================================================================
+
+const ERP_TAG = ["ERP Integrations"] as const;
+
 export const erpIntegrationsRoutes: FastifyPluginAsync = async (fastify) => {
   // 1. Telemetry and Connector Health Status
-  fastify.get("/status", async (_request, reply) => {
-    const statuses = erpIntegrationService.getConnectorStatuses();
-    return reply.status(200).send({
-      success: true,
-      connectors: statuses,
-    });
-  });
+  fastify.get(
+    "/status",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary: "Retrieve ERP connector health and telemetry statuses",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      const statuses = erpIntegrationService.getConnectorStatuses();
+      return reply.status(200).send({
+        success: true,
+        connectors: statuses,
+      });
+    },
+  );
 
   // 2. Demo Presets
-  fastify.get("/presets", async (_request, reply) => {
-    return reply.status(200).send({
-      success: true,
-      presets: ERP_DEMO_PRESETS,
-    });
-  });
+  fastify.get(
+    "/presets",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary: "Retrieve ERP integration reference payload presets",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      return reply.status(200).send({
+        success: true,
+        presets: ERP_DEMO_PRESETS,
+      });
+    },
+  );
 
-  // 2.1 Get ERP Orders from SQLite (optionally filtered by shipmentId)
-  fastify.get("/orders", async (request, reply) => {
-    const { shipmentId } = request.query as { shipmentId?: string };
+  // 3. Get ERP Orders from SQLite (optionally filtered by shipmentId)
+  fastify.get(
+    "/orders",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary:
+          "List synchronized ERP purchase orders with optional shipment filter",
+        querystring: openApiObject({
+          shipmentId: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { shipmentId } = request.query as { shipmentId?: string };
 
-    let orders;
-    if (shipmentId) {
-      orders = await db
-        .select()
-        .from(schema.erpPurchaseOrders)
-        .where(eq(schema.erpPurchaseOrders.shipmentId, shipmentId))
-        .orderBy(desc(schema.erpPurchaseOrders.createdAt));
-    } else {
-      orders = await db
-        .select()
-        .from(schema.erpPurchaseOrders)
-        .orderBy(desc(schema.erpPurchaseOrders.createdAt));
-    }
-
-    const formattedOrders = orders.map((o) => {
-      let parsedItems = [];
-      try {
-        parsedItems = JSON.parse(o.lineItemsJson);
-      } catch {
-        parsedItems = [];
+      let orders;
+      if (shipmentId) {
+        orders = await db
+          .select()
+          .from(schema.erpPurchaseOrders)
+          .where(eq(schema.erpPurchaseOrders.shipmentId, shipmentId))
+          .orderBy(desc(schema.erpPurchaseOrders.createdAt));
+      } else {
+        orders = await db
+          .select()
+          .from(schema.erpPurchaseOrders)
+          .orderBy(desc(schema.erpPurchaseOrders.createdAt));
       }
-      return {
-        ...o,
-        items: parsedItems,
-      };
-    });
 
-    return reply.status(200).send({
-      success: true,
-      orders: formattedOrders,
-    });
-  });
-
-  // 2.2 Direct Operational Sync against SQLite
-  fastify.post("/sync", async (request, reply) => {
-    const parse = DirectSyncSchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply
-        .status(400)
-        .send({ error: "Invalid sync payload", issues: parse.error.issues });
-    }
-
-    const { poNumber } = parse.data;
-
-    const [existingOrder] = await db
-      .select()
-      .from(schema.erpPurchaseOrders)
-      .where(eq(schema.erpPurchaseOrders.poNumber, poNumber))
-      .limit(1);
-
-    if (existingOrder) {
-      const now = Date.now();
-      await db
-        .update(schema.erpPurchaseOrders)
-        .set({
-          status: "RELEASED",
-          updatedAt: now,
-        })
-        .where(eq(schema.erpPurchaseOrders.id, existingOrder.id));
-
-      const logId = `log_${now}_${Math.random().toString(36).slice(2, 7)}`;
-      const logRecord = {
-        id: logId,
-        poId: existingOrder.id,
-        erpSystem: existingOrder.erpSystem,
-        operation:
-          existingOrder.erpSystem === "SAP_S4HANA"
-            ? "API_PURCHASEORDER_PROCESS_SRV"
-            : "record/v1/purchaseOrder",
-        status: "SUCCESS" as const,
-        requestPayloadJson: JSON.stringify({
-          poNumber: existingOrder.poNumber,
-        }),
-        responsePayloadJson: JSON.stringify({
-          status: "SYNCED",
-          totalAmount: existingOrder.totalAmount,
-          currency: existingOrder.currency,
-        }),
-        latencyMs: Math.floor(90 + Math.random() * 50),
-        createdAt: now,
-      };
-
-      await db.insert(schema.erpSyncLogs).values(logRecord);
+      const formattedOrders = orders.map((o) => {
+        let parsedItems: unknown[] = [];
+        try {
+          parsedItems = JSON.parse(o.lineItemsJson) as unknown[];
+        } catch {
+          parsedItems = [];
+        }
+        return {
+          ...o,
+          items: parsedItems,
+        };
+      });
 
       return reply.status(200).send({
         success: true,
-        order: {
-          ...existingOrder,
-          syncStatus: "SYNCED",
-          status: "RELEASED",
-          updatedAt: now,
+        orders: formattedOrders,
+      });
+    },
+  );
+
+  // 4. Direct Operational Sync against SQLite
+  fastify.post(
+    "/sync",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary: "Trigger direct ERP purchase order synchronization",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
         },
-        syncLog: {
-          ...logRecord,
-          referenceDocument: existingOrder.poNumber,
+      },
+    },
+    async (request, reply) => {
+      const parse = DirectSyncSchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply
+          .status(400)
+          .send({ error: "Invalid sync payload", issues: parse.error.issues });
+      }
+
+      const { poNumber } = parse.data;
+
+      const [existingOrder] = await db
+        .select()
+        .from(schema.erpPurchaseOrders)
+        .where(eq(schema.erpPurchaseOrders.poNumber, poNumber))
+        .limit(1);
+
+      if (existingOrder) {
+        const now = Date.now();
+        await db
+          .update(schema.erpPurchaseOrders)
+          .set({
+            status: "RELEASED",
+            updatedAt: now,
+          })
+          .where(eq(schema.erpPurchaseOrders.id, existingOrder.id));
+
+        const logId = `log_${now}_${Math.random().toString(36).slice(2, 7)}`;
+        const logRecord = {
+          id: logId,
+          poId: existingOrder.id,
+          erpSystem: existingOrder.erpSystem,
+          operation:
+            existingOrder.erpSystem === "SAP_S4HANA"
+              ? "API_PURCHASEORDER_PROCESS_SRV"
+              : "record/v1/purchaseOrder",
+          status: "SUCCESS" as const,
+          requestPayloadJson: JSON.stringify({
+            poNumber: existingOrder.poNumber,
+          }),
+          responsePayloadJson: JSON.stringify({
+            status: "SYNCED",
+            totalAmount: existingOrder.totalAmount,
+            currency: existingOrder.currency,
+          }),
+          latencyMs: Math.floor(90 + Math.random() * 50),
+          createdAt: now,
+        };
+
+        await db.insert(schema.erpSyncLogs).values(logRecord);
+
+        return reply.status(200).send({
+          success: true,
+          order: {
+            ...existingOrder,
+            syncStatus: "SYNCED",
+            status: "RELEASED",
+            updatedAt: now,
+          },
+          syncLog: {
+            ...logRecord,
+            referenceDocument: existingOrder.poNumber,
+          },
+        });
+      }
+
+      const result = await erpIntegrationService.syncSapPurchaseOrder(poNumber);
+      return reply.status(200).send(result);
+    },
+  );
+
+  // 5. SAP S/4HANA PO Sync
+  fastify.post(
+    "/sap/sync-po",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary: "Synchronize purchase order from SAP S/4HANA OData service",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
         },
-      });
-    }
+      },
+    },
+    async (request, reply) => {
+      const parse = SyncSapPoSchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid SAP PO payload",
+          issues: parse.error.issues,
+        });
+      }
 
-    // Fallback to mock service if not in database
-    const result = await erpIntegrationService.syncSapPurchaseOrder(poNumber);
-    return reply.status(200).send(result);
-  });
+      const [dbOrder] = await db
+        .select()
+        .from(schema.erpPurchaseOrders)
+        .where(eq(schema.erpPurchaseOrders.poNumber, parse.data.poNumber))
+        .limit(1);
 
-  // 3. SAP S/4HANA PO Sync
-  fastify.post("/sap/sync-po", async (request, reply) => {
-    const parse = SyncSapPoSchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply
-        .status(400)
-        .send({ error: "Invalid SAP PO payload", issues: parse.error.issues });
-    }
+      if (dbOrder) {
+        const now = Date.now();
+        await db
+          .update(schema.erpPurchaseOrders)
+          .set({
+            status: "RELEASED",
+            updatedAt: now,
+          })
+          .where(eq(schema.erpPurchaseOrders.id, dbOrder.id));
 
-    const [dbOrder] = await db
-      .select()
-      .from(schema.erpPurchaseOrders)
-      .where(eq(schema.erpPurchaseOrders.poNumber, parse.data.poNumber))
-      .limit(1);
+        await db.insert(schema.erpSyncLogs).values({
+          id: `log_sap_${now}_${Math.random().toString(36).slice(2, 6)}`,
+          poId: dbOrder.id,
+          erpSystem: "SAP_S4HANA",
+          operation: "API_PURCHASEORDER_PROCESS_SRV",
+          status: "SUCCESS",
+          requestPayloadJson: JSON.stringify({ poNumber: parse.data.poNumber }),
+          responsePayloadJson: JSON.stringify({ sapStatus: "RELEASED" }),
+          latencyMs: 110,
+          createdAt: now,
+        });
+      }
 
-    if (dbOrder) {
-      const now = Date.now();
-      await db
-        .update(schema.erpPurchaseOrders)
-        .set({
-          status: "RELEASED",
-          updatedAt: now,
-        })
-        .where(eq(schema.erpPurchaseOrders.id, dbOrder.id));
+      const result = await erpIntegrationService.syncSapPurchaseOrder(
+        parse.data.poNumber,
+      );
+      return reply.status(200).send(result);
+    },
+  );
 
-      await db.insert(schema.erpSyncLogs).values({
-        id: `log_sap_${now}_${Math.random().toString(36).slice(2, 6)}`,
-        poId: dbOrder.id,
-        erpSystem: "SAP_S4HANA",
-        operation: "API_PURCHASEORDER_PROCESS_SRV",
-        status: "SUCCESS",
-        requestPayloadJson: JSON.stringify({ poNumber: parse.data.poNumber }),
-        responsePayloadJson: JSON.stringify({ sapStatus: "RELEASED" }),
-        latencyMs: 110,
-        createdAt: now,
-      });
-    }
+  // 6. SAP S/4HANA Inbound Delivery (ASN)
+  fastify.post(
+    "/sap/post-delivery",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary: "Post Inbound Delivery (ASN) document to SAP S/4HANA",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = PostSapDeliverySchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid Inbound Delivery payload",
+          issues: parse.error.issues,
+        });
+      }
 
-    const result = await erpIntegrationService.syncSapPurchaseOrder(
-      parse.data.poNumber,
-    );
-    return reply.status(200).send(result);
-  });
+      const result = await erpIntegrationService.postSapInboundDelivery(
+        parse.data,
+      );
 
-  // 4. SAP S/4HANA Inbound Delivery (ASN)
-  fastify.post("/sap/post-delivery", async (request, reply) => {
-    const parse = PostSapDeliverySchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply.status(400).send({
-        error: "Invalid Inbound Delivery payload",
-        issues: parse.error.issues,
-      });
-    }
+      const [dbOrder] = await db
+        .select()
+        .from(schema.erpPurchaseOrders)
+        .where(eq(schema.erpPurchaseOrders.poNumber, parse.data.poNumber))
+        .limit(1);
 
-    const result = await erpIntegrationService.postSapInboundDelivery(
-      parse.data,
-    );
+      if (dbOrder) {
+        const now = Date.now();
+        await db
+          .update(schema.erpPurchaseOrders)
+          .set({
+            status: "IN_TRANSIT",
+            grnNumber: result.deliveryDocument,
+            updatedAt: now,
+          })
+          .where(eq(schema.erpPurchaseOrders.id, dbOrder.id));
 
-    const [dbOrder] = await db
-      .select()
-      .from(schema.erpPurchaseOrders)
-      .where(eq(schema.erpPurchaseOrders.poNumber, parse.data.poNumber))
-      .limit(1);
+        await db.insert(schema.erpSyncLogs).values({
+          id: `log_asn_${now}_${Math.random().toString(36).slice(2, 6)}`,
+          poId: dbOrder.id,
+          erpSystem: "SAP_S4HANA",
+          operation: "POST API_INBOUND_DELIVERY_SRV",
+          status: "SUCCESS",
+          requestPayloadJson: JSON.stringify(parse.data),
+          responsePayloadJson: JSON.stringify(result.data),
+          latencyMs: 95,
+          createdAt: now,
+        });
+      }
 
-    if (dbOrder) {
-      const now = Date.now();
-      await db
-        .update(schema.erpPurchaseOrders)
-        .set({
-          status: "IN_TRANSIT",
-          grnNumber: result.deliveryDocument,
-          updatedAt: now,
-        })
-        .where(eq(schema.erpPurchaseOrders.id, dbOrder.id));
+      return reply.status(201).send(result);
+    },
+  );
 
-      await db.insert(schema.erpSyncLogs).values({
-        id: `log_asn_${now}_${Math.random().toString(36).slice(2, 6)}`,
-        poId: dbOrder.id,
-        erpSystem: "SAP_S4HANA",
-        operation: "POST API_INBOUND_DELIVERY_SRV",
-        status: "SUCCESS",
-        requestPayloadJson: JSON.stringify(parse.data),
-        responsePayloadJson: JSON.stringify(result.data),
-        latencyMs: 95,
-        createdAt: now,
-      });
-    }
+  // 7. SAP S/4HANA Service Entry Sheet (Freight Accrual)
+  fastify.post(
+    "/sap/post-freight-accrual",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary:
+          "Post freight accrual Service Entry Sheet (SES) to SAP S/4HANA",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = PostSapFreightAccrualSchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid Freight Accrual payload",
+          issues: parse.error.issues,
+        });
+      }
 
-    return reply.status(201).send(result);
-  });
+      const result = await erpIntegrationService.postSapFreightAccrual(
+        parse.data,
+      );
 
-  // 5. SAP S/4HANA Service Entry Sheet (Freight Accrual)
-  fastify.post("/sap/post-freight-accrual", async (request, reply) => {
-    const parse = PostSapFreightAccrualSchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply.status(400).send({
-        error: "Invalid Freight Accrual payload",
-        issues: parse.error.issues,
-      });
-    }
+      const [dbOrder] = await db
+        .select()
+        .from(schema.erpPurchaseOrders)
+        .where(eq(schema.erpPurchaseOrders.poNumber, parse.data.poNumber))
+        .limit(1);
 
-    const result = await erpIntegrationService.postSapFreightAccrual(
-      parse.data,
-    );
+      if (dbOrder) {
+        const now = Date.now();
+        await db
+          .update(schema.erpPurchaseOrders)
+          .set({
+            freightAccrualDocNumber: result.serviceEntrySheet,
+            updatedAt: now,
+          })
+          .where(eq(schema.erpPurchaseOrders.id, dbOrder.id));
 
-    const [dbOrder] = await db
-      .select()
-      .from(schema.erpPurchaseOrders)
-      .where(eq(schema.erpPurchaseOrders.poNumber, parse.data.poNumber))
-      .limit(1);
+        await db.insert(schema.erpSyncLogs).values({
+          id: `log_ses_${now}_${Math.random().toString(36).slice(2, 6)}`,
+          poId: dbOrder.id,
+          erpSystem: "SAP_S4HANA",
+          operation: "POST API_SERVICE_ENTRY_SHEET_SRV",
+          status: "SUCCESS",
+          requestPayloadJson: JSON.stringify(parse.data),
+          responsePayloadJson: JSON.stringify(result),
+          latencyMs: 80,
+          createdAt: now,
+        });
+      }
 
-    if (dbOrder) {
-      const now = Date.now();
-      await db
-        .update(schema.erpPurchaseOrders)
-        .set({
-          freightAccrualDocNumber: result.serviceEntrySheet,
-          updatedAt: now,
-        })
-        .where(eq(schema.erpPurchaseOrders.id, dbOrder.id));
+      return reply.status(201).send(result);
+    },
+  );
 
-      await db.insert(schema.erpSyncLogs).values({
-        id: `log_ses_${now}_${Math.random().toString(36).slice(2, 6)}`,
-        poId: dbOrder.id,
-        erpSystem: "SAP_S4HANA",
-        operation: "POST API_SERVICE_ENTRY_SHEET_SRV",
-        status: "SUCCESS",
-        requestPayloadJson: JSON.stringify(parse.data),
-        responsePayloadJson: JSON.stringify(result),
-        latencyMs: 80,
-        createdAt: now,
-      });
-    }
+  // 8. NetSuite Order Sync
+  fastify.post(
+    "/netsuite/sync-order",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary: "Synchronize purchase order from Oracle NetSuite REST API",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = SyncNetSuiteOrderSchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid NetSuite order payload",
+          issues: parse.error.issues,
+        });
+      }
 
-    return reply.status(201).send(result);
-  });
+      const [dbOrder] = await db
+        .select()
+        .from(schema.erpPurchaseOrders)
+        .where(eq(schema.erpPurchaseOrders.poNumber, parse.data.orderNumber))
+        .limit(1);
 
-  // 6. NetSuite Order Sync
-  fastify.post("/netsuite/sync-order", async (request, reply) => {
-    const parse = SyncNetSuiteOrderSchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply.status(400).send({
-        error: "Invalid NetSuite order payload",
-        issues: parse.error.issues,
-      });
-    }
+      if (dbOrder) {
+        const now = Date.now();
+        await db
+          .update(schema.erpPurchaseOrders)
+          .set({
+            status: "RELEASED",
+            updatedAt: now,
+          })
+          .where(eq(schema.erpPurchaseOrders.id, dbOrder.id));
 
-    const [dbOrder] = await db
-      .select()
-      .from(schema.erpPurchaseOrders)
-      .where(eq(schema.erpPurchaseOrders.poNumber, parse.data.orderNumber))
-      .limit(1);
+        await db.insert(schema.erpSyncLogs).values({
+          id: `log_ns_${now}_${Math.random().toString(36).slice(2, 6)}`,
+          poId: dbOrder.id,
+          erpSystem: "ORACLE_NETSUITE",
+          operation: "GET record/v1/purchaseOrder",
+          status: "SUCCESS",
+          requestPayloadJson: JSON.stringify({
+            orderNumber: parse.data.orderNumber,
+          }),
+          responsePayloadJson: JSON.stringify({ status: "RELEASED" }),
+          latencyMs: 140,
+          createdAt: now,
+        });
+      }
 
-    if (dbOrder) {
-      const now = Date.now();
-      await db
-        .update(schema.erpPurchaseOrders)
-        .set({
-          status: "RELEASED",
-          updatedAt: now,
-        })
-        .where(eq(schema.erpPurchaseOrders.id, dbOrder.id));
+      const result = await erpIntegrationService.syncNetSuiteOrder(
+        parse.data.orderNumber,
+      );
+      return reply.status(200).send(result);
+    },
+  );
 
-      await db.insert(schema.erpSyncLogs).values({
-        id: `log_ns_${now}_${Math.random().toString(36).slice(2, 6)}`,
-        poId: dbOrder.id,
-        erpSystem: "ORACLE_NETSUITE",
-        operation: "GET record/v1/purchaseOrder",
-        status: "SUCCESS",
-        requestPayloadJson: JSON.stringify({
-          orderNumber: parse.data.orderNumber,
-        }),
-        responsePayloadJson: JSON.stringify({ status: "RELEASED" }),
-        latencyMs: 140,
-        createdAt: now,
-      });
-    }
+  // 9. NetSuite Item Receipt with Landed Cost
+  fastify.post(
+    "/netsuite/post-receipt",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary:
+          "Post Item Receipt with landed freight cost allocation to Oracle NetSuite",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = PostNetSuiteReceiptSchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid NetSuite receipt payload",
+          issues: parse.error.issues,
+        });
+      }
 
-    const result = await erpIntegrationService.syncNetSuiteOrder(
-      parse.data.orderNumber,
-    );
-    return reply.status(200).send(result);
-  });
+      const result = await erpIntegrationService.postNetSuiteItemReceipt(
+        parse.data,
+      );
 
-  // 7. NetSuite Item Receipt with Landed Cost
-  fastify.post("/netsuite/post-receipt", async (request, reply) => {
-    const parse = PostNetSuiteReceiptSchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply.status(400).send({
-        error: "Invalid NetSuite receipt payload",
-        issues: parse.error.issues,
-      });
-    }
+      const [dbOrder] = await db
+        .select()
+        .from(schema.erpPurchaseOrders)
+        .where(eq(schema.erpPurchaseOrders.poNumber, parse.data.orderNumber))
+        .limit(1);
 
-    const result = await erpIntegrationService.postNetSuiteItemReceipt(
-      parse.data,
-    );
+      if (dbOrder) {
+        const now = Date.now();
+        await db
+          .update(schema.erpPurchaseOrders)
+          .set({
+            status: "GOODS_RECEIPT_POSTED",
+            grnNumber: result.receiptId,
+            updatedAt: now,
+          })
+          .where(eq(schema.erpPurchaseOrders.id, dbOrder.id));
 
-    const [dbOrder] = await db
-      .select()
-      .from(schema.erpPurchaseOrders)
-      .where(eq(schema.erpPurchaseOrders.poNumber, parse.data.orderNumber))
-      .limit(1);
+        await db.insert(schema.erpSyncLogs).values({
+          id: `log_nsrec_${now}_${Math.random().toString(36).slice(2, 6)}`,
+          poId: dbOrder.id,
+          erpSystem: "ORACLE_NETSUITE",
+          operation: "POST record/v1/itemReceipt",
+          status: "SUCCESS",
+          requestPayloadJson: JSON.stringify(parse.data),
+          responsePayloadJson: JSON.stringify(result),
+          latencyMs: 165,
+          createdAt: now,
+        });
+      }
 
-    if (dbOrder) {
-      const now = Date.now();
-      await db
-        .update(schema.erpPurchaseOrders)
-        .set({
-          status: "GOODS_RECEIPT_POSTED",
-          grnNumber: result.receiptId,
-          updatedAt: now,
-        })
-        .where(eq(schema.erpPurchaseOrders.id, dbOrder.id));
+      return reply.status(201).send(result);
+    },
+  );
 
-      await db.insert(schema.erpSyncLogs).values({
-        id: `log_nsrec_${now}_${Math.random().toString(36).slice(2, 6)}`,
-        poId: dbOrder.id,
-        erpSystem: "ORACLE_NETSUITE",
-        operation: "POST record/v1/itemReceipt",
-        status: "SUCCESS",
-        requestPayloadJson: JSON.stringify(parse.data),
-        responsePayloadJson: JSON.stringify(result),
-        latencyMs: 165,
-        createdAt: now,
-      });
-    }
+  // 10. Dexie Offline Queue Batch Sync
+  fastify.post(
+    "/queue/batch",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary: "Process batched offline ERP synchronization mutations",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = BatchQueueSchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid batch queue payload",
+          issues: parse.error.issues,
+        });
+      }
+      const result = await erpIntegrationService.processBatchQueue(
+        parse.data.mutations,
+      );
+      return reply.status(200).send(result);
+    },
+  );
 
-    return reply.status(201).send(result);
-  });
+  // 11. Audit Logs (Combines database persisted sync logs with service logs)
+  fastify.get(
+    "/audit-logs",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary: "Retrieve recent ERP synchronization audit logs and digests",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      const dbLogs = await db
+        .select()
+        .from(schema.erpSyncLogs)
+        .orderBy(desc(schema.erpSyncLogs.createdAt))
+        .limit(50);
 
-  // 8. Dexie Offline Queue Batch Sync
-  fastify.post("/queue/batch", async (request, reply) => {
-    const parse = BatchQueueSchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply.status(400).send({
-        error: "Invalid batch queue payload",
-        issues: parse.error.issues,
-      });
-    }
-    const result = await erpIntegrationService.processBatchQueue(
-      parse.data.mutations,
-    );
-    return reply.status(200).send(result);
-  });
+      if (dbLogs.length > 0) {
+        const formattedDbLogs = dbLogs.map((l) => ({
+          id: l.id,
+          timestamp: new Date(l.createdAt).toISOString(),
+          erpSystem: l.erpSystem,
+          operation: l.operation,
+          referenceDocument: l.poId,
+          status: l.status,
+          statusCode: 200,
+          latencyMs: l.latencyMs,
+          payloadDigest: createHash("sha256")
+            .update(l.id + l.createdAt)
+            .digest("hex")
+            .slice(0, 32),
+        }));
 
-  // 9. Audit Logs (Combines database persisted sync logs with service logs)
-  fastify.get("/audit-logs", async (_request, reply) => {
-    const dbLogs = await db
-      .select()
-      .from(schema.erpSyncLogs)
-      .orderBy(desc(schema.erpSyncLogs.createdAt))
-      .limit(50);
+        return reply.status(200).send({
+          success: true,
+          logs: formattedDbLogs,
+        });
+      }
 
-    if (dbLogs.length > 0) {
-      const formattedDbLogs = dbLogs.map((l) => ({
-        id: l.id,
-        timestamp: new Date(l.createdAt).toISOString(),
-        erpSystem: l.erpSystem,
-        operation: l.operation,
-        referenceDocument: l.poId,
-        status: l.status,
-        statusCode: 200,
-        latencyMs: l.latencyMs,
-        payloadDigest: createHash("sha256")
-          .update(l.id + l.createdAt)
-          .digest("hex")
-          .slice(0, 32),
-      }));
-
+      const serviceLogs = erpIntegrationService.getAuditLogs();
       return reply.status(200).send({
         success: true,
-        logs: formattedDbLogs,
+        logs: serviceLogs,
       });
-    }
-
-    const serviceLogs = erpIntegrationService.getAuditLogs();
-    return reply.status(200).send({
-      success: true,
-      logs: serviceLogs,
-    });
-  });
+    },
+  );
 };
 
 export default erpIntegrationsRoutes;

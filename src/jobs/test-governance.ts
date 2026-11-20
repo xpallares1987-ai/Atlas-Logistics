@@ -42,8 +42,11 @@ async function verifyGovernance() {
     console.warn(
       "⚠️ Constraint bypassed (might happen if foreign key failed first or SQLite check ignored)",
     );
-  } catch (e: any) {
-    console.log("✅ Insertion blocked as expected:", e.message);
+  } catch (e: unknown) {
+    console.log(
+      "✅ Insertion blocked as expected:",
+      e instanceof Error ? e.message : String(e),
+    );
   }
 
   // 3. Test GDPR Purge

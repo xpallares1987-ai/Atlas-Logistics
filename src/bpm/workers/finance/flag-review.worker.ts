@@ -1,8 +1,17 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
-class FlagReviewWorker extends AtlasWorker<any, any> {
+interface FlagReviewInput {
+  shipmentId?: string;
+}
+
+class FlagReviewWorker extends AtlasWorker<
+  FlagReviewInput,
+  Record<string, never>
+> {
   readonly taskType = "atlas.invoice.flag-review";
-  async execute(job: any): Promise<any> {
+  async execute(
+    job: AtlasWorkerJob<FlagReviewInput>,
+  ): Promise<Record<string, never>> {
     console.log(
       `[FlagReviewWorker] Flagging shipment ${job.variables.shipmentId} for management review (unprofitable).`,
     );

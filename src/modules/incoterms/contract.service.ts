@@ -202,8 +202,10 @@ export class CommercialContractService {
         const num = (c.contractNumber || "").toLowerCase();
         const title = (c.title || "").toLowerCase();
         const place = (c.namedPlace || "").toLowerCase();
-        const seller = (c.sellerData as any)?.name?.toLowerCase() || "";
-        const buyer = (c.buyerData as any)?.name?.toLowerCase() || "";
+        const seller =
+          (c.sellerData as { name?: string } | null)?.name?.toLowerCase() || "";
+        const buyer =
+          (c.buyerData as { name?: string } | null)?.name?.toLowerCase() || "";
         if (
           !num.includes(q) &&
           !title.includes(q) &&

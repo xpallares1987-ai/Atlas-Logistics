@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface SubmitDeclarationInput {
   referenceNumber: string;
@@ -31,7 +31,9 @@ class SubmitDeclarationWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.customs.submit-declaration";
 
-  async execute(job: any): Promise<SubmitDeclarationOutput> {
+  async execute(
+    job: AtlasWorkerJob<SubmitDeclarationInput>,
+  ): Promise<SubmitDeclarationOutput> {
     const { referenceNumber, hsCode, originCountry, destinationCountry } =
       job.variables;
 

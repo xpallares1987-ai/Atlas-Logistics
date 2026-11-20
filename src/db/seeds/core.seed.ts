@@ -3,6 +3,17 @@ import * as schema from "../schema/index.js";
 import { faker } from "@faker-js/faker";
 import { sql } from "drizzle-orm";
 
+export interface StandardHsCodeSeed {
+  id: string;
+  code: string;
+  description: string;
+  chapter: string;
+  adValoremDuty: number;
+  specificDutyPerKg: number;
+  vatRate: number;
+  isDualUse: number;
+}
+
 export interface CoreSeedContext {
   companyIds: string[];
   userIds: string[];
@@ -11,7 +22,7 @@ export interface CoreSeedContext {
   carrierIds: string[];
   brokerIds: string[];
   hsCodeIds: string[];
-  standardHsCodes: any[];
+  standardHsCodes: StandardHsCodeSeed[];
 }
 
 export async function seedCore(): Promise<CoreSeedContext> {

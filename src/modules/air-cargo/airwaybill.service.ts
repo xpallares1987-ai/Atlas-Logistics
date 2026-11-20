@@ -213,7 +213,7 @@ export class AirwayBillService {
       return null;
     }
 
-    let consolidatedHawbs: any[] = [];
+    let consolidatedHawbs: Array<typeof airwayBills.$inferSelect> = [];
     if (awb.type === "MAWB") {
       consolidatedHawbs = await db
         .select()
@@ -240,9 +240,9 @@ export class AirwayBillService {
     destinationAirport: string;
     flightNumber?: string;
     flightDate?: Date;
-    shipperData: any;
-    consigneeData: any;
-    issuingAgentData?: any;
+    shipperData: (typeof airwayBills.$inferInsert)["shipperData"];
+    consigneeData: (typeof airwayBills.$inferInsert)["consigneeData"];
+    issuingAgentData?: (typeof airwayBills.$inferInsert)["issuingAgentData"];
     pieces: number;
     grossWeightKg: number;
     volumeCbm: number;
@@ -251,13 +251,13 @@ export class AirwayBillService {
     rateClass?: string;
     ratePerKg: number;
     freightCharge: number;
-    otherCharges?: any[];
+    otherCharges?: (typeof airwayBills.$inferInsert)["otherCharges"];
     totalPrepaid?: number;
     totalCollect?: number;
     currency?: string;
     natureOfGoods: string;
     specialHandlingCodes?: string[];
-    dgrDetails?: any;
+    dgrDetails?: (typeof airwayBills.$inferInsert)["dgrDetails"];
     handlingInfo?: string;
     status?: string;
   }) {

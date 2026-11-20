@@ -1,5 +1,4 @@
-import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
-import { AIS_UNAVAILABLE } from "../../utils/error-codes.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 import { shipments } from "../../../db/schema/index.js";
 import { eq } from "drizzle-orm";
 
@@ -28,7 +27,9 @@ class UpdateStatusWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.tracking.update-status";
 
-  async execute(job: any): Promise<UpdateStatusOutput> {
+  async execute(
+    job: AtlasWorkerJob<UpdateStatusInput>,
+  ): Promise<UpdateStatusOutput> {
     const { shipmentId, referenceNumber, status, milestone } = job.variables;
 
     console.log(`[UpdateStatus] ${referenceNumber}: ${milestone} → ${status}`);
@@ -45,7 +46,10 @@ class UpdateStatusWorker extends AtlasWorker<
     // Update status
     await this.db
       .update(shipments)
-      .set({ status: status as any, updatedAt: new Date() })
+      .set({
+        status: status as (typeof shipments.$inferInsert)["status"],
+        updatedAt: new Date(),
+      })
       .where(eq(shipments.id, shipmentId));
 
     return {

@@ -5,10 +5,38 @@
  * XML messages for European Railway Agency (ERA) and Infrastructure Managers (Adif, SNCF Réseau, DB Netze).
  */
 
+export interface TafTsiTrainInput {
+  trainRunNumber: string;
+  tractionOperator?: string | null;
+  locomotiveSeries: string;
+  locomotiveLengthMeters?: number | null;
+  locomotiveWeightTonnes?: number | null;
+  locomotiveBrakedWeightTonnes?: number | null;
+  totalTrainLengthMeters?: number | null;
+  totalGrossMassTonnes?: number | null;
+  totalBrakedMassTonnes?: number | null;
+  calculatedBrakePercentage?: number | null;
+  requiredBrakePercentage?: number | null;
+  isLengthCompliant?: boolean | null;
+  isBrakeCompliant?: boolean | null;
+}
+
+export interface TafTsiWagonAllocationInput {
+  positionInTrain?: number | null;
+  wagonNumber?: string | null;
+  wagonSeries?: string | null;
+  grossWagonMassTonnes?: number | null;
+  calculatedAxleLoadTonnes?: number | null;
+  utiType?: string | null;
+  utiIdentification?: string | null;
+  payloadMassTonnes?: number | null;
+  sealNumber?: string | null;
+}
+
 export class TafTsiXmlService {
   public static generateTrainCompositionMessage(
-    train: any,
-    allocations: any[] = [],
+    train: TafTsiTrainInput,
+    allocations: readonly TafTsiWagonAllocationInput[] = [],
   ): string {
     const messageId = `TAF-TSI-${train.trainRunNumber}-${Date.now()}`;
     const timestamp = new Date().toISOString();

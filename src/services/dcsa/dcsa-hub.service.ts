@@ -317,7 +317,7 @@ export class DcsaHubService {
             linkedShipmentId = scmMatched.shipmentId;
           }
         }
-      } catch (_e: any) {
+      } catch (_e: unknown) {
         logger.warn({ _e }, "Error linking SCM shipment");
       }
 

@@ -1,13 +1,73 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface DangerousGoodsShipmentPdfInput {
+  shipmentReference?: string | null;
+  transportMode?: string | null;
+  shipperName?: string | null;
+  shipperAddress?: string | null;
+  consigneeName?: string | null;
+  consigneeAddress?: string | null;
+  carrierName?: string | null;
+  vesselOrFlightOrVehiclePlate?: string | null;
+  voyageOrFlightNumber?: string | null;
+  originPortOrLocation?: string | null;
+  destinationPortOrLocation?: string | null;
+  emergencyContactPhone?: string | null;
+  emergencyContactName?: string | null;
+  aircraftType?: string | null;
+  hasRadioactiveMaterials?: boolean | null;
+}
+
+interface DangerousGoodsItemPdfInput {
+  unNumber?: string | null;
+  properShippingName?: string | null;
+  technicalChemicalName?: string | null;
+  primaryHazardClass?: string | null;
+  subsidiaryHazardClasses?: string | null;
+  packingGroup?: string | null;
+  flashPointCelsius?: number | null;
+  packageCount?: number | null;
+  packageUnCode?: string | null;
+  totalNetQuantity?: number | null;
+  netQuantityPerPackage?: number | null;
+  unitOfMeasure?: string | null;
+  totalGrossMassKg?: number | null;
+  iataPackingInstruction?: string | null;
+}
+
+interface DangerousGoodsEmergencyCardPdfInput {
+  cardReference?: string | null;
+  emergencyPhone24h?: string | null;
+  unNumbersSummary?: string | null;
+  fireInterventionProtocol?: string | null;
+  spillageContainmentProtocol?: string | null;
+  requiredPpeEquipment?: string | null;
+  firstAidProtocol?: string | null;
+}
+
+interface DangerousGoodsPackingCertPdfInput {
+  certificateReference?: string | null;
+  containerOrVehicleNumber?: string | null;
+  sealNumberIso17712?: string | null;
+  packingFacilityName?: string | null;
+  declarantName?: string | null;
+  declarantCompany?: string | null;
+  declarantPosition?: string | null;
+  signDate?: string | null;
+}
+
 export class DangerousGoodsPdfGenerator {
   /**
    * 1. Generates an Official Multimodal Dangerous Goods Declaration Form PDF (IMO IMDG / UNECE ADR).
    */
   public static async generateMultimodalDangerousGoodsDeclarationPdf(
-    shipment: any,
-    items: any[],
+    rawShipment: PdfInputRecord | null | undefined,
+    rawItems: readonly PdfInputRecord[],
   ): Promise<Buffer> {
+    const shipment = (rawShipment ?? {}) as DangerousGoodsShipmentPdfInput;
+    const items = (rawItems ?? []) as readonly DangerousGoodsItemPdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -263,9 +323,11 @@ export class DangerousGoodsPdfGenerator {
    * 2. Generates an Official IATA Shipper's Declaration for Dangerous Goods PDF (Air Cargo DGR).
    */
   public static async generateIataShippersDeclarationPdf(
-    shipment: any,
-    items: any[],
+    rawShipment: PdfInputRecord | null | undefined,
+    rawItems: readonly PdfInputRecord[],
   ): Promise<Buffer> {
+    const shipment = (rawShipment ?? {}) as DangerousGoodsShipmentPdfInput;
+    const items = (rawItems ?? []) as readonly DangerousGoodsItemPdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -361,11 +423,13 @@ export class DangerousGoodsPdfGenerator {
         for (const item of items || []) {
           doc.rect(36, curY, 523, 22).strokeColor("#e2e8f0").stroke();
           doc.font("Helvetica-Bold").fontSize(7).fillColor("#0f172a");
-          doc.text(item.unNumber, 42, curY + 4);
-          doc.text(item.properShippingName, 90, curY + 4, { width: 145 });
+          doc.text(item.unNumber || "-", 42, curY + 4);
+          doc.text(item.properShippingName || "-", 90, curY + 4, {
+            width: 145,
+          });
 
           doc.font("Helvetica-Bold").fillColor("#dc2626");
-          doc.text(item.primaryHazardClass, 240, curY + 4);
+          doc.text(item.primaryHazardClass || "-", 240, curY + 4);
 
           doc.font("Helvetica").fillColor("#334155");
           doc.text(
@@ -452,10 +516,14 @@ export class DangerousGoodsPdfGenerator {
    * 3. Generates an Official Dangerous Goods Emergency Response Card & Instructions in Writing PDF.
    */
   public static async generateDangerousGoodsEmergencyCardPdf(
-    emergencyCard: any,
-    shipment: any,
-    items: any[],
+    rawEmergencyCard: PdfInputRecord | null | undefined,
+    rawShipment: PdfInputRecord | null | undefined,
+    rawItems: readonly PdfInputRecord[],
   ): Promise<Buffer> {
+    const emergencyCard = (rawEmergencyCard ??
+      {}) as DangerousGoodsEmergencyCardPdfInput;
+    const shipment = (rawShipment ?? {}) as DangerousGoodsShipmentPdfInput;
+    const items = (rawItems ?? []) as readonly DangerousGoodsItemPdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -516,7 +584,7 @@ export class DangerousGoodsPdfGenerator {
         );
         doc.font("Helvetica").fillColor("#334155");
         doc.text(
-          `Sustancias Transportadas: ${emergencyCard?.unNumbersSummary || items.map((i: any) => i.unNumber).join(", ")}`,
+          `Sustancias Transportadas: ${emergencyCard?.unNumbersSummary || items.map((i) => i.unNumber).join(", ")}`,
           44,
           curY + 30,
         );
@@ -605,9 +673,12 @@ export class DangerousGoodsPdfGenerator {
    * 4. Generates an Official Container/Vehicle Packing Certificate PDF (IMDG 5.4.2 / ADR 5.4.2).
    */
   public static async generateContainerPackingCertificatePdf(
-    packingCert: any,
-    shipment: any,
+    rawPackingCert: PdfInputRecord | null | undefined,
+    rawShipment: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const packingCert = (rawPackingCert ??
+      {}) as DangerousGoodsPackingCertPdfInput;
+    const shipment = (rawShipment ?? {}) as DangerousGoodsShipmentPdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });

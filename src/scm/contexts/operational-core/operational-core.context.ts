@@ -518,7 +518,12 @@ export function registerOperationalSubscribers(): void {
   if (operationalSubscribersRegistered) return;
 
   // Subscriber 1: On RoutePlanned.v2 -> Initialize MilestonePlan & Milestones
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    serviceType?: string;
+    stops?: Array<{ locationId?: string }>;
+    legs?: Array<{ mode?: string }>;
+  }>(
     "transport_planning.RoutePlanned.v2",
     "tracking.MilestonePlanGenerator.OnRoutePlanned",
     async (event) => {
@@ -585,7 +590,11 @@ export function registerOperationalSubscribers(): void {
   );
 
   // Subscriber 2: On MilestonePlanCreated.v2 -> Instantiate Versioned Workflow & DAG
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    serviceType?: string;
+    legs?: Array<{ mode?: string }>;
+  }>(
     "tracking.MilestonePlanCreated.v2",
     "work_mgmt.InitialTasksGenerator.OnMilestonePlanCreated",
     async (event) => {

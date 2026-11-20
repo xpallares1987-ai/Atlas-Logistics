@@ -76,6 +76,6 @@ export function applyPagination(pagination: PaginationQuery) {
 /**
  * Validate pagination parameters
  */
-export function validatePaginationParams(pagination: any): PaginationQuery {
+export function validatePaginationParams(pagination: unknown): PaginationQuery {
   return PaginationQuerySchema.parse(pagination);
 }

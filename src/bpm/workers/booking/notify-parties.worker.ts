@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface NotifyPartiesInput {
   referenceNumber: string;
@@ -30,7 +30,9 @@ class NotifyPartiesWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.notify.parties";
 
-  async execute(job: any): Promise<NotifyPartiesOutput> {
+  async execute(
+    job: AtlasWorkerJob<NotifyPartiesInput>,
+  ): Promise<NotifyPartiesOutput> {
     const vars = job.variables;
     const parties: string[] = [];
 

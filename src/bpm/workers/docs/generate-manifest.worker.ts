@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface GenerateManifestInput {
   shipmentId: string;
@@ -32,7 +32,9 @@ class GenerateManifestWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.docs.generate-manifest";
 
-  async execute(job: any): Promise<GenerateManifestOutput> {
+  async execute(
+    job: AtlasWorkerJob<GenerateManifestInput>,
+  ): Promise<GenerateManifestOutput> {
     const { referenceNumber, vessel, voyage, hblNumber, mblNumber } =
       job.variables;
 

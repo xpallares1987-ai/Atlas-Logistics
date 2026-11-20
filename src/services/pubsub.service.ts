@@ -26,7 +26,7 @@ export const publishDocumentUploaded = async (payload: {
   return "mock-id";
 };
 
-export const publishInvoiceGenerated = async (payload: any) => {
+export const publishInvoiceGenerated = async (payload: unknown) => {
   logger.debug({ payload }, "PubSub Mock: publishInvoiceGenerated");
   return "mock-message-id";
 };

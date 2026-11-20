@@ -1,3 +1,9 @@
+/**
+ * @file fueleu.routes.ts
+ * @description Fastify routes for FuelEU Maritime GHG intensity compliance, EU ETS maritime liability, fleet pooling (Article 21), EMSA THETIS-MRV XML export, BDN audit PDFs, and Green BAF settlement.
+ * @module @atlas/api/modules/fueleu/routes
+ */
+
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db/index.js";
 import * as schema from "../../db/schema/index.js";
@@ -9,13 +15,88 @@ import {
 import { EtsMaritimeService, MaritimeScope } from "./ets-maritime.service.js";
 import { ThetisMrvXmlService } from "./thetis-mrv-xml.service.js";
 import { PDFService } from "../../services/pdf.service.js";
-import { domainEventBus } from "../../lib/events/index.js";
 import { CarbonInsettingLedgerService } from "../carbon-insetting/carbon-insetting-ledger.service.js";
 import { EtsGreenBafSettlementService } from "./ets-green-baf-settlement.service.js";
+import {
+  OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  buildErrorResponses,
+  getErrorMessage,
+  openApiObject,
+} from "../../routes/openapi.schemas.js";
+
+// ============================================================================
+// 1. OPENAPI SHARED ROUTE SCHEMAS
+// ============================================================================
+
+const FUELEU_TAG = ["FuelEU Maritime & EU ETS"] as const;
+
+const CALCULATE_FUELEU_SCHEMA = {
+  tags: [...FUELEU_TAG],
+  summary:
+    "Simulate FuelEU Maritime Well-to-Wake GHG intensity, compliance balance, and penalty exposure",
+  body: openApiObject({
+    reportingYear: { type: "number" },
+    fuelConsumptions: { type: "array", items: OPENAPI_FLEXIBLE_OBJECT_SCHEMA },
+    fuelCode: { type: "string" },
+    consumedTonnes: { type: "number" },
+    opsElectricityKwh: { type: "number" },
+  }),
+  response: {
+    200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+    ...buildErrorResponses([400, 401, 403, 500]),
+  },
+};
+
+const CALCULATE_ETS_SCHEMA = {
+  tags: [...FUELEU_TAG],
+  summary:
+    "Simulate EU ETS Maritime carbon allowance liability and Green BAF surcharge per TEU",
+  body: openApiObject({
+    co2EmissionsTonnes: { type: "number" },
+    co2Tonnes: { type: "number" },
+    ch4EmissionsTonnes: { type: "number" },
+    ch4Tonnes: { type: "number" },
+    n2oEmissionsTonnes: { type: "number" },
+    n2oTonnes: { type: "number" },
+    scope: { type: "string" },
+    geographicScope: { type: "string" },
+    euaPriceEurPerTonne: { type: "number" },
+    euaPriceEur: { type: "number" },
+    carriedTeus: { type: "number" },
+    fueleuPenaltyEur: { type: "number" },
+  }),
+  response: {
+    200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+    ...buildErrorResponses([400, 401, 403, 500]),
+  },
+};
+
+const UPDATE_VOYAGE_STATUS_SCHEMA = {
+  tags: [...FUELEU_TAG],
+  summary: "Update marine voyage verification status and lead auditor verifier",
+  params: OPENAPI_ID_PARAMS_SCHEMA,
+  body: openApiObject({
+    status: {
+      type: "string",
+      enum: ["PLANNED", "UNDERWAY", "COMPLETED_VERIFIED", "AUDITED_THETIS"],
+    },
+    leadAuditorVerifier: { type: "string" },
+  }),
+  response: {
+    200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+    ...buildErrorResponses([400, 401, 403, 404, 500]),
+  },
+};
+
+// ============================================================================
+// 2. FASTIFY ROUTE PLUGIN REGISTRATION
+// ============================================================================
 
 export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
   // Authentication hook (parent app.ts authMiddleware already enforces authentication)
-  fastify.addHook("onRequest", async (request, reply) => {
+  fastify.addHook("onRequest", async (request) => {
     try {
       if (request.headers.authorization) {
         await request.jwtVerify();
@@ -26,96 +107,182 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // 1. GET /api/fueleu/fuels - List Marine Fuels Catalog
-  fastify.get("/fuels", async (_request, reply) => {
-    const fuels = await db
-      .select()
-      .from(schema.marineFuels)
-      .orderBy(schema.marineFuels.fuelCategory);
-    return reply.send(fuels);
-  });
+  fastify.get(
+    "/fuels",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary:
+          "List FuelEU Maritime reference marine fuels catalog and Well-to-Wake factors",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      const fuels = await db
+        .select()
+        .from(schema.marineFuels)
+        .orderBy(schema.marineFuels.fuelCategory);
+      return reply.send(fuels);
+    },
+  );
 
   // 2. GET /api/fueleu/vessels - List Merchant Fleet
-  fastify.get("/vessels", async (_request, reply) => {
-    const vessels = await db
-      .select()
-      .from(schema.marineVessels)
-      .orderBy(schema.marineVessels.vesselName);
-    return reply.send(vessels);
-  });
+  fastify.get(
+    "/vessels",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary: "List registered merchant fleet vessels subject to FuelEU MRV",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      const vessels = await db
+        .select()
+        .from(schema.marineVessels)
+        .orderBy(schema.marineVessels.vesselName);
+      return reply.send(vessels);
+    },
+  );
 
   // 3. GET /api/fueleu/voyages - List Marine Voyages & Consumption
-  fastify.get("/voyages", async (request, reply) => {
-    const { vesselId, scope } = request.query as {
-      vesselId?: string;
-      scope?: string;
-    };
+  fastify.get(
+    "/voyages",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary:
+          "List marine voyages and fuel consumption logs with optional vessel and scope filters",
+        querystring: openApiObject({
+          vesselId: { type: "string" },
+          scope: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { vesselId, scope } = request.query as {
+        vesselId?: string;
+        scope?: string;
+      };
 
-    const query = db.select().from(schema.marineVoyages);
+      const query = db.select().from(schema.marineVoyages);
 
-    const voyages = await query.orderBy(
-      desc(schema.marineVoyages.departureDate),
-    );
+      const voyages = await query.orderBy(
+        desc(schema.marineVoyages.departureDate),
+      );
 
-    let filtered = voyages;
-    if (vesselId && vesselId !== "ALL") {
-      filtered = filtered.filter((v) => v.vesselId === vesselId);
-    }
-    if (scope && scope !== "ALL") {
-      filtered = filtered.filter((v) => v.geographicScope === scope);
-    }
+      let filtered = voyages;
+      if (vesselId && vesselId !== "ALL") {
+        filtered = filtered.filter((v) => v.vesselId === vesselId);
+      }
+      if (scope && scope !== "ALL") {
+        filtered = filtered.filter((v) => v.geographicScope === scope);
+      }
 
-    return reply.send(filtered);
-  });
+      return reply.send(filtered);
+    },
+  );
 
   // 4. GET /api/fueleu/voyages/:id - Voyage detail with vessel and fuel info
-  fastify.get("/voyages/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
+  fastify.get(
+    "/voyages/:id",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary:
+          "Retrieve marine voyage detail enriched with vessel and fuel specifications",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
 
-    const [voyage] = await db
-      .select()
-      .from(schema.marineVoyages)
-      .where(eq(schema.marineVoyages.id, id));
+      const [voyage] = await db
+        .select()
+        .from(schema.marineVoyages)
+        .where(eq(schema.marineVoyages.id, id));
 
-    if (!voyage) {
-      return reply.status(404).send({ error: "Voyage not found" });
-    }
+      if (!voyage) {
+        return reply.status(404).send({ error: "Voyage not found" });
+      }
 
-    const [vessel] = await db
-      .select()
-      .from(schema.marineVessels)
-      .where(eq(schema.marineVessels.id, voyage.vesselId));
+      const [vessel] = await db
+        .select()
+        .from(schema.marineVessels)
+        .where(eq(schema.marineVessels.id, voyage.vesselId));
 
-    const [fuel] = await db
-      .select()
-      .from(schema.marineFuels)
-      .where(eq(schema.marineFuels.id, voyage.fuelId));
+      const [fuel] = await db
+        .select()
+        .from(schema.marineFuels)
+        .where(eq(schema.marineFuels.id, voyage.fuelId));
 
-    return reply.send({
-      ...voyage,
-      vessel,
-      fuel,
-    });
-  });
+      return reply.send({
+        ...voyage,
+        vessel,
+        fuel,
+      });
+    },
+  );
 
   // 5. GET /api/fueleu/accounts - FuelEU Compliance Accounts
-  fastify.get("/accounts", async (_request, reply) => {
-    const accounts = await db
-      .select()
-      .from(schema.fuelEuComplianceAccounts)
-      .orderBy(desc(schema.fuelEuComplianceAccounts.reportingYear));
-    return reply.send(accounts);
-  });
+  fastify.get(
+    "/accounts",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary: "List annual FuelEU Maritime vessel compliance accounts",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      const accounts = await db
+        .select()
+        .from(schema.fuelEuComplianceAccounts)
+        .orderBy(desc(schema.fuelEuComplianceAccounts.reportingYear));
+      return reply.send(accounts);
+    },
+  );
 
   // 6. GET /api/fueleu/pools - Fleet Compliance Pools
-  fastify.get("/pools", async (_request, reply) => {
-    const pools = await db
-      .select()
-      .from(schema.fuelEuPools)
-      .orderBy(desc(schema.fuelEuPools.reportingYear));
-    return reply.send(pools);
-  });
+  fastify.get(
+    "/pools",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary: "List FuelEU Maritime Article 21 fleet compliance pools",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      const pools = await db
+        .select()
+        .from(schema.fuelEuPools)
+        .orderBy(desc(schema.fuelEuPools.reportingYear));
+      return reply.send(pools);
+    },
+  );
 
-  // 7. POST /api/fueleu/calculate-fueleu - Simulator for GHG intensity, CB & Penalty
+  // 7. POST /api/fueleu/calculate-fueleu & /simulate/fuel-ghg-intensity
   const handleCalculateFuelEu = async (
     request: FastifyRequest,
     reply: FastifyReply,
@@ -170,10 +337,18 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
     });
   };
 
-  fastify.post("/calculate-fueleu", handleCalculateFuelEu);
-  fastify.post("/simulate/fuel-ghg-intensity", handleCalculateFuelEu);
+  fastify.post(
+    "/calculate-fueleu",
+    { schema: CALCULATE_FUELEU_SCHEMA },
+    handleCalculateFuelEu,
+  );
+  fastify.post(
+    "/simulate/fuel-ghg-intensity",
+    { schema: CALCULATE_FUELEU_SCHEMA },
+    handleCalculateFuelEu,
+  );
 
-  // 8. POST /api/fueleu/calculate-ets - Simulator for EU ETS & Green BAF per TEU
+  // 8. POST /api/fueleu/calculate-ets & /simulate/ets-calculator
   const handleCalculateEts = async (
     request: FastifyRequest,
     reply: FastifyReply,
@@ -227,36 +402,63 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
     });
   };
 
-  fastify.post("/calculate-ets", handleCalculateEts);
-  fastify.post("/simulate/ets-calculator", handleCalculateEts);
+  fastify.post(
+    "/calculate-ets",
+    { schema: CALCULATE_ETS_SCHEMA },
+    handleCalculateEts,
+  );
+  fastify.post(
+    "/simulate/ets-calculator",
+    { schema: CALCULATE_ETS_SCHEMA },
+    handleCalculateEts,
+  );
 
   // 9. POST /api/fueleu/simulate-pool - Fleet Pooling Simulator (Art. 21)
-  fastify.post("/simulate-pool", async (request, reply) => {
-    const body = request.body as {
-      poolCode: string;
-      vessels: {
-        vesselId: string;
-        vesselName: string;
-        complianceBalanceGco2eq: number;
-      }[];
-    };
+  fastify.post(
+    "/simulate-pool",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary: "Simulate FuelEU Maritime Article 21 fleet compliance pooling",
+        body: openApiObject({
+          poolCode: { type: "string" },
+          vessels: { type: "array", items: OPENAPI_FLEXIBLE_OBJECT_SCHEMA },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = request.body as {
+        poolCode: string;
+        vessels: {
+          vesselId: string;
+          vesselName: string;
+          complianceBalanceGco2eq: number;
+        }[];
+      };
 
-    if (!body.poolCode || !Array.isArray(body.vessels)) {
-      return reply.status(400).send({ error: "Invalid pool simulation input" });
-    }
+      if (!body.poolCode || !Array.isArray(body.vessels)) {
+        return reply
+          .status(400)
+          .send({ error: "Invalid pool simulation input" });
+      }
 
-    const poolResult = FuelEuCalculatorService.evaluatePoolBalance(
-      body.poolCode,
-      body.vessels,
-    );
+      const poolResult = FuelEuCalculatorService.evaluatePoolBalance(
+        body.poolCode,
+        body.vessels,
+      );
 
-    return reply.send({
-      success: true,
-      poolResult,
-    });
-  });
+      return reply.send({
+        success: true,
+        poolResult,
+      });
+    },
+  );
 
-  // 10. POST /api/fueleu/voyages/:id/status - Update voyage verification status
+  // 10. POST /api/fueleu/voyages/:id/status & PATCH /voyages/:id/verification-status
   const handleUpdateVoyageStatus = async (
     request: FastifyRequest,
     reply: FastifyReply,
@@ -280,205 +482,289 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({ success: true, status: body.status });
   };
 
-  fastify.post("/voyages/:id/status", handleUpdateVoyageStatus);
-  fastify.patch("/voyages/:id/verification-status", handleUpdateVoyageStatus);
+  fastify.post(
+    "/voyages/:id/status",
+    { schema: UPDATE_VOYAGE_STATUS_SCHEMA },
+    handleUpdateVoyageStatus,
+  );
+  fastify.patch(
+    "/voyages/:id/verification-status",
+    { schema: UPDATE_VOYAGE_STATUS_SCHEMA },
+    handleUpdateVoyageStatus,
+  );
 
   // 11. GET /api/fueleu/voyages/:id/thetis-xml - Export EMSA THETIS-MRV XML
-  fastify.get("/voyages/:id/thetis-xml", async (request, reply) => {
-    const { id } = request.params as { id: string };
+  fastify.get(
+    "/voyages/:id/thetis-xml",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary: "Export EMSA THETIS-MRV voyage emissions report as XML",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
 
-    const [voyage] = await db
-      .select()
-      .from(schema.marineVoyages)
-      .where(eq(schema.marineVoyages.id, id));
+      const [voyage] = await db
+        .select()
+        .from(schema.marineVoyages)
+        .where(eq(schema.marineVoyages.id, id));
 
-    if (!voyage) {
-      return reply.status(404).send({ error: "Voyage not found" });
-    }
+      if (!voyage) {
+        return reply.status(404).send({ error: "Voyage not found" });
+      }
 
-    const [vessel] = await db
-      .select()
-      .from(schema.marineVessels)
-      .where(eq(schema.marineVessels.id, voyage.vesselId));
+      const [vessel] = await db
+        .select()
+        .from(schema.marineVessels)
+        .where(eq(schema.marineVessels.id, voyage.vesselId));
 
-    const [fuel] = await db
-      .select()
-      .from(schema.marineFuels)
-      .where(eq(schema.marineFuels.id, voyage.fuelId));
+      const [fuel] = await db
+        .select()
+        .from(schema.marineFuels)
+        .where(eq(schema.marineFuels.id, voyage.fuelId));
 
-    const xml = ThetisMrvXmlService.generateThetisVoyageXml({
-      voyageReferenceNumber: voyage.voyageReferenceNumber,
-      vesselImoNumber: vessel?.imoNumber || "0000000",
-      vesselName: vessel?.vesselName || "Unknown Vessel",
-      flagState: vessel?.flagState || "ES",
-      grossTonnageGt: vessel?.grossTonnageGt || 5000,
-      departurePortLocode: voyage.departurePortLocode,
-      departurePortName: voyage.departurePortName,
-      arrivalPortLocode: voyage.arrivalPortLocode,
-      arrivalPortName: voyage.arrivalPortName,
-      geographicScope: voyage.geographicScope,
-      distanceNauticalMiles: voyage.distanceNauticalMiles,
-      departureDate: voyage.departureDate,
-      arrivalDate: voyage.arrivalDate,
-      navigationHours: voyage.navigationHours,
-      berthHours: voyage.berthHours,
-      fuelCode: fuel?.fuelCode || "FOSSIL_VLSFO",
-      fuelName: fuel?.fuelName || "VLSFO",
-      fuelConsumedTonnes: voyage.fuelConsumedTonnes,
-      opsElectricityConsumedKwh: voyage.opsElectricityConsumedKwh,
-      totalEnergyConsumedMj: voyage.totalEnergyConsumedMj,
-      calculatedGhgIntensityGco2eqPerMj:
-        voyage.calculatedGhgIntensityGco2eqPerMj,
-      co2EmissionsTonnes: voyage.co2EmissionsTonnes,
-      ch4EmissionsTonnes: voyage.ch4EmissionsTonnes,
-      n2oEmissionsTonnes: voyage.n2oEmissionsTonnes,
-      totalGhgEmissionsScopeTco2eq: voyage.totalGhgEmissionsScopeTco2eq,
-      etsApplicableScopeEmissionsTco2eq:
-        voyage.etsApplicableScopeEmissionsTco2eq,
-      carriedTeuCount: voyage.carriedTeuCount,
-      leadAuditorVerifier: voyage.leadAuditorVerifier,
-    });
+      const xml = ThetisMrvXmlService.generateThetisVoyageXml({
+        voyageReferenceNumber: voyage.voyageReferenceNumber,
+        vesselImoNumber: vessel?.imoNumber || "0000000",
+        vesselName: vessel?.vesselName || "Unknown Vessel",
+        flagState: vessel?.flagState || "ES",
+        grossTonnageGt: vessel?.grossTonnageGt || 5000,
+        departurePortLocode: voyage.departurePortLocode,
+        departurePortName: voyage.departurePortName,
+        arrivalPortLocode: voyage.arrivalPortLocode,
+        arrivalPortName: voyage.arrivalPortName,
+        geographicScope: voyage.geographicScope,
+        distanceNauticalMiles: voyage.distanceNauticalMiles,
+        departureDate: voyage.departureDate,
+        arrivalDate: voyage.arrivalDate,
+        navigationHours: voyage.navigationHours,
+        berthHours: voyage.berthHours,
+        fuelCode: fuel?.fuelCode || "FOSSIL_VLSFO",
+        fuelName: fuel?.fuelName || "VLSFO",
+        fuelConsumedTonnes: voyage.fuelConsumedTonnes,
+        opsElectricityConsumedKwh: voyage.opsElectricityConsumedKwh,
+        totalEnergyConsumedMj: voyage.totalEnergyConsumedMj,
+        calculatedGhgIntensityGco2eqPerMj:
+          voyage.calculatedGhgIntensityGco2eqPerMj,
+        co2EmissionsTonnes: voyage.co2EmissionsTonnes,
+        ch4EmissionsTonnes: voyage.ch4EmissionsTonnes,
+        n2oEmissionsTonnes: voyage.n2oEmissionsTonnes,
+        totalGhgEmissionsScopeTco2eq: voyage.totalGhgEmissionsScopeTco2eq,
+        etsApplicableScopeEmissionsTco2eq:
+          voyage.etsApplicableScopeEmissionsTco2eq,
+        carriedTeuCount: voyage.carriedTeuCount,
+        leadAuditorVerifier: voyage.leadAuditorVerifier,
+      });
 
-    reply.header("Content-Type", "application/xml; charset=utf-8");
-    reply.header(
-      "Content-Disposition",
-      `attachment; filename="THETIS-MRV-${voyage.voyageReferenceNumber}.xml"`,
-    );
-    return reply.send(xml);
-  });
+      reply.header("Content-Type", "application/xml; charset=utf-8");
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename="THETIS-MRV-${voyage.voyageReferenceNumber}.xml"`,
+      );
+      return reply.send(xml);
+    },
+  );
 
   // 12. GET /api/fueleu/accounts/:id/certificate-pdf - Stream FuelEU Compliance Certificate PDF
-  fastify.get("/accounts/:id/certificate-pdf", async (request, reply) => {
-    const { id } = request.params as { id: string };
-
-    const [account] = await db
-      .select()
-      .from(schema.fuelEuComplianceAccounts)
-      .where(eq(schema.fuelEuComplianceAccounts.id, id));
-
-    if (!account) {
-      return reply.status(404).send({ error: "Compliance account not found" });
-    }
-
-    const [vessel] = await db
-      .select()
-      .from(schema.marineVessels)
-      .where(eq(schema.marineVessels.id, account.vesselId));
-
-    let pool = null;
-    if (account.poolId) {
-      const [p] = await db
-        .select()
-        .from(schema.fuelEuPools)
-        .where(eq(schema.fuelEuPools.id, account.poolId));
-      pool = p;
-    }
-
-    const pdfBuffer = await PDFService.generateFuelEuComplianceCertificatePdf(
-      account,
-      vessel || {
-        vesselName: "Unknown Vessel",
-        imoNumber: "9811012",
-        flagState: "ES",
-        grossTonnageGt: 100000,
-        mainEngineType: "TWO_STROKE_SLOW_SPEED_DIESEL",
-        operatingShippingLine: "Atlas Mediterranean Line",
-        docHolderCompany: "Atlas Maritime Shipmanagement",
-        classificationSociety: "DNV",
-        hasOpsConnectionInstalled: true,
+  fastify.get(
+    "/accounts/:id/certificate-pdf",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary:
+          "Generate and stream FuelEU Maritime Compliance Certificate PDF",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
       },
-      pool,
-    );
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
 
-    reply.header("Content-Type", "application/pdf");
-    reply.header(
-      "Content-Disposition",
-      `inline; filename="FuelEU-Compliance-Certificate-${account.reportingYear}.pdf"`,
-    );
-    return reply.send(pdfBuffer);
-  });
+      const [account] = await db
+        .select()
+        .from(schema.fuelEuComplianceAccounts)
+        .where(eq(schema.fuelEuComplianceAccounts.id, id));
+
+      if (!account) {
+        return reply
+          .status(404)
+          .send({ error: "Compliance account not found" });
+      }
+
+      const [vessel] = await db
+        .select()
+        .from(schema.marineVessels)
+        .where(eq(schema.marineVessels.id, account.vesselId));
+
+      let pool = null;
+      if (account.poolId) {
+        const [p] = await db
+          .select()
+          .from(schema.fuelEuPools)
+          .where(eq(schema.fuelEuPools.id, account.poolId));
+        pool = p;
+      }
+
+      const pdfBuffer = await PDFService.generateFuelEuComplianceCertificatePdf(
+        account,
+        vessel || {
+          vesselName: "Unknown Vessel",
+          imoNumber: "9811012",
+          flagState: "ES",
+          grossTonnageGt: 100000,
+          mainEngineType: "TWO_STROKE_SLOW_SPEED_DIESEL",
+          operatingShippingLine: "Atlas Mediterranean Line",
+          docHolderCompany: "Atlas Maritime Shipmanagement",
+          classificationSociety: "DNV",
+          hasOpsConnectionInstalled: true,
+        },
+        pool,
+      );
+
+      reply.header("Content-Type", "application/pdf");
+      reply.header(
+        "Content-Disposition",
+        `inline; filename="FuelEU-Compliance-Certificate-${account.reportingYear}.pdf"`,
+      );
+      return reply.send(pdfBuffer);
+    },
+  );
 
   // 13. GET /api/fueleu/voyages/:id/bdn-pdf - Stream BDN & Voyage Emissions PDF
-  fastify.get("/voyages/:id/bdn-pdf", async (request, reply) => {
-    const { id } = request.params as { id: string };
-
-    const [voyage] = await db
-      .select()
-      .from(schema.marineVoyages)
-      .where(eq(schema.marineVoyages.id, id));
-
-    if (!voyage) {
-      return reply.status(404).send({ error: "Voyage not found" });
-    }
-
-    const [vessel] = await db
-      .select()
-      .from(schema.marineVessels)
-      .where(eq(schema.marineVessels.id, voyage.vesselId));
-
-    const [fuel] = await db
-      .select()
-      .from(schema.marineFuels)
-      .where(eq(schema.marineFuels.id, voyage.fuelId));
-
-    const pdfBuffer = await PDFService.generateBunkerDeliveryNoteAuditPdf(
-      voyage,
-      vessel || {
-        vesselName: "Atlas Mediterranean",
-        imoNumber: "9811012",
+  fastify.get(
+    "/voyages/:id/bdn-pdf",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary:
+          "Generate and stream Bunker Delivery Note (BDN) and voyage emissions audit PDF",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
       },
-      fuel || {
-        fuelName: "VLSFO",
-        fuelCode: "FOSSIL_VLSFO",
-        fuelCategory: "FOSSIL_LIQUID",
-        lowerCalorificValueMjPerGram: 0.041,
-        totalWtwFactorGco2eqPerMj: 91.16,
-      },
-    );
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
 
-    reply.header("Content-Type", "application/pdf");
-    reply.header(
-      "Content-Disposition",
-      `inline; filename="BDN-Audit-Report-${voyage.voyageReferenceNumber}.pdf"`,
-    );
-    return reply.send(pdfBuffer);
-  });
+      const [voyage] = await db
+        .select()
+        .from(schema.marineVoyages)
+        .where(eq(schema.marineVoyages.id, id));
+
+      if (!voyage) {
+        return reply.status(404).send({ error: "Voyage not found" });
+      }
+
+      const [vessel] = await db
+        .select()
+        .from(schema.marineVessels)
+        .where(eq(schema.marineVessels.id, voyage.vesselId));
+
+      const [fuel] = await db
+        .select()
+        .from(schema.marineFuels)
+        .where(eq(schema.marineFuels.id, voyage.fuelId));
+
+      const pdfBuffer = await PDFService.generateBunkerDeliveryNoteAuditPdf(
+        voyage,
+        vessel || {
+          vesselName: "Atlas Mediterranean",
+          imoNumber: "9811012",
+        },
+        fuel || {
+          fuelName: "VLSFO",
+          fuelCode: "FOSSIL_VLSFO",
+          fuelCategory: "FOSSIL_LIQUID",
+          lowerCalorificValueMjPerGram: 0.041,
+          totalWtwFactorGco2eqPerMj: 91.16,
+        },
+      );
+
+      reply.header("Content-Type", "application/pdf");
+      reply.header(
+        "Content-Disposition",
+        `inline; filename="BDN-Audit-Report-${voyage.voyageReferenceNumber}.pdf"`,
+      );
+      return reply.send(pdfBuffer);
+    },
+  );
 
   // 14. GET /api/fueleu/penalties - List FuelEU Maritime Penalties Ledger
-  fastify.get("/penalties", async (_request, reply) => {
-    const penalties = await CarbonInsettingLedgerService.getFuelEuPenalties();
-    return reply.send({ success: true, count: penalties.length, penalties });
-  });
+  fastify.get(
+    "/penalties",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary: "List FuelEU Maritime regulatory penalties ledger",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      const penalties = await CarbonInsettingLedgerService.getFuelEuPenalties();
+      return reply.send({ success: true, count: penalties.length, penalties });
+    },
+  );
 
   // 15. POST /api/fueleu/ets/settle - Settle EU ETS & Green BAF for Shipment/Voyage
-  fastify.post("/ets/settle", async (request, reply) => {
-    const body = request.body as {
-      shipmentId?: string;
-      voyageId: string;
-      teuCount?: number;
-      customEuaPrice?: number;
-    };
+  fastify.post(
+    "/ets/settle",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary:
+          "Settle EU ETS liability and Green BAF surcharge for a shipment",
+        body: openApiObject({
+          shipmentId: { type: "string" },
+          voyageId: { type: "string" },
+          teuCount: { type: "number" },
+          customEuaPrice: { type: "number" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = request.body as {
+        shipmentId?: string;
+        voyageId: string;
+        teuCount?: number;
+        customEuaPrice?: number;
+      };
 
-    if (!body?.voyageId) {
-      return reply
-        .status(400)
-        .send({ error: "Missing required parameter 'voyageId'" });
-    }
+      if (!body?.voyageId) {
+        return reply
+          .status(400)
+          .send({ error: "Missing required parameter 'voyageId'" });
+      }
 
-    try {
-      const settlement =
-        await EtsGreenBafSettlementService.settleGreenBafForShipment({
-          shipmentId: body.shipmentId || "sh_demo_01",
-          voyageId: body.voyageId,
-          teuCount: Number(body.teuCount || 1),
-          customEuaPrice: body.customEuaPrice,
-        });
+      try {
+        const settlement =
+          await EtsGreenBafSettlementService.settleGreenBafForShipment({
+            shipmentId: body.shipmentId || "sh_demo_01",
+            voyageId: body.voyageId,
+            teuCount: Number(body.teuCount || 1),
+            customEuaPrice: body.customEuaPrice,
+          });
 
-      return reply.send({ success: true, settlement });
-    } catch (err: any) {
-      return reply
-        .status(400)
-        .send({ error: err.message || "Failed to settle Green BAF" });
-    }
-  });
+        return reply.send({ success: true, settlement });
+      } catch (err: unknown) {
+        return reply
+          .status(400)
+          .send({ error: getErrorMessage(err, "Failed to settle Green BAF") });
+      }
+    },
+  );
 };

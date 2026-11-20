@@ -996,7 +996,11 @@ export function registerControlEnginesSubscribers(): void {
   if (controlSubscribersRegistered) return;
 
   // 1. On RouteVersionPublished -> Initialize SLA clocks
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    stops: SlaRouteStop[];
+    legs: SlaRouteLeg[];
+  }>(
     "transport_planning.RouteVersionPublished.v1",
     "sla_mgmt.OnRouteVersionPublished",
     async (event) => {
@@ -1005,7 +1009,13 @@ export function registerControlEnginesSubscribers(): void {
   );
 
   // 2. On TransportEventReceived -> Trigger automatic SLA Stop-Clock or Exceptions
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    eventCode: string;
+    milestoneCode: string;
+    locationLocode: string;
+    summary: string;
+  }>(
     "tracking_events.TransportEventReceived.v1",
     "control_engines.OnTransportEventReceived",
     async (event) => {
@@ -1094,7 +1104,13 @@ export function registerControlEnginesSubscribers(): void {
   );
 
   // 3. On ETAChanged -> Evaluate delay variance, mark SLA_TRANSIT_PUNCTUALITY AT_RISK, and raise/deduplicate ETA_DELAY exception
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    varianceMinutes: number;
+    locationLocode: string;
+    milestoneCode: string;
+    summary: string;
+  }>(
     "tracking_events.ETAChanged.v1",
     "control_engines.OnETAChanged",
     async (event) => {

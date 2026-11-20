@@ -1,12 +1,71 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface GeneralAverageCasePdfInput {
+  caseReference?: string | null;
+  vesselName?: string | null;
+  imoNumber?: string | null;
+  flagState?: string | null;
+  shipownerName?: string | null;
+  masterName?: string | null;
+  voyageOrigin?: string | null;
+  voyageDestination?: string | null;
+  casualtyDate?: string | null;
+  casualtyLocation?: string | null;
+  portOfRefuge?: string | null;
+  dateArrivalPortOfRefuge?: string | null;
+  governingRules?: string | null;
+  salvageContractType?: string | null;
+  salvorName?: string | null;
+  declarationNarrative?: string | null;
+  averageAdjusterFirm?: string | null;
+  leadAdjusterName?: string | null;
+}
+
+interface GeneralAverageSecurityPdfInput {
+  securityReference?: string | null;
+  cargoConsigneeName?: string | null;
+  cargoConsigneeVat?: string | null;
+  securityAmountUsd?: number | null;
+  insurerName?: string | null;
+  insurerPolicyNumber?: string | null;
+  insurerContactEmail?: string | null;
+  depositBankName?: string | null;
+  cargoReleaseAuthorized?: boolean | null;
+  releaseAuthorizedBy?: string | null;
+}
+
+interface GeneralAverageAdjustmentPdfInput {
+  adjustmentReference?: string | null;
+  totalAllowancesUsd?: number | null;
+  totalContributoryValueUsd?: number | null;
+  finalRateOfContributionPercentage?: number | null;
+  cmiInterestRatePercentage?: number | null;
+  totalCmiInterestUsd?: number | null;
+  adjusterCertificationStatement?: string | null;
+}
+
+interface GeneralAverageInterestPdfInput {
+  ownerOrReceiverName?: string | null;
+  interestCategory?: string | null;
+  blReference?: string | null;
+  containerNumber?: string | null;
+  contributoryValueUsd?: number | null;
+  calculatedContributionUsd?: number | null;
+  madeGoodAllowanceUsd?: number | null;
+  balanceType?: string | null;
+  netFinancialBalanceUsd?: number | null;
+}
+
 export class GeneralAveragePdfGenerator {
   /**
    * 1. Generates an Official Master's Declaration of General Average & Sea Protest PDF (YAR 2016).
    */
   public static async generateMasterGeneralAverageDeclarationPdf(
-    gaCase: any,
+    rawGaCase: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const gaCase = (rawGaCase ?? {}) as GeneralAverageCasePdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -170,9 +229,11 @@ export class GeneralAveragePdfGenerator {
    * 2. Generates an Official Lloyd's Average Bond Form (LAB 77 PDF).
    */
   public static async generateLloydsAverageBondPdf(
-    security: any,
-    gaCase: any,
+    rawSecurity: PdfInputRecord | null | undefined,
+    rawGaCase: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const security = (rawSecurity ?? {}) as GeneralAverageSecurityPdfInput;
+    const gaCase = (rawGaCase ?? {}) as GeneralAverageCasePdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -312,9 +373,11 @@ export class GeneralAveragePdfGenerator {
    * 3. Generates an Official Underwriter's Average Guarantee PDF.
    */
   public static async generateUnderwritersAverageGuaranteePdf(
-    security: any,
-    gaCase: any,
+    rawSecurity: PdfInputRecord | null | undefined,
+    rawGaCase: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const security = (rawSecurity ?? {}) as GeneralAverageSecurityPdfInput;
+    const gaCase = (rawGaCase ?? {}) as GeneralAverageCasePdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -437,10 +500,15 @@ export class GeneralAveragePdfGenerator {
    * 4. Generates an Official General Average Adjustment Statement & Apportionment Sheet PDF.
    */
   public static async generateGeneralAverageAdjustmentStatementPdf(
-    adjustment: any,
-    gaCase: any,
-    interests: any[],
+    rawAdjustment: PdfInputRecord | null | undefined,
+    rawGaCase: PdfInputRecord | null | undefined,
+    rawInterests: readonly PdfInputRecord[],
   ): Promise<Buffer> {
+    const adjustment = (rawAdjustment ??
+      {}) as GeneralAverageAdjustmentPdfInput;
+    const gaCase = (rawGaCase ?? {}) as GeneralAverageCasePdfInput;
+    const interests = (rawInterests ??
+      []) as readonly GeneralAverageInterestPdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });

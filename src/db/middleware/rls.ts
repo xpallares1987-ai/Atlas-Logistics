@@ -1,4 +1,4 @@
-import { eq, SQL } from "drizzle-orm";
+import { Column, eq, SQL } from "drizzle-orm";
 import { SQLiteTable } from "drizzle-orm/sqlite-core";
 
 /**
@@ -10,11 +10,14 @@ import { SQLiteTable } from "drizzle-orm/sqlite-core";
  * Usage:
  * const safeSelect = withTenant(db.select().from(users), users, context.companyId);
  */
-export function withTenant<T extends { where: (condition: SQL) => any }>(
+export function withTenant<
+  TResult,
+  T extends { where: (condition: SQL) => TResult },
+>(
   queryBuilder: T,
-  table: SQLiteTable & { companyId: any },
+  table: SQLiteTable & { companyId: Column },
   companyId: string,
-): ReturnType<T["where"]> {
+): TResult {
   if (!companyId) {
     throw new Error("RLS Violation: companyId is required for this query.");
   }

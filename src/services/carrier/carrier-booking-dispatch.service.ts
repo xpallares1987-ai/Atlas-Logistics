@@ -191,13 +191,31 @@ export class CarrierBookingDispatchService {
    * Processes carrier responses: EDI 997 Functional Acknowledgment, EDI 301, or DCSA Confirmation.
    */
   public static async processConfirmation(
+    input: CarrierConfirmationInput & { status: "REJECTED" },
+  ): Promise<{
+    success: false;
+    outboxEventId: string;
+    carrierBookingNumber: string;
+    status: string;
+    dlqCardPayload: ReturnType<typeof buildM365DeadLetterAdaptiveCard>;
+  }>;
+  public static async processConfirmation(
     input: CarrierConfirmationInput,
   ): Promise<{
     success: boolean;
     outboxEventId: string;
     carrierBookingNumber: string;
     status: string;
-    dlqCardPayload?: any;
+    dlqCardPayload?: ReturnType<typeof buildM365DeadLetterAdaptiveCard>;
+  }>;
+  public static async processConfirmation(
+    input: CarrierConfirmationInput,
+  ): Promise<{
+    success: boolean;
+    outboxEventId: string;
+    carrierBookingNumber: string;
+    status: string;
+    dlqCardPayload?: ReturnType<typeof buildM365DeadLetterAdaptiveCard>;
   }> {
     const existing = (
       await db

@@ -11,8 +11,8 @@ export interface AuditLogEntry {
   recordId: string;
   action: "CREATE" | "UPDATE" | "DELETE" | "ACCESS";
   userId?: string;
-  oldData?: Record<string, any>;
-  newData?: Record<string, any>;
+  oldData?: Record<string, unknown>;
+  newData?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
   correlationId?: string;
@@ -58,7 +58,7 @@ export async function logAuditEvent(event: AuditLogEntry): Promise<void> {
 export async function logSensitiveOperation(
   operation: string,
   userId: string,
-  details: Record<string, any>,
+  details: Record<string, unknown>,
   request: FastifyRequest,
 ): Promise<void> {
   try {
@@ -204,7 +204,7 @@ export async function logApiError(
 export async function logSecurityEvent(
   event: string,
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
-  details: Record<string, any>,
+  details: Record<string, unknown>,
   request?: FastifyRequest,
 ): Promise<void> {
   try {
@@ -236,8 +236,8 @@ export async function logSecurityEvent(
 export async function logConfigChange(
   section: string,
   key: string,
-  oldValue: any,
-  newValue: any,
+  oldValue: unknown,
+  newValue: unknown,
   userId: string,
   request: FastifyRequest,
 ): Promise<void> {
@@ -266,7 +266,7 @@ export async function getAuditTrail(
   tableName: string,
   recordId: string,
   limit: number = 100,
-): Promise<any[]> {
+): Promise<Array<typeof auditLogs.$inferSelect>> {
   try {
     const { eq } = await import("drizzle-orm");
     const trail = await db
@@ -291,7 +291,7 @@ export async function getAuditTrail(
 export async function getUserActivityLog(
   userId: string,
   limit: number = 100,
-): Promise<any[]> {
+): Promise<Array<typeof auditLogs.$inferSelect>> {
   try {
     const { eq } = await import("drizzle-orm");
     const activity = await db
@@ -316,8 +316,8 @@ export async function auditOperation(
   tableName: string,
   recordId: string,
   action: "CREATE" | "UPDATE" | "DELETE",
-  oldData: Record<string, any> | null,
-  newData: Record<string, any> | null,
+  oldData: Record<string, unknown> | null,
+  newData: Record<string, unknown> | null,
   userId?: string,
   correlationId?: string,
 ): Promise<void> {

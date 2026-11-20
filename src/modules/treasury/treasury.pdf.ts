@@ -1,14 +1,42 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface TreasuryInvoicePdfInput {
+  carrierName?: string | null;
+  carrierVat?: string | null;
+  invoiceNumber: string;
+  invoiceDate?: string | null;
+  currency?: string | null;
+  mode?: string | null;
+  billingPeriod?: string | null;
+  dueDate?: string | null;
+}
+
+interface TreasuryInvoiceLinePdfInput {
+  documentNumber?: string | null;
+  chargeCode?: string | null;
+  description?: string | null;
+  billedQuantity?: number | null;
+  billedRate?: number | null;
+  billedAmount?: number | null;
+  expectedAmount?: number | null;
+  varianceAmount?: number | null;
+  disputeReason?: string | null;
+}
+
 export class TreasuryPdfGenerator {
   /**
    * Generates a Carrier Freight Dispute / Debit Note PDF (Nota de Cargo y Carta de Discrepancia).
    */
   static async generateCarrierDisputeLetter(
-    invoice: any,
-    disputedLines: any[],
-    company?: any,
+    rawInvoice: PdfInputRecord,
+    rawDisputedLines: readonly PdfInputRecord[],
+    _company?: PdfInputRecord | null,
   ): Promise<Buffer> {
+    const invoice = rawInvoice as TreasuryInvoicePdfInput;
+    const disputedLines =
+      rawDisputedLines as readonly TreasuryInvoiceLinePdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
@@ -138,9 +166,14 @@ export class TreasuryPdfGenerator {
             .font("Helvetica")
             .fontSize(7)
             .fillColor("#334155")
-            .text(line.description || line.chargeCode, 130, currentY + 5, {
-              width: 155,
-            })
+            .text(
+              line.description || line.chargeCode || "-",
+              130,
+              currentY + 5,
+              {
+                width: 155,
+              },
+            )
             .text(`${(line.billedAmount || 0).toFixed(2)}`, 290, currentY + 5)
             .text(`${(line.expectedAmount || 0).toFixed(2)}`, 360, currentY + 5)
             .font("Helvetica-Bold")
@@ -245,10 +278,12 @@ export class TreasuryPdfGenerator {
    * Generates an Official Carrier Settlement Statement & Payment Approval PDF.
    */
   static async generateCarrierSettlementStatement(
-    invoice: any,
-    lines: any[],
-    company?: any,
+    rawInvoice: PdfInputRecord,
+    rawLines: readonly PdfInputRecord[],
+    _company?: PdfInputRecord | null,
   ): Promise<Buffer> {
+    const invoice = rawInvoice as TreasuryInvoicePdfInput;
+    const lines = rawLines as readonly TreasuryInvoiceLinePdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
@@ -357,9 +392,14 @@ export class TreasuryPdfGenerator {
             .font("Helvetica")
             .fontSize(7)
             .fillColor("#334155")
-            .text(line.description || line.chargeCode, 140, currentY + 6, {
-              width: 165,
-            })
+            .text(
+              line.description || line.chargeCode || "-",
+              140,
+              currentY + 6,
+              {
+                width: 165,
+              },
+            )
             .text(`${line.billedQuantity || 1}`, 310, currentY + 6)
             .text(`${(line.billedRate || 0).toFixed(2)}`, 360, currentY + 6)
             .font("Helvetica-Bold")

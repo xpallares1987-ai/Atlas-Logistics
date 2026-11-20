@@ -1323,7 +1323,15 @@ export function registerAutomationSubscribers(): void {
   if (automationSubscribersRegistered) return;
 
   // 1. On ShipmentCreated -> Initialize ProcessInstance and evaluate DECISION_OPERATIONAL_ASSIGNMENT
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    shipmentReference: string;
+    serviceMode: string;
+    direction: string;
+    incoterm: string;
+    organizationId: string;
+    branchId: string;
+  }>(
     "shipment_execution.ShipmentCreated.v1",
     "workflow_runtime.OnShipmentCreated",
     async (event) => {
@@ -1344,7 +1352,7 @@ export function registerAutomationSubscribers(): void {
   );
 
   // 2. On RouteVersionPublished -> Advance workflow token if ready
-  outboxBus.subscribe(
+  outboxBus.subscribe<{ shipmentId: string }>(
     "transport_planning.RouteVersionPublished.v1",
     "workflow_runtime.OnRouteVersionPublished",
     async (event) => {
@@ -1360,7 +1368,7 @@ export function registerAutomationSubscribers(): void {
   );
 
   // 3. On CargoDeclared -> Re-evaluate assignment rules (DG/Reefer) & advance workflow token
-  outboxBus.subscribe(
+  outboxBus.subscribe<{ shipmentId: string }>(
     "cargo_equipment.CargoDeclared.v1",
     "workflow_runtime.OnCargoDeclared",
     async (event) => {
@@ -1376,7 +1384,7 @@ export function registerAutomationSubscribers(): void {
   );
 
   // 4. On EquipmentAssigned -> Re-evaluate SOLAS VGM & gateway readiness
-  outboxBus.subscribe(
+  outboxBus.subscribe<{ shipmentId: string }>(
     "cargo_equipment.EquipmentAssigned.v1",
     "workflow_runtime.OnEquipmentAssigned",
     async (event) => {
@@ -1392,7 +1400,7 @@ export function registerAutomationSubscribers(): void {
   );
 
   // 5. On TransportEventReceived -> Advance workflow on VGM_VERIFIED or CUSTOMS_RELEASED
-  outboxBus.subscribe(
+  outboxBus.subscribe<{ shipmentId: string; eventCode: string }>(
     "tracking_events.TransportEventReceived.v1",
     "workflow_runtime.OnTransportEventReceived",
     async (event) => {
@@ -1408,7 +1416,7 @@ export function registerAutomationSubscribers(): void {
   );
 
   // 6. On QualityAssessmentCompleted -> Block or unblock NODE_GATEWAY_DQ_EXPORT reactively
-  outboxBus.subscribe(
+  outboxBus.subscribe<{ shipmentId: string; activeStage: string }>(
     "data_quality.QualityAssessmentCompleted.v1",
     "workflow_runtime.OnQualityAssessmentCompleted",
     async (event) => {
@@ -1424,7 +1432,7 @@ export function registerAutomationSubscribers(): void {
   );
 
   // 7. On ShipmentClosed -> Complete ProcessInstance
-  outboxBus.subscribe(
+  outboxBus.subscribe<{ shipmentId: string }>(
     "shipment_execution.ShipmentClosed.v1",
     "workflow_runtime.OnShipmentClosed",
     async (event) => {

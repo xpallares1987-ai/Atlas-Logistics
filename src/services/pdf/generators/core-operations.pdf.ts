@@ -1,5 +1,34 @@
 import PDFDocument from "pdfkit";
 
+export interface HblContainerItem {
+  containerNumber?: string | null;
+  isoType?: string | null;
+  sealNumber?: string | null;
+  [key: string]: unknown;
+}
+
+export interface HblCommodityItem {
+  description?: string | null;
+  pieces?: number | null;
+  grossWeightKg?: number | null;
+  volumeCbm?: number | null;
+  [key: string]: unknown;
+}
+
+export interface LclManifestCargoItemPdf {
+  id?: string | null;
+  label?: string | null;
+  typeId?: string | null;
+  shipmentId?: string | null;
+  clientId?: string | null;
+  length?: number | null;
+  depth?: number | null;
+  width?: number | null;
+  height?: number | null;
+  weight?: number | null;
+  [key: string]: unknown;
+}
+
 export interface HBLData {
   shipmentId: string;
   shipper: string;
@@ -9,8 +38,8 @@ export interface HBLData {
   portOfDischarge: string;
   vessel: string;
   voyage: string;
-  containers: any[];
-  commodities: any[];
+  containers: HblContainerItem[];
+  commodities: HblCommodityItem[];
   issueDate?: string;
 }
 
@@ -397,7 +426,7 @@ export class CoreOperationsPdfGenerator {
     containerId: string;
     specId?: string;
     route?: string;
-    cargoItems: any[];
+    cargoItems: LclManifestCargoItemPdf[];
     totalWeight: number;
   }): Promise<Buffer> {
     return new Promise((resolve, reject) => {

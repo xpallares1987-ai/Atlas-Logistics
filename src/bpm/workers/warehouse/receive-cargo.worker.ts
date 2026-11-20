@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface ReceiveCargoInput {
   referenceNumber: string;
@@ -26,7 +26,9 @@ class ReceiveCargoWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.warehouse.gate-in";
 
-  async execute(job: any): Promise<ReceiveCargoOutput> {
+  async execute(
+    job: AtlasWorkerJob<ReceiveCargoInput>,
+  ): Promise<ReceiveCargoOutput> {
     const { referenceNumber, containerNumber, truckPlate } = job.variables;
 
     const gateInId = `GI-${Date.now().toString(36).toUpperCase()}`;

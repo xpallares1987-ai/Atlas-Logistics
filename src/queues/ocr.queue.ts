@@ -4,11 +4,16 @@ import { logger } from "../config/logger.js";
 
 const QUEUE_NAME = "ocr-parsing";
 
-export const ocrQueue = new Queue(QUEUE_NAME, {
+export interface OcrJobData {
+  documentUrl?: string;
+  [key: string]: unknown;
+}
+
+export const ocrQueue = new Queue<OcrJobData>(QUEUE_NAME, {
   connection: redis,
 });
 
-export async function addOcrJob(jobName: string, data: any) {
+export async function addOcrJob(jobName: string, data: OcrJobData) {
   if (isRedisAvailable) {
     return await ocrQueue.add(jobName, data);
   } else {
@@ -25,7 +30,7 @@ export async function addOcrJob(jobName: string, data: any) {
   }
 }
 
-async function processOcrJob(data: any) {
+async function processOcrJob(data: OcrJobData) {
   logger.info(`Processing OCR for document: ${data.documentUrl || "Unknown"}`);
   // Simulate OCR processing time
   await new Promise((resolve) => setTimeout(resolve, 3000));

@@ -21,7 +21,10 @@ export const getHttpRequestTotal = (): Counter<string> | undefined =>
 export const httpRequestDuration = {
   startTimer: (labels?: Record<string, string | number>) =>
     getHttpRequestDuration()?.startTimer(labels),
-  observe: (labelsOrValue: any, value?: number) => {
+  observe: (
+    labelsOrValue: number | Record<string, string | number>,
+    value?: number,
+  ) => {
     const metric = getHttpRequestDuration();
     if (!metric) return;
     if (typeof labelsOrValue === "number") {
@@ -33,7 +36,10 @@ export const httpRequestDuration = {
 };
 
 export const httpRequestTotal = {
-  inc: (labelsOrValue?: any, value?: number) => {
+  inc: (
+    labelsOrValue?: number | Record<string, string | number>,
+    value?: number,
+  ) => {
     const metric = getHttpRequestTotal();
     if (!metric) return;
     if (typeof labelsOrValue === "number") {

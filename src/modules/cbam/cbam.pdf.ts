@@ -1,14 +1,46 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface CbamDeclarationPdfInput {
+  declarationNumber: string;
+  reportingPeriod: string;
+  declarantName: string;
+  declarantVat: string;
+  importerName: string;
+  importerVat: string;
+  status?: string | null;
+  totalNetMassTonnes?: number | null;
+  totalDirectEmissionsTco2e?: number | null;
+  totalIndirectEmissionsTco2e?: number | null;
+  totalEmbeddedEmissionsTco2e?: number | null;
+  euEtsBenchmarkPriceEur?: number | null;
+  netCarbonLiabilityEur?: number | null;
+  remarks?: string | null;
+  responsibleDeclarant?: string | null;
+}
+
+interface CbamDeclarationLinePdfInput {
+  duaBox33HsCode?: string | null;
+  goodDescription?: string | null;
+  originCountry?: string | null;
+  netWeightTonnes?: number | null;
+  totalLineEmissionsTco2e?: number | null;
+  effectiveForeignPricePaidEur?: number | null;
+  lineNetLiabilityEur?: number | null;
+}
+
 export class CbamPdfGenerator {
   /**
    * Generates an Official CBAM Embedded Emissions & Carbon Liability Declaration Certificate PDF (EU Reg. 2023/956).
    */
   static async generateCbamDeclarationCertificate(
-    declaration: any,
-    lines: any[] = [],
-    company?: any,
+    rawDeclaration: PdfInputRecord,
+    rawLines: readonly PdfInputRecord[] = [],
+    _company?: PdfInputRecord | null,
   ): Promise<Buffer> {
+    const declaration = rawDeclaration as CbamDeclarationPdfInput;
+    const lines = rawLines as readonly CbamDeclarationLinePdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({

@@ -1,15 +1,55 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface ColdChainShipmentPdfInput {
+  trackingNumber: string;
+  batchNumber: string;
+  productDescription: string;
+  pharmaClassification: string;
+  originLocation: string;
+  destinationLocation: string;
+  loggerSerialNumber: string;
+  loggerModel?: string | null;
+  packagingType: string;
+  gdpReleaseVerdict: string;
+  mktCalculatedCelsius?: number | null;
+  setpointTempCelsius: number;
+  excursionDurationMinutes?: number | null;
+  excursionStatus?: string | null;
+  currentDryIceWeightKg?: number | null;
+  qualityAuditNotes?: string | null;
+  responsiblePersonName?: string | null;
+}
+
+interface ColdChainReadingPdfInput {
+  recordedAt?: string | null;
+  isExcursion?: boolean | null;
+  probeTemperatureCelsius: number;
+  ambientTemperatureCelsius?: number | null;
+  relativeHumidityPct?: number | null;
+  powerSupplyMode?: string | null;
+}
+
+interface ColdChainProfilePdfInput {
+  minTempCelsius?: number | null;
+  maxTempCelsius?: number | null;
+}
+
 export class ColdChainPdfGenerator {
   /**
    * Generates an Official Pharma Cold Chain & GDP Release Certificate PDF (EN 12830).
    */
   static async generateGdpReleaseCertificate(
-    shipment: any,
-    readings: any[] = [],
-    profile?: any,
-    company?: any,
+    rawShipment: PdfInputRecord,
+    rawReadings: readonly PdfInputRecord[] = [],
+    rawProfile?: PdfInputRecord | null,
+    _company?: PdfInputRecord | null,
   ): Promise<Buffer> {
+    const shipment = rawShipment as ColdChainShipmentPdfInput;
+    const readings = rawReadings as readonly ColdChainReadingPdfInput[];
+    const profile = (rawProfile ?? undefined) as
+      ColdChainProfilePdfInput | undefined;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({

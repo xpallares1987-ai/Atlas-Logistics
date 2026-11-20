@@ -1,8 +1,17 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
-class ApproveAPWorker extends AtlasWorker<any, any> {
+interface ApproveAPInput {
+  shipmentId?: string;
+}
+
+class ApproveAPWorker extends AtlasWorker<
+  ApproveAPInput,
+  Record<string, never>
+> {
   readonly taskType = "atlas.invoice.approve-ap";
-  async execute(job: any): Promise<any> {
+  async execute(
+    job: AtlasWorkerJob<ApproveAPInput>,
+  ): Promise<Record<string, never>> {
     console.log(
       `[ApproveAPWorker] Approving AP payments for shipment ${job.variables.shipmentId}`,
     );

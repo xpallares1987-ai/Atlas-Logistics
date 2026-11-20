@@ -26,7 +26,7 @@ export interface GeminiTaskOptions {
 export interface GeminiStructuredTaskOptions<T> {
   model?: "gemini-2.5-flash" | "gemini-2.5-flash-lite";
   systemInstruction?: string;
-  responseSchema?: Record<string, any>;
+  responseSchema?: Record<string, unknown>;
   maxOutputTokens?: number;
   temperature?: number;
   bypassCache?: boolean;
@@ -35,6 +35,23 @@ export interface GeminiStructuredTaskOptions<T> {
   inlineData?: GeminiInlinePart;
   l2CacheReader?: () => Promise<T | null>;
   l2CacheWriter?: (data: T) => Promise<void>;
+}
+
+type GenerateContentParams = Parameters<
+  GoogleGenAI["models"]["generateContent"]
+>[0];
+
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (
+    typeof err === "object" &&
+    err !== null &&
+    "message" in err &&
+    typeof (err as { message: unknown }).message === "string"
+  ) {
+    return (err as { message: string }).message;
+  }
+  return String(err ?? "");
 }
 
 export type GeminiResponseSource =
@@ -155,9 +172,9 @@ function resolveUpstreamModelId(requestedModel: string): string {
 
 function detectReplacementModelFromError(
   requestedModel: string,
-  err: any,
+  err: unknown,
 ): string | null {
-  const msg = String(err?.message || err || "");
+  const msg = extractErrorMessage(err);
   if (
     msg.includes("503") ||
     msg.includes("UNAVAILABLE") ||
@@ -386,7 +403,7 @@ export async function executeGeminiOnDemand(
       const updatedQuota = recordModelUsage(model);
       const ai = new GoogleGenAI({ apiKey });
 
-      const contents: any = options.inlineData
+      const contents: GenerateContentParams["contents"] = options.inlineData
         ? [
             {
               role: "user",
@@ -418,7 +435,7 @@ export async function executeGeminiOnDemand(
           }),
           6500,
         );
-      } catch (firstErr: any) {
+      } catch (firstErr: unknown) {
         const replacement = detectReplacementModelFromError(model, firstErr);
         if (replacement && replacement !== upstreamModel) {
           upstreamModel = replacement;
@@ -454,10 +471,10 @@ export async function executeGeminiOnDemand(
           quota: updatedQuota,
         };
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn(
         "[GeminiService] Falling back to deterministic engine:",
-        err?.message || err,
+        extractErrorMessage(err),
       );
     }
   }
@@ -542,7 +559,7 @@ export async function executeGeminiStructuredOnDemand<T>(
       const updatedQuota = recordModelUsage(model);
       const ai = new GoogleGenAI({ apiKey });
 
-      const contents: any = options.inlineData
+      const contents: GenerateContentParams["contents"] = options.inlineData
         ? [
             {
               role: "user",
@@ -559,7 +576,7 @@ export async function executeGeminiStructuredOnDemand<T>(
           ]
         : prompt;
 
-      const config: Record<string, any> = {
+      const config: NonNullable<GenerateContentParams["config"]> = {
         systemInstruction,
         responseMimeType: "application/json",
         maxOutputTokens: options.maxOutputTokens ?? 550,
@@ -567,7 +584,9 @@ export async function executeGeminiStructuredOnDemand<T>(
       };
 
       if (options.responseSchema) {
-        config.responseSchema = options.responseSchema;
+        config.responseSchema = options.responseSchema as NonNullable<
+          GenerateContentParams["config"]
+        >["responseSchema"];
       }
 
       let upstreamModel = resolveUpstreamModelId(model);
@@ -581,7 +600,7 @@ export async function executeGeminiStructuredOnDemand<T>(
           }),
           6500,
         );
-      } catch (firstErr: any) {
+      } catch (firstErr: unknown) {
         const replacement = detectReplacementModelFromError(model, firstErr);
         if (replacement && replacement !== upstreamModel) {
           upstreamModel = replacement;
@@ -618,10 +637,10 @@ export async function executeGeminiStructuredOnDemand<T>(
           quota: updatedQuota,
         };
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn(
         `[GeminiService] Structured task (${model}) falling back to deterministic data:`,
-        err?.message || err,
+        extractErrorMessage(err),
       );
     }
   }
@@ -723,7 +742,7 @@ export async function computeSemanticSimilarityOnDemand(
             }),
             5000,
           );
-        } catch (firstErr: any) {
+        } catch (firstErr: unknown) {
           const replacement = detectReplacementModelFromError(model, firstErr);
           if (replacement && replacement !== upstreamEmbModel) {
             upstreamEmbModel = replacement;
@@ -768,10 +787,10 @@ export async function computeSemanticSimilarityOnDemand(
           quota: pruneAndCheckModelQuota(model).snapshot,
         };
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn(
         "[GeminiService] Embedding search falling back to lexical similarity:",
-        err?.message || err,
+        extractErrorMessage(err),
       );
     }
   }

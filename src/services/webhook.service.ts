@@ -6,11 +6,11 @@ import crypto from "crypto";
 
 export class WebhookService {
   /**
-   * Despacha un evento a todos los webhooks suscritos
-   * @param eventType Ej. "shipment.status_changed"
-   * @param payload Datos JSON a enviar
+   * Dispatches an event to all subscribed webhooks.
+   * @param eventType e.g., "shipment.status_changed"
+   * @param payload JSON payload to deliver
    */
-  static async dispatchEvent(eventType: string, payload: any) {
+  static async dispatchEvent(eventType: string, payload: unknown) {
     if (!db) {
       logger.warn("Database not initialized. Cannot dispatch webhooks.");
       return;

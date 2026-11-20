@@ -1,20 +1,38 @@
 import { logger } from "../../config/logger.js";
-import { AtlasWorker } from "../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../utils/worker-base.js";
 import { processAiTask } from "../../services/geminiService.js";
+
+interface AiWorkerVariables {
+  documentUrl?: string;
+  origin?: string;
+  destination?: string;
+  currentDate?: string;
+  aiPrompt?: string;
+  prompt?: string;
+  [key: string]: unknown;
+}
+
+interface AiWorkerOutput {
+  extractedData?: string;
+  predictiveAnalysis?: string;
+  aiDecision?: string;
+  aiConfidence?: number;
+  automated: boolean;
+}
 
 const AIService = {
   parseDocument: async (
-    fileBase64: string,
-    mimeType: string,
+    _fileBase64: string,
+    _mimeType: string,
     prompt: string,
-    schema: any,
+    schema: Record<string, unknown>,
   ) => {
     return processAiTask(`${prompt}\n\nSchema: ${JSON.stringify(schema)}`);
   },
   generateText: async (prompt: string) => processAiTask(prompt),
 };
 
-class AIWorker extends AtlasWorker<any, any> {
+class AIWorker extends AtlasWorker<AiWorkerVariables, AiWorkerOutput> {
   readonly taskType: string;
 
   constructor(taskType: string = "ai-automation") {
@@ -22,7 +40,9 @@ class AIWorker extends AtlasWorker<any, any> {
     this.taskType = taskType;
   }
 
-  async execute(job: any): Promise<any> {
+  async execute(
+    job: AtlasWorkerJob<AiWorkerVariables>,
+  ): Promise<AiWorkerOutput> {
     logger.info(
       `[AIWorker] Handling AI job ${job.key} for taskType ${this.taskType}`,
     );
@@ -43,14 +63,15 @@ class AIWorker extends AtlasWorker<any, any> {
             mimeType =
               response.headers.get("content-type") || "application/pdf";
           }
-        } catch (e: any) {
-          logger.warn(`[AIWorker] Failed to download document: ${e.message}`);
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          logger.warn(`[AIWorker] Failed to download document: ${msg}`);
         }
 
         const prompt = `Analiza este documento logístico (B/L, Factura, etc.) y extrae los datos clave.`;
 
         // Using Google Gen AI SDK Schema type implicitly via object structure
-        const schema = {
+        const schema: Record<string, unknown> = {
           type: "object",
           properties: {
             shipper: {
@@ -73,7 +94,7 @@ class AIWorker extends AtlasWorker<any, any> {
           fileBase64,
           mimeType,
           prompt,
-          schema as any,
+          schema,
         );
         return { extractedData: result, automated: true };
       }
@@ -88,7 +109,10 @@ class AIWorker extends AtlasWorker<any, any> {
             `https://nominatim.openstreetmap.org/search?q=${origin}&format=json`,
           );
           if (geoRes.ok) {
-            const geoJson = await geoRes.json();
+            const geoJson = (await geoRes.json()) as Array<{
+              lat?: string;
+              lon?: string;
+            }>;
             const lat = geoJson[0]?.lat;
             const lon = geoJson[0]?.lon;
 
@@ -99,13 +123,16 @@ class AIWorker extends AtlasWorker<any, any> {
                 `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`,
               );
               if (weatherRes.ok) {
-                const weatherJson = await weatherRes.json();
+                const weatherJson = (await weatherRes.json()) as {
+                  current_weather?: unknown;
+                };
                 contextData += `Clima actual en origen: ${JSON.stringify(weatherJson.current_weather)}. `;
               }
             }
           }
-        } catch (e: any) {
-          logger.warn(`[AIWorker] Could not fetch enriched data: ${e.message}`);
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          logger.warn(`[AIWorker] Could not fetch enriched data: ${msg}`);
         }
 
         const prompt = `Calcula un ETA predictivo y los riesgos de retraso para un embarque de ${origin} a ${destination} con fecha de salida ${currentDate}. Datos adicionales: ${contextData}. Devuelve JSON con 'predictedETA' y 'riskLevel'.`;
@@ -118,10 +145,9 @@ class AIWorker extends AtlasWorker<any, any> {
         job.variables.aiPrompt || job.variables.prompt || "Analyze this task.";
       const result = await AIService.generateText(prompt);
       return { aiDecision: result, aiConfidence: 0.95, automated: true };
-    } catch (error: any) {
-      logger.error(
-        `[AIWorker] Failed to process ${this.taskType}: ${error.message}`,
-      );
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.error(`[AIWorker] Failed to process ${this.taskType}: ${msg}`);
       throw error;
     }
   }

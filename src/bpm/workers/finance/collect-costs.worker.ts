@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface CollectCostsInput {
   shipmentId: string;
@@ -17,7 +17,9 @@ class CollectCostsWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.invoice.collect-costs";
 
-  async execute(job: any): Promise<CollectCostsOutput> {
+  async execute(
+    job: AtlasWorkerJob<CollectCostsInput>,
+  ): Promise<CollectCostsOutput> {
     const { shipmentId } = job.variables;
 
     console.log(

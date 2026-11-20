@@ -52,15 +52,17 @@ export class IataOneRecordService {
         totalVolumeCbm: row.volumeCbm,
         chargeableWeightKg: row.chargeableWeightKg,
         natureAndQuantityOfGoods: row.natureOfGoods,
-        shipper: (row.shipperData as any) || {
+        shipper: (row.shipperData as OneRecordWaybill["shipper"] | null) || {
           "@type": "Actor",
           name: "Shipper",
         },
-        consignee: (row.consigneeData as any) || {
+        consignee: (row.consigneeData as
+          OneRecordWaybill["consignee"] | null) || {
           "@type": "Actor",
           name: "Consignee",
         },
-        issuingAgent: (row.issuingAgentData as any) || {
+        issuingAgent: (row.issuingAgentData as
+          OneRecordWaybill["issuingAgent"] | null) || {
           "@type": "Actor",
           name: "Atlas Cargo Agent",
         },
@@ -109,8 +111,10 @@ export class IataOneRecordService {
         r.id === waybillId ||
         (r.oneRecordJsonLd &&
           typeof r.oneRecordJsonLd === "object" &&
-          ((r.oneRecordJsonLd as any).waybillId === waybillId ||
-            (r.oneRecordJsonLd as any).fullAwbNumber === cleanId)),
+          ((r.oneRecordJsonLd as Partial<OneRecordWaybill>).waybillId ===
+            waybillId ||
+            (r.oneRecordJsonLd as Partial<OneRecordWaybill>).fullAwbNumber ===
+              cleanId)),
     );
 
     if (!match) return undefined;

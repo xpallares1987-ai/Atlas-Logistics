@@ -1,4 +1,8 @@
-import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
+import {
+  AtlasWorker,
+  AtlasWorkerJob,
+  AtlasBpmnError,
+} from "../../utils/worker-base.js";
 import { NO_RATES_FOUND, CARRIER_TIMEOUT } from "../../utils/error-codes.js";
 import { db } from "../../../db/index.js";
 import { rates, lanes } from "../../../db/schema/index.js";
@@ -42,7 +46,9 @@ interface FetchRatesOutput {
 class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
   readonly taskType = "atlas.rates.fetch";
 
-  async execute(job: any): Promise<FetchRatesOutput> {
+  async execute(
+    job: AtlasWorkerJob<FetchRatesInput>,
+  ): Promise<FetchRatesOutput> {
     const { origin, destination, containerType } = job.variables;
 
     console.log(
@@ -75,21 +81,25 @@ class FetchRatesWorker extends AtlasWorker<FetchRatesInput, FetchRatesOutput> {
         };
       }
 
-      const carrierRates: CarrierRate[] = dbRates.map((row: any) => {
+      const carrierRates: CarrierRate[] = dbRates.map((row) => {
         const r = row.rates;
         const l = row.lanes;
+        const baseRate = r.baseRate ?? 0;
+        const baf = r.baf ?? 0;
+        const pss = r.pss ?? 0;
+        const thc = r.thc ?? 0;
         return {
           id: r.id,
           carrier: r.carrierId || "UNKNOWN",
-          serviceLine: r.serviceLine,
+          serviceLine: r.serviceLine || "",
           origin: l?.originLocationId || origin,
           destination: l?.destinationLocationId || destination,
-          transitTime: r.transitDays,
-          baseOceanFreight: r.baseRate,
-          baf: r.baf,
-          pss: r.pss,
-          thc: r.thc,
-          totalCost: r.baseRate + r.baf + r.pss + r.thc,
+          transitTime: r.transitDays ?? 0,
+          baseOceanFreight: baseRate,
+          baf,
+          pss,
+          thc,
+          totalCost: baseRate + baf + pss + thc,
           validTo: String(r.validTo),
           currency: "USD",
         };

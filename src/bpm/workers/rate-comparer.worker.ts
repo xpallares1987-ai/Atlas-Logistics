@@ -1,10 +1,36 @@
 import { registerWorker } from "../workflow-engine.service.js";
-import { AtlasWorker } from "../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../utils/worker-base.js";
 
-class RateComparerWorker extends AtlasWorker<any, any> {
+interface RateComparerInput {
+  origin?: string;
+  destination?: string;
+}
+
+interface MockRateEntry {
+  id: string;
+  carrier: { name: string };
+  totalCost: number;
+  baseFreightCost: number;
+  currency: string;
+  origin?: string;
+  destination?: string;
+  surcharges: unknown[];
+}
+
+interface RateComparerOutput {
+  rates: MockRateEntry[];
+  status: string;
+}
+
+class RateComparerWorker extends AtlasWorker<
+  RateComparerInput,
+  RateComparerOutput
+> {
   taskType = "fetch-rates-task";
 
-  async execute(job: any): Promise<any> {
+  async execute(
+    job: AtlasWorkerJob<RateComparerInput>,
+  ): Promise<RateComparerOutput> {
     console.log(`[Worker: fetch-rates-task] Received job ${job.key}`);
 
     const mockRates = [

@@ -352,11 +352,42 @@ export async function ensureLaneExists(
   }
 }
 
+export interface RawRateImportRow {
+  pol?: unknown;
+  origin?: unknown;
+  puerto_origen?: unknown;
+  pod?: unknown;
+  destination?: unknown;
+  puerto_destino?: unknown;
+  carrier?: unknown;
+  naviera?: unknown;
+  containerType?: unknown;
+  equipo?: unknown;
+  type?: unknown;
+  baseOceanFreight?: unknown;
+  oceanFreight?: unknown;
+  flete?: unknown;
+  baf?: unknown;
+  fuel?: unknown;
+  pss?: unknown;
+  peakSeason?: unknown;
+  thc?: unknown;
+  handling?: unknown;
+  currency?: unknown;
+  moneda?: unknown;
+  transitDays?: unknown;
+  transitTime?: unknown;
+  serviceLine?: unknown;
+  validFrom?: string | number | Date;
+  validTo?: string | number | Date;
+  [key: string]: unknown;
+}
+
 /**
  * Previews rates from raw table rows
  */
 export async function previewRates(
-  rawRows: any[],
+  rawRows: RawRateImportRow[],
   defaultCarrier?: string,
 ): Promise<{
   totalRows: number;
@@ -694,11 +725,11 @@ export async function bulkImportRates(payload: {
           });
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       failedCount++;
       errorsList.push({
         row: row.rowNumber,
-        error: err?.message || String(err),
+        error: err instanceof Error ? err.message : String(err),
       });
     }
   }

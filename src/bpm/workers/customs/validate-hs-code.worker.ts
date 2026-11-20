@@ -1,4 +1,8 @@
-import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
+import {
+  AtlasWorker,
+  AtlasWorkerJob,
+  AtlasBpmnError,
+} from "../../utils/worker-base.js";
 import { HS_CODE_INVALID } from "../../utils/error-codes.js";
 
 interface ValidateHsCodeInput {
@@ -26,7 +30,9 @@ class ValidateHsCodeWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.customs.validate-hs";
 
-  async execute(job: any): Promise<ValidateHsCodeOutput> {
+  async execute(
+    job: AtlasWorkerJob<ValidateHsCodeInput>,
+  ): Promise<ValidateHsCodeOutput> {
     const { hsCode, originCountry, destinationCountry } = job.variables;
 
     console.log(

@@ -45,8 +45,86 @@ interface CacheItem<T> {
   expiresAt: number;
 }
 
+interface GoogleAddressComponent {
+  long_name: string;
+  short_name?: string;
+  types?: string[];
+}
+
+interface GoogleGeocodeResultItem {
+  place_id?: string;
+  formatted_address: string;
+  address_components?: GoogleAddressComponent[];
+  geometry: {
+    location: {
+      lat: number;
+      lng: number;
+    };
+  };
+}
+
+interface GoogleGeocodeResponse {
+  status: string;
+  results?: GoogleGeocodeResultItem[];
+}
+
+interface NominatimAddressDetails {
+  road?: string;
+  pedestrian?: string;
+  street?: string;
+  industrial?: string;
+  commercial?: string;
+  house_number?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  municipality?: string;
+  county?: string;
+  postcode?: string;
+  state?: string;
+  province?: string;
+  region?: string;
+  country_code?: string;
+}
+
+interface NominatimResultItem {
+  place_id: string | number;
+  name?: string;
+  display_name: string;
+  lat: string;
+  lon: string;
+  address?: NominatimAddressDetails;
+}
+
+interface PhotonFeatureProperties {
+  osm_id?: string | number;
+  street?: string;
+  name?: string;
+  housenumber?: string;
+  city?: string;
+  town?: string;
+  postcode?: string;
+  state?: string;
+  countrycode?: string;
+}
+
+interface PhotonFeature {
+  properties?: PhotonFeatureProperties;
+  geometry?: {
+    coordinates?: [number, number];
+  };
+}
+
+interface PhotonResponse {
+  features?: PhotonFeature[];
+}
+
+function getErrMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 class AddressGeocodingService {
-  private cache = new Map<string, CacheItem<any>>();
+  private cache = new Map<string, CacheItem<unknown>>();
   private readonly CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 Hours
 
   private getCached<T>(key: string): T | null {
@@ -56,7 +134,7 @@ class AddressGeocodingService {
       this.cache.delete(key.toLowerCase().trim());
       return null;
     }
-    return item.data;
+    return item.data as T;
   }
 
   private setCache<T>(key: string, data: T) {
@@ -98,9 +176,9 @@ class AddressGeocodingService {
           this.setCache(cacheKey, googleResults);
           return googleResults;
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.warn(
-          `[AddressGeocodingService] Google Maps query failed, falling back to OSM: ${err.message}`,
+          `[AddressGeocodingService] Google Maps query failed, falling back to OSM: ${getErrMsg(err)}`,
         );
       }
     }
@@ -112,9 +190,9 @@ class AddressGeocodingService {
         this.setCache(cacheKey, osmResults);
         return osmResults;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn(
-        `[AddressGeocodingService] Nominatim failed, attempting Photon: ${err.message}`,
+        `[AddressGeocodingService] Nominatim failed, attempting Photon: ${getErrMsg(err)}`,
       );
     }
 
@@ -125,9 +203,9 @@ class AddressGeocodingService {
         this.setCache(cacheKey, photonResults);
         return photonResults;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(
-        `[AddressGeocodingService] All geocoding providers failed: ${err.message}`,
+        `[AddressGeocodingService] All geocoding providers failed: ${getErrMsg(err)}`,
       );
     }
 
@@ -210,13 +288,13 @@ class AddressGeocodingService {
       throw new Error(`Google Maps HTTP ${res.status}`);
     }
 
-    const json = (await res.json()) as any;
+    const json = (await res.json()) as GoogleGeocodeResponse;
     if (json.status !== "OK" || !Array.isArray(json.results)) {
       if (json.status === "ZERO_RESULTS") return [];
       throw new Error(`Google Maps API status: ${json.status}`);
     }
 
-    return json.results.slice(0, 5).map((r: any) => {
+    return json.results.slice(0, 5).map((r) => {
       let streetNumber = "";
       let route = "";
       let city = "";
@@ -291,7 +369,7 @@ class AddressGeocodingService {
       throw new Error(`Nominatim HTTP ${res.status}`);
     }
 
-    const list = (await res.json()) as any[];
+    const list = (await res.json()) as NominatimResultItem[];
     if (!Array.isArray(list) || list.length === 0) {
       return [];
     }
@@ -355,10 +433,10 @@ class AddressGeocodingService {
       throw new Error(`Photon HTTP ${res.status}`);
     }
 
-    const data = (await res.json()) as any;
+    const data = (await res.json()) as PhotonResponse;
     const features = data?.features || [];
 
-    return features.map((f: any) => {
+    return features.map((f) => {
       const p = f.properties || {};
       const coords = f.geometry?.coordinates || [0, 0];
       const street = p.street || p.name || "";

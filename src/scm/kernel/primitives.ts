@@ -52,8 +52,7 @@ export interface CommandEnvelope<TPayload = unknown> {
   readonly payload: TPayload;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface DomainEventEnvelope<TPayload = any> {
+export interface DomainEventEnvelope<TPayload = unknown> {
   readonly eventId: string;
   readonly eventType: string;
   readonly schemaVersion: number;

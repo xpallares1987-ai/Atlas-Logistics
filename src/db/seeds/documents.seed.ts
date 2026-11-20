@@ -608,10 +608,17 @@ export async function seedDocuments(): Promise<void> {
   ];
 
   for (const doc of sampleDocs) {
+    const shipmentId =
+      ("shipmentId" in doc && typeof doc.shipmentId === "string"
+        ? doc.shipmentId
+        : null) ||
+      ("shipmentId" in doc.payloadData &&
+      typeof doc.payloadData.shipmentId === "string"
+        ? doc.payloadData.shipmentId
+        : null);
     const docValues = {
       id: doc.id,
-      shipmentId:
-        (doc as any).shipmentId || (doc.payloadData as any)?.shipmentId || null,
+      shipmentId,
       name: doc.name,
       type: doc.type,
       documentReference: doc.documentReference,

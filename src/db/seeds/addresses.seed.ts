@@ -2049,39 +2049,47 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
   ];
 
   // Insert or update addresses and linked contacts using canonical address_types codes and Corporate Groups
+  type AddressTypeInsert = (typeof addresses.$inferInsert)["addressType"];
+  type VerificationStatusInsert =
+    (typeof addresses.$inferInsert)["verificationStatus"];
+  type ContactRoleInsert =
+    (typeof addressContacts.$inferInsert)["roleCategory"];
+
   for (const entity of seedEntities) {
     const { contacts, ...addressFields } = entity;
-    const canonicalType =
+    const canonicalType = (
       entity.id === "addr_notify_atlas_desk"
         ? "FFC"
         : entity.id === "addr_port_bcn"
           ? "POL"
           : entity.id.startsWith("addr_icd_")
             ? "OIC"
-            : normalizeAddressTypeCode(addressFields.addressType);
+            : normalizeAddressTypeCode(addressFields.addressType)
+    ) as AddressTypeInsert;
     const corporateGroupId = inferEnterpriseGroupId(
       addressFields.companyName,
       canonicalType,
       addressFields.companyId,
     );
     const now = new Date();
+    const verificationStatusVal = (addressFields.verificationStatus ||
+      "NOT_CHECKED") as VerificationStatusInsert;
 
     await db
       .insert(addresses)
       .values({
         ...addressFields,
         companyId: corporateGroupId,
-        addressType: canonicalType as any,
-        verificationStatus: (addressFields.verificationStatus ||
-          "NOT_CHECKED") as any,
+        addressType: canonicalType,
+        verificationStatus: verificationStatusVal,
         createdAt: now,
         updatedAt: now,
-      } as any)
+      } as typeof addresses.$inferInsert)
       .onConflictDoUpdate({
         target: addresses.id,
         set: {
           companyId: corporateGroupId,
-          addressType: canonicalType as any,
+          addressType: canonicalType,
           companyName: addressFields.companyName,
           tradeName: addressFields.tradeName || null,
           taxId: addressFields.taxId || null,
@@ -2101,12 +2109,16 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
 
     if (contacts && contacts.length > 0) {
       for (const contact of contacts) {
+        const contactMobile =
+          "mobile" in contact && typeof contact.mobile === "string"
+            ? contact.mobile
+            : null;
         await db
           .insert(addressContacts)
           .values({
             ...contact,
             addressId: entity.id,
-            roleCategory: contact.roleCategory as any,
+            roleCategory: contact.roleCategory as ContactRoleInsert,
             createdAt: now,
             updatedAt: now,
           })
@@ -2117,7 +2129,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
               fullName: contact.fullName,
               email: contact.email,
               phone: contact.phone || null,
-              mobile: (contact as any).mobile || null,
+              mobile: contactMobile,
               updatedAt: now,
             },
           });
@@ -2128,14 +2140,15 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
   // Also normalize any other pre-existing rows in addresses so 0 legacy types remain
   const allExistingAddresses = await db.select().from(addresses);
   for (const row of allExistingAddresses) {
-    const canonicalType =
+    const canonicalType = (
       row.id === "addr_notify_atlas_desk"
         ? "FFC"
         : row.id === "addr_port_bcn"
           ? "POL"
           : row.id.startsWith("addr_icd_")
             ? "OIC"
-            : normalizeAddressTypeCode(row.addressType);
+            : normalizeAddressTypeCode(row.addressType)
+    ) as AddressTypeInsert;
     const corporateGroupId = inferEnterpriseGroupId(
       row.companyName,
       canonicalType,
@@ -2148,7 +2161,7 @@ export async function seedAddressesAndBookings(tenantCompanyId = "c-1") {
       await db
         .update(addresses)
         .set({
-          addressType: canonicalType as any,
+          addressType: canonicalType,
           companyId: corporateGroupId,
           updatedAt: new Date(),
         })

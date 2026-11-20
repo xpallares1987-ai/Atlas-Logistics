@@ -39,9 +39,29 @@ export interface InboundProcessingResult {
   messagesProcessed: number;
   extractedMilestones: string[];
   exceptionsDetected: number;
-  details: any[];
-  events?: any[];
+  details: unknown[];
+  events?: unknown[];
 }
+
+interface EdiCompositeElement {
+  components?: string[];
+}
+
+interface EdiMilestoneEventLike {
+  milestone?: string;
+  vesselName?: string;
+  voyageNumber?: string;
+  locationName?: string;
+}
+
+type OutboundEdiInstructionData =
+  | EdifactIftminInstruction
+  | Parameters<typeof EdifactIftstaService.generateIFTSTA>[0]
+  | X12OceanShippingInstruction
+  | X12OceanStatusEvent
+  | X12OceanInvoice
+  | X12LoadTenderInstruction
+  | Record<string, unknown>;
 
 export class EdiDispatcherService {
   /**
@@ -66,7 +86,7 @@ export class EdiDispatcherService {
     const interchangeId = `ic_${crypto.randomUUID().substring(0, 8)}`;
     const extractedMilestones: string[] = [];
     let exceptionsDetected = 0;
-    const messageDetails: any[] = [];
+    const messageDetails: unknown[] = [];
 
     let senderId = "UNKNOWN";
     let receiverId = "ATLASLOG";
@@ -79,7 +99,7 @@ export class EdiDispatcherService {
         const el = s.elements[1];
         if (!el) return false;
         if (typeof el === "string") return el.includes("DESADV");
-        return (el as any).components?.some(
+        return (el as EdiCompositeElement).components?.some(
           (c: string) => c && c.includes("DESADV"),
         );
       });
@@ -90,8 +110,14 @@ export class EdiDispatcherService {
         if (unb) {
           const s = unb.elements[1];
           const r = unb.elements[2];
-          senderId = typeof s === "object" ? (s as any).components?.[0] : s;
-          receiverId = typeof r === "object" ? (r as any).components?.[0] : r;
+          senderId =
+            (typeof s === "object"
+              ? (s as EdiCompositeElement).components?.[0]
+              : s) || senderId;
+          receiverId =
+            (typeof r === "object"
+              ? (r as EdiCompositeElement).components?.[0]
+              : r) || receiverId;
           controlNumber = desadv.despatchAdviceNumber;
         }
 
@@ -305,7 +331,9 @@ export class EdiDispatcherService {
         const refNumber =
           "referenceNumber" in ev
             ? ev.referenceNumber
-            : (ev as any).billOfLadingNumber;
+            : "billOfLadingNumber" in ev
+              ? ev.billOfLadingNumber
+              : undefined;
         const matchedShipment = await this.matchShipment(
           ev.bookingReference,
           refNumber,
@@ -397,7 +425,8 @@ export class EdiDispatcherService {
                 shipmentId: matchedShipment.id,
                 eventCode: trackingEventCode,
                 milestoneCode: scmMilestoneCode,
-                locationLocode: (ev as any).portLocode || "ESVLC",
+                locationLocode:
+                  ("portLocode" in ev ? ev.portLocode : undefined) || "ESVLC",
                 sourceType: "CARRIER_DCSA_EDI",
                 timestampKind: "ACTUAL",
                 eventTimestamp: ev.eventTimestamp,
@@ -414,7 +443,11 @@ export class EdiDispatcherService {
         const locCity = "locationCity" in ev ? ev.locationCity : undefined;
         const locState = "locationState" in ev ? ev.locationState : undefined;
         const locCountry =
-          "locationCountry" in ev ? ev.locationCountry : (ev as any).portLocode;
+          "locationCountry" in ev
+            ? ev.locationCountry
+            : "portLocode" in ev
+              ? ev.portLocode
+              : undefined;
         const locationName = [locCity, locState, locCountry]
           .filter(Boolean)
           .join(", ");
@@ -499,7 +532,7 @@ export class EdiDispatcherService {
     partnerId?: string;
     senderId?: string;
     receiverId?: string;
-    instructionData: any;
+    instructionData: OutboundEdiInstructionData;
   }): Promise<{
     interchangeId: string;
     controlNumber: string;
@@ -522,7 +555,9 @@ export class EdiDispatcherService {
     } else if (options.format === "IFTSTA") {
       standard = "EDIFACT";
       rawPayload = EdifactIftstaService.generateIFTSTA(
-        options.instructionData as any,
+        options.instructionData as Parameters<
+          typeof EdifactIftstaService.generateIFTSTA
+        >[0],
         options.senderId || "ATLASLOG",
         options.receiverId || "CARRIER_EDI",
       );
@@ -654,9 +689,12 @@ export class EdiDispatcherService {
   /**
    * Advance shipment status in DB based on received milestone
    */
-  private static async advanceShipmentMilestone(shipmentId: string, ev: any) {
+  private static async advanceShipmentMilestone(
+    shipmentId: string,
+    ev: EdiMilestoneEventLike,
+  ) {
     try {
-      const updateData: any = {
+      const updateData: Partial<typeof shipments.$inferInsert> = {
         updatedAt: new Date(),
       };
 

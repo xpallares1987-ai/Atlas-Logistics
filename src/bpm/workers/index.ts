@@ -52,10 +52,13 @@ import { fileInsuranceClaimWorker } from "./claims/file-insurance-claim.worker.j
 import { slackWorker } from "./slack.worker.js";
 import { emailWorker } from "./email.worker.js";
 
-import type { AtlasWorker } from "../utils/worker-base.js";
+interface RegisterableWorker {
+  readonly taskType: string;
+  register(): void;
+}
 
 /** All registered workers */
-const workers: AtlasWorker[] = [
+const workers: RegisterableWorker[] = [
   // Phase 1 — Rates
   fetchRatesWorker,
   compareRatesWorker,

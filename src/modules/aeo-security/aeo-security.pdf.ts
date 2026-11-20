@@ -1,12 +1,81 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface AeoAuditPdfInput {
+  auditReference?: string | null;
+  auditDate?: string | null;
+  aeoModality?: string | null;
+  targetStandard?: string | null;
+  leadAuditorName?: string | null;
+  nextReviewDate?: string | null;
+  overallReadinessScore?: number | null;
+  complianceStatus?: string | null;
+  aeoOfficialCertificateNumber?: string | null;
+  notes?: string | null;
+}
+
+interface AeoSectionPdfInput {
+  blockTitle: string;
+  totalQuestions: number;
+  compliantCount: number;
+  blockScorePercentage: number;
+  blockStatus: string;
+}
+
+interface SevenPointInspectionPdfInput {
+  inspectionReference?: string | null;
+  equipmentIdentifier?: string | null;
+  equipmentType?: string | null;
+  inspectorName?: string | null;
+  facilityLocation?: string | null;
+  inspectionDate?: string | null;
+  overallPassed?: boolean | null;
+  inspectionResult?: string | null;
+  p1FrontWallPassed?: boolean | null;
+  p2LeftSidePassed?: boolean | null;
+  p3RightSidePassed?: boolean | null;
+  p4FloorPassed?: boolean | null;
+  p5RoofCeilingPassed?: boolean | null;
+  p6DoorsLocksPassed?: boolean | null;
+  p7UndercarriagePassed?: boolean | null;
+  hasAgriculturalContamination?: boolean | null;
+  physicalTamperingDetected?: boolean | null;
+  actionTaken?: string | null;
+}
+
+interface IsoSealPdfInput {
+  sealNumber?: string | null;
+  sealType?: string | null;
+  manufacturerName?: string | null;
+  iso17712TestCertificateRef?: string | null;
+  associatedEquipmentIdentifier?: string | null;
+  associatedShipmentReference?: string | null;
+  sealStatus?: string | null;
+  verifiedAtPortOfEntry?: boolean | null;
+  affixedDate?: string | null;
+  affixedBy?: string | null;
+  verifiedIntactDate?: string | null;
+  verifiedBy?: string | null;
+}
+
+interface BusinessPartnerRiskPdfInput {
+  partnerName: string;
+  partnerType: string;
+  hasAeoCertification?: boolean | null;
+  aeoCertificateNumber?: string | null;
+  securityQuestionnaireScore: number;
+  riskLevel: string;
+  status: string;
+}
+
 export class AeoSecurityPdfGenerator {
   /**
    * Generates Official AEO Self-Assessment Audit Report PDF (CAE AEAT / DG TAXUD).
    */
   public static async generateAeoCaeAuditReportPdf(data: {
-    audit: any;
-    sections: any[];
+    audit: PdfInputRecord;
+    sections: readonly PdfInputRecord[];
   }): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
@@ -16,7 +85,8 @@ export class AeoSecurityPdfGenerator {
         doc.on("data", (chunk: Buffer) => buffers.push(chunk));
         doc.on("end", () => resolve(Buffer.concat(buffers)));
 
-        const { audit, sections = [] } = data;
+        const audit = (data.audit ?? {}) as AeoAuditPdfInput;
+        const sections = (data.sections ?? []) as readonly AeoSectionPdfInput[];
 
         // Header Banner
         doc.rect(36, 36, 523, 50).fill("#0f172a");
@@ -135,7 +205,7 @@ export class AeoSecurityPdfGenerator {
    * Generates Official 7-Point Container/Vehicle Security Inspection Certificate PDF (C-TPAT / OEAS).
    */
   public static async generateSevenPointInspectionCertificatePdf(data: {
-    inspection: any;
+    inspection: PdfInputRecord;
   }): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
@@ -145,7 +215,8 @@ export class AeoSecurityPdfGenerator {
         doc.on("data", (chunk: Buffer) => buffers.push(chunk));
         doc.on("end", () => resolve(Buffer.concat(buffers)));
 
-        const { inspection } = data;
+        const inspection = (data.inspection ??
+          {}) as SevenPointInspectionPdfInput;
 
         // Header Banner
         doc.rect(36, 36, 523, 50).fill("#0369a1");
@@ -305,7 +376,8 @@ export class AeoSecurityPdfGenerator {
    * Generates Official High-Security Seal (Class 'H') Certificate & Chain of Custody PDF (ISO 17712).
    */
   public static async generateIso17712SealCustodyCertificatePdf(data: {
-    seal: any;
+    seal?: PdfInputRecord | null;
+    custody?: PdfInputRecord | null;
   }): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
@@ -315,7 +387,7 @@ export class AeoSecurityPdfGenerator {
         doc.on("data", (chunk: Buffer) => buffers.push(chunk));
         doc.on("end", () => resolve(Buffer.concat(buffers)));
 
-        const { seal } = data;
+        const seal = (data.seal ?? data.custody ?? {}) as IsoSealPdfInput;
 
         // Header Banner
         doc.rect(36, 36, 523, 50).fill("#1e3a8a");
@@ -348,7 +420,7 @@ export class AeoSecurityPdfGenerator {
         doc.font("Helvetica").fontSize(7.5).fillColor("#334155");
         doc.text(`Número de Serie Precinto: ${seal.sealNumber}`, 44, curY + 22);
         doc.text(
-          `Tipo de Precinto: ${seal.sealType.replace(/_/g, " ")}`,
+          `Tipo de Precinto: ${(seal.sealType || "BOLT_SEAL").replace(/_/g, " ")}`,
           44,
           curY + 34,
         );
@@ -437,7 +509,7 @@ export class AeoSecurityPdfGenerator {
    * Generates Official Business Partner Security Risk Matrix PDF (ISO 28000).
    */
   public static async generateBusinessPartnerRiskMatrixPdf(data: {
-    partners: any[];
+    partners: readonly PdfInputRecord[];
   }): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
@@ -447,7 +519,8 @@ export class AeoSecurityPdfGenerator {
         doc.on("data", (chunk: Buffer) => buffers.push(chunk));
         doc.on("end", () => resolve(Buffer.concat(buffers)));
 
-        const { partners = [] } = data;
+        const partners = (data.partners ??
+          []) as readonly BusinessPartnerRiskPdfInput[];
 
         // Header Banner
         doc.rect(36, 36, 523, 50).fill("#115e59");

@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface EmailInvoiceInput {
   invoiceId: string;
@@ -21,7 +21,9 @@ class EmailInvoiceWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.invoice.email";
 
-  async execute(job: any): Promise<EmailInvoiceOutput> {
+  async execute(
+    job: AtlasWorkerJob<EmailInvoiceInput>,
+  ): Promise<EmailInvoiceOutput> {
     const { invoiceId, invoiceNumber, totalAmount, currency } = job.variables;
 
     console.log(

@@ -47,7 +47,7 @@ export interface EndorseMletrParams {
   signerTitle?: string;
   signerCertificate?: string;
   details?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ChainVerificationResult {

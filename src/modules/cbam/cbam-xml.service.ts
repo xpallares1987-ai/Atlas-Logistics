@@ -5,10 +5,42 @@
  * pursuant to Article 35 of Regulation (EU) 2023/956 and Implementing Regulation (EU) 2023/1773.
  */
 
+export interface CbamXmlDeclarationInput {
+  declarationNumber: string;
+  reportingPeriod?: string | null;
+  declarantVat?: string | null;
+  declarantName?: string | null;
+  importerVat?: string | null;
+  importerName?: string | null;
+  totalNetMassTonnes?: number | null;
+  totalDirectEmissionsTco2e?: number | null;
+  totalIndirectEmissionsTco2e?: number | null;
+  totalEmbeddedEmissionsTco2e?: number | null;
+  euEtsBenchmarkPriceEur?: number | null;
+  grossCarbonLiabilityEur?: number | null;
+  carbonPricePaidForeignEur?: number | null;
+  netCarbonLiabilityEur?: number | null;
+}
+
+export interface CbamXmlDeclarationLineInput {
+  duaBox33HsCode?: string | null;
+  goodDescription?: string | null;
+  originCountry?: string | null;
+  netWeightTonnes?: number | null;
+  duaNumber?: string | null;
+  directEmissionsTco2e?: number | null;
+  indirectEmissionsTco2e?: number | null;
+  precursorEmissionsTco2e?: number | null;
+  totalLineEmissionsTco2e?: number | null;
+  useDefaultFactors?: boolean | null;
+  foreignCarbonPricePerTco2e?: number | null;
+  effectiveForeignPricePaidEur?: number | null;
+}
+
 export class CbamXmlService {
   public static generateTransitionalRegistryXml(
-    declaration: any,
-    lines: any[] = [],
+    declaration: CbamXmlDeclarationInput,
+    lines: readonly CbamXmlDeclarationLineInput[] = [],
   ): string {
     const period = declaration.reportingPeriod || "2026-Q3";
     const declarantVat = declaration.declarantVat || "ESA88992211";

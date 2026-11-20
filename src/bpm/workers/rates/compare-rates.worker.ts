@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface CompareRatesInput {
   rates: Array<{
@@ -27,9 +27,9 @@ interface RankedRate {
 
 interface CompareRatesOutput {
   rankedRates: RankedRate[];
-  bestValue: RankedRate;
-  cheapest: RankedRate;
-  fastest: RankedRate;
+  bestValue: RankedRate | null;
+  cheapest: RankedRate | null;
+  fastest: RankedRate | null;
   comparisonSummary: string;
 }
 
@@ -43,15 +43,17 @@ class CompareRatesWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.rates.compare";
 
-  async execute(job: any): Promise<CompareRatesOutput> {
+  async execute(
+    job: AtlasWorkerJob<CompareRatesInput>,
+  ): Promise<CompareRatesOutput> {
     const { rates, preferCost = false, preferSpeed = false } = job.variables;
 
     if (!rates?.length) {
       return {
         rankedRates: [],
-        bestValue: null as any,
-        cheapest: null as any,
-        fastest: null as any,
+        bestValue: null,
+        cheapest: null,
+        fastest: null,
         comparisonSummary: "No rates available for comparison",
       };
     }
@@ -61,8 +63,8 @@ class CompareRatesWorker extends AtlasWorker<
     const speedWeight = preferSpeed ? 0.7 : preferCost ? 0.3 : 0.5;
 
     // Normalise values for scoring
-    const costs = rates.map((r: any) => r.totalCost);
-    const times = rates.map((r: any) => r.transitTime);
+    const costs = rates.map((r) => r.totalCost);
+    const times = rates.map((r) => r.transitTime);
     const minCost = Math.min(...costs);
     const maxCost = Math.max(...costs);
     const minTime = Math.min(...times);
@@ -71,7 +73,7 @@ class CompareRatesWorker extends AtlasWorker<
     const costRange = maxCost - minCost || 1;
     const timeRange = maxTime - minTime || 1;
 
-    const scored: RankedRate[] = rates.map((rate: any) => {
+    const scored: RankedRate[] = rates.map((rate) => {
       const costScore = 1 - (rate.totalCost - minCost) / costRange; // Lower cost = higher score
       const speedScore = 1 - (rate.transitTime - minTime) / timeRange; // Shorter time = higher score
       const score = Math.round(

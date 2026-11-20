@@ -1,5 +1,86 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface InsuranceCertificatePdfInput {
+  certificateNumber?: string | null;
+  insuredPartyName?: string | null;
+  insuredPartyAddress?: string | null;
+  consigneeOrToOrderName?: string | null;
+  claimPayableAtCity?: string | null;
+  commercialCurrency?: string | null;
+  transportMode?: string | null;
+  carrierName?: string | null;
+  vesselOrFlightOrVehiclePlate?: string | null;
+  voyageNumber?: string | null;
+  originPortOrCountry?: string | null;
+  destinationPortOrCountry?: string | null;
+  departureDate?: string | null;
+  goodsDescription?: string | null;
+  packageCount?: number | null;
+  grossWeightKg?: number | null;
+  commercialInvoiceValue?: number | null;
+  freightAmount?: number | null;
+  estimatedInsuranceAmount?: number | null;
+  markupPercentage?: number | null;
+  totalInsuredValue?: number | null;
+  coverageClause?: string | null;
+  hasWarStrikesCover?: boolean | null;
+  deductibleAmount?: number | null;
+  claimSurveyAgentNameAddress?: string | null;
+  issueDate?: string | null;
+}
+
+interface OpenCoverPolicyPdfInput {
+  policyNumber?: string | null;
+  insurerName?: string | null;
+  policyHolderName?: string | null;
+  policyHolderTaxId?: string | null;
+  brokerName?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  currency?: string | null;
+  conveyanceLimitAmount?: number | null;
+  annualEstimatedTurnover?: number | null;
+  baseRatePercentage?: number | null;
+  warStrikeRatePercentage?: number | null;
+  minPremiumPerShipment?: number | null;
+  termsAndConditionsText?: string | null;
+}
+
+interface InsuranceBordereauPdfInput {
+  bordereauReference?: string | null;
+  periodMonthYear?: string | null;
+  declarationCount?: number | null;
+  totalInsuredTurnoverAmount?: number | null;
+  totalNetPremiumAmount?: number | null;
+  totalGrossPremiumPayable?: number | null;
+}
+
+interface InsuranceBordereauLinePdfInput {
+  shipmentReference?: string | null;
+  certificateId?: string | null;
+  destination?: string | null;
+  insuredValue?: number | null;
+  netPremium?: number | null;
+}
+
+interface InsuranceClaimPdfInput {
+  claimReference?: string | null;
+  perilType?: string | null;
+  casualtyLocation?: string | null;
+  casualtyDate?: string | null;
+  surveyReportReference?: string | null;
+  adjusterName?: string | null;
+  soundMarketValueAtDestination?: number | null;
+  damagedSalvageValueAtDestination?: number | null;
+  depreciationPercentage?: number | null;
+  grossClaimAssessmentAmount?: number | null;
+  deductibleAppliedAmount?: number | null;
+  netIndemnityPayableAmount?: number | null;
+  settlementNotes?: string | null;
+}
+
 /**
  * Cargo Insurance PDF Generator
  * Institute Cargo Clauses (ICC A/B/C 2009) / LMA / UCP 600 Art. 28 / Open Cover
@@ -9,9 +90,12 @@ export class CargoInsurancePdfGenerator {
    * 1. Generates an Official UCP 600 Art. 28 Cargo Insurance Certificate PDF.
    */
   public static async generateCargoInsuranceCertificatePdf(
-    certificate: any,
-    openPolicy?: any,
+    rawCertificate: PdfInputRecord | null | undefined,
+    rawOpenPolicy?: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const certificate = (rawCertificate ?? {}) as InsuranceCertificatePdfInput;
+    const openPolicy = (rawOpenPolicy ?? undefined) as
+      OpenCoverPolicyPdfInput | undefined;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -290,8 +374,9 @@ export class CargoInsurancePdfGenerator {
    * 2. Generates an Open Cover Policy Schedule PDF.
    */
   public static async generateOpenCoverPolicySchedulePdf(
-    openPolicy: any,
+    rawOpenPolicy: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const openPolicy = (rawOpenPolicy ?? {}) as OpenCoverPolicyPdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -422,10 +507,13 @@ export class CargoInsurancePdfGenerator {
    * 3. Generates a Monthly Insurance Declaration Bordereau PDF.
    */
   public static async generateInsuranceBordereauPdf(
-    bordereau: any,
-    openPolicy: any,
-    lines: any[],
+    rawBordereau: PdfInputRecord | null | undefined,
+    rawOpenPolicy: PdfInputRecord | null | undefined,
+    rawLines: readonly PdfInputRecord[],
   ): Promise<Buffer> {
+    const bordereau = (rawBordereau ?? {}) as InsuranceBordereauPdfInput;
+    const openPolicy = (rawOpenPolicy ?? {}) as OpenCoverPolicyPdfInput;
+    const lines = (rawLines ?? []) as readonly InsuranceBordereauLinePdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -515,7 +603,7 @@ export class CargoInsurancePdfGenerator {
         for (const line of lines || []) {
           doc.rect(36, curY, 523, 20).strokeColor("#e2e8f0").stroke();
           doc.font("Helvetica").fontSize(6.5).fillColor("#0f172a");
-          doc.text(line.shipmentReference, 44, curY + 5);
+          doc.text(line.shipmentReference || "-", 44, curY + 5);
           doc.text(line.certificateId || "CERT-INS", 140, curY + 5);
           doc.text(line.destination || "DEST", 240, curY + 5);
           doc.text(
@@ -542,9 +630,11 @@ export class CargoInsurancePdfGenerator {
    * 4. Generates an Insurance Claim Adjustment Statement PDF.
    */
   public static async generateInsuranceClaimAdjustmentPdf(
-    claim: any,
-    certificate: any,
+    rawClaim: PdfInputRecord | null | undefined,
+    rawCertificate: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const claim = (rawClaim ?? {}) as InsuranceClaimPdfInput;
+    const certificate = (rawCertificate ?? {}) as InsuranceCertificatePdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });

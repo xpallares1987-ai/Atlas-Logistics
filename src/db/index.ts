@@ -8,7 +8,6 @@
 
 import { drizzle } from "drizzle-orm/libsql";
 import { createClient, type Client } from "@libsql/client";
-import * as schema from "./schema/index.js";
 import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
@@ -80,7 +79,7 @@ export const client = createConfiguredSqliteClient(
   process.env.DATABASE_AUTH_TOKEN,
 );
 
-export const db = drizzle({ client, schema } as any);
+export const db = drizzle({ client });
 
 // ============================================================================
 // 3. HEALTH & LIFECYCLE MANAGEMENT

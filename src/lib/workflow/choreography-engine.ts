@@ -9,28 +9,33 @@ export interface TransactionalJobResult {
   queue: string;
   name: string;
   status: "QUEUED" | "COMPLETED_SYNC" | "FAILED";
-  result?: any;
+  result?: unknown;
 }
 
-export type JobHandler<T = any, R = any> = (payload: T) => Promise<R>;
+export type JobHandler<T = unknown, R = unknown> = (payload: T) => Promise<R>;
 
 export class TransactionalJobBus {
   private queues: Map<string, Queue> = new Map();
-  private handlers: Map<string, JobHandler> = new Map();
+  private handlers: Map<string, JobHandler<unknown, unknown>> = new Map();
   private workers: Map<string, Worker> = new Map();
 
   /**
    * Register a job handler for a specific queue
    */
-  registerHandler(queueName: string, handler: JobHandler): void {
-    this.handlers.set(queueName, handler);
+  registerHandler<T = unknown, R = unknown>(
+    queueName: string,
+    handler: JobHandler<T, R>,
+  ): void {
+    const wrappedHandler: JobHandler<unknown, unknown> = (payload) =>
+      handler(payload as T);
+    this.handlers.set(queueName, wrappedHandler);
 
     if (isRedisAvailable && redis && !this.workers.has(queueName)) {
       try {
         const worker = new Worker(
           queueName,
           async (job: Job) => {
-            return await handler(job.data);
+            return await wrappedHandler(job.data);
           },
           { connection: redis },
         );
@@ -52,7 +57,7 @@ export class TransactionalJobBus {
   /**
    * Dispatch a transactional job (PDF generation, EDI dispatch, outbound notifications)
    */
-  async dispatch<T = any>(
+  async dispatch<T = unknown>(
     queueName: string,
     jobName: string,
     payload: T,
@@ -149,7 +154,7 @@ export class BusinessSagaOrchestrator {
   /**
    * Execute a multi-step business saga with automatic compensation rollback on failure
    */
-  async execute<TContext extends Record<string, any>>(
+  async execute<TContext extends object>(
     sagaName: string,
     steps: SagaStep<TContext>[],
     initialContext: TContext,
@@ -172,13 +177,15 @@ export class BusinessSagaOrchestrator {
           durationMs: Date.now() - startTime,
           status: "COMPLETED",
         });
-      } catch (stepErr: any) {
+      } catch (stepErr: unknown) {
+        const stepErrMsg =
+          stepErr instanceof Error ? stepErr.message : String(stepErr);
         history.push({
           step: step.name,
           timestamp: new Date().toISOString(),
           durationMs: Date.now() - startTime,
           status: "FAILED",
-          error: stepErr?.message || "Unknown error",
+          error: stepErrMsg || "Unknown error",
         });
 
         // Trigger compensation rollback in reverse order
@@ -192,7 +199,7 @@ export class BusinessSagaOrchestrator {
                 durationMs: 0,
                 status: "COMPENSATED",
               });
-            } catch (compErr: any) {
+            } catch (compErr: unknown) {
               logger.error(
                 { sagaName, step: doneStep.name, compErr },
                 "Saga compensation step failed",
@@ -206,7 +213,7 @@ export class BusinessSagaOrchestrator {
           success: false,
           finalContext: context,
           executedSteps: history,
-          error: stepErr?.message,
+          error: stepErrMsg,
         };
       }
     }

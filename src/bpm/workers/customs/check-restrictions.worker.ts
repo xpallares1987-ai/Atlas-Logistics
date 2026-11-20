@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface CheckRestrictionsInput {
   hsCode: string;
@@ -27,7 +27,9 @@ class CheckRestrictionsWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.customs.check-restrictions";
 
-  async execute(job: any): Promise<CheckRestrictionsOutput> {
+  async execute(
+    job: AtlasWorkerJob<CheckRestrictionsInput>,
+  ): Promise<CheckRestrictionsOutput> {
     const { hsCode, originCountry, destinationCountry, cargoType } =
       job.variables;
     const restrictions: CheckRestrictionsOutput["restrictions"] = [];

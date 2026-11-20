@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 import { db } from "../../../db/index.js";
 import { pendingAiReviews } from "../../../db/schema/index.js";
 import { eq, and } from "drizzle-orm";
@@ -22,7 +22,7 @@ interface MatchAPOutput {
 class MatchAPWorker extends AtlasWorker<MatchAPInput, MatchAPOutput> {
   readonly taskType = "atlas.invoice.match-ap";
 
-  async execute(job: any): Promise<MatchAPOutput> {
+  async execute(job: AtlasWorkerJob<MatchAPInput>): Promise<MatchAPOutput> {
     const { shipmentId, expectedCost = 1000 } = job.variables;
 
     console.log(

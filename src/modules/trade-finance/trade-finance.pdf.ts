@@ -1,13 +1,56 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface TradeInstrumentPdfInput {
+  instrumentReference?: string | null;
+  instrumentType?: string | null;
+  applicantName?: string | null;
+  beneficiaryName?: string | null;
+  beneficiaryCountry?: string | null;
+  issuingBankName?: string | null;
+  issuingBankBic?: string | null;
+  confirmingBankName?: string | null;
+  confirmingBankBic?: string | null;
+  creditAmount?: number | null;
+  currency?: string | null;
+  tolerancePercentage?: number | null;
+  expiryDate?: string | null;
+  expiryPlace?: string | null;
+  paymentTerms?: string | null;
+  tenorDays?: number | null;
+  portOfLoading?: string | null;
+  portOfDischarge?: string | null;
+  latestShipmentDate?: string | null;
+  presentationPeriodDays?: number | null;
+  goodsDescriptionSummary?: string | null;
+}
+
+interface TradeDocumentPdfInput {
+  documentType?: string | null;
+  documentReferenceNumber?: string | null;
+  documentDate?: string | null;
+  issuerName?: string | null;
+  originalCopiesPresented?: number | null;
+  originalCopiesRequired?: number | null;
+  complianceStatus?: string | null;
+}
+
+interface TradeDiscrepancyPdfInput {
+  severity?: string | null;
+  articleReference?: string | null;
+  description?: string | null;
+  suggestedRemedy?: string | null;
+}
+
 export class TradeFinancePdfGenerator {
   /**
    * Generates Official Trade Credit Presentation Dossier & Cover Letter PDF (UCP 600 / URC 522).
    */
   public static async generateTradeCreditPresentationDossierPdf(data: {
-    instrument: any;
-    documents: any[];
-    discrepancies?: any[];
+    instrument: PdfInputRecord;
+    documents: readonly PdfInputRecord[];
+    discrepancies?: readonly PdfInputRecord[];
   }): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
@@ -17,7 +60,9 @@ export class TradeFinancePdfGenerator {
         doc.on("data", (chunk: Buffer) => buffers.push(chunk));
         doc.on("end", () => resolve(Buffer.concat(buffers)));
 
-        const { instrument, documents, discrepancies = [] } = data;
+        const instrument = (data.instrument ?? {}) as TradeInstrumentPdfInput;
+        const documents = (data.documents ??
+          []) as readonly TradeDocumentPdfInput[];
 
         // Header Banner
         doc.rect(36, 36, 523, 50).fill("#1e3a8a");
@@ -71,7 +116,7 @@ export class TradeFinancePdfGenerator {
         );
 
         doc.text(
-          `Credit Amount: ${instrument.creditAmount.toLocaleString("es-ES", { minimumFractionDigits: 2 })} ${instrument.currency}`,
+          `Credit Amount: ${(instrument.creditAmount ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 2 })} ${instrument.currency}`,
           310,
           curY + 22,
         );
@@ -86,7 +131,7 @@ export class TradeFinancePdfGenerator {
           curY + 46,
         );
         doc.text(
-          `Payment Terms: ${instrument.paymentTerms} (${instrument.tenorDays > 0 ? `${instrument.tenorDays} days` : "At Sight"})`,
+          `Payment Terms: ${instrument.paymentTerms} (${(instrument.tenorDays ?? 0) > 0 ? `${instrument.tenorDays} days` : "At Sight"})`,
           310,
           curY + 58,
         );
@@ -134,9 +179,14 @@ export class TradeFinancePdfGenerator {
         for (const docItem of documents) {
           doc.rect(36, curY, 523, 18).strokeColor("#e2e8f0").stroke();
           doc.font("Helvetica").fontSize(7).fillColor("#0f172a");
-          doc.text(docItem.documentType.replace(/_/g, " "), 44, curY + 4, {
-            width: 130,
-          });
+          doc.text(
+            (docItem.documentType || "-").replace(/_/g, " "),
+            44,
+            curY + 4,
+            {
+              width: 130,
+            },
+          );
           doc.text(docItem.documentReferenceNumber || "-", 180, curY + 4, {
             width: 95,
           });
@@ -152,7 +202,7 @@ export class TradeFinancePdfGenerator {
             .fillColor(
               docItem.complianceStatus === "COMPLIANT" ? "#15803d" : "#b91c1c",
             );
-          doc.text(docItem.complianceStatus, 500, curY + 4);
+          doc.text(docItem.complianceStatus || "-", 500, curY + 4);
           curY += 18;
         }
 
@@ -183,9 +233,9 @@ export class TradeFinancePdfGenerator {
    * Generates Official UCP 600 / ISBP 745 Discrepancy & Compliance Audit Report PDF.
    */
   public static async generateUcpDiscrepancyAuditReportPdf(data: {
-    instrument: any;
-    discrepancies: any[];
-    auditSummary?: any;
+    instrument: PdfInputRecord;
+    discrepancies: readonly PdfInputRecord[];
+    auditSummary?: PdfInputRecord;
   }): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
@@ -195,7 +245,9 @@ export class TradeFinancePdfGenerator {
         doc.on("data", (chunk: Buffer) => buffers.push(chunk));
         doc.on("end", () => resolve(Buffer.concat(buffers)));
 
-        const { instrument, discrepancies = [] } = data;
+        const instrument = (data.instrument ?? {}) as TradeInstrumentPdfInput;
+        const discrepancies = (data.discrepancies ??
+          []) as readonly TradeDiscrepancyPdfInput[];
 
         // Header Banner
         doc.rect(36, 36, 523, 50).fill("#991b1b");
@@ -224,7 +276,7 @@ export class TradeFinancePdfGenerator {
           curY + 6,
         );
         doc.text(
-          `Importe: ${instrument.creditAmount.toLocaleString("es-ES")} ${instrument.currency}`,
+          `Importe: ${(instrument.creditAmount ?? 0).toLocaleString("es-ES")} ${instrument.currency}`,
           44,
           curY + 18,
         );
@@ -315,7 +367,8 @@ export class TradeFinancePdfGenerator {
    * Generates Official Demand Guarantee Certificate PDF (URDG 758 / ISP98).
    */
   public static async generateDemandGuaranteeCertificatePdf(data: {
-    instrument: any;
+    instrument?: PdfInputRecord | null;
+    guarantee?: PdfInputRecord | null;
   }): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
@@ -325,7 +378,9 @@ export class TradeFinancePdfGenerator {
         doc.on("data", (chunk: Buffer) => buffers.push(chunk));
         doc.on("end", () => resolve(Buffer.concat(buffers)));
 
-        const { instrument } = data;
+        const instrument = (data.instrument ??
+          data.guarantee ??
+          {}) as TradeInstrumentPdfInput;
 
         // Header Banner
         doc.rect(36, 36, 523, 50).fill("#0f766e");
@@ -368,7 +423,7 @@ export class TradeFinancePdfGenerator {
           curY + 46,
         );
         doc.text(
-          `Maximum Guaranteed Amount: ${instrument.creditAmount.toLocaleString("es-ES", { minimumFractionDigits: 2 })} ${instrument.currency}`,
+          `Maximum Guaranteed Amount: ${(instrument.creditAmount ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 2 })} ${instrument.currency}`,
           44,
           curY + 58,
         );
@@ -392,7 +447,7 @@ export class TradeFinancePdfGenerator {
 
         doc.font("Helvetica").fontSize(7.5).fillColor("#334155");
         doc.text(
-          `Por la presente, el Banco Garante se compromete de forma irrevocable e incondicional a pagar al Beneficiario cualquier suma hasta un límite máximo de ${instrument.creditAmount.toLocaleString("es-ES")} ${instrument.currency}, contra la primera presentación de un requerimiento escrito de pago emitido por el Beneficiario declarando que el Ordenante ha incumplido sus obligaciones contractuales en relación con:`,
+          `Por la presente, el Banco Garante se compromete de forma irrevocable e incondicional a pagar al Beneficiario cualquier suma hasta un límite máximo de ${(instrument.creditAmount ?? 0).toLocaleString("es-ES")} ${instrument.currency}, contra la primera presentación de un requerimiento escrito de pago emitido por el Beneficiario declarando que el Ordenante ha incumplido sus obligaciones contractuales en relación con:`,
           44,
           curY + 24,
           { width: 505 },

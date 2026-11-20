@@ -1,14 +1,66 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface RailConsignmentPdfInput {
+  senderName: string;
+  senderAddress?: string | null;
+  senderVat?: string | null;
+  consigneeName: string;
+  consigneeAddress?: string | null;
+  consigneeVat?: string | null;
+  cimNumber: string;
+  originTerminalName?: string | null;
+  originTerminalId?: string | null;
+  destinationTerminalName?: string | null;
+  destinationTerminalId?: string | null;
+  railwayUndertakingRu: string;
+  gaugeTransferTerminalName?: string | null;
+  customsStatus?: string | null;
+  totalGrossMassTonnes?: number | null;
+  responsibleRailwayOfficer?: string | null;
+}
+
+interface RailAllocationPdfInput {
+  positionInTrain?: number | null;
+  wagonSeries?: string | null;
+  wagonId?: string | null;
+  wagonNumber?: string | null;
+  utiType?: string | null;
+  utiIdentification?: string | null;
+  grossWagonMassTonnes?: number | null;
+  payloadMassTonnes?: number | null;
+  calculatedAxleLoadTonnes?: number | null;
+  sealNumber?: string | null;
+}
+
+interface RailTrainPdfInput {
+  trainRunNumber: string;
+  locomotiveSeries: string;
+  tractionOperator: string;
+  driverName?: string | null;
+  departureTimestamp?: string | null;
+  status?: string | null;
+  isBrakeCompliant?: boolean | null;
+  totalTrainLengthMeters?: number | null;
+  maxAllowedLengthMeters?: number | null;
+  totalGrossMassTonnes?: number | null;
+  totalBrakedMassTonnes?: number | null;
+  calculatedBrakePercentage?: number | null;
+  requiredBrakePercentage?: number | null;
+}
+
 export class RailPdfGenerator {
   /**
    * Generates an Official International Consignment Note for Rail (CIM / COTIF Appendix B, UIC 992 format).
    */
   static async generateCimConsignmentNote(
-    consignment: any,
-    allocations: any[] = [],
-    company?: any,
+    rawConsignment: PdfInputRecord,
+    rawAllocations: readonly PdfInputRecord[] = [],
+    _company?: PdfInputRecord | null,
   ): Promise<Buffer> {
+    const consignment = rawConsignment as RailConsignmentPdfInput;
+    const allocations = rawAllocations as readonly RailAllocationPdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
@@ -164,7 +216,7 @@ export class RailPdfGenerator {
             .text(alloc.utiIdentification || "N/A", 265, currentY + 5)
             .font("Helvetica")
             .text(
-              `${alloc.grossWagonMassTonnes ? (alloc.grossWagonMassTonnes - alloc.payloadMassTonnes).toFixed(1) : 28.5}`,
+              `${alloc.grossWagonMassTonnes ? (alloc.grossWagonMassTonnes - (alloc.payloadMassTonnes ?? 0)).toFixed(1) : 28.5}`,
               375,
               currentY + 5,
             )
@@ -247,10 +299,12 @@ export class RailPdfGenerator {
    * Generates an Official Train Composition & Brake Sheet PDF (Boletín de Composición de Tren y Frenado).
    */
   static async generateTrainBrakingSheet(
-    train: any,
-    allocations: any[] = [],
-    company?: any,
+    rawTrain: PdfInputRecord,
+    rawAllocations: readonly PdfInputRecord[] = [],
+    _company?: PdfInputRecord | null,
   ): Promise<Buffer> {
+    const train = rawTrain as RailTrainPdfInput;
+    const allocations = rawAllocations as readonly RailAllocationPdfInput[];
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({

@@ -617,13 +617,19 @@ export async function seedOrganization(): Promise<void> {
     });
 
   // 2. Ensure Physical Station Addresses exist in addresses
+  type AddressTypeInsert = (typeof addresses.$inferInsert)["addressType"];
+  type VerificationStatusInsert =
+    (typeof addresses.$inferInsert)["verificationStatus"];
   for (const addr of GLOBAL_STATION_ADDRESSES) {
+    const addressTypeVal = addr.addressType as AddressTypeInsert;
+    const verificationStatusVal =
+      addr.verificationStatus as VerificationStatusInsert;
     await db
       .insert(addresses)
       .values({
         id: addr.id,
         companyId: addr.companyId,
-        addressType: addr.addressType as any,
+        addressType: addressTypeVal,
         companyName: addr.companyName,
         tradeName: addr.tradeName,
         taxId: addr.taxId,
@@ -637,14 +643,14 @@ export async function seedOrganization(): Promise<void> {
         lat: addr.lat,
         lon: addr.lon,
         formattedAddress: addr.formattedAddress,
-        verificationStatus: addr.verificationStatus as any,
+        verificationStatus: verificationStatusVal,
         createdAt: now,
         updatedAt: now,
       })
       .onConflictDoUpdate({
         target: addresses.id,
         set: {
-          addressType: addr.addressType as any,
+          addressType: addressTypeVal,
           companyName: addr.companyName,
           tradeName: addr.tradeName,
           unLocode: addr.unLocode,
@@ -757,6 +763,8 @@ export async function seedOrganization(): Promise<void> {
     .limit(1);
   const defaultManagerId = adminUsers[0]?.id || null;
 
+  type StationTypeInsert = (typeof branchOffices.$inferInsert)["stationType"];
+  type DepartmentCodeInsert = (typeof departments.$inferInsert)["code"];
   for (const stn of GLOBAL_STATIONS) {
     await db
       .insert(branchOffices)
@@ -766,7 +774,7 @@ export async function seedOrganization(): Promise<void> {
         addressId: stn.addressId,
         stationCode: stn.stationCode,
         name: stn.name,
-        stationType: stn.stationType as any,
+        stationType: stn.stationType as StationTypeInsert,
         unLocode: stn.unLocode,
         iataCode: stn.iataCode,
         primaryCurrency: stn.primaryCurrency,
@@ -832,7 +840,7 @@ export async function seedOrganization(): Promise<void> {
         .values({
           id: deptId,
           branchId: stn.id,
-          code: d.code as any,
+          code: d.code as DepartmentCodeInsert,
           name: d.name,
           costCenter: d.costCenter,
           emailAlias: `${d.code.toLowerCase()}.${stn.stationCode.toLowerCase()}@noatumlogistics.com`,

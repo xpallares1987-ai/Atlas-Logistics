@@ -74,10 +74,10 @@ export async function runDocumentsGarbageCollector(
         isDeleted: documents.isDeleted,
       })
       .from(documents);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.warn(
       "⚠ Garbage Collector could not query SQLite documents table:",
-      err.message,
+      err instanceof Error ? err.message : String(err),
     );
     return result;
   }

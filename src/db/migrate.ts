@@ -1,9 +1,10 @@
 import { existsSync } from "fs";
+import type { Client } from "@libsql/client";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { client, databaseUrl } from "./index.js";
 
 export async function runMigrations(
-  targetClient: any = client,
+  targetClient: Client = client,
   targetUrl: string = databaseUrl,
 ) {
   const migrationsFolder = "./drizzle";
@@ -32,7 +33,7 @@ export async function runMigrations(
     const appliedRes = await targetClient.execute(
       `SELECT name FROM "__drizzle_migrations"`,
     );
-    const appliedSet = new Set(appliedRes.rows.map((r: any) => String(r.name)));
+    const appliedSet = new Set(appliedRes.rows.map((r) => String(r.name)));
 
     // 3. Read migration folder snapshots
     const migrations = readMigrationFiles({ migrationsFolder });
@@ -49,8 +50,9 @@ export async function runMigrations(
         if (!stmt) continue;
         try {
           await targetClient.execute(stmt);
-        } catch (stmtErr: any) {
-          const msg = stmtErr?.message || String(stmtErr);
+        } catch (stmtErr: unknown) {
+          const msg =
+            stmtErr instanceof Error ? stmtErr.message : String(stmtErr);
           // Defensive handling for already existing columns, tables, or indexes in SQLite
           if (
             msg.includes("duplicate column name") ||

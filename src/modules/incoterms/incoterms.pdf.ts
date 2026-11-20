@@ -1,5 +1,14 @@
 import PDFDocument from "pdfkit";
 
+export interface CommercialContractPartyData {
+  name?: string | null;
+  taxId?: string | null;
+  address?: string | null;
+  country?: string | null;
+  contact?: string | null;
+  [key: string]: unknown;
+}
+
 export class IncotermsPdfGenerator {
   /**
    * Generates official bilingual commercial freight & sales contract PDF with ICC Incoterms® 2020 clauses
@@ -19,11 +28,14 @@ export class IncotermsPdfGenerator {
     expiryDate?: string | Date;
     governingLaw: string;
     disputeJurisdiction: string;
-    sellerData: any;
-    buyerData: any;
-    forwarderData?: any;
-    milestonesData?: any[];
+    sellerData?: CommercialContractPartyData | unknown;
+    buyerData?: CommercialContractPartyData | unknown;
+    forwarderData?: CommercialContractPartyData | unknown;
+    milestonesData?: ReadonlyArray<Record<string, unknown>> | unknown;
   }): Promise<Buffer> {
+    const seller = (data.sellerData ?? {}) as CommercialContractPartyData;
+    const buyer = (data.buyerData ?? {}) as CommercialContractPartyData;
+    const forwarder = (data.forwarderData ?? {}) as CommercialContractPartyData;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ size: "A4", margin: 36 });
@@ -86,24 +98,17 @@ export class IncotermsPdfGenerator {
           .font("Helvetica-Bold")
           .fontSize(8.5)
           .fillColor("#0f172a")
-          .text(data.sellerData?.name || "N/A", 42, startY + 22);
+          .text(seller.name || "N/A", 42, startY + 22);
         doc
           .font("Helvetica")
           .fontSize(7.5)
           .fillColor("#475569")
+          .text(`Tax ID / NIF: ${seller.taxId || "N/A"}`, 42, startY + 36)
+          .text(`Address: ${seller.address || "N/A"}`, 42, startY + 48, {
+            width: 240,
+          })
           .text(
-            `Tax ID / NIF: ${data.sellerData?.taxId || "N/A"}`,
-            42,
-            startY + 36,
-          )
-          .text(
-            `Address: ${data.sellerData?.address || "N/A"}`,
-            42,
-            startY + 48,
-            { width: 240 },
-          )
-          .text(
-            `Country: ${data.sellerData?.country || "ES"} | Contact: ${data.sellerData?.contact || "N/A"}`,
+            `Country: ${seller.country || "ES"} | Contact: ${seller.contact || "N/A"}`,
             42,
             startY + 74,
           );
@@ -119,24 +124,17 @@ export class IncotermsPdfGenerator {
           .font("Helvetica-Bold")
           .fontSize(8.5)
           .fillColor("#0f172a")
-          .text(data.buyerData?.name || "N/A", 304, startY + 22);
+          .text(buyer.name || "N/A", 304, startY + 22);
         doc
           .font("Helvetica")
           .fontSize(7.5)
           .fillColor("#475569")
+          .text(`Tax ID / VAT: ${buyer.taxId || "N/A"}`, 304, startY + 36)
+          .text(`Address: ${buyer.address || "N/A"}`, 304, startY + 48, {
+            width: 245,
+          })
           .text(
-            `Tax ID / VAT: ${data.buyerData?.taxId || "N/A"}`,
-            304,
-            startY + 36,
-          )
-          .text(
-            `Address: ${data.buyerData?.address || "N/A"}`,
-            304,
-            startY + 48,
-            { width: 245 },
-          )
-          .text(
-            `Country: ${data.buyerData?.country || "N/A"} | Contact: ${data.buyerData?.contact || "N/A"}`,
+            `Country: ${buyer.country || "N/A"} | Contact: ${buyer.contact || "N/A"}`,
             304,
             startY + 74,
           );
@@ -173,7 +171,7 @@ export class IncotermsPdfGenerator {
           .fontSize(7.5)
           .fillColor("#334155")
           .text(
-            `Transport Mode: ${data.transportMode} | Freight Forwarder: ${data.forwarderData?.name || "Atlas Logistics SL"}`,
+            `Transport Mode: ${data.transportMode} | Freight Forwarder: ${forwarder.name || "Atlas Logistics SL"}`,
             42,
             incoY + 36,
           )

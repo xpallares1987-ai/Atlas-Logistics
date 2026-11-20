@@ -1,6 +1,19 @@
 import { AsyncLocalStorage } from "async_hooks";
-import { eq, SQL } from "drizzle-orm";
-import { FastifyPluginAsync } from "fastify";
+import { Column, eq, SQL } from "drizzle-orm";
+import { FastifyPluginAsync, FastifyRequest } from "fastify";
+
+interface TenantRequestUser {
+  id?: string;
+  companyId?: string;
+  organizationId?: string;
+  role?: string;
+}
+
+function getRequestUser(
+  request: FastifyRequest,
+): TenantRequestUser | undefined {
+  return (request as unknown as { user?: TenantRequestUser }).user;
+}
 
 export interface TenantContext {
   organizationId: string;
@@ -65,7 +78,7 @@ export function assertTenantAccess(
  * @param explicitOrgId Optional explicit override orgId
  */
 export function scopeByTenant(
-  tableColumn: any,
+  tableColumn: Column,
   explicitOrgId?: string,
 ): SQL | undefined {
   const orgId = explicitOrgId ?? getCurrentTenant()?.organizationId;
@@ -87,7 +100,7 @@ export function scopeByTenant(
  */
 export const tenancyPluginAsync: FastifyPluginAsync = async (fastify) => {
   fastify.addHook("onRequest", (request, _reply, done) => {
-    const user = (request as any).user;
+    const user = getRequestUser(request);
     const headerOrgId = request.headers["x-organization-id"] as
       string | undefined;
 
@@ -110,7 +123,7 @@ export const tenancyPluginAsync: FastifyPluginAsync = async (fastify) => {
 
   fastify.addHook("preHandler", (request, _reply, done) => {
     const store = tenantStorage.getStore();
-    const user = (request as any).user;
+    const user = getRequestUser(request);
     const headerOrgId = request.headers["x-organization-id"] as
       string | undefined;
     if (store && (user || headerOrgId)) {
@@ -128,6 +141,8 @@ export const tenancyPluginAsync: FastifyPluginAsync = async (fastify) => {
   });
 };
 
-(tenancyPluginAsync as any)[Symbol.for("skip-override")] = true;
+(tenancyPluginAsync as unknown as Record<symbol, boolean>)[
+  Symbol.for("skip-override")
+] = true;
 
 export const tenancyPlugin = tenancyPluginAsync;

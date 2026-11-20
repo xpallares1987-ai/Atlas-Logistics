@@ -1,4 +1,8 @@
-import { AtlasWorker, AtlasBpmnError } from "../../utils/worker-base.js";
+import {
+  AtlasWorker,
+  AtlasWorkerJob,
+  AtlasBpmnError,
+} from "../../utils/worker-base.js";
 import {
   CARRIER_REJECTION,
   NO_SPACE_AVAILABLE,
@@ -34,7 +38,9 @@ class ConfirmBookingWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.booking.confirm";
 
-  async execute(job: any): Promise<ConfirmBookingOutput> {
+  async execute(
+    job: AtlasWorkerJob<ConfirmBookingInput>,
+  ): Promise<ConfirmBookingOutput> {
     const {
       shipmentId,
       referenceNumber,

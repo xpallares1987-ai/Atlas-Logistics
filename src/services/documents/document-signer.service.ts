@@ -9,7 +9,16 @@ import {
   users,
 } from "../../db/schema/index.js";
 import { eq, desc, or } from "drizzle-orm";
-import { PDFService, type HBLData } from "../pdf.service.js";
+import {
+  PDFService,
+  type HBLData,
+  type CustomsData,
+  type EcmrWaybillPdfInput,
+  type AirWaybillPdfInput,
+  type CommercialContractPdfInput,
+  type PdfDomainRecord,
+  type PdfOptionalDomainRecord,
+} from "../pdf.service.js";
 import { logger } from "../../config/logger.js";
 
 export type OfficialDocumentType =
@@ -36,7 +45,7 @@ export interface EmitDocumentParams {
   type: OfficialDocumentType;
   documentReference?: string;
   shipmentId?: string;
-  payloadData: Record<string, any>;
+  payloadData: Record<string, unknown>;
   signer?: SignerInfo;
   userId?: string;
 }
@@ -78,24 +87,36 @@ export class DocumentSignerService {
    */
   public static async renderPdf(
     type: OfficialDocumentType,
-    data: any,
+    data: Record<string, unknown> | null | undefined,
   ): Promise<Buffer> {
-    const d = { ...(data || {}) };
+    const d: Record<string, unknown> = { ...(data || {}) };
+    const asStr = (val: unknown, fallback: string): string =>
+      typeof val === "string" && val.length > 0 ? val : fallback;
+    const asNum = (val: unknown, fallback: number): number =>
+      typeof val === "number" && !Number.isNaN(val) ? val : fallback;
+    const asRecord = (val: unknown): PdfDomainRecord =>
+      val && typeof val === "object" ? (val as PdfDomainRecord) : d;
+    const asOptionalRecord = (val: unknown): PdfOptionalDomainRecord =>
+      val && typeof val === "object" ? (val as PdfDomainRecord) : undefined;
+    const asRecordList = (val: unknown): PdfDomainRecord[] =>
+      Array.isArray(val) ? (val as PdfDomainRecord[]) : [];
 
     switch (type) {
       case "HBL": {
         const hblData: HBLData = {
-          shipmentId: d.shipmentId || "SH-DEFAULT",
-          shipper: d.shipper || "Global Shipper S.L.",
-          consignee: d.consignee || "Atlas Client Corp",
-          portOfLoading: d.portOfLoading || "Port of Loading",
-          portOfDischarge: d.portOfDischarge || "Port of Discharge",
-          vessel: d.vessel || "MSC Vessel",
-          voyage: d.voyage || "001A",
-          containers: Array.isArray(d.containers) ? d.containers : [],
+          shipmentId: asStr(d.shipmentId, "SH-DEFAULT"),
+          shipper: asStr(d.shipper, "Global Shipper S.L."),
+          consignee: asStr(d.consignee, "Atlas Client Corp"),
+          portOfLoading: asStr(d.portOfLoading, "Port of Loading"),
+          portOfDischarge: asStr(d.portOfDischarge, "Port of Discharge"),
+          vessel: asStr(d.vessel, "MSC Vessel"),
+          voyage: asStr(d.voyage, "001A"),
+          containers: Array.isArray(d.containers)
+            ? (d.containers as HBLData["containers"])
+            : [],
           commodities:
             Array.isArray(d.commodities) && d.commodities.length > 0
-              ? d.commodities
+              ? (d.commodities as HBLData["commodities"])
               : [
                   {
                     description: "General Multimodal Cargo",
@@ -110,92 +131,111 @@ export class DocumentSignerService {
       case "DUA": {
         const customsData = {
           ...d,
-          shipmentId: d.shipmentId || "SH-CUSTOMS-01",
-          declarationId: d.declarationId || d.duaNumber || "DUA-DEFAULT",
-          duaNumber: d.duaNumber || "26ES0000000000000",
-          regime: d.regime || "4000 - Libre Práctica",
-          channel: d.channel || "GREEN",
-          customsOffice: d.customsOffice || "ES004611 - Aduana de Valencia",
-          declarant: d.declarant || "Atlas Logistics Customs Brokerage SL",
-          importer: d.importer || "Iberia Global Exports S.L.",
-          totalInvoiceEur: d.totalInvoiceEur || 50000,
-          customsValueEur: d.customsValueEur || 52000,
-          dutiesPayableEur: d.dutiesPayableEur || 1200,
-          vatPayableEur: d.vatPayableEur || 10920,
+          shipmentId: asStr(d.shipmentId, "SH-CUSTOMS-01"),
+          declarationId: asStr(d.declarationId ?? d.duaNumber, "DUA-DEFAULT"),
+          duaNumber: asStr(d.duaNumber, "26ES0000000000000"),
+          regime: asStr(d.regime, "4000 - Libre Práctica"),
+          channel: asStr(d.channel, "GREEN"),
+          customsOffice: asStr(
+            d.customsOffice,
+            "ES004611 - Aduana de Valencia",
+          ),
+          declarant: asStr(d.declarant, "Atlas Logistics Customs Brokerage SL"),
+          importer: asStr(d.importer, "Iberia Global Exports S.L."),
+          totalInvoiceEur: asNum(d.totalInvoiceEur, 50000),
+          customsValueEur: asNum(d.customsValueEur, 52000),
+          dutiesPayableEur: asNum(d.dutiesPayableEur, 1200),
+          vatPayableEur: asNum(d.vatPayableEur, 10920),
         };
-        return PDFService.generateCustomsDeclaration(customsData as any);
+        return PDFService.generateCustomsDeclaration(
+          customsData as unknown as CustomsData,
+        );
       }
       case "ECMR": {
         const ecmrData = {
           ...d,
-          consignmentNumber: d.consignmentNumber || "CMR-DEFAULT",
-          pickupDate: d.pickupDate
-            ? new Date(d.pickupDate).toISOString()
-            : new Date().toISOString(),
-          deliveryDate: d.deliveryDate
-            ? new Date(d.deliveryDate).toISOString()
-            : new Date().toISOString(),
-          originCity: d.originCity || "Madrid",
-          destinationCity: d.destinationCity || "Paris",
-          carrier: d.carrier || "Knight-Swift Road Logistics",
-          vehicleReg: d.vehicleReg || "8812-LZB",
-          adrGoods: d.adrGoods || "NON_HAZARDOUS",
-          grossWeightKg: d.grossWeightKg || 5000,
-          totalGrossWeightKg: d.totalGrossWeightKg ?? d.grossWeightKg ?? 5000,
+          consignmentNumber: asStr(d.consignmentNumber, "CMR-DEFAULT"),
+          pickupDate:
+            typeof d.pickupDate === "string" || d.pickupDate instanceof Date
+              ? new Date(d.pickupDate).toISOString()
+              : new Date().toISOString(),
+          deliveryDate:
+            typeof d.deliveryDate === "string" || d.deliveryDate instanceof Date
+              ? new Date(d.deliveryDate).toISOString()
+              : new Date().toISOString(),
+          originCity: asStr(d.originCity, "Madrid"),
+          destinationCity: asStr(d.destinationCity, "Paris"),
+          carrier: asStr(d.carrier, "Knight-Swift Road Logistics"),
+          vehicleReg: asStr(d.vehicleReg, "8812-LZB"),
+          adrGoods: asStr(d.adrGoods, "NON_HAZARDOUS"),
+          grossWeightKg: asNum(d.grossWeightKg, 5000),
+          totalGrossWeightKg: asNum(
+            d.totalGrossWeightKg ?? d.grossWeightKg,
+            5000,
+          ),
         };
-        return PDFService.generateEcmrWaybill(ecmrData);
+        return PDFService.generateEcmrWaybill(
+          ecmrData as unknown as EcmrWaybillPdfInput,
+        );
       }
       case "AWB": {
         const awbData = {
           ...d,
-          awbNumber: d.awbNumber || "075-88192031",
-          airline: d.airline || "Iberia Cargo",
-          airportOfDeparture: d.airportOfDeparture || "MAD - Madrid",
-          airportOfDestination: d.airportOfDestination || "MIA - Miami",
-          totalPieces: d.totalPieces || 5,
-          grossWeightKg: d.grossWeightKg || 1200,
-          chargeableWeightKg: d.chargeableWeightKg || 1400,
-          natureOfGoods: d.natureOfGoods || "General Cargo",
+          awbNumber: asStr(d.awbNumber, "075-88192031"),
+          airline: asStr(d.airline, "Iberia Cargo"),
+          airportOfDeparture: asStr(d.airportOfDeparture, "MAD - Madrid"),
+          airportOfDestination: asStr(d.airportOfDestination, "MIA - Miami"),
+          totalPieces: asNum(d.totalPieces, 5),
+          grossWeightKg: asNum(d.grossWeightKg, 1200),
+          chargeableWeightKg: asNum(d.chargeableWeightKg, 1400),
+          natureOfGoods: asStr(d.natureOfGoods, "General Cargo"),
         };
-        return PDFService.generateAirWaybill(awbData);
+        return PDFService.generateAirWaybill(
+          awbData as unknown as AirWaybillPdfInput,
+        );
       }
       case "CIM":
         return PDFService.generateCimConsignmentNote(
           d,
-          Array.isArray(d.allocations) ? d.allocations : [],
-          d.company,
+          asRecordList(d.allocations),
+          asOptionalRecord(d.company),
         );
       case "INSURANCE_CERT":
-        return PDFService.generateCargoInsuranceCertificatePdf(d, d.openPolicy);
+        return PDFService.generateCargoInsuranceCertificatePdf(
+          d,
+          asOptionalRecord(d.openPolicy),
+        );
       case "CONTRACT":
-        return PDFService.generateCommercialContract(d);
+        return PDFService.generateCommercialContract(
+          d as unknown as CommercialContractPdfInput,
+        );
       case "GDP_CERT":
         return PDFService.generateGdpReleaseCertificate(
-          d.shipment || d,
-          Array.isArray(d.readings) ? d.readings : [],
-          d.profile,
-          d.company,
+          asRecord(d.shipment),
+          asRecordList(d.readings),
+          asOptionalRecord(d.profile),
+          asOptionalRecord(d.company),
         );
       case "CBAM_DECLARATION":
         return PDFService.generateCbamDeclarationCertificate(
-          d.declaration || d,
-          Array.isArray(d.lines) ? d.lines : [],
-          d.company,
+          asRecord(d.declaration),
+          asRecordList(d.lines),
+          asOptionalRecord(d.company),
         );
       case "DGR_DECLARATION":
         return PDFService.generateMultimodalDangerousGoodsDeclarationPdf(
-          d.shipment || d,
-          Array.isArray(d.items) ? d.items : [],
+          asRecord(d.shipment),
+          asRecordList(d.items),
         );
       case "AEO_7POINT":
         return PDFService.generateSevenPointInspectionCertificatePdf({
-          inspection: d.inspection || d,
+          inspection: asRecord(d.inspection),
         });
       case "LAYTIME_SHEET":
         return PDFService.generateLaytimeCalculationSheetPdf(
-          d.calc || d,
-          d.charterOrPeriods || d,
-          Array.isArray(d.breakdowns) ? d.breakdowns : [],
+          asRecord(d.calc),
+          asRecord(d.charterOrPeriods),
+          asRecordList(d.breakdowns),
         );
       default:
         throw new Error(`Unsupported document type: ${type}`);
@@ -464,7 +504,7 @@ export class DocumentSignerService {
     }
 
     const doc = found[0];
-    const payload = (doc.payloadData as any) || {};
+    const payload = (doc.payloadData as Record<string, unknown> | null) || {};
     const regeneratedBuffer = await this.renderPdf(
       doc.type as OfficialDocumentType,
       payload,
@@ -501,7 +541,8 @@ export class DocumentSignerService {
         shipmentId &&
         shipmentId !== "ALL" &&
         d.shipmentId !== shipmentId &&
-        (d.payloadData as any)?.shipmentId !== shipmentId
+        (d.payloadData as { shipmentId?: string } | null)?.shipmentId !==
+          shipmentId
       ) {
         return false;
       }

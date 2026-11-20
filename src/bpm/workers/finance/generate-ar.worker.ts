@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 import { invoices } from "../../../db/schema/index.js";
 
 interface GenerateInvoiceInput {
@@ -32,7 +32,9 @@ class GenerateARWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.invoice.generate-ar";
 
-  async execute(job: any): Promise<GenerateInvoiceOutput> {
+  async execute(
+    job: AtlasWorkerJob<GenerateInvoiceInput>,
+  ): Promise<GenerateInvoiceOutput> {
     const {
       shipmentId,
       referenceNumber,
@@ -44,10 +46,7 @@ class GenerateARWorker extends AtlasWorker<
     // Calculate subtotal
     const subtotal =
       lineItems.length > 0
-        ? lineItems.reduce(
-            (sum: number, item: any) => sum + (item.amount || 0),
-            0,
-          )
+        ? lineItems.reduce((sum: number, item) => sum + (item.amount || 0), 0)
         : Math.round((500 + Math.random() * 3000) * 100) / 100;
 
     const taxAmount = Math.round(subtotal * 0.16 * 100) / 100; // 16% IVA as example

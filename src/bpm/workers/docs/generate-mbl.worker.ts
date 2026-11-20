@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface GenerateMblInput {
   shipmentId: string;
@@ -31,7 +31,9 @@ class GenerateMblWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.docs.generate-mbl";
 
-  async execute(job: any): Promise<GenerateMblOutput> {
+  async execute(
+    job: AtlasWorkerJob<GenerateMblInput>,
+  ): Promise<GenerateMblOutput> {
     const {
       referenceNumber,
       selectedCarrier,

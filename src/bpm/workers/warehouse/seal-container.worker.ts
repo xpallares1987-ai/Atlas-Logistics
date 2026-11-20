@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface SealContainerInput {
   containerId: string;
@@ -26,7 +26,9 @@ class SealContainerWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.lcl.seal-container";
 
-  async execute(job: any): Promise<SealContainerOutput> {
+  async execute(
+    job: AtlasWorkerJob<SealContainerInput>,
+  ): Promise<SealContainerOutput> {
     const { containerId, totalWeight, containerType } = job.variables;
 
     // Tare weights for VGM calculation

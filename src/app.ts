@@ -1,4 +1,4 @@
-import Fastify from "fastify";
+import Fastify, { FastifyPluginAsync } from "fastify";
 import fs from "fs";
 import path from "path";
 import fastifyCors from "@fastify/cors";
@@ -70,14 +70,11 @@ app.addHook("onResponse", async (request, reply) => {
   const span = request.otelSpan;
   if (span) {
     span.setAttribute("http.status_code", reply.statusCode);
-    if ((request as any).id) {
-      span.setAttribute("correlation_id", (request as any).id);
+    if (request.id) {
+      span.setAttribute("correlation_id", String(request.id));
     }
-    if ((request as any).stationContext?.stationId) {
-      span.setAttribute(
-        "station.id",
-        (request as any).stationContext.stationId,
-      );
+    if (request.stationContext?.stationId) {
+      span.setAttribute("station.id", request.stationContext.stationId);
     }
     if (reply.statusCode >= 500) {
       span.setStatus({
@@ -309,7 +306,9 @@ app.register(fastifyRateLimit, {
   redis: redis, // Use shared Redis (or mock) for rate limiting
 });
 
-app.register(metrics as any, { endpoint: "/metrics" });
+app.register(metrics as unknown as FastifyPluginAsync<{ endpoint?: string }>, {
+  endpoint: "/metrics",
+});
 app.register(swagger, {
   openapi: {
     info: { title: "Atlas Logistics API", version: "1.0.0" },

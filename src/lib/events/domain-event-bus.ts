@@ -4,7 +4,7 @@ import { getCurrentTenant } from "../tenancy/index.js";
 
 export interface BaseDomainEvent<
   TName extends string = string,
-  TPayload = any,
+  TPayload = unknown,
 > {
   id: string;
   eventName: TName;
@@ -52,7 +52,8 @@ export interface CustomsClearedPayload {
 export interface CustomsWarehouseStockDischargedPayload {
   declarationId: string;
   facilityId: string;
-  dischargeType: "DEFINITIVE_IMPORT" | "RE_EXPORT" | "TRANSIT_T1" | "INTERNAL_PROCESSING";
+  dischargeType:
+    "DEFINITIVE_IMPORT" | "RE_EXPORT" | "TRANSIT_T1" | "INTERNAL_PROCESSING";
   packagesCount: number;
   grossMassKg: number;
 }
@@ -140,7 +141,18 @@ export interface EdiExceptionDetectedPayload {
   occurredAt: string;
 }
 
+export interface CarbonInsettingTokenIssuedPayload {
+  tokenReference: string;
+  fuelType: string;
+  totalEnergyMj: number;
+  digitalSealHash: string;
+}
+
 export interface DomainEventRegistry {
+  "carbon-insetting:token-issued": BaseDomainEvent<
+    "carbon-insetting:token-issued",
+    CarbonInsettingTokenIssuedPayload
+  >;
   "treasury:invoice-reconciled": BaseDomainEvent<
     "treasury:invoice-reconciled",
     InvoiceReconciledPayload

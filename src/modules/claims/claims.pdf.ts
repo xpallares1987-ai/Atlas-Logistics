@@ -21,7 +21,7 @@ export class ClaimsPdfGenerator {
     claimedCurrency: string;
     statutoryLimitEur: number;
     incidentDescription: string;
-    surveyorData?: any;
+    surveyorData?: unknown;
   }): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {

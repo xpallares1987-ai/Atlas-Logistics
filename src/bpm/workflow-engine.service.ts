@@ -1,40 +1,69 @@
-/* eslint-disable */
-// @ts-nocheck
 import { Worker, Queue, Job } from "bullmq";
-import { Redis } from "ioredis";
+import { logger } from "../config/logger.js";
+import { AtlasWorker, AtlasWorkerJob } from "./utils/worker-base.js";
+import { BPMNParser, BPMNNode } from "./utils/bpmn-parser.js";
+import { redis } from "../config/redis.js";
+
+export type WorkflowVariables = Record<string, unknown>;
+
+interface WorkflowJobData {
+  taskType: string;
+  workflowId: string;
+  variables?: WorkflowVariables;
+  xmlData?: string;
+  currentElementId?: string;
+}
+
+interface ExecutableWorker {
+  readonly taskType: string;
+  execute(job: AtlasWorkerJob<WorkflowVariables>): Promise<unknown>;
+}
+
 // Mocks for legacy Data Connect
-const startWorkflowInstance = async (data: any) => ({
+const startWorkflowInstance = async (_data: {
+  name: string;
+  context: WorkflowVariables;
+}) => ({
   data: { workflow_insert: { key: { id: "mock-id" } } },
 });
-const updateWorkflowStatus = async (data: any) => ({});
-const updateWorkflowContext = async (data: any) => ({});
-const createWorkflowTask = async (data: any) => ({});
-const updateWorkflowTaskStatus = async (data: any) => ({});
-const getWorkflowDefinition = async (data: any) => ({
+const updateWorkflowStatus = async (_data: {
+  id: string;
+  status: string;
+}) => ({});
+const updateWorkflowContext = async (_data: {
+  id: string;
+  context: WorkflowVariables;
+}) => ({});
+const createWorkflowTask = async (_data: {
+  workflowId: string;
+  taskType: string;
+  elementId: string;
+}) => ({});
+const updateWorkflowTaskStatus = async (_data: {
+  id: string;
+  status: string;
+}) => ({});
+const getWorkflowDefinition = async (_data: { name: string }) => ({
   data: {
     workflowDefinitions: [
       { xmlData: "<bpmn2:definitions></bpmn2:definitions>" },
     ],
   },
 });
-const getWorkflowTask = async (data: any) => ({
+const getWorkflowTask = async (_data: { id: string }) => ({
   data: {
     workflowTask: {
       status: "PENDING",
       workflowId: "mock-id",
       elementId: "mock-el",
-      workflow: { id: "mock-id", context: {}, name: "mock" },
+      workflow: {
+        id: "mock-id",
+        context: {} as WorkflowVariables,
+        name: "mock",
+      },
     },
   },
 });
-import { logger } from "../config/logger.js";
-import { AtlasWorker } from "./utils/worker-base.js";
-import { BPMNParser, BPMNNode } from "./utils/bpmn-parser.js";
-import { slackWorker } from "./workers/slack.worker.js";
-import { emailWorker } from "./workers/email.worker.js";
-import { aiWorker, ocrWorker, predictEtaWorker } from "./workers/ai.worker.js";
-
-import { redis } from "../config/redis.js";
 
 const isMock =
   process.env.NODE_ENV !== "production" &&
@@ -42,24 +71,27 @@ const isMock =
 
 export const workflowQueue = isMock
   ? null
-  : new Queue("atlas-workflows", { connection: redis });
-
-// Removed GCP Logging
+  : new Queue<WorkflowJobData>("atlas-workflows", { connection: redis });
 
 // Registry for AtlasWorkers
-const workerRegistry = new Map<string, AtlasWorker>();
+const workerRegistry = new Map<string, ExecutableWorker>();
 
-export function registerWorker(worker: AtlasWorker) {
-  workerRegistry.set(worker.taskType, worker);
+export function registerWorker<TInput, TOutput>(
+  worker: AtlasWorker<TInput, TOutput>,
+) {
+  workerRegistry.set(worker.taskType, {
+    taskType: worker.taskType,
+    execute: (job) => worker.execute(job as unknown as AtlasWorkerJob<TInput>),
+  });
   logger.info(`Registered internal worker for taskType: ${worker.taskType}`);
 }
 
 // Global BullMQ Worker to process tasks from the queue
 export const bullWorker = isMock
   ? null
-  : new Worker(
+  : new Worker<WorkflowJobData>(
       "atlas-workflows",
-      async (job: Job) => {
+      async (job: Job<WorkflowJobData>) => {
         const { taskType, workflowId, variables } = job.data;
 
         const workerInstance = workerRegistry.get(taskType);
@@ -71,7 +103,7 @@ export const bullWorker = isMock
           `[WorkflowEngine] Executing ${taskType} for workflow ${workflowId}`,
         );
 
-        const mockZeebeJob = {
+        const mockZeebeJob: AtlasWorkerJob<WorkflowVariables> = {
           key: job.id,
           processInstanceKey: workflowId,
           variables: variables || {},
@@ -83,8 +115,9 @@ export const bullWorker = isMock
             `[WorkflowEngine] Successfully finished task ${taskType}`,
           );
           return result;
-        } catch (err: any) {
-          logger.error(`[WorkflowEngine] Error in ${taskType}: ${err.message}`);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.error(`[WorkflowEngine] Error in ${taskType}: ${msg}`);
           throw err;
         }
       },
@@ -102,16 +135,22 @@ if (bullWorker) {
       if (workflowId && xmlData && currentElementId) {
         const parser = new BPMNParser(xmlData);
         // Update variables if result has new ones
-        const newVariables = { ...variables, ...(result || {}) };
+        const resultRecord =
+          result && typeof result === "object"
+            ? (result as WorkflowVariables)
+            : {};
+        const newVariables: WorkflowVariables = {
+          ...(variables || {}),
+          ...resultRecord,
+        };
         const nextElements = parser.getNextNodes(currentElementId);
         for (const el of nextElements) {
           await enqueueElement(el, workflowId, xmlData, newVariables);
         }
       }
-    } catch (err: any) {
-      logger.error(
-        `Error enqueuing next tasks after job ${job.id}: ${err.message}`,
-      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(`Error enqueuing next tasks after job ${job.id}: ${msg}`);
     }
   });
 
@@ -120,7 +159,10 @@ if (bullWorker) {
   });
 }
 
-export async function startWorkflow(workflowName: string, variables: any = {}) {
+export async function startWorkflow(
+  workflowName: string,
+  variables: WorkflowVariables = {},
+) {
   // 1. Fetch XML from DB via Data Connect
   const response = await getWorkflowDefinition({ name: workflowName });
   const defs = response.data.workflowDefinitions;
@@ -162,7 +204,7 @@ export async function enqueueElement(
   el: BPMNNode,
   workflowId: string,
   xmlData: string,
-  variables: any,
+  variables: WorkflowVariables,
 ) {
   if (el.type === "serviceTask") {
     // Add to BullMQ or execute locally if mocked
@@ -189,7 +231,7 @@ export async function enqueueElement(
               key: `mock-job-${Date.now()}`,
               processInstanceKey: workflowId,
               variables: variables || {},
-            } as any);
+            });
 
             // Next elements...
             const parser = new BPMNParser(xmlData);
@@ -197,8 +239,8 @@ export async function enqueueElement(
             for (const nextEl of nextElements) {
               await enqueueElement(nextEl, workflowId, xmlData, variables);
             }
-          } catch (e) {
-            logger.error(`[MOCK] In-memory execution failed`, e);
+          } catch (e: unknown) {
+            logger.error({ err: e }, `[MOCK] In-memory execution failed`);
           }
         }
       }, 500);
@@ -220,7 +262,10 @@ export async function enqueueElement(
   }
 }
 
-export async function completeUserTask(taskId: string, variables: any = {}) {
+export async function completeUserTask(
+  taskId: string,
+  variables: WorkflowVariables = {},
+) {
   // 1. Get task via Data Connect
   const taskResponse = await getWorkflowTask({ id: taskId });
   const task = taskResponse.data.workflowTask;
@@ -239,8 +284,8 @@ export async function completeUserTask(taskId: string, variables: any = {}) {
     throw new Error(`Workflow for task ${taskId} not found.`);
 
   // 4. Update workflow context variables via Data Connect
-  const newVariables = {
-    ...((workflowInstance.context as object) || {}),
+  const newVariables: WorkflowVariables = {
+    ...(workflowInstance.context || {}),
     ...variables,
   };
   await updateWorkflowContext({

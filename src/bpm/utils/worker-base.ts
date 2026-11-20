@@ -2,12 +2,22 @@ import { db } from "../../db/index.js";
 import { logger } from "../../config/logger.js";
 import { registerWorker } from "../workflow-engine.service.js";
 
+export interface AtlasWorkerJob<TInput = Record<string, unknown>> {
+  key?: string;
+  processInstanceKey?: string;
+  variables: TInput;
+  [key: string]: unknown;
+}
+
 /**
  * Atlas Logistics — Base class for Background Workers.
  *
  * This no longer uses Zeebe/Camunda. It runs inside our custom Node engine.
  */
-export abstract class AtlasWorker<TInput = any, TOutput = any> {
+export abstract class AtlasWorker<
+  TInput = Record<string, unknown>,
+  TOutput = Record<string, unknown>,
+> {
   /** Task type this worker handles (e.g. `atlas.invoice.match-ap`) */
   abstract readonly taskType: string;
 
@@ -20,10 +30,7 @@ export abstract class AtlasWorker<TInput = any, TOutput = any> {
   /**
    * Core business logic.
    */
-  abstract execute(job: {
-    variables: TInput;
-    [key: string]: any;
-  }): Promise<TOutput>;
+  abstract execute(job: AtlasWorkerJob<TInput>): Promise<TOutput>;
 
   /** Register this worker with the internal workflow engine. */
   register(): void {

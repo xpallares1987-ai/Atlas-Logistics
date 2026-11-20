@@ -1,6 +1,7 @@
 /**
  * @file carbon-insetting.routes.ts
- * @description Fastify routes for Scope 3 Carbon Insetting (Book-and-Claim) & FuelEU Maritime Pooling.
+ * @description Fastify routes for Scope 3 Carbon Insetting (Book-and-Claim) cryptographic token issuance, shipment allocation, ledger verification, and FuelEU Maritime pooling.
+ * @module @atlas/api/modules/carbon-insetting/routes
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
@@ -11,57 +12,129 @@ import {
   AllocateTokenDTO,
 } from "./carbon-insetting-ledger.service.js";
 import { FuelType, TransportMode, PoolVesselInput } from "@atlas/shared";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  buildErrorResponses,
+  getErrorMessage,
+  openApiObject,
+} from "../../routes/openapi.schemas.js";
+
+// ============================================================================
+// 1. DOMAIN PAYLOAD INTERFACES
+// ============================================================================
+
+interface IssueInsettingTokenBody {
+  fuelType?: FuelType;
+  fuelVolumeMT?: number;
+  bunkerLocation?: string;
+  bunkerPortLocode?: string;
+  bdnReference?: string;
+  sustainabilityCertificateNumber?: string;
+  allocatedShipmentRef?: string;
+  beneficiaryCompany?: string;
+  transportMode?: TransportMode;
+  certifiedGhgIntensityGco2eqPerMj?: number;
+  unitPriceEurPerMj?: number;
+}
+
+interface AllocateInsettingTokenBody {
+  tokenId?: string;
+  shipmentId?: string;
+  beneficiaryCompanyId?: string;
+  beneficiaryName?: string;
+  transportMode?: AllocateTokenDTO["transportMode"];
+  allocatedEnergyMj?: number;
+  leadAuditorVerifier?: string;
+}
+
+type MappedRetirementStatus = "ACTIVE_AVAILABLE" | "ALLOCATED_RETIRED";
+
+// ============================================================================
+// 2. FASTIFY ROUTE PLUGIN REGISTRATION
+// ============================================================================
+
+const CARBON_INSETTING_TAG = ["Carbon Insetting & Book-and-Claim"] as const;
 
 export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
   const legacyService = new CarbonInsettingService();
 
   // 1. GET /api/carbon-insetting/fuels - Alternative Fuels Catalog
-  fastify.get("/fuels", async (_req: FastifyRequest, reply: FastifyReply) => {
-    const fuels = legacyService.getFuelsCatalog();
-    return reply.send({ success: true, fuels });
-  });
+  fastify.get(
+    "/fuels",
+    {
+      schema: {
+        tags: [...CARBON_INSETTING_TAG],
+        summary:
+          "List alternative sustainable marine and aviation fuels catalog",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_req: FastifyRequest, reply: FastifyReply) => {
+      const fuels = legacyService.getFuelsCatalog();
+      return reply.send({ success: true, fuels });
+    },
+  );
 
   // 2. GET /api/carbon-insetting/tokens - Live SQLite Insetting Tokens
-  fastify.get(
+  fastify.get<{
+    Querystring: { status?: string; fuelType?: string };
+  }>(
     "/tokens",
-    async (
-      req: FastifyRequest<{
-        Querystring: { status?: string; fuelType?: string };
-      }>,
-      reply: FastifyReply,
-    ) => {
+    {
+      schema: {
+        tags: [...CARBON_INSETTING_TAG],
+        summary:
+          "List persisted Scope 3 Book-and-Claim carbon insetting tokens",
+        querystring: openApiObject({
+          status: { type: "string" },
+          fuelType: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (req, reply) => {
       const dbTokens = await CarbonInsettingLedgerService.getTokens(req.query);
 
-      // Return both live SQLite records and legacy mapped fields for complete compatibility
-      const mappedTokens = dbTokens.map((t) => ({
-        ...t,
-        tokenId: t.tokenReference,
-        issueDate: t.createdAt || new Date().toISOString(),
-        fuelType: (t.fuelType === "E_METHANOL_RFNBO"
-          ? "E_METHANOL"
-          : t.fuelType) as any,
-        fuelVolumeMT: t.totalVolumeMetricTonnes,
-        energyContentMJ: t.totalEnergyMj || 0,
-        bunkerLocation:
-          t.bunkerLocationName || "Port de Barcelona - Muelle de la Energía",
-        bdnReference: t.bdnReference || "BDN-2026-DEFAULT",
-        sustainabilityCertificateNumber:
-          t.isccCertificateNumber || "ISCC-EU-Cert",
-        ghgAbatementTonsCO2e: Number(
-          (
-            t.totalVolumeMetricTonnes * (t.ghgAbatementTco2eqPerTonne || 3.41)
-          ).toFixed(2),
-        ),
-        allocatedShipmentRef: "CANONICAL-FLEET-POOL",
-        beneficiaryCompany: t.supplierCompanyName,
-        transportMode: "MARITIME_OCEAN" as const,
-        verificationStandard: "ISO 14083 / GLEC Framework v3.0" as const,
-        digitalSignatureHash: t.digitalSealHash,
-        qrCodeDigest: `ATLAS-INSET://TOKEN/${t.tokenReference}/${(t.digitalSealHash || "").slice(0, 16)}`,
-        retirementStatus: (t.status === "AVAILABLE"
-          ? "ACTIVE_AVAILABLE"
-          : "ALLOCATED_RETIRED") as any,
-      }));
+      const mappedTokens = dbTokens.map((t) => {
+        const mappedFuelType = (
+          t.fuelType === "E_METHANOL_RFNBO" ? "E_METHANOL" : t.fuelType
+        ) as FuelType;
+        const retirementStatus: MappedRetirementStatus =
+          t.status === "AVAILABLE" ? "ACTIVE_AVAILABLE" : "ALLOCATED_RETIRED";
+
+        return {
+          ...t,
+          tokenId: t.tokenReference,
+          issueDate: t.createdAt || new Date().toISOString(),
+          fuelType: mappedFuelType,
+          fuelVolumeMT: t.totalVolumeMetricTonnes,
+          energyContentMJ: t.totalEnergyMj || 0,
+          bunkerLocation:
+            t.bunkerLocationName || "Port de Barcelona - Muelle de la Energía",
+          bdnReference: t.bdnReference || "BDN-2026-DEFAULT",
+          sustainabilityCertificateNumber:
+            t.isccCertificateNumber || "ISCC-EU-Cert",
+          ghgAbatementTonsCO2e: Number(
+            (
+              t.totalVolumeMetricTonnes * (t.ghgAbatementTco2eqPerTonne || 3.41)
+            ).toFixed(2),
+          ),
+          allocatedShipmentRef: "CANONICAL-FLEET-POOL",
+          beneficiaryCompany: t.supplierCompanyName,
+          transportMode: "MARITIME_OCEAN" as const,
+          verificationStandard: "ISO 14083 / GLEC Framework v3.0" as const,
+          digitalSignatureHash: t.digitalSealHash,
+          qrCodeDigest: `ATLAS-INSET://TOKEN/${t.tokenReference}/${(t.digitalSealHash || "").slice(0, 16)}`,
+          retirementStatus,
+        };
+      });
 
       return reply.send({
         success: true,
@@ -73,12 +146,20 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
   );
 
   // 3. GET /api/carbon-insetting/tokens/:id - Token detail with allocations
-  fastify.get(
+  fastify.get<{ Params: { id: string } }>(
     "/tokens/:id",
-    async (
-      req: FastifyRequest<{ Params: { id: string } }>,
-      reply: FastifyReply,
-    ) => {
+    {
+      schema: {
+        tags: [...CARBON_INSETTING_TAG],
+        summary: "Retrieve carbon insetting token details and allocations",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (req, reply) => {
       const token = await CarbonInsettingLedgerService.getTokenById(
         req.params.id,
       );
@@ -92,27 +173,34 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
   );
 
   // 4. POST /api/carbon-insetting/tokens/issue - Issue & Seal Book-and-Claim Token
-  fastify.post(
+  fastify.post<{ Body: IssueInsettingTokenBody }>(
     "/tokens/issue",
-    async (
-      req: FastifyRequest<{
-        Body: {
-          fuelType: FuelType;
-          fuelVolumeMT: number;
-          bunkerLocation: string;
-          bunkerPortLocode?: string;
-          bdnReference: string;
-          sustainabilityCertificateNumber: string;
-          allocatedShipmentRef?: string;
-          beneficiaryCompany?: string;
-          transportMode?: TransportMode;
-          certifiedGhgIntensityGco2eqPerMj?: number;
-          unitPriceEurPerMj?: number;
-        };
-      }>,
-      reply: FastifyReply,
-    ) => {
-      const b = req.body || ({} as any);
+    {
+      schema: {
+        tags: [...CARBON_INSETTING_TAG],
+        summary:
+          "Issue and cryptographically seal a new Book-and-Claim carbon insetting token",
+        body: openApiObject({
+          fuelType: { type: "string" },
+          fuelVolumeMT: { type: "number" },
+          bunkerLocation: { type: "string" },
+          bunkerPortLocode: { type: "string" },
+          bdnReference: { type: "string" },
+          sustainabilityCertificateNumber: { type: "string" },
+          allocatedShipmentRef: { type: "string" },
+          beneficiaryCompany: { type: "string" },
+          transportMode: { type: "string" },
+          certifiedGhgIntensityGco2eqPerMj: { type: "number" },
+          unitPriceEurPerMj: { type: "number" },
+        }),
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (req, reply) => {
+      const b: IssueInsettingTokenBody = req.body ?? {};
 
       if (
         !b.fuelType ||
@@ -142,6 +230,11 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
       };
 
       const token = await CarbonInsettingLedgerService.issueToken(dto);
+      const mappedFuelType = (
+        token.fuelType === "E_METHANOL_RFNBO" ? "E_METHANOL" : token.fuelType
+      ) as FuelType;
+      const resolvedTransportMode: TransportMode =
+        b.transportMode || ("MARITIME_OCEAN" as TransportMode);
 
       return reply.code(201).send({
         success: true,
@@ -151,9 +244,7 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
           ...token,
           tokenId: token.tokenReference,
           issueDate: token.createdAt || new Date().toISOString(),
-          fuelType: (token.fuelType === "E_METHANOL_RFNBO"
-            ? "E_METHANOL"
-            : token.fuelType) as any,
+          fuelType: mappedFuelType,
           fuelVolumeMT: token.totalVolumeMetricTonnes,
           energyContentMJ: token.totalEnergyMj || 0,
           bunkerLocation:
@@ -174,7 +265,7 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
           digitalSignatureHash: token.digitalSealHash,
           allocatedShipmentRef: b.allocatedShipmentRef || "CANONICAL-POOL",
           beneficiaryCompany: token.supplierCompanyName,
-          transportMode: (b.transportMode || "MARITIME_OCEAN") as any,
+          transportMode: resolvedTransportMode,
           verificationStandard: "ISO 14083 / GLEC Framework v3.0" as const,
           qrCodeDigest: `ATLAS-INSET://TOKEN/${token.tokenReference}/${(token.digitalSealHash || "").slice(0, 16)}`,
           retirementStatus: "ACTIVE_AVAILABLE" as const,
@@ -183,24 +274,31 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // 5. POST /api/carbon-insetting/tokens/allocate - Allocate Token to Shipment with Blockchain Seal
-  fastify.post(
+  // 5. POST /api/carbon-insetting/tokens/allocate - Allocate Token to Shipment with SHA-256 Seal
+  fastify.post<{ Body: AllocateInsettingTokenBody }>(
     "/tokens/allocate",
-    async (
-      req: FastifyRequest<{
-        Body: {
-          tokenId: string;
-          shipmentId?: string;
-          beneficiaryCompanyId?: string;
-          beneficiaryName: string;
-          transportMode?: string;
-          allocatedEnergyMj: number;
-          leadAuditorVerifier?: string;
-        };
-      }>,
-      reply: FastifyReply,
-    ) => {
-      const b = req.body || ({} as any);
+    {
+      schema: {
+        tags: [...CARBON_INSETTING_TAG],
+        summary:
+          "Allocate carbon insetting energy volume to a shipment with SHA-256 ledger chaining",
+        body: openApiObject({
+          tokenId: { type: "string" },
+          shipmentId: { type: "string" },
+          beneficiaryCompanyId: { type: "string" },
+          beneficiaryName: { type: "string" },
+          transportMode: { type: "string" },
+          allocatedEnergyMj: { type: "number" },
+          leadAuditorVerifier: { type: "string" },
+        }),
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (req, reply) => {
+      const b: AllocateInsettingTokenBody = req.body ?? {};
 
       if (!b.tokenId || !b.allocatedEnergyMj || !b.beneficiaryName) {
         return reply.code(400).send({
@@ -216,7 +314,7 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
           shipmentId: b.shipmentId || "sh_demo_01",
           beneficiaryCompanyId: b.beneficiaryCompanyId,
           beneficiaryName: b.beneficiaryName,
-          transportMode: (b.transportMode as any) || "MARITIME_OCEAN",
+          transportMode: b.transportMode || "MARITIME_OCEAN",
           allocatedEnergyMj: Number(b.allocatedEnergyMj),
           leadAuditorVerifier: b.leadAuditorVerifier,
         };
@@ -230,23 +328,36 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
             "Asignación de insetting certificada y registrada en el bloque SHA-256.",
           allocation,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         return reply.code(400).send({
           success: false,
-          message:
-            err.message || "Error al procesar la asignación de insetting.",
+          message: getErrorMessage(
+            err,
+            "Error al procesar la asignación de insetting.",
+          ),
         });
       }
     },
   );
 
   // 6. GET /api/carbon-insetting/allocations - List allocations
-  fastify.get(
+  fastify.get<{ Querystring: { shipmentId?: string } }>(
     "/allocations",
-    async (
-      req: FastifyRequest<{ Querystring: { shipmentId?: string } }>,
-      reply: FastifyReply,
-    ) => {
+    {
+      schema: {
+        tags: [...CARBON_INSETTING_TAG],
+        summary:
+          "List carbon insetting allocations optionally filtered by shipment ID",
+        querystring: openApiObject({
+          shipmentId: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (req, reply) => {
       const allocations = await CarbonInsettingLedgerService.getAllocations(
         req.query.shipmentId,
       );
@@ -261,6 +372,17 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
   // 7. GET /api/carbon-insetting/allocations/verify - Cryptographic Blockchain Audit
   fastify.get(
     "/allocations/verify",
+    {
+      schema: {
+        tags: [...CARBON_INSETTING_TAG],
+        summary:
+          "Verify cryptographic SHA-256 hash chain integrity of the carbon insetting ledger",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (_req: FastifyRequest, reply: FastifyReply) => {
       const report = await CarbonInsettingLedgerService.verifyLedgerIntegrity();
       return reply.send({ success: true, report });
@@ -270,6 +392,16 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
   // 8. GET /api/carbon-insetting/fueleu/vessels
   fastify.get(
     "/fueleu/vessels",
+    {
+      schema: {
+        tags: [...CARBON_INSETTING_TAG],
+        summary: "List eligible vessels for FuelEU Maritime compliance pooling",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (_req: FastifyRequest, reply: FastifyReply) => {
       const vessels = legacyService.getPoolVessels();
       return reply.send({ success: true, count: vessels.length, vessels });
@@ -277,17 +409,28 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
   );
 
   // 9. POST /api/carbon-insetting/fueleu/pool
-  fastify.post(
+  fastify.post<{
+    Body: {
+      vessels?: PoolVesselInput[];
+      reportingYear?: number;
+    };
+  }>(
     "/fueleu/pool",
-    async (
-      req: FastifyRequest<{
-        Body: {
-          vessels?: PoolVesselInput[];
-          reportingYear?: number;
-        };
-      }>,
-      reply: FastifyReply,
-    ) => {
+    {
+      schema: {
+        tags: [...CARBON_INSETTING_TAG],
+        summary: "Execute and seal a FuelEU Maritime fleet compliance pool",
+        body: openApiObject({
+          vessels: { type: "array", items: OPENAPI_FLEXIBLE_OBJECT_SCHEMA },
+          reportingYear: { type: "number" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (req, reply) => {
       const pool = legacyService.executePooling(
         req.body?.vessels,
         req.body?.reportingYear || 2026,
@@ -303,6 +446,16 @@ export default async function carbonInsettingRoutes(fastify: FastifyInstance) {
   // 10. GET /api/carbon-insetting/fueleu/pools
   fastify.get(
     "/fueleu/pools",
+    {
+      schema: {
+        tags: [...CARBON_INSETTING_TAG],
+        summary: "Retrieve historical FuelEU Maritime compliance pools",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (_req: FastifyRequest, reply: FastifyReply) => {
       const pools = legacyService.getPoolHistory();
       return reply.send({ success: true, count: pools.length, pools });

@@ -1,5 +1,97 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface DraftSurveyPdfInput {
+  surveyType?: string | null;
+  surveyDate?: string | null;
+  surveyorName?: string | null;
+  chiefOfficerName?: string | null;
+  forwardDraftPort?: number | null;
+  forwardDraftStarboard?: number | null;
+  forwardMeanDraft?: number | null;
+  aftDraftPort?: number | null;
+  aftDraftStarboard?: number | null;
+  aftMeanDraft?: number | null;
+  midDraftPort?: number | null;
+  midDraftStarboard?: number | null;
+  midMeanDraft?: number | null;
+  apparentTrim?: number | null;
+  quarterMeanDraft?: number | null;
+  lengthBetweenPerpendiculars?: number | null;
+  longitudinalCenterOfFlotation?: number | null;
+  tonnesPerCmImmersion?: number | null;
+  momentToChangeTrim1Cm?: number | null;
+  measuredWaterDensity?: number | null;
+  firstTrimCorrection?: number | null;
+  secondTrimCorrection?: number | null;
+  correctedDisplacement?: number | null;
+  ballastWaterDeductible?: number | null;
+  fuelOilDeductible?: number | null;
+  dieselOilDeductible?: number | null;
+  freshWaterDeductible?: number | null;
+  sludgeBilgeDeductible?: number | null;
+  totalDeductibles?: number | null;
+  netDisplacement?: number | null;
+  calculatedCargoTonnage?: number | null;
+}
+
+interface VesselOperationPdfInput {
+  vesselName?: string | null;
+  imoNumber?: string | null;
+  vesselType?: string | null;
+  portName?: string | null;
+  terminalName?: string | null;
+  berthNumber?: string | null;
+  operationType?: string | null;
+}
+
+interface ImsbcCargoPdfInput {
+  declarationReference?: string | null;
+  bulkCargoShippingName?: string | null;
+  imsbcGroup?: string | null;
+  shipperName?: string | null;
+  grossWeightTonnes?: number | null;
+  isLiquefactionCompliant?: boolean | null;
+  moistureContentPercentage?: number | null;
+  flowMoisturePointPercentage?: number | null;
+  transportableMoistureLimit?: number | null;
+  testingLaboratoryName?: string | null;
+  laboratoryTestDate?: string | null;
+  stowageFactorM3PerTonne?: number | null;
+  angleOfReposeDegrees?: number | null;
+}
+
+interface GrainStabilityPlanPdfInput {
+  planReference?: string | null;
+  grainType?: string | null;
+  totalGrainTonnage?: number | null;
+  stowageFactorM3PerTonne?: number | null;
+  departureDisplacement?: number | null;
+  totalVolumetricHeelingMoment?: number | null;
+  residualHeelAngleDegrees?: number | null;
+  departureGm0?: number | null;
+  residualDynamicalStabilityArea?: number | null;
+  approvedByMasterName?: string | null;
+}
+
+interface UllageTankSurveyPdfInput {
+  surveyReference?: string | null;
+  productName?: string | null;
+  tankCount?: number | null;
+  surveyorCompany?: string | null;
+  surveyDate?: string | null;
+  totalObservedVolumeM3?: number | null;
+  totalFreeWaterVolumeM3?: number | null;
+  grossObservedVolumeM3?: number | null;
+  observedAverageTemperatureCelsius?: number | null;
+  densityAt15Celsius?: number | null;
+  volumeCorrectionFactorAstm54?: number | null;
+  netStandardVolumeM3?: number | null;
+  metricTonnesInAir?: number | null;
+  metricTonnesInVacuum?: number | null;
+}
+
 /**
  * Bulk Operations PDF Generator
  * IMSBC Code / BLU Code / IMO Grain Code / ASTM-IP 54 Draft & Ullage Surveys
@@ -9,9 +101,11 @@ export class BulkOperationsPdfGenerator {
    * 1. Generates an Official Hydrostatic Draft Survey Report & Displacement Certificate PDF.
    */
   public static async generateDraftSurveyReportPdf(
-    survey: any,
-    vesselOp: any,
+    rawSurvey: PdfInputRecord | null | undefined,
+    rawVesselOp: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const survey = (rawSurvey ?? {}) as DraftSurveyPdfInput;
+    const vesselOp = (rawVesselOp ?? {}) as VesselOperationPdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -109,7 +203,7 @@ export class BulkOperationsPdfGenerator {
 
         doc.font("Helvetica-Bold").fontSize(7.5).fillColor("#0284c7");
         doc.text(
-          `Asiento Aparente: ${survey?.apparentTrim > 0 ? "+" : ""}${survey?.apparentTrim?.toFixed(3)} m (${survey?.apparentTrim > 0 ? "Por Popa" : "Por Proa"}) | Calado Medio de Medios (DQM): ${survey?.quarterMeanDraft?.toFixed(3)} m`,
+          `Asiento Aparente: ${(survey?.apparentTrim ?? 0) > 0 ? "+" : ""}${survey?.apparentTrim?.toFixed(3)} m (${(survey?.apparentTrim ?? 0) > 0 ? "Por Popa" : "Por Proa"}) | Calado Medio de Medios (DQM): ${survey?.quarterMeanDraft?.toFixed(3)} m`,
           44,
           curY + 58,
         );
@@ -141,7 +235,7 @@ export class BulkOperationsPdfGenerator {
           curY + 34,
         );
         doc.text(
-          `1ª Corrección Asiento (C1): ${survey?.firstTrimCorrection > 0 ? "+" : ""}${survey?.firstTrimCorrection?.toFixed(2)} t | 2ª Corrección (C2): +${survey?.secondTrimCorrection?.toFixed(2)} t`,
+          `1ª Corrección Asiento (C1): ${(survey?.firstTrimCorrection ?? 0) > 0 ? "+" : ""}${survey?.firstTrimCorrection?.toFixed(2)} t | 2ª Corrección (C2): +${survey?.secondTrimCorrection?.toFixed(2)} t`,
           44,
           curY + 48,
         );
@@ -225,9 +319,10 @@ export class BulkOperationsPdfGenerator {
    * 2. Generates an IMSBC Code Bulk Cargo Declaration & TML Certificate PDF.
    */
   public static async generateImsbcCargoDeclarationPdf(
-    imsbc: any,
-    vesselOp: any,
+    rawImsbc: PdfInputRecord | null | undefined,
+    _vesselOp: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const imsbc = (rawImsbc ?? {}) as ImsbcCargoPdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -387,9 +482,10 @@ export class BulkOperationsPdfGenerator {
    * 3. Generates an IMO Grain Code Stability & Loading Plan Certificate PDF.
    */
   public static async generateGrainStabilityPlanPdf(
-    grainPlan: any,
-    vesselOp: any,
+    rawGrainPlan: PdfInputRecord | null | undefined,
+    _vesselOp: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const grainPlan = (rawGrainPlan ?? {}) as GrainStabilityPlanPdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });
@@ -518,9 +614,11 @@ export class BulkOperationsPdfGenerator {
    * 4. Generates a Tanker Liquid Quantity Survey Report PDF (ASTM-IP Table 54).
    */
   public static async generateUllageTankSurveyPdf(
-    ullageSurvey: any,
-    vesselOp: any,
+    rawUllageSurvey: PdfInputRecord | null | undefined,
+    rawVesselOp: PdfInputRecord | null | undefined,
   ): Promise<Buffer> {
+    const ullageSurvey = (rawUllageSurvey ?? {}) as UllageTankSurveyPdfInput;
+    const vesselOp = (rawVesselOp ?? {}) as VesselOperationPdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 36, size: "A4" });

@@ -18,15 +18,14 @@ import { traceSpan } from "../../observability/tracer.js";
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 export type DbOrTx = typeof db | DbTransaction;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type DomainEventHandler<TPayload = any> = (
+export type DomainEventHandler<TPayload = unknown> = (
   event: DomainEventEnvelope<TPayload>,
 ) => Promise<void>;
 
 interface RegisteredSubscriber {
   eventType: string;
   consumerName: string;
-  handler: DomainEventHandler;
+  handler: DomainEventHandler<unknown>;
 }
 
 let tablesInitialized = false;
@@ -70,16 +69,20 @@ class TransactionalOutboxBus {
     this.subscribers = [];
   }
 
-  public subscribe(
+  public subscribe<TPayload = unknown>(
     eventType: string,
     consumerName: string,
-    handler: DomainEventHandler,
+    handler: DomainEventHandler<TPayload>,
   ): void {
     const exists = this.subscribers.some(
       (s) => s.eventType === eventType && s.consumerName === consumerName,
     );
     if (!exists) {
-      this.subscribers.push({ eventType, consumerName, handler });
+      this.subscribers.push({
+        eventType,
+        consumerName,
+        handler: (event) => handler(event as DomainEventEnvelope<TPayload>),
+      });
     }
   }
 

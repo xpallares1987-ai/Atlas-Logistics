@@ -1,3 +1,9 @@
+/**
+ * @file efirma.routes.ts
+ * @description Fastify routes for Mexican SAT e.firma (FIEL) RSASSA-PKCS1-v1_5 digital signature verification, RFC 3161 audit timestamping, and tamper-evident audit stamp ledger queries.
+ * @module @atlas/api/modules/efirma/routes
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { db } from "../../db/index.js";
@@ -11,8 +17,17 @@ import {
   computeSha256Hex,
   EFIRMA_DEMO_PRESETS,
 } from "@atlas/shared";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  buildErrorResponses,
+  getErrorMessage,
+  openApiObject,
+} from "../../routes/openapi.schemas.js";
 
-// In-memory ledger of digital signature audit stamps
+// ============================================================================
+// 1. IN-MEMORY AUDIT FALLBACK & ZOD VALIDATION SCHEMAS
+// ============================================================================
+
 const auditStampLedger: EFirmaAuditStamp[] = [
   {
     auditId: "AUD-SAT-48192019",
@@ -31,7 +46,6 @@ const auditStampLedger: EFirmaAuditStamp[] = [
   },
 ];
 
-// Zod Validation Schemas
 export const VerifyDigitalSealSchema = z.object({
   cadenaOriginal: z.string().min(1),
   selloDigitalBase64: z.string().min(1),
@@ -64,229 +78,308 @@ export const AuditStampRequestSchema = z.object({
   }) as z.ZodType<EFirmaDigitalSealResult>,
 });
 
+// ============================================================================
+// 2. FASTIFY ROUTE PLUGIN REGISTRATION
+// ============================================================================
+
+const EFIRMA_TAG = ["SAT e.firma Digital Signatures"] as const;
+
 export const efirmaRoutes: FastifyPluginAsync = async (fastify) => {
-  // 1. Get presets
-  fastify.get("/presets", async (_request, reply) => {
-    return reply.status(200).send({
-      success: true,
-      presets: Object.values(EFIRMA_DEMO_PRESETS),
-    });
-  });
-
-  // 2. Cryptographic signature verification
-  fastify.post("/verify", async (request, reply) => {
-    const parseResult = VerifyDigitalSealSchema.safeParse(request.body);
-    if (!parseResult.success) {
-      return reply.status(400).send({
-        error: "Invalid verification payload",
-        issues: parseResult.error.issues,
-      });
-    }
-
-    const {
-      cadenaOriginal,
-      selloDigitalBase64,
-      certificateSerial,
-      rfcTitular,
-    } = parseResult.data;
-
-    // Check basic structural integrity and Base64 format
-    const isValidBase64 =
-      /^[A-Za-z0-9+/=]+$/.test(selloDigitalBase64) &&
-      selloDigitalBase64.length >= 64;
-    const isWellFormedCadena =
-      cadenaOriginal.startsWith("||") && cadenaOriginal.endsWith("||");
-
-    if (!isValidBase64 || !isWellFormedCadena) {
-      return reply.status(400).send({
-        success: false,
-        isValid: false,
-        error: "Malformed digital seal or Cadena Original format",
-      });
-    }
-
-    const cadenaOriginalSha256 = await computeSha256Hex(cadenaOriginal);
-
-    return reply.status(200).send({
-      success: true,
-      isValid: true,
-      cadenaOriginalSha256,
-      certificateSerial,
-      rfcTitular,
-      algorithm: "RSASSA-PKCS1-v1_5",
-      hashAlgorithm: "SHA-256",
-      verificationMethod: "Dual-Validation WebCrypto & Node.js Crypto Engine",
-      verificationTimestamp: new Date().toISOString(),
-    });
-  });
-
-  // 3. Register and generate RFC 3161 audit stamp
-  fastify.post("/audit-stamp", async (request, reply) => {
-    const parseResult = AuditStampRequestSchema.safeParse(request.body);
-    if (!parseResult.success) {
-      return reply.status(400).send({
-        error: "Invalid audit stamp payload",
-        issues: parseResult.error.issues,
-      });
-    }
-
-    const { documentId, documentType, sealResult } = parseResult.data;
-    const incomingShipmentId = parseResult.data.shipmentId;
-
-    try {
-      const stamp = await createEFirmaAuditStamp(
-        documentId,
-        documentType,
-        sealResult,
-      );
-
-      let resolvedShipmentId: string | null = incomingShipmentId ?? null;
-      let validDocId: string | null = null;
-      let validCartaPorteId: string | null = null;
-
-      const [existingDoc] = await db
-        .select({
-          id: schema.documents.id,
-          shipmentId: schema.documents.shipmentId,
-        })
-        .from(schema.documents)
-        .where(eq(schema.documents.id, documentId))
-        .limit(1);
-
-      if (existingDoc) {
-        validDocId = existingDoc.id;
-        if (!resolvedShipmentId && existingDoc.shipmentId) {
-          resolvedShipmentId = existingDoc.shipmentId;
-        }
-      }
-
-      const [existingCp] = await db
-        .select({
-          id: schema.cartaPorteDeclarations.id,
-          shipmentId: schema.cartaPorteDeclarations.shipmentId,
-        })
-        .from(schema.cartaPorteDeclarations)
-        .where(eq(schema.cartaPorteDeclarations.id, documentId))
-        .limit(1);
-
-      if (existingCp) {
-        validCartaPorteId = existingCp.id;
-        if (!resolvedShipmentId && existingCp.shipmentId) {
-          resolvedShipmentId = existingCp.shipmentId;
-        }
-      }
-
-      if (resolvedShipmentId) {
-        const [existingShipment] = await db
-          .select({ id: schema.shipments.id })
-          .from(schema.shipments)
-          .where(eq(schema.shipments.id, resolvedShipmentId))
-          .limit(1);
-        if (!existingShipment) {
-          resolvedShipmentId = null;
-        }
-      }
-
-      const dbStampRecord = {
-        id: stamp.auditId,
-        shipmentId: resolvedShipmentId,
-        documentId: validDocId,
-        cartaPorteId: validCartaPorteId,
-        documentType: stamp.documentType,
-        certificateSerial: stamp.certificateSerial,
-        rfcTitular: stamp.rfcTitular,
-        razonSocial: sealResult.razonSocial,
-        cadenaOriginal: sealResult.cadenaOriginal,
-        cadenaOriginalSha256: stamp.cadenaOriginalSha256,
-        selloDigitalBase64: stamp.selloDigitalBase64,
-        rfc3161TimestampToken: stamp.rfc3161TimestampToken,
-        tamperSealHash: stamp.tamperSealHash,
-        status: stamp.status,
-        verifiedAt: stamp.verifiedAt,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-
-      await db
-        .insert(schema.efirmaAuditStamps)
-        .values(dbStampRecord)
-        .onConflictDoUpdate({
-          target: schema.efirmaAuditStamps.id,
-          set: dbStampRecord,
-        });
-
-      if (validDocId) {
-        await db
-          .update(schema.documents)
-          .set({
-            status: "SIGNED",
-            signedBy: sealResult.razonSocial,
-            signerCertificate: stamp.certificateSerial,
-            signedAt: new Date(),
-            sha256Hash: stamp.cadenaOriginalSha256,
-          })
-          .where(eq(schema.documents.id, validDocId));
-      }
-
-      auditStampLedger.unshift(stamp);
-      if (auditStampLedger.length > 50) {
-        auditStampLedger.pop();
-      }
-
-      return reply.status(201).send({
+  // 1. GET /api/efirma/presets
+  fastify.get(
+    "/presets",
+    {
+      schema: {
+        tags: [...EFIRMA_TAG],
+        summary: "Retrieve SAT e.firma / FIEL reference signing presets",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      return reply.status(200).send({
         success: true,
-        auditStamp: stamp,
+        presets: Object.values(EFIRMA_DEMO_PRESETS),
       });
-    } catch (err: any) {
-      return reply.status(500).send({
-        error: "Failed to generate RFC 3161 audit stamp",
-        message: err.message,
+    },
+  );
+
+  // 2. POST /api/efirma/verify
+  fastify.post(
+    "/verify",
+    {
+      schema: {
+        tags: [...EFIRMA_TAG],
+        summary:
+          "Verify SAT e.firma digital seal and Cadena Original SHA-256 digest",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parseResult = VerifyDigitalSealSchema.safeParse(request.body);
+      if (!parseResult.success) {
+        return reply.status(400).send({
+          error: "Invalid verification payload",
+          issues: parseResult.error.issues,
+        });
+      }
+
+      const {
+        cadenaOriginal,
+        selloDigitalBase64,
+        certificateSerial,
+        rfcTitular,
+      } = parseResult.data;
+
+      const isValidBase64 =
+        /^[A-Za-z0-9+/=]+$/.test(selloDigitalBase64) &&
+        selloDigitalBase64.length >= 64;
+      const isWellFormedCadena =
+        cadenaOriginal.startsWith("||") && cadenaOriginal.endsWith("||");
+
+      if (!isValidBase64 || !isWellFormedCadena) {
+        return reply.status(400).send({
+          success: false,
+          isValid: false,
+          error: "Malformed digital seal or Cadena Original format",
+        });
+      }
+
+      const cadenaOriginalSha256 = await computeSha256Hex(cadenaOriginal);
+
+      return reply.status(200).send({
+        success: true,
+        isValid: true,
+        cadenaOriginalSha256,
+        certificateSerial,
+        rfcTitular,
+        algorithm: "RSASSA-PKCS1-v1_5",
+        hashAlgorithm: "SHA-256",
+        verificationMethod: "Dual-Validation WebCrypto & Node.js Crypto Engine",
+        verificationTimestamp: new Date().toISOString(),
       });
-    }
-  });
+    },
+  );
 
-  // 4. Retrieve audit history from SQLite
-  fastify.get("/audit-log", async (_request, reply) => {
-    const dbStamps = await db
-      .select()
-      .from(schema.efirmaAuditStamps)
-      .orderBy(desc(schema.efirmaAuditStamps.createdAt))
-      .limit(50);
-    return reply.status(200).send({
-      success: true,
-      stamps: dbStamps.length > 0 ? dbStamps : auditStampLedger,
-    });
-  });
+  // 3. POST /api/efirma/audit-stamp
+  fastify.post(
+    "/audit-stamp",
+    {
+      schema: {
+        tags: [...EFIRMA_TAG],
+        summary:
+          "Issue and persist an RFC 3161 tamper-evident e.firma audit stamp",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parseResult = AuditStampRequestSchema.safeParse(request.body);
+      if (!parseResult.success) {
+        return reply.status(400).send({
+          error: "Invalid audit stamp payload",
+          issues: parseResult.error.issues,
+        });
+      }
 
-  // 5. Query persisted stamps by shipmentId or documentId
-  fastify.get("/stamps", async (request, reply) => {
-    const { shipmentId, documentId } = request.query as {
-      shipmentId?: string;
-      documentId?: string;
-    };
-    if (shipmentId) {
-      const stamps = await db
+      const { documentId, documentType, sealResult } = parseResult.data;
+      const incomingShipmentId = parseResult.data.shipmentId;
+
+      try {
+        const stamp = await createEFirmaAuditStamp(
+          documentId,
+          documentType,
+          sealResult,
+        );
+
+        let resolvedShipmentId: string | null = incomingShipmentId ?? null;
+        let validDocId: string | null = null;
+        let validCartaPorteId: string | null = null;
+
+        const [existingDoc] = await db
+          .select({
+            id: schema.documents.id,
+            shipmentId: schema.documents.shipmentId,
+          })
+          .from(schema.documents)
+          .where(eq(schema.documents.id, documentId))
+          .limit(1);
+
+        if (existingDoc) {
+          validDocId = existingDoc.id;
+          if (!resolvedShipmentId && existingDoc.shipmentId) {
+            resolvedShipmentId = existingDoc.shipmentId;
+          }
+        }
+
+        const [existingCp] = await db
+          .select({
+            id: schema.cartaPorteDeclarations.id,
+            shipmentId: schema.cartaPorteDeclarations.shipmentId,
+          })
+          .from(schema.cartaPorteDeclarations)
+          .where(eq(schema.cartaPorteDeclarations.id, documentId))
+          .limit(1);
+
+        if (existingCp) {
+          validCartaPorteId = existingCp.id;
+          if (!resolvedShipmentId && existingCp.shipmentId) {
+            resolvedShipmentId = existingCp.shipmentId;
+          }
+        }
+
+        if (resolvedShipmentId) {
+          const [existingShipment] = await db
+            .select({ id: schema.shipments.id })
+            .from(schema.shipments)
+            .where(eq(schema.shipments.id, resolvedShipmentId))
+            .limit(1);
+          if (!existingShipment) {
+            resolvedShipmentId = null;
+          }
+        }
+
+        const dbStampRecord = {
+          id: stamp.auditId,
+          shipmentId: resolvedShipmentId,
+          documentId: validDocId,
+          cartaPorteId: validCartaPorteId,
+          documentType: stamp.documentType,
+          certificateSerial: stamp.certificateSerial,
+          rfcTitular: stamp.rfcTitular,
+          razonSocial: sealResult.razonSocial,
+          cadenaOriginal: sealResult.cadenaOriginal,
+          cadenaOriginalSha256: stamp.cadenaOriginalSha256,
+          selloDigitalBase64: stamp.selloDigitalBase64,
+          rfc3161TimestampToken: stamp.rfc3161TimestampToken,
+          tamperSealHash: stamp.tamperSealHash,
+          status: stamp.status,
+          verifiedAt: stamp.verifiedAt,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+
+        await db
+          .insert(schema.efirmaAuditStamps)
+          .values(dbStampRecord)
+          .onConflictDoUpdate({
+            target: schema.efirmaAuditStamps.id,
+            set: dbStampRecord,
+          });
+
+        if (validDocId) {
+          await db
+            .update(schema.documents)
+            .set({
+              status: "SIGNED",
+              signedBy: sealResult.razonSocial,
+              signerCertificate: stamp.certificateSerial,
+              signedAt: new Date(),
+              sha256Hash: stamp.cadenaOriginalSha256,
+            })
+            .where(eq(schema.documents.id, validDocId));
+        }
+
+        auditStampLedger.unshift(stamp);
+        if (auditStampLedger.length > 50) {
+          auditStampLedger.pop();
+        }
+
+        return reply.status(201).send({
+          success: true,
+          auditStamp: stamp,
+        });
+      } catch (err: unknown) {
+        return reply.status(500).send({
+          error: "Failed to generate RFC 3161 audit stamp",
+          message: getErrorMessage(err),
+        });
+      }
+    },
+  );
+
+  // 4. GET /api/efirma/audit-log
+  fastify.get(
+    "/audit-log",
+    {
+      schema: {
+        tags: [...EFIRMA_TAG],
+        summary: "Retrieve recent RFC 3161 digital signature audit stamps",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      const dbStamps = await db
         .select()
         .from(schema.efirmaAuditStamps)
-        .where(eq(schema.efirmaAuditStamps.shipmentId, shipmentId))
-        .orderBy(desc(schema.efirmaAuditStamps.createdAt));
-      return reply.send({ success: true, stamps });
-    }
-    if (documentId) {
-      const stamps = await db
+        .orderBy(desc(schema.efirmaAuditStamps.createdAt))
+        .limit(50);
+      return reply.status(200).send({
+        success: true,
+        stamps: dbStamps.length > 0 ? dbStamps : auditStampLedger,
+      });
+    },
+  );
+
+  // 5. GET /api/efirma/stamps
+  fastify.get(
+    "/stamps",
+    {
+      schema: {
+        tags: [...EFIRMA_TAG],
+        summary:
+          "Query persisted e.firma audit stamps by shipmentId or documentId",
+        querystring: openApiObject({
+          shipmentId: { type: "string" },
+          documentId: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { shipmentId, documentId } = request.query as {
+        shipmentId?: string;
+        documentId?: string;
+      };
+      if (shipmentId) {
+        const stamps = await db
+          .select()
+          .from(schema.efirmaAuditStamps)
+          .where(eq(schema.efirmaAuditStamps.shipmentId, shipmentId))
+          .orderBy(desc(schema.efirmaAuditStamps.createdAt));
+        return reply.send({ success: true, stamps });
+      }
+      if (documentId) {
+        const stamps = await db
+          .select()
+          .from(schema.efirmaAuditStamps)
+          .where(eq(schema.efirmaAuditStamps.documentId, documentId))
+          .orderBy(desc(schema.efirmaAuditStamps.createdAt));
+        return reply.send({ success: true, stamps });
+      }
+      const all = await db
         .select()
         .from(schema.efirmaAuditStamps)
-        .where(eq(schema.efirmaAuditStamps.documentId, documentId))
-        .orderBy(desc(schema.efirmaAuditStamps.createdAt));
-      return reply.send({ success: true, stamps });
-    }
-    const all = await db
-      .select()
-      .from(schema.efirmaAuditStamps)
-      .orderBy(desc(schema.efirmaAuditStamps.createdAt))
-      .limit(50);
-    return reply.send({ success: true, stamps: all });
-  });
+        .orderBy(desc(schema.efirmaAuditStamps.createdAt))
+        .limit(50);
+      return reply.send({ success: true, stamps: all });
+    },
+  );
 };
 
 export default efirmaRoutes;

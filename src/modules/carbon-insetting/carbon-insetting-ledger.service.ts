@@ -218,12 +218,12 @@ export class CarbonInsettingLedgerService {
 
     // Emit domain event safely
     try {
-      void domainEventBus.publish("customs:cleared" as any, tokenId, {
+      void domainEventBus.publish("carbon-insetting:token-issued", tokenId, {
         tokenReference,
         fuelType: dto.fuelType,
         totalEnergyMj,
         digitalSealHash,
-      } as any);
+      });
     } catch {
       // Event publication is non-blocking
     }

@@ -1,3 +1,9 @@
+/**
+ * @file passkeys.routes.ts
+ * @description Fastify routes for FIDO2/WebAuthn hardware passkeys, TOTP 2FA enrollment, step-up transaction verification, and biometric security policy management.
+ * @module @atlas/api/modules/passkeys/routes
+ */
+
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import {
@@ -7,7 +13,6 @@ import {
   DEFAULT_STEP_UP_POLICY,
   SAMPLE_REGISTERED_PASSKEYS,
   createWebAuthnRegistrationOptions,
-  createWebAuthnAuthenticationOptions,
   verifyHardwareSignature,
   HardwareSignatureResult,
   generateBase32Secret,
@@ -15,15 +20,22 @@ import {
   verifyTOTP,
   generateBackupCodes,
 } from "@atlas/shared";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  buildErrorResponses,
+} from "../../routes/openapi.schemas.js";
 
-// In-memory state for user passkeys and step-up policy
+// ============================================================================
+// 1. IN-MEMORY STATE & ZOD VALIDATION SCHEMAS
+// ============================================================================
+
 const registeredDevices: RegisteredPasskeyDevice[] = [
   ...SAMPLE_REGISTERED_PASSKEYS,
 ];
 let currentPolicy: StepUpSecurityPolicy = { ...DEFAULT_STEP_UP_POLICY };
-let activeTotpSecret = "JBSWY3DPEHPK3PXP"; // Demo active secret
+let activeTotpSecret = "JBSWY3DPEHPK3PXP";
 
-// Validation schemas
 const RegisterOptionsSchema = z.object({
   userEmail: z.string().email(),
   userName: z.string().min(1),
@@ -80,236 +92,381 @@ const PolicyUpdateSchema = z.object({
   payoutThresholdEur: z.number().positive(),
 });
 
+// ============================================================================
+// 2. FASTIFY ROUTE PLUGIN REGISTRATION
+// ============================================================================
+
+const PASSKEYS_TAG = ["Passkeys & Step-Up Security"] as const;
+
 export const passkeysRoutes: FastifyPluginAsync = async (fastify) => {
   // 1. List registered devices
-  fastify.get("/credentials", async (_request, reply) => {
-    return reply.status(200).send({
-      success: true,
-      devices: registeredDevices.filter((d) => d.status === "ACTIVE"),
-      allDevices: registeredDevices,
-    });
-  });
+  fastify.get(
+    "/credentials",
+    {
+      schema: {
+        tags: [...PASSKEYS_TAG],
+        summary: "List active and revoked registered FIDO2/WebAuthn passkeys",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      return reply.status(200).send({
+        success: true,
+        devices: registeredDevices.filter((d) => d.status === "ACTIVE"),
+        allDevices: registeredDevices,
+      });
+    },
+  );
 
   // 2. Generate registration options for navigator.credentials.create
-  fastify.post("/register/options", async (request, reply) => {
-    const parse = RegisterOptionsSchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply.status(400).send({
-        error: "Invalid registration options request",
-        issues: parse.error.issues,
+  fastify.post(
+    "/register/options",
+    {
+      schema: {
+        tags: [...PASSKEYS_TAG],
+        summary: "Generate WebAuthn credential creation challenge options",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = RegisterOptionsSchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid registration options request",
+          issues: parse.error.issues,
+        });
+      }
+
+      const { userEmail, userName, rpId } = parse.data;
+      const options = createWebAuthnRegistrationOptions(
+        userEmail,
+        userName,
+        rpId,
+      );
+
+      return reply.status(200).send({
+        success: true,
+        options,
       });
-    }
-
-    const { userEmail, userName, rpId } = parse.data;
-    const options = createWebAuthnRegistrationOptions(
-      userEmail,
-      userName,
-      rpId,
-    );
-
-    return reply.status(200).send({
-      success: true,
-      options,
-    });
-  });
+    },
+  );
 
   // 3. Verify and store newly registered Passkey
-  fastify.post("/register/verify", async (request, reply) => {
-    const parse = RegisterVerifySchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply.status(400).send({
-        error: "Invalid credential verification payload",
-        issues: parse.error.issues,
+  fastify.post(
+    "/register/verify",
+    {
+      schema: {
+        tags: [...PASSKEYS_TAG],
+        summary: "Verify attestation and enroll a new hardware passkey device",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = RegisterVerifySchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid credential verification payload",
+          issues: parse.error.issues,
+        });
+      }
+
+      const { deviceName, deviceType, credentialId, publicKey, aaguid } =
+        parse.data;
+
+      const newDevice: RegisteredPasskeyDevice = {
+        id: `passkey-dev-${Date.now().toString(36)}`,
+        deviceName,
+        deviceType,
+        credentialId,
+        publicKey: publicKey || "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...",
+        registeredAt: new Date().toISOString(),
+        lastUsedAt: new Date().toISOString(),
+        status: "ACTIVE",
+        aaguid: aaguid || "2fc0579f-8113-47ea-b116-bb5a8db9202a",
+      };
+
+      registeredDevices.unshift(newDevice);
+
+      return reply.status(201).send({
+        success: true,
+        device: newDevice,
       });
-    }
-
-    const { deviceName, deviceType, credentialId, publicKey, aaguid } =
-      parse.data;
-
-    const newDevice: RegisteredPasskeyDevice = {
-      id: `passkey-dev-${Date.now().toString(36)}`,
-      deviceName,
-      deviceType,
-      credentialId,
-      publicKey: publicKey || "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...",
-      registeredAt: new Date().toISOString(),
-      lastUsedAt: new Date().toISOString(),
-      status: "ACTIVE",
-      aaguid: aaguid || "2fc0579f-8113-47ea-b116-bb5a8db9202a",
-    };
-
-    registeredDevices.unshift(newDevice);
-
-    return reply.status(201).send({
-      success: true,
-      device: newDevice,
-    });
-  });
+    },
+  );
 
   // 4. Revoke a registered Passkey
-  fastify.delete("/credentials/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const device = registeredDevices.find((d) => d.id === id);
+  fastify.delete(
+    "/credentials/:id",
+    {
+      schema: {
+        tags: [...PASSKEYS_TAG],
+        summary: "Revoke a registered hardware passkey credential",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const device = registeredDevices.find((d) => d.id === id);
 
-    if (!device) {
-      return reply.status(404).send({
-        error: "Passkey credential not found",
+      if (!device) {
+        return reply.status(404).send({
+          error: "Passkey credential not found",
+        });
+      }
+
+      device.status = "REVOKED";
+
+      return reply.status(200).send({
+        success: true,
+        message: `Passkey '${device.deviceName}' revoked successfully`,
+        revokedDeviceId: id,
       });
-    }
-
-    device.status = "REVOKED";
-
-    return reply.status(200).send({
-      success: true,
-      message: `Passkey '${device.deviceName}' revoked successfully`,
-      revokedDeviceId: id,
-    });
-  });
+    },
+  );
 
   // 5. Setup TOTP 2FA (Secret, URI, Backup Codes)
-  fastify.post("/totp/setup", async (request, reply) => {
-    const parse = TotpSetupSchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply.status(400).send({
-        error: "Invalid TOTP setup request",
-        issues: parse.error.issues,
+  fastify.post(
+    "/totp/setup",
+    {
+      schema: {
+        tags: [...PASSKEYS_TAG],
+        summary:
+          "Generate TOTP 2FA Base32 secret, otpauth URI, and backup codes",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = TotpSetupSchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid TOTP setup request",
+          issues: parse.error.issues,
+        });
+      }
+
+      const { userEmail } = parse.data;
+      const secret = generateBase32Secret(16);
+      const backupCodes = generateBackupCodes(5);
+      const otpauthUrl = `otpauth://totp/Atlas-Logistics:${encodeURIComponent(userEmail)}?secret=${secret}&issuer=Atlas-Logistics`;
+
+      return reply.status(200).send({
+        success: true,
+        secret,
+        otpauthUrl,
+        backupCodes,
+        currentSampleToken: generateTOTP(secret),
       });
-    }
-
-    const { userEmail } = parse.data;
-    const secret = generateBase32Secret(16);
-    const backupCodes = generateBackupCodes(5);
-    const otpauthUrl = `otpauth://totp/Atlas-Logistics:${encodeURIComponent(userEmail)}?secret=${secret}&issuer=Atlas-Logistics`;
-
-    return reply.status(200).send({
-      success: true,
-      secret,
-      otpauthUrl,
-      backupCodes,
-      currentSampleToken: generateTOTP(secret),
-    });
-  });
+    },
+  );
 
   // 6. Verify and confirm TOTP activation
-  fastify.post("/totp/verify", async (request, reply) => {
-    const parse = TotpVerifySchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply.status(400).send({
-        error: "Invalid TOTP verification payload",
-        issues: parse.error.issues,
+  fastify.post(
+    "/totp/verify",
+    {
+      schema: {
+        tags: [...PASSKEYS_TAG],
+        summary: "Verify 6-digit TOTP token and activate 2FA protection",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = TotpVerifySchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid TOTP verification payload",
+          issues: parse.error.issues,
+        });
+      }
+
+      const { secret, token } = parse.data;
+      const isValid = verifyTOTP(secret, token);
+
+      if (!isValid) {
+        return reply.status(400).send({
+          success: false,
+          verified: false,
+          error:
+            "Código de 6 dígitos inválido o expirado. Verifique la hora de su dispositivo.",
+        });
+      }
+
+      activeTotpSecret = secret;
+
+      return reply.status(200).send({
+        success: true,
+        verified: true,
+        message:
+          "Doble factor de autenticación TOTP verificado y activado exitosamente.",
       });
-    }
-
-    const { secret, token } = parse.data;
-    const isValid = verifyTOTP(secret, token);
-
-    if (!isValid) {
-      return reply.status(400).send({
-        success: false,
-        verified: false,
-        error:
-          "Código de 6 dígitos inválido o expirado. Verifique la hora de su dispositivo.",
-      });
-    }
-
-    activeTotpSecret = secret;
-
-    return reply.status(200).send({
-      success: true,
-      verified: true,
-      message:
-        "Doble factor de autenticación TOTP verificado y activado exitosamente.",
-    });
-  });
+    },
+  );
 
   // 7. Disable TOTP
-  fastify.post("/totp/disable", async (_request, reply) => {
-    activeTotpSecret = "";
-    return reply.status(200).send({
-      success: true,
-      disabled: true,
-      message: "Doble factor de autenticación desactivado.",
-    });
-  });
+  fastify.post(
+    "/totp/disable",
+    {
+      schema: {
+        tags: [...PASSKEYS_TAG],
+        summary: "Disable active TOTP 2FA authenticator",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      activeTotpSecret = "";
+      return reply.status(200).send({
+        success: true,
+        disabled: true,
+        message: "Doble factor de autenticación desactivado.",
+      });
+    },
+  );
 
   // 8. Step-up authorization for high-risk operations
-  fastify.post("/step-up/verify", async (request, reply) => {
-    const parse = StepUpVerifySchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply.status(400).send({
-        error: "Invalid step-up verification request",
-        issues: parse.error.issues,
-      });
-    }
+  fastify.post(
+    "/step-up/verify",
+    {
+      schema: {
+        tags: [...PASSKEYS_TAG],
+        summary:
+          "Verify hardware passkey signature or TOTP code for step-up transaction approval",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = StepUpVerifySchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid step-up verification request",
+          issues: parse.error.issues,
+        });
+      }
 
-    const {
-      actionType,
-      manifestOrTransactionId,
-      hardwareSignature,
-      totpToken,
-      totpSecret,
-    } = parse.data;
-
-    let authorized = false;
-    let authMethod = "NONE";
-
-    if (hardwareSignature) {
-      authorized = verifyHardwareSignature(
-        hardwareSignature,
+      const {
+        actionType,
         manifestOrTransactionId,
-      );
-      authMethod = `WEBAUTHN_HARDWARE (${hardwareSignature.deviceModel})`;
-    } else if (totpToken) {
-      const secretToUse = totpSecret || activeTotpSecret;
-      authorized = verifyTOTP(secretToUse, totpToken);
-      authMethod = "TOTP_AUTHENTICATOR";
-    }
+        hardwareSignature,
+        totpToken,
+        totpSecret,
+      } = parse.data;
 
-    if (!authorized) {
-      return reply.status(401).send({
-        success: false,
-        authorized: false,
-        error:
-          "Fallo de autorización biométrica o código TOTP no válido para operación crítica.",
+      let authorized = false;
+      let authMethod = "NONE";
+
+      if (hardwareSignature) {
+        authorized = verifyHardwareSignature(
+          hardwareSignature,
+          manifestOrTransactionId,
+        );
+        authMethod = `WEBAUTHN_HARDWARE (${hardwareSignature.deviceModel})`;
+      } else if (totpToken) {
+        const secretToUse = totpSecret || activeTotpSecret;
+        authorized = verifyTOTP(secretToUse, totpToken);
+        authMethod = "TOTP_AUTHENTICATOR";
+      }
+
+      if (!authorized) {
+        return reply.status(401).send({
+          success: false,
+          authorized: false,
+          error:
+            "Fallo de autorización biométrica o código TOTP no válido para operación crítica.",
+        });
+      }
+
+      return reply.status(200).send({
+        success: true,
+        authorized: true,
+        actionType,
+        manifestOrTransactionId,
+        authMethod,
+        timestamp: new Date().toISOString(),
       });
-    }
-
-    return reply.status(200).send({
-      success: true,
-      authorized: true,
-      actionType,
-      manifestOrTransactionId,
-      authMethod,
-      timestamp: new Date().toISOString(),
-    });
-  });
+    },
+  );
 
   // 9. Get Step-Up security policy
-  fastify.get("/policy", async (_request, reply) => {
-    return reply.status(200).send({
-      success: true,
-      policy: currentPolicy,
-    });
-  });
+  fastify.get(
+    "/policy",
+    {
+      schema: {
+        tags: [...PASSKEYS_TAG],
+        summary: "Retrieve active step-up biometric authentication policy",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      return reply.status(200).send({
+        success: true,
+        policy: currentPolicy,
+      });
+    },
+  );
 
   // 10. Update Step-Up security policy
-  fastify.put("/policy", async (request, reply) => {
-    const parse = PolicyUpdateSchema.safeParse(request.body);
-    if (!parse.success) {
-      return reply.status(400).send({
-        error: "Invalid policy update payload",
-        issues: parse.error.issues,
+  fastify.put(
+    "/policy",
+    {
+      schema: {
+        tags: [...PASSKEYS_TAG],
+        summary: "Update step-up biometric and threshold authentication policy",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = PolicyUpdateSchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid policy update payload",
+          issues: parse.error.issues,
+        });
+      }
+
+      currentPolicy = parse.data;
+
+      return reply.status(200).send({
+        success: true,
+        policy: currentPolicy,
+        message: "Políticas de autenticación biométrica step-up actualizadas.",
       });
-    }
-
-    currentPolicy = parse.data;
-
-    return reply.status(200).send({
-      success: true,
-      policy: currentPolicy,
-      message: "Políticas de autenticación biométrica step-up actualizadas.",
-    });
-  });
+    },
+  );
 };
 
 export default passkeysRoutes;

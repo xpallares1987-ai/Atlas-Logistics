@@ -1,3 +1,9 @@
+/**
+ * @file notifications.routes.ts
+ * @description Fastify routes for Microsoft Teams Adaptive Card anomaly webhook dispatch with HMAC-SHA256 signing and Telegram driver report / transport dispatch messaging.
+ * @module @atlas/api/modules/notifications/routes
+ */
+
 import crypto from "node:crypto";
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
@@ -13,8 +19,16 @@ import {
   createDriverReport,
   createDispatchOrder,
 } from "@atlas/shared";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  buildErrorResponses,
+  getErrorMessage,
+} from "../../routes/openapi.schemas.js";
 
-// In-memory state for audit history and driver messages
+// ============================================================================
+// 1. IN-MEMORY AUDIT LEDGER & ZOD VALIDATION SCHEMAS
+// ============================================================================
+
 const auditHistory: WebhookAuditLog[] = [
   {
     id: "wh-init-001",
@@ -103,7 +117,6 @@ const dispatchOrders: TelegramDispatchOrder[] = [
   },
 ];
 
-// Zod validation schemas
 const DispatchWebhookSchema = z.object({
   anomalyType: z.enum([
     "SPAIN_FWD_REF_DUPLICATE",
@@ -167,185 +180,295 @@ const isExampleWebhookUrl = (url: string) => {
   }
 };
 
+// ============================================================================
+// 2. FASTIFY ROUTE PLUGIN REGISTRATION
+// ============================================================================
+
+const NOTIFICATIONS_TAG = ["Notifications & Alerting"] as const;
+
 export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
-  // GET /api/notifications/teams/templates
-  fastify.get("/teams/templates", async () => {
-    const anomalyTypes: OperationalAnomalyType[] = [
-      "SPAIN_FWD_REF_DUPLICATE",
-      "CUSTOMS_CANAL_ROJO",
-      "COLD_CHAIN_TEMP_BREACH",
-      "HAZMAT_VIOLATION",
-      "GROSS_PROFIT_LEAKAGE",
-      "BL_RELEASE_BLOCKED",
-      "ETA_P1_CRITICAL_DELAY",
-      "DEMURRAGE_DETENTION_SPIKE",
-    ];
-
-    const templates = anomalyTypes.map((type) => {
-      const sampleCtx = getSampleAnomalyContext(type);
-      const cardPayload = generateAdaptiveCardPayload(type, sampleCtx);
-      return {
-        anomalyType: type,
-        sampleContext: sampleCtx,
-        cardPayload,
-      };
-    });
-
-    return {
-      success: true,
-      templates,
-    };
-  });
-
-  // POST /api/notifications/teams/dispatch
-  fastify.post("/teams/dispatch", async (request, reply) => {
-    try {
-      const { anomalyType, context, targetWebhookUrl } =
-        DispatchWebhookSchema.parse(request.body);
-      const cardPayload = generateAdaptiveCardPayload(anomalyType, context);
-      const jsonString = JSON.stringify(cardPayload);
-      const signature = generateHmacSignature(jsonString);
-
-      const targetUrl = targetWebhookUrl?.trim() || "";
-      const isSimulated =
-        !targetUrl ||
-        isExampleWebhookUrl(targetUrl) ||
-        targetUrl.toLowerCase() === "simulated";
-
-      const logEntry: WebhookAuditLog = {
-        id: `wh-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
-        anomalyType,
-        gsid: context.gsid,
-        dispatchedAt: new Date().toISOString(),
-        targetUrl: targetUrl
-          ? targetUrl.length > 35
-            ? `${targetUrl.substring(0, 32)}...`
-            : targetUrl
-          : "SIMULATED_LOCAL",
-        status: isSimulated ? "SIMULATED" : "DELIVERED",
-        httpStatus: 200,
-        payloadPreview: cardPayload,
-        hmacSignature: `sha256=${signature}`,
-      };
-
-      if (!isSimulated && typeof fetch !== "undefined") {
-        try {
-          const res = await fetch(targetUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Hub-Signature-256": `sha256=${signature}`,
-              "X-Atlas-Anomaly-Type": anomalyType,
-              "X-Atlas-GSID": context.gsid,
-            },
-            body: jsonString,
-          });
-          logEntry.httpStatus = res.status;
-          logEntry.status = res.ok ? "DELIVERED" : "FAILED";
-          if (!res.ok) {
-            logEntry.errorMessage = `HTTP ${res.status}: ${await res.text().catch(() => "")}`;
-          }
-        } catch (err: any) {
-          logEntry.status = "FAILED";
-          logEntry.errorMessage =
-            err.message || "Network error dispatching webhook";
-        }
-      }
-
-      auditHistory.unshift(logEntry);
-      if (auditHistory.length > 100) auditHistory.pop();
-
-      return reply.send({
-        success: true,
-        data: {
-          log: logEntry,
-          cardPayload,
+  // 1. GET /api/notifications/teams/templates
+  fastify.get(
+    "/teams/templates",
+    {
+      schema: {
+        tags: [...NOTIFICATIONS_TAG],
+        summary:
+          "List Microsoft Teams Adaptive Card templates for operational anomalies",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
         },
+      },
+    },
+    async () => {
+      const anomalyTypes: OperationalAnomalyType[] = [
+        "SPAIN_FWD_REF_DUPLICATE",
+        "CUSTOMS_CANAL_ROJO",
+        "COLD_CHAIN_TEMP_BREACH",
+        "HAZMAT_VIOLATION",
+        "GROSS_PROFIT_LEAKAGE",
+        "BL_RELEASE_BLOCKED",
+        "ETA_P1_CRITICAL_DELAY",
+        "DEMURRAGE_DETENTION_SPIKE",
+      ];
+
+      const templates = anomalyTypes.map((type) => {
+        const sampleCtx = getSampleAnomalyContext(type);
+        const cardPayload = generateAdaptiveCardPayload(type, sampleCtx);
+        return {
+          anomalyType: type,
+          sampleContext: sampleCtx,
+          cardPayload,
+        };
       });
-    } catch (err: any) {
-      return reply.code(400).send({ success: false, error: err.message });
-    }
-  });
 
-  // GET /api/notifications/teams/audit-log
-  fastify.get("/teams/audit-log", async () => {
-    return {
-      success: true,
-      logs: auditHistory,
-    };
-  });
-
-  // POST /api/notifications/telegram/driver-report
-  fastify.post("/telegram/driver-report", async (request, reply) => {
-    try {
-      const parsed = DriverReportSchema.parse(request.body);
-      const newReport = createDriverReport(
-        parsed.driverName,
-        parsed.telegramChatId,
-        parsed.truckId,
-        parsed.reportType,
-        parsed.details,
-        parsed.amountOrMinutes,
-        parsed.location,
-      );
-
-      driverMessages.unshift(newReport);
-      if (driverMessages.length > 150) driverMessages.pop();
-
-      return reply.send({
+      return {
         success: true,
-        data: newReport,
-      });
-    } catch (err: any) {
-      return reply.code(400).send({ success: false, error: err.message });
-    }
-  });
+        templates,
+      };
+    },
+  );
 
-  // GET /api/notifications/telegram/messages
-  fastify.get("/telegram/messages", async () => {
-    return {
-      success: true,
-      messages: driverMessages,
-    };
-  });
+  // 2. POST /api/notifications/teams/dispatch
+  fastify.post(
+    "/teams/dispatch",
+    {
+      schema: {
+        tags: [...NOTIFICATIONS_TAG],
+        summary:
+          "Dispatch an HMAC-signed Microsoft Teams Adaptive Card anomaly alert",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { anomalyType, context, targetWebhookUrl } =
+          DispatchWebhookSchema.parse(request.body);
+        const cardPayload = generateAdaptiveCardPayload(anomalyType, context);
+        const jsonString = JSON.stringify(cardPayload);
+        const signature = generateHmacSignature(jsonString);
 
-  // POST /api/notifications/telegram/dispatch-order
-  fastify.post("/telegram/dispatch-order", async (request, reply) => {
-    try {
-      const parsed = DispatchOrderSchema.parse(request.body);
-      const order = createDispatchOrder(parsed);
+        const targetUrl = targetWebhookUrl?.trim() || "";
+        const isSimulated =
+          !targetUrl ||
+          isExampleWebhookUrl(targetUrl) ||
+          targetUrl.toLowerCase() === "simulated";
 
-      dispatchOrders.unshift(order);
-      if (dispatchOrders.length > 100) dispatchOrders.pop();
+        const logEntry: WebhookAuditLog = {
+          id: `wh-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
+          anomalyType,
+          gsid: context.gsid,
+          dispatchedAt: new Date().toISOString(),
+          targetUrl: targetUrl
+            ? targetUrl.length > 35
+              ? `${targetUrl.substring(0, 32)}...`
+              : targetUrl
+            : "SIMULATED_LOCAL",
+          status: isSimulated ? "SIMULATED" : "DELIVERED",
+          httpStatus: 200,
+          payloadPreview: cardPayload,
+          hmacSignature: `sha256=${signature}`,
+        };
 
-      // Also append an automated event to driver messages
-      const autoMsg = createDriverReport(
-        parsed.driverName,
-        parsed.telegramChatId,
-        parsed.truckId,
-        "GATE_OUT_TIMESTAMP",
-        `Orden de transporte ${order.orderId} despachada hacia ${parsed.deliveryLocation}.`,
-        undefined,
-        parsed.pickupLocation,
-      );
-      driverMessages.unshift(autoMsg);
+        if (!isSimulated && typeof fetch !== "undefined") {
+          try {
+            const res = await fetch(targetUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Hub-Signature-256": `sha256=${signature}`,
+                "X-Atlas-Anomaly-Type": anomalyType,
+                "X-Atlas-GSID": context.gsid,
+              },
+              body: jsonString,
+            });
+            logEntry.httpStatus = res.status;
+            logEntry.status = res.ok ? "DELIVERED" : "FAILED";
+            if (!res.ok) {
+              logEntry.errorMessage = `HTTP ${res.status}: ${await res.text().catch(() => "")}`;
+            }
+          } catch (err: unknown) {
+            logEntry.status = "FAILED";
+            logEntry.errorMessage = getErrorMessage(
+              err,
+              "Network error dispatching webhook",
+            );
+          }
+        }
 
-      return reply.send({
+        auditHistory.unshift(logEntry);
+        if (auditHistory.length > 100) auditHistory.pop();
+
+        return reply.send({
+          success: true,
+          data: {
+            log: logEntry,
+            cardPayload,
+          },
+        });
+      } catch (err: unknown) {
+        return reply
+          .code(400)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
+
+  // 3. GET /api/notifications/teams/audit-log
+  fastify.get(
+    "/teams/audit-log",
+    {
+      schema: {
+        tags: [...NOTIFICATIONS_TAG],
+        summary: "Retrieve recent Microsoft Teams webhook dispatch audit logs",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async () => {
+      return {
         success: true,
-        data: order,
-      });
-    } catch (err: any) {
-      return reply.code(400).send({ success: false, error: err.message });
-    }
-  });
+        logs: auditHistory,
+      };
+    },
+  );
 
-  // GET /api/notifications/telegram/orders
-  fastify.get("/telegram/orders", async () => {
-    return {
-      success: true,
-      orders: dispatchOrders,
-    };
-  });
+  // 4. POST /api/notifications/telegram/driver-report
+  fastify.post(
+    "/telegram/driver-report",
+    {
+      schema: {
+        tags: [...NOTIFICATIONS_TAG],
+        summary: "Ingest field driver operational report from Telegram bot",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parsed = DriverReportSchema.parse(request.body);
+        const newReport = createDriverReport(
+          parsed.driverName,
+          parsed.telegramChatId,
+          parsed.truckId,
+          parsed.reportType,
+          parsed.details,
+          parsed.amountOrMinutes,
+          parsed.location,
+        );
+
+        driverMessages.unshift(newReport);
+        if (driverMessages.length > 150) driverMessages.pop();
+
+        return reply.send({
+          success: true,
+          data: newReport,
+        });
+      } catch (err: unknown) {
+        return reply
+          .code(400)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
+
+  // 5. GET /api/notifications/telegram/messages
+  fastify.get(
+    "/telegram/messages",
+    {
+      schema: {
+        tags: [...NOTIFICATIONS_TAG],
+        summary: "List ingested Telegram field driver messages",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async () => {
+      return {
+        success: true,
+        messages: driverMessages,
+      };
+    },
+  );
+
+  // 6. POST /api/notifications/telegram/dispatch-order
+  fastify.post(
+    "/telegram/dispatch-order",
+    {
+      schema: {
+        tags: [...NOTIFICATIONS_TAG],
+        summary:
+          "Dispatch transport pickup and delivery order to a driver via Telegram",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parsed = DispatchOrderSchema.parse(request.body);
+        const order = createDispatchOrder(parsed);
+
+        dispatchOrders.unshift(order);
+        if (dispatchOrders.length > 100) dispatchOrders.pop();
+
+        const autoMsg = createDriverReport(
+          parsed.driverName,
+          parsed.telegramChatId,
+          parsed.truckId,
+          "GATE_OUT_TIMESTAMP",
+          `Orden de transporte ${order.orderId} despachada hacia ${parsed.deliveryLocation}.`,
+          undefined,
+          parsed.pickupLocation,
+        );
+        driverMessages.unshift(autoMsg);
+
+        return reply.send({
+          success: true,
+          data: order,
+        });
+      } catch (err: unknown) {
+        return reply
+          .code(400)
+          .send({ success: false, error: getErrorMessage(err) });
+      }
+    },
+  );
+
+  // 7. GET /api/notifications/telegram/orders
+  fastify.get(
+    "/telegram/orders",
+    {
+      schema: {
+        tags: [...NOTIFICATIONS_TAG],
+        summary: "List active Telegram transport dispatch orders",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async () => {
+      return {
+        success: true,
+        orders: dispatchOrders,
+      };
+    },
+  );
 };
 
 export default notificationsRoutes;

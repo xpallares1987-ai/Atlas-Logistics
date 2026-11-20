@@ -259,7 +259,28 @@ export function registerShipment360Projectors(): void {
   registerAutomationSubscribers();
 
   // 1. On ShipmentCreated -> Initialize the Shipment360ReadModel projection
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    shipmentReference: string;
+    lifecycleState: string;
+    executionPhase: string;
+    closureState: string;
+    serviceMode: string;
+    serviceType: string;
+    incoterm: string;
+    direction: string;
+    organizationId: string;
+    branchId: string;
+    teamId: string;
+    ownerUserId: string;
+    externalRefs?: Shipment360ReadModel["header"]["externalReferences"];
+    healthStatus?: Shipment360ReadModel["controlSummary"]["health"]["status"];
+    healthScore?: number;
+    customerAccountId: string;
+    customerName: string;
+    partyRoles?: Shipment360ReadModel["commercialContext"]["parties"];
+    orderLinks?: Shipment360ReadModel["commercialContext"]["linkedOrders"];
+  }>(
     "shipment_execution.ShipmentCreated.v1",
     "op_intelligence.Shipment360Projector.OnShipmentCreated",
     async (event) => {
@@ -369,7 +390,19 @@ export function registerShipment360Projectors(): void {
   );
 
   // 2. On OrderPartiallyFulfilled / OrderFulfilled -> Update linked order status in projection
-  const handleOrderFulfilmentEvent = async (event: DomainEventEnvelope) => {
+  interface OrderFulfilmentPayload {
+    shipmentId?: string;
+    orderId: string;
+    orderNumber: string;
+    allocationType: string;
+    allocatedPackages: number;
+    allocatedWeightKg: number;
+    orderStatus?: string;
+  }
+
+  const handleOrderFulfilmentEvent = async (
+    event: DomainEventEnvelope<OrderFulfilmentPayload>,
+  ) => {
     const p = event.payload;
     if (!p.shipmentId) return;
     await updateProjectionForShipment(p.shipmentId, event, (model) => {
@@ -404,7 +437,13 @@ export function registerShipment360Projectors(): void {
   );
 
   // 3. On RouteVersionPublished -> Update routing section + sync MilestonePlan + init SLA clocks
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    routePlanId: string;
+    versionNo: number;
+    stops: Array<Record<string, unknown>>;
+    legs: Array<Record<string, unknown>>;
+  }>(
     "transport_planning.RouteVersionPublished.v1",
     "op_intelligence.Shipment360Projector.OnRouteVersionPublished",
     async (event) => {
@@ -413,16 +452,24 @@ export function registerShipment360Projectors(): void {
         {
           shipmentId: p.shipmentId,
           versionNo: p.versionNo,
-          stops: p.stops,
-          legs: p.legs,
+          stops: p.stops as Parameters<
+            typeof syncMilestonePlanFromRouteVersion
+          >[0]["stops"],
+          legs: p.legs as Parameters<
+            typeof syncMilestonePlanFromRouteVersion
+          >[0]["legs"],
         },
         event.actor,
       );
       await initializeSlaClocksForShipment(
         {
           shipmentId: p.shipmentId,
-          stops: p.stops,
-          legs: p.legs,
+          stops: p.stops as Parameters<
+            typeof initializeSlaClocksForShipment
+          >[0]["stops"],
+          legs: p.legs as Parameters<
+            typeof initializeSlaClocksForShipment
+          >[0]["legs"],
         },
         event.actor,
       );
@@ -443,7 +490,17 @@ export function registerShipment360Projectors(): void {
   );
 
   // 4. On CargoDeclared -> Update cargo hierarchy & totals in projection
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    cargoId: string;
+    packages: unknown;
+    totalPackages: number;
+    totalGrossWeightKg: number;
+    totalVolumeCbm: number;
+    chargeableWeightKg: number;
+    hasDangerousGoods?: boolean;
+    hasTemperatureControl?: boolean;
+  }>(
     "cargo_equipment.CargoDeclared.v1",
     "op_intelligence.Shipment360Projector.OnCargoDeclared",
     async (event) => {
@@ -469,7 +526,7 @@ export function registerShipment360Projectors(): void {
   );
 
   // 5. On DangerousGoodsDeclared -> Flag risk driver in controlSummary
-  outboxBus.subscribe(
+  outboxBus.subscribe<{ shipmentId: string }>(
     "cargo_equipment.DangerousGoodsDeclared.v1",
     "op_intelligence.Shipment360Projector.OnDangerousGoodsDeclared",
     async (event) => {
@@ -489,7 +546,18 @@ export function registerShipment360Projectors(): void {
   );
 
   // 6. On EquipmentAssigned -> Update equipment list in projection
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    equipmentAssignmentId: string;
+    equipmentNumber: string;
+    isoTypeCode: string;
+    equipmentCategory: string;
+    seals: unknown;
+    vgmWeightKg?: number;
+    pickupPin?: string;
+    status: string;
+    cargoAllocations?: unknown;
+  }>(
     "cargo_equipment.EquipmentAssigned.v1",
     "op_intelligence.Shipment360Projector.OnEquipmentAssigned",
     async (event) => {
@@ -511,7 +579,12 @@ export function registerShipment360Projectors(): void {
   );
 
   // 7. On ShipmentDelivered / ShipmentClosed / ShipmentReopened
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    lifecycleState: string;
+    executionPhase: string;
+    closureState: string;
+  }>(
     "shipment_execution.ShipmentDelivered.v1",
     "op_intelligence.Shipment360Projector.OnShipmentDelivered",
     async (event) => {
@@ -524,7 +597,11 @@ export function registerShipment360Projectors(): void {
     },
   );
 
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    lifecycleState: string;
+    closureState: string;
+  }>(
     "shipment_execution.ShipmentClosed.v1",
     "op_intelligence.Shipment360Projector.OnShipmentClosed",
     async (event) => {
@@ -536,7 +613,11 @@ export function registerShipment360Projectors(): void {
     },
   );
 
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    lifecycleState: string;
+    closureState: string;
+  }>(
     "shipment_execution.ShipmentReopened.v1",
     "op_intelligence.Shipment360Projector.OnShipmentReopened",
     async (event) => {
@@ -549,7 +630,19 @@ export function registerShipment360Projectors(): void {
   );
 
   // 8. Slice 2 & 3 Projectors: Tracking Events, SLA Stop-Clock, Data Quality & Exceptions
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    milestones?: MilestoneItem[];
+    streamEventId: string;
+    eventCode: string;
+    milestoneCode: string;
+    locationLocode: string;
+    sourceType: string;
+    sourceTrustRank: number;
+    timestampKind: string;
+    eventTimestamp: string;
+    summary: string;
+  }>(
     "tracking_events.TransportEventReceived.v1",
     "op_intelligence.Shipment360Projector.OnTransportEventReceived",
     async (event) => {
@@ -572,7 +665,12 @@ export function registerShipment360Projectors(): void {
     },
   );
 
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    severity: string;
+    category: string;
+    milestoneCode: string;
+  }>(
     "exception_mgmt.ExceptionDetected.v1",
     "op_intelligence.Shipment360Projector.OnExceptionDetected",
     async (event) => {
@@ -592,7 +690,14 @@ export function registerShipment360Projectors(): void {
     },
   );
 
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId: string;
+    activeStage?: string;
+    score: number;
+    gateStatus: "PASSED" | "WARN" | "BLOCKED";
+    openFindingsCount: number;
+    findings?: QualityFinding[];
+  }>(
     "data_quality.QualityAssessmentCompleted.v1",
     "op_intelligence.Shipment360Projector.OnQualityAssessmentCompleted",
     async (event) => {
@@ -629,7 +734,7 @@ export function registerShipment360Projectors(): void {
     },
   );
 
-  outboxBus.subscribe(
+  outboxBus.subscribe<{ shipmentId?: string; state?: string }>(
     "workflow_runtime.WorkflowTokenAdvanced.v1",
     "op_intelligence.Shipment360Projector.OnWorkflowTokenAdvanced",
     async (event) => {
@@ -643,7 +748,7 @@ export function registerShipment360Projectors(): void {
     },
   );
 
-  outboxBus.subscribe(
+  outboxBus.subscribe<{ shipmentId?: string }>(
     "workflow_runtime.ProcessStateChanged.v1",
     "op_intelligence.Shipment360Projector.OnProcessStateChanged",
     async (event) => {
@@ -656,7 +761,15 @@ export function registerShipment360Projectors(): void {
   );
 
   // 10. Slice 5 Projectors: Consolidation (House/Master), Versioned Documents & Multi-Procedure Customs
-  outboxBus.subscribe(
+  outboxBus.subscribe<{
+    shipmentId?: string;
+    transportLegSequenceNo: number;
+    consolidationId: string;
+    consolidationReference: string;
+    masterDocumentNumber: string;
+    houseDocumentNumber: string;
+    consolidationType: string;
+  }>(
     "consolidation.ShipmentAddedToConsolidation.v1",
     "op_intelligence.Shipment360Projector.OnShipmentAddedToConsolidation",
     async (event) => {

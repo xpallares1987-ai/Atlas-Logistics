@@ -1,10 +1,53 @@
 import PDFDocument from "pdfkit";
 
+type PdfInputRecord = Readonly<Record<string, unknown>> | object;
+
+interface CustomsBondingDocPdfInput {
+  lotNumber?: string | null;
+  inclusionDvdNumber?: string | null;
+  inclusionDuaMrn?: string | null;
+  facilityName?: string | null;
+  facilityAuthorizationRef?: string | null;
+  customsRegimeCode?: string | null;
+  warehouseLocationRack?: string | null;
+  ownerCompanyName?: string | null;
+  ownerTaxIdEori?: string | null;
+  originCountryCode?: string | null;
+  inclusionDate?: string | null;
+  taricCommodityCode?: string | null;
+  goodsDescription?: string | null;
+  initialPackageCount?: number | null;
+  currentPackageCount?: number | null;
+  currentGrossMassKg?: number | null;
+  currentNetMassKg?: number | null;
+  status?: string | null;
+  customsValueEur?: number | null;
+  dutyTariffRatePercent?: number | null;
+  importVatRatePercent?: number | null;
+  responsibleCustomsAgent?: string | null;
+  guaranteeReferenceNumber?: string | null;
+  guarantorBank?: string | null;
+  suspendedDutyAmountEur?: number | null;
+  suspendedVatAmountEur?: number | null;
+  totalSuspendedDebtEur?: number | null;
+}
+
+interface CustomsStockCertificatePdfInput {
+  facilityName?: string | null;
+  lots?: readonly CustomsBondingDocPdfInput[] | null;
+  totalSuspendedDebtEur?: number | null;
+  totalPackages?: number | null;
+  totalGrossMassKg?: number | null;
+}
+
 export class CustomsWarehousePdfGenerator {
   /**
    * Generates Official Customs Bonding / Discharge Document (Documento DVD / DUA 7100/7600 PDF)
    */
-  static async generateCustomsBondingDocumentPdf(data: any): Promise<Buffer> {
+  static async generateCustomsBondingDocumentPdf(
+    rawData: PdfInputRecord,
+  ): Promise<Buffer> {
+    const data = rawData as CustomsBondingDocPdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
@@ -280,7 +323,10 @@ export class CustomsWarehousePdfGenerator {
   /**
    * Generates Official Stock & Suspended Debt Certificate (Certificado de Existencias Aduaneras PDF)
    */
-  static async generateCustomsStockCertificatePdf(data: any): Promise<Buffer> {
+  static async generateCustomsStockCertificatePdf(
+    rawData: PdfInputRecord,
+  ): Promise<Buffer> {
+    const data = rawData as CustomsStockCertificatePdfInput;
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({

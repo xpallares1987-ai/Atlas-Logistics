@@ -1,8 +1,17 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
-class UpdateRecordsWorker extends AtlasWorker<any, any> {
+interface UpdateRecordsInput {
+  shipmentId?: string;
+}
+
+class UpdateRecordsWorker extends AtlasWorker<
+  UpdateRecordsInput,
+  Record<string, never>
+> {
   readonly taskType = "atlas.invoice.update-records";
-  async execute(job: any): Promise<any> {
+  async execute(
+    job: AtlasWorkerJob<UpdateRecordsInput>,
+  ): Promise<Record<string, never>> {
     console.log(
       `[UpdateRecordsWorker] Updating financial records for shipment ${job.variables.shipmentId}`,
     );

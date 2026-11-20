@@ -69,12 +69,12 @@ export class LightweightBpmnParser {
 
     // Helper to extract incoming/outgoing
     const getFlows = (
-      obj: any,
+      obj: Record<string, unknown>,
       prop: "bpmn:incoming" | "bpmn:outgoing",
     ): string[] => {
       const val = obj[prop];
       if (!val) return [];
-      return Array.isArray(val) ? val : [val];
+      return Array.isArray(val) ? val.map(String) : [String(val)];
     };
 
     // Helper to parse elements

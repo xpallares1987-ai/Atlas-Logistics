@@ -1,4 +1,4 @@
-import { AtlasWorker } from "../../utils/worker-base.js";
+import { AtlasWorker, AtlasWorkerJob } from "../../utils/worker-base.js";
 
 interface PaymentReminderInput {
   invoiceId: string;
@@ -15,7 +15,9 @@ class PaymentReminderWorker extends AtlasWorker<
 > {
   readonly taskType = "atlas.invoice.payment-reminder";
 
-  async execute(job: any): Promise<PaymentReminderOutput> {
+  async execute(
+    job: AtlasWorkerJob<PaymentReminderInput>,
+  ): Promise<PaymentReminderOutput> {
     const { invoiceNumber } = job.variables;
     console.log(
       `[PaymentReminderWorker] Sending payment reminder for invoice ${invoiceNumber}`,
