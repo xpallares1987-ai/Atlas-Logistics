@@ -69,6 +69,9 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
   it("POST /api/notifications/teams/dispatch should only simulate example.com hosts", async () => {
     const fetchMock = vi.fn().mockResolvedValue({ status: 200, ok: true });
     vi.stubGlobal("fetch", fetchMock);
+    const previousAllowlist = process.env.TEAMS_WEBHOOK_ALLOWLIST;
+    process.env.TEAMS_WEBHOOK_ALLOWLIST =
+      "https://tenant.webhook.office.com/example.com/webhook";
 
     try {
       for (const [targetWebhookUrl, expectedStatus, expectedFetchCalls] of [
@@ -101,6 +104,11 @@ describe("Omnichannel Notifications Routes Integration Tests", () => {
         expect(fetchMock).toHaveBeenCalledTimes(expectedFetchCalls);
       }
     } finally {
+      if (previousAllowlist === undefined) {
+        delete process.env.TEAMS_WEBHOOK_ALLOWLIST;
+      } else {
+        process.env.TEAMS_WEBHOOK_ALLOWLIST = previousAllowlist;
+      }
       vi.unstubAllGlobals();
     }
   });

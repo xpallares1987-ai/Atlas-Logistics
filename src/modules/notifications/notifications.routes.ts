@@ -191,7 +191,7 @@ const ALLOWED_TEAMS_HOST_SUFFIXES = [
   ".logic.azure.com",
 ] as const;
 
-function resolveValidatedTeamsWebhookUrl(rawUrl: string): URL {
+function resolveValidatedTeamsWebhookUrl(rawUrl: string): string {
   const parsed = new URL(rawUrl);
   if (parsed.protocol !== "https:" || parsed.username || parsed.password) {
     throw new Error(
@@ -220,10 +220,44 @@ function resolveValidatedTeamsWebhookUrl(rawUrl: string): URL {
     );
   }
 
-  const safeOrigin = matchedExact
-    ? `https://${matchedExact}`
-    : `https://${hostname}`;
-  return new URL(`${parsed.pathname}${parsed.search}`, safeOrigin);
+  // SSRF guard (CodeQL js/request-forgery): never forward the user-provided URL.
+  // Only dispatch to an operator-registered webhook from TEAMS_WEBHOOK_ALLOWLIST,
+  // returning the server-side configured string (not the request value).
+  const normalizedCandidate = parsed.href;
+  const registered = getRegisteredTeamsWebhooks().find(
+    (configured) => configured.href === normalizedCandidate,
+  );
+  if (!registered) {
+    throw new Error(
+      "Webhook URL is not registered in TEAMS_WEBHOOK_ALLOWLIST; outbound dispatch refused",
+    );
+  }
+  return registered.configured;
+}
+
+/**
+ * Parses the operator-managed TEAMS_WEBHOOK_ALLOWLIST environment variable.
+ * @returns Registered webhook entries with their raw configured value and normalized href.
+ */
+function getRegisteredTeamsWebhooks(): Array<{
+  configured: string;
+  href: string;
+}> {
+  const raw = process.env.TEAMS_WEBHOOK_ALLOWLIST || "";
+  const entries: Array<{ configured: string; href: string }> = [];
+  for (const item of raw.split(",")) {
+    const configured = item.trim();
+    if (!configured) continue;
+    try {
+      const url = new URL(configured);
+      if (url.protocol === "https:") {
+        entries.push({ configured, href: url.href });
+      }
+    } catch {
+      // Ignore malformed operator entries
+    }
+  }
+  return entries;
 }
 
 // ============================================================================
@@ -315,9 +349,9 @@ export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
           gsid: context.gsid,
           dispatchedAt: new Date().toISOString(),
           targetUrl: validatedWebhookUrl
-            ? validatedWebhookUrl.href.length > 35
-              ? `${validatedWebhookUrl.href.substring(0, 32)}...`
-              : validatedWebhookUrl.href
+            ? validatedWebhookUrl.length > 35
+              ? `${validatedWebhookUrl.substring(0, 32)}...`
+              : validatedWebhookUrl
             : targetUrl
               ? targetUrl.length > 35
                 ? `${targetUrl.substring(0, 32)}...`
@@ -331,7 +365,7 @@ export const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
 
         if (validatedWebhookUrl && typeof fetch !== "undefined") {
           try {
-            const res = await fetch(validatedWebhookUrl.href, {
+            const res = await fetch(validatedWebhookUrl, {
               method: "POST",
               redirect: "error",
               headers: {

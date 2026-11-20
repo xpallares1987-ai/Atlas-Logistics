@@ -184,6 +184,14 @@ export const ENV_CONTRACT_CATALOG: Record<string, EnvVarDescriptor> = {
     environments: ["development", "production"],
     secret: true,
   },
+  TEAMS_WEBHOOK_ALLOWLIST: {
+    description:
+      "Comma-separated list of pre-registered Microsoft Teams / Logic Apps HTTPS webhook URLs permitted for outbound anomaly dispatch (SSRF guard)",
+    type: "string",
+    requiredInProduction: false,
+    environments: ["development", "production"],
+    secret: true,
+  },
 };
 
 // ============================================================================
@@ -255,6 +263,7 @@ export const envSchema = z
       .default("https://assistant-prod-eu-west-2.grafana.net/assistant"),
     GRAFANA_ASSISTANT_INSTANCE_ID: z.string().default("1917865"),
     GRAFANA_ASSISTANT_TOKEN: z.string().optional(),
+    TEAMS_WEBHOOK_ALLOWLIST: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === "production") {

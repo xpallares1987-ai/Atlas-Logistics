@@ -30,9 +30,13 @@ describe("CodeQL Security Alerts Remediation (#104, #107, #108, #109)", () => {
     await app.close();
   });
 
-  it("CodeQL #104: blocks SSRF targets, IP literals, HTTP downgrades, and non-Teams hosts in POST /api/notifications/teams/dispatch", async () => {
+  it("CodeQL #104 & #110: blocks SSRF targets, IP literals, HTTP downgrades, non-Teams hosts, and unregistered Teams URLs in POST /api/notifications/teams/dispatch", async () => {
     const fetchMock = vi.fn().mockResolvedValue({ status: 200, ok: true });
     vi.stubGlobal("fetch", fetchMock);
+    const previousAllowlist = process.env.TEAMS_WEBHOOK_ALLOWLIST;
+    const approvedUrl =
+      "https://approved.webhook.office.com/workflows/atlas-alerts";
+    process.env.TEAMS_WEBHOOK_ALLOWLIST = approvedUrl;
 
     try {
       const blockedUrls = [
@@ -41,6 +45,7 @@ describe("CodeQL Security Alerts Remediation (#104, #107, #108, #109)", () => {
         "http://outlook.office.com/webhook/insecure",
         "https://user:secret@outlook.office.com/webhook/creds",
         "https://evil.test/steal",
+        "https://unregistered.webhook.office.com/workflows/not-in-allowlist",
       ];
 
       for (const targetWebhookUrl of blockedUrls) {
@@ -61,7 +66,33 @@ describe("CodeQL Security Alerts Remediation (#104, #107, #108, #109)", () => {
         expect(res.statusCode).toBe(400);
         expect(fetchMock).not.toHaveBeenCalled();
       }
+
+      // Registered server-side URL must succeed and dispatch with redirect: "error"
+      fetchMock.mockClear();
+      const okRes = await app.inject({
+        method: "POST",
+        url: "/api/notifications/teams/dispatch",
+        payload: {
+          anomalyType: "HAZMAT_VIOLATION",
+          context: {
+            gsid: "GS-2026-ALG-55012",
+            severity: "CRITICAL",
+          },
+          targetWebhookUrl: approvedUrl,
+        },
+      });
+      expect(okRes.statusCode).toBe(200);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        approvedUrl,
+        expect.objectContaining({ method: "POST", redirect: "error" }),
+      );
     } finally {
+      if (previousAllowlist === undefined) {
+        delete process.env.TEAMS_WEBHOOK_ALLOWLIST;
+      } else {
+        process.env.TEAMS_WEBHOOK_ALLOWLIST = previousAllowlist;
+      }
       vi.unstubAllGlobals();
     }
   });
