@@ -1,7 +1,7 @@
 /**
- * @file systemPanelHelpers.ts
+ * @file helpers.ts
  * @description Pure helper functions and mathematical validators for System Administration domain.
- * @module @atlas/frontend/components/SystemPanel/hooks
+ * @module @atlas/frontend/components/SystemPanel/utils
  * @see {@link docs/adr/0020-frontend-modular-decomposition.md}
  */
 

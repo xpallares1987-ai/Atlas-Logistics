@@ -101,6 +101,9 @@ jobs:
       - name: Verify zero-innerHTML DOM safety
         run: pnpm run audit:innerhtml
 
+      - name: Verify DRY file naming conventions
+        run: pnpm run audit:naming
+
       - name: Verify SQLite WAL backup and restoration test
         run: pnpm run test:backup-restore
 

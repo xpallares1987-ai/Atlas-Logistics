@@ -12,7 +12,7 @@ import {
   calculateQuotaPercentage,
   calculateTotalSeedRecords,
   filterResolutionNotes,
-} from "../systemPanelHelpers";
+} from "../../utils/helpers";
 import type { SeedStatusStats } from "../../../../types/system-panel.types";
 
 describe("systemPanelHelpers", () => {

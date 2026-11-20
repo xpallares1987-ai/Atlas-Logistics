@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { motion, Variants } from "framer-motion";
 import { Button, Input } from "@atlas/ui";
-import { SettlementDetailsDrawer } from "../features/invoicing/components/SettlementDetailsDrawer";
+import { SettlementDetailsDrawer } from "../features/invoicing/components";
 
 interface AgentSettlement {
   id: string;

@@ -10,7 +10,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { ScheduleBookingModal } from "../components/ScheduleBookingModal";
+import { ScheduleBookingModal } from "../components/bookings";
 import { motion, AnimatePresence } from "framer-motion";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";

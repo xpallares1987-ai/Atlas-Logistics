@@ -21,7 +21,7 @@ import type {
   DemurrageAuditResult,
   EDI315Milestone,
 } from "@atlas/shared";
-import { buildFmcChecklistItems } from "../hooks/demurrageHelpers";
+import { buildFmcChecklistItems } from "../utils/helpers";
 
 interface AuditProps {
   currentInvoice: CarrierInvoiceData;

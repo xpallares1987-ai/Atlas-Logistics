@@ -25,8 +25,8 @@ import {
   buildEdi315Milestones,
   calculateSuspensionDays,
   filterDemurrageInvoices,
-} from "./demurrageHelpers";
-import { downloadDisputeDossierPdf } from "./demurragePdfExporter";
+} from "../utils/helpers";
+import { downloadDisputeDossierPdf } from "../utils/pdfExporter";
 import type {
   GeminiFmcDraftResult,
   DispatchReceipt,

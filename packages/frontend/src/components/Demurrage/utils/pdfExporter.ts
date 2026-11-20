@@ -1,7 +1,7 @@
 /**
- * @file demurragePdfExporter.ts
+ * @file pdfExporter.ts
  * @description Statutory PDF dossier generator for FMC 46 CFR Part 541 / EU Port Rules demurrage disputes.
- * @module @atlas/frontend/components/Demurrage/hooks
+ * @module @atlas/frontend/components/Demurrage/utils
  * @see {@link docs/adr/0020-frontend-modular-decomposition.md}
  */
 

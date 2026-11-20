@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { PackageSearch, FileText, Search, PlusCircle } from "lucide-react";
-import { ShipmentTracker } from "../features/portal/ShipmentTracker";
-import { DocumentUpload } from "../features/portal/DocumentUpload";
 import {
+  ShipmentTracker,
+  DocumentUpload,
   QuoteWizardModal,
   type PortalBookedQuote,
-} from "../features/portal/QuoteWizardModal";
+} from "../features/portal";
 import { Button, Input } from "@atlas/ui";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

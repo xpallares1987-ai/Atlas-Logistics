@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { motion, Variants } from "framer-motion";
 import { ReportsDashboard } from "../features/invoicing/ReportsDashboard";
-import { CreateInvoiceModal } from "../features/invoicing/components/CreateInvoiceModal";
+import { CreateInvoiceModal } from "../features/invoicing/components";
 import {
   Button,
   Input,

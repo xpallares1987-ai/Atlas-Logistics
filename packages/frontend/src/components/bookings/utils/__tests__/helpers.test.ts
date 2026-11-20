@@ -1,7 +1,7 @@
 /**
- * @file bookingHelpers.test.ts
+ * @file helpers.test.ts
  * @description Unit tests for Ocean Booking relational mapping, countdown formatting, and spot quote generation.
- * @module @atlas/frontend/components/bookings/hooks/__tests__
+ * @module @atlas/frontend/components/bookings/utils/__tests__
  */
 
 import { describe, it, expect } from "vitest";
@@ -10,7 +10,7 @@ import {
   mapDbToOceanBooking,
   formatCountdown,
   buildRateLockQuotes,
-} from "../bookingHelpers";
+} from "../helpers";
 
 describe("bookingHelpers", () => {
   it("returns CANONICAL_FALLBACK_OCEAN_BOOKING when detail and parentBooking are null", () => {

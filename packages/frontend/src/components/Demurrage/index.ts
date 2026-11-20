@@ -14,6 +14,6 @@ export { Suspensions } from "./Tab/Suspensions";
 export { Audit } from "./Tab/Audit";
 export { Dossier } from "./Tab/Dossier";
 
-export * from "./hooks/demurrageHelpers";
-export * from "./hooks/demurragePdfExporter";
+export * from "./utils/helpers";
+export * from "./utils/pdfExporter";
 export * from "./hooks/useDemurrageManager";

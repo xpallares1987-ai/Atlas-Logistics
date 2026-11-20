@@ -17,12 +17,10 @@ import {
 import { Button } from "@atlas/ui";
 import {
   DrayageRouteMap,
-  RoutePoint,
-} from "../components/drayage/DrayageRouteMap";
-import {
   DigitalGatePassModal,
-  DrayageOrderDetails,
-} from "../components/drayage/DigitalGatePassModal";
+  type RoutePoint,
+  type DrayageOrderDetails,
+} from "../components/drayage";
 
 interface DrayageAddressOption {
   id: string;

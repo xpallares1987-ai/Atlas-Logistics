@@ -17,7 +17,7 @@ import type {
   BookingSiStudioTabProps,
   OceanBooking,
 } from "../../../types/booking-management.types";
-import type { BookingInboxItem } from "../Panel/BookingInbox";
+import type { BookingInboxItem } from "../Panel/Inbox";
 import {
   downloadDraftBLModalPdf,
   downloadShippingInstructionsPdf,
@@ -28,7 +28,7 @@ import {
   mapDbToOceanBooking,
   formatCountdown,
   buildRateLockQuotes,
-} from "./bookingHelpers";
+} from "../utils/helpers";
 
 export function useBookingManagement() {
   const queryClient = useQueryClient();

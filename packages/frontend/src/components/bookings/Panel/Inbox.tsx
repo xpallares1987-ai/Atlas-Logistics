@@ -1,5 +1,5 @@
 /**
- * @file BookingInbox.tsx
+ * @file Inbox.tsx
  * @description Live 2-Phase Operational Booking Inbox (Booking -> Active Shipment + Draft B/L).
  * @module @atlas/frontend/components/bookings/Panel
  * @see {@link docs/adr/0020-modular-decomposition-guardrails.md}

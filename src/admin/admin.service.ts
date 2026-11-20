@@ -1,5 +1,5 @@
 /**
- * @file adminService.ts
+ * @file admin.service.ts
  * @description Administrative initialization services and root user provisioning.
  * @module @atlas/api/admin
  * @see {@link docs/adr/0023-native-web-crypto-session-migration.md}

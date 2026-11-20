@@ -11,7 +11,7 @@ import {
   validateNewColumnInput,
   validateTotpInput,
   formatSchemaSummary,
-} from "../settingsHelpers";
+} from "../../utils/helpers";
 
 describe("Settings Domain Helpers & Validation", () => {
   describe("validateNewTableInput", () => {

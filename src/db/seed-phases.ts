@@ -39,7 +39,7 @@ async function main() {
     }
 
     // Ensure admin user exists
-    const { createAdmin } = await import("../admin/adminService.js");
+    const { createAdmin } = await import("../admin/admin.service.js");
     await createAdmin();
     logger.info(
       `Admin user ensured. Seed execution for Phase [${phaseArg}] completed successfully.`,

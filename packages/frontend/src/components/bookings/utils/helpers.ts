@@ -1,7 +1,7 @@
 /**
- * @file bookingHelpers.ts
+ * @file helpers.ts
  * @description Pure domain helpers for mapping relational SQLite ocean booking rows, formatting rate-lock timers, and building multi-carrier spot quotes.
- * @module @atlas/frontend/components/bookings/hooks
+ * @module @atlas/frontend/components/bookings/utils
  * @see {@link docs/adr/0020-modular-decomposition-guardrails.md}
  */
 

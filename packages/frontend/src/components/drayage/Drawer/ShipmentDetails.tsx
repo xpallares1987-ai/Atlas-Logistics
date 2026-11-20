@@ -11,11 +11,11 @@ import {
   Leaf,
 } from "lucide-react";
 import { Button } from "@atlas/ui";
-import { DrayageRouteMap, RoutePoint } from "./DrayageRouteMap";
+import { DrayageRouteMap, RoutePoint } from "../RouteMap";
 import {
   DigitalGatePassModal,
   DrayageOrderDetails,
-} from "./DigitalGatePassModal";
+} from "../Modal/DigitalGatePass";
 
 export interface DrayageShipment {
   id?: string;

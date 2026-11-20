@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Trash2 } from "lucide-react";
 import { Button, Input } from "@atlas/ui";
 import { getSecureRandomInt, getSecureRandomString } from "@atlas/shared";
-import { useQueryClient } from "../../../hooks/useApiQuery";
+import { useQueryClient } from "../../../../hooks/useApiQuery";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 

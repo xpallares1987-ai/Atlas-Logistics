@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, FileText, CheckCircle2, Clock, Printer } from "lucide-react";
 import { Button } from "@atlas/ui";
-import { useApiQuery } from "../../../hooks/useApiQuery";
+import { useApiQuery } from "../../../../hooks/useApiQuery";
 import {
   Table,
   TableHeader,

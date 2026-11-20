@@ -15,7 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@atlas/ui";
-import { filterResolutionNotes } from "../hooks/systemPanelHelpers";
+import { filterResolutionNotes } from "../utils/helpers";
 import type { PredefinedResolutionNote } from "../../../store/useResolutionNotesStore";
 import type { SemanticSearchResultsState } from "../../../types/system-panel.types";
 

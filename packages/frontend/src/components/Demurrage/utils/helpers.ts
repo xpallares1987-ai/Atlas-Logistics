@@ -1,7 +1,7 @@
 /**
- * @file demurrageHelpers.ts
+ * @file helpers.ts
  * @description Pure domain transformers, FMC 46 CFR Part 541 checklist builders, and date calculators for Demurrage & Detention.
- * @module @atlas/frontend/components/Demurrage/hooks
+ * @module @atlas/frontend/components/Demurrage/utils
  * @see {@link docs/adr/0020-frontend-modular-decomposition.md}
  */
 

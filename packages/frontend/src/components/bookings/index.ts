@@ -10,7 +10,7 @@ export { Navigation } from "./Navigation.js";
 export { KanbanSummary } from "./Banner/KanbanSummary.js";
 export { RelationalContext } from "./Banner/RelationalContext.js";
 export { KpiStrip } from "./Banner/KpiStrip.js";
-export { BookingInbox } from "./Panel/BookingInbox.js";
+export { BookingInbox, BookingInbox as Inbox } from "./Panel/Inbox.js";
 
 export {
   BookingRateLockTab,
@@ -37,6 +37,10 @@ export {
   NewBookingRequestModal,
   NewBookingRequestModal as NewRequest,
 } from "./Modal/NewRequest.js";
+export {
+  ScheduleBookingModal,
+  ScheduleBookingModal as Schedule,
+} from "./Modal/Schedule.js";
 
 export { useBookingManagement } from "./hooks/useBookingManagement.js";
 export {
@@ -44,4 +48,4 @@ export {
   mapDbToOceanBooking,
   formatCountdown,
   buildRateLockQuotes,
-} from "./hooks/bookingHelpers.js";
+} from "./utils/helpers.js";

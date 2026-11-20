@@ -18,4 +18,4 @@ export { Webhooks } from "./Tab/Webhooks";
 
 export * from "./hooks/useDatabaseSeed";
 export * from "./hooks/useGeminiGateway";
-export * from "./hooks/systemPanelHelpers";
+export * from "./utils/helpers";

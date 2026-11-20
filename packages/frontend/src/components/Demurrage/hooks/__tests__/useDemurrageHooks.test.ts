@@ -14,7 +14,7 @@ import {
   calculateSuspensionDays,
   filterDemurrageInvoices,
   buildFmcChecklistItems,
-} from "../demurrageHelpers";
+} from "../../utils/helpers";
 
 describe("demurrageHelpers", () => {
   describe("mapDbInvoiceToCarrierData", () => {

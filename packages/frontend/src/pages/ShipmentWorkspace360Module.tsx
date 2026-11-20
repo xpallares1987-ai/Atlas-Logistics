@@ -23,7 +23,7 @@ import {
 import {
   ShipmentDrayageDrawer,
   type DrayageShipment,
-} from "../components/drayage/ShipmentDrayageDrawer";
+} from "../components/drayage";
 import {
   ShipmentGreenComplianceReadModel,
   OperationalShipment360View,

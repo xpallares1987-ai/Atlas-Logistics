@@ -1,7 +1,7 @@
 /**
- * @file settingsHelpers.ts
+ * @file helpers.ts
  * @description Pure domain helper functions for Settings validation, DDL formatting, and TOTP checks.
- * @module @atlas/frontend/components/Settings/hooks/settingsHelpers
+ * @module @atlas/frontend/components/Settings/utils
  * @see {@link docs/adr/0020-frontend-modular-decomposition-and-file-size-guardrails.md}
  */
 

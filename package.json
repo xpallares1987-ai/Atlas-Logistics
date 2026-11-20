@@ -57,6 +57,7 @@
     "audit:legacy-docs": "node scripts/check-legacy-docs.mjs",
     "audit:links": "node scripts/check-markdown-links.mjs",
     "audit:innerhtml": "node scripts/check-zero-innerhtml.mjs",
+    "audit:naming": "node scripts/check-naming-conventions.mjs",
     "test:backup-restore": "node scripts/test-sqlite-backup-restore.mjs",
     "check:file-sizes": "node scripts/check-file-sizes.mjs",
     "wiki:sync": "node scripts/sync-wiki.mjs"
