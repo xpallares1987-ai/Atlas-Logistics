@@ -1,3 +1,9 @@
+/**
+ * @file control-tower.routes.ts
+ * @description Fastify routes for Control Tower KPIs, operational incident triage, rerouting, freight audit disputes, ICS2 radar, and multimodal spot pricing.
+ * @module @atlas/api/routes/control-tower
+ */
+
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import {
   ControlTowerService,
@@ -5,11 +11,29 @@ import {
   SpotRateParams,
 } from "../services/control-tower/index.js";
 import { logger } from "../config/logger.js";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  buildErrorResponses,
+  openApiObject,
+} from "./openapi.schemas.js";
+
+const CONTROL_TOWER_TAG = ["Control Tower"] as const;
 
 export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // GET /api/control-tower/kpis
   fastify.get(
     "/kpis",
+    {
+      schema: {
+        tags: [...CONTROL_TOWER_TAG],
+        summary: "Retrieve Control Tower operational KPI aggregates",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const kpis = await ControlTowerService.getKpis();
@@ -28,6 +52,22 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // GET /api/control-tower/incidents
   fastify.get(
     "/incidents",
+    {
+      schema: {
+        tags: [...CONTROL_TOWER_TAG],
+        summary:
+          "List Control Tower incidents with status, severity, and type filters",
+        querystring: openApiObject({
+          status: { type: "string" },
+          severity: { type: "string" },
+          incidentType: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (
       request: FastifyRequest<{
         Querystring: {
@@ -57,6 +97,18 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // GET /api/control-tower/incidents/:id
   fastify.get(
     "/incidents/:id",
+    {
+      schema: {
+        tags: [...CONTROL_TOWER_TAG],
+        summary:
+          "Retrieve detailed Control Tower incident record by identifier",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
     async (
       request: FastifyRequest<{ Params: { id: string } }>,
       reply: FastifyReply,
@@ -86,6 +138,17 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // POST /api/control-tower/incidents
   fastify.post(
     "/incidents",
+    {
+      schema: {
+        tags: [...CONTROL_TOWER_TAG],
+        summary: "Register a new Control Tower operational disruption incident",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (
       request: FastifyRequest<{ Body: CreateIncidentInput }>,
       reply: FastifyReply,
@@ -107,6 +170,18 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // POST /api/control-tower/incidents/:id/reroute
   fastify.post(
     "/incidents/:id/reroute",
+    {
+      schema: {
+        tags: [...CONTROL_TOWER_TAG],
+        summary:
+          "Generate multimodal rerouting alternatives for an active incident",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (
       request: FastifyRequest<{
         Params: { id: string };
@@ -134,6 +209,18 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // POST /api/control-tower/incidents/:id/resolve
   fastify.post(
     "/incidents/:id/resolve",
+    {
+      schema: {
+        tags: [...CONTROL_TOWER_TAG],
+        summary: "Execute a resolution action on a Control Tower incident",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (
       request: FastifyRequest<{
         Params: { id: string };
@@ -167,6 +254,17 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // GET /api/control-tower/audit/matches
   fastify.get(
     "/audit/matches",
+    {
+      schema: {
+        tags: [...CONTROL_TOWER_TAG],
+        summary:
+          "List automated three-way freight audit invoice matches and variances",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const matches = await ControlTowerService.getFreightAuditMatches();
@@ -185,6 +283,18 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // POST /api/control-tower/audit/dispute
   fastify.post(
     "/audit/dispute",
+    {
+      schema: {
+        tags: [...CONTROL_TOWER_TAG],
+        summary:
+          "File a freight audit variance dispute against a carrier invoice line",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (
       request: FastifyRequest<{
         Body: {
@@ -216,6 +326,16 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // GET /api/control-tower/customs/radar
   fastify.get(
     "/customs/radar",
+    {
+      schema: {
+        tags: [...CONTROL_TOWER_TAG],
+        summary: "Query EU ICS2 customs pre-arrival compliance radar status",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const radar = await ControlTowerService.getCustomsRadar();
@@ -234,6 +354,17 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // POST /api/control-tower/customs/file-ics2
   fastify.post(
     "/customs/file-ics2",
+    {
+      schema: {
+        tags: [...CONTROL_TOWER_TAG],
+        summary: "Submit an EU ICS2 Entry Summary Declaration (ENS)",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (
       request: FastifyRequest<{
         Body: {
@@ -262,6 +393,17 @@ export default async function controlTowerRoutes(fastify: FastifyInstance) {
   // POST /api/control-tower/rates/calculate-spot
   fastify.post(
     "/rates/calculate-spot",
+    {
+      schema: {
+        tags: [...CONTROL_TOWER_TAG],
+        summary: "Calculate instant multimodal spot freight rate quotation",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (
       request: FastifyRequest<{ Body: SpotRateParams }>,
       reply: FastifyReply,

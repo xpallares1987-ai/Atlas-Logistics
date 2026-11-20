@@ -25,6 +25,15 @@ import {
   TransportConsolidationMode,
   CostAllocationBasis,
 } from "@atlas/shared";
+import {
+  OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  buildErrorResponses,
+  buildParamSchema,
+} from "../openapi.schemas.js";
+
+const LCL_TAG = ["LCL Consolidation & 3D Stowage"] as const;
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -99,25 +108,50 @@ interface RawStowageItem {
 
 export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
   // Container Planner Endpoints
-  fastify.get("/containers", async (_request, reply) => {
-    try {
-      await ensureOperationsSeedData();
-      const items = await db.select().from(shipmentContainers).limit(10);
-      if (items.length === 0) {
-        return reply.send([
-          { id: "demo-cont-1", containerType: "40ft High Cube" },
-        ]);
+  fastify.get(
+    "/containers",
+    {
+      schema: {
+        tags: [...LCL_TAG],
+        summary:
+          "List shipment containers available for 3D cargo stowage planning",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        await ensureOperationsSeedData();
+        const items = await db.select().from(shipmentContainers).limit(10);
+        if (items.length === 0) {
+          return reply.send([
+            { id: "demo-cont-1", containerType: "40ft High Cube" },
+          ]);
+        }
+        return reply.send(items);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
-      return reply.send(items);
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   fastify.get<{ Params: ContainerParams }>(
     "/containers/:id/cargo",
+    {
+      schema: {
+        tags: [...LCL_TAG],
+        summary: "List stowed cargo packages assigned to a specific container",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -178,6 +212,18 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Params: ContainerParams }>(
     "/containers/:id/optimize-load",
+    {
+      schema: {
+        tags: [...LCL_TAG],
+        summary:
+          "Compute 3D bin-packing stowage coordinates, CoG, and axle balance",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -289,60 +335,93 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // LCL Engine Endpoints
-  fastify.get("/lcl/cargo", async (_request, reply) => {
-    try {
-      await ensureOperationsSeedData();
-      let unassignedCargo = await db
-        .select()
-        .from(cargoItems)
-        .where(isNull(cargoItems.containerId));
-
-      if (unassignedCargo.length === 0) {
-        const types = ["euro-pallet", "ind-pallet", "paper-roll", "heavy-box"];
-        const newCargo = Array.from({ length: 12 }).map((_, i) => ({
-          id: `cargo_lcl_${Date.now()}_${i}`,
-          shipmentId: "sh_demo_master",
-          label: types[i % types.length],
-          color: "#3b82f6",
-          width: 1,
-          height: 1,
-          depth: 1,
-          weight: 1,
-        }));
-        await db.insert(cargoItems).values(newCargo);
-        unassignedCargo = await db
+  fastify.get(
+    "/lcl/cargo",
+    {
+      schema: {
+        tags: [...LCL_TAG],
+        summary:
+          "List unassigned LCL cargo pool awaiting container consolidation",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        await ensureOperationsSeedData();
+        let unassignedCargo = await db
           .select()
           .from(cargoItems)
           .where(isNull(cargoItems.containerId));
+
+        if (unassignedCargo.length === 0) {
+          const types = [
+            "euro-pallet",
+            "ind-pallet",
+            "paper-roll",
+            "heavy-box",
+          ];
+          const newCargo = Array.from({ length: 12 }).map((_, i) => ({
+            id: `cargo_lcl_${Date.now()}_${i}`,
+            shipmentId: "sh_demo_master",
+            label: types[i % types.length],
+            color: "#3b82f6",
+            width: 1,
+            height: 1,
+            depth: 1,
+            weight: 1,
+          }));
+          await db.insert(cargoItems).values(newCargo);
+          unassignedCargo = await db
+            .select()
+            .from(cargoItems)
+            .where(isNull(cargoItems.containerId));
+        }
+
+        const cargoPool = unassignedCargo.map((c) => {
+          const validTypes = [
+            "euro-pallet",
+            "ind-pallet",
+            "paper-roll",
+            "heavy-box",
+          ];
+          return {
+            id: c.id,
+            clientId: c.shipmentId,
+            clientName: `Shipment ${c.shipmentId.substring(0, 8)}`,
+            typeId: validTypes.includes(c.label || "")
+              ? c.label
+              : validTypes[Math.floor(Math.random() * validTypes.length)],
+          };
+        });
+
+        return reply.send(cargoPool);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
-
-      const cargoPool = unassignedCargo.map((c) => {
-        const validTypes = [
-          "euro-pallet",
-          "ind-pallet",
-          "paper-roll",
-          "heavy-box",
-        ];
-        return {
-          id: c.id,
-          clientId: c.shipmentId,
-          clientName: `Shipment ${c.shipmentId.substring(0, 8)}`,
-          typeId: validTypes.includes(c.label || "")
-            ? c.label
-            : validTypes[Math.floor(Math.random() * validTypes.length)],
-        };
-      });
-
-      return reply.send(cargoPool);
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   fastify.post<{ Params: ManifestParams; Body: ManifestBody }>(
     "/lcl/manifest/:containerId",
+    {
+      schema: {
+        tags: [...LCL_TAG],
+        summary:
+          "Persist consolidated cargo items and stream an LCL Container Manifest PDF",
+        params: buildParamSchema(
+          "containerId",
+          "Master LCL container identifier.",
+        ),
+        response: {
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         await ensureOperationsSeedData();
@@ -421,6 +500,18 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Body: ConsolidateBody }>(
     "/lcl/consolidate",
+    {
+      schema: {
+        tags: [...LCL_TAG],
+        summary:
+          "Assign loose LCL cargo items into a master consolidation container",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { masterContainerId, assignedCargoIds } = request.body || {};
@@ -472,6 +563,18 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Body: OptimizeBody }>(
     "/lcl/optimize",
+    {
+      schema: {
+        tags: [...LCL_TAG],
+        summary:
+          "Recommend optimal LCL cargo assignments by volume and payload weight",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { unassignedPool, containerSpec } = request.body || {};
@@ -538,36 +641,53 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
       volumeCbm: number;
       mode?: TransportConsolidationMode;
     };
-  }>("/lcl/calculate-cw", async (request, reply) => {
-    try {
-      const {
-        grossWeightKg,
-        volumeCbm,
-        mode = "OCEAN_LCL",
-      } = request.body || {};
+  }>(
+    "/lcl/calculate-cw",
+    {
+      schema: {
+        tags: [...LCL_TAG],
+        summary:
+          "Calculate LCL/Air/Road chargeable weight and dimensional ratio",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const {
+          grossWeightKg,
+          volumeCbm,
+          mode = "OCEAN_LCL",
+        } = request.body || {};
 
-      if (grossWeightKg === undefined || volumeCbm === undefined) {
-        return reply
-          .code(400)
-          .send({ error: "grossWeightKg and volumeCbm are required numbers." });
+        if (grossWeightKg === undefined || volumeCbm === undefined) {
+          return reply
+            .code(400)
+            .send({
+              error: "grossWeightKg and volumeCbm are required numbers.",
+            });
+        }
+
+        const result = calculateChargeableWeight({
+          grossWeightKg,
+          volumeCbm,
+          mode,
+        });
+
+        return reply.send({
+          success: true,
+          result,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
-
-      const result = calculateChargeableWeight({
-        grossWeightKg,
-        volumeCbm,
-        mode,
-      });
-
-      return reply.send({
-        success: true,
-        result,
-      });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   fastify.post<{
     Body: {
@@ -584,42 +704,57 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
         chargeableWeightKg: number;
       }>;
     };
-  }>("/lcl/prorate-costs", async (request, reply) => {
-    try {
-      const {
-        masterCostId = "mcost_default",
-        masterCostName = "Master Ocean Freight",
-        masterAmount,
-        currency = "USD",
-        allocationBasis = "CHARGEABLE_WEIGHT",
-        houseItems,
-      } = request.body || {};
+  }>(
+    "/lcl/prorate-costs",
+    {
+      schema: {
+        tags: [...LCL_TAG],
+        summary:
+          "Prorate master freight costs across consolidated house shipments",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const {
+          masterCostId = "mcost_default",
+          masterCostName = "Master Ocean Freight",
+          masterAmount,
+          currency = "USD",
+          allocationBasis = "CHARGEABLE_WEIGHT",
+          houseItems,
+        } = request.body || {};
 
-      if (masterAmount === undefined || !Array.isArray(houseItems)) {
-        return reply.code(400).send({
-          error: "masterAmount and houseItems array are required fields.",
+        if (masterAmount === undefined || !Array.isArray(houseItems)) {
+          return reply.code(400).send({
+            error: "masterAmount and houseItems array are required fields.",
+          });
+        }
+
+        const proratedResult = prorateMasterCosts({
+          masterCostId,
+          masterCostName,
+          masterAmount,
+          currency,
+          allocationBasis,
+          houseItems,
         });
+
+        return reply.send({
+          success: true,
+          proratedResult,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
-
-      const proratedResult = prorateMasterCosts({
-        masterCostId,
-        masterCostName,
-        masterAmount,
-        currency,
-        allocationBasis,
-        houseItems,
-      });
-
-      return reply.send({
-        success: true,
-        proratedResult,
-      });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   fastify.post<{
     Body: {
@@ -636,41 +771,56 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
         houseSpecificCosts: number;
       }>;
     };
-  }>("/lcl/profitability", async (request, reply) => {
-    try {
-      const {
-        consolidationReference,
-        currency = "USD",
-        masterCosts,
-        houseShipments,
-      } = request.body || {};
+  }>(
+    "/lcl/profitability",
+    {
+      schema: {
+        tags: [...LCL_TAG],
+        summary:
+          "Calculate consolidated master-versus-house LCL P&L profitability",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const {
+          consolidationReference,
+          currency = "USD",
+          masterCosts,
+          houseShipments,
+        } = request.body || {};
 
-      if (
-        !consolidationReference ||
-        !Array.isArray(masterCosts) ||
-        !Array.isArray(houseShipments)
-      ) {
-        return reply.code(400).send({
-          error:
-            "consolidationReference, masterCosts, and houseShipments are required.",
+        if (
+          !consolidationReference ||
+          !Array.isArray(masterCosts) ||
+          !Array.isArray(houseShipments)
+        ) {
+          return reply.code(400).send({
+            error:
+              "consolidationReference, masterCosts, and houseShipments are required.",
+          });
+        }
+
+        const pnl = calculateConsolidationProfitability({
+          consolidationReference,
+          currency,
+          masterCosts,
+          houseShipments,
         });
+
+        return reply.send({
+          success: true,
+          pnl,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
       }
-
-      const pnl = calculateConsolidationProfitability({
-        consolidationReference,
-        currency,
-        masterCosts,
-        houseShipments,
-      });
-
-      return reply.send({
-        success: true,
-        pnl,
-      });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 };

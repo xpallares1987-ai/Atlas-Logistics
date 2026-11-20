@@ -23,6 +23,15 @@ import {
   UpdateTrafficSchema,
   CreateTrafficSchema,
 } from "./warehouse.schemas.js";
+import {
+  OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  OPENAPI_SUCCESS_FLAG_SCHEMA,
+  buildErrorResponses,
+} from "./openapi.schemas.js";
+
+const WAREHOUSE_TAG = ["Warehouse Management"] as const;
 
 // ============================================================================
 // TYPE DEFINITIONS & SCHEMAS
@@ -128,58 +137,96 @@ export function broadcastWarehouseEvent(event: WarehouseEvent) {
 
 const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   // WebSocket live feed for tasks, traffic, and inventory
-  fastify.get("/ws", { websocket: true }, (connection: unknown, req) => {
-    req.log.info("Warehouse WebSocket connected");
-    const rawConn = connection as WebSocketConnection;
-    const ws = rawConn.socket || rawConn;
+  fastify.get(
+    "/ws",
+    {
+      websocket: true,
+      schema: {
+        tags: [...WAREHOUSE_TAG],
+        summary:
+          "WebSocket live feed for warehouse fulfillment tasks and dock traffic",
+        response: {
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    (connection: unknown, req) => {
+      req.log.info("Warehouse WebSocket connected");
+      const rawConn = connection as WebSocketConnection;
+      const ws = rawConn.socket || rawConn;
 
-    const onWarehouseEvent = (data: unknown) => {
-      try {
-        ws.send?.(JSON.stringify(data));
-      } catch {}
-    };
+      const onWarehouseEvent = (data: unknown) => {
+        try {
+          ws.send?.(JSON.stringify(data));
+        } catch {}
+      };
 
-    warehouseEmitter.on("warehouseEvent", onWarehouseEvent);
+      warehouseEmitter.on("warehouseEvent", onWarehouseEvent);
 
-    ws.on?.("close", () => {
-      req.log.info("Warehouse WebSocket disconnected");
-      warehouseEmitter.off("warehouseEvent", onWarehouseEvent);
-    });
-  });
+      ws.on?.("close", () => {
+        req.log.info("Warehouse WebSocket disconnected");
+        warehouseEmitter.off("warehouseEvent", onWarehouseEvent);
+      });
+    },
+  );
 
   // --- TASKS ENDPOINTS ---
 
   // Get all active fulfillment tasks
-  fastify.get("/tasks", async (_request, reply) => {
-    try {
-      const records = await db
-        .select({
-          task: fulfillmentTasks,
-          order: orders,
-        })
-        .from(fulfillmentTasks)
-        .leftJoin(orders, eq(fulfillmentTasks.orderId, orders.id))
-        .limit(100);
+  fastify.get(
+    "/tasks",
+    {
+      schema: {
+        tags: [...WAREHOUSE_TAG],
+        summary: "List active warehouse fulfillment pick/pack/ship tasks",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        const records = await db
+          .select({
+            task: fulfillmentTasks,
+            order: orders,
+          })
+          .from(fulfillmentTasks)
+          .leftJoin(orders, eq(fulfillmentTasks.orderId, orders.id))
+          .limit(100);
 
-      const formatted = records.map((r) => ({
-        ...r.task,
-        customerName: r.order?.customerName,
-        orderStatus: r.order?.status,
-        totalAmount: r.order?.totalAmount,
-      }));
+        const formatted = records.map((r) => ({
+          ...r.task,
+          customerName: r.order?.customerName,
+          orderStatus: r.order?.status,
+          totalAmount: r.order?.totalAmount,
+        }));
 
-      return reply.send(formatted);
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ error: message });
-    }
-  });
+        return reply.send(formatted);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 
   // Get task by ID
   fastify.get<{ Params: TaskIdParams }>(
     "/tasks/:id",
-    { preHandler: [validate(TaskIdParamsSchema)] },
+    {
+      preHandler: [validate(TaskIdParamsSchema)],
+      schema: {
+        tags: [...WAREHOUSE_TAG],
+        summary: "Retrieve a warehouse fulfillment task with order context",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -215,7 +262,18 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   // Create new task
   fastify.post<{ Body: CreateTaskBody }>(
     "/tasks",
-    { preHandler: [validate(CreateTaskSchema)] },
+    {
+      preHandler: [validate(CreateTaskSchema)],
+      schema: {
+        tags: [...WAREHOUSE_TAG],
+        summary: "Create a new warehouse fulfillment task",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const body = request.body;
@@ -253,6 +311,16 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         validate(TaskIdParamsSchema),
         validate(UpdateTaskStatusSchema),
       ],
+      schema: {
+        tags: [...WAREHOUSE_TAG],
+        summary: "Update warehouse fulfillment task status on the Kanban board",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
     },
     async (request, reply) => {
       try {
@@ -282,21 +350,47 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   // --- TRAFFIC ENDPOINTS ---
 
   // Get warehouse traffic
-  fastify.get("/traffic", async (_request, reply) => {
-    try {
-      const traffic = await db.select().from(warehouseTraffic);
-      return reply.send({ success: true, data: traffic });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ success: false, error: message });
-    }
-  });
+  fastify.get(
+    "/traffic",
+    {
+      schema: {
+        tags: [...WAREHOUSE_TAG],
+        summary:
+          "List warehouse dock traffic and inbound/outbound yard entries",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        const traffic = await db.select().from(warehouseTraffic);
+        return reply.send({ success: true, data: traffic });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ success: false, error: message });
+      }
+    },
+  );
 
   // Create traffic record
   fastify.post<{ Body: CreateTrafficBody }>(
     "/traffic",
-    { preHandler: [validate(CreateTrafficSchema)] },
+    {
+      preHandler: [validate(CreateTrafficSchema)],
+      schema: {
+        tags: [...WAREHOUSE_TAG],
+        summary:
+          "Register a new inbound or outbound warehouse truck/yard arrival",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const body = request.body;
@@ -340,6 +434,16 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         validate(TrafficIdParamsSchema),
         validate(UpdateTrafficSchema),
       ],
+      schema: {
+        tags: [...WAREHOUSE_TAG],
+        summary: "Update warehouse traffic status, dock assignment, or ETA",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
     },
     async (request, reply) => {
       try {
@@ -386,36 +490,50 @@ const warehouseRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   // --- INVENTORY ENDPOINTS ---
 
   // Get warehouse inventory
-  fastify.get("/inventory", async (_request, reply) => {
-    try {
-      const inventory = await db.select().from(warehouseInventory);
-      const formatted = inventory.map((item, index) => {
-        const row = Math.floor(index / 2) - 1;
-        const col = index % 2 === 0 ? -1 : 1;
-        const z = 0;
+  fastify.get(
+    "/inventory",
+    {
+      schema: {
+        tags: [...WAREHOUSE_TAG],
+        summary:
+          "List warehouse inventory items with 3D spatial bay coordinates",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        const inventory = await db.select().from(warehouseInventory);
+        const formatted = inventory.map((item, index) => {
+          const row = Math.floor(index / 2) - 1;
+          const col = index % 2 === 0 ? -1 : 1;
+          const z = 0;
 
-        return {
-          id: item.id,
-          sku: item.productCode || item.id,
-          customer: item.customer || "General Cargo",
-          description: item.itemDescription || "Cargo item",
-          quantity: item.quantity || 0,
-          zone: item.zone || "GEN-Z1",
-          status: item.status || "AVAILABLE",
-          locationId: item.locationId || "WH-BCN-01",
-          uom: "Pallets",
-          weight: (item.quantity || 1) * 250,
-          position: [col * 3, 0.5, row * 4 + z] as [number, number, number],
-        };
-      });
+          return {
+            id: item.id,
+            sku: item.productCode || item.id,
+            customer: item.customer || "General Cargo",
+            description: item.itemDescription || "Cargo item",
+            quantity: item.quantity || 0,
+            zone: item.zone || "GEN-Z1",
+            status: item.status || "AVAILABLE",
+            locationId: item.locationId || "WH-BCN-01",
+            uom: "Pallets",
+            weight: (item.quantity || 1) * 250,
+            position: [col * 3, 0.5, row * 4 + z] as [number, number, number],
+          };
+        });
 
-      return reply.send({ success: true, data: formatted });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ success: false, error: message });
-    }
-  });
+        return reply.send({ success: true, data: formatted });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ success: false, error: message });
+      }
+    },
+  );
 };
 
 export default warehouseRoutes;

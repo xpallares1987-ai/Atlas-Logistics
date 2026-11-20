@@ -12,6 +12,14 @@ import { warehouseInventory } from "../../db/schema/support.js";
 import { eq } from "drizzle-orm";
 import { logger } from "../../config/logger.js";
 import { ensureOperationsSeedData } from "./seed-data.js";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  OPENAPI_SUCCESS_FLAG_SCHEMA,
+  buildErrorResponses,
+} from "../openapi.schemas.js";
+
+const WAREHOUSE_TRAFFIC_TAG = ["Warehouse Operations"] as const;
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -52,21 +60,47 @@ interface SyncInventoryBody {
 export const warehouseTrafficOperationsRoutes: FastifyPluginAsync = async (
   fastify,
 ) => {
-  fastify.get("/warehouse/traffic", async (_request, reply) => {
-    try {
-      await ensureOperationsSeedData();
-      const traffic = await db.select().from(warehouseTraffic);
-      return { success: true, data: traffic };
-    } catch (error: unknown) {
-      logger.error(error, "Failed to fetch warehouse traffic");
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ success: false, error: message });
-    }
-  });
+  fastify.get(
+    "/warehouse/traffic",
+    {
+      schema: {
+        tags: [...WAREHOUSE_TRAFFIC_TAG],
+        summary: "List live warehouse dock traffic and yard arrivals",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        await ensureOperationsSeedData();
+        const traffic = await db.select().from(warehouseTraffic);
+        return { success: true, data: traffic };
+      } catch (error: unknown) {
+        logger.error(error, "Failed to fetch warehouse traffic");
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ success: false, error: message });
+      }
+    },
+  );
 
   fastify.put<{ Params: TrafficParams; Body: UpdateTrafficBody }>(
     "/warehouse/traffic/:id",
+    {
+      schema: {
+        tags: [...WAREHOUSE_TRAFFIC_TAG],
+        summary:
+          "Update dock assignment, status, or ETA for a warehouse traffic record",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       const { id } = request.params;
       const { status, assignedDock, eta } = request.body || {};
@@ -92,50 +126,75 @@ export const warehouseTrafficOperationsRoutes: FastifyPluginAsync = async (
     },
   );
 
-  fastify.get("/warehouse/inventory", async (_request, reply) => {
-    try {
-      await ensureOperationsSeedData();
-      const inventory = await db.select().from(warehouseInventory);
-      const formatted = inventory.map((item, index) => {
-        const row = Math.floor(index / 2) - 1;
-        const col = index % 2 === 0 ? -1 : 1;
-        const z = 0;
+  fastify.get(
+    "/warehouse/inventory",
+    {
+      schema: {
+        tags: [...WAREHOUSE_TRAFFIC_TAG],
+        summary:
+          "List 3D warehouse visual inventory items with bay coordinates",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        await ensureOperationsSeedData();
+        const inventory = await db.select().from(warehouseInventory);
+        const formatted = inventory.map((item, index) => {
+          const row = Math.floor(index / 2) - 1;
+          const col = index % 2 === 0 ? -1 : 1;
+          const z = 0;
 
-        return {
-          id: item.id,
-          warehouseId: item.locationId,
-          ownership: item.ownership,
-          customer: item.customer,
-          buyer: item.buyer,
-          productCode: item.productCode,
-          description: item.itemDescription,
-          quantity: item.quantity,
-          zone: item.zone,
-          metadata: item.metadata ? JSON.parse(item.metadata as string) : {},
-          status: item.status,
-          pos: [col, row * 2 + 0.7, z],
-          color:
-            item.status === "AVAILABLE"
-              ? "#10b981"
-              : item.status === "RESERVED"
-                ? "#f59e0b"
-                : "#3b82f6",
-          sku: item.productCode,
-          weight: item.quantity ? item.quantity * 100 : 500,
-          destination: item.customer || "Unknown",
-        };
-      });
-      return { success: true, data: formatted };
-    } catch (error: unknown) {
-      logger.error(error, "Failed to fetch warehouse inventory");
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ success: false, error: message });
-    }
-  });
+          return {
+            id: item.id,
+            warehouseId: item.locationId,
+            ownership: item.ownership,
+            customer: item.customer,
+            buyer: item.buyer,
+            productCode: item.productCode,
+            description: item.itemDescription,
+            quantity: item.quantity,
+            zone: item.zone,
+            metadata: item.metadata ? JSON.parse(item.metadata as string) : {},
+            status: item.status,
+            pos: [col, row * 2 + 0.7, z],
+            color:
+              item.status === "AVAILABLE"
+                ? "#10b981"
+                : item.status === "RESERVED"
+                  ? "#f59e0b"
+                  : "#3b82f6",
+            sku: item.productCode,
+            weight: item.quantity ? item.quantity * 100 : 500,
+            destination: item.customer || "Unknown",
+          };
+        });
+        return { success: true, data: formatted };
+      } catch (error: unknown) {
+        logger.error(error, "Failed to fetch warehouse inventory");
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ success: false, error: message });
+      }
+    },
+  );
 
   fastify.post<{ Body: SyncInventoryBody }>(
     "/warehouse/inventory",
+    {
+      schema: {
+        tags: [...WAREHOUSE_TRAFFIC_TAG],
+        summary: "Batch upsert 3D warehouse visual inventory items",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       const items = request.body?.items || [];
       try {

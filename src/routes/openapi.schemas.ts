@@ -9,7 +9,8 @@
 // 1. REUSABLE PARAMETER & PAYLOAD SCHEMA FRAGMENTS
 // ============================================================================
 
-export type OpenApiErrorCode = 400 | 401 | 403 | 404 | 409 | 500;
+export type OpenApiErrorCode =
+  400 | 401 | 403 | 404 | 409 | 422 | 429 | 500 | 502 | 503;
 
 export const OPENAPI_ID_PARAMS_SCHEMA = {
   type: "object",
@@ -129,6 +130,29 @@ export function buildParamSchema(
         description,
       },
     },
+  };
+}
+
+/**
+ * Builds a multi-parameter path schema for routes with multiple path segments (e.g. :shipmentId/:docId).
+ */
+export function buildParamsSchema(
+  params: Record<string, string>,
+): Record<string, unknown> {
+  const properties: Record<string, Record<string, unknown>> = {};
+  const required: string[] = [];
+  for (const [name, description] of Object.entries(params)) {
+    required.push(name);
+    properties[name] = {
+      type: "string",
+      minLength: 1,
+      description,
+    };
+  }
+  return {
+    type: "object",
+    required,
+    properties,
   };
 }
 

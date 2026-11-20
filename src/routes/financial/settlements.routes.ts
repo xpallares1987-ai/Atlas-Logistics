@@ -13,6 +13,14 @@ import { eq, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { PDFService } from "../../services/pdf.service.js";
 import { ensureFinancialSeedData } from "./seed-data.js";
+import {
+  OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  buildErrorResponses,
+} from "../openapi.schemas.js";
+
+const SETTLEMENTS_TAG = ["Financial Settlements"] as const;
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -34,35 +42,60 @@ interface SettlementParams {
 // ============================================================================
 
 export const settlementsRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get("/agent-settlements", async (_request, reply) => {
-    try {
-      await ensureFinancialSeedData();
+  fastify.get(
+    "/agent-settlements",
+    {
+      schema: {
+        tags: [...SETTLEMENTS_TAG],
+        summary: "List agent billing settlement statements",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        await ensureFinancialSeedData();
 
-      const settlements = await db
-        .select({
-          id: agentSettlements.id,
-          statementNumber: agentSettlements.statementNumber,
-          agentName: companies.name,
-          periodStart: agentSettlements.periodStart,
-          periodEnd: agentSettlements.periodEnd,
-          netBalance: agentSettlements.netBalance,
-          currency: agentSettlements.currency,
-          status: agentSettlements.status,
-        })
-        .from(agentSettlements)
-        .leftJoin(companies, eq(agentSettlements.agentId, companies.id))
-        .orderBy(sql`${agentSettlements.createdAt} DESC`);
+        const settlements = await db
+          .select({
+            id: agentSettlements.id,
+            statementNumber: agentSettlements.statementNumber,
+            agentName: companies.name,
+            periodStart: agentSettlements.periodStart,
+            periodEnd: agentSettlements.periodEnd,
+            netBalance: agentSettlements.netBalance,
+            currency: agentSettlements.currency,
+            status: agentSettlements.status,
+          })
+          .from(agentSettlements)
+          .leftJoin(companies, eq(agentSettlements.agentId, companies.id))
+          .orderBy(sql`${agentSettlements.createdAt} DESC`);
 
-      return reply.send(settlements);
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Internal Server Error";
-      return reply.code(500).send({ error: message });
-    }
-  });
+        return reply.send(settlements);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 
   fastify.post<{ Body: CreateSettlementBody }>(
     "/agent-settlements",
+    {
+      schema: {
+        tags: [...SETTLEMENTS_TAG],
+        summary:
+          "Generate a new agent settlement statement for a billing period",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { agentId, periodStart, periodEnd, currency } =
@@ -103,6 +136,17 @@ export const settlementsRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get<{ Params: SettlementParams }>(
     "/agent-settlements/:id/invoices",
+    {
+      schema: {
+        tags: [...SETTLEMENTS_TAG],
+        summary: "List AP invoices included in an agent settlement statement",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;
@@ -146,6 +190,16 @@ export const settlementsRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get<{ Params: SettlementParams }>(
     "/agent-settlements/:id/pdf",
+    {
+      schema: {
+        tags: [...SETTLEMENTS_TAG],
+        summary: "Download official PDF statement for an agent settlement",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { id } = request.params;

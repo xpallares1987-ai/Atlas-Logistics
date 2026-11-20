@@ -12,6 +12,12 @@ import os from "node:os";
 import { client, databaseUrl } from "../db/index.js";
 import { redis } from "../config/redis.js";
 import { logger } from "../config/logger.js";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  buildErrorResponses,
+} from "./openapi.schemas.js";
+
+const HEALTH_TAG = ["Health & Probes"] as const;
 
 export default async function healthRoutes(app: FastifyInstance) {
   /**
@@ -19,204 +25,260 @@ export default async function healthRoutes(app: FastifyInstance) {
    * Returns 200 as long as the service is running (even if degraded)
    * Used for: Monitoring dashboards, manual health checks
    */
-  app.get("/health", { logLevel: "silent" }, async (_request, reply) => {
-    const startCheck = Date.now();
-    const uptime = process.uptime();
+  app.get(
+    "/health",
+    {
+      logLevel: "silent",
+      schema: {
+        tags: [...HEALTH_TAG],
+        summary:
+          "Retrieve liveness health check with database, Redis, and runtime metrics",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([503]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      const startCheck = Date.now();
+      const uptime = process.uptime();
 
-    // Database check
-    let resolvedDbPath: string | null = null;
-    if (databaseUrl.startsWith("file:")) {
-      const rawPath = databaseUrl.slice(5);
-      resolvedDbPath = path.isAbsolute(rawPath)
-        ? rawPath
-        : path.resolve(process.cwd(), rawPath);
-    }
-    const dbExists = resolvedDbPath ? fs.existsSync(resolvedDbPath) : true;
-    let dbSize = null;
-    let dbLatency = null;
-    let dbHealthy = false;
-    let dbError: string | null = null;
-
-    if (resolvedDbPath && fs.existsSync(resolvedDbPath)) {
-      try {
-        const stats = fs.statSync(resolvedDbPath);
-        dbSize = Math.round(stats.size / (1024 * 1024)); // MB
-      } catch (err) {
-        dbError = `Failed to stat database: ${err instanceof Error ? err.message : "unknown error"}`;
+      // Database check
+      let resolvedDbPath: string | null = null;
+      if (databaseUrl.startsWith("file:")) {
+        const rawPath = databaseUrl.slice(5);
+        resolvedDbPath = path.isAbsolute(rawPath)
+          ? rawPath
+          : path.resolve(process.cwd(), rawPath);
       }
-    }
+      const dbExists = resolvedDbPath ? fs.existsSync(resolvedDbPath) : true;
+      let dbSize = null;
+      let dbLatency = null;
+      let dbHealthy = false;
+      let dbError: string | null = null;
 
-    try {
-      const dbStart = Date.now();
-      await client.execute("SELECT 1");
-      dbLatency = Date.now() - dbStart;
-      dbHealthy = true;
-    } catch (err) {
-      dbError = err instanceof Error ? err.message : "Unknown database error";
-      logger.warn({ err }, "Database health check failed:");
-    }
+      if (resolvedDbPath && fs.existsSync(resolvedDbPath)) {
+        try {
+          const stats = fs.statSync(resolvedDbPath);
+          dbSize = Math.round(stats.size / (1024 * 1024)); // MB
+        } catch (err) {
+          dbError = `Failed to stat database: ${err instanceof Error ? err.message : "unknown error"}`;
+        }
+      }
 
-    // Redis check
-    let redisHealthy = false;
-    let redisLatency = null;
-    let redisError: string | null = null;
+      try {
+        const dbStart = Date.now();
+        await client.execute("SELECT 1");
+        dbLatency = Date.now() - dbStart;
+        dbHealthy = true;
+      } catch (err) {
+        dbError = err instanceof Error ? err.message : "Unknown database error";
+        logger.warn({ err }, "Database health check failed:");
+      }
 
-    try {
-      const redisStart = Date.now();
-      await redis.ping();
-      redisLatency = Date.now() - redisStart;
-      redisHealthy = true;
-    } catch (err) {
-      redisError = err instanceof Error ? err.message : "Unknown redis error";
-      logger.warn({ err }, "Redis health check failed:");
-    }
+      // Redis check
+      let redisHealthy = false;
+      let redisLatency = null;
+      let redisError: string | null = null;
 
-    // System metrics
-    const memory = process.memoryUsage();
-    const loadAvg = os.loadavg(); // [1,5,15]
-    const cpu = process.cpuUsage(); // microseconds
+      try {
+        const redisStart = Date.now();
+        await redis.ping();
+        redisLatency = Date.now() - redisStart;
+        redisHealthy = true;
+      } catch (err) {
+        redisError = err instanceof Error ? err.message : "Unknown redis error";
+        logger.warn({ err }, "Redis health check failed:");
+      }
 
-    // Event loop lag (measures responsiveness)
-    const lagStart = process.hrtime.bigint();
-    await new Promise((res) => setImmediate(res));
-    const eventLoopDelayMs = Number(process.hrtime.bigint() - lagStart) / 1e6;
+      // System metrics
+      const memory = process.memoryUsage();
+      const loadAvg = os.loadavg(); // [1,5,15]
+      const cpu = process.cpuUsage(); // microseconds
 
-    // Determine overall health
-    const healthyCount = [dbHealthy, redisHealthy].filter(Boolean).length;
-    const status =
-      healthyCount === 2
-        ? "healthy"
-        : healthyCount === 1
-          ? "degraded"
-          : "unhealthy";
+      // Event loop lag (measures responsiveness)
+      const lagStart = process.hrtime.bigint();
+      await new Promise((res) => setImmediate(res));
+      const eventLoopDelayMs = Number(process.hrtime.bigint() - lagStart) / 1e6;
 
-    const checkDuration = Date.now() - startCheck;
+      // Determine overall health
+      const healthyCount = [dbHealthy, redisHealthy].filter(Boolean).length;
+      const status =
+        healthyCount === 2
+          ? "healthy"
+          : healthyCount === 1
+            ? "degraded"
+            : "unhealthy";
 
-    const response = {
-      status,
-      timestamp: new Date().toISOString(),
-      uptime,
-      version: process.env.npm_package_version || "1.0.0",
-      checks: {
-        database: {
+      const checkDuration = Date.now() - startCheck;
+
+      const response = {
+        status,
+        timestamp: new Date().toISOString(),
+        uptime,
+        version: process.env.npm_package_version || "1.0.0",
+        checks: {
+          database: {
+            status: dbHealthy ? "up" : "down",
+            exists: dbExists,
+            sizeMB: dbSize,
+            latencyMs: dbLatency,
+            error: dbError,
+          },
+          redis: {
+            status: redisHealthy ? "up" : "down",
+            latencyMs: redisLatency,
+            error: redisError,
+          },
+        },
+        db: {
           status: dbHealthy ? "up" : "down",
           exists: dbExists,
           sizeMB: dbSize,
           latencyMs: dbLatency,
           error: dbError,
         },
-        redis: {
-          status: redisHealthy ? "up" : "down",
-          latencyMs: redisLatency,
-          error: redisError,
+        system: {
+          memory: {
+            rss: Math.round(memory.rss / 1024 / 1024), // MB
+            heapTotal: Math.round(memory.heapTotal / 1024 / 1024), // MB
+            heapUsed: Math.round(memory.heapUsed / 1024 / 1024), // MB
+            external: Math.round(memory.external / 1024 / 1024), // MB
+          },
+          loadAvg: {
+            "1min": loadAvg[0].toFixed(2),
+            "5min": loadAvg[1].toFixed(2),
+            "15min": loadAvg[2].toFixed(2),
+          },
+          cpu: {
+            user: cpu.user,
+            system: cpu.system,
+          },
+          eventLoopDelayMs: Number(eventLoopDelayMs.toFixed(2)),
+          env: process.env.NODE_ENV || "development",
         },
-      },
-      db: {
-        status: dbHealthy ? "up" : "down",
-        exists: dbExists,
-        sizeMB: dbSize,
-        latencyMs: dbLatency,
-        error: dbError,
-      },
-      system: {
-        memory: {
-          rss: Math.round(memory.rss / 1024 / 1024), // MB
-          heapTotal: Math.round(memory.heapTotal / 1024 / 1024), // MB
-          heapUsed: Math.round(memory.heapUsed / 1024 / 1024), // MB
-          external: Math.round(memory.external / 1024 / 1024), // MB
-        },
-        loadAvg: {
-          "1min": loadAvg[0].toFixed(2),
-          "5min": loadAvg[1].toFixed(2),
-          "15min": loadAvg[2].toFixed(2),
-        },
-        cpu: {
-          user: cpu.user,
-          system: cpu.system,
-        },
-        eventLoopDelayMs: Number(eventLoopDelayMs.toFixed(2)),
-        env: process.env.NODE_ENV || "development",
-      },
-      checkDurationMs: checkDuration,
-    };
+        checkDurationMs: checkDuration,
+      };
 
-    // Return 200 for healthy/degraded, 503 for unhealthy
-    const statusCode = status === "unhealthy" ? 503 : 200;
-    return reply.status(statusCode).send(response);
-  });
+      // Return 200 for healthy/degraded, 503 for unhealthy
+      const statusCode = status === "unhealthy" ? 503 : 200;
+      return reply.status(statusCode).send(response);
+    },
+  );
 
   /**
    * Readiness Check: Lightweight check for orchestrators (K8s, Docker, ECS)
    * Returns 200 only when all critical dependencies are ready
    * Used for: Load balancer routing, startup probes, readiness gates
    */
-  app.get("/ready", { logLevel: "silent" }, async (_request, reply) => {
-    try {
-      // Check database readiness
-      let dbReady = false;
-      let dbLatency: number | null = null;
-      try {
-        const dbStart = Date.now();
-        await client.execute("SELECT 1");
-        dbLatency = Date.now() - dbStart;
-        dbReady = true;
-      } catch (err) {
-        logger.warn({ err }, "Database not ready:");
-      }
-
-      // Check redis readiness
-      let redisReady = false;
-      let redisLatency: number | null = null;
-      try {
-        const redisStart = Date.now();
-        await redis.ping();
-        redisLatency = Date.now() - redisStart;
-        redisReady = true;
-      } catch (err) {
-        logger.warn({ err }, "Redis not ready:");
-      }
-
-      const ready = dbReady && redisReady;
-
-      const response = {
-        ready,
-        timestamp: new Date().toISOString(),
-        dependencies: {
-          database: {
-            ready: dbReady,
-            latencyMs: dbLatency,
-          },
-          redis: {
-            ready: redisReady,
-            latencyMs: redisLatency,
-          },
+  app.get(
+    "/ready",
+    {
+      logLevel: "silent",
+      schema: {
+        tags: [...HEALTH_TAG],
+        summary:
+          "Evaluate readiness probe across SQLite and Redis dependencies",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([503]),
         },
-      };
+      },
+    },
+    async (_request, reply) => {
+      try {
+        // Check database readiness
+        let dbReady = false;
+        let dbLatency: number | null = null;
+        try {
+          const dbStart = Date.now();
+          await client.execute("SELECT 1");
+          dbLatency = Date.now() - dbStart;
+          dbReady = true;
+        } catch (err) {
+          logger.warn({ err }, "Database not ready:");
+        }
 
-      return reply.status(ready ? 200 : 503).send(response);
-    } catch (error) {
-      logger.error({ error }, "Readiness check failed:");
-      return reply.status(503).send({
-        ready: false,
-        error: "Internal readiness check error",
-        timestamp: new Date().toISOString(),
-      });
-    }
-  });
+        // Check redis readiness
+        let redisReady = false;
+        let redisLatency: number | null = null;
+        try {
+          const redisStart = Date.now();
+          await redis.ping();
+          redisLatency = Date.now() - redisStart;
+          redisReady = true;
+        } catch (err) {
+          logger.warn({ err }, "Redis not ready:");
+        }
 
-  // Kubernetes-style aliases
-  app.get("/healthz", { logLevel: "silent" }, (request, _reply) =>
-    request.server.inject({
-      method: "GET",
-      url: "/health",
-    }),
+        const ready = dbReady && redisReady;
+
+        const response = {
+          ready,
+          timestamp: new Date().toISOString(),
+          dependencies: {
+            database: {
+              ready: dbReady,
+              latencyMs: dbLatency,
+            },
+            redis: {
+              ready: redisReady,
+              latencyMs: redisLatency,
+            },
+          },
+        };
+
+        return reply.status(ready ? 200 : 503).send(response);
+      } catch (error) {
+        logger.error({ error }, "Readiness check failed:");
+        return reply.status(503).send({
+          ready: false,
+          error: "Internal readiness check error",
+          timestamp: new Date().toISOString(),
+        });
+      }
+    },
   );
 
-  app.get("/readyz", { logLevel: "silent" }, (request, _reply) =>
-    request.server.inject({
-      method: "GET",
-      url: "/ready",
-    }),
+  // Kubernetes-style aliases
+  app.get(
+    "/healthz",
+    {
+      logLevel: "silent",
+      schema: {
+        tags: [...HEALTH_TAG],
+        summary: "Kubernetes-style liveness alias delegating to /health",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([503]),
+        },
+      },
+    },
+    (request, _reply) =>
+      request.server.inject({
+        method: "GET",
+        url: "/health",
+      }),
+  );
+
+  app.get(
+    "/readyz",
+    {
+      logLevel: "silent",
+      schema: {
+        tags: [...HEALTH_TAG],
+        summary: "Kubernetes-style readiness alias delegating to /ready",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([503]),
+        },
+      },
+    },
+    (request, _reply) =>
+      request.server.inject({
+        method: "GET",
+        url: "/ready",
+      }),
   );
 
   logger.info(

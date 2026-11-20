@@ -9,6 +9,13 @@ import { FastifyPluginAsync } from "fastify";
 import EventEmitter from "events";
 import { logger } from "../config/logger.js";
 import crypto from "crypto";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_SUCCESS_FLAG_SCHEMA,
+  buildErrorResponses,
+} from "./openapi.schemas.js";
+
+const EVENTS_TAG = ["Real-Time Events & Streaming"] as const;
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -55,102 +62,166 @@ export const broadcastEvent = (event: OperationalEvent) => {
 
 const eventsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   // Existing SSE route
-  fastify.get("/events", (request, reply) => {
-    if (emitter.listenerCount("newEvent") >= MAX_CLIENTS) {
-      reply.code(429).send({ error: "Too many active connections" });
-      return;
-    }
+  fastify.get(
+    "/events",
+    {
+      schema: {
+        tags: [...EVENTS_TAG],
+        summary:
+          "Subscribe to Server-Sent Events (SSE) operational event stream",
+        response: {
+          ...buildErrorResponses([401, 403, 429, 500]),
+        },
+      },
+    },
+    (request, reply) => {
+      if (emitter.listenerCount("newEvent") >= MAX_CLIENTS) {
+        reply.code(429).send({ error: "Too many active connections" });
+        return;
+      }
 
-    reply.raw.setHeader("Content-Type", "text/event-stream");
-    reply.raw.setHeader("Cache-Control", "no-cache");
-    reply.raw.setHeader("Connection", "keep-alive");
+      reply.raw.setHeader("Content-Type", "text/event-stream");
+      reply.raw.setHeader("Cache-Control", "no-cache");
+      reply.raw.setHeader("Connection", "keep-alive");
 
-    const onEvent = (data: unknown) => {
-      reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
-    };
+      const onEvent = (data: unknown) => {
+        reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
+      };
 
-    emitter.on("newEvent", onEvent);
+      emitter.on("newEvent", onEvent);
 
-    request.raw.on("close", () => {
-      emitter.off("newEvent", onEvent);
-    });
-  });
+      request.raw.on("close", () => {
+        emitter.off("newEvent", onEvent);
+      });
+    },
+  );
 
   // WebSocket route for notifications (Demurrage, etc)
-  fastify.get("/ws/notifications", { websocket: true }, (rawSocket, _req) => {
-    const socket = rawSocket as WebSocketClient;
-    logger.info("New WebSocket connection established");
+  fastify.get(
+    "/ws/notifications",
+    {
+      websocket: true,
+      schema: {
+        tags: [...EVENTS_TAG],
+        summary:
+          "WebSocket stream for real-time operational alerts and notifications",
+        response: {
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    (rawSocket, _req) => {
+      const socket = rawSocket as WebSocketClient;
+      logger.info("New WebSocket connection established");
 
-    // Broadcast function wrapper
-    const onEvent = (data: unknown) => {
-      if (socket.readyState === 1 /* OPEN */) {
-        socket.send(JSON.stringify(data));
-      }
-    };
-
-    // Listen to global emitter
-    emitter.on("newEvent", onEvent);
-
-    // Keepalive ping interval every 25 seconds to prevent proxy idle drop
-    const keepAliveTimer = setInterval(() => {
-      if (socket.readyState === 1 /* OPEN */) {
-        try {
-          socket.send(JSON.stringify({ type: "HEARTBEAT" }));
-        } catch {}
-      }
-    }, 25000);
-
-    // Welcome handshake confirmation
-    if (socket.readyState === 1 /* OPEN */) {
-      socket.send(
-        JSON.stringify({
-          type: "CONNECTED",
-          message: "WebSocket ready for alerts",
-        }),
-      );
-    }
-
-    socket.on("message", (message) => {
-      try {
-        const raw = message.toString();
-        const parsed = JSON.parse(raw);
-        if (parsed.type === "PING" && socket.readyState === 1) {
-          socket.send(JSON.stringify({ type: "PONG" }));
+      // Broadcast function wrapper
+      const onEvent = (data: unknown) => {
+        if (socket.readyState === 1 /* OPEN */) {
+          socket.send(JSON.stringify(data));
         }
-      } catch {}
-    });
+      };
 
-    socket.on("close", () => {
-      clearInterval(keepAliveTimer);
-      logger.info("WebSocket connection closed");
-      emitter.off("newEvent", onEvent);
-    });
-  });
+      // Listen to global emitter
+      emitter.on("newEvent", onEvent);
 
-  fastify.post("/demo/trigger-alert", async (_request, _reply) => {
-    broadcastEvent({
-      id: crypto.randomUUID(),
-      type: "ALERT",
-      message: "Custom delay in Singapore Hub detected.",
-      timestamp: new Date().toISOString(),
-      metadata: { location: "SGSIN" },
-    });
-    return { success: true };
-  });
+      // Keepalive ping interval every 25 seconds to prevent proxy idle drop
+      const keepAliveTimer = setInterval(() => {
+        if (socket.readyState === 1 /* OPEN */) {
+          try {
+            socket.send(JSON.stringify({ type: "HEARTBEAT" }));
+          } catch {}
+        }
+      }, 25000);
 
-  fastify.post("/demo/trigger-milestone", async (_request, _reply) => {
-    broadcastEvent({
-      id: crypto.randomUUID(),
-      type: "MILESTONE",
-      message: "Vessel CMA CGM TITAN has departed Port of Shanghai",
-      timestamp: new Date().toISOString(),
-      metadata: { milestone: "DEPARTURE", vessel: "CMA CGM TITAN" },
-    });
-    return { success: true };
-  });
+      // Welcome handshake confirmation
+      if (socket.readyState === 1 /* OPEN */) {
+        socket.send(
+          JSON.stringify({
+            type: "CONNECTED",
+            message: "WebSocket ready for alerts",
+          }),
+        );
+      }
+
+      socket.on("message", (message) => {
+        try {
+          const raw = message.toString();
+          const parsed = JSON.parse(raw);
+          if (parsed.type === "PING" && socket.readyState === 1) {
+            socket.send(JSON.stringify({ type: "PONG" }));
+          }
+        } catch {}
+      });
+
+      socket.on("close", () => {
+        clearInterval(keepAliveTimer);
+        logger.info("WebSocket connection closed");
+        emitter.off("newEvent", onEvent);
+      });
+    },
+  );
+
+  fastify.post(
+    "/demo/trigger-alert",
+    {
+      schema: {
+        tags: [...EVENTS_TAG],
+        summary: "Broadcast a diagnostic operational delay alert event",
+        response: {
+          200: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, _reply) => {
+      broadcastEvent({
+        id: crypto.randomUUID(),
+        type: "ALERT",
+        message: "Custom delay in Singapore Hub detected.",
+        timestamp: new Date().toISOString(),
+        metadata: { location: "SGSIN" },
+      });
+      return { success: true };
+    },
+  );
+
+  fastify.post(
+    "/demo/trigger-milestone",
+    {
+      schema: {
+        tags: [...EVENTS_TAG],
+        summary: "Broadcast a diagnostic vessel departure milestone event",
+        response: {
+          200: OPENAPI_SUCCESS_FLAG_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, _reply) => {
+      broadcastEvent({
+        id: crypto.randomUUID(),
+        type: "MILESTONE",
+        message: "Vessel CMA CGM TITAN has departed Port of Shanghai",
+        timestamp: new Date().toISOString(),
+        metadata: { milestone: "DEPARTURE", vessel: "CMA CGM TITAN" },
+      });
+      return { success: true };
+    },
+  );
 
   fastify.post<{ Body: SyncBatchBody }>(
     "/sync/batch",
+    {
+      schema: {
+        tags: [...EVENTS_TAG],
+        summary: "Ingest a synchronized entity batch event payload",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { source, entities = [], batchId } = request.body || {};
@@ -166,6 +237,33 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       }
     },
   );
+  const vesselSimInterval = setInterval(() => {
+    if (emitter.listenerCount("newEvent") > 0) {
+      vesselPositions.forEach((v) => {
+        // Small random movement
+        v.lat += (Math.random() - 0.5) * 0.05;
+        v.lng += (Math.random() - 0.5) * 0.05;
+        broadcastEvent({
+          id: crypto.randomUUID(),
+          type: "VESSEL_LOCATION_UPDATE",
+          message: "Vessel position updated",
+          timestamp: new Date().toISOString(),
+          metadata: {
+            vesselId: v.id,
+            name: v.name,
+            lat: v.lat,
+            lng: v.lng,
+            heading: v.heading,
+          },
+        });
+      });
+    }
+  }, 5000);
+  vesselSimInterval.unref();
+
+  fastify.addHook("onClose", async () => {
+    clearInterval(vesselSimInterval);
+  });
 };
 
 // Background simulator for live vessel tracking
@@ -179,28 +277,5 @@ const vesselPositions = [
   }, // Leaving Shanghai
   { id: "v-2", name: "MSC Zoe", lat: 39.4699, lng: -0.3763, heading: 85 }, // Leaving Valencia
 ];
-
-setInterval(() => {
-  if (emitter.listenerCount("newEvent") > 0) {
-    vesselPositions.forEach((v) => {
-      // Small random movement
-      v.lat += (Math.random() - 0.5) * 0.05;
-      v.lng += (Math.random() - 0.5) * 0.05;
-      broadcastEvent({
-        id: crypto.randomUUID(),
-        type: "VESSEL_LOCATION_UPDATE",
-        message: "Vessel position updated",
-        timestamp: new Date().toISOString(),
-        metadata: {
-          vesselId: v.id,
-          name: v.name,
-          lat: v.lat,
-          lng: v.lng,
-          heading: v.heading,
-        },
-      });
-    });
-  }
-}, 5000);
 
 export default eventsRoutes;

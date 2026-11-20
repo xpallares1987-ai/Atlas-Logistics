@@ -24,6 +24,13 @@ import {
   validateStationAccess,
   stationContextHook,
 } from "../middleware/station-context.js";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  buildErrorResponses,
+} from "./openapi.schemas.js";
+
+const ORGANIZATION_TAG = ["Organization & Matrix RBAC"] as const;
 
 export type { StationContext, StationAccessValidationResult };
 export { validateStationAccess, stationContextHook };
@@ -123,7 +130,17 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
    */
   app.get(
     "/context",
-    { preHandler: [authMiddleware, verifyStationAuthorization] },
+    {
+      preHandler: [authMiddleware, verifyStationAuthorization],
+      schema: {
+        tags: [...ORGANIZATION_TAG],
+        summary: "Resolve active station context from X-Station-Context header",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       return reply.code(200).send({
         success: true,
@@ -138,7 +155,18 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
    */
   app.get(
     "/stations",
-    { preHandler: [authMiddleware] },
+    {
+      preHandler: [authMiddleware],
+      schema: {
+        tags: [...ORGANIZATION_TAG],
+        summary:
+          "List all operating freight forwarding branch stations and gateways",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const rows = await db
@@ -200,7 +228,19 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
    */
   app.get<{ Params: { id: string } }>(
     "/stations/:id/departments",
-    { preHandler: [authMiddleware] },
+    {
+      preHandler: [authMiddleware],
+      schema: {
+        tags: [...ORGANIZATION_TAG],
+        summary:
+          "List functional operational departments and cost centers for a station",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       const user = request.user;
       if (!user || !user.id) {
@@ -311,7 +351,18 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
    */
   app.get(
     "/my-stations",
-    { preHandler: [authMiddleware] },
+    {
+      preHandler: [authMiddleware],
+      schema: {
+        tags: [...ORGANIZATION_TAG],
+        summary:
+          "List stations, departments, and roles assigned to the current user",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       const user = request.user;
       if (!user || !user.id) {
@@ -378,7 +429,17 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
    */
   app.get(
     "/alliances",
-    { preHandler: [authMiddleware] },
+    {
+      preHandler: [authMiddleware],
+      schema: {
+        tags: [...ORGANIZATION_TAG],
+        summary: "List global freight forwarding agent alliances and coverage",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const networks = await db
@@ -412,7 +473,18 @@ export const organizationRoutes: FastifyPluginAsync = async (app) => {
    */
   app.get(
     "/contracts",
-    { preHandler: [authMiddleware, verifyStationAuthorization] },
+    {
+      preHandler: [authMiddleware, verifyStationAuthorization],
+      schema: {
+        tags: [...ORGANIZATION_TAG],
+        summary:
+          "List station-scoped carrier MQC and BSA space allocation contracts",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 404, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       const user = request.user;
       try {

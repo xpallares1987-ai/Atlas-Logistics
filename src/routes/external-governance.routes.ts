@@ -30,6 +30,14 @@ import {
   queryUnlocodeDirectory,
   getUnlocodeCountrySummaries,
 } from "../services/unlocode-directory.service.js";
+import {
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  buildErrorResponses,
+  buildParamsSchema,
+  openApiObject,
+} from "./openapi.schemas.js";
+
+const EXTERNAL_GOVERNANCE_TAG = ["External Governance & UN/LOCODE"] as const;
 
 interface UnlocodeLookupQuery {
   q?: string;
@@ -108,299 +116,417 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
   await ensureExternalGovernanceTables();
 
   // 1. List Data Sources
-  fastify.get("/sources", async (_request, reply) => {
-    try {
-      const sources = await db
-        .select()
-        .from(dataSources)
-        .where(eq(dataSources.isDeleted, false));
-      return reply.send({
-        success: true,
-        count: sources.length,
-        data: sources,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Internal Server Error";
-      return reply.status(500).send({ success: false, error: message });
-    }
-  });
+  fastify.get(
+    "/sources",
+    {
+      schema: {
+        tags: [...EXTERNAL_GOVERNANCE_TAG],
+        summary: "List registered external master data sources",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        const sources = await db
+          .select()
+          .from(dataSources)
+          .where(eq(dataSources.isDeleted, false));
+        return reply.send({
+          success: true,
+          count: sources.length,
+          data: sources,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Internal Server Error";
+        return reply.status(500).send({ success: false, error: message });
+      }
+    },
+  );
 
   // 2. Ingest Raw Source Record (JSON Mode + SHA-256 Hash + Outbox Event)
-  fastify.post("/records", async (request, reply) => {
-    try {
-      const parsed = ingestSourceRecordRequestSchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({
-          success: false,
-          error: "Invalid payload format",
-          details: parsed.error.issues,
-        });
-      }
+  fastify.post(
+    "/records",
+    {
+      schema: {
+        tags: [...EXTERNAL_GOVERNANCE_TAG],
+        summary:
+          "Ingest and SHA-256 hash an external source record with outbox audit",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parsed = ingestSourceRecordRequestSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            success: false,
+            error: "Invalid payload format",
+            details: parsed.error.issues,
+          });
+        }
 
-      const {
-        sourceCode,
-        externalId,
-        sourceUrl,
-        rawPayload,
-        normalizedPayload,
-        versionTag,
-      } = parsed.data;
-
-      // Find or verify data source
-      const [source] = await db
-        .select()
-        .from(dataSources)
-        .where(eq(dataSources.code, sourceCode))
-        .limit(1);
-
-      if (!source) {
-        return reply.status(404).send({
-          success: false,
-          error: `Data source '${sourceCode}' not found in registry. Register source first.`,
-        });
-      }
-
-      const sha256 = crypto
-        .createHash("sha256")
-        .update(JSON.stringify(rawPayload))
-        .digest("hex");
-
-      const recordId = `srec_${uuidv4().replace(/-/g, "").slice(0, 16)}`;
-      const now = new Date();
-
-      await db.insert(sourceRecords).values({
-        id: recordId,
-        sourceId: source.id,
-        externalId,
-        sourceUrl,
-        rawPayload,
-        normalizedPayload,
-        sha256Hash: sha256,
-        retrievedAt: now,
-        versionTag: versionTag || "v1.0",
-        createdAt: now,
-      });
-
-      // Transactional Outbox Event (Append-Only Event Sourcing)
-      await outboxBus.publish({
-        eventId: uuidv4(),
-        eventType: "external_data.record_ingested",
-        schemaVersion: 1,
-        producerContext: "ExternalDataGovernance",
-        aggregateType: "SourceRecord",
-        aggregateId: recordId,
-        occurredAt: now.toISOString(),
-        payload: {
-          recordId,
+        const {
           sourceCode,
           externalId,
-          sha256Hash: sha256,
-          retrievedAt: now.toISOString(),
-        },
-      });
+          sourceUrl,
+          rawPayload,
+          normalizedPayload,
+          versionTag,
+        } = parsed.data;
 
-      return reply.status(201).send({
-        success: true,
-        recordId,
-        sha256Hash: sha256,
-        externalId,
-        retrievedAt: now,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Internal Server Error";
-      return reply.status(500).send({ success: false, error: message });
-    }
-  });
+        // Find or verify data source
+        const [source] = await db
+          .select()
+          .from(dataSources)
+          .where(eq(dataSources.code, sourceCode))
+          .limit(1);
+
+        if (!source) {
+          return reply.status(404).send({
+            success: false,
+            error: `Data source '${sourceCode}' not found in registry. Register source first.`,
+          });
+        }
+
+        const sha256 = crypto
+          .createHash("sha256")
+          .update(JSON.stringify(rawPayload))
+          .digest("hex");
+
+        const recordId = `srec_${uuidv4().replace(/-/g, "").slice(0, 16)}`;
+        const now = new Date();
+
+        await db.insert(sourceRecords).values({
+          id: recordId,
+          sourceId: source.id,
+          externalId,
+          sourceUrl,
+          rawPayload,
+          normalizedPayload,
+          sha256Hash: sha256,
+          retrievedAt: now,
+          versionTag: versionTag || "v1.0",
+          createdAt: now,
+        });
+
+        // Transactional Outbox Event (Append-Only Event Sourcing)
+        await outboxBus.publish({
+          eventId: uuidv4(),
+          eventType: "external_data.record_ingested",
+          schemaVersion: 1,
+          producerContext: "ExternalDataGovernance",
+          aggregateType: "SourceRecord",
+          aggregateId: recordId,
+          occurredAt: now.toISOString(),
+          payload: {
+            recordId,
+            sourceCode,
+            externalId,
+            sha256Hash: sha256,
+            retrievedAt: now.toISOString(),
+          },
+        });
+
+        return reply.status(201).send({
+          success: true,
+          recordId,
+          sha256Hash: sha256,
+          externalId,
+          retrievedAt: now,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Internal Server Error";
+        return reply.status(500).send({ success: false, error: message });
+      }
+    },
+  );
 
   // 3. List Source Records
-  fastify.get("/records", async (request, reply) => {
-    try {
-      const query = request.query as { externalId?: string; sourceId?: string };
-      const conditions = [eq(sourceRecords.isDeleted, false)];
-      if (query.externalId) {
-        conditions.push(eq(sourceRecords.externalId, query.externalId));
-      }
-      if (query.sourceId) {
-        conditions.push(eq(sourceRecords.sourceId, query.sourceId));
-      }
+  fastify.get(
+    "/records",
+    {
+      schema: {
+        tags: [...EXTERNAL_GOVERNANCE_TAG],
+        summary: "List ingested external source records with optional filters",
+        querystring: openApiObject({
+          externalId: { type: "string" },
+          sourceId: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const query = request.query as {
+          externalId?: string;
+          sourceId?: string;
+        };
+        const conditions = [eq(sourceRecords.isDeleted, false)];
+        if (query.externalId) {
+          conditions.push(eq(sourceRecords.externalId, query.externalId));
+        }
+        if (query.sourceId) {
+          conditions.push(eq(sourceRecords.sourceId, query.sourceId));
+        }
 
-      const records = await db
-        .select()
-        .from(sourceRecords)
-        .where(and(...conditions))
-        .orderBy(desc(sourceRecords.retrievedAt))
-        .limit(100);
+        const records = await db
+          .select()
+          .from(sourceRecords)
+          .where(and(...conditions))
+          .orderBy(desc(sourceRecords.retrievedAt))
+          .limit(100);
 
-      return reply.send({
-        success: true,
-        count: records.length,
-        data: records,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Internal Server Error";
-      return reply.status(500).send({ success: false, error: message });
-    }
-  });
+        return reply.send({
+          success: true,
+          count: records.length,
+          data: records,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Internal Server Error";
+        return reply.status(500).send({ success: false, error: message });
+      }
+    },
+  );
 
   // 4. Create Entity Source Link (Cross-Reference to Atlas Domain + Outbox)
-  fastify.post("/entity-links", async (request, reply) => {
-    try {
-      const parsed = createEntityLinkRequestSchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({
-          success: false,
-          error: "Invalid entity link payload",
-          details: parsed.error.issues,
-        });
-      }
+  fastify.post(
+    "/entity-links",
+    {
+      schema: {
+        tags: [...EXTERNAL_GOVERNANCE_TAG],
+        summary:
+          "Link an internal domain entity to a verified external source record",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parsed = createEntityLinkRequestSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            success: false,
+            error: "Invalid entity link payload",
+            details: parsed.error.issues,
+          });
+        }
 
-      const {
-        entityType,
-        entityId,
-        sourceRecordId,
-        matchConfidence,
-        matchMethod,
-        verifiedBy,
-      } = parsed.data;
-
-      // Verify source record exists
-      const [record] = await db
-        .select()
-        .from(sourceRecords)
-        .where(eq(sourceRecords.id, sourceRecordId))
-        .limit(1);
-
-      if (!record) {
-        return reply.status(404).send({
-          success: false,
-          error: `Source record '${sourceRecordId}' not found.`,
-        });
-      }
-
-      const linkId = `esl_${uuidv4().replace(/-/g, "").slice(0, 16)}`;
-      const now = new Date();
-
-      await db.insert(entitySourceLinks).values({
-        id: linkId,
-        entityType,
-        entityId,
-        sourceRecordId,
-        matchConfidence,
-        matchMethod,
-        verifiedAt: now,
-        verifiedBy: verifiedBy || "system_operator",
-        createdAt: now,
-      });
-
-      // Transactional Outbox Event (Append-Only Event Sourcing)
-      await outboxBus.publish({
-        eventId: uuidv4(),
-        eventType: "external_data.entity_linked",
-        schemaVersion: 1,
-        producerContext: "ExternalDataGovernance",
-        aggregateType: "EntitySourceLink",
-        aggregateId: linkId,
-        occurredAt: now.toISOString(),
-        payload: {
-          linkId,
+        const {
           entityType,
           entityId,
           sourceRecordId,
           matchConfidence,
           matchMethod,
-        },
-      });
+          verifiedBy,
+        } = parsed.data;
 
-      return reply.status(201).send({
-        success: true,
-        linkId,
-        entityType,
-        entityId,
-        sourceRecordId,
-        matchConfidence,
-        verifiedAt: now,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Internal Server Error";
-      return reply.status(500).send({ success: false, error: message });
-    }
-  });
+        // Verify source record exists
+        const [record] = await db
+          .select()
+          .from(sourceRecords)
+          .where(eq(sourceRecords.id, sourceRecordId))
+          .limit(1);
+
+        if (!record) {
+          return reply.status(404).send({
+            success: false,
+            error: `Source record '${sourceRecordId}' not found.`,
+          });
+        }
+
+        const linkId = `esl_${uuidv4().replace(/-/g, "").slice(0, 16)}`;
+        const now = new Date();
+
+        await db.insert(entitySourceLinks).values({
+          id: linkId,
+          entityType,
+          entityId,
+          sourceRecordId,
+          matchConfidence,
+          matchMethod,
+          verifiedAt: now,
+          verifiedBy: verifiedBy || "system_operator",
+          createdAt: now,
+        });
+
+        // Transactional Outbox Event (Append-Only Event Sourcing)
+        await outboxBus.publish({
+          eventId: uuidv4(),
+          eventType: "external_data.entity_linked",
+          schemaVersion: 1,
+          producerContext: "ExternalDataGovernance",
+          aggregateType: "EntitySourceLink",
+          aggregateId: linkId,
+          occurredAt: now.toISOString(),
+          payload: {
+            linkId,
+            entityType,
+            entityId,
+            sourceRecordId,
+            matchConfidence,
+            matchMethod,
+          },
+        });
+
+        return reply.status(201).send({
+          success: true,
+          linkId,
+          entityType,
+          entityId,
+          sourceRecordId,
+          matchConfidence,
+          verifiedAt: now,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Internal Server Error";
+        return reply.status(500).send({ success: false, error: message });
+      }
+    },
+  );
 
   // 5. Query All Entity Links (with optional filters)
-  fastify.get("/entity-links", async (request, reply) => {
-    try {
-      const query = request.query as { entityType?: string; entityId?: string };
-      const conditions = [eq(entitySourceLinks.isDeleted, false)];
-      if (query.entityType) {
-        conditions.push(eq(entitySourceLinks.entityType, query.entityType));
-      }
-      if (query.entityId) {
-        conditions.push(eq(entitySourceLinks.entityId, query.entityId));
-      }
+  fastify.get(
+    "/entity-links",
+    {
+      schema: {
+        tags: [...EXTERNAL_GOVERNANCE_TAG],
+        summary: "Query external source links across domain entities",
+        querystring: openApiObject({
+          entityType: { type: "string" },
+          entityId: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const query = request.query as {
+          entityType?: string;
+          entityId?: string;
+        };
+        const conditions = [eq(entitySourceLinks.isDeleted, false)];
+        if (query.entityType) {
+          conditions.push(eq(entitySourceLinks.entityType, query.entityType));
+        }
+        if (query.entityId) {
+          conditions.push(eq(entitySourceLinks.entityId, query.entityId));
+        }
 
-      const links = await db
-        .select({
-          link: entitySourceLinks,
-          sourceRecord: sourceRecords,
-        })
-        .from(entitySourceLinks)
-        .innerJoin(
-          sourceRecords,
-          eq(entitySourceLinks.sourceRecordId, sourceRecords.id),
-        )
-        .where(and(...conditions))
-        .orderBy(desc(entitySourceLinks.createdAt))
-        .limit(100);
+        const links = await db
+          .select({
+            link: entitySourceLinks,
+            sourceRecord: sourceRecords,
+          })
+          .from(entitySourceLinks)
+          .innerJoin(
+            sourceRecords,
+            eq(entitySourceLinks.sourceRecordId, sourceRecords.id),
+          )
+          .where(and(...conditions))
+          .orderBy(desc(entitySourceLinks.createdAt))
+          .limit(100);
 
-      return reply.send({ success: true, count: links.length, data: links });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Internal Server Error";
-      return reply.status(500).send({ success: false, error: message });
-    }
-  });
+        return reply.send({ success: true, count: links.length, data: links });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Internal Server Error";
+        return reply.status(500).send({ success: false, error: message });
+      }
+    },
+  );
 
   // 5b. Query Entity Links for a Given Entity
-  fastify.get("/entity-links/:entityType/:entityId", async (request, reply) => {
-    try {
-      const { entityType, entityId } = request.params as {
-        entityType: string;
-        entityId: string;
-      };
+  fastify.get(
+    "/entity-links/:entityType/:entityId",
+    {
+      schema: {
+        tags: [...EXTERNAL_GOVERNANCE_TAG],
+        summary:
+          "Retrieve verified external source links for a specific domain entity",
+        params: buildParamsSchema({
+          entityType: "Domain entity type discriminator.",
+          entityId: "Target domain entity identifier.",
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { entityType, entityId } = request.params as {
+          entityType: string;
+          entityId: string;
+        };
 
-      const links = await db
-        .select({
-          link: entitySourceLinks,
-          sourceRecord: sourceRecords,
-        })
-        .from(entitySourceLinks)
-        .innerJoin(
-          sourceRecords,
-          eq(entitySourceLinks.sourceRecordId, sourceRecords.id),
-        )
-        .where(
-          and(
-            eq(entitySourceLinks.entityType, entityType),
-            eq(entitySourceLinks.entityId, entityId),
-            eq(entitySourceLinks.isDeleted, false),
-          ),
-        );
+        const links = await db
+          .select({
+            link: entitySourceLinks,
+            sourceRecord: sourceRecords,
+          })
+          .from(entitySourceLinks)
+          .innerJoin(
+            sourceRecords,
+            eq(entitySourceLinks.sourceRecordId, sourceRecords.id),
+          )
+          .where(
+            and(
+              eq(entitySourceLinks.entityType, entityType),
+              eq(entitySourceLinks.entityId, entityId),
+              eq(entitySourceLinks.isDeleted, false),
+            ),
+          );
 
-      return reply.send({ success: true, count: links.length, data: links });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Internal Server Error";
-      return reply.status(500).send({ success: false, error: message });
-    }
-  });
+        return reply.send({ success: true, count: links.length, data: links });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Internal Server Error";
+        return reply.status(500).send({ success: false, error: message });
+      }
+    },
+  );
 
   // 6. High-Performance UN/LOCODE Lookup (Using In-Memory Prefix Trie & LRU)
   fastify.get<{ Querystring: UnlocodeLookupQuery }>(
     "/unlocode/lookup",
+    {
+      schema: {
+        tags: [...EXTERNAL_GOVERNANCE_TAG],
+        summary:
+          "Search UNECE UN/LOCODE ports, airports, railheads, and dry ports",
+        querystring: openApiObject({
+          q: { type: "string" },
+          country: { type: "string" },
+          mode: { type: "string" },
+          limit: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const rawQ = (request.query?.q || "").trim();
@@ -472,160 +598,191 @@ export const externalGovernanceRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // 6b. Official UN/LOCODE Country & Territory Summary Catalog (249 ISO 3166-1 territories)
-  fastify.get("/unlocode/countries", async (_request, reply) => {
-    try {
-      const summary = await getUnlocodeCountrySummaries();
-      return reply.type("application/json").send({
-        success: true,
-        ...summary,
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Internal Server Error";
-      return reply.status(500).send({ success: false, error: message });
-    }
-  });
+  fastify.get(
+    "/unlocode/countries",
+    {
+      schema: {
+        tags: [...EXTERNAL_GOVERNANCE_TAG],
+        summary:
+          "Retrieve ISO 3166-1 country and territory summaries for UN/LOCODE catalog",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        const summary = await getUnlocodeCountrySummaries();
+        return reply.type("application/json").send({
+          success: true,
+          ...summary,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Internal Server Error";
+        return reply.status(500).send({ success: false, error: message });
+      }
+    },
+  );
 
   // 7. Write-Through Cache: Update/Upsert UN/LOCODE in Hot Memory + SQLite
-  fastify.post("/unlocode/upsert", async (request, reply) => {
-    try {
-      const parsed = upsertUnlocodeRequestSchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({
-          success: false,
-          error:
-            "Invalid UN/LOCODE entry: location (5 uppercase chars), name and country (2 chars) are mandatory.",
-          details: parsed.error.issues,
-        });
-      }
-
-      const entry: UnlocodeEntry = {
-        location: escapeHTML(parsed.data.location),
-        name: escapeHTML(parsed.data.name),
-        country: escapeHTML(parsed.data.country),
-        coordinates: parsed.data.coordinates
-          ? escapeHTML(parsed.data.coordinates)
-          : undefined,
-        status: parsed.data.status ? escapeHTML(parsed.data.status) : undefined,
-        subdivision: parsed.data.subdivision
-          ? escapeHTML(parsed.data.subdivision)
-          : undefined,
-        function: parsed.data.function
-          ? escapeHTML(parsed.data.function)
-          : undefined,
-      };
-
-      // Write-Through: Update In-Memory Trie and LRU immediately without server restart
-      upsertUnlocode(entry);
-
-      // Write-Through: Also persist to canonical SQLite unlocode_locations catalog
-      const upperLocode = entry.location.toUpperCase();
-      const upperCountry = entry.country.toUpperCase().slice(0, 2);
-      const locCode = upperLocode.slice(2, 5);
-      const fnClassifier = entry.function || "1-------";
-      const normalizedNoDiacritics = entry.name
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-      const nowTimestamp = new Date();
+  fastify.post(
+    "/unlocode/upsert",
+    {
+      schema: {
+        tags: [...EXTERNAL_GOVERNANCE_TAG],
+        summary:
+          "Upsert a UN/LOCODE entry via write-through RAM trie and SQLite persistence",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
       try {
-        await db
-          .insert(unlocodeLocations)
-          .values({
-            unLocode: upperLocode,
-            countryCode: upperCountry,
-            locationCode: locCode,
-            name: entry.name,
-            nameWoDiacritics: normalizedNoDiacritics,
-            subdivisionCode: entry.subdivision ?? null,
-            functionClassifier: fnClassifier,
-            isPort: fnClassifier.includes("1"),
-            isRailTerminal: fnClassifier.includes("2"),
-            isRoadTerminal: fnClassifier.includes("3"),
-            isAirport: fnClassifier.includes("4"),
-            isPostalHub: fnClassifier.includes("5"),
-            isMultimodalIcd: fnClassifier.includes("6"),
-            isBorderCrossing: fnClassifier.includes("B"),
-            status: entry.status || "AI",
-            rawCoordinates: entry.coordinates ?? null,
-            createdAt: nowTimestamp,
-            updatedAt: nowTimestamp,
-          })
-          .onConflictDoUpdate({
-            target: unlocodeLocations.unLocode,
-            set: {
+        const parsed = upsertUnlocodeRequestSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            success: false,
+            error:
+              "Invalid UN/LOCODE entry: location (5 uppercase chars), name and country (2 chars) are mandatory.",
+            details: parsed.error.issues,
+          });
+        }
+
+        const entry: UnlocodeEntry = {
+          location: escapeHTML(parsed.data.location),
+          name: escapeHTML(parsed.data.name),
+          country: escapeHTML(parsed.data.country),
+          coordinates: parsed.data.coordinates
+            ? escapeHTML(parsed.data.coordinates)
+            : undefined,
+          status: parsed.data.status
+            ? escapeHTML(parsed.data.status)
+            : undefined,
+          subdivision: parsed.data.subdivision
+            ? escapeHTML(parsed.data.subdivision)
+            : undefined,
+          function: parsed.data.function
+            ? escapeHTML(parsed.data.function)
+            : undefined,
+        };
+
+        // Write-Through: Update In-Memory Trie and LRU immediately without server restart
+        upsertUnlocode(entry);
+
+        // Write-Through: Also persist to canonical SQLite unlocode_locations catalog
+        const upperLocode = entry.location.toUpperCase();
+        const upperCountry = entry.country.toUpperCase().slice(0, 2);
+        const locCode = upperLocode.slice(2, 5);
+        const fnClassifier = entry.function || "1-------";
+        const normalizedNoDiacritics = entry.name
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+        const nowTimestamp = new Date();
+        try {
+          await db
+            .insert(unlocodeLocations)
+            .values({
+              unLocode: upperLocode,
+              countryCode: upperCountry,
+              locationCode: locCode,
               name: entry.name,
               nameWoDiacritics: normalizedNoDiacritics,
               subdivisionCode: entry.subdivision ?? null,
+              functionClassifier: fnClassifier,
+              isPort: fnClassifier.includes("1"),
+              isRailTerminal: fnClassifier.includes("2"),
+              isRoadTerminal: fnClassifier.includes("3"),
+              isAirport: fnClassifier.includes("4"),
+              isPostalHub: fnClassifier.includes("5"),
+              isMultimodalIcd: fnClassifier.includes("6"),
+              isBorderCrossing: fnClassifier.includes("B"),
               status: entry.status || "AI",
               rawCoordinates: entry.coordinates ?? null,
+              createdAt: nowTimestamp,
               updatedAt: nowTimestamp,
-            },
-          });
-      } catch {
-        // Non-fatal if unlocode_locations table is not yet migrated in isolated unit DBs
-      }
+            })
+            .onConflictDoUpdate({
+              target: unlocodeLocations.unLocode,
+              set: {
+                name: entry.name,
+                nameWoDiacritics: normalizedNoDiacritics,
+                subdivisionCode: entry.subdivision ?? null,
+                status: entry.status || "AI",
+                rawCoordinates: entry.coordinates ?? null,
+                updatedAt: nowTimestamp,
+              },
+            });
+        } catch {
+          // Non-fatal if unlocode_locations table is not yet migrated in isolated unit DBs
+        }
 
-      // Persist raw source record if UN/LOCODE data source exists
-      const [src] = await db
-        .select()
-        .from(dataSources)
-        .where(eq(dataSources.code, "UNLOCODE"))
-        .limit(1);
+        // Persist raw source record if UN/LOCODE data source exists
+        const [src] = await db
+          .select()
+          .from(dataSources)
+          .where(eq(dataSources.code, "UNLOCODE"))
+          .limit(1);
 
-      let recordId: string | undefined;
-      if (src) {
-        recordId = `srec_unlocode_${entry.location.toLowerCase()}`;
-        const now = new Date();
-        const sha256 = crypto
-          .createHash("sha256")
-          .update(JSON.stringify(entry))
-          .digest("hex");
+        let recordId: string | undefined;
+        if (src) {
+          recordId = `srec_unlocode_${entry.location.toLowerCase()}`;
+          const now = new Date();
+          const sha256 = crypto
+            .createHash("sha256")
+            .update(JSON.stringify(entry))
+            .digest("hex");
 
-        await db
-          .insert(sourceRecords)
-          .values({
-            id: recordId,
-            sourceId: src.id,
-            externalId: entry.location,
-            rawPayload: entry as unknown as Record<string, unknown>,
-            normalizedPayload: {
-              locode: entry.location,
-              portName: entry.name,
-              countryCode: entry.country,
-              coordinates: entry.coordinates,
-            },
-            sha256Hash: sha256,
-            retrievedAt: now,
-            versionTag: "write_through_hot_cache",
-            createdAt: now,
-          })
-          .onConflictDoUpdate({
-            target: sourceRecords.id,
-            set: {
+          await db
+            .insert(sourceRecords)
+            .values({
+              id: recordId,
+              sourceId: src.id,
+              externalId: entry.location,
               rawPayload: entry as unknown as Record<string, unknown>,
+              normalizedPayload: {
+                locode: entry.location,
+                portName: entry.name,
+                countryCode: entry.country,
+                coordinates: entry.coordinates,
+              },
               sha256Hash: sha256,
               retrievedAt: now,
-              updatedAt: now,
-            },
-          });
-      }
+              versionTag: "write_through_hot_cache",
+              createdAt: now,
+            })
+            .onConflictDoUpdate({
+              target: sourceRecords.id,
+              set: {
+                rawPayload: entry as unknown as Record<string, unknown>,
+                sha256Hash: sha256,
+                retrievedAt: now,
+                updatedAt: now,
+              },
+            });
+        }
 
-      return reply
-        .type("application/json")
-        .status(200)
-        .send({
-          success: true,
-          message: `Port '${entry.location}' (${entry.name}) updated via Write-Through Cache in RAM and SQLite.`,
-          entry,
-          recordId,
-          stats: getUnlocodeStats(),
-        });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Internal Server Error";
-      return reply.status(500).send({ success: false, error: message });
-    }
-  });
+        return reply
+          .type("application/json")
+          .status(200)
+          .send({
+            success: true,
+            message: `Port '${entry.location}' (${entry.name}) updated via Write-Through Cache in RAM and SQLite.`,
+            entry,
+            recordId,
+            stats: getUnlocodeStats(),
+          });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Internal Server Error";
+        return reply.status(500).send({ success: false, error: message });
+      }
+    },
+  );
 };
 
 export default externalGovernanceRoutes;
