@@ -139,31 +139,72 @@ import {
   generateShipmentDuaPdf,
   generateShipmentDuaXml,
 } from "../scm/contexts/operational-intelligence/green-compliance.projector.js";
+import {
+  OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+  OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+  OPENAPI_ID_PARAMS_SCHEMA,
+  buildErrorResponses,
+  buildParamSchema,
+} from "./openapi.schemas.js";
+
+const SCM_TAG = ["SCM v1 Operational Kernel"] as const;
+const SCM_ERROR_RESPONSES = buildErrorResponses([400, 401, 403, 404, 422, 500]);
 
 function extractActorFromRequest(
   request: FastifyRequest,
 ): SecurityActorContext {
-  const headers = request.headers;
-  const orgId =
-    (headers["x-org-id"] as string) || DEFAULT_OPERATOR_ACTOR.organizationId;
-  const branchId =
-    (headers["x-branch-id"] as string) || DEFAULT_OPERATOR_ACTOR.branchId;
-  const userId =
-    (headers["x-user-id"] as string) || DEFAULT_OPERATOR_ACTOR.userId;
-  const rolesHeader = headers["x-roles"] as string | undefined;
-  const roles = rolesHeader
-    ? rolesHeader.split(",").map((r) => r.trim())
-    : DEFAULT_OPERATOR_ACTOR.roles;
+  if (request.user && request.user.id) {
+    const rawRoles = (request.user as Record<string, unknown>).roles;
+    const roles = Array.isArray(rawRoles)
+      ? rawRoles.map((r) => String(r).trim()).filter(Boolean)
+      : [String(request.user.role || "USER").trim()];
+    const orgId =
+      request.user.companyId ||
+      (request.user.organizationId as string | undefined) ||
+      "";
+    return {
+      userId: request.user.id,
+      organizationId: orgId,
+      legalEntityId: DEFAULT_OPERATOR_ACTOR.legalEntityId,
+      branchId:
+        request.stationContext?.stationId ||
+        (request.headers["x-branch-id"] as string) ||
+        DEFAULT_OPERATOR_ACTOR.branchId,
+      departmentId: DEFAULT_OPERATOR_ACTOR.departmentId,
+      teamIds: DEFAULT_OPERATOR_ACTOR.teamIds,
+      roles,
+    };
+  }
 
-  return {
-    userId,
-    organizationId: orgId,
-    legalEntityId: DEFAULT_OPERATOR_ACTOR.legalEntityId,
-    branchId,
-    departmentId: DEFAULT_OPERATOR_ACTOR.departmentId,
-    teamIds: DEFAULT_OPERATOR_ACTOR.teamIds,
-    roles,
-  };
+  if (process.env.NODE_ENV === "test") {
+    const headers = request.headers;
+    const orgId =
+      (headers["x-org-id"] as string) ||
+      (headers["x-organization-id"] as string) ||
+      DEFAULT_OPERATOR_ACTOR.organizationId;
+    const branchId =
+      (headers["x-branch-id"] as string) || DEFAULT_OPERATOR_ACTOR.branchId;
+    const userId =
+      (headers["x-user-id"] as string) || DEFAULT_OPERATOR_ACTOR.userId;
+    const rolesHeader = headers["x-roles"] as string | undefined;
+    const roles = rolesHeader
+      ? rolesHeader.split(",").map((r) => r.trim())
+      : DEFAULT_OPERATOR_ACTOR.roles;
+
+    return {
+      userId,
+      organizationId: orgId,
+      legalEntityId: DEFAULT_OPERATOR_ACTOR.legalEntityId,
+      branchId,
+      departmentId: DEFAULT_OPERATOR_ACTOR.departmentId,
+      teamIds: DEFAULT_OPERATOR_ACTOR.teamIds,
+      roles,
+    };
+  }
+
+  throw new AuthorizationAbacError(
+    "Authentication required: verified user session is missing.",
+  );
 }
 
 function handleDomainError(error: unknown, reply: FastifyReply) {
@@ -194,7 +235,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // ==========================================================================
   // 06. ORDERS BOUNDED CONTEXT ENDPOINTS
   // ==========================================================================
-  fastify.post("/orders", async (request, reply) => {
+  fastify.post("/orders", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Create a new SCM customer order aggregate",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const body =
@@ -206,7 +258,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/orders/:id/confirm", async (request, reply) => {
+  fastify.post("/orders/:id/confirm", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Confirm a customer order and emit confirmation outbox event",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -217,7 +280,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/orders/:id/cancel", async (request, reply) => {
+  fastify.post("/orders/:id/cancel", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Cancel a customer order with reason",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -233,7 +307,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.get("/orders/:id", async (request, reply) => {
+  fastify.get("/orders/:id", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Load a customer order aggregate by identifier",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -247,7 +332,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // ==========================================================================
   // 07. SHIPMENT EXECUTION BOUNDED CONTEXT ENDPOINTS
   // ==========================================================================
-  fastify.post("/shipments", async (request, reply) => {
+  fastify.post("/shipments", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Create an SCM shipment execution aggregate",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const body =
@@ -259,7 +355,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.get("/shipments/:id", async (request, reply) => {
+  fastify.get("/shipments/:id", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Load an SCM shipment execution aggregate by identifier",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -270,7 +377,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/shipments/:id/close", async (request, reply) => {
+  fastify.post("/shipments/:id/close", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Mark an SCM shipment as delivered and close execution",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -281,7 +399,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/shipments/:id/reopen", async (request, reply) => {
+  fastify.post("/shipments/:id/reopen", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Reopen a closed SCM shipment with justification",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -296,7 +425,19 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // ==========================================================================
   // 08. TRANSPORT PLANNING BOUNDED CONTEXT ENDPOINTS
   // ==========================================================================
-  fastify.post("/shipments/:id/route-plan", async (request, reply) => {
+  fastify.post("/shipments/:id/route-plan", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Publish a multimodal route plan for an SCM shipment",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -324,7 +465,19 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // ==========================================================================
   // 10. CARGO & EQUIPMENT BOUNDED CONTEXT ENDPOINTS
   // ==========================================================================
-  fastify.post("/shipments/:id/cargo", async (request, reply) => {
+  fastify.post("/shipments/:id/cargo", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Declare cargo line items for an SCM shipment",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -345,7 +498,19 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/shipments/:id/equipment", async (request, reply) => {
+  fastify.post("/shipments/:id/equipment", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Assign ISO container or transport equipment to a shipment",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -371,7 +536,19 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // 11, 13, 18, 19. SLICE 2 & SLICE 3 ENDPOINTS
   // Tracking Events, SLA Stop-Clock, Contextual Data Quality & Macro Incidents
   // ==========================================================================
-  fastify.post("/shipments/:id/events", async (request, reply) => {
+  fastify.post("/shipments/:id/events", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Ingest an operational tracking milestone event for a shipment",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -393,7 +570,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/shipments/:id/sla-stop-clock", async (request, reply) => {
+  fastify.post("/shipments/:id/sla-stop-clock", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Toggle SLA stop-clock suspension for a shipment",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -423,6 +611,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/shipments/:id/data-quality/evaluate",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Evaluate shipment data quality gate rules",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -439,7 +638,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.post("/incidents", async (request, reply) => {
+  fastify.post("/incidents", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Promote operational exceptions into a macro control incident",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const body =
@@ -456,7 +666,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // ==========================================================================
   // 20 & 21. SLICE 4 ENDPOINTS — WORKFLOW RUNTIME & DECISION TABLES
   // ==========================================================================
-  fastify.get("/decisions", async (_request, reply) => {
+  fastify.get("/decisions", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "List automated DMN workflow decision table definitions",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (_request, reply) => {
     try {
       const list = await listDecisionDefinitions();
       return reply.send(list);
@@ -465,7 +685,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/decisions", async (request, reply) => {
+  fastify.post("/decisions", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Publish a new version of a workflow decision table",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const body =
@@ -478,7 +709,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/decisions/:decisionKey/evaluate", async (request, reply) => {
+  fastify.post("/decisions/:decisionKey/evaluate", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Evaluate a workflow decision table against shipment facts",
+        params: buildParamSchema("decisionKey", "Decision table key."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { decisionKey } = request.params as { decisionKey: string };
@@ -504,7 +746,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.get("/shipments/:id/workflow", async (request, reply) => {
+  fastify.get("/shipments/:id/workflow", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Retrieve shipment workflow state and decision explainability",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const [workflowState, decisionExplainability] = await Promise.all([
@@ -517,7 +770,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/shipments/:id/workflow/advance", async (request, reply) => {
+  fastify.post("/shipments/:id/workflow/advance", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Advance the BPMN workflow token for a shipment",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -542,7 +806,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/shipments/:id/workflow/state", async (request, reply) => {
+  fastify.post("/shipments/:id/workflow/state", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Toggle shipment workflow instance active/suspended state",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -568,7 +843,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // ==========================================================================
   // 09, 14 & 15. SLICE 5 ENDPOINTS — CONSOLIDATION, DOCUMENTS & CUSTOMS
   // ==========================================================================
-  fastify.get("/consolidations", async (_request, reply) => {
+  fastify.get("/consolidations", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "List LCL/FCL shipment consolidations",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (_request, reply) => {
     try {
       const list = await listConsolidations();
       return reply.send(list);
@@ -577,7 +862,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/consolidations", async (request, reply) => {
+  fastify.post("/consolidations", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Create a new freight consolidation group",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const body =
@@ -589,7 +885,19 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/consolidations/:id/members", async (request, reply) => {
+  fastify.post("/consolidations/:id/members", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Add a house shipment to a freight consolidation",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -611,7 +919,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/consolidations/:id/lock", async (request, reply) => {
+  fastify.post("/consolidations/:id/lock", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Lock or close a freight consolidation manifest",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -632,7 +951,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.get("/shipments/:id/documents", async (request, reply) => {
+  fastify.get("/shipments/:id/documents", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "List SCM trade documents attached to a shipment",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const docs = await getDocumentsForShipment(id);
@@ -642,7 +972,19 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/shipments/:id/documents", async (request, reply) => {
+  fastify.post("/shipments/:id/documents", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Generate or upload a new shipment trade document version",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -664,7 +1006,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/documents/:documentId/approve", async (request, reply) => {
+  fastify.post("/documents/:documentId/approve", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Review and approve an SCM shipment document",
+        params: buildParamSchema("documentId", "SCM document identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { documentId } = request.params as { documentId: string };
@@ -687,7 +1040,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/documents/:documentId/issue", async (request, reply) => {
+  fastify.post("/documents/:documentId/issue", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Officially issue an approved SCM shipment document",
+        params: buildParamSchema("documentId", "SCM document identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { documentId } = request.params as { documentId: string };
@@ -698,7 +1062,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.get("/shipments/:id/customs", async (request, reply) => {
+  fastify.get("/shipments/:id/customs", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "List customs clearance cases for an SCM shipment",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const cases = await getCustomsCasesForShipment(id);
@@ -708,7 +1083,19 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/shipments/:id/customs", async (request, reply) => {
+  fastify.post("/shipments/:id/customs", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Create and submit a customs clearance case for a shipment",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -730,7 +1117,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/customs/:customsCaseId/hold", async (request, reply) => {
+  fastify.post("/customs/:customsCaseId/hold", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Place an official customs inspection hold on a case",
+        params: buildParamSchema("customsCaseId", "Customs case identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { customsCaseId } = request.params as { customsCaseId: string };
@@ -757,7 +1155,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/customs/:customsCaseId/release", async (request, reply) => {
+  fastify.post("/customs/:customsCaseId/release", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Clear customs hold and authorize cargo release",
+        params: buildParamSchema("customsCaseId", "Customs case identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { customsCaseId } = request.params as { customsCaseId: string };
@@ -783,7 +1192,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // ==========================================================================
   // 16 & 17. SLICE 6 ENDPOINTS — OPERATIONAL FINANCE & BILLING 3-WAY MATCH
   // ==========================================================================
-  fastify.get("/shipments/:id/finance", async (request, reply) => {
+  fastify.get("/shipments/:id/finance", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Retrieve shipment financial read model with cost and revenue lines",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -794,7 +1214,19 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/shipments/:id/finance/lines", async (request, reply) => {
+  fastify.post("/shipments/:id/finance/lines", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Add or update a financial charge line on a shipment",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -816,7 +1248,19 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/shipments/:id/sales-invoices", async (request, reply) => {
+  fastify.post("/shipments/:id/sales-invoices", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Issue an Accounts Receivable sales invoice for a shipment",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -838,7 +1282,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.patch("/sales-invoices/:invoiceId", async (request, reply) => {
+  fastify.patch("/sales-invoices/:invoiceId", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Attempt controlled amendment on an issued sales invoice",
+        params: buildParamSchema("invoiceId", "Sales invoice identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const { invoiceId } = request.params as { invoiceId: string };
       const body = (request.body as { netAmountEur?: number }) || {};
@@ -854,6 +1309,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/sales-invoices/:invoiceId/credit-note",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Issue a compensating sales credit note against an invoice",
+        params: buildParamSchema("invoiceId", "Sales invoice identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -873,7 +1339,19 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.post("/shipments/:id/purchase-invoices", async (request, reply) => {
+  fastify.post("/shipments/:id/purchase-invoices", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Register and three-way match a vendor purchase invoice",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -897,6 +1375,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/purchase-invoices/:purchaseInvoiceId/approve",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Approve a matched purchase invoice for AP payment",
+        params: buildParamSchema("purchaseInvoiceId", "Purchase invoice identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -926,7 +1415,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // ==========================================================================
   // 24. OPERATIONAL INTELLIGENCE — SHIPMENT 360 & SMART WORK QUEUE (CQRS BFF)
   // ==========================================================================
-  fastify.get("/shipments-360", async (request, reply) => {
+  fastify.get("/shipments-360", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "List Shipment 360 CQRS projected read models",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const list = await listShipment360ReadModels(actor);
@@ -936,7 +1435,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.get("/shipments/:id/360", async (request, reply) => {
+  fastify.get("/shipments/:id/360", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Retrieve a single Shipment 360 CQRS read model",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { id } = request.params as { id: string };
@@ -947,7 +1457,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.get("/cockpit", async (request, reply) => {
+  fastify.get("/cockpit", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Query Operations Cockpit smart work queue and summary metrics",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const query =
@@ -972,7 +1492,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/cockpit/:workItemId/execute", async (request, reply) => {
+  fastify.post("/cockpit/:workItemId/execute", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Execute an action on a Cockpit smart work item",
+        params: buildParamSchema("workItemId", "Cockpit work item identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { workItemId } = request.params as { workItemId: string };
@@ -987,7 +1518,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // ==========================================================================
   // 25. PLATFORM GOVERNANCE — TRANSACTIONAL OUTBOX & INBOX TELEMETRY
   // ==========================================================================
-  fastify.get("/outbox", async (_request, reply) => {
+  fastify.get("/outbox", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Inspect transactional outbox and inbox governance telemetry",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (_request, reply) => {
     try {
       await ensureScmFoundationTables();
       const outbox = await db
@@ -1016,7 +1557,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // ==========================================================================
   // 26. SCM LOGICAL MODEL v1 — OPERATIONAL CORE & WORK MANAGEMENT (SLICES 1, 2 & 3)
   // ==========================================================================
-  fastify.post("/operational/shipments", async (request, reply) => {
+  fastify.post("/operational/shipments", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Create an operational core shipment via CQRS command",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const body =
@@ -1033,7 +1585,19 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.put("/operational/shipments/:shipmentId", async (request, reply) => {
+  fastify.put("/operational/shipments/:shipmentId", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Update operational core shipment attributes",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const { shipmentId } = request.params as { shipmentId: string };
@@ -1057,6 +1621,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/operational/shipments/:shipmentId/route-plan",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Create initial multimodal route plan for an operational shipment",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -1087,6 +1663,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/operational/shipments/:shipmentId/360",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Retrieve operational BFF Shipment 360 composite view",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
@@ -1098,7 +1685,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.get("/operational/shipments-360", async (request, reply) => {
+  fastify.get("/operational/shipments-360", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "List paginated operational BFF Shipment 360 views",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const query = (request.query as Record<string, unknown>) || {};
       const result = await listShipment360Views(query);
@@ -1108,7 +1705,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.get("/operational/cockpit", async (request, reply) => {
+  fastify.get("/operational/cockpit", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Query station-scoped operational BFF cockpit work items",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const query =
         (request.query as {
@@ -1130,7 +1737,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.get("/operational/my-work", async (request, reply) => {
+  fastify.get("/operational/my-work", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Query operational work items assigned to current operator context",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const query =
         (request.query as {
@@ -1152,7 +1769,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.get("/operational/cockpit/summary", async (request, reply) => {
+  fastify.get("/operational/cockpit/summary", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Retrieve operational BFF cockpit KPI summary counters",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const query =
         (request.query as {
@@ -1175,6 +1802,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/operational/cockpit/:workItemId/execute",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Execute a station-authorized operational cockpit work item",
+        params: buildParamSchema("workItemId", "Operational cockpit work item identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -1227,8 +1865,8 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
             shipmentId: result.shipment360?.shipmentId,
             unlockedWorkItems: result.unlockedWorkItems,
             message: result.resolvedException
-              ? `Incidencia operativa ${workItemId} resuelta.`
-              : `Tarea ${result.completedTask?.title || workItemId} completada exitosamente.`,
+              ? `Operational exception ${workItemId} resolved.`
+              : `Task ${result.completedTask?.title || workItemId} completed successfully.`,
           });
         } catch (_ignored) {}
 
@@ -1241,6 +1879,16 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/operational/shipments/:shipmentId/bol",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Generate and stream House Bill of Lading PDF for operational shipment",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        response: {
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
@@ -1316,6 +1964,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/operational/shipments/:shipmentId/green-compliance",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Compute GLEC v3, EU ETS, and CBAM green compliance telemetry",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
@@ -1329,6 +1988,16 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/operational/shipments/:shipmentId/carbon-certificate",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Stream Scope 3 Carbon Emissions Certificate PDF for a shipment",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        response: {
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
@@ -1348,6 +2017,16 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/operational/shipments/:shipmentId/cbam-report",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Stream EU CBAM embedded emissions compliance report PDF",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        response: {
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
@@ -1366,6 +2045,16 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/operational/shipments/:shipmentId/cbam-xml",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Export EU CBAM Quarterly Transitional Registry XML report",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        response: {
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
@@ -1384,6 +2073,16 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/operational/shipments/:shipmentId/dua-pdf",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Stream Spanish AEAT DUA customs declaration PDF",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        response: {
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
@@ -1402,6 +2101,16 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/operational/shipments/:shipmentId/dua-xml",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Export Spanish AEAT DUA customs declaration XML",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        response: {
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
@@ -1418,7 +2127,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.get("/shipments/:shipmentId/bol", async (request, reply) => {
+  fastify.get("/shipments/:shipmentId/bol", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Generate and stream Bill of Lading PDF for an SCM shipment",
+        params: buildParamSchema("shipmentId", "Shipment identifier."),
+        response: {
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const { shipmentId } = request.params as { shipmentId: string };
       const view = await getShipment360View(shipmentId);
@@ -1492,6 +2211,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/operational/shipments/:shipmentId/audit-trail",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Retrieve immutable outbox audit trail for an operational shipment",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
@@ -1505,6 +2235,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/operational/shipments/:shipmentId/timeline",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Retrieve chronological operational timeline events for a shipment",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
@@ -1516,7 +2257,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.get("/operational/projections/health", async (_request, reply) => {
+  fastify.get("/operational/projections/health", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Check CQRS operational projection and outbox health metrics",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (_request, reply) => {
     try {
       const result = await getProjectionsHealth();
       return reply.code(200).send(result);
@@ -1525,8 +2276,29 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/operational/projections/rebuild", async (_request, reply) => {
+  fastify.post("/operational/projections/rebuild", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Trigger full authoritative rebuild of CQRS operational projections",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
+      const actor = extractActorFromRequest(request);
+      if (
+        !actor.roles.some((r) =>
+          ["ADMIN", "SYSTEM_ADMIN"].includes(r.toUpperCase()),
+        )
+      ) {
+        return reply.code(403).send({
+          error: "FORBIDDEN",
+          message: "ADMIN role required to rebuild operational projections.",
+        });
+      }
       const result = await rebuildAllOperationalProjections();
       return reply.code(200).send(result);
     } catch (err) {
@@ -1535,7 +2307,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Operational Exceptions Engine
-  fastify.post("/operational/exceptions", async (request, reply) => {
+  fastify.post("/operational/exceptions", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Raise a new operational exception record on a shipment",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const body =
@@ -1549,6 +2332,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.put(
     "/operational/exceptions/:exceptionId/assign",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Assign an operational exception to an operator or team",
+        params: buildParamSchema("exceptionId", "Operational exception identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -1570,6 +2364,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/operational/exceptions/:exceptionId/resolve",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Resolve an open operational exception with audit note",
+        params: buildParamSchema("exceptionId", "Operational exception identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -1589,7 +2394,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.get("/operational/exceptions", async (request, reply) => {
+  fastify.get("/operational/exceptions", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "List operational exceptions with status, severity, and team filters",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const query =
         (request.query as Parameters<typeof listAllOperationalExceptions>[0]) ||
@@ -1603,6 +2418,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/operational/shipments/:shipmentId/exceptions",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "List operational exceptions linked to a specific shipment",
+        params: buildParamSchema("shipmentId", "Operational shipment identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { shipmentId } = request.params as { shipmentId: string };
@@ -1614,7 +2440,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.get("/operational/outbox/dlq", async (_request, reply) => {
+  fastify.get("/operational/outbox/dlq", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Inspect dead-letter queue (DLQ) failed outbox events",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (_request, reply) => {
     try {
       const dlq = await outboxBus.getDeadLetterQueue();
       return reply.code(200).send({
@@ -1628,8 +2464,30 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/operational/outbox/dlq/:eventId/replay",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Replay a failed dead-letter queue outbox event",
+        params: buildParamSchema("eventId", "Dead-letter outbox event identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
+        const actor = extractActorFromRequest(request);
+        if (
+          !actor.roles.some((r) =>
+            ["ADMIN", "SYSTEM_ADMIN"].includes(r.toUpperCase()),
+          )
+        ) {
+          return reply.code(403).send({
+            error: "FORBIDDEN",
+            message: "ADMIN role required to replay DLQ outbox events.",
+          });
+        }
         const { eventId } = request.params as { eventId: string };
         const success = await outboxBus.replayDeadLetterMessage(eventId);
         return reply.code(200).send({
@@ -1642,7 +2500,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.post("/operational/tasks", async (request, reply) => {
+  fastify.post("/operational/tasks", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Create a work-management task bound to an operational subject",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const body = (request.body as Parameters<typeof createTask>[0]) || {};
@@ -1653,7 +2522,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/operational/tasks/dependencies", async (request, reply) => {
+  fastify.post("/operational/tasks/dependencies", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Register a directed prerequisite dependency between tasks",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const body =
@@ -1667,6 +2547,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/operational/tasks/:taskId/complete",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Complete an operational work-management task and unlock dependents",
+        params: buildParamSchema("taskId", "Operational task identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -1689,7 +2580,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.get("/operational/tasks", async (request, reply) => {
+  fastify.get("/operational/tasks", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "List work-management tasks and DAG dependencies for a subject",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const query =
         (request.query as {
@@ -1709,7 +2610,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
   // ==========================================================================
   // 27. SCM LOGICAL MODEL v1 — WORKFLOW ENGINE (SLICE 4)
   // ==========================================================================
-  fastify.post("/workflow-engine/definitions", async (request, reply) => {
+  fastify.post("/workflow-engine/definitions", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Create a reusable DAG workflow definition",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const actor = extractActorFromRequest(request);
       const body =
@@ -1721,7 +2633,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.get("/workflow-engine/definitions", async (_request, reply) => {
+  fastify.get("/workflow-engine/definitions", {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "List all registered DAG workflow definitions",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
+    async (_request, reply) => {
     try {
       await seedStandardWorkflowDefinitions();
       const result = await listWorkflowDefinitions();
@@ -1733,6 +2655,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/workflow-engine/definitions/:defId/versions",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Create a draft version under a workflow definition",
+        params: buildParamSchema("defId", "Workflow definition identifier."),
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -1754,6 +2687,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/workflow-engine/versions/:versionId/tasks",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Add a task node specification to a workflow version",
+        params: buildParamSchema("versionId", "Workflow version identifier."),
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -1780,6 +2725,18 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/workflow-engine/versions/:versionId/dependencies",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Add a DAG dependency edge to a workflow version",
+        params: buildParamSchema("versionId", "Workflow version identifier."),
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -1806,6 +2763,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/workflow-engine/versions/:versionId/publish",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Publish an immutable workflow definition version",
+        params: buildParamSchema("versionId", "Workflow version identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -1820,6 +2788,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/workflow-engine/versions/:versionId",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Retrieve a workflow version along with its full task DAG",
+        params: buildParamSchema("versionId", "Workflow version identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { versionId } = request.params as { versionId: string };
@@ -1833,6 +2812,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/workflow-engine/instances/instantiate",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Instantiate a published workflow version for a subject",
+        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const actor = extractActorFromRequest(request);
@@ -1848,6 +2838,17 @@ const scmV1Routes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     "/workflow-engine/instances/:instanceId",
+    {
+      schema: {
+        tags: [...SCM_TAG],
+        summary: "Retrieve a live workflow execution instance and task statuses",
+        params: buildParamSchema("instanceId", "Workflow instance identifier."),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...SCM_ERROR_RESPONSES,
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const { instanceId } = request.params as { instanceId: string };

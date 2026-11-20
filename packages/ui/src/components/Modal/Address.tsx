@@ -15,10 +15,10 @@ import {
   Globe,
   Sparkles,
 } from "lucide-react";
-import { Modal } from "./Modal";
-import { Button } from "./Button";
-import { DuplicateWarningModal } from "./DuplicateWarningModal";
-import { BlCardPreview } from "./BlCardPreview";
+import { Modal } from "./Base";
+import { Button } from "../Button";
+import { DuplicateWarningModal } from "./DuplicateWarning";
+import { BlCardPreview } from "../BlCardPreview";
 import {
   ADDRESS_TYPE_CATEGORIES,
   requiresUnLocodeForAddressType,

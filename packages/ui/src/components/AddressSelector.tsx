@@ -11,7 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "./Button";
-import { AddressModal } from "./AddressModal";
+import { AddressModal } from "./Modal/Address";
 import {
   expandAddressTypeFilter,
   sortByPreferredDirection,

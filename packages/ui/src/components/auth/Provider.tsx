@@ -1,7 +1,14 @@
+/**
+ * @file Provider.tsx
+ * @description Shared React authentication and tenant context provider for `@atlas/ui` components.
+ * @module @atlas/ui/components/auth/Provider
+ * @see {@link docs/adr/0020-modular-frontend-decomposition-and-naming-standards.md}
+ */
+
 import { ReactNode, useState, createContext, useContext } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-interface User {
+export interface User {
   id: string;
   name: string;
   email: string;
@@ -9,7 +16,7 @@ interface User {
   photoURL?: string;
 }
 
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   loading: boolean;
   role: string;
@@ -21,7 +28,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function Provider({ children }: { children: ReactNode }) {
   const [tenantId, setTenantId] = useState("tenant-1");
   const queryClient = useQueryClient();
 
@@ -53,6 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
+/** Backwards-compatible alias for `Provider`. */
+export const AuthProvider = Provider;
 
 export function useAuth() {
   const context = useContext(AuthContext);

@@ -1,4 +1,4 @@
-import { useAuth } from "../auth/AuthProvider";
+import { useAuth } from "../auth";
 import { Building2, ChevronDown } from "lucide-react";
 
 const AVAILABLE_TENANTS = [

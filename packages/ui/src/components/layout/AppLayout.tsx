@@ -17,7 +17,7 @@ import {
   Database,
   Briefcase,
 } from "lucide-react";
-import { useAuth } from "../auth/AuthProvider";
+import { useAuth } from "../auth";
 import TenantSwitcher from "./TenantSwitcher";
 // @ts-ignore
 import { hasPermission } from "../../core/auth/rbac";

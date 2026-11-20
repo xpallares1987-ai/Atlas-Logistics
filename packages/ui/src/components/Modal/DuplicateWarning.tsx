@@ -1,7 +1,7 @@
 import React from "react";
 import { AlertTriangle, Check, X, Building, MapPin, Hash } from "lucide-react";
-import { Modal } from "./Modal";
-import { Button } from "./Button";
+import { Modal } from "./Base";
+import { Button } from "../Button";
 
 export interface DuplicateWarningModalProps {
   isOpen: boolean;

@@ -30,7 +30,7 @@ import {
   Navigation,
 } from "lucide-react";
 import { useAuth } from "./components";
-import { RateIngestionModal } from "@atlas/ui/src/components/RateIngestionModal";
+import { RateIngestionModal } from "@atlas/ui";
 
 export default function RatesContent() {
   const { currency, setCurrency } = useAppStore();

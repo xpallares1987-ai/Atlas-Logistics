@@ -1,7 +1,14 @@
+/**
+ * @file Base.tsx
+ * @description Animated accessible dialog overlay primitive used across Atlas Logistics modals.
+ * @module @atlas/ui/components/Modal/Base
+ * @see {@link docs/adr/0020-modular-frontend-decomposition-and-naming-standards.md}
+ */
+
 import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { cn } from "../utils/cn";
+import { cn } from "../../utils/cn";
 import { cva, type VariantProps } from "class-variance-authority";
 
 const modalVariants = cva(

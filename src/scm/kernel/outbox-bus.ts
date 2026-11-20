@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import { client, db } from "../../db/index.js";
 import {
   scmOutboxMessages,
@@ -37,11 +37,21 @@ let tablesInitialized = false;
 export async function ensureScmFoundationTables(): Promise<void> {
   if (tablesInitialized) return;
 
-  const migrationPath = path.resolve(
+  const folderMigrationPath = path.resolve(
+    process.cwd(),
+    "drizzle",
+    "20261106171600_scm_foundation_tables",
+    "migration.sql",
+  );
+  const legacyFlatPath = path.resolve(
     process.cwd(),
     "drizzle",
     "0026_scm_foundation_tables.sql",
   );
+  const migrationPath = fs.existsSync(folderMigrationPath)
+    ? folderMigrationPath
+    : legacyFlatPath;
+
   if (fs.existsSync(migrationPath)) {
     const rawSql = fs.readFileSync(migrationPath, "utf-8");
     const statements = rawSql
@@ -207,11 +217,20 @@ class TransactionalOutboxBus {
           if (eligibleRows.length === 0) break;
 
           for (const row of eligibleRows) {
-            // Transition PENDING -> PROCESSING
-            await db
+            // Atomic claim: only one worker/caller can transition PENDING -> PROCESSING
+            const claimed = await db
               .update(scmOutboxMessages)
               .set({ status: "PROCESSING" })
-              .where(eq(scmOutboxMessages.eventId, row.eventId));
+              .where(
+                and(
+                  eq(scmOutboxMessages.eventId, row.eventId),
+                  eq(scmOutboxMessages.status, "PENDING"),
+                ),
+              )
+              .returning({ eventId: scmOutboxMessages.eventId });
+            if (claimed.length === 0) {
+              continue;
+            }
 
             const envelope: DomainEventEnvelope = {
               eventId: row.eventId,

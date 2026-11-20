@@ -13,8 +13,8 @@ import {
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
-import { Modal } from "./Modal";
-import { Button } from "./Button";
+import { Modal } from "./Base";
+import { Button } from "../Button";
 import { DrayageContainerType, DrayageQuoteResult } from "@atlas/shared";
 
 export interface DrayageAddressOption {

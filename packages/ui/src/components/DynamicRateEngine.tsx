@@ -17,8 +17,7 @@ import {
 } from "lucide-react";
 import { useOpenExchangeRates } from "./hooks/useOpenExchangeRates";
 import { motion, AnimatePresence } from "framer-motion";
-import { RateIngestionModal } from "./RateIngestionModal";
-import { QuoteBookingModal } from "./QuoteBookingModal";
+import { RateIngestionModal, QuoteBookingModal } from "./Modal";
 
 export interface DynamicRateItem {
   id: string;
