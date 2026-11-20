@@ -217,7 +217,6 @@ export const bookingOperationsRoutes: FastifyPluginAsync = async (fastify) => {
       schema: {
         tags: [...OPERATIONS_BOOKINGS_TAG],
         summary: "Create a new operational freight booking",
-        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
         response: {
           200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
           ...buildErrorResponses([400, 401, 403, 500]),
@@ -282,7 +281,6 @@ export const bookingOperationsRoutes: FastifyPluginAsync = async (fastify) => {
         summary:
           "Update booking fields and trigger shipment/invoice automation",
         params: OPENAPI_ID_PARAMS_SCHEMA,
-        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
         response: {
           200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
           ...buildErrorResponses([400, 401, 403, 500]),

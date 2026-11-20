@@ -215,7 +215,6 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       schema: {
         tags: [...EVENTS_TAG],
         summary: "Ingest a synchronized entity batch event payload",
-        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
         response: {
           200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
           ...buildErrorResponses([400, 401, 403, 500]),

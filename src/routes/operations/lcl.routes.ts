@@ -505,7 +505,6 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
         tags: [...LCL_TAG],
         summary:
           "Assign loose LCL cargo items into a master consolidation container",
-        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
         response: {
           200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
           ...buildErrorResponses([400, 401, 403, 500]),
@@ -664,11 +663,9 @@ export const lclOperationsRoutes: FastifyPluginAsync = async (fastify) => {
         } = request.body || {};
 
         if (grossWeightKg === undefined || volumeCbm === undefined) {
-          return reply
-            .code(400)
-            .send({
-              error: "grossWeightKg and volumeCbm are required numbers.",
-            });
+          return reply.code(400).send({
+            error: "grossWeightKg and volumeCbm are required numbers.",
+          });
         }
 
         const result = calculateChargeableWeight({

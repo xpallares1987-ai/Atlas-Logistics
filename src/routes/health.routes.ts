@@ -254,11 +254,23 @@ export default async function healthRoutes(app: FastifyInstance) {
         },
       },
     },
-    (request, _reply) =>
-      request.server.inject({
+    async (request, reply) => {
+      const res = await request.server.inject({
         method: "GET",
         url: "/health",
-      }),
+      });
+      const statusCode = res.statusCode === 503 ? 503 : 200;
+      try {
+        return reply
+          .status(statusCode)
+          .send(res.json() as Record<string, unknown>);
+      } catch {
+        return reply.status(503).send({
+          status: "unhealthy",
+          error: "Failed to parse delegated /health response",
+        });
+      }
+    },
   );
 
   app.get(
@@ -274,11 +286,23 @@ export default async function healthRoutes(app: FastifyInstance) {
         },
       },
     },
-    (request, _reply) =>
-      request.server.inject({
+    async (request, reply) => {
+      const res = await request.server.inject({
         method: "GET",
         url: "/ready",
-      }),
+      });
+      const statusCode = res.statusCode === 503 ? 503 : 200;
+      try {
+        return reply
+          .status(statusCode)
+          .send(res.json() as Record<string, unknown>);
+      } catch {
+        return reply.status(503).send({
+          ready: false,
+          error: "Failed to parse delegated /ready response",
+        });
+      }
+    },
   );
 
   logger.info(

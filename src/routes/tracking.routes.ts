@@ -56,7 +56,7 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
         response: {
           200: OPENAPI_SUCCESS_FLAG_SCHEMA,
-          ...buildErrorResponses([400, 401, 404, 500]),
+          ...buildErrorResponses([400, 401, 404, 500, 503]),
         },
       },
     },
@@ -65,10 +65,9 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       const configuredSecret = process.env.AIS_WEBHOOK_SECRET;
       if (!configuredSecret) {
         logger.error("AIS_WEBHOOK_SECRET is not configured");
-        reply
+        return reply
           .code(503)
           .send({ error: "AIS webhook authentication is not configured" });
-        return;
       }
 
       const rawApiKey = request.headers["x-api-key"];
@@ -81,18 +80,16 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, _opts) => {
 
       if (!isValidKey) {
         logger.warn("Unauthorized access attempt to AIS Webhook");
-        reply.code(401).send({ error: "Unauthorized" });
-        return;
+        return reply.code(401).send({ error: "Unauthorized" });
       }
 
       try {
         const payload = request.body;
 
         if (!payload.trackingNumber || !payload.status) {
-          reply
+          return reply
             .code(400)
             .send({ error: "Missing required fields: trackingNumber, status" });
-          return;
         }
 
         logger.info(
@@ -110,8 +107,7 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, _opts) => {
           logger.warn(
             `Shipment with tracking number ${payload.trackingNumber} not found.`,
           );
-          reply.code(404).send({ error: "Shipment not found" });
-          return;
+          return reply.code(404).send({ error: "Shipment not found" });
         }
 
         const shipment = shipmentRes[0];
@@ -143,14 +139,16 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         logger.info(
           `Shipment ${payload.trackingNumber} updated successfully via AIS Webhook.`,
         );
-        reply.code(200).send({ success: true, message: "Tracking updated" });
+        return reply
+          .code(200)
+          .send({ success: true, message: "Tracking updated" });
       } catch (error: unknown) {
         logger.error({ err: error }, "Error processing AIS Webhook:");
         const message =
           error instanceof Error
             ? error.message
             : "Internal error processing AIS webhook";
-        reply.code(500).send({ success: false, error: message });
+        return reply.code(500).send({ success: false, error: message });
       }
     },
   );
@@ -227,7 +225,7 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       } catch (error: unknown) {
         const message =
           error instanceof Error ? error.message : "Failed to fetch shipments";
-        reply.code(500).send({ error: message });
+        return reply.code(500).send({ error: message });
       }
     },
   );
@@ -273,7 +271,7 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       } catch (error: unknown) {
         const message =
           error instanceof Error ? error.message : "Failed to create shipment";
-        reply.code(500).send({ error: message });
+        return reply.code(500).send({ error: message });
       }
     },
   );
@@ -468,7 +466,7 @@ const trackingRoutes: FastifyPluginAsync = async (fastify, _opts) => {
           error instanceof Error
             ? error.message
             : "Failed to retrieve tracking info";
-        reply.code(500).send({ error: message });
+        return reply.code(500).send({ error: message });
       }
     },
   );

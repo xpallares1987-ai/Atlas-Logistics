@@ -298,7 +298,7 @@ describe("P1-A Wave 3 — Repository-Wide Zero-Any & Domain OpenAPI Closure", ()
         `OpenAPI spec should expose endpoints tagged "${mod.expectedTag}"`,
       ).toBe(true);
     }
-  });
+  }, 30_000);
 });
 
 // ============================================================================

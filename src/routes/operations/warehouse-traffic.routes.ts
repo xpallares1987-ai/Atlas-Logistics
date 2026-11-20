@@ -94,7 +94,6 @@ export const warehouseTrafficOperationsRoutes: FastifyPluginAsync = async (
         summary:
           "Update dock assignment, status, or ETA for a warehouse traffic record",
         params: OPENAPI_ID_PARAMS_SCHEMA,
-        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
         response: {
           200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
           ...buildErrorResponses([400, 401, 403, 404, 500]),
@@ -188,7 +187,6 @@ export const warehouseTrafficOperationsRoutes: FastifyPluginAsync = async (
       schema: {
         tags: [...WAREHOUSE_TRAFFIC_TAG],
         summary: "Batch upsert 3D warehouse visual inventory items",
-        body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
         response: {
           200: OPENAPI_SUCCESS_FLAG_SCHEMA,
           ...buildErrorResponses([400, 401, 403, 500]),

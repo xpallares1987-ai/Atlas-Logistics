@@ -7,7 +7,7 @@
  * @module @atlas/tests/wave4a-routes-openapi
  */
 
-import { describe, it, expect } from "vitest";
+import { beforeAll, describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
@@ -167,6 +167,7 @@ interface RouteAstInfo {
   hasTags: boolean;
   hasSummary: boolean;
   hasResponse200: boolean;
+  undeclaredStatusCodes: string[];
 }
 
 function inspectRouteCallsAst(absPath: string): RouteAstInfo[] {
@@ -224,6 +225,7 @@ function inspectRouteCallsAst(absPath: string): RouteAstInfo[] {
         let hasTags = false;
         let hasSummary = false;
         let hasResponse200 = false;
+        let responseText = "";
 
         if (opts && ts.isObjectLiteralExpression(opts)) {
           const schemaExpr = getObjectProp(opts, "schema");
@@ -234,9 +236,39 @@ function inspectRouteCallsAst(absPath: string): RouteAstInfo[] {
             const respExpr = getObjectProp(schemaExpr, "response");
             if (respExpr && ts.isObjectLiteralExpression(respExpr)) {
               hasResponse200 = Boolean(getObjectProp(respExpr, "200"));
+              responseText = respExpr.getText(sf);
             }
           }
         }
+
+        const handlerExpr =
+          prop === "route"
+            ? opts && ts.isObjectLiteralExpression(opts)
+              ? getObjectProp(opts, "handler")
+              : undefined
+            : node.arguments[node.arguments.length - 1];
+        const sentStatusCodes = new Set<string>();
+        const walkHandler = (hNode: ts.Node) => {
+          if (
+            ts.isCallExpression(hNode) &&
+            ts.isPropertyAccessExpression(hNode.expression)
+          ) {
+            const callName = hNode.expression.name.text;
+            if (
+              (callName === "code" || callName === "status") &&
+              hNode.arguments[0] &&
+              ts.isNumericLiteral(hNode.arguments[0])
+            ) {
+              sentStatusCodes.add(hNode.arguments[0].text);
+            }
+          }
+          ts.forEachChild(hNode, walkHandler);
+        };
+        if (handlerExpr) walkHandler(handlerExpr);
+
+        const undeclaredStatusCodes = [...sentStatusCodes].filter(
+          (codeStr) => !new RegExp(`\\b${codeStr}\\b`).test(responseText),
+        );
 
         results.push({
           method: prop.toUpperCase(),
@@ -245,6 +277,7 @@ function inspectRouteCallsAst(absPath: string): RouteAstInfo[] {
           hasTags,
           hasSummary,
           hasResponse200,
+          undeclaredStatusCodes,
         });
       }
     }
@@ -367,6 +400,10 @@ describe("P1-A Wave 4A — Unlocked Route OpenAPI Contracts & AST Gates", () => 
           r.hasSummary,
           `${mod.relativePath} ${r.method} ${r.routePath} schema must include summary`,
         ).toBe(true);
+        expect(
+          r.undeclaredStatusCodes,
+          `${mod.relativePath} ${r.method} ${r.routePath} sends status codes omitted from schema.response`,
+        ).toEqual([]);
       }
 
       expect(source).toContain(mod.expectedTag);
@@ -442,7 +479,7 @@ describe("P1-A Wave 4A — Unlocked Route OpenAPI Contracts & AST Gates", () => 
         `Compiled OpenAPI spec should expose tag "${mod.expectedTag}"`,
       ).toBe(true);
     }
-  });
+  }, 30_000);
 });
 
 // ============================================================================
@@ -450,6 +487,10 @@ describe("P1-A Wave 4A — Unlocked Route OpenAPI Contracts & AST Gates", () => 
 // ============================================================================
 
 describe("P1-A Wave 4A — Fastify Runtime Serialization & Edge Cases", () => {
+  beforeAll(async () => {
+    await app.ready();
+  }, 30_000);
+
   it("preserves top-level JSON array serialization on Wave 4A collection endpoints", async () => {
     await app.ready();
     const token = createAdminToken();
@@ -579,5 +620,154 @@ describe("P1-A Wave 4A — Fastify Runtime Serialization & Edge Cases", () => {
       url: "/api/tracking/NONEXISTENT-REF-999999",
     });
     expect(trackMissing.statusCode).toBe(404);
+  });
+
+  it("forwards clean health/readiness JSON and status codes on /healthz and /readyz aliases without leaking LightMyRequest internals", async () => {
+    const token = createAdminToken();
+    const authHeaders = { authorization: `Bearer ${token}` };
+
+    const healthzTargets = [
+      { url: "/healthz", headers: undefined },
+      { url: "/api/healthz", headers: authHeaders },
+    ];
+    for (const target of healthzTargets) {
+      const res = await app.inject({
+        method: "GET",
+        url: target.url,
+        headers: target.headers,
+      });
+      expect([200, 503]).toContain(res.statusCode);
+      const body = res.json() as Record<string, unknown>;
+      expect(body.raw).toBeUndefined();
+      expect(typeof body.status).toBe("string");
+      expect(body.checks).toBeDefined();
+    }
+
+    const readyzTargets = [
+      { url: "/readyz", headers: undefined },
+      { url: "/api/readyz", headers: authHeaders },
+    ];
+    for (const target of readyzTargets) {
+      const res = await app.inject({
+        method: "GET",
+        url: target.url,
+        headers: target.headers,
+      });
+      expect([200, 503]).toContain(res.statusCode);
+      const body = res.json() as Record<string, unknown>;
+      expect(body.raw).toBeUndefined();
+      expect(typeof body.ready).toBe("boolean");
+      expect(body.dependencies).toBeDefined();
+    }
+  });
+
+  it("streams valid binary PDF payloads without fast-json-stringify corruption across Wave 4A PDF routes", async () => {
+    const token = createAdminToken();
+    const authHeaders = { authorization: `Bearer ${token}` };
+
+    const lclPdf = await app.inject({
+      method: "POST",
+      url: "/api/operations/lcl/manifest/cnt-wave4a-smoke",
+      headers: { ...authHeaders, "content-type": "application/json" },
+      payload: {
+        specId: "40HC",
+        route: "CNSHA -> ESBCN",
+        cargoItems: [],
+        totalWeight: 0,
+      },
+    });
+    expect(lclPdf.statusCode).toBe(200);
+    expect(lclPdf.headers["content-type"]).toContain("application/pdf");
+    expect(lclPdf.rawPayload.subarray(0, 5).toString("utf8")).toBe("%PDF-");
+
+    const settlementsRes = await app.inject({
+      method: "GET",
+      url: "/api/agent-settlements",
+      headers: authHeaders,
+    });
+    expect(settlementsRes.statusCode).toBe(200);
+    const settlements = settlementsRes.json() as Array<{ id: string }>;
+    if (settlements.length > 0) {
+      const stlPdf = await app.inject({
+        method: "GET",
+        url: `/api/agent-settlements/${settlements[0].id}/pdf`,
+        headers: authHeaders,
+      });
+      expect(stlPdf.statusCode).toBe(200);
+      expect(stlPdf.headers["content-type"]).toContain("application/pdf");
+      expect(stlPdf.rawPayload.subarray(0, 5).toString("utf8")).toBe("%PDF-");
+    }
+
+    const certsRes = await app.inject({
+      method: "GET",
+      url: "/api/carbon/certificates",
+      headers: authHeaders,
+    });
+    expect(certsRes.statusCode).toBe(200);
+    const certs = certsRes.json() as Array<{ id: string }>;
+    if (certs.length > 0) {
+      const certPdf = await app.inject({
+        method: "GET",
+        url: `/api/carbon/certificates/${certs[0].id}/pdf`,
+        headers: authHeaders,
+      });
+      expect(certPdf.statusCode).toBe(200);
+      expect(certPdf.headers["content-type"]).toContain("application/pdf");
+      expect(certPdf.rawPayload.subarray(0, 5).toString("utf8")).toBe("%PDF-");
+    }
+  });
+
+  it("allows empty/no-body requests on optional-body POST routes and preserves 503 on unconfigured AIS webhook", async () => {
+    const token = createAdminToken();
+    const authHeaders = { authorization: `Bearer ${token}` };
+
+    const syncRes = await app.inject({
+      method: "POST",
+      url: "/api/sync/batch",
+      headers: authHeaders,
+    });
+    expect(syncRes.statusCode).toBe(200);
+    expect((syncRes.json() as { success?: boolean }).success).toBe(true);
+
+    const consolidateRes = await app.inject({
+      method: "POST",
+      url: "/api/operations/lcl/consolidate",
+      headers: authHeaders,
+    });
+    expect(consolidateRes.statusCode).toBe(200);
+    expect((consolidateRes.json() as { success?: boolean }).success).toBe(true);
+
+    const invRes = await app.inject({
+      method: "POST",
+      url: "/api/operations/warehouse/inventory",
+      headers: authHeaders,
+    });
+    expect(invRes.statusCode).toBe(200);
+    expect((invRes.json() as { success?: boolean }).success).toBe(true);
+
+    const prevSecret = process.env.AIS_WEBHOOK_SECRET;
+    delete process.env.AIS_WEBHOOK_SECRET;
+    try {
+      const aisRes = await app.inject({
+        method: "POST",
+        url: "/api/tracking/webhook/ais",
+        headers: { "content-type": "application/json" },
+        payload: {
+          trackingNumber: "sh_demo_01",
+          imoNumber: "999",
+          latitude: 1,
+          longitude: 1,
+          status: "IN_TRANSIT",
+        },
+      });
+      expect(aisRes.statusCode).toBe(503);
+      expect((aisRes.json() as { error?: string }).error).toContain(
+        "not configured",
+      );
+    } finally {
+      if (prevSecret !== undefined) {
+        process.env.AIS_WEBHOOK_SECRET = prevSecret;
+      }
+    }
   });
 });
