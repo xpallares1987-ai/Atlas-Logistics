@@ -59,8 +59,14 @@ function sanitizeSpanAttributes(
         typeof value === "boolean"
       ) {
         sanitizedAttributes[key] = value;
+      } else if (typeof value === "bigint" || typeof value === "symbol") {
+        sanitizedAttributes[key] = String(value);
       } else {
-        sanitizedAttributes[key] = JSON.stringify(value);
+        try {
+          sanitizedAttributes[key] = JSON.stringify(value);
+        } catch {
+          sanitizedAttributes[key] = String(value);
+        }
       }
     }
   }

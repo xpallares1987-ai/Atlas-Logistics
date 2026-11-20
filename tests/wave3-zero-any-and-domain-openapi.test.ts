@@ -11,6 +11,7 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import ts from "typescript";
+import jwt from "jsonwebtoken";
 import app from "../src/app.js";
 import { BPMNParser } from "../src/bpm/utils/bpmn-parser.js";
 import { compareRatesWorker } from "../src/bpm/workers/rates/compare-rates.worker.js";
@@ -20,6 +21,11 @@ import {
   httpRequestDuration,
   httpRequestTotal,
 } from "../src/monitoring/metrics.js";
+import { startSpan, traceSpan } from "../src/observability/tracer.js";
+import {
+  DocumentSignerService,
+  type OfficialDocumentType,
+} from "../src/services/documents/document-signer.service.js";
 
 // ============================================================================
 // 1. WAVE 3 DOMAIN ROUTE MODULE MANIFEST (20 MODULES / 179 ENDPOINTS)
@@ -422,5 +428,124 @@ describe("P1-A Wave 3 — Typed Workers, Saga Orchestrator & Utility Edge Cases"
     expect(() =>
       httpRequestTotal.inc({ method: "GET", status_code: 200 }, 1),
     ).not.toThrow();
+  });
+
+  it("preserves array details in 400 error responses without fast-json-stringify object coercion", async () => {
+    await app.ready();
+    const secret =
+      process.env.JWT_SECRET ||
+      "atlas-logistics-dev-secret-key-2026-min-32-chars!!";
+    const token = jwt.sign(
+      {
+        id: "u-admin",
+        email: "admin@atlaslogistics.io",
+        role: "ADMIN",
+        companyId: "c-1",
+      },
+      secret,
+      { expiresIn: "1h" },
+    );
+
+    const endpoints = [
+      "/api/demurrage-dispute/audit",
+      "/api/demurrage-dispute/generate-pack",
+      "/api/ocean-booking/request",
+      "/api/ocean-booking/submit-si",
+    ];
+
+    for (const url of endpoints) {
+      const res = await app.inject({
+        method: "POST",
+        url,
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        payload: {},
+      });
+      expect(res.statusCode).toBe(400);
+      const body = res.json() as { error: string; details: unknown };
+      expect(
+        Array.isArray(body.details),
+        `${url} should serialize Zod issues as an array, not an indexed object`,
+      ).toBe(true);
+      expect((body.details as unknown[]).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("returns 400 instead of 500 when POST /api/trade-finance/instruments receives missing/invalid fields", async () => {
+    await app.ready();
+    const secret =
+      process.env.JWT_SECRET ||
+      "atlas-logistics-dev-secret-key-2026-min-32-chars!!";
+    const token = jwt.sign(
+      {
+        id: "u-admin",
+        email: "admin@atlaslogistics.io",
+        role: "ADMIN",
+        companyId: "c-1",
+      },
+      secret,
+      { expiresIn: "1h" },
+    );
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/trade-finance/instruments",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+    const body = res.json() as { error?: string };
+    expect(body.error).toBe("INVALID_TRADE_INSTRUMENT_PAYLOAD");
+  });
+
+  it("renders valid PDF buffers for all 12 official document types including CONTRACT on minimal payloads", async () => {
+    const allTypes: readonly OfficialDocumentType[] = [
+      "HBL",
+      "DUA",
+      "ECMR",
+      "AWB",
+      "CIM",
+      "INSURANCE_CERT",
+      "CONTRACT",
+      "GDP_CERT",
+      "CBAM_DECLARATION",
+      "DGR_DECLARATION",
+      "AEO_7POINT",
+      "LAYTIME_SHEET",
+    ];
+
+    for (const docType of allTypes) {
+      const pdf = await DocumentSignerService.renderPdf(docType, {});
+      expect(
+        pdf.subarray(0, 4).toString("ascii"),
+        `DocumentSignerService.renderPdf(${docType}, {}) should emit a valid PDF`,
+      ).toBe("%PDF");
+    }
+  });
+
+  it("sanitizes BigInt, Symbol, and circular object attributes in tracer spans without throwing", async () => {
+    const circular: Record<string, unknown> = { label: "loop" };
+    circular.self = circular;
+
+    expect(() => {
+      const span = startSpan("wave3-edge-span", {
+        big: BigInt(42),
+        sym: Symbol("trace"),
+        circular,
+      });
+      span.end();
+    }).not.toThrow();
+
+    const value = await traceSpan(
+      "wave3-edge-async-span",
+      { big: BigInt(99), circular },
+      async () => "ok",
+    );
+    expect(value).toBe("ok");
   });
 });

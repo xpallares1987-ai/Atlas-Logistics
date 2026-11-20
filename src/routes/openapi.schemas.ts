@@ -30,7 +30,13 @@ export const OPENAPI_ERROR_RESPONSE_SCHEMA = {
     error: { type: "string" },
     code: { type: "string" },
     message: { type: "string" },
-    details: { type: "object", additionalProperties: true },
+    details: {
+      anyOf: [
+        { type: "object", additionalProperties: true },
+        { type: "array", items: {} },
+        { type: "string" },
+      ],
+    },
   },
 } as const;
 

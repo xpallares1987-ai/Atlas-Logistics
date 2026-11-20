@@ -94,6 +94,24 @@ export class DocumentSignerService {
       typeof val === "string" && val.length > 0 ? val : fallback;
     const asNum = (val: unknown, fallback: number): number =>
       typeof val === "number" && !Number.isNaN(val) ? val : fallback;
+    const asIsoDate = (val: unknown, fallback?: string): string => {
+      if (typeof val === "string" || val instanceof Date) {
+        const parsed = new Date(val);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.toISOString();
+        }
+      }
+      return fallback ?? new Date().toISOString();
+    };
+    const asOptionalIsoDate = (val: unknown): string | undefined => {
+      if (typeof val === "string" || val instanceof Date) {
+        const parsed = new Date(val);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.toISOString();
+        }
+      }
+      return undefined;
+    };
     const asRecord = (val: unknown): PdfDomainRecord =>
       val && typeof val === "object" ? (val as PdfDomainRecord) : d;
     const asOptionalRecord = (val: unknown): PdfOptionalDomainRecord =>
@@ -155,14 +173,8 @@ export class DocumentSignerService {
         const ecmrData = {
           ...d,
           consignmentNumber: asStr(d.consignmentNumber, "CMR-DEFAULT"),
-          pickupDate:
-            typeof d.pickupDate === "string" || d.pickupDate instanceof Date
-              ? new Date(d.pickupDate).toISOString()
-              : new Date().toISOString(),
-          deliveryDate:
-            typeof d.deliveryDate === "string" || d.deliveryDate instanceof Date
-              ? new Date(d.deliveryDate).toISOString()
-              : new Date().toISOString(),
+          pickupDate: asIsoDate(d.pickupDate),
+          deliveryDate: asIsoDate(d.deliveryDate),
           originCity: asStr(d.originCity, "Madrid"),
           destinationCity: asStr(d.destinationCity, "Paris"),
           carrier: asStr(d.carrier, "Knight-Swift Road Logistics"),
@@ -205,10 +217,35 @@ export class DocumentSignerService {
           d,
           asOptionalRecord(d.openPolicy),
         );
-      case "CONTRACT":
-        return PDFService.generateCommercialContract(
-          d as unknown as CommercialContractPdfInput,
-        );
+      case "CONTRACT": {
+        const contractData: CommercialContractPdfInput = {
+          contractNumber: asStr(d.contractNumber, "CTR-DEFAULT"),
+          title: asStr(
+            d.title,
+            "International Multimodal Freight & Sales Contract",
+          ),
+          incotermCode: asStr(d.incotermCode, "CIF"),
+          namedPlace: asStr(d.namedPlace, "Valencia, Spain"),
+          transportMode: asStr(d.transportMode, "MULTIMODAL"),
+          currency: asStr(d.currency, "EUR"),
+          goodsValue: asNum(d.goodsValue, 0),
+          freightEstimatedCost: asNum(d.freightEstimatedCost, 0),
+          insuranceEstimatedCost: asNum(d.insuranceEstimatedCost, 0),
+          customsEstimatedDuty: asNum(d.customsEstimatedDuty, 0),
+          effectiveDate: asIsoDate(d.effectiveDate),
+          expiryDate: asOptionalIsoDate(d.expiryDate),
+          governingLaw: asStr(d.governingLaw, "Spanish Commercial Code / CISG"),
+          disputeJurisdiction: asStr(
+            d.disputeJurisdiction,
+            "ICC International Court of Arbitration (Madrid)",
+          ),
+          sellerData: asOptionalRecord(d.sellerData),
+          buyerData: asOptionalRecord(d.buyerData),
+          forwarderData: asOptionalRecord(d.forwarderData),
+          milestonesData: asRecordList(d.milestonesData),
+        };
+        return PDFService.generateCommercialContract(contractData);
+      }
       case "GDP_CERT":
         return PDFService.generateGdpReleaseCertificate(
           asRecord(d.shipment),

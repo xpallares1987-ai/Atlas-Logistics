@@ -256,7 +256,42 @@ export const tradeFinanceRoutes: FastifyPluginAsync = async (
       },
     },
     async (request, reply) => {
-      const body = request.body as CreateTradeInstrumentBody;
+      const body = request.body as Partial<CreateTradeInstrumentBody>;
+      const creditAmount = Number(body?.creditAmount);
+      const missingFields = (
+        [
+          "applicantName",
+          "beneficiaryName",
+          "issuingBankBic",
+          "issuingBankName",
+          "issueDate",
+          "latestShipmentDate",
+          "expiryDate",
+          "portOfLoading",
+          "portOfDischarge",
+          "goodsDescriptionSummary",
+        ] as const
+      ).filter(
+        (field) =>
+          typeof body?.[field] !== "string" || body[field].trim().length === 0,
+      );
+
+      if (
+        missingFields.length > 0 ||
+        !Number.isFinite(creditAmount) ||
+        creditAmount <= 0
+      ) {
+        return reply.code(400).send({
+          error: "INVALID_TRADE_INSTRUMENT_PAYLOAD",
+          message:
+            "Missing required trade credit instrument fields or invalid creditAmount",
+          details:
+            missingFields.length > 0
+              ? { missingFields }
+              : { creditAmount: "Must be a finite positive number" },
+        });
+      }
+
       const id = `lc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
       const instrumentData: TradeInstrumentInsert = {
@@ -267,23 +302,23 @@ export const tradeFinanceRoutes: FastifyPluginAsync = async (
         instrumentType: body.instrumentType || "COMMERCIAL_LC_IRREVOCABLE",
         applicableRules: body.applicableRules || "UCP600",
         applicantCompanyId: body.applicantCompanyId || null,
-        applicantName: body.applicantName,
-        beneficiaryName: body.beneficiaryName,
+        applicantName: body.applicantName as string,
+        beneficiaryName: body.beneficiaryName as string,
         beneficiaryCountry: body.beneficiaryCountry || "ES",
-        issuingBankBic: body.issuingBankBic,
-        issuingBankName: body.issuingBankName,
+        issuingBankBic: body.issuingBankBic as string,
+        issuingBankName: body.issuingBankName as string,
         confirmingBankBic: body.confirmingBankBic || null,
         confirmingBankName: body.confirmingBankName || null,
         currency: body.currency || "EUR",
-        creditAmount: Number(body.creditAmount),
+        creditAmount,
         tolerancePercentage: Number(body.tolerancePercentage ?? 5.0),
-        issueDate: body.issueDate,
-        latestShipmentDate: body.latestShipmentDate,
-        expiryDate: body.expiryDate,
+        issueDate: body.issueDate as string,
+        latestShipmentDate: body.latestShipmentDate as string,
+        expiryDate: body.expiryDate as string,
         expiryPlace: body.expiryPlace || "Counters of Beneficiary Bank",
-        portOfLoading: body.portOfLoading,
-        portOfDischarge: body.portOfDischarge,
-        goodsDescriptionSummary: body.goodsDescriptionSummary,
+        portOfLoading: body.portOfLoading as string,
+        portOfDischarge: body.portOfDischarge as string,
+        goodsDescriptionSummary: body.goodsDescriptionSummary as string,
         partialShipmentsAllowed: Boolean(body.partialShipmentsAllowed),
         transhipmentAllowed: Boolean(body.transhipmentAllowed),
         presentationPeriodDays: Number(body.presentationPeriodDays ?? 21),
