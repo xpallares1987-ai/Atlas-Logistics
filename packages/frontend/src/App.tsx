@@ -30,8 +30,7 @@ function RouteAwareSpeedInsights() {
 
   const isVercelHosted = host.endsWith(".vercel.app");
   const dsn =
-    import.meta.env.VITE_VERCEL_SPEED_INSIGHTS_DSN ||
-    DEFAULT_SPEED_INSIGHTS_DSN;
+    import.meta.env.VITE_SPEED_INSIGHTS_DSN || DEFAULT_SPEED_INSIGHTS_DSN;
 
   return (
     <SpeedInsights
