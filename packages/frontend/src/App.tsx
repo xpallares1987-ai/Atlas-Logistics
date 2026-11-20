@@ -1,5 +1,11 @@
 import React from "react";
-import { BrowserRouter as Router, Link, useNavigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useAppStore } from "./store/useAppStore";
 import { ApiStatusProvider } from "./contexts/ApiStatusContext";
 import { TopNavbar } from "./components/layout/TopNavbar";
@@ -8,6 +14,32 @@ import { AppRoutes } from "./components/layout/AppRoutes";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { useNotificationsWebSocket } from "./hooks/useNotificationsWebSocket";
+
+const DEFAULT_SPEED_INSIGHTS_DSN = "pVDDrvdEnPaWq0YIX5kHGQVLwpj";
+
+function RouteAwareSpeedInsights() {
+  const location = useLocation();
+  if (!import.meta.env.PROD || typeof window === "undefined") {
+    return null;
+  }
+
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") {
+    return null;
+  }
+
+  const isVercelHosted = host.endsWith(".vercel.app");
+  const dsn =
+    import.meta.env.VITE_VERCEL_SPEED_INSIGHTS_DSN ||
+    DEFAULT_SPEED_INSIGHTS_DSN;
+
+  return (
+    <SpeedInsights
+      route={location.pathname}
+      dsn={isVercelHosted ? undefined : dsn}
+    />
+  );
+}
 
 function GlobalNavigationListener() {
   const navigate = useNavigate();
@@ -34,6 +66,7 @@ export default function App() {
       <ApiStatusProvider onNotification={addNotification}>
         <Router basename={import.meta.env.BASE_URL}>
           <GlobalNavigationListener />
+          <RouteAwareSpeedInsights />
           <div
             className={`flex h-screen font-sans overflow-hidden ${theme === "dark" ? "dark bg-slate-950 text-white" : "bg-slate-50 text-slate-900"}`}
           >
