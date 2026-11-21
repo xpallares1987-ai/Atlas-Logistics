@@ -335,6 +335,9 @@ app.register(fastifyJwt, {
 app.addHook("onRequest", async (request, reply) => {
   if (requiresGlobalApiAuth(request.url)) {
     await authMiddleware(request, reply);
+    if (reply.sent) {
+      return reply;
+    }
   }
 });
 

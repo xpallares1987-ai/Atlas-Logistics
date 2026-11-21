@@ -47,7 +47,7 @@ export function registerSecurityHeaders<
   isProduction: boolean,
 ): void {
   // HSTS: Force HTTPS for next 1 year
-  app.addHook("onSend", async (request, reply) => {
+  app.addHook("onSend", async (request, reply, payload) => {
     // Only send HSTS on HTTPS connections
     if (request.protocol === "https" || isProduction) {
       reply.header(
@@ -76,6 +76,8 @@ export function registerSecurityHeaders<
       "Permissions-Policy",
       "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()",
     );
+
+    return payload;
   });
 
   logger.info("Security headers middleware registered");

@@ -44,7 +44,7 @@ declare module "fastify" {
 export const authMiddleware = async (
   request: FastifyRequest,
   reply: FastifyReply,
-): Promise<void> => {
+): Promise<FastifyReply | void> => {
   try {
     const authHeader = request.headers.authorization;
     if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -66,8 +66,7 @@ export const authMiddleware = async (
 
     const sessionId = request.cookies[SESSION_COOKIE_NAME];
     if (!sessionId) {
-      reply.code(401).send({ error: "Missing Authentication." });
-      return;
+      return reply.code(401).send({ error: "Missing Authentication." });
     }
 
     const { session, user } = await validateSession(sessionId);
@@ -79,8 +78,7 @@ export const authMiddleware = async (
         sessionCookie.value,
         sessionCookie.attributes,
       );
-      reply.code(401).send({ error: "Invalid Session Cookie" });
-      return;
+      return reply.code(401).send({ error: "Invalid Session Cookie" });
     }
 
     if (session && session.fresh) {
@@ -103,7 +101,7 @@ export const authMiddleware = async (
     request.session = session;
   } catch (error) {
     logger.error(error, "Error during session validation:");
-    reply.code(401).send({ error: "Invalid Session" });
+    return reply.code(401).send({ error: "Invalid Session" });
   }
 };
 
@@ -111,11 +109,12 @@ export const requireRole = (allowedRoles: string[]) => {
   return async (
     request: FastifyRequest,
     reply: FastifyReply,
-  ): Promise<void> => {
+  ): Promise<FastifyReply | void> => {
     const userRole = request.user?.role || "USER";
     if (!allowedRoles.includes(userRole)) {
-      reply.code(403).send({ error: "Forbidden: Insufficient permissions" });
-      return;
+      return reply
+        .code(403)
+        .send({ error: "Forbidden: Insufficient permissions" });
     }
   };
 };

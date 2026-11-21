@@ -4,7 +4,7 @@ import shipmentsRoutes from "./shipments.routes.js";
 import bookingsRoutes from "./bookings.routes.js";
 import quotesRoutes from "./quotes.routes.js";
 import financialRoutes from "./financial.routes.js";
-import eventsRoutes from "./events.routes.js";
+import eventsRoutes, { handleNotificationsWebSocket } from "./events.routes.js";
 import documentsRoutes from "./documents.routes.js";
 import authRoutes from "./auth.routes.js";
 import trackingRoutes from "./tracking.routes.js";
@@ -139,6 +139,18 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(quotesRoutes, { prefix: "/api/rates" });
   await fastify.register(financialRoutes, { prefix: "/api" });
   await fastify.register(eventsRoutes, { prefix: "/api" });
+  fastify.get(
+    "/ws/notifications",
+    {
+      websocket: true,
+      schema: {
+        tags: ["Events & Notifications"],
+        summary:
+          "WebSocket stream for real-time operational alerts and notifications",
+      },
+    },
+    handleNotificationsWebSocket,
+  );
   await fastify.register(documentsRoutes, { prefix: "/api/documents" });
   await fastify.register(authRoutes, { prefix: "/api/auth" });
   await fastify.register(adminRoutes);

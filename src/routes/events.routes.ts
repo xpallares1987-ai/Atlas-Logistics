@@ -5,7 +5,7 @@
  * @see {@link docs/superpowers/plans/2026-11-15-issue-9-strict-eslint-restoration-routes.md}
  */
 
-import { FastifyPluginAsync } from "fastify";
+import { FastifyPluginAsync, FastifyRequest } from "fastify";
 import EventEmitter from "events";
 import { logger } from "../config/logger.js";
 import crypto from "crypto";
@@ -60,6 +60,59 @@ export const broadcastEvent = (event: OperationalEvent) => {
 // ROUTE PLUGIN
 // ============================================================================
 
+export const handleNotificationsWebSocket = (
+  rawSocket: unknown,
+  _req: FastifyRequest,
+): void => {
+  const socket = rawSocket as WebSocketClient;
+  logger.info("New WebSocket connection established");
+
+  // Broadcast function wrapper
+  const onEvent = (data: unknown) => {
+    if (socket.readyState === 1 /* OPEN */) {
+      socket.send(JSON.stringify(data));
+    }
+  };
+
+  // Listen to global emitter
+  emitter.on("newEvent", onEvent);
+
+  // Keepalive ping interval every 25 seconds to prevent proxy idle drop
+  const keepAliveTimer = setInterval(() => {
+    if (socket.readyState === 1 /* OPEN */) {
+      try {
+        socket.send(JSON.stringify({ type: "HEARTBEAT" }));
+      } catch {}
+    }
+  }, 25000);
+
+  // Welcome handshake confirmation
+  if (socket.readyState === 1 /* OPEN */) {
+    socket.send(
+      JSON.stringify({
+        type: "CONNECTED",
+        message: "WebSocket ready for alerts",
+      }),
+    );
+  }
+
+  socket.on("message", (message) => {
+    try {
+      const raw = message.toString();
+      const parsed = JSON.parse(raw);
+      if (parsed.type === "PING" && socket.readyState === 1) {
+        socket.send(JSON.stringify({ type: "PONG" }));
+      }
+    } catch {}
+  });
+
+  socket.on("close", () => {
+    clearInterval(keepAliveTimer);
+    logger.info("WebSocket connection closed");
+    emitter.off("newEvent", onEvent);
+  });
+};
+
 const eventsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   // Existing SSE route
   fastify.get(
@@ -110,55 +163,7 @@ const eventsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         },
       },
     },
-    (rawSocket, _req) => {
-      const socket = rawSocket as WebSocketClient;
-      logger.info("New WebSocket connection established");
-
-      // Broadcast function wrapper
-      const onEvent = (data: unknown) => {
-        if (socket.readyState === 1 /* OPEN */) {
-          socket.send(JSON.stringify(data));
-        }
-      };
-
-      // Listen to global emitter
-      emitter.on("newEvent", onEvent);
-
-      // Keepalive ping interval every 25 seconds to prevent proxy idle drop
-      const keepAliveTimer = setInterval(() => {
-        if (socket.readyState === 1 /* OPEN */) {
-          try {
-            socket.send(JSON.stringify({ type: "HEARTBEAT" }));
-          } catch {}
-        }
-      }, 25000);
-
-      // Welcome handshake confirmation
-      if (socket.readyState === 1 /* OPEN */) {
-        socket.send(
-          JSON.stringify({
-            type: "CONNECTED",
-            message: "WebSocket ready for alerts",
-          }),
-        );
-      }
-
-      socket.on("message", (message) => {
-        try {
-          const raw = message.toString();
-          const parsed = JSON.parse(raw);
-          if (parsed.type === "PING" && socket.readyState === 1) {
-            socket.send(JSON.stringify({ type: "PONG" }));
-          }
-        } catch {}
-      });
-
-      socket.on("close", () => {
-        clearInterval(keepAliveTimer);
-        logger.info("WebSocket connection closed");
-        emitter.off("newEvent", onEvent);
-      });
-    },
+    handleNotificationsWebSocket,
   );
 
   fastify.post(

@@ -10,6 +10,7 @@
 // ============================================================================
 
 const PUBLIC_EXACT_PATHS: ReadonlySet<string> = new Set([
+  "/api/events",
   "/api/health",
   "/api/healthz",
   "/api/readyz",
@@ -33,6 +34,7 @@ const PUBLIC_SEGMENT_PREFIXES: readonly string[] = [
   "/api/ai/config-status",
   "/api/ai/status",
   "/api/warehouse/ws",
+  "/ws",
   "/docs",
 ];
 
