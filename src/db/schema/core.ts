@@ -59,6 +59,8 @@ export const users = sqliteTable("users", {
   email: text("email").notNull().unique(),
   hashedPassword: text("hashed_password"),
   role: text("role").notNull(),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: integer("locked_until", { mode: "timestamp" }),
   ...commonAuditFields,
 });
 
@@ -66,8 +68,58 @@ export const sessions = sqliteTable("sessions", {
   id: text("id").primaryKey(),
   userId: text("user_id")
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: "cascade" }),
   expiresAt: integer("expires_at").notNull(),
+});
+
+export const userPasskeys = sqliteTable("user_passkeys", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  credentialId: text("credential_id").notNull().unique(),
+  publicKey: text("public_key").notNull(),
+  counter: integer("counter").notNull().default(0),
+  deviceType: text("device_type").notNull().default("singleDevice"),
+  backedUp: integer("backed_up", { mode: "boolean" }).notNull().default(false),
+  transports: text("transports"),
+  name: text("name").notNull().default("Biometric / Security Key"),
+  lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .defaultNow(),
+});
+
+export const userTotpCredentials = sqliteTable("user_totp_credentials", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  encryptedSecret: text("encrypted_secret").notNull(),
+  secretIv: text("secret_iv").notNull(),
+  secretAuthTag: text("secret_auth_tag").notNull(),
+  backupCodes: text("backup_codes").notNull(),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .defaultNow(),
+  verifiedAt: integer("verified_at", { mode: "timestamp" }),
+});
+
+export const authAuditLogs = sqliteTable("auth_audit_logs", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  email: text("email"),
+  eventType: text("event_type").notNull(),
+  ipHash: text("ip_hash"),
+  userAgent: text("user_agent"),
+  status: text("status").notNull().default("SUCCESS"),
+  failureReason: text("failure_reason"),
+  metadata: text("metadata"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .defaultNow(),
 });
 
 export const systemSequences = sqliteTable("system_sequences", {

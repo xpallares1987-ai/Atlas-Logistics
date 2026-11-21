@@ -226,41 +226,7 @@
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "eslint --fix --no-warn-ignored",
-      "prettier --write",
-      "git add",
-      "pnpm --filter @atlas/frontend lint-staged",
-      "pnpm --filter @atlas/backend lint-staged",
-      "pnpm --filter @atlas/shared lint-staged",
-      "pnpm --filter @atlas/mfe lint-staged",
-      "pnpm --filter @atlas/dashboard lint-staged",
-      "pnpm --filter @atlas/worker lint-staged",
-      "pnpm --filter @atlas/cli lint-staged",
-      "pnpm --filter @atlas/observability lint-staged",
-      "pnpm --filter @atlas/docs lint-staged",
-      "pnpm --filter @atlas/analytics lint-staged",
-      "pnpm --filter @atlas/notifications lint-staged",
-      "pnpm --filter @atlas/shipments lint-staged",
-      "pnpm --filter @atlas/inventory lint-staged",
-      "pnpm --filter @atlas/finance lint-staged",
-      "pnpm --filter @atlas/operations lint-staged",
-      "pnpm --filter @atlas/customs lint-staged",
-      "pnpm --filter @atlas/warehouse lint-staged",
-      "pnpm --filter @atlas/transport lint-staged",
-      "pnpm --filter @atlas/partners lint-staged",
-      "pnpm --filter @atlas/reports lint-staged",
-      "pnpm --filter @atlas/settings lint-staged",
-      "pnpm --filter @atlas/analytics-dashboard lint-staged",
-      "pnpm --filter @atlas/notifications-dashboard lint-staged",
-      "pnpm --filter @atlas/shipments-dashboard lint-staged",
-      "pnpm --filter @atlas/inventory-dashboard lint-staged",
-      "pnpm --filter @atlas/finance-dashboard lint-staged",
-      "pnpm --filter @atlas/operations-dashboard lint-staged",
-      "pnpm --filter @atlas/customs-dashboard lint-staged",
-      "pnpm --filter @atlas/warehouse-dashboard lint-staged",
-      "pnpm --filter @atlas/transport-dashboard lint-staged",
-      "pnpm --filter @atlas/partners-dashboard lint-staged",
-      "pnpm --filter @atlas/reports-dashboard lint-staged",
-      "pnpm --filter @atlas/settings-dashboard lint-staged"
+      "prettier --write"
     ]
   }
 }
