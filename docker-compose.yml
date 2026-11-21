@@ -14,8 +14,6 @@
 #
 # ==============================================================================
 
-version: '3.8'
-
 x-common-variables: &common_env
   NODE_ENV: development
   LOG_LEVEL: debug

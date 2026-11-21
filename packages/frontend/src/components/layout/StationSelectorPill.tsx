@@ -23,8 +23,10 @@ import {
   useOrganizationStore,
   BranchStation,
 } from "../../store/useOrganizationStore.js";
+import { useAuth } from "../../contexts/AuthContext.js";
 
 export const StationSelectorPill: React.FC = () => {
+  const { isAuthenticated } = useAuth();
   const {
     myAssignments,
     activeStationId,
@@ -45,9 +47,11 @@ export const StationSelectorPill: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchStations();
-    fetchMyAssignments();
-  }, [fetchStations, fetchMyAssignments]);
+    if (isAuthenticated) {
+      fetchStations();
+      fetchMyAssignments();
+    }
+  }, [isAuthenticated, fetchStations, fetchMyAssignments]);
 
   // Handle 403 Forbidden station boundary violations
   useEffect(() => {
