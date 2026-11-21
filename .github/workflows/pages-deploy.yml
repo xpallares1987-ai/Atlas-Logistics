@@ -52,57 +52,7 @@ jobs:
         run: pnpm run build
 
       - name: Verify SPA Bundle, Manifest & PWA Icon Integrity
-        run: |
-          node -e '
-            const fs = require("fs");
-            const dist = "./packages/frontend/dist";
-            const manifest = JSON.parse(fs.readFileSync(`${dist}/manifest.webmanifest`, "utf8"));
-            for (const icon of manifest.icons || []) {
-              if (icon.src.startsWith("/")) {
-                throw new Error(`Manifest icon src must be relative for subpath hosting: ${icon.src}`);
-              }
-              const buf = fs.readFileSync(`${dist}/${icon.src}`);
-              const magic = buf.subarray(0, 4).toString("hex");
-              if (magic !== "89504e47") {
-                throw new Error(`Invalid PNG header for ${icon.src}: ${magic}`);
-              }
-              if (buf.length > 256000) {
-                throw new Error(`PWA icon ${icon.src} exceeds 250 KB budget (${buf.length} bytes)`);
-              }
-            }
-            const html = fs.readFileSync(`${dist}/index.html`, "utf8");
-            const preloadMatches = [...html.matchAll(/<link[^>]*rel="modulepreload"[^>]*href="([^"]+)"/g)].map(m => m[1]);
-            const forbidden = preloadMatches.filter(h => /(three-|bpmn-|jspdf|recharts-|d3-|DynamicRateEngine-|html2canvas-)/.test(h));
-            if (forbidden.length > 0) {
-              throw new Error(`Heavy lazy vendor chunks must not be modulepreloaded: ${forbidden.join(", ")}`);
-            }
-            let totalPreloadBytes = 0;
-            for (const href of preloadMatches) {
-              const relAsset = href.replace(/^\/Atlas-Logistics\//, "").replace(/^\//, "");
-              const assetPath = `${dist}/${relAsset}`;
-              if (fs.existsSync(assetPath)) {
-                totalPreloadBytes += fs.statSync(assetPath).size;
-              }
-            }
-            if (totalPreloadBytes > 512000) {
-              throw new Error(`Initial modulepreload JS budget exceeded: ${totalPreloadBytes} bytes (max 512,000 bytes)`);
-            }
-            const assetFiles = fs.readdirSync(`${dist}/assets`);
-            const monolithicShared = assetFiles.filter(f => /^__federation_shared_(lucide-react|tailwindcss)-/.test(f));
-            if (monolithicShared.length > 0) {
-              throw new Error(`Prohibited monolithic federation shared chunks found: ${monolithicShared.join(", ")}`);
-            }
-            for (const sharedFile of assetFiles.filter(f => f.startsWith("__federation_shared_") && f.endsWith(".js"))) {
-              const code = fs.readFileSync(`${dist}/assets/${sharedFile}`, "utf8");
-              const badDeps = [...code.matchAll(/from\s*["']\.\/([^"']+)["']/g)]
-                .map(m => m[1])
-                .filter(dep => /(recharts-|lucide-icons-|three-|bpmn-|jspdf-|d3-)/.test(dep));
-              if (badDeps.length > 0) {
-                throw new Error(`Circular TLA deadlock risk: ${sharedFile} statically imports ${badDeps.join(", ")}`);
-              }
-            }
-            console.log(`Verified ${preloadMatches.length} modulepreload chunks (${(totalPreloadBytes / 1024).toFixed(1)} KB total) and ${manifest.icons.length} valid PNG icons.`);
-          '
+        run: node ./scripts/verify-spa-bundle.mjs
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
