@@ -40,6 +40,7 @@ import {
   Sliders,
   CheckCircle2,
   Database,
+  ClipboardList,
 } from "lucide-react";
 
 import { useAuth } from "../../contexts/AuthContext";
@@ -254,6 +255,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </NavLink>
                   <NavLink onClick={closeMobile} to="/bookings" icon={Book}>
                     Booking & B/L
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/purchase-orders"
+                    icon={ClipboardList}
+                  >
+                    Purchase Orders
                   </NavLink>
                   <NavLink onClick={closeMobile} to="/planner" icon={Package}>
                     Container Planner
@@ -772,6 +780,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </NavLink>
                   <NavLink onClick={closeMobile} to="/bookings" icon={Book}>
                     Booking & B/L
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/purchase-orders"
+                    icon={ClipboardList}
+                  >
+                    Purchase Orders
                   </NavLink>
                   <NavLink onClick={closeMobile} to="/planner" icon={Package}>
                     Container Planner

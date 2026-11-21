@@ -89,6 +89,9 @@ const SailingSchedulesModule = React.lazy(
 const BookingManagementModule = React.lazy(
   () => import("../../pages/BookingManagementModule"),
 );
+const PurchaseOrdersModule = React.lazy(
+  () => import("../../pages/PurchaseOrdersModule"),
+);
 const AddressesHubModule = React.lazy(
   () => import("../../pages/AddressesHubModule"),
 );
@@ -452,6 +455,25 @@ export const AppRoutes = () => {
                 ]}
               >
                 <BookingManagementModule />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Supply Chain PO Management & Allocation */}
+          <Route
+            path="/purchase-orders"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "ADMIN",
+                  "EXECUTIVE",
+                  "MANAGER",
+                  "SALES",
+                  "OPERATIONS",
+                  "CUSTOMER",
+                ]}
+              >
+                <PurchaseOrdersModule />
               </ProtectedRoute>
             }
           />
