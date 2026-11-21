@@ -1,7 +1,22 @@
+/**
+ * @file Login.tsx
+ * @description Sovereign Enterprise Access Portal supporting password, WebAuthn Passkeys, and TOTP MFA.
+ * @module @atlas/frontend/pages/Login
+ * @see {@link docs/adr/0031-sovereign-native-identity-and-authentication-engine.md}
+ */
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Mail, ArrowRight, ShieldCheck } from "lucide-react";
+import {
+  Lock,
+  Mail,
+  ArrowRight,
+  ShieldCheck,
+  Fingerprint,
+  KeyRound,
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { usePasskey } from "../hooks/usePasskey";
 import { useNavigate } from "react-router-dom";
 import { resolveApiUrl } from "../hooks/useApiQuery";
 
@@ -11,7 +26,17 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login } = useAuth();
+  // MFA Challenge State
+  const [mfaPending, setMfaPending] = useState(false);
+  const [mfaTicket, setMfaTicket] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+
+  const { login, verifyMfa } = useAuth();
+  const {
+    isSupported: passkeySupported,
+    loginWithPasskey,
+    isLoading: passkeyLoading,
+  } = usePasskey();
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -23,6 +48,7 @@ export default function Login() {
       const res = await fetch(resolveApiUrl("/api/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -32,12 +58,50 @@ export default function Login() {
         throw new Error(data.error || "Failed to login");
       }
 
+      // Check if second-factor authentication is required
+      if (data.mfaRequired && data.mfaTicket) {
+        setMfaPending(true);
+        setMfaTicket(data.mfaTicket);
+        return;
+      }
+
       login(data.token, data.user);
       navigate("/");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to login");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      await verifyMfa(mfaTicket, mfaCode);
+      navigate("/");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Código de verificación inválido",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasskeyLogin = async () => {
+    setError("");
+    try {
+      const result = await loginWithPasskey();
+      if (result.success) {
+        navigate("/");
+      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Autenticación biométrica fallida",
+      );
     }
   };
 
@@ -64,185 +128,264 @@ export default function Login() {
               Atlas ERP
             </h1>
             <p className="text-slate-400 font-medium">
-              Enterprise Access Portal
+              {mfaPending
+                ? "Verificación de Seguridad 2FA"
+                : "Enterprise Access Portal"}
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="relative z-10 space-y-5">
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm p-3 rounded-xl text-center font-medium"
-              >
-                {error}
-              </motion.div>
-            )}
-
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">
-                Work Email
-              </label>
-              <div className="relative group/input">
-                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                  <Mail className="w-5 h-5 text-slate-500 group-focus-within/input:text-indigo-400 transition-colors" />
-                </div>
-                <input
-                  type="email"
-                  required
-                  autoComplete="username"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-950/50 border border-white/5 focus:border-indigo-500/50 text-white placeholder-slate-600 rounded-xl py-3.5 pl-12 pr-4 outline-none transition-all shadow-inner focus:bg-slate-900/80"
-                  placeholder="admin@atlas.com"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">
-                Password
-              </label>
-              <div className="relative group/input">
-                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                  <Lock className="w-5 h-5 text-slate-500 group-focus-within/input:text-indigo-400 transition-colors" />
-                </div>
-                <input
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-950/50 border border-white/5 focus:border-indigo-500/50 text-white placeholder-slate-600 rounded-xl py-3.5 pl-12 pr-4 outline-none transition-all shadow-inner focus:bg-slate-900/80"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full mt-4 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/25 border border-white/10 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 group/btn"
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm p-3 rounded-xl text-center font-medium mb-5"
             >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  Secure Login
-                  <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
-                </>
+              {error}
+            </motion.div>
+          )}
+
+          {mfaPending ? (
+            /* ================= MFA TOTP Challenge View ================= */
+            <form
+              onSubmit={handleMfaSubmit}
+              className="relative z-10 space-y-5"
+            >
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">
+                  Código de Autenticación (6 dígitos) o Respaldo
+                </label>
+                <div className="relative group/input">
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                    <KeyRound className="w-5 h-5 text-slate-500 group-focus-within/input:text-indigo-400 transition-colors" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    maxLength={16}
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    className="w-full bg-slate-950/50 border border-white/5 focus:border-indigo-500/50 text-white placeholder-slate-600 rounded-xl py-3.5 pl-12 pr-4 outline-none transition-all shadow-inner focus:bg-slate-900/80 font-mono text-center tracking-widest text-lg"
+                    placeholder="123456"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full mt-4 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/25 border border-white/10 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>Verificar Código 2FA</>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMfaPending(false);
+                  setMfaCode("");
+                  setMfaTicket("");
+                }}
+                className="w-full text-xs text-slate-400 hover:text-white transition-colors text-center font-medium pt-2"
+              >
+                ← Volver a inicio de sesión
+              </button>
+            </form>
+          ) : (
+            /* ================= Standard Password & Passkey View ================= */
+            <form onSubmit={handleLogin} className="relative z-10 space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">
+                  Work Email
+                </label>
+                <div className="relative group/input">
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                    <Mail className="w-5 h-5 text-slate-500 group-focus-within/input:text-indigo-400 transition-colors" />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    autoComplete="username"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-slate-950/50 border border-white/5 focus:border-indigo-500/50 text-white placeholder-slate-600 rounded-xl py-3.5 pl-12 pr-4 outline-none transition-all shadow-inner focus:bg-slate-900/80"
+                    placeholder="admin@atlas.com"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">
+                  Password
+                </label>
+                <div className="relative group/input">
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                    <Lock className="w-5 h-5 text-slate-500 group-focus-within/input:text-indigo-400 transition-colors" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-slate-950/50 border border-white/5 focus:border-indigo-500/50 text-white placeholder-slate-600 rounded-xl py-3.5 pl-12 pr-4 outline-none transition-all shadow-inner focus:bg-slate-900/80"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full mt-4 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/25 border border-white/10 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 group/btn"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    Secure Login
+                    <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+
+              {/* WebAuthn / Passkeys Passwordless Button */}
+              {passkeySupported && (
+                <button
+                  type="button"
+                  onClick={handlePasskeyLogin}
+                  disabled={passkeyLoading || isLoading}
+                  className="w-full bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2.5 transition-all border border-white/10 hover:border-indigo-400/30 shadow-md text-sm"
+                >
+                  {passkeyLoading ? (
+                    <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Fingerprint className="w-5 h-5 text-indigo-400" />
+                      Iniciar con Passkey (Biometría / Llave)
+                    </>
+                  )}
+                </button>
               )}
-            </button>
-          </form>
+            </form>
+          )}
 
           {/* Quick Demo Switcher */}
-          <div className="mt-6 pt-5 border-t border-white/10 relative z-10">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center mb-3">
-              Acceso Rápido Demo (1-Click)
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("admin@atlas.com");
-                  setPassword("admin");
-                }}
-                className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
-                  email === "admin@atlas.com"
-                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
-                    : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
-                }`}
-              >
-                <span className="text-base">👑</span>
-                <div>
-                  <div className="font-bold">Admin</div>
-                  <div className="text-[10px] text-slate-500">Acceso Total</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("operator@atlas.com");
-                  setPassword("password123");
-                }}
-                className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
-                  email === "operator@atlas.com"
-                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
-                    : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
-                }`}
-              >
-                <span className="text-base">📦</span>
-                <div>
-                  <div className="font-bold">Operador</div>
-                  <div className="text-[10px] text-slate-500">
-                    Tráfico & Almacén
+          {!mfaPending && (
+            <div className="mt-6 pt-5 border-t border-white/10 relative z-10">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center mb-3">
+                Acceso Rápido Demo (1-Click)
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("admin@atlas.com");
+                    setPassword("admin");
+                  }}
+                  className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                    email === "admin@atlas.com"
+                      ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                      : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                  }`}
+                >
+                  <span className="text-base">👑</span>
+                  <div>
+                    <div className="font-bold">Admin</div>
+                    <div className="text-[10px] text-slate-500">
+                      Acceso Total
+                    </div>
                   </div>
-                </div>
-              </button>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("customs@atlas.com");
-                  setPassword("password123");
-                }}
-                className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
-                  email === "customs@atlas.com"
-                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
-                    : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
-                }`}
-              >
-                <span className="text-base">🛡️</span>
-                <div>
-                  <div className="font-bold">Aduanas</div>
-                  <div className="text-[10px] text-slate-500">DUA & OEA</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("treasury@atlas.com");
-                  setPassword("password123");
-                }}
-                className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
-                  email === "treasury@atlas.com"
-                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
-                    : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
-                }`}
-              >
-                <span className="text-base">💰</span>
-                <div>
-                  <div className="font-bold">Tesorería</div>
-                  <div className="text-[10px] text-slate-500">
-                    CASS & Fletes
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("operator@atlas.com");
+                    setPassword("password123");
+                  }}
+                  className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                    email === "operator@atlas.com"
+                      ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                      : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                  }`}
+                >
+                  <span className="text-base">📦</span>
+                  <div>
+                    <div className="font-bold">Operador</div>
+                    <div className="text-[10px] text-slate-500">
+                      Tráfico & Almacén
+                    </div>
                   </div>
-                </div>
-              </button>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("customer@atlas.com");
-                  setPassword("password123");
-                }}
-                className={`col-span-2 flex items-center justify-center gap-2 p-2 rounded-xl border text-center transition-all ${
-                  email === "customer@atlas.com"
-                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
-                    : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
-                }`}
-              >
-                <span className="text-base">🚢</span>
-                <div>
-                  <span className="font-bold">Cliente Shipper</span> —{" "}
-                  <span className="text-[10px] text-slate-500">
-                    Portal de Seguimiento & Cotizador
-                  </span>
-                </div>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("customs@atlas.com");
+                    setPassword("password123");
+                  }}
+                  className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                    email === "customs@atlas.com"
+                      ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                      : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                  }`}
+                >
+                  <span className="text-base">🛡️</span>
+                  <div>
+                    <div className="font-bold">Aduanas</div>
+                    <div className="text-[10px] text-slate-500">DUA & OEA</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("treasury@atlas.com");
+                    setPassword("password123");
+                  }}
+                  className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                    email === "treasury@atlas.com"
+                      ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                      : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                  }`}
+                >
+                  <span className="text-base">💰</span>
+                  <div>
+                    <div className="font-bold">Tesorería</div>
+                    <div className="text-[10px] text-slate-500">
+                      CASS & Fletes
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("customer@atlas.com");
+                    setPassword("password123");
+                  }}
+                  className={`col-span-2 flex items-center justify-center gap-2 p-2 rounded-xl border text-center transition-all ${
+                    email === "customer@atlas.com"
+                      ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                      : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-white"
+                  }`}
+                >
+                  <span className="text-base">🚢</span>
+                  <div>
+                    <span className="font-bold">Cliente Shipper</span> —{" "}
+                    <span className="text-[10px] text-slate-500">
+                      Portal de Seguimiento & Cotizador
+                    </span>
+                  </div>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </motion.div>
     </div>
