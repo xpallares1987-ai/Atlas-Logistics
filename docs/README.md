@@ -112,6 +112,7 @@ docs/
 | [**0029**](adr/0029-air-cargo-messaging-cass-and-agent-network-clearing.md) | Air Cargo Messaging, CASS & Agent Clearing | `Accepted` | 2026-11-19 | Air Freight / Clearing | IATA Res 600a Mod-7, TACT weight, Cargo-IMP FWB/FHL/FSU, CASS reconciliation & partner clearing ledger |
 | [**0030**](adr/0030-logistics-entity-taxonomy-and-unece-standards-integration.md) | 25-Code Logistics Taxonomy & UNECE / UN/CEFACT Standards | `Accepted` | 2026-11-19 | Master Data / UNECE / EDI | Strict 25-code taxonomy, Noatum real-world master data, UN/LOCODE 2022-2 (115,841), UN/EDIFACT (212), UN/CEFACT XML (CII/MMT-RDM) & STAT__40-TRTRANS |
 | [**0031**](adr/0031-sovereign-native-identity-and-authentication-engine.md) | Sovereign Native Identity, WebAuthn Passkeys & GDPR At-Rest Encryption | `Accepted` | 2026-11-21 | Security / RGPD / Identity | Zero-SaaS self-hosted identity, FIDO2/WebAuthn Passkeys, TOTP MFA, AES-256-GCM PII encryption & HttpOnly session isolation |
+| [**0032**](adr/0032-supply-chain-purchase-order-and-booking-allocation-engine.md) | Supply Chain PO Management & Booking Allocation Engine | `Accepted` | 2026-11-21 | SCM / FMS / Production | Commercial PO headers, granular SKU line items, factory milestones, split shipments & pure domain booking allocation engine |
 
 ---
 
