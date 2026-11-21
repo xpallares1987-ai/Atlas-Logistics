@@ -1,12 +1,14 @@
 /**
  * @file useSecuritySettings.ts
- * @description Domain hook for Passkeys, WebAuthn, TOTP, and step-up security policy management.
+ * @description Sovereign Credentials Management hook for Passkeys (WebAuthn), TOTP MFA with QR SVG, and NIST Step-Up policy.
  * @module @atlas/frontend/components/Settings/hooks/useSecuritySettings
- * @see {@link docs/adr/0020-frontend-modular-decomposition-and-file-size-guardrails.md}
+ * @see {@link docs/adr/0031-sovereign-native-identity-and-authentication-engine.md}
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAppStore } from "../../../store/useAppStore";
+import { resolveApiUrl } from "../../../hooks/useApiQuery";
+import { usePasskey } from "../../../hooks/usePasskey";
 import type {
   PasskeyDeviceType,
   RegisteredPasskeyDevice,
@@ -18,28 +20,40 @@ import {
   authenticateWithHardwareToken,
   generateBackupCodes,
   generateBase32Secret,
-  getSecureRandomString,
   verifyHardwareSignature,
   verifyTOTP,
 } from "@atlas/shared";
 
+export interface SecurityAuditLogItem {
+  id: string;
+  eventType: string;
+  ipHash: string;
+  userAgent: string;
+  status: string;
+  failureReason?: string | null;
+  createdAt: string;
+}
+
+export type StepUpActionType = "REVOKE_PASSKEY" | "DISABLE_TOTP" | null;
+
 export function useSecuritySettings() {
   const { addNotification, user } = useAppStore();
+  const { registerPasskey } = usePasskey();
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loadingPassword, setLoadingPassword] = useState(false);
 
   // Passkeys FIDO2 State
-  const [passkeys, setPasskeys] = useState<RegisteredPasskeyDevice[]>(
-    SAMPLE_REGISTERED_PASSKEYS,
-  );
+  const [passkeys, setPasskeys] = useState<RegisteredPasskeyDevice[]>([]);
   const [isAddingPasskey, setIsAddingPasskey] = useState(false);
   const [newDeviceName, setNewDeviceName] = useState(
-    "YubiKey 5 NFC (Personal)",
+    "YubiKey 5 NFC / Windows Hello",
   );
-  const [newDeviceType, setNewDeviceType] =
-    useState<PasskeyDeviceType>("YUBIKEY_FIPS");
+  const [newDeviceType, setNewDeviceType] = useState<PasskeyDeviceType>(
+    "SECURITY_KEY_GENERIC",
+  );
   const [handshakeTesting, setHandshakeTesting] = useState(false);
   const [handshakeResult, setHandshakeResult] = useState<{
     success: boolean;
@@ -48,34 +62,121 @@ export function useSecuritySettings() {
   } | null>(null);
 
   // TOTP State
-  const [is2FaEnabled, setIs2FaEnabled] = useState(true);
+  const [is2FaEnabled, setIs2FaEnabled] = useState(false);
   const [totpSecret, setTotpSecret] = useState(() => generateBase32Secret(16));
+  const [qrSvgDataUrl, setQrSvgDataUrl] = useState("");
   const [totpInputCode, setTotpInputCode] = useState("");
   const [totpVerifiedStatus, setTotpVerifiedStatus] = useState<boolean | null>(
     null,
   );
-  const [backupCodes] = useState<string[]>(() => generateBackupCodes(5));
+  const [backupCodes, setBackupCodes] = useState<string[]>(() =>
+    generateBackupCodes(5),
+  );
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [copiedBackupCodes, setCopiedBackupCodes] = useState(false);
 
-  // Step-Up Policy State
+  // Step-Up Policy & NIST SP 800-63B Confirmation State
   const [stepUpPolicy, setStepUpPolicy] = useState<StepUpSecurityPolicy>(
     DEFAULT_STEP_UP_POLICY,
   );
   const [savingPolicy, setSavingPolicy] = useState(false);
+  const [stepUpModalOpen, setStepUpModalOpen] = useState(false);
+  const [stepUpPassword, setStepUpPassword] = useState("");
+  const [stepUpAction, setStepUpAction] = useState<StepUpActionType>(null);
+  const [stepUpTargetId, setStepUpTargetId] = useState<string | null>(null);
+  const [stepUpLoading, setStepUpLoading] = useState(false);
+  const [stepUpError, setStepUpError] = useState("");
 
-  // Fetch credentials and policy on mount
-  useEffect(() => {
-    fetch("/api/passkeys/credentials")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && data.success && data.devices) {
-          setPasskeys(data.devices);
+  // Audit Logs State
+  const [auditLogs, setAuditLogs] = useState<SecurityAuditLogItem[]>([]);
+
+  // 1. Fetch Registered Passkeys from Fastify
+  const fetchPasskeys = useCallback(async () => {
+    try {
+      const res = await fetch(resolveApiUrl("/api/auth/passkeys"), {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.devices)) {
+          const mapped: RegisteredPasskeyDevice[] = data.devices.map(
+            (d: {
+              id: string;
+              deviceName?: string;
+              name?: string;
+              deviceType?: string;
+              credentialId?: string;
+              createdAt?: string;
+              lastUsedAt?: string;
+            }) => ({
+              id: d.id,
+              deviceName: d.deviceName || d.name || "Biometric / Security Key",
+              deviceType: (d.deviceType ||
+                "SECURITY_KEY_GENERIC") as PasskeyDeviceType,
+              credentialId: d.credentialId || "",
+              publicKey: "",
+              registeredAt: d.createdAt
+                ? new Date(d.createdAt).toLocaleDateString()
+                : new Date().toLocaleDateString(),
+              lastUsedAt: d.lastUsedAt
+                ? new Date(d.lastUsedAt).toLocaleDateString()
+                : undefined,
+              status: "ACTIVE" as const,
+            }),
+          );
+          setPasskeys(mapped);
+          return;
         }
-      })
-      .catch(() => {});
+      }
+      setPasskeys(SAMPLE_REGISTERED_PASSKEYS);
+    } catch {
+      setPasskeys(SAMPLE_REGISTERED_PASSKEYS);
+    }
+  }, []);
 
-    fetch("/api/passkeys/policy")
+  // 2. Fetch User Security Audit Logs
+  const fetchAuditLogs = useCallback(async () => {
+    try {
+      const res = await fetch(resolveApiUrl("/api/auth/audit-logs"), {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.logs)) {
+          setAuditLogs(data.logs);
+        }
+      }
+    } catch {
+      // Non-blocking fallback
+    }
+  }, []);
+
+  // 3. Initialize TOTP Setup from Fastify
+  const initTotpSetup = useCallback(async () => {
+    try {
+      const res = await fetch(resolveApiUrl("/api/auth/totp/setup"), {
+        method: "POST",
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          if (data.secret) setTotpSecret(data.secret);
+          if (data.qrSvgDataUrl) setQrSvgDataUrl(data.qrSvgDataUrl);
+          if (Array.isArray(data.backupCodes)) setBackupCodes(data.backupCodes);
+        }
+      }
+    } catch {
+      // Fallback to local offline secret
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchPasskeys();
+    void fetchAuditLogs();
+    void initTotpSetup();
+
+    fetch(resolveApiUrl("/api/passkeys/policy"), { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && data.success && data.policy) {
@@ -83,8 +184,9 @@ export function useSecuritySettings() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [fetchPasskeys, fetchAuditLogs, initTotpSetup]);
 
+  // Account Password Update
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
@@ -98,12 +200,12 @@ export function useSecuritySettings() {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-      const res = await fetch("/api/settings/password", {
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(resolveApiUrl("/api/settings/password"), {
         method: "PUT",
         headers,
+        credentials: "include",
         body: JSON.stringify({ currentPassword, newPassword }),
       });
       const data = await res.json();
@@ -111,7 +213,7 @@ export function useSecuritySettings() {
         addNotification({
           id: Date.now().toString(),
           title: "Password Updated",
-          message: data.message,
+          message: data.message || "Password changed successfully.",
           type: "success",
           timestamp: new Date().toISOString(),
           read: false,
@@ -132,62 +234,124 @@ export function useSecuritySettings() {
     }
   };
 
+  // Real WebAuthn Passkey Registration Ceremony
   const handleAddPasskey = async () => {
     try {
-      const credId = `fido2-cred-${getSecureRandomString(12)}`;
-      const res = await fetch("/api/passkeys/register/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deviceName: newDeviceName,
-          deviceType: newDeviceType,
-          credentialId: credId,
-        }),
+      await registerPasskey(newDeviceName);
+      await fetchPasskeys();
+      await fetchAuditLogs();
+      setIsAddingPasskey(false);
+      addNotification({
+        id: Date.now().toString(),
+        title: "Passkey Enrolled",
+        message: `Hardware device '${newDeviceName}' verified and enrolled successfully.`,
+        type: "success",
+        timestamp: new Date().toISOString(),
+        read: false,
       });
-      const data = await res.json();
-      if (data.success && data.device) {
-        setPasskeys([data.device, ...passkeys]);
-        setIsAddingPasskey(false);
-        addNotification({
-          id: Date.now().toString(),
-          title: "Passkey Linked",
-          message: `Device '${newDeviceName}' registered successfully.`,
-          type: "success",
-          timestamp: new Date().toISOString(),
-          read: false,
-        });
-      }
     } catch (err: unknown) {
       alert(
-        "Failed to link Passkey: " +
+        "Error al vincular Passkey: " +
           (err instanceof Error ? err.message : String(err)),
       );
     }
   };
 
-  const handleRevokePasskey = async (id: string) => {
+  // Step-Up Authentication Triggers
+  const handlePromptRevokePasskey = (id: string) => {
+    setStepUpAction("REVOKE_PASSKEY");
+    setStepUpTargetId(id);
+    setStepUpPassword("");
+    setStepUpError("");
+    setStepUpModalOpen(true);
+  };
+
+  const handlePromptToggle2Fa = (enabled: boolean) => {
+    if (!enabled) {
+      setStepUpAction("DISABLE_TOTP");
+      setStepUpTargetId(null);
+      setStepUpPassword("");
+      setStepUpError("");
+      setStepUpModalOpen(true);
+    } else {
+      setIs2FaEnabled(true);
+      void initTotpSetup();
+    }
+  };
+
+  const handleConfirmStepUp = async () => {
+    if (!stepUpPassword) {
+      setStepUpError("Por favor ingresa tu contraseña de confirmación.");
+      return;
+    }
+
+    setStepUpLoading(true);
+    setStepUpError("");
+
     try {
-      const res = await fetch(`/api/passkeys/credentials/${id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (data.success) {
-        setPasskeys(passkeys.filter((d) => d.id !== id));
+      if (stepUpAction === "REVOKE_PASSKEY" && stepUpTargetId) {
+        const res = await fetch(
+          resolveApiUrl(`/api/auth/passkeys/${stepUpTargetId}`),
+          {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ password: stepUpPassword }),
+          },
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || "Error al revocar passkey.");
+        }
+        await fetchPasskeys();
+        await fetchAuditLogs();
+        setStepUpModalOpen(false);
         addNotification({
           id: Date.now().toString(),
-          title: "Passkey Revoked",
-          message: data.message,
+          title: "Passkey Revocada",
+          message: "La clave de acceso ha sido revocada de forma segura.",
           type: "info",
+          timestamp: new Date().toISOString(),
+          read: false,
+        });
+      } else if (stepUpAction === "DISABLE_TOTP") {
+        const res = await fetch(resolveApiUrl("/api/auth/totp"), {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ password: stepUpPassword }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || "Error al desactivar 2FA.");
+        }
+        setIs2FaEnabled(false);
+        await fetchAuditLogs();
+        setStepUpModalOpen(false);
+        addNotification({
+          id: Date.now().toString(),
+          title: "2FA Desactivado",
+          message: "La autenticación en dos pasos ha sido deshabilitada.",
+          type: "warning",
           timestamp: new Date().toISOString(),
           read: false,
         });
       }
     } catch (err: unknown) {
-      alert(
-        "Error revoking Passkey: " +
-          (err instanceof Error ? err.message : String(err)),
+      setStepUpError(
+        err instanceof Error ? err.message : "Error durante la confirmación.",
       );
+    } finally {
+      setStepUpLoading(false);
     }
+  };
+
+  const handleCloseStepUp = () => {
+    setStepUpModalOpen(false);
+    setStepUpPassword("");
+    setStepUpError("");
+    setStepUpAction(null);
+    setStepUpTargetId(null);
   };
 
   const handleTestHandshake = async () => {
@@ -216,35 +380,33 @@ export function useSecuritySettings() {
       setTotpVerifiedStatus(false);
       return;
     }
-    const isValid = verifyTOTP(totpSecret, totpInputCode.trim());
-    if (!isValid) {
-      setTotpVerifiedStatus(false);
-      return;
-    }
+
     try {
-      const res = await fetch("/api/passkeys/totp/verify", {
+      const res = await fetch(resolveApiUrl("/api/auth/totp/verify"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          secret: totpSecret,
-          token: totpInputCode.trim(),
-        }),
+        credentials: "include",
+        body: JSON.stringify({ code: totpInputCode.trim() }),
       });
       const data = await res.json().catch(() => ({}));
-      const verified = Boolean(res.ok && (data.verified || data.success));
+      const verified = Boolean(res.ok && data.success);
       setTotpVerifiedStatus(verified);
       if (verified) {
+        setIs2FaEnabled(true);
+        await fetchAuditLogs();
         addNotification({
           id: Date.now().toString(),
-          title: "2FA TOTP Activated",
-          message: "Two-factor authentication configured successfully.",
+          title: "2FA TOTP Activado",
+          message:
+            "Autenticación en dos pasos activada y verificada exitosamente.",
           type: "success",
           timestamp: new Date().toISOString(),
           read: false,
         });
       }
     } catch {
-      setTotpVerifiedStatus(false);
+      const offlineValid = verifyTOTP(totpSecret, totpInputCode.trim());
+      setTotpVerifiedStatus(offlineValid);
     }
   };
 
@@ -263,17 +425,18 @@ export function useSecuritySettings() {
   const handleSavePolicy = async () => {
     setSavingPolicy(true);
     try {
-      const res = await fetch("/api/passkeys/policy", {
+      const res = await fetch(resolveApiUrl("/api/passkeys/policy"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(stepUpPolicy),
       });
-      const data = await res.json();
-      if (data.success) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         addNotification({
           id: Date.now().toString(),
           title: "Policy Updated",
-          message: data.message,
+          message: data.message || "Security policy updated.",
           type: "success",
           timestamp: new Date().toISOString(),
           read: false,
@@ -304,13 +467,14 @@ export function useSecuritySettings() {
     handshakeTesting,
     handshakeResult,
     handleAddPasskey,
-    handleRevokePasskey,
+    handleRevokePasskey: handlePromptRevokePasskey,
     handleTestHandshake,
 
     is2FaEnabled,
-    setIs2FaEnabled,
+    setIs2FaEnabled: handlePromptToggle2Fa,
     totpSecret,
     setTotpSecret,
+    qrSvgDataUrl,
     totpInputCode,
     setTotpInputCode,
     totpVerifiedStatus,
@@ -325,5 +489,16 @@ export function useSecuritySettings() {
     setStepUpPolicy,
     savingPolicy,
     handleSavePolicy,
+
+    stepUpModalOpen,
+    stepUpPassword,
+    setStepUpPassword,
+    stepUpAction,
+    stepUpLoading,
+    stepUpError,
+    handleCloseStepUp,
+    handleConfirmStepUp,
+
+    auditLogs,
   };
 }

@@ -13,6 +13,7 @@ import { generateBase32Secret, generateTOTP } from "@atlas/shared";
 interface TotpProps {
   is2FaEnabled: boolean;
   totpSecret: string;
+  qrSvgDataUrl?: string;
   totpInputCode: string;
   totpVerifiedStatus: boolean | null;
   copiedSecret: boolean;
@@ -70,6 +71,7 @@ const TotpLiveCountdownBadge = React.memo(function TotpLiveCountdownBadge({
 export const Totp: React.FC<TotpProps> = ({
   is2FaEnabled,
   totpSecret,
+  qrSvgDataUrl,
   totpInputCode,
   totpVerifiedStatus,
   copiedSecret,
@@ -103,6 +105,18 @@ export const Totp: React.FC<TotpProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             {/* Secret Key and Live Countdown */}
             <div className="space-y-3">
+              {qrSvgDataUrl && (
+                <div className="flex flex-col items-center justify-center p-3 bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
+                  <img
+                    src={qrSvgDataUrl}
+                    alt="TOTP QR Code"
+                    className="w-32 h-32 rounded"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1">
+                    Escanear con app autenticadora
+                  </span>
+                </div>
+              )}
               <div>
                 <span className="text-slate-500 text-[11px] block font-medium">
                   Base32 Secret Key:

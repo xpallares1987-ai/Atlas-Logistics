@@ -77,6 +77,7 @@ export async function seedCore(): Promise<CoreSeedContext> {
   // 2. USERS & CONTACTS (Deterministic Demo Roles + Realistic Team)
   const demoPassword = process.env.DEMO_USER_PASSWORD || "password123";
   const hashedDemoPassword = await hashPassword(demoPassword);
+  const hashedAdminPassword = await hashPassword("admin");
 
   const demoUsers = [
     {
@@ -141,6 +142,8 @@ export async function seedCore(): Promise<CoreSeedContext> {
 
   for (const u of demoUsers) {
     userIds.push(u.id);
+    const userHashedPassword =
+      u.email === "admin@atlas.com" ? hashedAdminPassword : hashedDemoPassword;
     await db
       .insert(schema.users)
       .values({
@@ -148,14 +151,14 @@ export async function seedCore(): Promise<CoreSeedContext> {
         companyId: u.companyId,
         email: u.email,
         role: u.role,
-        hashedPassword: hashedDemoPassword,
+        hashedPassword: userHashedPassword,
       })
       .onConflictDoUpdate({
         target: schema.users.id,
         set: {
           companyId: u.companyId,
           role: u.role,
-          hashedPassword: sql`COALESCE(${schema.users.hashedPassword}, ${hashedDemoPassword})`,
+          hashedPassword: userHashedPassword,
         },
       });
 

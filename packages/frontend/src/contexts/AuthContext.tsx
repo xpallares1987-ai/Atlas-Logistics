@@ -44,6 +44,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // 1. Check active session via credentials: "include" cookie or fallback bearer token
       const storedToken = localStorage.getItem("atlas_token");
 
+      if (storedToken) {
+        try {
+          const base64Url = storedToken.split(".")[1];
+          if (base64Url) {
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+            const jsonPayload = decodeURIComponent(
+              atob(base64)
+                .split("")
+                .map(
+                  (c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2),
+                )
+                .join(""),
+            );
+            const parsed = JSON.parse(jsonPayload);
+            if (parsed?.id) {
+              setUser({
+                id: parsed.id,
+                email: parsed.email,
+                name: parsed.name || parsed.email,
+                role: parsed.role || "ADMIN",
+                companyId: parsed.companyId,
+              });
+              setToken(storedToken);
+            }
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
       try {
         const headers: Record<string, string> = {};
         if (storedToken) {
