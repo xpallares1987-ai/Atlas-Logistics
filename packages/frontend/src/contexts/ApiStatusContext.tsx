@@ -6,6 +6,7 @@ import React, {
   useRef,
 } from "react";
 import type { Notification } from "../store/useAppStore";
+import { resolveApiUrl } from "../hooks/useApiQuery";
 
 type ApiStatus = "connected" | "reconnecting" | "disconnected";
 
@@ -36,7 +37,8 @@ export function ApiStatusProvider({
     let consecutiveFailures = 0;
     const MAX_SILENT_FAILURES = 3;
 
-    const backendUrl = import.meta.env.VITE_API_URL || "";
+    const healthUrl = resolveApiUrl("/api/health");
+    const eventsUrl = resolveApiUrl("/api/events");
 
     const scheduleReconnect = () => {
       if (!mounted) return;
@@ -60,7 +62,7 @@ export function ApiStatusProvider({
 
       // Quiet preflight check so we never open EventSource against an offline server
       try {
-        const healthRes = await fetch(`${backendUrl}/api/health`);
+        const healthRes = await fetch(healthUrl);
         if (!healthRes.ok) {
           scheduleReconnect();
           return;
@@ -76,7 +78,7 @@ export function ApiStatusProvider({
         eventSourceRef.current.close();
       }
 
-      const eventSource = new EventSource(`${backendUrl}/api/events`);
+      const eventSource = new EventSource(eventsUrl);
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {

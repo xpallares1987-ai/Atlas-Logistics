@@ -56,4 +56,17 @@ describe("resolveApiUrl (ADR 0024)", () => {
       "https://atlas-backend.europe-west1.run.app/api/auth/me",
     );
   });
+
+  it("never double-prefixes already-absolute http(s) URLs", () => {
+    const base = "http://localhost:3001";
+    expect(resolveApiUrl("http://localhost:3001/api/health", base)).toBe(
+      "http://localhost:3001/api/health",
+    );
+    expect(
+      resolveApiUrl(
+        "https://atlas-backend.europe-west1.run.app/api/health",
+        base,
+      ),
+    ).toBe("https://atlas-backend.europe-west1.run.app/api/health");
+  });
 });

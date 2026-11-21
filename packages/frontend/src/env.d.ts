@@ -30,13 +30,11 @@ declare module "*.webp" {
   export default content;
 }
 
-// Variables de entorno de Vite (type-safe)
+// Public browser environment variables (VITE_* — NEVER store secrets here)
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
   readonly VITE_BASE_PATH: string;
-  readonly VITE_FIREBASE_API_KEY?: string;
-  readonly VITE_FIREBASE_AUTH_DOMAIN?: string;
-  readonly VITE_FIREBASE_PROJECT_ID?: string;
+  readonly VITE_CARTO_API_KEY?: string;
   readonly VITE_SPEED_INSIGHTS_DSN?: string;
 }
 

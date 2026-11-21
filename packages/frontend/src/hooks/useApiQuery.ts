@@ -23,6 +23,12 @@ import {
  * customBaseUrl or VITE_API_URL includes or omits it.
  */
 export function resolveApiUrl(path: string, customBaseUrl?: string): string {
+  const trimmedPath = path.trim();
+  // Never double-prefix already-absolute URLs (e.g. from window.fetch interceptor)
+  if (/^https?:\/\//i.test(trimmedPath)) {
+    return trimmedPath;
+  }
+
   const rawBase = (
     customBaseUrl !== undefined
       ? customBaseUrl
@@ -30,7 +36,9 @@ export function resolveApiUrl(path: string, customBaseUrl?: string): string {
   )
     .trim()
     .replace(/\/+$/, "");
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const cleanPath = trimmedPath.startsWith("/")
+    ? trimmedPath
+    : `/${trimmedPath}`;
 
   // If no base URL configured, route relatively to /api
   if (!rawBase) {

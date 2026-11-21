@@ -1,7 +1,7 @@
 /**
  * @file env.ts
  * @description Centralized, strongly-typed environment configuration contract and metadata catalog (P2.1).
- * Validates runtime, SQLite/libSQL database, security secrets, AI gateway, and Grafana Cloud observability variables.
+ * Enforces strict separation across 3 buckets: frontend-public (VITE_*), backend-config, and backend-secret.
  * @module @atlas/api/config/env
  * @see {@link docs/adr/0013-gemini-free-tier-on-demand-gateway-and-env-unification.md}
  */
@@ -12,9 +12,13 @@ import { z } from "zod";
 // 1. ENVIRONMENT VARIABLE METADATA CATALOG (P2.1)
 // ============================================================================
 
+export type EnvVarScope =
+  "frontend-public" | "backend-config" | "backend-secret";
+
 export interface EnvVarDescriptor {
   description: string;
   type: "string" | "number" | "boolean" | "url";
+  scope: EnvVarScope;
   requiredInProduction: boolean;
   defaultValue?: string;
   environments: Array<"development" | "test" | "production">;
@@ -22,9 +26,22 @@ export interface EnvVarDescriptor {
 }
 
 export const ENV_CONTRACT_CATALOG: Record<string, EnvVarDescriptor> = {
+  // --- 1. PUBLIC FRONTEND (VITE_* — Plaintext in browser, Vercel SPA) ---
+  VITE_API_URL: {
+    description: "Public backend API base URL consumed by the frontend SPA",
+    type: "url",
+    scope: "frontend-public",
+    requiredInProduction: false,
+    defaultValue: "http://localhost:3001",
+    environments: ["development", "test", "production"],
+    secret: false,
+  },
+
+  // --- 2. BACKEND CONFIGURATION (Non-Secret — .env.local / Cloud Run) ---
   NODE_ENV: {
     description: "Application runtime execution mode",
     type: "string",
+    scope: "backend-config",
     requiredInProduction: true,
     defaultValue: "development",
     environments: ["development", "test", "production"],
@@ -33,6 +50,7 @@ export const ENV_CONTRACT_CATALOG: Record<string, EnvVarDescriptor> = {
   LOG_LEVEL: {
     description: "Pino structured logger verbosity level",
     type: "string",
+    scope: "backend-config",
     requiredInProduction: false,
     defaultValue: "info",
     environments: ["development", "test", "production"],
@@ -42,47 +60,55 @@ export const ENV_CONTRACT_CATALOG: Record<string, EnvVarDescriptor> = {
     description:
       "SQLite WAL file URI (file:...) or libSQL connection URI (libsql://...)",
     type: "string",
+    scope: "backend-config",
     requiredInProduction: true,
     defaultValue: "file:./data/dev.db",
     environments: ["development", "test", "production"],
     secret: false,
   },
-  DATABASE_AUTH_TOKEN: {
-    description:
-      "Optional authentication token for remote libSQL/Turso instances",
-    type: "string",
-    requiredInProduction: false,
-    environments: ["production"],
-    secret: true,
-  },
   BACKEND_PORT: {
     description: "Fastify HTTP server listening port",
     type: "number",
+    scope: "backend-config",
     requiredInProduction: false,
     defaultValue: "3001",
     environments: ["development", "test", "production"],
     secret: false,
   },
-  VITE_PORT: {
-    description: "Vite frontend dev server port",
+  FRONTEND_PORT: {
+    description: "Local Vite frontend dev server listening port (dev only)",
     type: "number",
+    scope: "backend-config",
     requiredInProduction: false,
     defaultValue: "5173",
     environments: ["development"],
     secret: false,
   },
-  VITE_API_URL: {
-    description: "Public backend API base URL consumed by the frontend SPA",
-    type: "url",
+  GEMINI_MODEL: {
+    description: "Default Gemini model identifier for AI workflows",
+    type: "string",
+    scope: "backend-config",
     requiredInProduction: false,
-    defaultValue: "http://localhost:3001",
+    defaultValue: "gemini-2.5-flash",
     environments: ["development", "test", "production"],
     secret: false,
+  },
+
+  // --- 3. BACKEND SECRETS (Sensitive — Encrypt in Secret Manager; NEVER Vercel) ---
+  DATABASE_AUTH_TOKEN: {
+    description:
+      "Optional authentication token for remote libSQL/Turso instances",
+    type: "string",
+    scope: "backend-secret",
+    requiredInProduction: false,
+    environments: ["production"],
+    secret: true,
   },
   JWT_SECRET: {
     description:
       "Cryptographic signing secret for JWT authentication tokens (minimum 32 chars)",
     type: "string",
+    scope: "backend-secret",
     requiredInProduction: true,
     environments: ["development", "test", "production"],
     secret: true,
@@ -91,6 +117,7 @@ export const ENV_CONTRACT_CATALOG: Record<string, EnvVarDescriptor> = {
     description:
       "Cryptographic signing secret for HTTP-only session cookies (minimum 32 chars)",
     type: "string",
+    scope: "backend-secret",
     requiredInProduction: false,
     environments: ["development", "test", "production"],
     secret: true,
@@ -98,88 +125,16 @@ export const ENV_CONTRACT_CATALOG: Record<string, EnvVarDescriptor> = {
   GEMINI_API_KEY: {
     description: "Google AI Studio API key for on-demand Gemini inference",
     type: "string",
+    scope: "backend-secret",
     requiredInProduction: false,
     environments: ["development", "production"],
     secret: true,
-  },
-  GEMINI_MODEL: {
-    description: "Default Gemini model identifier for AI workflows",
-    type: "string",
-    requiredInProduction: false,
-    defaultValue: "gemini-2.5-flash",
-    environments: ["development", "test", "production"],
-    secret: false,
   },
   REDIS_URL: {
     description:
       "Optional Redis connection URI for BullMQ queues and distributed cache",
     type: "string",
-    requiredInProduction: false,
-    environments: ["development", "production"],
-    secret: true,
-  },
-  GRAFANA_CLOUD_PROM_INSTANCE: {
-    description: "Grafana Cloud hosted Prometheus instance name",
-    type: "string",
-    requiredInProduction: false,
-    defaultValue: "cheerfulmole1135-prom",
-    environments: ["development", "production"],
-    secret: false,
-  },
-  GRAFANA_CLOUD_PROM_QUERY_URL: {
-    description: "Grafana Cloud Prometheus query endpoint URL",
-    type: "url",
-    requiredInProduction: false,
-    defaultValue:
-      "https://prometheus-prod-72-prod-eu-west-4.grafana.net/api/prom",
-    environments: ["development", "production"],
-    secret: false,
-  },
-  GRAFANA_CLOUD_PROM_REMOTE_WRITE_URL: {
-    description: "Grafana Cloud Prometheus Remote Write push endpoint URL",
-    type: "url",
-    requiredInProduction: false,
-    defaultValue:
-      "https://prometheus-prod-72-prod-eu-west-4.grafana.net/api/prom/push",
-    environments: ["development", "production"],
-    secret: false,
-  },
-  GRAFANA_CLOUD_PROM_USER: {
-    description: "Grafana Cloud Prometheus numeric instance username",
-    type: "string",
-    requiredInProduction: false,
-    defaultValue: "3759940",
-    environments: ["development", "production"],
-    secret: false,
-  },
-  GRAFANA_CLOUD_PROM_TOKEN: {
-    description: "Grafana Cloud Prometheus API write/read token (glc_...)",
-    type: "string",
-    requiredInProduction: false,
-    environments: ["development", "production"],
-    secret: true,
-  },
-  GRAFANA_ASSISTANT_URL: {
-    description:
-      "Grafana Cloud Assistant service URL for on-prem plugin bridge",
-    type: "url",
-    requiredInProduction: false,
-    defaultValue: "https://assistant-prod-eu-west-2.grafana.net/assistant",
-    environments: ["development", "production"],
-    secret: false,
-  },
-  GRAFANA_ASSISTANT_INSTANCE_ID: {
-    description: "Grafana Cloud stack instance ID for Grafana Assistant",
-    type: "string",
-    requiredInProduction: false,
-    defaultValue: "1917865",
-    environments: ["development", "production"],
-    secret: false,
-  },
-  GRAFANA_ASSISTANT_TOKEN: {
-    description:
-      "Grafana Cloud API token for Grafana Assistant plugin (glc_...)",
-    type: "string",
+    scope: "backend-secret",
     requiredInProduction: false,
     environments: ["development", "production"],
     secret: true,
@@ -188,6 +143,7 @@ export const ENV_CONTRACT_CATALOG: Record<string, EnvVarDescriptor> = {
     description:
       "Comma-separated list of pre-registered Microsoft Teams / Logic Apps HTTPS webhook URLs permitted for outbound anomaly dispatch (SSRF guard)",
     type: "string",
+    scope: "backend-secret",
     requiredInProduction: false,
     environments: ["development", "production"],
     secret: true,
@@ -229,7 +185,7 @@ export const envSchema = z
       ),
     DATABASE_AUTH_TOKEN: z.string().optional(),
     BACKEND_PORT: z.coerce.number().int().min(1).max(65535).default(3001),
-    VITE_PORT: z.coerce.number().int().min(1).max(65535).default(5173),
+    FRONTEND_PORT: z.coerce.number().int().min(1).max(65535).default(5173),
     VITE_API_URL: z.string().url().default("http://localhost:3001"),
     JWT_SECRET: z
       .string()
@@ -242,27 +198,6 @@ export const envSchema = z
     GEMINI_API_KEY: z.string().optional(),
     GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
     REDIS_URL: z.string().optional(),
-    GRAFANA_CLOUD_PROM_INSTANCE: z.string().default("cheerfulmole1135-prom"),
-    GRAFANA_CLOUD_PROM_QUERY_URL: z
-      .string()
-      .url()
-      .default(
-        "https://prometheus-prod-72-prod-eu-west-4.grafana.net/api/prom",
-      ),
-    GRAFANA_CLOUD_PROM_REMOTE_WRITE_URL: z
-      .string()
-      .url()
-      .default(
-        "https://prometheus-prod-72-prod-eu-west-4.grafana.net/api/prom/push",
-      ),
-    GRAFANA_CLOUD_PROM_USER: z.string().default("3759940"),
-    GRAFANA_CLOUD_PROM_TOKEN: z.string().optional(),
-    GRAFANA_ASSISTANT_URL: z
-      .string()
-      .url()
-      .default("https://assistant-prod-eu-west-2.grafana.net/assistant"),
-    GRAFANA_ASSISTANT_INSTANCE_ID: z.string().default("1917865"),
-    GRAFANA_ASSISTANT_TOKEN: z.string().optional(),
     TEAMS_WEBHOOK_ALLOWLIST: z.string().optional(),
   })
   .superRefine((data, ctx) => {
