@@ -6,7 +6,8 @@
  * @see {@link docs/adr/0020-modular-frontend-architecture.md}
  */
 
-import { client } from "../index.js";
+import { createClient } from "@libsql/client";
+import { client, databaseUrl } from "../index.js";
 
 // ============================================================================
 // 1. CONSTANTS & LEGACY TABLE DEFINITIONS
@@ -46,25 +47,53 @@ async function remediateSchemaAndTypes(): Promise<void> {
     "🔧 [Remediation Step 1] Dropping 22 superseded legacy v1 tables & fixing column types...",
   );
 
-  await client.execute("PRAGMA foreign_keys = OFF;");
+  // Inspect read-only on the shared singleton before opening an isolated DDL client
+  const existingTablesRes = await client.execute(
+    `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';`,
+  );
+  const existingTableSet = new Set(
+    existingTablesRes.rows.map((r) => String(r.name)),
+  );
+  const tablesToDrop = LEGACY_V1_TABLES.filter((t) => existingTableSet.has(t));
+
+  const aeoCols = await client.execute(
+    `PRAGMA table_info("aeo_business_partners");`,
+  );
+  const hasNumericTimestamp = aeoCols.rows.some(
+    (r) =>
+      (r.name === "created_at" || r.name === "updated_at") &&
+      String(r.type).toUpperCase().includes("NUMERIC"),
+  );
+
+  const ctCols = await client.execute(
+    `PRAGMA table_info("control_tower_incidents");`,
+  );
+  const hasResolutionNote = ctCols.rows.some(
+    (r) => r.name === "resolution_note",
+  );
+
+  if (tablesToDrop.length === 0 && !hasNumericTimestamp && !hasResolutionNote) {
+    return;
+  }
+
+  // Isolate PRAGMA foreign_keys = OFF on a dedicated connection so live shared singleton
+  // foreign key enforcement is never disabled during concurrent HTTP requests.
+  const ddlClient = createClient({
+    url: databaseUrl,
+    authToken: process.env.DATABASE_AUTH_TOKEN,
+  });
+  await ddlClient.execute("PRAGMA busy_timeout = 5000;");
+  await ddlClient.execute("PRAGMA foreign_keys = OFF;");
   try {
-    for (const table of LEGACY_V1_TABLES) {
-      await client.execute(`DROP TABLE IF EXISTS "${table}";`);
+    for (const table of tablesToDrop) {
+      await ddlClient.execute(`DROP TABLE IF EXISTS "${table}";`);
     }
 
-    // Check if aeo_business_partners has NUMERIC created_at/updated_at
-    const aeoCols = await client.execute(
-      `PRAGMA table_info("aeo_business_partners");`,
-    );
-    const hasNumericTimestamp = aeoCols.rows.some(
-      (r) =>
-        (r.name === "created_at" || r.name === "updated_at") &&
-        String(r.type).toUpperCase().includes("NUMERIC"),
-    );
-
     if (hasNumericTimestamp) {
-      await client.execute(`DROP TABLE IF EXISTS "aeo_business_partners_new";`);
-      await client.execute(`
+      await ddlClient.execute(
+        `DROP TABLE IF EXISTS "aeo_business_partners_new";`,
+      );
+      await ddlClient.execute(`
         CREATE TABLE "aeo_business_partners_new" (
           id TEXT PRIMARY KEY NOT NULL,
           partner_name TEXT NOT NULL,
@@ -86,7 +115,7 @@ async function remediateSchemaAndTypes(): Promise<void> {
           updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
         );
       `);
-      await client.execute(`
+      await ddlClient.execute(`
         INSERT INTO "aeo_business_partners_new" (
           id, partner_name, partner_vat_number, partner_type, country_code,
           has_aeo_certification, aeo_certificate_number, has_ctpat_certification,
@@ -102,21 +131,14 @@ async function remediateSchemaAndTypes(): Promise<void> {
           CAST(created_at AS TEXT), CAST(updated_at AS TEXT)
         FROM "aeo_business_partners";
       `);
-      await client.execute(`DROP TABLE "aeo_business_partners";`);
-      await client.execute(
+      await ddlClient.execute(`DROP TABLE "aeo_business_partners";`);
+      await ddlClient.execute(
         `ALTER TABLE "aeo_business_partners_new" RENAME TO "aeo_business_partners";`,
       );
     }
 
-    // Check if control_tower_incidents has extra resolution_note column
-    const ctCols = await client.execute(
-      `PRAGMA table_info("control_tower_incidents");`,
-    );
-    const hasResolutionNote = ctCols.rows.some(
-      (r) => r.name === "resolution_note",
-    );
     if (hasResolutionNote) {
-      await client.execute(`
+      await ddlClient.execute(`
         UPDATE control_tower_incidents
         SET resolution_action = CASE
           WHEN resolution_action IS NOT NULL AND resolution_note IS NOT NULL AND INSTR(resolution_action, resolution_note) = 0
@@ -127,12 +149,16 @@ async function remediateSchemaAndTypes(): Promise<void> {
         END
         WHERE resolution_note IS NOT NULL;
       `);
-      await client.execute(
+      await ddlClient.execute(
         `ALTER TABLE control_tower_incidents DROP COLUMN resolution_note;`,
       );
     }
   } finally {
-    await client.execute("PRAGMA foreign_keys = ON;");
+    try {
+      await ddlClient.execute("PRAGMA foreign_keys = ON;");
+    } finally {
+      await ddlClient.close();
+    }
   }
 }
 

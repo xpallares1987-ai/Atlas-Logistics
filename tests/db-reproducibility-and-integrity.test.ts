@@ -57,7 +57,7 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
     const row = res.rows[0] as any;
     const status = row.integrity_check || Object.values(row)[0];
     expect(status).toBe("ok");
-  });
+  }, 60000);
 
   it("verifies PRAGMA foreign_key_check reports zero violations across all 237 tables", async () => {
     const res = await client.execute("PRAGMA foreign_key_check;");

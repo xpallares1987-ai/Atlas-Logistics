@@ -465,7 +465,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [1.1.0] - 2026-08-08
 
-### Added
+### 🌟 Added
 
 - **Security & RBAC**: Implemented JWT Authentication and Role-Based Access Control (`@fastify/jwt`).
 - **Real-Time WebSockets**: Fastify WebSocket integration for instant system event dispatching.
@@ -478,7 +478,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [1.0.0] - 2026-06-01
 
-### Added
+### 🌟 Added
 
 - Initial stable release of Atlas Logistics Monorepo (Turborepo + pnpm).
 - Basic sailing schedules, ocean freight rate comparison, and BPMN 2.0 visual modeler.
