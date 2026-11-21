@@ -111,6 +111,7 @@ docs/
 | [**0028**](adr/0028-customs-brokerage-dua-mrn-disbursements-and-cbam-compliance.md) | Customs Brokerage, DUA/MRN, Disbursements & CBAM | `Accepted` | 2026-11-19 | Customs / Compliance / ESG | 18-char MRN validation, 1:N shipment grouping, zero-markup suplidos, T1 guarantees & EU CBAM transitional XML |
 | [**0029**](adr/0029-air-cargo-messaging-cass-and-agent-network-clearing.md) | Air Cargo Messaging, CASS & Agent Clearing | `Accepted` | 2026-11-19 | Air Freight / Clearing | IATA Res 600a Mod-7, TACT weight, Cargo-IMP FWB/FHL/FSU, CASS reconciliation & partner clearing ledger |
 | [**0030**](adr/0030-logistics-entity-taxonomy-and-unece-standards-integration.md) | 25-Code Logistics Taxonomy & UNECE / UN/CEFACT Standards | `Accepted` | 2026-11-19 | Master Data / UNECE / EDI | Strict 25-code taxonomy, Noatum real-world master data, UN/LOCODE 2022-2 (115,841), UN/EDIFACT (212), UN/CEFACT XML (CII/MMT-RDM) & STAT__40-TRTRANS |
+| [**0031**](adr/0031-sovereign-native-identity-and-authentication-engine.md) | Sovereign Native Identity, WebAuthn Passkeys & GDPR At-Rest Encryption | `Accepted` | 2026-11-21 | Security / RGPD / Identity | Zero-SaaS self-hosted identity, FIDO2/WebAuthn Passkeys, TOTP MFA, AES-256-GCM PII encryption & HttpOnly session isolation |
 
 ---
 

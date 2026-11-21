@@ -130,6 +130,9 @@ importers:
       pino:
         specifier: ^10.4.0
         version: 10.4.0
+      react-compiler-runtime:
+        specifier: ^1.0.0
+        version: 1.0.0(react@19.3.1)
       sax:
         specifier: ^1.6.1
         version: 1.6.1
@@ -7442,6 +7445,11 @@ packages:
     peerDependencies:
       chart.js: ^4.1.1
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  react-compiler-runtime@1.0.0:
+    resolution: {integrity: sha512-rRfjYv66HlG8896yPUDONgKzG5BxZD1nV9U6rkm+7VCuvQc903C4MjcoZR4zPw53IKSOX9wMQVpA1IAbRtzQ7w==}
+    peerDependencies:
+      react: ^17.0.0 || ^18.0.0 || ^19.0.0 || ^0.0.0-experimental
 
   react-docgen-typescript@2.4.0:
     resolution: {integrity: sha512-ZtAp5XTO5HRzQctjPU0ybY0RRCQO19X/8fxn3w7y2VVTUbGHDKULPTL4ky3vB05euSgG5NpALhEhDPvQ56wvXg==}
@@ -15995,6 +16003,10 @@ snapshots:
   react-chartjs-2@5.3.1(chart.js@4.6.1)(react@19.3.1):
     dependencies:
       chart.js: 4.6.1
+      react: 19.3.1
+
+  react-compiler-runtime@1.0.0(react@19.3.1):
+    dependencies:
       react: 19.3.1
 
   react-docgen-typescript@2.4.0(typescript@7.0.2):
