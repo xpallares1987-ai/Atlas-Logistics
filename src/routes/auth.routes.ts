@@ -421,7 +421,11 @@ const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       const user = request.user;
       if (!user) return reply.code(401).send({ error: "Unauthorized" });
 
-      const rpId = request.hostname.split(":")[0];
+      const rawHost = request.hostname.split(":")[0];
+      const rpId =
+        rawHost === "127.0.0.1" || rawHost === "::1" || !rawHost
+          ? "localhost"
+          : rawHost;
       const options = createRegistrationOptions(
         {
           id: user.id,
@@ -470,7 +474,11 @@ const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       }
 
       try {
-        const rpId = request.hostname.split(":")[0];
+        const rawHost = request.hostname.split(":")[0];
+        const rpId =
+          rawHost === "127.0.0.1" || rawHost === "::1" || !rawHost
+            ? "localhost"
+            : rawHost;
         const result = verifyRegistrationResponse(response, challenge, rpId);
 
         await db.insert(userPasskeys).values({
@@ -520,7 +528,11 @@ const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
       },
     },
     async (request, reply) => {
-      const rpId = request.hostname.split(":")[0];
+      const rawHost = request.hostname.split(":")[0];
+      const rpId =
+        rawHost === "127.0.0.1" || rawHost === "::1" || !rawHost
+          ? "localhost"
+          : rawHost;
       const options = createAuthenticationOptions(rpId);
       return reply.send(options);
     },
@@ -574,7 +586,11 @@ const authRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         }
 
         const passkey = passkeyRows[0];
-        const rpId = request.hostname.split(":")[0];
+        const rawHost = request.hostname.split(":")[0];
+        const rpId =
+          rawHost === "127.0.0.1" || rawHost === "::1" || !rawHost
+            ? "localhost"
+            : rawHost;
 
         const verification = verifyAuthenticationResponse(
           response,

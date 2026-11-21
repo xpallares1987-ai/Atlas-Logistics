@@ -63,12 +63,19 @@ export function usePasskey() {
       setError(null);
 
       try {
+        const token =
+          localStorage.getItem("atlas_token") || localStorage.getItem("token");
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
         // 1. Fetch registration options from Fastify
         const optionsRes = await fetch(
           resolveApiUrl("/api/auth/webauthn/register-options"),
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers,
             credentials: "include",
           },
         );
@@ -92,6 +99,21 @@ export function usePasskey() {
               id: base64UrlToBuffer(options.user.id),
             },
           };
+
+        // WebAuthn prohibits IP addresses as rp.id; map to valid domain (e.g. localhost)
+        if (
+          publicKeyCredentialCreationOptions.rp?.id &&
+          /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(
+            publicKeyCredentialCreationOptions.rp.id,
+          )
+        ) {
+          publicKeyCredentialCreationOptions.rp = {
+            ...publicKeyCredentialCreationOptions.rp,
+            id: window.location.hostname.includes("127.0.0.1")
+              ? "localhost"
+              : window.location.hostname,
+          };
+        }
 
         // 3. Prompt browser biometric ceremony (Windows Hello, Touch ID, YubiKey)
         const credential = (await navigator.credentials.create({
@@ -122,7 +144,7 @@ export function usePasskey() {
           resolveApiUrl("/api/auth/webauthn/register-verify"),
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers,
             credentials: "include",
             body: JSON.stringify(verifyPayload),
           },
@@ -187,6 +209,19 @@ export function usePasskey() {
           ...options,
           challenge: base64UrlToBuffer(options.challenge),
         };
+
+      // WebAuthn prohibits IP addresses as rpId; map to valid domain (e.g. localhost)
+      if (
+        publicKeyCredentialRequestOptions.rpId &&
+        /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(
+          publicKeyCredentialRequestOptions.rpId,
+        )
+      ) {
+        publicKeyCredentialRequestOptions.rpId =
+          window.location.hostname.includes("127.0.0.1")
+            ? "localhost"
+            : window.location.hostname;
+      }
 
       // 3. Prompt user for biometric / hardware security key
       const assertion = (await navigator.credentials.get({

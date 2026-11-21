@@ -36,6 +36,16 @@ export interface SecurityAuditLogItem {
 
 export type StepUpActionType = "REVOKE_PASSKEY" | "DISABLE_TOTP" | null;
 
+function getAuthHeaders(
+  extra: Record<string, string> = {},
+): Record<string, string> {
+  const token =
+    localStorage.getItem("atlas_token") || localStorage.getItem("token");
+  const headers: Record<string, string> = { ...extra };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
+
 export function useSecuritySettings() {
   const { addNotification, user } = useAppStore();
   const { registerPasskey } = usePasskey();
@@ -94,6 +104,7 @@ export function useSecuritySettings() {
   const fetchPasskeys = useCallback(async () => {
     try {
       const res = await fetch(resolveApiUrl("/api/auth/passkeys"), {
+        headers: getAuthHeaders(),
         credentials: "include",
       });
       if (res.ok) {
@@ -138,6 +149,7 @@ export function useSecuritySettings() {
   const fetchAuditLogs = useCallback(async () => {
     try {
       const res = await fetch(resolveApiUrl("/api/auth/audit-logs"), {
+        headers: getAuthHeaders(),
         credentials: "include",
       });
       if (res.ok) {
@@ -156,6 +168,7 @@ export function useSecuritySettings() {
     try {
       const res = await fetch(resolveApiUrl("/api/auth/totp/setup"), {
         method: "POST",
+        headers: getAuthHeaders(),
         credentials: "include",
       });
       if (res.ok) {
@@ -174,9 +187,11 @@ export function useSecuritySettings() {
   useEffect(() => {
     void fetchPasskeys();
     void fetchAuditLogs();
-    void initTotpSetup();
 
-    fetch(resolveApiUrl("/api/passkeys/policy"), { credentials: "include" })
+    fetch(resolveApiUrl("/api/passkeys/policy"), {
+      headers: getAuthHeaders(),
+      credentials: "include",
+    })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && data.success && data.policy) {
@@ -184,7 +199,7 @@ export function useSecuritySettings() {
         }
       })
       .catch(() => {});
-  }, [fetchPasskeys, fetchAuditLogs, initTotpSetup]);
+  }, [fetchPasskeys, fetchAuditLogs]);
 
   // Account Password Update
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -294,7 +309,7 @@ export function useSecuritySettings() {
           resolveApiUrl(`/api/auth/passkeys/${stepUpTargetId}`),
           {
             method: "DELETE",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
             credentials: "include",
             body: JSON.stringify({ password: stepUpPassword }),
           },
@@ -317,7 +332,7 @@ export function useSecuritySettings() {
       } else if (stepUpAction === "DISABLE_TOTP") {
         const res = await fetch(resolveApiUrl("/api/auth/totp"), {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify({ password: stepUpPassword }),
         });
@@ -384,7 +399,7 @@ export function useSecuritySettings() {
     try {
       const res = await fetch(resolveApiUrl("/api/auth/totp/verify"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify({ code: totpInputCode.trim() }),
       });
@@ -427,7 +442,7 @@ export function useSecuritySettings() {
     try {
       const res = await fetch(resolveApiUrl("/api/passkeys/policy"), {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify(stepUpPolicy),
       });
