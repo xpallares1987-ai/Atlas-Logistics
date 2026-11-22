@@ -15,6 +15,11 @@ import {
   Plus,
   AlertCircle,
 } from "lucide-react";
+import {
+  MilestoneStepper,
+  SupplyChainMilestoneItem,
+  SupplyChainExceptionSummary,
+} from "../Timeline/MilestoneStepper";
 
 export interface DetailLineItem {
   id: string;
@@ -52,6 +57,8 @@ export interface PurchaseOrderDetail {
   notes?: string | null;
   lineItems: DetailLineItem[];
   milestones: DetailMilestone[];
+  visibilityMilestones?: SupplyChainMilestoneItem[];
+  exceptions?: SupplyChainExceptionSummary[];
 }
 
 interface DetailProps {
@@ -64,6 +71,7 @@ interface DetailProps {
     actualDate: string,
     notes: string,
   ) => Promise<void>;
+  onSelectException?: (exception: SupplyChainExceptionSummary) => void;
 }
 
 const MILESTONES_FLOW = [
@@ -80,6 +88,7 @@ export const Detail: React.FC<DetailProps> = ({
   onClose,
   onOpenAllocateModal,
   onRecordMilestone,
+  onSelectException,
 }) => {
   const [selectedMilestone, setSelectedMilestone] = useState("QC_PASSED");
   const [milestoneNotes, setMilestoneNotes] = useState("");
@@ -87,6 +96,20 @@ export const Detail: React.FC<DetailProps> = ({
   const [milestoneError, setMilestoneError] = useState<string | null>(null);
 
   if (!order) return null;
+
+  const displayMilestones: SupplyChainMilestoneItem[] =
+    order.visibilityMilestones && order.visibilityMilestones.length > 0
+      ? order.visibilityMilestones
+      : order.milestones.map((m) => ({
+          id: m.id,
+          milestoneCode: m.milestoneCode,
+          milestoneCategory: "SUPPLIER_PRODUCTION",
+          status: m.actualDate ? "ACTUAL" : "PLANNED",
+          plannedTimestamp: m.plannedDate || order.expectedCargoReadyDate,
+          actualTimestamp: m.actualDate,
+          delayHours: 0,
+          notes: m.notes,
+        }));
 
   const handleAddMilestone = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,6 +273,13 @@ export const Detail: React.FC<DetailProps> = ({
               </table>
             </div>
           </div>
+
+          {/* End-to-End Visibility Stream Stepper (ADR 0033) */}
+          <MilestoneStepper
+            milestones={displayMilestones}
+            activeExceptions={order.exceptions || []}
+            onSelectException={onSelectException}
+          />
 
           {/* Manufacturing Milestones Timeline */}
           <div className="space-y-4">

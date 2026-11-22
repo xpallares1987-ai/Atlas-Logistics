@@ -7,5 +7,7 @@
 export * from "./Banner/Metrics";
 export * from "./Queue/Table";
 export * from "./Drawer/Detail";
+export * from "./Drawer/ExceptionResolution";
+export * from "./Timeline/MilestoneStepper";
 export * from "./Modal/AllocateBooking";
 export * from "./Modal/CreatePo";
