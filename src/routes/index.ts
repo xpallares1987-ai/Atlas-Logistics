@@ -58,6 +58,7 @@ import carbonInsettingRoutes from "../modules/carbon-insetting/carbon-insetting.
 import iataOneRecordRoutes from "../modules/iata-one-record/iata-one-record.routes.js";
 import scmV1Routes from "./scm-v1.routes.js";
 import purchaseOrdersRoutes from "./purchase-orders.routes.js";
+import supplyChainVisibilityRoutes from "./supply-chain-visibility.routes.js";
 import addressesRoutes from "./addresses.routes.js";
 import drayageRoutes from "./drayage.routes.js";
 import externalGovernanceRoutes from "./external-governance.routes.js";
@@ -122,6 +123,8 @@ export {
   carbonInsettingRoutes,
   iataOneRecordRoutes,
   addressesRoutes,
+  purchaseOrdersRoutes,
+  supplyChainVisibilityRoutes,
   externalGovernanceRoutes,
 };
 
@@ -251,6 +254,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(purchaseOrdersRoutes, {
     prefix: "/api/scm/purchase-orders",
+  });
+  await fastify.register(supplyChainVisibilityRoutes, {
+    prefix: "/api/scm/visibility",
   });
   await fastify.register(externalGovernanceRoutes, {
     prefix: "/api/external-governance",
