@@ -77,7 +77,7 @@ docs/
 - [**Enterprise Evolution Plan**](architecture/enterprise_evolution_plan.md) — Strategic roadmap for scaling freight forwarding domains and external integrations.
 - [**Comprehensive System Architecture**](architecture/ARCHITECTURE.md) — Monorepo micro-frontends, Fastify backend architecture, and data isolation.
 
-#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0030)
+#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0034)
 
 | ADR | Title | Status | Date | Domain / Bounded Context | Notes / Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -113,6 +113,8 @@ docs/
 | [**0030**](adr/0030-logistics-entity-taxonomy-and-unece-standards-integration.md) | 25-Code Logistics Taxonomy & UNECE / UN/CEFACT Standards | `Accepted` | 2026-11-19 | Master Data / UNECE / EDI | Strict 25-code taxonomy, Noatum real-world master data, UN/LOCODE 2022-2 (115,841), UN/EDIFACT (212), UN/CEFACT XML (CII/MMT-RDM) & STAT__40-TRTRANS |
 | [**0031**](adr/0031-sovereign-native-identity-and-authentication-engine.md) | Sovereign Native Identity, WebAuthn Passkeys & GDPR At-Rest Encryption | `Accepted` | 2026-11-21 | Security / RGPD / Identity | Zero-SaaS self-hosted identity, FIDO2/WebAuthn Passkeys, TOTP MFA, AES-256-GCM PII encryption & HttpOnly session isolation |
 | [**0032**](adr/0032-supply-chain-purchase-order-and-booking-allocation-engine.md) | Supply Chain PO Management & Booking Allocation Engine | `Accepted` | 2026-11-21 | SCM / FMS / Production | Commercial PO headers, granular SKU line items, factory milestones, split shipments & pure domain booking allocation engine |
+| [**0033**](adr/0033-supply-chain-visibility-and-predictive-milestone-tracking.md) | Supply Chain Visibility & Predictive Milestone Tracking Engine | `Accepted` | 2026-11-22 | SCM / Visibility / Control Tower | CQRS visibility ledger, deterministic delay math, contextual AI mitigation & transactional outbox |
+| [**0034**](adr/0034-carrier-track-and-trace-async-ingestion-and-predictive-resolution.md) | Carrier Track & Trace Async Ingestion & Predictive Resolution | `Accepted` | 2026-11-22 | SCM / Carrier Gateways / Telemetry | Multi-modal normalization (DCSA/FSU/AIS), 2-tier SQLite WAL buffer (<25ms), multi-key resolver & exception auto-resolution |
 
 ---
 

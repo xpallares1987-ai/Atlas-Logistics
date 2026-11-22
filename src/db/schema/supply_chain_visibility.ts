@@ -36,6 +36,7 @@ export type MilestoneStatus = (typeof milestoneStatusEnum)[number];
 export const milestoneDataSourceEnum = [
   "SUPPLIER_PORTAL",
   "DCSA_EVENT",
+  "AIR_CARGO_FSU",
   "AIS_TELEMETRY",
   "MANUAL_OVERRIDE",
   "SYSTEM_DERIVED",

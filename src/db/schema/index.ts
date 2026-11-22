@@ -52,3 +52,4 @@ export * from "./air_cargo_clearing.js";
 export * from "./unece_standards.js";
 export * from "./po.js";
 export * from "./supply_chain_visibility.js";
+export * from "./carrier_telemetry.js";

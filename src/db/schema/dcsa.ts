@@ -51,7 +51,13 @@ export const dcsaEventsLog = sqliteTable(
       .notNull()
       .default(true),
     scmLinkedShipmentId: text("scm_linked_shipment_id"),
-    processedStatus: text("processed_status").notNull().default("PROCESSED"), // 'PROCESSED' | 'FLAGGED_EXCEPTION' | 'FAILED'
+    transportMode: text("transport_mode").notNull().default("OCEAN"), // 'OCEAN' | 'AIR' | 'ROAD' | 'RAIL'
+    sourceType: text("source_type").notNull().default("CARRIER_DCSA_EDI"), // 'CARRIER_DCSA_EDI' | 'CARRIER_AIR_FSU' | 'IOT_AIS_TELEMETRY' | 'TERMINAL_PORT_CUSTOMS' | 'MANUAL_OPERATOR'
+    airWaybillNumber: text("air_waybill_number"), // e.g. '020-12345675'
+    resolvedPoId: text("resolved_po_id"),
+    matchedMilestoneCode: text("matched_milestone_code"),
+    varianceMinutes: integer("variance_minutes").notNull().default(0),
+    processedStatus: text("processed_status").notNull().default("PROCESSED"), // 'QUEUED' | 'PROCESSED' | 'FLAGGED_EXCEPTION' | 'FAILED'
     exceptionTriggered: integer("exception_triggered", { mode: "boolean" })
       .notNull()
       .default(false),
@@ -62,5 +68,8 @@ export const dcsaEventsLog = sqliteTable(
     bkgIdx: index("dcsa_events_bkg_idx").on(table.carrierBookingReference),
     eqIdx: index("dcsa_events_eq_idx").on(table.equipmentReference),
     scmShpIdx: index("dcsa_events_scm_shp_idx").on(table.scmLinkedShipmentId),
+    sourceTypeIdx: index("dcsa_events_source_type_idx").on(table.sourceType),
+    awbIdx: index("dcsa_events_awb_idx").on(table.airWaybillNumber),
+    poIdx: index("dcsa_events_resolved_po_idx").on(table.resolvedPoId),
   }),
 );
