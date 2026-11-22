@@ -222,6 +222,7 @@ interface RawAirFsuPayload {
   eventId?: string;
   statusCode?: string; // 'RCS' | 'RCT' | 'MAN' | 'DEP' | 'ARR' | 'RCF' | 'NFD' | 'AWD' | 'DLV' | 'DIS'
   awbNumber?: string; // e.g. '020-12345675'
+  airWaybillNumber?: string;
   hawbNumber?: string;
   flightNumber?: string; // e.g. 'LH8220'
   flightDate?: string;
@@ -315,9 +316,13 @@ export function normalizeAirFsuEvent(raw: unknown): NormalizedCarrierEvent {
     macroPhase: mapping.phase,
     locationLocode: station.length === 3 ? `ES${station}` : station,
     autoResolvesExceptionCategory: mapping.autoResolve,
-    airWaybillNumber: payload.awbNumber || undefined,
+    airWaybillNumber:
+      payload.awbNumber || payload.airWaybillNumber || undefined,
     transportDocumentReference:
-      payload.hawbNumber || payload.awbNumber || undefined,
+      payload.hawbNumber ||
+      payload.awbNumber ||
+      payload.airWaybillNumber ||
+      undefined,
     flightNumber: payload.flightNumber || undefined,
     rawPayload: payload as Record<string, unknown>,
   };

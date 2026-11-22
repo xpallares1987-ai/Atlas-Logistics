@@ -59,6 +59,7 @@ import iataOneRecordRoutes from "../modules/iata-one-record/iata-one-record.rout
 import scmV1Routes from "./scm-v1.routes.js";
 import purchaseOrdersRoutes from "./purchase-orders.routes.js";
 import supplyChainVisibilityRoutes from "./supply-chain-visibility.routes.js";
+import { carrierTelemetryRoutes } from "./carrier-telemetry.routes.js";
 import addressesRoutes from "./addresses.routes.js";
 import drayageRoutes from "./drayage.routes.js";
 import externalGovernanceRoutes from "./external-governance.routes.js";
@@ -125,6 +126,7 @@ export {
   addressesRoutes,
   purchaseOrdersRoutes,
   supplyChainVisibilityRoutes,
+  carrierTelemetryRoutes,
   externalGovernanceRoutes,
 };
 
@@ -257,6 +259,12 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(supplyChainVisibilityRoutes, {
     prefix: "/api/scm/visibility",
+  });
+  await fastify.register(carrierTelemetryRoutes, {
+    prefix: "/api/scm/telemetry",
+  });
+  await fastify.register(carrierTelemetryRoutes, {
+    prefix: "/api/carrier/track-and-trace",
   });
   await fastify.register(externalGovernanceRoutes, {
     prefix: "/api/external-governance",
