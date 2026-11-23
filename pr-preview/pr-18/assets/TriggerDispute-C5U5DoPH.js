@@ -1,1 +1,0 @@
-export{t as TriggerDispute,t as default}from"./TriggerDispute-BgRbyV4j.js";
