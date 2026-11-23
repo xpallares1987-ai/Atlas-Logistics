@@ -1,0 +1,1 @@
+import{r as e}from"./useApiQuery-CN_wviSy.js";function t(){return e([`shipments`],`/shipments`)}export{t};

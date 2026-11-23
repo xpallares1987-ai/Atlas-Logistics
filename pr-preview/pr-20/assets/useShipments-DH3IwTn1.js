@@ -1,1 +1,0 @@
-import{r as e}from"./useApiQuery-DbSA3OIG.js";function t(){return e([`shipments`],`/shipments`)}export{t};

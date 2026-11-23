@@ -1,1 +1,0 @@
-export{t as Resolutions,t as default}from"./Resolutions-vGwAGcwm.js";

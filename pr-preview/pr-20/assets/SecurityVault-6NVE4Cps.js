@@ -1,1 +1,0 @@
-export{t as SecurityVault,t as default}from"./SecurityVault-Q0gZ-hS3.js";

@@ -1,1 +1,0 @@
-export{t as UsmcaImmex}from"./UsmcaImmex-Di0g_-Cx.js";
