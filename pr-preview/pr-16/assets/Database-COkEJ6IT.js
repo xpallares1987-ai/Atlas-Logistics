@@ -1,1 +1,0 @@
-export{t as Database,t as default}from"./Database-Q9PY6MMl.js";
