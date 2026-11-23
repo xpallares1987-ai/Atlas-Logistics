@@ -1,1 +1,0 @@
-export{t as Manifest,t as default}from"./Manifest-BV49FGuG.js";

@@ -1,1 +1,0 @@
-import{r as e}from"./useApiQuery-Ce-rJOLx.js";function t(){return e([`shipments`],`/shipments`)}export{t};

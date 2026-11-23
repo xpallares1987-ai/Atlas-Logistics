@@ -1,1 +1,0 @@
-export{g as Cell,_ as CellHookData,v as Column,y as HookData,b as Row,x as Table,S as __createTable,C as __drawTable,w as applyPlugin,T as autoTable,T as default}from"./jspdf-vendor-DBhnb9Mb.js";
