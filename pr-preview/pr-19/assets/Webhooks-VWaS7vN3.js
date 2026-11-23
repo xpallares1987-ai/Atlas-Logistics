@@ -1,1 +1,0 @@
-export{t as Webhooks,t as default}from"./Webhooks-jGl5R2-N.js";
