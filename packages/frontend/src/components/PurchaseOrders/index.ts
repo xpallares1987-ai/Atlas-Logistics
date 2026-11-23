@@ -8,6 +8,7 @@ export * from "./Banner/Metrics";
 export * from "./Queue/Table";
 export * from "./Drawer/Detail";
 export * from "./Drawer/ExceptionResolution";
+export * from "./Drawer/DisruptionPlans";
 export * from "./Timeline/MilestoneStepper";
 export * from "./Timeline/TelemetryFeed";
 export * from "./Modal/AllocateBooking";
