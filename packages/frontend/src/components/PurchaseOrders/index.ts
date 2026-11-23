@@ -9,5 +9,7 @@ export * from "./Queue/Table";
 export * from "./Drawer/Detail";
 export * from "./Drawer/ExceptionResolution";
 export * from "./Timeline/MilestoneStepper";
+export * from "./Timeline/TelemetryFeed";
 export * from "./Modal/AllocateBooking";
 export * from "./Modal/CreatePo";
+export * from "./Modal/SimulateEvent";

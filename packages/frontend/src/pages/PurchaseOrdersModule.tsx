@@ -185,13 +185,15 @@ export default function PurchaseOrdersModule() {
       suggestedMitigations: [
         {
           action: "Expedite Feeder Booking",
-          description: "Re-route via direct coastal feeder service to bypass transshipment dwell.",
+          description:
+            "Re-route via direct coastal feeder service to bypass transshipment dwell.",
           estimatedRecoveryHours: 48,
           costEstimate: "$350.00",
         },
         {
           action: "Split Shipment Air-Freight",
-          description: "Advance critical 20% SKU quantity via express air cargo to satisfy production RDD.",
+          description:
+            "Advance critical 20% SKU quantity via express air cargo to satisfy production RDD.",
           estimatedRecoveryHours: 96,
           costEstimate: "$1,200.00",
         },
@@ -219,7 +221,9 @@ export default function PurchaseOrdersModule() {
       });
       if (!res.ok) {
         // Fallback optimistic update if backend endpoint is still deploying in Terminal B
-        console.warn(`Backend exception resolve HTTP ${res.status}; applied optimistic UI state`);
+        console.warn(
+          `Backend exception resolve HTTP ${res.status}; applied optimistic UI state`,
+        );
       }
     } catch {
       // Optimistic resolution fallback
@@ -306,6 +310,9 @@ export default function PurchaseOrdersModule() {
             onOpenAllocateModal={() => setIsAllocateOpen(true)}
             onRecordMilestone={handleRecordMilestone}
             onSelectException={handleSelectException}
+            onRefreshParent={() =>
+              selectedPoId && fetchOrderDetail(selectedPoId)
+            }
           />
         )}
 

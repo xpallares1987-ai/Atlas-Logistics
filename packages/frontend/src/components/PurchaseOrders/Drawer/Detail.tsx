@@ -20,6 +20,7 @@ import {
   SupplyChainMilestoneItem,
   SupplyChainExceptionSummary,
 } from "../Timeline/MilestoneStepper";
+import { TelemetryFeed } from "../Timeline/TelemetryFeed";
 
 export interface DetailLineItem {
   id: string;
@@ -72,6 +73,7 @@ interface DetailProps {
     notes: string,
   ) => Promise<void>;
   onSelectException?: (exception: SupplyChainExceptionSummary) => void;
+  onRefreshParent?: () => void;
 }
 
 const MILESTONES_FLOW = [
@@ -89,6 +91,7 @@ export const Detail: React.FC<DetailProps> = ({
   onOpenAllocateModal,
   onRecordMilestone,
   onSelectException,
+  onRefreshParent,
 }) => {
   const [selectedMilestone, setSelectedMilestone] = useState("QC_PASSED");
   const [milestoneNotes, setMilestoneNotes] = useState("");
@@ -129,6 +132,8 @@ export const Detail: React.FC<DetailProps> = ({
   };
 
   const completedCodes = new Set(order.milestones.map((m) => m.milestoneCode));
+  const linkedBookingId =
+    order.lineItems.find((item) => item.bookingId)?.bookingId || undefined;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity">
@@ -185,211 +190,267 @@ export const Detail: React.FC<DetailProps> = ({
             </div>
           </div>
 
-          {/* Line Items Table & Allocation Progress */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                <Package className="w-4 h-4 text-blue-400" />
-                <span>SKU Line Items ({order.lineItems.length})</span>
-              </h3>
-              <button
-                onClick={onOpenAllocateModal}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-colors shadow-sm"
-              >
-                <Ship className="w-3.5 h-3.5" />
-                <span>Allocate to Booking</span>
-              </button>
-            </div>
-
-            <div className="border border-slate-700/60 rounded-xl overflow-hidden bg-slate-800/40">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-900/60 text-slate-400 border-b border-slate-700/60 font-medium">
-                    <th className="py-2.5 px-3">SKU & Description</th>
-                    <th className="py-2.5 px-3 text-right">Total Qty</th>
-                    <th className="py-2.5 px-3 text-right">Allocated</th>
-                    <th className="py-2.5 px-3 text-right">Remaining</th>
-                    <th className="py-2.5 px-3 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-700/40">
-                  {order.lineItems.map((item) => {
-                    const total = parseFloat(item.quantity) || 1;
-                    const allocated = parseFloat(item.allocatedQuantity) || 0;
-                    const pct = Math.min(
-                      100,
-                      Math.round((allocated / total) * 100),
-                    );
-
-                    return (
-                      <tr key={item.id} className="hover:bg-slate-800/60">
-                        <td className="py-2.5 px-3">
-                          <span className="font-mono font-semibold text-blue-400 block">
-                            {item.skuCode}
-                          </span>
-                          <span className="text-slate-400 truncate block max-w-xs">
-                            {item.description}
-                          </span>
-                          {item.bookingId && (
-                            <span className="text-[10px] text-cyan-400 font-mono mt-0.5 block">
-                              Linked Booking: {item.bookingId}
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-3 text-right text-slate-200 font-mono">
-                          {item.quantity} {item.uom}
-                        </td>
-                        <td className="py-2.5 px-3 text-right text-cyan-400 font-mono">
-                          {item.allocatedQuantity}
-                          <div className="w-16 bg-slate-700 h-1 rounded-full mt-1 ml-auto overflow-hidden">
-                            <div
-                              className="bg-cyan-500 h-full rounded-full transition-all"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-3 text-right text-slate-300 font-mono font-medium">
-                          {item.remainingQuantity}
-                        </td>
-                        <td className="py-2.5 px-3 text-center">
-                          {item.isFullyAllocated ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-900/30 text-emerald-300 border border-emerald-700">
-                              Booked
-                            </span>
-                          ) : allocated > 0 ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-900/30 text-indigo-300 border border-indigo-700">
-                              Partial
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-700 text-slate-300">
-                              Unallocated
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* End-to-End Visibility Stream Stepper (ADR 0033) */}
-          <MilestoneStepper
-            milestones={displayMilestones}
-            activeExceptions={order.exceptions || []}
-            onSelectException={onSelectException}
-          />
-
-          {/* Manufacturing Milestones Timeline */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-400" />
-              <span>Production Milestones</span>
-            </h3>
-
-            {/* Stepper Timeline */}
-            <div className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4">
-              <div className="relative border-l-2 border-slate-700 ml-4 space-y-6">
-                {MILESTONES_FLOW.map((m) => {
-                  const isDone = completedCodes.has(m.code);
-                  const recorded = order.milestones.find(
-                    (x) => x.milestoneCode === m.code,
-                  );
-
-                  return (
-                    <div key={m.code} className="relative pl-6">
-                      <div
-                        className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 ${
-                          isDone
-                            ? "bg-emerald-500 border-emerald-400"
-                            : "bg-slate-900 border-slate-600"
-                        }`}
-                      />
-                      <div className="flex items-center justify-between">
-                        <p
-                          className={`text-xs font-semibold ${
-                            isDone ? "text-emerald-400" : "text-slate-400"
-                          }`}
-                        >
-                          {m.label}
-                        </p>
-                        {recorded?.actualDate && (
-                          <span className="text-[10px] font-mono text-slate-400">
-                            {recorded.actualDate}
-                          </span>
-                        )}
-                      </div>
-                      {recorded?.notes && (
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {recorded.notes}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Record New Milestone Form */}
-            <form
-              onSubmit={handleAddMilestone}
-              className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-3"
+          {/* Semantic Tabs Navigation (ADR 0034) */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-800/80 rounded-xl border border-slate-700/60">
+            <button
+              onClick={() => setActiveTab("visibility")}
+              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === "visibility"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
             >
-              <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Record Factory Milestone
-              </h4>
+              <Clock className="w-3.5 h-3.5" />
+              <span>Visibilidad & Hitos</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("telemetry")}
+              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === "telemetry"
+                  ? "bg-cyan-600 text-white shadow-sm"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5 animate-pulse" />
+              <span>Telemetría Live</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("lines")}
+              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === "lines"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              <span>Líneas & SKUs ({order.lineItems.length})</span>
+            </button>
+          </div>
 
-              {milestoneError && (
-                <div className="p-2.5 rounded-lg bg-rose-900/30 border border-rose-700 text-rose-300 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>{milestoneError}</span>
+          {/* TAB 1: VISIBILIDAD & HITOS */}
+          {activeTab === "visibility" && (
+            <div className="space-y-6">
+              {/* End-to-End Visibility Stream Stepper (ADR 0033) */}
+              <MilestoneStepper
+                milestones={displayMilestones}
+                activeExceptions={order.exceptions || []}
+                onSelectException={onSelectException}
+              />
+
+              {/* Manufacturing Milestones Timeline */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-400" />
+                  <span>Production Milestones</span>
+                </h3>
+
+                {/* Stepper Timeline */}
+                <div className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4">
+                  <div className="relative border-l-2 border-slate-700 ml-4 space-y-6">
+                    {MILESTONES_FLOW.map((m) => {
+                      const isDone = completedCodes.has(m.code);
+                      const recorded = order.milestones.find(
+                        (x) => x.milestoneCode === m.code,
+                      );
+
+                      return (
+                        <div key={m.code} className="relative pl-6">
+                          <div
+                            className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 ${
+                              isDone
+                                ? "bg-emerald-500 border-emerald-400"
+                                : "bg-slate-900 border-slate-600"
+                            }`}
+                          />
+                          <div className="flex items-center justify-between">
+                            <p
+                              className={`text-xs font-semibold ${
+                                isDone ? "text-emerald-400" : "text-slate-400"
+                              }`}
+                            >
+                              {m.label}
+                            </p>
+                            {recorded?.actualDate && (
+                              <span className="text-[10px] font-mono text-slate-400">
+                                {recorded.actualDate}
+                              </span>
+                            )}
+                          </div>
+                          {recorded?.notes && (
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {recorded.notes}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">
-                    Milestone Stage
-                  </label>
-                  <select
-                    value={selectedMilestone}
-                    onChange={(e) => setSelectedMilestone(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                {/* Record New Milestone Form */}
+                <form
+                  onSubmit={handleAddMilestone}
+                  className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-3"
+                >
+                  <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    Record Factory Milestone
+                  </h4>
+
+                  {milestoneError && (
+                    <div className="p-2.5 rounded-lg bg-rose-900/30 border border-rose-700 text-rose-300 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>{milestoneError}</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">
+                        Milestone Stage
+                      </label>
+                      <select
+                        value={selectedMilestone}
+                        onChange={(e) => setSelectedMilestone(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        {MILESTONES_FLOW.map((f) => (
+                          <option key={f.code} value={f.code}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">
+                        Notes / Factory Inspection
+                      </label>
+                      <input
+                        type="text"
+                        value={milestoneNotes}
+                        onChange={(e) => setMilestoneNotes(e.target.value)}
+                        placeholder="e.g. Certified batch inspection AQL 1.5"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submittingMilestone}
+                    className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-xs font-semibold py-2 rounded-lg transition-colors"
                   >
-                    {MILESTONES_FLOW.map((f) => (
-                      <option key={f.code} value={f.code}>
-                        {f.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">
-                    Notes / Factory Inspection
-                  </label>
-                  <input
-                    type="text"
-                    value={milestoneNotes}
-                    onChange={(e) => setMilestoneNotes(e.target.value)}
-                    placeholder="e.g. Certified batch inspection AQL 1.5"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>
+                      {submittingMilestone
+                        ? "Recording..."
+                        : "Record Milestone"}
+                    </span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: TELEMETRÍA LIVE DE CARRIERS */}
+          {activeTab === "telemetry" && (
+            <div className="space-y-4">
+              <TelemetryFeed
+                currentBookingReference={linkedBookingId}
+                onRefreshParent={onRefreshParent}
+              />
+            </div>
+          )}
+
+          {/* TAB 3: LÍNEAS & SKUS */}
+          {activeTab === "lines" && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                  <Package className="w-4 h-4 text-blue-400" />
+                  <span>SKU Line Items ({order.lineItems.length})</span>
+                </h3>
+                <button
+                  onClick={onOpenAllocateModal}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-colors shadow-sm"
+                >
+                  <Ship className="w-3.5 h-3.5" />
+                  <span>Allocate to Booking</span>
+                </button>
               </div>
 
-              <button
-                type="submit"
-                disabled={submittingMilestone}
-                className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-xs font-semibold py-2 rounded-lg transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>
-                  {submittingMilestone ? "Recording..." : "Record Milestone"}
-                </span>
-              </button>
-            </form>
-          </div>
+              <div className="border border-slate-700/60 rounded-xl overflow-hidden bg-slate-800/40">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-900/60 text-slate-400 border-b border-slate-700/60 font-medium">
+                      <th className="py-2.5 px-3">SKU & Description</th>
+                      <th className="py-2.5 px-3 text-right">Total Qty</th>
+                      <th className="py-2.5 px-3 text-right">Allocated</th>
+                      <th className="py-2.5 px-3 text-right">Remaining</th>
+                      <th className="py-2.5 px-3 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/40">
+                    {order.lineItems.map((item) => {
+                      const total = parseFloat(item.quantity) || 1;
+                      const allocated = parseFloat(item.allocatedQuantity) || 0;
+                      const pct = Math.min(
+                        100,
+                        Math.round((allocated / total) * 100),
+                      );
+
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-800/60">
+                          <td className="py-2.5 px-3">
+                            <span className="font-mono font-semibold text-blue-400 block">
+                              {item.skuCode}
+                            </span>
+                            <span className="text-slate-400 truncate block max-w-xs">
+                              {item.description}
+                            </span>
+                            {item.bookingId && (
+                              <span className="text-[10px] text-cyan-400 font-mono mt-0.5 block">
+                                Linked Booking: {item.bookingId}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-200 font-mono">
+                            {item.quantity} {item.uom}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-cyan-400 font-mono">
+                            {item.allocatedQuantity}
+                            <div className="w-16 bg-slate-700 h-1 rounded-full mt-1 ml-auto overflow-hidden">
+                              <div
+                                className="bg-cyan-500 h-full rounded-full transition-all"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-300 font-mono font-medium">
+                            {item.remainingQuantity}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            {item.isFullyAllocated ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-900/30 text-emerald-300 border border-emerald-700">
+                                Booked
+                              </span>
+                            ) : allocated > 0 ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-900/30 text-indigo-300 border border-indigo-700">
+                                Partial
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-700 text-slate-300">
+                                Unallocated
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
