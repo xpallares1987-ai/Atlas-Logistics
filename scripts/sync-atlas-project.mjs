@@ -87,6 +87,7 @@ function runGh(args, maxRetries = 3) {
         env: { ...process.env, GITHUB_TOKEN: "" },
         encoding: "utf8",
         stdio: ["pipe", "pipe", "pipe"],
+        timeout: 15000,
       }).trim();
     } catch (err) {
       attempt++;

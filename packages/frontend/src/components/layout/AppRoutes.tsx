@@ -122,6 +122,9 @@ const RailFreightModule = React.lazy(
 const CustomsWarehouseModule = React.lazy(
   () => import("../../pages/CustomsWarehouseModule"),
 );
+const WarehouseTerminalModule = React.lazy(
+  () => import("../../pages/WarehouseTerminalModule"),
+);
 const FuelEuMaritimeModule = React.lazy(
   () => import("../../pages/FuelEuMaritimeModule"),
 );
@@ -910,6 +913,14 @@ export const AppRoutes = () => {
             element={
               <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
                 <WarehouseOpsContainer />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/warehouse-terminal"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "OPERATIONS"]}>
+                <WarehouseTerminalModule />
               </ProtectedRoute>
             }
           />

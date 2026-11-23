@@ -72,8 +72,8 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%' ORDER BY name;",
     );
     const tables = res.rows.map((r: any) => String(r.name));
-    // 272 operational domain tables (+ 1 __drizzle_migrations table = 273 total physical tables)
-    expect(tables.length).toBe(272);
+    // 276 operational domain tables (+ 1 __drizzle_migrations table = 277 total physical tables)
+    expect(tables.length).toBe(276);
 
     // Assert canonical core bounded context tables exist
     expect(tables).toContain("companies");
@@ -83,6 +83,10 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
     expect(tables).toContain("auth_audit_logs");
     expect(tables).toContain("branch_offices");
     expect(tables).toContain("departments");
+    expect(tables).toContain("financial_clearing_entries");
+    expect(tables).toContain("bilateral_netting_cycles");
+    expect(tables).toContain("cass_reconciliation_batches");
+    expect(tables).toContain("cass_reconciliation_items");
     expect(tables).toContain("user_station_assignments");
     expect(tables).toContain("roles");
     expect(tables).toContain("permissions");
@@ -140,7 +144,7 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
     const tablesRes = await scratchClient.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%' ORDER BY name;",
     );
-    expect(tablesRes.rows.length).toBe(272);
+    expect(tablesRes.rows.length).toBe(276);
   }, 30000);
 
   it("proves forward migration upgrade continuity and data preservation from an earlier baseline snapshot (E4 verification)", async () => {
@@ -252,7 +256,7 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
     const tablesRes = await upgradeClient.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%' ORDER BY name;",
     );
-    expect(tablesRes.rows.length).toBe(272);
+    expect(tablesRes.rows.length).toBe(276);
 
     // 8. Verify all Drizzle migrations are recorded in __drizzle_migrations
     const migCount = await upgradeClient.execute(
