@@ -10,7 +10,7 @@ ARG BUILDKIT_INLINE_CACHE=1
 # ============================================================================
 # STAGE 1: DEPENDENCIES — Install and cache pnpm dependencies
 # ============================================================================
-FROM node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS dependencies
+FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS dependencies
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -64,7 +64,7 @@ RUN --mount=type=cache,id=turbo-cache,target=/app/.turbo \
 # ============================================================================
 # STAGE 3: PRODUCTION — Nginx reverse proxy for SPA + API gateway
 # ============================================================================
-FROM nginx:alpine@sha256:0563c36f94a6d3ec3584161b77859f740f7e20b4853f52c796a864ce6908e8ea AS production
+FROM nginx:alpine@sha256:fb4658584bd9a916ffb6f6e365f97c25cfdb2923801f551ea08356e695f14ff7 AS production
 
 LABEL maintainer="xpallares1987-ai"
 LABEL version="1.0.0"
