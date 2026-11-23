@@ -660,6 +660,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </NavLink>
                   <NavLink
                     onClick={closeMobile}
+                    to="/cbam-ledger"
+                    icon={Coins}
+                    badge="ISO20022"
+                  >
+                    CBAM & Fiscal Ledger
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
                     to="/fueleu-maritime"
                     icon={Ship}
                     badge="FuelEU"
@@ -952,6 +960,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     badge="CBAM"
                   >
                     CBAM Emissions
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/cbam-ledger"
+                    icon={Coins}
+                    badge="ISO20022"
+                  >
+                    CBAM & Fiscal Ledger
                   </NavLink>
                   <NavLink
                     onClick={closeMobile}

@@ -77,7 +77,7 @@ docs/
 - [**Enterprise Evolution Plan**](architecture/enterprise_evolution_plan.md) — Strategic roadmap for scaling freight forwarding domains and external integrations.
 - [**Comprehensive System Architecture**](architecture/ARCHITECTURE.md) — Monorepo micro-frontends, Fastify backend architecture, and data isolation.
 
-#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0035)
+#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0042)
 
 | ADR | Title | Status | Date | Domain / Bounded Context | Notes / Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -122,6 +122,7 @@ docs/
 | [**0039**](adr/0039-hybrid-persistence-and-crdt-synchronization.md) | Distributed Hybrid Persistence & CRDT Multi-Station Synchronization Engine | `Accepted` | 2026-11-23 | Distributed Systems / CRDT / Architecture | Abstract database adapter, state-based CRDTs, logical vector clocks, regulatory hold precedence invariant & zero cloud fees |
 | [**0040**](adr/0040-financial-settlement-automated-clearing-and-outbox-event-bus.md) | Autonomous Financial Settlement, Automated Clearing & Outbox Event Bus | `Accepted` | 2026-11-23 | Financial / Intercompany Clearing / Outbox | Scaled-integer micro-cents, multi-currency bilateral netting, automated IATA CASS reconciliation & transactional outbox |
 | [**0041**](adr/0041-intelligent-document-processing-and-ruggedized-wms.md) | Intelligent Document Processing (IDP) & Ruggedized Mobile WMS Architecture | `Accepted` | 2026-11-23 | WMS / Mobile / Hardware Scanners / IDP | Rugged Zebra Android UI, >=48px glove touch targets, hardware barcode wedge listeners, cross-docking & wave picking |
+| [**0042**](adr/0042-maritime-decarbonization-and-cbam-financial-ledger.md) | Maritime Decarbonization, CBAM Financial Ledger & ISO 20022 Settlement | `Accepted` | 2026-11-23 | Maritime Decarbonization / ESG / ISO 20022 | FuelEU Maritime compliance balance, CBAM definitive registry & EEX auction pricing, ISO 20022 pain.001/camt.053 settlement |
 
 ---
 
