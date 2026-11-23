@@ -77,7 +77,7 @@ docs/
 - [**Enterprise Evolution Plan**](architecture/enterprise_evolution_plan.md) — Strategic roadmap for scaling freight forwarding domains and external integrations.
 - [**Comprehensive System Architecture**](architecture/ARCHITECTURE.md) — Monorepo micro-frontends, Fastify backend architecture, and data isolation.
 
-#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0034)
+#### 📋 Consolidated Architectural Decision Records Catalog (ADR 0001 – ADR 0035)
 
 | ADR | Title | Status | Date | Domain / Bounded Context | Notes / Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -115,6 +115,7 @@ docs/
 | [**0032**](adr/0032-supply-chain-purchase-order-and-booking-allocation-engine.md) | Supply Chain PO Management & Booking Allocation Engine | `Accepted` | 2026-11-21 | SCM / FMS / Production | Commercial PO headers, granular SKU line items, factory milestones, split shipments & pure domain booking allocation engine |
 | [**0033**](adr/0033-supply-chain-visibility-and-predictive-milestone-tracking.md) | Supply Chain Visibility & Predictive Milestone Tracking Engine | `Accepted` | 2026-11-22 | SCM / Visibility / Control Tower | CQRS visibility ledger, deterministic delay math, contextual AI mitigation & transactional outbox |
 | [**0034**](adr/0034-carrier-track-and-trace-async-ingestion-and-predictive-resolution.md) | Carrier Track & Trace Async Ingestion & Predictive Resolution | `Accepted` | 2026-11-22 | SCM / Carrier Gateways / Telemetry | Multi-modal normalization (DCSA/FSU/AIS), 2-tier SQLite WAL buffer (<25ms), multi-key resolver & exception auto-resolution |
+| [**0035**](adr/0035-b2b-customer-and-vendor-portal-architecture.md) | Zero-Trust Customer & Vendor Portal Experience & CQRS Projections | `Accepted` | 2026-11-23 | SCM / External Portals / Zero-Trust | Segregated /portal/ routes, read-only CQRS projections, financial masking, factory milestones & Magic Tokens |
 
 ---
 
