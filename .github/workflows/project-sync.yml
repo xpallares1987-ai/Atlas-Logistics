@@ -7,51 +7,61 @@ on:
       - reopened
       - ready_for_review
       - closed
+  issues:
+    types:
+      - opened
+      - reopened
+      - closed
+      - labeled
+      - unlabeled
 
 permissions:
   pull-requests: read
+  issues: read
   contents: read
 
 jobs:
   sync-project-card:
-    name: Sync PR Card to Project Board
+    name: Sync PR/Issue Card to Project Board
     runs-on: ubuntu-24.04
     steps:
-      - name: Synchronize PR Status in Atlas Project
+      - name: Synchronize Item Status in Atlas Project
         env:
           GH_TOKEN: ${{ secrets.ATLAS_PROJECT_PAT || secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
+          ITEM_URL: ${{ github.event.pull_request.html_url || github.event.issue.html_url }}
           ACTION: ${{ github.event.action }}
-          MERGED: ${{ github.event.pull_request.merged }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          IS_PR: ${{ github.event.pull_request != null }}
+          MERGED: ${{ github.event.pull_request.merged || 'false' }}
+          ITEM_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
         run: |
           set -euo pipefail
 
           PROJECT_NUM=4
           OWNER="xpallares1987-ai"
 
-          echo "Synchronizing PR #$PR_NUMBER into Atlas Project #$PROJECT_NUM (event: $ACTION, merged: $MERGED)..."
+          echo "Synchronizing item #$ITEM_NUMBER ($ITEM_URL) into Atlas Project #$PROJECT_NUM (event: $ACTION, is_pr: $IS_PR, merged: $MERGED)..."
 
-          # Attempt to add the PR item to the project (idempotent; returns existing item if present)
-          if ! gh project item-add "$PROJECT_NUM" --owner "$OWNER" --url "$PR_URL"; then
-            echo "::notice title=Atlas Project Sync::Could not add PR #$PR_NUMBER to Atlas Project #$PROJECT_NUM. Configure repository secret 'ATLAS_PROJECT_PAT' with 'project' scope to enable automated card updates for user projects."
+          # Attempt to add the item to the project (idempotent; returns existing item if present)
+          if ! gh project item-add "$PROJECT_NUM" --owner "$OWNER" --url "$ITEM_URL"; then
+            echo "::notice title=Atlas Project Sync::Could not add item #$ITEM_NUMBER to Atlas Project #$PROJECT_NUM. Configure repository secret 'ATLAS_PROJECT_PAT' with 'project' scope to enable automated card updates for user projects."
             exit 0
           fi
 
           if [ "$ACTION" = "closed" ]; then
-            if [ "$MERGED" = "true" ]; then
-              echo "PR #$PR_NUMBER was merged. Updating status to 'Done'..."
-              gh project item-edit "$PROJECT_NUM" --owner "$OWNER" --url "$PR_URL" --field "Status" --value "Done" || {
-                echo "::warning::Failed to update card status to 'Done' for PR #$PR_NUMBER."
-              }
+            if [ "$IS_PR" = "true" ]; then
+              if [ "$MERGED" = "true" ]; then
+                echo "PR #$ITEM_NUMBER was merged. Updating status to 'Done'..."
+                gh project item-edit "$PROJECT_NUM" --owner "$OWNER" --url "$ITEM_URL" --field "Status" --value "Done" || true
+              else
+                echo "PR #$ITEM_NUMBER was closed without merging. Status left unchanged."
+              fi
             else
-              echo "PR #$PR_NUMBER was closed without merging. Status left unchanged."
+              echo "Issue #$ITEM_NUMBER was closed. Updating status to 'Done'..."
+              gh project item-edit "$PROJECT_NUM" --owner "$OWNER" --url "$ITEM_URL" --field "Status" --value "Done" || true
             fi
           else
-            echo "PR #$PR_NUMBER is active (action: $ACTION). Updating status to 'In Progress'..."
-            gh project item-edit "$PROJECT_NUM" --owner "$OWNER" --url "$PR_URL" --field "Status" --value "In Progress" || {
-              echo "::warning::Failed to update card status to 'In Progress' for PR #$PR_NUMBER."
-            }
+            echo "Item #$ITEM_NUMBER is active (action: $ACTION). Updating status to 'In Progress'..."
+            gh project item-edit "$PROJECT_NUM" --owner "$OWNER" --url "$ITEM_URL" --field "Status" --value "In Progress" || true
           fi
 
-          echo "Atlas Project card synchronization completed for PR #$PR_NUMBER."
+          echo "Atlas Project card synchronization completed for #$ITEM_NUMBER."
