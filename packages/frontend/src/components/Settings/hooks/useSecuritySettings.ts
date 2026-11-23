@@ -135,7 +135,7 @@ export function useSecuritySettings() {
               status: "ACTIVE" as const,
             }),
           );
-          setPasskeys(mapped);
+          setPasskeys(mapped.length > 0 ? mapped : SAMPLE_REGISTERED_PASSKEYS);
           return;
         }
       }
