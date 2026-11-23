@@ -1,0 +1,1 @@
+export{t as Manifest,t as default}from"./Manifest-BAgxvDM0.js";
