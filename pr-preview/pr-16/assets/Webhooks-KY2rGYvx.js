@@ -1,1 +1,0 @@
-export{t as Webhooks,t as default}from"./Webhooks-MGPqha_D.js";
