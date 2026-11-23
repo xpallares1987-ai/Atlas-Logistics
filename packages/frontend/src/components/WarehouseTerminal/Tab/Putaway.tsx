@@ -1,7 +1,7 @@
 /**
- * @file PutawayTab.tsx
+ * @file Putaway.tsx
  * @description Directed putaway tasks tab for rugged warehouse terminal.
- * @module @atlas/frontend/pages/WarehouseTerminal/Tab/PutawayTab
+ * @module @atlas/frontend/components/WarehouseTerminal/Tab/Putaway
  */
 
 export interface PutawayTask {
@@ -15,11 +15,11 @@ export interface PutawayTask {
   status: "PENDING" | "CONFIRMED";
 }
 
-interface PutawayTabProps {
+interface PutawayProps {
   tasks: PutawayTask[];
 }
 
-export function PutawayTab({ tasks }: PutawayTabProps) {
+export function Putaway({ tasks }: PutawayProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between text-xs text-zinc-400 font-semibold px-1">

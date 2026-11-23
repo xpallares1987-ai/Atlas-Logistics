@@ -1,7 +1,7 @@
 /**
- * @file CrossDockTab.tsx
+ * @file CrossDock.tsx
  * @description Cross-dock staging manifests tab for rugged warehouse terminal.
- * @module @atlas/frontend/pages/WarehouseTerminal/Tab/CrossDockTab
+ * @module @atlas/frontend/components/WarehouseTerminal/Tab/CrossDock
  */
 
 export interface CrossDockTask {
@@ -14,11 +14,11 @@ export interface CrossDockTask {
   scannedCount: number;
 }
 
-interface CrossDockTabProps {
+interface CrossDockProps {
   tasks: CrossDockTask[];
 }
 
-export function CrossDockTab({ tasks }: CrossDockTabProps) {
+export function CrossDock({ tasks }: CrossDockProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between text-xs text-zinc-400 font-semibold px-1">

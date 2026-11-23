@@ -25,18 +25,14 @@ import {
 } from "lucide-react";
 import { isValidIso6346 } from "@atlas/shared";
 import {
-  CrossDockTab,
+  CrossDock,
   type CrossDockTask,
-} from "./WarehouseTerminal/Tab/CrossDockTab";
-import {
-  PutawayTab,
+  Putaway,
   type PutawayTask,
-} from "./WarehouseTerminal/Tab/PutawayTab";
-import {
-  WavePickTab,
+  WavePick,
   type WavePickItem,
-} from "./WarehouseTerminal/Tab/WavePickTab";
-import { GateInTab } from "./WarehouseTerminal/Tab/GateInTab";
+  GateIn,
+} from "../components/WarehouseTerminal/Tab";
 
 type TerminalMode = "CROSS_DOCK" | "PUTAWAY" | "PICKING" | "GATE_IN";
 
@@ -516,11 +512,11 @@ export default function WarehouseTerminalModule() {
 
       {/* 4. WORKFLOW CONTENT PANELS */}
       <main className="flex-1 p-3 overflow-y-auto space-y-3">
-        {mode === "CROSS_DOCK" && <CrossDockTab tasks={crossDockTasks} />}
-        {mode === "PUTAWAY" && <PutawayTab tasks={putawayTasks} />}
-        {mode === "PICKING" && <WavePickTab items={waveItems} />}
+        {mode === "CROSS_DOCK" && <CrossDock tasks={crossDockTasks} />}
+        {mode === "PUTAWAY" && <Putaway tasks={putawayTasks} />}
+        {mode === "PICKING" && <WavePick items={waveItems} />}
         {mode === "GATE_IN" && (
-          <GateInTab
+          <GateIn
             gateInContainer={gateInContainer}
             setGateInContainer={setGateInContainer}
             gateInSeal={gateInSeal}

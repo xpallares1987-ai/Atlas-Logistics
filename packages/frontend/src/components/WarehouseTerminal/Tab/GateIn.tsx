@@ -1,13 +1,13 @@
 /**
- * @file GateInTab.tsx
+ * @file GateIn.tsx
  * @description Gate-In container safety inspection and verification tab for rugged warehouse terminal.
- * @module @atlas/frontend/pages/WarehouseTerminal/Tab/GateInTab
+ * @module @atlas/frontend/components/WarehouseTerminal/Tab/GateIn
  */
 
 import { ShieldCheck } from "lucide-react";
 import { isValidIso6346 } from "@atlas/shared";
 
-interface GateInTabProps {
+interface GateInProps {
   gateInContainer: string;
   setGateInContainer: (val: string) => void;
   gateInSeal: string;
@@ -17,7 +17,7 @@ interface GateInTabProps {
   onConfirmGateIn: () => void;
 }
 
-export function GateInTab({
+export function GateIn({
   gateInContainer,
   setGateInContainer,
   gateInSeal,
@@ -25,7 +25,7 @@ export function GateInTab({
   gateInInspectionPassed,
   setGateInInspectionPassed,
   onConfirmGateIn,
-}: GateInTabProps) {
+}: GateInProps) {
   const isIsoValid = isValidIso6346(gateInContainer);
   const isReady =
     isIsoValid && gateInSeal.trim().length > 0 && gateInInspectionPassed;

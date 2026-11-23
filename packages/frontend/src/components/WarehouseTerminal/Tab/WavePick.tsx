@@ -1,7 +1,7 @@
 /**
- * @file WavePickTab.tsx
+ * @file WavePick.tsx
  * @description Directed wave picking list tab for rugged warehouse terminal.
- * @module @atlas/frontend/pages/WarehouseTerminal/Tab/WavePickTab
+ * @module @atlas/frontend/components/WarehouseTerminal/Tab/WavePick
  */
 
 export interface WavePickItem {
@@ -14,11 +14,11 @@ export interface WavePickItem {
   isComplete: boolean;
 }
 
-interface WavePickTabProps {
+interface WavePickProps {
   items: WavePickItem[];
 }
 
-export function WavePickTab({ items }: WavePickTabProps) {
+export function WavePick({ items }: WavePickProps) {
   const completedCount = items.filter((i) => i.isComplete).length;
 
   return (
