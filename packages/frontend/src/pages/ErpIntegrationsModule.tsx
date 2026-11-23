@@ -1,45 +1,38 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+/**
+ * @file ErpIntegrationsModule.tsx
+ * @description Enterprise ERP Bi-Directional Connectors Workspace (SAP S/4HANA, NetSuite, and Dynamics 365 BC).
+ * @module @atlas/frontend/pages/ErpIntegrationsModule
+ * @see {@link docs/adr/0020-frontend-modular-decomposition-and-file-size-guardrails.md}
+ */
+
+import { useState, useEffect, useCallback } from "react";
 import {
   Network,
   Database,
   Activity,
-  CheckCircle2,
-  RefreshCw,
   ArrowLeftRight,
   Wifi,
   WifiOff,
-  FileCode,
-  DollarSign,
-  Package,
-  Send,
-  Copy,
-  Check,
   Zap,
 } from "lucide-react";
 import { Button } from "@atlas/ui";
 import {
-  ERP_DEMO_PRESETS,
   erpQueueManager,
   type ErpConnectorStatus,
   type ErpQueuedMutation,
 } from "@atlas/shared";
 import { useApiMutation, useApiQuery } from "../hooks/useApiQuery";
-import { useShipments } from "../hooks/useShipments";
+import { useShipments, type Shipment } from "../hooks/useShipments";
+import {
+  Topology,
+  Mapping,
+  Sandbox,
+  Queue,
+  type PresetKey,
+  type ErpPurchaseOrder,
+} from "../components/ErpIntegrations";
 
 type TabKey = "TOPOLOGY" | "MAPPING" | "SANDBOX" | "QUEUE";
-type PresetKey = "sap_automotive_tier1" | "netsuite_retail_hightech";
-
-interface ErpPurchaseOrder {
-  id: string;
-  poNumber: string;
-  erpSystem?: string;
-  vendorName?: string;
-  totalAmount: number;
-  currency?: string;
-  status?: string;
-  [key: string]: unknown;
-}
 
 export default function ErpIntegrationsModule() {
   const [activeTab, setActiveTab] = useState<TabKey>("TOPOLOGY");
@@ -50,41 +43,28 @@ export default function ErpIntegrationsModule() {
   const [selectedPresetKey, setSelectedPresetKey] = useState<PresetKey>(
     "sap_automotive_tier1",
   );
-  const [copiedResponse, setCopiedResponse] = useState(false);
-  const [isOffline] = useState(!navigator.onLine);
+  const [copiedResponse, setCopiedResponse] = useState<boolean>(false);
+  const [isOffline] = useState<boolean>(!navigator.onLine);
   const [activeConsoleLog, setActiveConsoleLog] = useState<Record<
     string,
     unknown
   > | null>(null);
   const [queueItems, setQueueItems] = useState<ErpQueuedMutation[]>([]);
 
-  // Real Shipments from SQLite
+  // 1. Data queries
   const { data: shipments = [] } = useShipments();
-  const activeShipment =
-    shipments.find((s) => s.id === selectedShipmentId) || shipments[0];
-
-  // Real ERP Purchase Orders for this shipment from SQLite
-  const { data: ordersData, refetch: refetchOrders } = useApiQuery<{
-    success: boolean;
-    orders: ErpPurchaseOrder[];
-  }>(
-    ["erp-orders", selectedShipmentId],
-    `/erp-integrations/orders?shipmentId=${selectedShipmentId}`,
+  const activeShipment = shipments.find(
+    (s: Shipment) => s.id === selectedShipmentId,
   );
-  const orders = ordersData?.orders || [];
 
-  // Synchronize selectedPoNumber when orders change
-  useEffect(() => {
-    if (
-      orders.length > 0 &&
-      !orders.some((o) => o.poNumber === selectedPoNumber)
-    ) {
-      setSelectedPoNumber(orders[0].poNumber);
-    }
-  }, [orders]);
+  const { data: statusData } = useApiQuery<{
+    success: boolean;
+    connectors: ErpConnectorStatus[];
+  }>(["erp-status"], "/erp-integrations/status", {
+    refetchInterval: 15000,
+  });
 
-  // Telemetry status state
-  const [connectors] = useState<ErpConnectorStatus[]>([
+  const connectors: ErpConnectorStatus[] = statusData?.connectors || [
     {
       system: "SAP_S4HANA",
       endpoint:
@@ -116,47 +96,70 @@ export default function ErpIntegrationsModule() {
         averageLatencyMs: 174,
       },
     },
-  ]);
+    {
+      system: "MICROSOFT_DYNAMICS_365_BC",
+      endpoint:
+        "https://api.businesscentral.dynamics.com/v2.0/atlas-corp/Production/ODataV4/Company('Atlas_Logistics')/GeneralJournals",
+      status: "ONLINE",
+      circuitBreaker: "CLOSED",
+      latencyMs: 135,
+      lastSyncTimestamp: Date.now() - 60000,
+      activeAuthMethod: "OAUTH2_BEARER",
+      metrics: {
+        totalSyncedToday: 64,
+        failedSyncCount: 0,
+        pendingQueueDepth: 0,
+        averageLatencyMs: 140,
+      },
+    },
+  ];
 
-  const currentPreset = ERP_DEMO_PRESETS[selectedPresetKey];
+  const { data: ordersData, refetch: refetchOrders } = useApiQuery<{
+    success: boolean;
+    orders: ErpPurchaseOrder[];
+  }>(
+    ["erp-orders", selectedShipmentId],
+    `/erp-integrations/orders?shipmentId=${selectedShipmentId}`,
+    {
+      enabled: !!selectedShipmentId,
+    },
+  );
 
-  // Refresh local Dexie queue
-  const refreshQueue = async () => {
+  const orders: ErpPurchaseOrder[] = ordersData?.orders || [];
+
+  const refreshQueue = useCallback(async () => {
     const items = await erpQueueManager.getAll();
     setQueueItems(items);
-  };
-
-  useEffect(() => {
-    refreshQueue();
   }, []);
 
-  // Direct Operational Sync Mutation against SQLite
+  useEffect(() => {
+    void refreshQueue();
+  }, [refreshQueue]);
+
+  // Mutations
   const syncOrderMutation = useApiMutation<
     {
-      order?: { erpSystem?: string; [key: string]: unknown };
-      syncLog?: unknown;
-      [key: string]: unknown;
+      order?: ErpPurchaseOrder;
+      syncLog?: Record<string, unknown>;
     },
     { poNumber: string }
   >("/erp-integrations/sync", "POST", {
     onSuccess: (res) => {
       refetchOrders();
       setActiveConsoleLog({
-        title: "Sincronización Bidireccional SQLite / ERP Exitosa",
-        system: res.order?.erpSystem || "SAP_S4HANA",
-        protocol: "Relational Operational Sync",
-        order: res.order,
+        title: "Orden de Compra Sincronizada con SQLite",
+        system: res.order?.erpSystem || "ERP_GATEWAY",
+        poNumber: res.order?.poNumber,
+        status: "SYNCED",
         syncLog: res.syncLog,
       });
     },
   });
 
-  // API Mutations
   const syncSapPoMutation = useApiMutation<
     {
       csrfToken?: string;
       data?: unknown;
-      [key: string]: unknown;
     },
     { poNumber: string }
   >("/erp-integrations/sap/sync-po", "POST", {
@@ -176,7 +179,6 @@ export default function ErpIntegrationsModule() {
     {
       deliveryDocument?: string;
       data?: unknown;
-      [key: string]: unknown;
     },
     Record<string, unknown>
   >("/erp-integrations/sap/post-delivery", "POST", {
@@ -196,7 +198,6 @@ export default function ErpIntegrationsModule() {
     {
       receiptId?: string;
       landedCost?: unknown;
-      [key: string]: unknown;
     },
     Record<string, unknown>
   >("/erp-integrations/netsuite/post-receipt", "POST", {
@@ -212,11 +213,31 @@ export default function ErpIntegrationsModule() {
     },
   });
 
+  const postDynamicsBcJournalMutation = useApiMutation<
+    {
+      journalBatchName?: string;
+      postedLinesCount?: number;
+      totalAmountEur?: number;
+    },
+    { lines: Array<Record<string, unknown>> }
+  >("/erp-integrations/dynamics-bc/journal", "POST", {
+    onSuccess: (res) => {
+      refetchOrders();
+      setActiveConsoleLog({
+        title: "Asiento General Publicado en MS Dynamics 365 Business Central",
+        system: "MICROSOFT_DYNAMICS_365_BC",
+        protocol: "OData v4 /GeneralJournals",
+        batch: res.journalBatchName,
+        linesCount: res.postedLinesCount,
+        totalEur: res.totalAmountEur,
+      });
+    },
+  });
+
   const batchQueueMutation = useApiMutation<
     {
       processedCount?: number;
       results?: unknown;
-      [key: string]: unknown;
     },
     { mutations: Array<Record<string, unknown>> }
   >("/erp-integrations/queue/batch", "POST", {
@@ -234,136 +255,67 @@ export default function ErpIntegrationsModule() {
   });
 
   // Handlers
-  const handleSelectPreset = (key: PresetKey) => {
-    setSelectedPresetKey(key);
-  };
-
-  const handleExecuteSapPoSync = () => {
-    if (isOffline) {
-      handleEnqueueOffline("SAP_S4HANA", "SYNC_PO", {
-        poNumber: selectedPoNumber,
-      });
-      return;
-    }
-    syncOrderMutation.mutate({
-      poNumber: selectedPoNumber,
-    });
-  };
-
-  const handleExecuteSapDelivery = () => {
-    if (isOffline) {
-      handleEnqueueOffline("SAP_S4HANA", "POST_INBOUND_DELIVERY", {
-        poNumber: selectedPoNumber,
-        billOfLading: "MSCUBCN992811",
-        carrierName: "MSC",
-        containerId: "MSCU119920",
-        items: [{ material: "MAT-AUTO-ENG", quantity: 40 }],
-      });
-      return;
-    }
-    postSapDeliveryMutation.mutate({
-      poNumber: selectedPoNumber,
-      billOfLading: "MSCUBCN992811",
-      carrierName: "MSC Mediterranean Shipping",
-      containerId: "MSCU119920",
-      items: [{ material: "MAT-AUTO-ENG", quantity: 40 }],
-    });
-  };
-
-  const handleExecuteNetSuiteReceipt = () => {
-    if (isOffline) {
-      handleEnqueueOffline("ORACLE_NETSUITE", "POST_ITEM_RECEIPT", {
-        orderNumber: selectedPoNumber,
-        totalFreight: currentPreset.sampleInput.freightChargesUsd,
-      });
-      return;
-    }
-    postNetSuiteReceiptMutation.mutate({
-      orderNumber: selectedPoNumber,
-      bolNumber: "HLCUTPE88192",
-      totalFreight: currentPreset.sampleInput.freightChargesUsd,
-      method: "VOLUME",
-      items: currentPreset.sampleInput.items,
-    });
-  };
-
   const handleEnqueueOffline = async (
-    erpSystem: "SAP_S4HANA" | "ORACLE_NETSUITE",
+    erpSystem: "SAP_S4HANA" | "ORACLE_NETSUITE" | "MICROSOFT_DYNAMICS_365_BC",
     operation: ErpQueuedMutation["operation"],
-    payload: unknown,
+    payload: Record<string, unknown>,
   ) => {
-    const item = await erpQueueManager.enqueue({
+    await erpQueueManager.enqueue({
       erpSystem,
       operation,
       payloadJson: JSON.stringify(payload),
-      idempotencyKey: erpQueueManager.generateIdempotencyKey(
-        erpSystem,
-        operation,
-        "MOCK",
-      ),
+      idempotencyKey: `idemp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     });
     await refreshQueue();
-    setActiveConsoleLog({
-      title: "Transacción Encolada en IndexedDB (Modo Offline)",
-      system: erpSystem,
-      protocol: "Dexie.js Local Store",
-      offlineId: item.id,
-      status: "PENDING_NETWORK",
-    });
-  };
-
-  const handleFlushDexieQueue = () => {
-    const pending = queueItems.filter(
-      (q) => q.status === "PENDING" || q.status === "FAILED",
-    );
-    if (pending.length === 0) return;
-    batchQueueMutation.mutate({
-      mutations: pending.map((p) => ({
-        id: p.id,
-        erpSystem: p.erpSystem,
-        operation: p.operation,
-        payloadJson: p.payloadJson,
-      })),
-    });
   };
 
   const handleCopyJson = () => {
-    if (activeConsoleLog) {
-      navigator.clipboard.writeText(JSON.stringify(activeConsoleLog, null, 2));
-      setCopiedResponse(true);
-      setTimeout(() => setCopiedResponse(false), 2000);
-    }
+    if (!activeConsoleLog) return;
+    navigator.clipboard.writeText(JSON.stringify(activeConsoleLog, null, 2));
+    setCopiedResponse(true);
+    setTimeout(() => setCopiedResponse(false), 2000);
+  };
+
+  const handleFlushDexieQueue = () => {
+    if (queueItems.length === 0) return;
+    const formatted = queueItems.map((q) => ({
+      id: q.id,
+      erpSystem: q.erpSystem,
+      operation: q.operation,
+      payloadJson: q.payloadJson,
+    }));
+    batchQueueMutation.mutate({ mutations: formatted });
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 space-y-6">
-      {/* 1. Top Header & Enterprise Badges */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-              <Network className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                Conectores ERP & Integración Empresarial
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                  SAP S/4HANA OData
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  NetSuite SuiteTalk
-                </span>
-              </h1>
-              <p className="text-sm text-slate-400 mt-0.5">
-                Orquestación bidireccional de Órdenes de Compra (PO), Entregas
-                Entrantes (ASN), Recepción y Landed Cost con resiliencia
-                IndexedDB
-              </p>
-            </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-6 lg:p-8 space-y-6 font-sans">
+      {/* 1. Header & Telemetry */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-blue-500/20 text-indigo-400 border border-indigo-500/30">
+            <Network className="w-7 h-7" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+              Corporate ERP Connectors
+              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                SAP S/4HANA
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                NetSuite
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                Dynamics 365 BC
+              </span>
+            </h1>
+            <p className="text-sm text-slate-400 mt-0.5">
+              Orquestación bidireccional de Órdenes de Compra (PO), Entregas
+              Entrantes (ASN), Asientos Contables y Pasivos Ambientales
+            </p>
           </div>
         </div>
 
-        {/* Action Pills & Network Status */}
+        {/* Network Status Pill */}
         <div className="flex flex-wrap items-center gap-3">
           <div
             className={`px-3 py-1.5 rounded-xl border text-xs flex items-center gap-2 ${
@@ -407,7 +359,7 @@ export default function ErpIntegrationsModule() {
             </div>
             <span className="text-sm text-slate-200 font-medium">
               {activeShipment
-                ? `${activeShipment.id} — ${activeShipment.origin || "CNSHA"} ➔ ${activeShipment.destination || "ESVLC"} (${orders.map((o) => `${o.erpSystem === "SAP_S4HANA" ? "SAP" : "NetSuite"}: ${o.poNumber}`).join(" · ") || "Sin órdenes"})`
+                ? `${activeShipment.id} — ${activeShipment.origin || "CNSHA"} ➔ ${activeShipment.destination || "ESVLC"} (${orders.map((o) => `${o.erpSystem === "SAP_S4HANA" ? "SAP" : o.erpSystem === "MICROSOFT_DYNAMICS_365_BC" ? "BC" : "NetSuite"}: ${o.poNumber}`).join(" · ") || "Sin órdenes"})`
                 : "Cargando embarques..."}
             </span>
           </div>
@@ -421,7 +373,7 @@ export default function ErpIntegrationsModule() {
               onChange={(e) => setSelectedShipmentId(e.target.value)}
               className="bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
-              {shipments.map((s) => (
+              {shipments.map((s: Shipment) => (
                 <option key={s.id} value={s.id}>
                   {s.id} ({s.origin} ➔ {s.destination})
                 </option>
@@ -470,7 +422,7 @@ export default function ErpIntegrationsModule() {
           }`}
         >
           <ArrowLeftRight className="w-4 h-4" />
-          Estudio de Mapeo de Esquemas (Bi-Direccional)
+          Estudio de Mapeo de Esquemas
         </button>
 
         <button
@@ -482,7 +434,7 @@ export default function ErpIntegrationsModule() {
           }`}
         >
           <Activity className="w-4 h-4" />
-          Consola de Ejecución & Sincronización ERP
+          Consola de Ejecución & Sincronización
         </button>
 
         <button
@@ -494,488 +446,140 @@ export default function ErpIntegrationsModule() {
           }`}
         >
           <Database className="w-4 h-4" />
-          Cola Offline Dexie & Resiliencia de Red
+          Cola Offline Dexie & Resiliencia
         </button>
       </div>
 
-      {/* 4. Tab 1: Conectores & Topología ERP */}
-      {activeTab === "TOPOLOGY" && (
-        <motion.div
-          key="topology"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* SAP S/4HANA Card */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-5 relative overflow-hidden">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 font-bold font-mono">
-                    SAP
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-white">
-                      SAP S/4HANA Cloud Gateway
-                    </h3>
-                    <span className="text-xs text-slate-400">
-                      OData v4 REST / BAPI Business Object Pipeline
-                    </span>
-                  </div>
-                </div>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> ONLINE
-                </span>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Endpoint Primario:</span>
-                  <span className="font-mono text-slate-200 text-[11px] truncate max-w-[280px]">
-                    {connectors[0].endpoint}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">
-                    Autenticación / Handshake:
-                  </span>
-                  <span className="text-blue-300 font-mono font-semibold">
-                    OAuth 2.0 + CSRF Token (x-csrf-token)
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Circuit Breaker:</span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono font-bold">
-                    CLOSED (Normal)
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">
-                    Latencia Ping Promedio:
-                  </span>
-                  <span className="font-mono text-slate-200">
-                    {connectors[0].latencyMs} ms
-                  </span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-slate-400">Transacciones Hoy:</span>
-                  <span className="font-mono text-emerald-400 font-bold">
-                    148 Transacciones (100% Éxito)
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Oracle NetSuite Card */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-5 relative overflow-hidden">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold font-mono">
-                    NS
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-white">
-                      Oracle NetSuite ERP Production
-                    </h3>
-                    <span className="text-xs text-slate-400">
-                      SuiteTalk REST Web Services & Landed Cost Engine
-                    </span>
-                  </div>
-                </div>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> ONLINE
-                </span>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Endpoint Primario:</span>
-                  <span className="font-mono text-slate-200 text-[11px] truncate max-w-[280px]">
-                    {connectors[1].endpoint}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">
-                    Autenticación / Handshake:
-                  </span>
-                  <span className="text-amber-300 font-mono font-semibold">
-                    TBA (OAuth 1.0a HMAC-SHA256)
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Circuit Breaker:</span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono font-bold">
-                    CLOSED (Normal)
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">
-                    Latencia Ping Promedio:
-                  </span>
-                  <span className="font-mono text-slate-200">
-                    {connectors[1].latencyMs} ms
-                  </span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-slate-400">Transacciones Hoy:</span>
-                  <span className="font-mono text-emerald-400 font-bold">
-                    92 Transacciones (100% Éxito)
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* 5. Tab 2: Estudio de Mapeo de Esquemas */}
-      {activeTab === "MAPPING" && (
-        <motion.div
-          key="mapping"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6"
-        >
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <ArrowLeftRight className="w-5 h-5 text-cyan-400" />
-                Matriz de Transformación y Equivalencia de Campos
-              </h3>
-              <p className="text-xs text-slate-400">
-                Transformación canónica entre entidades de Atlas-Logistics y
-                estructuras BAPI OData / SuiteTalk
-              </p>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-400 bg-slate-950/60">
-                  <th className="p-3">Entidad Canónica Atlas</th>
-                  <th className="p-3">Campo SAP S/4HANA (OData)</th>
-                  <th className="p-3">Campo Oracle NetSuite (REST)</th>
-                  <th className="p-3">Regla de Transformación</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                <tr>
-                  <td className="p-3 font-mono text-indigo-300 font-semibold">
-                    shipment.referenceNumber
-                  </td>
-                  <td className="p-3 font-mono text-blue-300">
-                    PurchaseOrder (EBELN)
-                  </td>
-                  <td className="p-3 font-mono text-amber-300">tranId</td>
-                  <td className="p-3 text-slate-400">
-                    Mapeo directo bidireccional
-                  </td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-mono text-indigo-300 font-semibold">
-                    shipment.bolNumber
-                  </td>
-                  <td className="p-3 font-mono text-blue-300">
-                    BillOfLading (BOLNR)
-                  </td>
-                  <td className="p-3 font-mono text-amber-300">
-                    package.packageTrackingNumber
-                  </td>
-                  <td className="p-3 text-slate-400">
-                    Inyección en manifiesto de transporte
-                  </td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-mono text-indigo-300 font-semibold">
-                    shipment.incoterm
-                  </td>
-                  <td className="p-3 font-mono text-blue-300">
-                    IncotermsClassification (INCO1)
-                  </td>
-                  <td className="p-3 font-mono text-amber-300">incoterm</td>
-                  <td className="p-3 text-slate-400">
-                    Normalización Incoterms 2020 (ICC)
-                  </td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-mono text-indigo-300 font-semibold">
-                    cargo.weightKg
-                  </td>
-                  <td className="p-3 font-mono text-blue-300">
-                    GrossWeight (BRGEW / KGM)
-                  </td>
-                  <td className="p-3 font-mono text-amber-300">
-                    packageWeight (Lbs / Kg)
-                  </td>
-                  <td className="p-3 text-slate-400">
-                    Conversión métrica e ISO UoM (KGM)
-                  </td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-mono text-indigo-300 font-semibold">
-                    finance.freightAccrual
-                  </td>
-                  <td className="p-3 font-mono text-blue-300">
-                    ServiceEntrySheet (SES)
-                  </td>
-                  <td className="p-3 font-mono text-amber-300">
-                    landedCost.allocatedAmount
-                  </td>
-                  <td className="p-3 text-slate-400">
-                    Prorrateo por Volumen CBM o Valor
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-      )}
-
-      {/* 6. Tab 3: Simulador de Telemetría & Sandbox en Vivo */}
+      {/* Tab Panels */}
+      {activeTab === "TOPOLOGY" && <Topology connectors={connectors} />}
+      {activeTab === "MAPPING" && <Mapping />}
       {activeTab === "SANDBOX" && (
-        <motion.div
-          key="sandbox"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
-        >
-          {/* Controls Left Column */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-amber-400" />
-                  Perfil de Conexión & Sincronización
-                </h3>
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-400 block mb-1.5 font-medium">
-                  Orden de Compra Relacional (SQLite):
-                </label>
-                <select
-                  value={selectedPoNumber}
-                  onChange={(e) => setSelectedPoNumber(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-white font-semibold text-xs rounded-xl p-2.5 focus:outline-none focus:border-blue-500"
-                >
-                  {orders.map((o) => (
-                    <option key={o.id} value={o.poNumber}>
-                      {o.erpSystem === "SAP_S4HANA" ? "SAP" : "NetSuite"}:{" "}
-                      {o.poNumber} — {o.vendorName} (
-                      {o.totalAmount.toLocaleString()} {o.currency}) [{o.status}
-                      ]
-                    </option>
-                  ))}
-                  <option value="4500891234">
-                    SAP S/4HANA: 4500891234 (Automotriz)
-                  </option>
-                  <option value="SO-2026-9912">
-                    Oracle NetSuite: SO-2026-9912 (High-Tech)
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-400 block mb-1.5 font-medium">
-                  Perfil de Protocolo ERP:
-                </label>
-                <select
-                  value={selectedPresetKey}
-                  onChange={(e) =>
-                    handleSelectPreset(e.target.value as PresetKey)
-                  }
-                  className="w-full bg-slate-950 border border-slate-800 text-white font-semibold text-xs rounded-xl p-2.5 focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="sap_automotive_tier1">
-                    SAP S/4HANA (Automotriz Alemania · OData v4)
-                  </option>
-                  <option value="netsuite_retail_hightech">
-                    Oracle NetSuite (High-Tech Taiwán · SuiteTalk REST)
-                  </option>
-                </select>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <Button
-                  onClick={handleExecuteSapPoSync}
-                  disabled={syncSapPoMutation.isPending}
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs flex items-center justify-between py-3"
-                >
-                  <span className="flex items-center gap-2">
-                    <Send className="w-3.5 h-3.5" />
-                    1. Ingestar Orden de Compra SAP (OData v4)
-                  </span>
-                  {syncSapPoMutation.isPending && (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  )}
-                </Button>
-
-                <Button
-                  onClick={handleExecuteSapDelivery}
-                  disabled={postSapDeliveryMutation.isPending}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs flex items-center justify-between py-3"
-                >
-                  <span className="flex items-center gap-2">
-                    <Package className="w-3.5 h-3.5" />
-                    2. Generar Entrega Entrante SAP (ASN / BAPI)
-                  </span>
-                  {postSapDeliveryMutation.isPending && (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  )}
-                </Button>
-
-                <Button
-                  onClick={handleExecuteNetSuiteReceipt}
-                  disabled={postNetSuiteReceiptMutation.isPending}
-                  className="w-full bg-amber-600 hover:bg-amber-500 text-white text-xs flex items-center justify-between py-3"
-                >
-                  <span className="flex items-center gap-2">
-                    <DollarSign className="w-3.5 h-3.5" />
-                    3. Postear Item Receipt & Landed Cost en NetSuite
-                  </span>
-                  {postNetSuiteReceiptMutation.isPending && (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Console Right Column */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 min-h-[380px] flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2">
-                    <FileCode className="w-4 h-4 text-cyan-400" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">
-                      Consola de Respuesta ERP en Vivo
-                    </span>
-                  </div>
-                  {activeConsoleLog && (
-                    <button
-                      onClick={handleCopyJson}
-                      className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-mono"
-                    >
-                      {copiedResponse ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                      {copiedResponse ? "Copiado" : "Copiar JSON"}
-                    </button>
-                  )}
-                </div>
-
-                <div className="mt-4 p-4 rounded-xl bg-slate-950 font-mono text-xs overflow-auto max-h-[360px] border border-slate-800 text-emerald-400">
-                  {activeConsoleLog ? (
-                    <pre>{JSON.stringify(activeConsoleLog, null, 2)}</pre>
-                  ) : (
-                    <span className="text-slate-600 italic">
-                      Presione una acción de sincronización para ver el payload
-                      OData o SuiteTalk en tiempo real.
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
+        <Sandbox
+          orders={orders}
+          selectedPoNumber={selectedPoNumber}
+          setSelectedPoNumber={setSelectedPoNumber}
+          selectedPresetKey={selectedPresetKey}
+          setSelectedPresetKey={setSelectedPresetKey}
+          activeConsoleLog={activeConsoleLog}
+          copiedResponse={copiedResponse}
+          onCopyJson={handleCopyJson}
+          onSyncSapPo={() => {
+            if (isOffline) {
+              void handleEnqueueOffline("SAP_S4HANA", "SYNC_PO", {
+                poNumber: selectedPoNumber,
+              });
+              return;
+            }
+            syncSapPoMutation.mutate({ poNumber: selectedPoNumber });
+          }}
+          onPostSapDelivery={() => {
+            const payload = {
+              poNumber: selectedPoNumber,
+              billOfLading: "MSCUBCN992819",
+              carrierName: "Mediterranean Shipping Company (MSC)",
+              containerId: "MSKU9284712",
+              items: [{ material: "MAT-AUTO-ENG-V6", quantity: 40 }],
+            };
+            if (isOffline) {
+              void handleEnqueueOffline(
+                "SAP_S4HANA",
+                "POST_INBOUND_DELIVERY",
+                payload,
+              );
+              return;
+            }
+            postSapDeliveryMutation.mutate(payload);
+          }}
+          onPostNetSuiteReceipt={() => {
+            const payload = {
+              orderNumber: selectedPoNumber,
+              bolNumber: "MSCUBCN992819",
+              totalFreight: 9800,
+              method: "VALUE",
+              items: [
+                {
+                  line: 1,
+                  itemRefName: "Servidores Blade 2U GPU AI",
+                  quantity: 15,
+                  unitValue: 12000,
+                  weightKg: 950,
+                  volumeCbm: 5.2,
+                },
+              ],
+            };
+            if (isOffline) {
+              void handleEnqueueOffline(
+                "ORACLE_NETSUITE",
+                "POST_ITEM_RECEIPT",
+                payload,
+              );
+              return;
+            }
+            postNetSuiteReceiptMutation.mutate(payload);
+          }}
+          onPostDynamicsBcJournal={() => {
+            const payload = {
+              lines: [
+                {
+                  journalTemplateName: "GENERAL",
+                  journalBatchName: "ATLAS_GL",
+                  lineNumber: 10000,
+                  accountType: "G/L Account",
+                  accountNo: "600000",
+                  postingDate: new Date().toISOString().split("T")[0],
+                  documentType: "Invoice",
+                  documentNo: selectedPoNumber,
+                  description: "Transporte Intermodal Rotterdam - Zaragoza",
+                  debitAmount: 8750.0,
+                  creditAmount: 0,
+                },
+                {
+                  journalTemplateName: "GENERAL",
+                  journalBatchName: "ATLAS_GL",
+                  lineNumber: 20000,
+                  accountType: "Vendor",
+                  accountNo: "400000",
+                  postingDate: new Date().toISOString().split("T")[0],
+                  documentType: "Invoice",
+                  documentNo: selectedPoNumber,
+                  description: "Provisión Flete y Operaciones",
+                  debitAmount: 0,
+                  creditAmount: 8750.0,
+                },
+              ],
+            };
+            if (isOffline) {
+              void handleEnqueueOffline(
+                "MICROSOFT_DYNAMICS_365_BC",
+                "POST_GENERAL_JOURNAL",
+                payload,
+              );
+              return;
+            }
+            postDynamicsBcJournalMutation.mutate(payload);
+          }}
+          isSapPoPending={syncSapPoMutation.isPending}
+          isSapDeliveryPending={postSapDeliveryMutation.isPending}
+          isNetSuitePending={postNetSuiteReceiptMutation.isPending}
+          isDynamicsPending={postDynamicsBcJournalMutation.isPending}
+        />
       )}
-
-      {/* 7. Tab 4: Cola Offline Dexie & Resiliencia */}
       {activeTab === "QUEUE" && (
-        <motion.div
-          key="queue"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6"
-        >
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Database className="w-5 h-5 text-emerald-400" />
-                Bandeja de Mutaciones Offline (Dexie.js / IndexedDB)
-              </h3>
-              <p className="text-xs text-slate-400">
-                Almacenamiento local desacoplado de transacciones pendientes con
-                drenaje garantizado al restaurar red
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() =>
-                  handleEnqueueOffline("SAP_S4HANA", "POST_INBOUND_DELIVERY", {
-                    demo: "manual_enqueue",
-                    timestamp: Date.now(),
-                  })
-                }
-                size="sm"
-                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs"
-              >
-                + Encolar Transacción Manual
-              </Button>
-              <Button
-                onClick={handleFlushDexieQueue}
-                disabled={
-                  batchQueueMutation.isPending || queueItems.length === 0
-                }
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs flex items-center gap-1.5"
-              >
-                {batchQueueMutation.isPending ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Send className="w-3.5 h-3.5" />
-                )}
-                Drenar Cola hacia el Servidor
-              </Button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            {queueItems.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 text-xs">
-                No hay transacciones pendientes en la cola local IndexedDB.
-              </div>
-            ) : (
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 bg-slate-950/60">
-                    <th className="p-3">ID Mutación</th>
-                    <th className="p-3">Sistema ERP</th>
-                    <th className="p-3">Operación</th>
-                    <th className="p-3">Estado</th>
-                    <th className="p-3">Reintentos</th>
-                    <th className="p-3">Idempotency Key</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 font-mono">
-                  {queueItems.map((q) => (
-                    <tr key={q.id}>
-                      <td className="p-3 text-slate-300">{q.id}</td>
-                      <td className="p-3 text-blue-300 font-bold">
-                        {q.erpSystem}
-                      </td>
-                      <td className="p-3 text-slate-200">{q.operation}</td>
-                      <td className="p-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 font-bold">
-                          {q.status}
-                        </span>
-                      </td>
-                      <td className="p-3 text-slate-400">{q.retryCount}</td>
-                      <td className="p-3 text-[10px] text-slate-500">
-                        {q.idempotencyKey}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </motion.div>
+        <Queue
+          queueItems={queueItems}
+          onEnqueueManual={() => {
+            void handleEnqueueOffline(
+              "MICROSOFT_DYNAMICS_365_BC",
+              "POST_GENERAL_JOURNAL",
+              {
+                manual: true,
+                timestamp: Date.now(),
+              },
+            );
+          }}
+          onFlushQueue={handleFlushDexieQueue}
+          isFlushing={batchQueueMutation.isPending}
+        />
       )}
     </div>
   );

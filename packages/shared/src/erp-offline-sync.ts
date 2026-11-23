@@ -14,13 +14,14 @@ import { getSecureRandomInt, getSecureRandomString } from "./crypto.js";
 
 export interface ErpQueuedMutation {
   id: string;
-  erpSystem: "SAP_S4HANA" | "ORACLE_NETSUITE";
+  erpSystem: "SAP_S4HANA" | "ORACLE_NETSUITE" | "MICROSOFT_DYNAMICS_365_BC";
   operation:
     | "SYNC_PO"
     | "POST_INBOUND_DELIVERY"
     | "POST_SERVICE_ENTRY_SHEET"
     | "POST_ITEM_RECEIPT"
-    | "POST_VENDOR_BILL";
+    | "POST_VENDOR_BILL"
+    | "POST_GENERAL_JOURNAL";
   payloadJson: string;
   status: "PENDING" | "SYNCING" | "COMPLETED" | "FAILED" | "DEAD_LETTER";
   retryCount: number;
@@ -32,8 +33,8 @@ export interface ErpQueuedMutation {
 
 export interface ErpCachedRecord {
   id: string; // e.g. "sap-4500091823"
-  erpSystem: "SAP_S4HANA" | "ORACLE_NETSUITE";
-  recordType: "PURCHASE_ORDER" | "DELIVERY" | "RECEIPT";
+  erpSystem: "SAP_S4HANA" | "ORACLE_NETSUITE" | "MICROSOFT_DYNAMICS_365_BC";
+  recordType: "PURCHASE_ORDER" | "DELIVERY" | "RECEIPT" | "JOURNAL";
   recordDataJson: string;
   cachedAt: number;
   version: number;
