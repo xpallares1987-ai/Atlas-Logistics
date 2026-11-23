@@ -20,6 +20,7 @@ import {
   purchaseOrders,
   poLineItems,
   productionMilestones,
+  type ProductionMilestoneCode,
 } from "../db/schema/po.js";
 import {
   supplyChainMilestoneEvents,
@@ -507,7 +508,10 @@ export async function recordVendorMilestone(
     .where(
       and(
         eq(productionMilestones.poId, input.poId),
-        eq(productionMilestones.milestoneCode, input.milestoneCode as any),
+        eq(
+          productionMilestones.milestoneCode,
+          input.milestoneCode as ProductionMilestoneCode,
+        ),
       ),
     )
     .limit(1);
@@ -526,7 +530,7 @@ export async function recordVendorMilestone(
       id: uuidv4(),
       tenantId,
       poId: input.poId,
-      milestoneCode: input.milestoneCode as any,
+      milestoneCode: input.milestoneCode as ProductionMilestoneCode,
       plannedDate: input.actualDate,
       actualDate: input.actualDate,
       notes: input.notes || null,

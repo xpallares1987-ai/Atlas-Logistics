@@ -18,6 +18,7 @@ import {
 import {
   supplyChainMilestoneEvents,
   supplyChainExceptions,
+  type ExceptionCategory,
 } from "../db/schema/supply_chain_visibility.js";
 import { purchaseOrders, poLineItems } from "../db/schema/po.js";
 import { bookings, shipments } from "../db/schema/operations.js";
@@ -387,7 +388,7 @@ export class CarrierTelemetryIngestionService {
               eq(supplyChainExceptions.poId, poId),
               eq(
                 supplyChainExceptions.exceptionCategory,
-                normalized.autoResolvesExceptionCategory as any,
+                normalized.autoResolvesExceptionCategory as ExceptionCategory,
               ),
               inArray(supplyChainExceptions.status, ["OPEN", "ACKNOWLEDGED"]),
             ),

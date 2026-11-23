@@ -7,9 +7,10 @@
  * - Status field mapping (Todo, In Progress, Review, Done) on Project Items
  * - Start date (IFD_kgDOAvksLQ) and End date (IFD_kgDOAvkskA) via GraphQL updateIssueFieldValue for Roadmap visualization
  * - Automatic issue creation, project item association, and metadata updates
+ * - Safe parameterized execution using execFileSync (zero shell escaping, zero CWE-020/080/116 risks)
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 
 const PROJECT_NUMBER = 4;
@@ -78,17 +79,29 @@ const TASK_SCHEDULE = {
 
 const BOARD_PATH = "C:\\Users\\xpall\\.gemini\\antigravity-cli\\ipc-shared\\shared-board.json";
 
-function runGh(cmd) {
-  return execSync(`gh ${cmd}`, {
-    env: { ...process.env, GITHUB_TOKEN: "" },
-    encoding: "utf8",
-    stdio: ["pipe", "pipe", "pipe"],
-  }).trim();
+function runGh(args, maxRetries = 3) {
+  let attempt = 0;
+  while (true) {
+    try {
+      return execFileSync("gh", args, {
+        env: { ...process.env, GITHUB_TOKEN: "" },
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+      }).trim();
+    } catch (err) {
+      attempt++;
+      if (attempt >= maxRetries) throw err;
+      const waitMs = attempt * 2500;
+      console.warn(
+        `[runGh] Command failed (attempt ${attempt}/${maxRetries}), retrying in ${waitMs}ms...`,
+      );
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
+    }
+  }
 }
 
 function setIssueDateField(issueId, fieldId, dateValue) {
-  const mutation = `
-mutation($issueId: ID!, $fieldId: ID!, $date: String!) {
+  const mutation = `mutation($issueId: ID!, $fieldId: ID!, $date: String!) {
   updateIssueFieldValue(input: {
     issueId: $issueId,
     issueField: {
@@ -99,8 +112,18 @@ mutation($issueId: ID!, $fieldId: ID!, $date: String!) {
     clientMutationId
   }
 }`;
-  const escapedMutation = mutation.replace(/\n/g, " ");
-  runGh(`api graphql -f query="${escapedMutation}" -F issueId="${issueId}" -F fieldId="${fieldId}" -F date="${dateValue}"`);
+  runGh([
+    "api",
+    "graphql",
+    "-f",
+    `query=${mutation}`,
+    "-F",
+    `issueId=${issueId}`,
+    "-F",
+    `fieldId=${fieldId}`,
+    "-F",
+    `date=${dateValue}`,
+  ]);
 }
 
 async function main() {
@@ -115,42 +138,105 @@ async function main() {
 
   // 1. Get existing issues with their GraphQL IDs
   console.log("Fetching existing GitHub issues with GraphQL IDs...");
-  const rawIssues = runGh(`issue list --repo ${REPO} --limit 100 --state all --json id,number,title,url,state`);
+  const rawIssues = runGh([
+    "issue",
+    "list",
+    "--repo",
+    REPO,
+    "--limit",
+    "100",
+    "--state",
+    "all",
+    "--json",
+    "id,number,title,url,state",
+  ]);
   const existingIssues = JSON.parse(rawIssues || "[]");
 
   // 2. Get existing items in Project 4
   console.log("Fetching existing Project items...");
-  const rawItems = runGh(`project item-list ${PROJECT_NUMBER} --owner ${OWNER} --format json --limit 100`);
+  const rawItems = runGh([
+    "project",
+    "item-list",
+    String(PROJECT_NUMBER),
+    "--owner",
+    OWNER,
+    "--format",
+    "json",
+    "--limit",
+    "100",
+  ]);
   const projectData = JSON.parse(rawItems || "{}");
   const projectItems = projectData.items || [];
 
   for (const task of tasks) {
     const taskTag = `[${task.id}]`;
-    let issue = existingIssues.find((i) => i.title.includes(taskTag) || i.title.startsWith(task.id + ":"));
+    let issue = existingIssues.find(
+      (i) => i.title.includes(taskTag) || i.title.startsWith(`${task.id}:`),
+    );
 
     // If issue doesn't exist, create it
     if (!issue) {
       console.log(`Creating issue for ${task.id}: ${task.title}...`);
       const body = `### Task Description\n${task.summary || task.title}\n\n**Owner:** ${task.owner || "unassigned"}\n**Owned Files:**\n${(task.ownedFiles || []).map((f) => `- \`${f}\``).join("\n")}\n\n*Synchronized automatically via Antigravity-IPC.*`;
-      const createRes = runGh(
-        `issue create --repo ${REPO} --title "${taskTag} ${task.title.replace(/"/g, '\\"')}" --body "${body.replace(/"/g, '\\"')}"`
-      );
-      const url = createRes.trim();
+      const issueTitle = `${taskTag} ${task.title}`;
+      const url = runGh([
+        "issue",
+        "create",
+        "--repo",
+        REPO,
+        "--title",
+        issueTitle,
+        "--body",
+        body,
+      ]);
       console.log(`Created issue: ${url}`);
 
-      // Re-fetch issues to get GraphQL ID
-      const updatedIssues = JSON.parse(runGh(`issue list --repo ${REPO} --limit 100 --state all --json id,number,title,url,state`) || "[]");
-      issue = updatedIssues.find((i) => i.url === url) || { url, id: null, title: `${taskTag} ${task.title}` };
+      // Fetch newly created issue to get its GraphQL ID
+      const issueNum = url.split("/").pop();
+      try {
+        const singleIssueRaw = runGh([
+          "issue",
+          "view",
+          issueNum,
+          "--repo",
+          REPO,
+          "--json",
+          "id,number,title,url,state",
+        ]);
+        issue = JSON.parse(singleIssueRaw || "null") || {
+          url,
+          id: null,
+          title: issueTitle,
+        };
+      } catch {
+        issue = {
+          url,
+          id: null,
+          title: issueTitle,
+        };
+      }
     }
 
     // Check if issue is already in Project 4
-    let pItem = projectItems.find((pi) => pi.content?.url === issue.url || pi.title?.includes(taskTag));
+    let pItem = projectItems.find(
+      (pi) => pi.content?.url === issue.url || pi.title?.includes(taskTag),
+    );
     let itemId = pItem?.id;
 
     if (!itemId) {
       console.log(`Adding issue ${issue.url} to Project 4...`);
       try {
-        const addRes = runGh(`project item-add ${PROJECT_NUMBER} --owner ${OWNER} --url ${issue.url} --format json`);
+        const addRes = runGh([
+          "project",
+          "item-add",
+          String(PROJECT_NUMBER),
+          "--owner",
+          OWNER,
+          "--url",
+          issue.url,
+          "--format",
+          "json",
+        ]);
         const parsedAdd = JSON.parse(addRes || "{}");
         itemId = parsedAdd.id;
         console.log(`Added item ID: ${itemId}`);
@@ -162,13 +248,26 @@ async function main() {
     // 1. Update Status on Project Item
     if (itemId) {
       const targetOptionKey =
-        task.status === "done" ? "done" : task.status === "in_progress" ? "in_progress" : "todo";
+        task.status === "done"
+          ? "done"
+          : task.status === "in_progress"
+            ? "in_progress"
+            : "todo";
       const targetOptionId = STATUS_OPTIONS[targetOptionKey];
 
       try {
-        runGh(
-          `project item-edit --id ${itemId} --project-id ${PROJECT_ID} --field-id ${STATUS_FIELD_ID} --single-select-option-id ${targetOptionId}`
-        );
+        runGh([
+          "project",
+          "item-edit",
+          "--id",
+          itemId,
+          "--project-id",
+          PROJECT_ID,
+          "--field-id",
+          STATUS_FIELD_ID,
+          "--single-select-option-id",
+          targetOptionId,
+        ]);
         console.log(`Set ${task.id} (${itemId}) -> Status: ${targetOptionKey.toUpperCase()}`);
       } catch (err) {
         console.warn(`Could not set status for ${task.id}:`, err.message);
