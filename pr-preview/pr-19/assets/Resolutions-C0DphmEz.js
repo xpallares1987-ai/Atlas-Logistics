@@ -1,0 +1,1 @@
+export{t as Resolutions,t as default}from"./Resolutions-dX4StUC5.js";

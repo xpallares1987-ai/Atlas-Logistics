@@ -1,0 +1,1 @@
+export{t as TriggerDispute,t as default}from"./TriggerDispute-CSHrAbt0.js";

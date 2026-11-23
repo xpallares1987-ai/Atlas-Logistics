@@ -1,0 +1,1 @@
+export{t as UsmcaImmex}from"./UsmcaImmex-Dj8aZu_J.js";
