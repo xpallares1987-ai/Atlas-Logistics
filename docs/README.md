@@ -116,6 +116,7 @@ docs/
 | [**0033**](adr/0033-supply-chain-visibility-and-predictive-milestone-tracking.md) | Supply Chain Visibility & Predictive Milestone Tracking Engine | `Accepted` | 2026-11-22 | SCM / Visibility / Control Tower | CQRS visibility ledger, deterministic delay math, contextual AI mitigation & transactional outbox |
 | [**0034**](adr/0034-carrier-track-and-trace-async-ingestion-and-predictive-resolution.md) | Carrier Track & Trace Async Ingestion & Predictive Resolution | `Accepted` | 2026-11-22 | SCM / Carrier Gateways / Telemetry | Multi-modal normalization (DCSA/FSU/AIS), 2-tier SQLite WAL buffer (<25ms), multi-key resolver & exception auto-resolution |
 | [**0035**](adr/0035-b2b-customer-and-vendor-portal-architecture.md) | Zero-Trust Customer & Vendor Portal Experience & CQRS Projections | `Accepted` | 2026-11-23 | SCM / External Portals / Zero-Trust | Segregated /portal/ routes, read-only CQRS projections, financial masking, factory milestones & Magic Tokens |
+| [**0036**](adr/0036-autonomous-disruption-resolution-and-automated-rerouting-engine.md) | Autonomous Disruption Resolution & Automated Rerouting Engine | `Accepted` | 2026-11-23 | SCM / Carrier Operations / Optimization | Deterministic candidate plans, autonomous policy thresholds, GLEC carbon delta, atomic rerouting legs & execution logs |
 
 ---
 
