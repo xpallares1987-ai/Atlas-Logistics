@@ -71,6 +71,7 @@ import uneceTransportRoutes from "./unece-transport.routes.js";
 import portalVendorRoutes from "./portal-vendor.routes.js";
 import { resolutionPlansRoutes } from "./scm/resolution-plans.routes.js";
 import { customsFilingRoutes } from "./customs-filing.routes.js";
+import { dcsaVgmRoutes } from "./dcsa-vgm.routes.js";
 
 export {
   shipmentsRoutes,
@@ -132,6 +133,7 @@ export {
   carrierTelemetryRoutes,
   externalGovernanceRoutes,
   customsFilingRoutes,
+  dcsaVgmRoutes,
 };
 
 /**
@@ -298,6 +300,7 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
     prefix: "/api/scm/disruptions",
   });
   await fastify.register(customsFilingRoutes);
+  await fastify.register(dcsaVgmRoutes);
 };
 
 export default registerAllRoutes;
