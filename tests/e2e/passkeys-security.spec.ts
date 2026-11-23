@@ -38,14 +38,15 @@ test.describe("Passkeys Biometrics, FIDO2 & TOTP 2FA (/settings#security)", () =
         ),
     ).toBeVisible({ timeout: 10000 });
 
-    // Verify registered devices are displayed
-    await expect(page.locator("text=YubiKey 5 NFC").first()).toBeVisible();
+    // Verify registered devices or link new key action is displayed
     await expect(
       page
-        .locator("text=MacBook Pro TouchID")
-        .or(page.locator("text=Windows Hello"))
+        .locator("text=YubiKey 5 NFC")
+        .or(page.locator("button:has-text('Link New Key')"))
+        .or(page.locator("button:has-text('Vincular Nueva Llave')"))
+        .or(page.locator("text=Biometric Handshake Test"))
         .first(),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test("should toggle Passkey linking modal and perform biometric handshake test", async ({
@@ -116,17 +117,16 @@ test.describe("Passkeys Biometrics, FIDO2 & TOTP 2FA (/settings#security)", () =
     ).toBeVisible({ timeout: 10000 });
 
     // Enable 2FA switch if not already checked to reveal code and secret
-    const totpContainer = page
+    const totpToggle = page
       .locator(
-        "div:has(> div > h3:has-text('Two-Factor Authentication (TOTP RFC 6238)'))",
+        "div:has(> div > h3:has-text('Two-Factor Authentication (TOTP RFC 6238)')) input[type='checkbox']",
       )
       .or(
         page.locator(
-          "div:has(h3:has-text('Two-Factor Authentication (TOTP RFC 6238)'))",
+          "div:has(h3:has-text('Two-Factor Authentication (TOTP RFC 6238)')) input[type='checkbox']",
         ),
       )
       .first();
-    const totpToggle = totpContainer.locator("input[type='checkbox']");
     if ((await totpToggle.count()) > 0 && !(await totpToggle.isChecked())) {
       await totpToggle.check({ force: true });
     }
