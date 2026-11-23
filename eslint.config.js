@@ -145,6 +145,21 @@ export default tseslint.config(
               message:
                 "Pure SCM domain engines (src/scm/engines) must remain decoupled from Fastify HTTP.",
             },
+            {
+              name: "better-sqlite3",
+              message:
+                "Pure SCM domain engines (src/scm/engines) must remain decoupled from better-sqlite3 driver.",
+            },
+            {
+              name: "fs",
+              message:
+                "Pure SCM domain engines (src/scm/engines) must not perform direct filesystem I/O.",
+            },
+            {
+              name: "node:fs",
+              message:
+                "Pure SCM domain engines (src/scm/engines) must not perform direct filesystem I/O.",
+            },
           ],
         },
       ],
@@ -182,7 +197,7 @@ export default tseslint.config(
     },
   },
   {
-    // Issue #9 Phase 4: Progressive strict typing for Frontend Component Boundaries
+    // Issue #9 Phase 4: Progressive strict typing for Frontend Component Boundaries & Monorepo Package Boundaries
     files: ["packages/frontend/src/**/*.{ts,tsx}"],
     ignores: [
       "packages/frontend/src/**/__tests__/**",
@@ -196,6 +211,32 @@ export default tseslint.config(
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
           caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "drizzle-orm",
+              message: "Frontend must not import Drizzle ORM directly.",
+            },
+            {
+              name: "better-sqlite3",
+              message: "Frontend must not import SQLite database driver.",
+            },
+            {
+              name: "fastify",
+              message: "Frontend must not import backend Fastify framework.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["**/src/db/**", "**/src/services/**", "**/src/routes/**"],
+              message:
+                "Frontend must interact with backend via HTTP/REST contracts, never direct internal backend paths.",
+            },
+          ],
         },
       ],
     },
