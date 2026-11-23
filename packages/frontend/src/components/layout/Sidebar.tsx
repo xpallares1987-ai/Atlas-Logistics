@@ -1131,6 +1131,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <NavLink onClick={closeMobile} to="/portal" icon={Users}>
                 Customer Portal
               </NavLink>
+              <NavLink
+                onClick={closeMobile}
+                to="/portal/vendor"
+                icon={Building2}
+              >
+                Vendor Portal
+              </NavLink>
             </div>
           </div>
         )}

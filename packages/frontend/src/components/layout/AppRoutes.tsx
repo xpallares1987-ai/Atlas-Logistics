@@ -176,6 +176,9 @@ const AgentSettlementsModule = React.lazy(
 const CustomerPortalModule = React.lazy(
   () => import("../../pages/CustomerPortalModule"),
 );
+const PortalVendorModule = React.lazy(
+  () => import("../../pages/PortalVendorModule"),
+);
 const PortCongestionControlModule = React.lazy(
   () => import("../../pages/PortCongestionControlModule"),
 );
@@ -961,6 +964,7 @@ export const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
+          <Route path="/portal/vendor" element={<PortalVendorModule />} />
           <Route path="/track/:referenceNumber?" element={<PublicTracking />} />
 
           {/* Multimodal Drayage & Port Haulage */}
