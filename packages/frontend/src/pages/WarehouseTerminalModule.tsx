@@ -21,43 +21,24 @@ import {
   Wifi,
   WifiOff,
   BatteryCharging,
-  ShieldCheck,
   Box,
 } from "lucide-react";
 import { isValidIso6346 } from "@atlas/shared";
+import {
+  CrossDockTab,
+  type CrossDockTask,
+} from "./WarehouseTerminal/Tab/CrossDockTab";
+import {
+  PutawayTab,
+  type PutawayTask,
+} from "./WarehouseTerminal/Tab/PutawayTab";
+import {
+  WavePickTab,
+  type WavePickItem,
+} from "./WarehouseTerminal/Tab/WavePickTab";
+import { GateInTab } from "./WarehouseTerminal/Tab/GateInTab";
 
 type TerminalMode = "CROSS_DOCK" | "PUTAWAY" | "PICKING" | "GATE_IN";
-
-interface CrossDockTask {
-  id: string;
-  inboundRef: string;
-  outboundShipmentId: string;
-  destinationHub: string;
-  palletCount: number;
-  priority: "HIGH" | "NORMAL";
-  scannedCount: number;
-}
-
-interface PutawayTask {
-  id: string;
-  sscc: string;
-  sku: string;
-  description: string;
-  recommendedBin: string;
-  confirmedBin?: string;
-  quantity: number;
-  status: "PENDING" | "CONFIRMED";
-}
-
-interface WavePickItem {
-  id: string;
-  waveId: string;
-  sku: string;
-  binLocation: string;
-  requiredQty: number;
-  pickedQty: number;
-  isComplete: boolean;
-}
 
 // Initial deterministic state
 const INITIAL_CROSSDOCK: CrossDockTask[] = [
@@ -102,22 +83,31 @@ const INITIAL_PUTAWAY: PutawayTask[] = [
   },
 ];
 
-const INITIAL_WAVE_ITEMS: WavePickItem[] = [
+const INITIAL_WAVE: WavePickItem[] = [
   {
-    id: "W-01",
-    waveId: "WAVE-2026-089",
-    sku: "AUTO-FILT-X4",
-    binLocation: "AISLE-03-A-12",
+    id: "WP-01",
+    waveId: "WV-2026-089",
+    sku: "AUTO-FILT-09",
+    binLocation: "A-04-12",
     requiredQty: 10,
-    pickedQty: 4,
+    pickedQty: 10,
+    isComplete: true,
+  },
+  {
+    id: "WP-02",
+    waveId: "WV-2026-089",
+    sku: "AUTO-SPRK-44",
+    binLocation: "B-01-08",
+    requiredQty: 25,
+    pickedQty: 15,
     isComplete: false,
   },
   {
-    id: "W-02",
-    waveId: "WAVE-2026-089",
-    sku: "AERO-TURB-VALVE",
-    binLocation: "AISLE-05-C-02",
-    requiredQty: 2,
+    id: "WP-03",
+    waveId: "WV-2026-089",
+    sku: "MED-TEST-KIT",
+    binLocation: "COLD-R01-A",
+    requiredQty: 50,
     pickedQty: 0,
     isComplete: false,
   },
@@ -125,34 +115,35 @@ const INITIAL_WAVE_ITEMS: WavePickItem[] = [
 
 export default function WarehouseTerminalModule() {
   const [mode, setMode] = useState<TerminalMode>("CROSS_DOCK");
-  const [highContrast, setHighContrast] = useState(true);
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [isOnline, setIsOnline] = useState(true);
+  const [highContrast, setHighContrast] = useState<boolean>(true);
+  const [audioEnabled, setAudioEnabled] = useState<boolean>(true);
+  const [isOnline] = useState<boolean>(true);
 
-  // Barcode input & scan buffer
-  const [barcodeInput, setBarcodeInput] = useState("");
-  const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(
-    null,
-  );
-  const [scanStatusMessage, setScanStatusMessage] = useState<{
-    text: string;
-    type: "SUCCESS" | "ERROR" | "INFO";
-  }>({ text: "Ready for scan or hardware laser trigger", type: "INFO" });
-
-  // Domain task states
+  // Workflow state
   const [crossDockTasks, setCrossDockTasks] =
     useState<CrossDockTask[]>(INITIAL_CROSSDOCK);
   const [putawayTasks, setPutawayTasks] =
     useState<PutawayTask[]>(INITIAL_PUTAWAY);
-  const [waveItems, setWaveItems] =
-    useState<WavePickItem[]>(INITIAL_WAVE_ITEMS);
+  const [waveItems, setWaveItems] = useState<WavePickItem[]>(INITIAL_WAVE);
 
   // Gate-In state
-  const [gateInContainer, setGateInContainer] = useState("MSKU9284712");
-  const [gateInSeal, setGateInSeal] = useState("EU-SEAL-889104");
-  const [gateInInspectionPassed, setGateInInspectionPassed] = useState(false);
+  const [gateInContainer, setGateInContainer] = useState<string>("MSCU9876543");
+  const [gateInSeal, setGateInSeal] = useState<string>("SEAL-USC-99014");
+  const [gateInInspectionPassed, setGateInInspectionPassed] =
+    useState<boolean>(false);
 
-  // Audio Context synthesizer for audio feedback
+  // Scanner state
+  const [barcodeInput, setBarcodeInput] = useState<string>("");
+  const [lastScannedBarcode, setLastScannedBarcode] = useState<string>("");
+  const [scanStatusMessage, setScanStatusMessage] = useState<{
+    text: string;
+    type: "SUCCESS" | "ERROR" | "INFO";
+  }>({
+    text: "Scanner Ready (Laser Wedge Active)",
+    type: "INFO",
+  });
+
+  // Web Audio Context synthesizer for acoustic feedback on warehouse floor
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   const playTone = useCallback(
@@ -160,68 +151,63 @@ export default function WarehouseTerminalModule() {
       if (!audioEnabled) return;
       try {
         if (!audioCtxRef.current) {
-          audioCtxRef.current = new (
+          const AudioContextClass =
             window.AudioContext ||
             (window as unknown as { webkitAudioContext: typeof AudioContext })
-              .webkitAudioContext
-          )();
+              .webkitAudioContext;
+          if (AudioContextClass) audioCtxRef.current = new AudioContextClass();
         }
-        const ctx = audioCtxRef.current;
-        if (ctx.state === "suspended") {
-          ctx.resume();
+        if (!audioCtxRef.current) return;
+        if (audioCtxRef.current.state === "suspended") {
+          audioCtxRef.current.resume();
         }
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+
+        const osc = audioCtxRef.current.createOscillator();
+        const gain = audioCtxRef.current.createGain();
         osc.type = type;
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        osc.frequency.setValueAtTime(freq, audioCtxRef.current.currentTime);
+        gain.gain.setValueAtTime(0.3, audioCtxRef.current.currentTime);
         gain.gain.exponentialRampToValueAtTime(
           0.001,
-          ctx.currentTime + durationSec,
+          audioCtxRef.current.currentTime + durationSec,
         );
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(audioCtxRef.current.destination);
         osc.start();
-        osc.stop(ctx.currentTime + durationSec);
+        osc.stop(audioCtxRef.current.currentTime + durationSec);
       } catch {
-        // Audio policy or unsupported
+        // Audio synthesis fallback (silent)
       }
     },
     [audioEnabled],
   );
 
-  // Haptic feedback
   const triggerHaptic = useCallback((pattern: number | number[]) => {
-    if (typeof navigator !== "undefined" && navigator.vibrate) {
-      navigator.vibrate(pattern);
+    if (typeof window !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate(pattern);
+      } catch {
+        // Haptic feedback unavailable
+      }
     }
   }, []);
 
-  // Online / Offline monitor
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  // Dispatch barcode scan logic
+  // Process barcode input
   const handleProcessBarcode = useCallback(
-    (scanned: string) => {
-      const code = scanned.trim().toUpperCase();
+    (rawCode: string) => {
+      const code = rawCode.trim().toUpperCase();
       if (!code) return;
 
       setLastScannedBarcode(code);
+      setBarcodeInput("");
 
+      // Mode-specific dispatch
       if (mode === "CROSS_DOCK") {
         const found = crossDockTasks.find(
           (t) =>
             t.inboundRef.toUpperCase() === code ||
-            t.outboundShipmentId.toUpperCase() === code,
+            t.outboundShipmentId.toUpperCase() === code ||
+            code.includes(t.inboundRef.toUpperCase()),
         );
         if (found) {
           setCrossDockTasks((prev) =>
@@ -234,49 +220,46 @@ export default function WarehouseTerminalModule() {
                 : t,
             ),
           );
-          playTone(880, 0.15, "triangle"); // High pitch confirmation
-          triggerHaptic(50);
-          setScanStatusMessage({
-            text: `Cross-Dock Verified: Staged to ${found.outboundShipmentId}`,
-            type: "SUCCESS",
-          });
-        } else {
-          playTone(220, 0.35, "sawtooth"); // Low pitch error
-          triggerHaptic([100, 50, 100]);
-          setScanStatusMessage({
-            text: `Unrecognized Cross-Dock Reference: ${code}`,
-            type: "ERROR",
-          });
-        }
-      } else if (mode === "PUTAWAY") {
-        const found = putawayTasks.find(
-          (p) =>
-            p.sscc.toUpperCase() === code ||
-            p.recommendedBin.toUpperCase() === code,
-        );
-        if (found) {
-          setPutawayTasks((prev) =>
-            prev.map((p) =>
-              p.id === found.id
-                ? {
-                    ...p,
-                    status: "CONFIRMED",
-                    confirmedBin: p.recommendedBin,
-                  }
-                : p,
-            ),
-          );
           playTone(880, 0.15, "triangle");
           triggerHaptic(50);
           setScanStatusMessage({
-            text: `Putaway Confirmed into Bin ${found.recommendedBin}`,
+            text: `Cross-Dock Pallet Verified: ${code}`,
             type: "SUCCESS",
           });
         } else {
           playTone(220, 0.35, "sawtooth");
           triggerHaptic([100, 50, 100]);
           setScanStatusMessage({
-            text: `No pending putaway matching ${code}`,
+            text: `Unrecognized Manifest Barcode: ${code}`,
+            type: "ERROR",
+          });
+        }
+      } else if (mode === "PUTAWAY") {
+        const found = putawayTasks.find(
+          (p) =>
+            p.sscc === code ||
+            p.sku.toUpperCase() === code ||
+            p.recommendedBin.toUpperCase() === code,
+        );
+        if (found) {
+          setPutawayTasks((prev) =>
+            prev.map((p) =>
+              p.id === found.id
+                ? { ...p, status: "CONFIRMED", confirmedBin: p.recommendedBin }
+                : p,
+            ),
+          );
+          playTone(1200, 0.12, "sine");
+          triggerHaptic(60);
+          setScanStatusMessage({
+            text: `Putaway Staged in ${found.recommendedBin}: ${code}`,
+            type: "SUCCESS",
+          });
+        } else {
+          playTone(220, 0.35, "sawtooth");
+          triggerHaptic([100, 50, 100]);
+          setScanStatusMessage({
+            text: `Bin or SSCC Mismatch: ${code}`,
             type: "ERROR",
           });
         }
@@ -298,17 +281,17 @@ export default function WarehouseTerminalModule() {
                 : w,
             ),
           );
-          playTone(980, 0.12, "sine");
+          playTone(1000, 0.1, "sine");
           triggerHaptic(40);
           setScanStatusMessage({
-            text: `Picked 1 unit of ${found.sku} at ${found.binLocation}`,
+            text: `Picked Item: ${found.sku}`,
             type: "SUCCESS",
           });
         } else {
           playTone(220, 0.35, "sawtooth");
           triggerHaptic([100, 50, 100]);
           setScanStatusMessage({
-            text: `SKU / Bin not found in active wave: ${code}`,
+            text: `SKU Not in Active Wave: ${code}`,
             type: "ERROR",
           });
         }
@@ -323,26 +306,24 @@ export default function WarehouseTerminalModule() {
           });
         } else {
           setGateInSeal(code);
-          playTone(700, 0.15, "sine");
-          triggerHaptic(50);
+          playTone(660, 0.15, "sine");
+          triggerHaptic(40);
           setScanStatusMessage({
-            text: `Security Seal Number Recorded: ${code}`,
+            text: `Seal Number Scanned: ${code}`,
             type: "SUCCESS",
           });
         }
       }
-      setBarcodeInput("");
     },
     [mode, crossDockTasks, putawayTasks, waveItems, playTone, triggerHaptic],
   );
 
-  // Hardware wedge key listener (captures rapid laser scanner bursts)
+  // Hardware Scanner Wedge Listener (Zebra DataWedge)
   useEffect(() => {
     let buffer = "";
-    let lastKeyTime = 0;
+    let lastKeyTime = Date.now();
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Allow standard typing if focused on manual input
       if (
         document.activeElement?.tagName === "INPUT" ||
         document.activeElement?.tagName === "TEXTAREA"
@@ -363,7 +344,7 @@ export default function WarehouseTerminalModule() {
         }
       } else if (e.key.length === 1) {
         if (now - lastKeyTime > 60) {
-          buffer = ""; // Reset buffer if typing slow
+          buffer = "";
         }
         buffer += e.key;
         lastKeyTime = now;
@@ -535,227 +516,26 @@ export default function WarehouseTerminalModule() {
 
       {/* 4. WORKFLOW CONTENT PANELS */}
       <main className="flex-1 p-3 overflow-y-auto space-y-3">
-        {mode === "CROSS_DOCK" && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-semibold px-1">
-              <span>ACTIVE CROSS-DOCK MANIFESTS</span>
-              <span>{crossDockTasks.length} PENDING</span>
-            </div>
-            {crossDockTasks.map((task) => (
-              <div
-                key={task.id}
-                className="p-3 bg-zinc-900 border-2 border-zinc-800 rounded-xl space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-sm font-black text-cyan-400">
-                    {task.inboundRef}
-                  </span>
-                  <span
-                    className={`text-[10px] font-black px-2 py-0.5 rounded ${
-                      task.priority === "HIGH"
-                        ? "bg-red-900 text-red-200 border border-red-700"
-                        : "bg-zinc-800 text-zinc-400"
-                    }`}
-                  >
-                    {task.priority} PRIORITY
-                  </span>
-                </div>
-                <div className="text-xs text-zinc-300">
-                  <div className="font-bold text-white">
-                    Target: {task.outboundShipmentId}
-                  </div>
-                  <div className="text-zinc-400">{task.destinationHub}</div>
-                </div>
-                <div className="flex items-center justify-between pt-2 border-t border-zinc-800 text-xs">
-                  <span className="text-zinc-400 font-semibold">
-                    Staged Pallets:
-                  </span>
-                  <span className="font-mono text-sm font-black text-amber-400">
-                    {task.scannedCount} / {task.palletCount}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {mode === "PUTAWAY" && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-semibold px-1">
-              <span>DIRECTED PUTAWAY TASKS</span>
-              <span>{putawayTasks.length} QUEUED</span>
-            </div>
-            {putawayTasks.map((item) => (
-              <div
-                key={item.id}
-                className={`p-3 border-2 rounded-xl space-y-2 ${
-                  item.status === "CONFIRMED"
-                    ? "bg-emerald-950/40 border-emerald-700"
-                    : "bg-zinc-900 border-zinc-800"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-zinc-400">
-                    SSCC: {item.sscc}
-                  </span>
-                  <span
-                    className={`text-[10px] font-black px-2 py-0.5 rounded ${
-                      item.status === "CONFIRMED"
-                        ? "bg-emerald-800 text-emerald-100"
-                        : "bg-amber-900 text-amber-200"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                </div>
-                <div>
-                  <div className="font-bold text-sm text-white">{item.sku}</div>
-                  <div className="text-xs text-zinc-400">
-                    {item.description} ({item.quantity} units)
-                  </div>
-                </div>
-                <div className="p-2 bg-black rounded-lg border border-amber-500/50 flex items-center justify-between">
-                  <span className="text-xs text-amber-400 font-semibold">
-                    DIRECTED TARGET BIN:
-                  </span>
-                  <span className="font-mono text-base font-black text-amber-300">
-                    {item.recommendedBin}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {mode === "PICKING" && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-semibold px-1">
-              <span>WAVE 2026-089 PICK LIST</span>
-              <span>
-                {waveItems.filter((i) => i.isComplete).length} /{" "}
-                {waveItems.length} COMPLETED
-              </span>
-            </div>
-            {waveItems.map((item) => (
-              <div
-                key={item.id}
-                className={`p-3 border-2 rounded-xl space-y-2 ${
-                  item.isComplete
-                    ? "bg-emerald-950/40 border-emerald-700"
-                    : "bg-zinc-900 border-zinc-800"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-black text-cyan-400">
-                    {item.binLocation}
-                  </span>
-                  <span className="font-mono text-sm font-black text-white">
-                    {item.pickedQty} / {item.requiredQty} QTY
-                  </span>
-                </div>
-                <div className="font-bold text-sm text-white">{item.sku}</div>
-                <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-emerald-500 h-full transition-all duration-300"
-                    style={{
-                      width: `${(item.pickedQty / item.requiredQty) * 100}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
+        {mode === "CROSS_DOCK" && <CrossDockTab tasks={crossDockTasks} />}
+        {mode === "PUTAWAY" && <PutawayTab tasks={putawayTasks} />}
+        {mode === "PICKING" && <WavePickTab items={waveItems} />}
         {mode === "GATE_IN" && (
-          <div className="p-3 bg-zinc-900 border-2 border-zinc-800 rounded-xl space-y-4">
-            <div className="flex items-center gap-2 text-purple-400 font-bold text-sm">
-              <ShieldCheck className="w-5 h-5" />
-              <span>Gate-In Safety & Container Verification</span>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="text-zinc-400 block font-semibold mb-1">
-                  Container Identification (ISO 6346 Mod-11):
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={gateInContainer}
-                    onChange={(e) =>
-                      setGateInContainer(e.target.value.toUpperCase())
-                    }
-                    className="flex-1 min-h-[44px] px-3 font-mono text-sm font-black bg-black border border-zinc-700 rounded-lg text-white"
-                  />
-                  <span
-                    className={`px-2 py-2 rounded text-[11px] font-black ${
-                      isValidIso6346(gateInContainer)
-                        ? "bg-emerald-900 text-emerald-200 border border-emerald-600"
-                        : "bg-red-900 text-red-200 border border-red-600"
-                    }`}
-                  >
-                    {isValidIso6346(gateInContainer) ? "VALID ISO" : "INVALID"}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-zinc-400 block font-semibold mb-1">
-                  High-Security Bolt Seal ID:
-                </label>
-                <input
-                  type="text"
-                  value={gateInSeal}
-                  onChange={(e) => setGateInSeal(e.target.value.toUpperCase())}
-                  className="w-full min-h-[44px] px-3 font-mono text-sm font-bold bg-black border border-zinc-700 rounded-lg text-white"
-                />
-              </div>
-
-              <div className="p-3 bg-zinc-950 rounded-lg border border-zinc-800 space-y-2">
-                <span className="text-[11px] text-zinc-400 font-semibold block">
-                  Safety Inspection Checklist:
-                </span>
-                <label className="flex items-center gap-2 text-zinc-200 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={gateInInspectionPassed}
-                    onChange={(e) =>
-                      setGateInInspectionPassed(e.target.checked)
-                    }
-                    className="w-5 h-5 rounded text-purple-600"
-                  />
-                  <span>Physical Seal Intact & Tare Weight Verified</span>
-                </label>
-              </div>
-
-              <button
-                disabled={
-                  !isValidIso6346(gateInContainer) ||
-                  !gateInSeal ||
-                  !gateInInspectionPassed
-                }
-                onClick={() => {
-                  playTone(1050, 0.25, "sine");
-                  triggerHaptic([50, 50, 50]);
-                  setScanStatusMessage({
-                    text: `Gate-In Authorized for Container ${gateInContainer}`,
-                    type: "SUCCESS",
-                  });
-                }}
-                className={`w-full min-h-[48px] font-black text-sm rounded-lg flex items-center justify-center gap-2 ${
-                  isValidIso6346(gateInContainer) &&
-                  gateInSeal &&
-                  gateInInspectionPassed
-                    ? "bg-purple-600 hover:bg-purple-500 text-white shadow-lg cursor-pointer"
-                    : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
-                }`}
-              >
-                <ShieldCheck className="w-5 h-5" />
-                CONFIRM GATE-IN ENTRY
-              </button>
-            </div>
-          </div>
+          <GateInTab
+            gateInContainer={gateInContainer}
+            setGateInContainer={setGateInContainer}
+            gateInSeal={gateInSeal}
+            setGateInSeal={setGateInSeal}
+            gateInInspectionPassed={gateInInspectionPassed}
+            setGateInInspectionPassed={setGateInInspectionPassed}
+            onConfirmGateIn={() => {
+              playTone(1050, 0.25, "sine");
+              triggerHaptic([50, 50, 50]);
+              setScanStatusMessage({
+                text: `Gate-In Authorized for Container ${gateInContainer}`,
+                type: "SUCCESS",
+              });
+            }}
+          />
         )}
       </main>
     </div>
