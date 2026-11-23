@@ -62,6 +62,7 @@
     "test:backup-restore": "node scripts/test-sqlite-backup-restore.mjs",
     "check:file-sizes": "node scripts/check-file-sizes.mjs",
     "wiki:sync": "node scripts/sync-wiki.mjs",
+    "project:sync": "node scripts/sync-atlas-project.mjs",
     "docs:generate": "node scripts/generate-docs.mjs",
     "docs:generate:api": "node scripts/generate-docs.mjs --api",
     "docs:generate:cli": "node scripts/generate-docs.mjs --cli",

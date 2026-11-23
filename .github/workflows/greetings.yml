@@ -15,6 +15,6 @@ jobs:
     steps:
     - uses: actions/first-interaction@34f15e814fe48ac9312ccf29db4e74fa767cbab7 # v1.3.0
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        issue_message: "👋 Welcome to Atlas Logistics! Thank you for opening your first issue in this repository. Our team will review it shortly. Please ensure your report includes clear reproduction steps and relevant logs."
-        pr_message: "🚀 Thank you for your first pull request to Atlas Logistics! Please ensure all unit tests (`pnpm test`), typechecks (`pnpm type-check`), and leak audits (`pnpm run audit:leaks`) pass cleanly. We will review your contribution soon."
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        issue-message: "👋 Welcome to Atlas Logistics! Thank you for opening your first issue in this repository. Our team will review it shortly. Please ensure your report includes clear reproduction steps and relevant logs."
+        pr-message: "🚀 Thank you for your first pull request to Atlas Logistics! Please ensure all unit tests (`pnpm test`), typechecks (`pnpm type-check`), and leak audits (`pnpm run audit:leaks`) pass cleanly. We will review your contribution soon."
