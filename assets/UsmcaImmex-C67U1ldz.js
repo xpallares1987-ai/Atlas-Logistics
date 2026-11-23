@@ -1,0 +1,1 @@
+export{t as UsmcaImmex}from"./UsmcaImmex-1CdBql18.js";
