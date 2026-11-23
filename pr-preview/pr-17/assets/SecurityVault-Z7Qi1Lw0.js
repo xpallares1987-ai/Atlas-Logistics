@@ -1,1 +1,0 @@
-export{t as SecurityVault,t as default}from"./SecurityVault-BvNqN6A8.js";
