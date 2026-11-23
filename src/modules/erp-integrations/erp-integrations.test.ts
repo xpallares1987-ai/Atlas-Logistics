@@ -28,11 +28,16 @@ describe("ERP Integrations Module: Fastify API Routes", () => {
     const body = JSON.parse(res.body);
     expect(body.success).toBe(true);
     expect(Array.isArray(body.connectors)).toBe(true);
-    expect(body.connectors.length).toBe(2);
+    expect(body.connectors.length).toBe(3);
 
-    const sap = body.connectors.find((c: any) => c.system === "SAP_S4HANA");
+    const sap = body.connectors.find(
+      (c: { system: string }) => c.system === "SAP_S4HANA",
+    );
     const netSuite = body.connectors.find(
-      (c: any) => c.system === "ORACLE_NETSUITE",
+      (c: { system: string }) => c.system === "ORACLE_NETSUITE",
+    );
+    const dynamicsBc = body.connectors.find(
+      (c: { system: string }) => c.system === "MICROSOFT_DYNAMICS_365_BC",
     );
 
     expect(sap).toBeDefined();
@@ -42,6 +47,10 @@ describe("ERP Integrations Module: Fastify API Routes", () => {
     expect(netSuite).toBeDefined();
     expect(netSuite.status).toBe("ONLINE");
     expect(netSuite.activeAuthMethod).toBe("SUITETALK_TBA_HMAC256");
+
+    expect(dynamicsBc).toBeDefined();
+    expect(dynamicsBc.status).toBe("ONLINE");
+    expect(dynamicsBc.activeAuthMethod).toBe("OAUTH2_BEARER");
   });
 
   it("GET /api/erp-integrations/presets - should return demonstration presets", async () => {
@@ -206,7 +215,9 @@ describe("ERP Integrations Module: Fastify API Routes", () => {
     expect(body.success).toBe(true);
     expect(Array.isArray(body.orders)).toBe(true);
     expect(body.orders.length).toBeGreaterThanOrEqual(2);
-    const sapOrder = body.orders.find((o: any) => o.erpSystem === "SAP_S4HANA");
+    const sapOrder = body.orders.find(
+      (o: { erpSystem: string }) => o.erpSystem === "SAP_S4HANA",
+    );
     expect(sapOrder).toBeDefined();
     expect(sapOrder.poNumber).toBe("4500891234");
     expect(Array.isArray(sapOrder.items)).toBe(true);
@@ -228,5 +239,96 @@ describe("ERP Integrations Module: Fastify API Routes", () => {
     expect(body.order.syncStatus).toBe("SYNCED");
     expect(body.syncLog).toBeDefined();
     expect(body.syncLog.referenceDocument).toBe("4500891234");
+  });
+
+  it("GET /api/erp-integrations/dynamics-bc/accounts - should return Business Central Chart of Accounts", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/erp-integrations/dynamics-bc/accounts",
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.accounts)).toBe(true);
+    expect(body.accounts.length).toBeGreaterThanOrEqual(8);
+    const cbamAcc = body.accounts.find(
+      (a: { accountNo: string }) => a.accountNo === "475100",
+    );
+    expect(cbamAcc).toBeDefined();
+    expect(cbamAcc.name).toContain("CBAM");
+  });
+
+  it("POST /api/erp-integrations/dynamics-bc/journal - should post balanced General Journal lines", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/erp-integrations/dynamics-bc/journal",
+      payload: {
+        lines: [
+          {
+            journalTemplateName: "GENERAL",
+            journalBatchName: "ATLAS_GL",
+            lineNumber: 10000,
+            accountType: "G/L Account",
+            accountNo: "600000",
+            postingDate: "2026-11-24",
+            documentType: "Invoice",
+            documentNo: "INV-2026-8801",
+            description: "Ocean Freight Transport",
+            debitAmount: 12500.0,
+            creditAmount: 0,
+          },
+          {
+            journalTemplateName: "GENERAL",
+            journalBatchName: "ATLAS_GL",
+            lineNumber: 20000,
+            accountType: "Vendor",
+            accountNo: "400000",
+            postingDate: "2026-11-24",
+            documentType: "Invoice",
+            documentNo: "INV-2026-8801",
+            description: "Accounts Payable - Ocean Carrier",
+            debitAmount: 0,
+            creditAmount: 12500.0,
+          },
+        ],
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.success).toBe(true);
+    expect(body.journalBatchName).toBe("ATLAS_GL");
+    expect(body.postedLinesCount).toBe(2);
+    expect(body.totalAmountEur).toBe(12500.0);
+  });
+
+  it("POST /api/erp-integrations/dynamics-bc/journal - should reject unbalanced General Journal lines with 400", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/erp-integrations/dynamics-bc/journal",
+      payload: {
+        lines: [
+          {
+            journalTemplateName: "GENERAL",
+            journalBatchName: "ATLAS_GL",
+            lineNumber: 10000,
+            accountType: "G/L Account",
+            accountNo: "600000",
+            postingDate: "2026-11-24",
+            documentType: "Invoice",
+            documentNo: "INV-2026-8802",
+            description: "Unbalanced Debit",
+            debitAmount: 5000.0,
+            creditAmount: 0,
+          },
+        ],
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    const body = JSON.parse(res.body);
+    expect(body.error).toBe("Dynamics 365 BC Journal Posting Error");
+    expect(body.message).toContain("Unbalanced journal entry");
   });
 });

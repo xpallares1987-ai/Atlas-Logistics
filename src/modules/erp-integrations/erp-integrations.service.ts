@@ -7,6 +7,8 @@
 import {
   ErpConnectorStatus,
   ErpCircuitBreakerState,
+  ErpSystemType,
+  DynamicsBcGeneralJournalLine,
   calculateNetSuiteLandedCost,
   generateMockNetSuiteTbaHeader,
   mapAtlasToSapIncoterm,
@@ -17,7 +19,7 @@ import {
 export interface ErpAuditLogEntry {
   id: string;
   timestamp: string;
-  erpSystem: "SAP_S4HANA" | "ORACLE_NETSUITE";
+  erpSystem: ErpSystemType;
   operation: string;
   referenceDocument: string;
   status: "SUCCESS" | "FAILED" | "RETRYING";
@@ -29,8 +31,10 @@ export interface ErpAuditLogEntry {
 export class ErpIntegrationService {
   private sapCircuitBreaker: ErpCircuitBreakerState = "CLOSED";
   private netSuiteCircuitBreaker: ErpCircuitBreakerState = "CLOSED";
+  private dynamicsCircuitBreaker: ErpCircuitBreakerState = "CLOSED";
   private sapFailures = 0;
   private netSuiteFailures = 0;
+  private dynamicsFailures = 0;
 
   private auditLogs: ErpAuditLogEntry[] = [
     {
@@ -42,7 +46,8 @@ export class ErpIntegrationService {
       status: "SUCCESS",
       statusCode: 200,
       latencyMs: 142,
-      payloadDigest: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      payloadDigest:
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     },
     {
       id: "log-2",
@@ -53,18 +58,32 @@ export class ErpIntegrationService {
       status: "SUCCESS",
       statusCode: 201,
       latencyMs: 198,
-      payloadDigest: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      payloadDigest:
+        "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+    },
+    {
+      id: "log-3",
+      timestamp: new Date(Date.now() - 900000).toISOString(),
+      erpSystem: "MICROSOFT_DYNAMICS_365_BC",
+      operation: "ODataV4/GeneralJournals/journalLines",
+      referenceDocument: "ORD-D365-2026-9041",
+      status: "SUCCESS",
+      statusCode: 201,
+      latencyMs: 135,
+      payloadDigest:
+        "7c98e1e791f1b21908b982ef2b9d311fa6a2410a6237699119c8f2b1d985a123",
     },
   ];
 
   /**
-   * Retrieves live connectivity statuses and circuit breaker telemetry for both ERPs.
+   * Retrieves live connectivity statuses and circuit breaker telemetry for all enterprise ERPs.
    */
   getConnectorStatuses(): ErpConnectorStatus[] {
     return [
       {
         system: "SAP_S4HANA",
-        endpoint: "https://s4hana-api.corp.internal/sap/opu/odata4/sap/api_purchaseorder_process_srv/srvd_a2x/sap/purchaseorder/0001",
+        endpoint:
+          "https://s4hana-api.corp.internal/sap/opu/odata4/sap/api_purchaseorder_process_srv/srvd_a2x/sap/purchaseorder/0001",
         status: this.sapCircuitBreaker === "OPEN" ? "OFFLINE" : "ONLINE",
         circuitBreaker: this.sapCircuitBreaker,
         latencyMs: 115,
@@ -90,6 +109,22 @@ export class ErpIntegrationService {
           failedSyncCount: this.netSuiteFailures,
           pendingQueueDepth: 0,
           averageLatencyMs: 174,
+        },
+      },
+      {
+        system: "MICROSOFT_DYNAMICS_365_BC",
+        endpoint:
+          "https://api.businesscentral.dynamics.com/v2.0/atlas-corp/Production/ODataV4/Company('Atlas_Logistics')/GeneralJournals",
+        status: this.dynamicsCircuitBreaker === "OPEN" ? "OFFLINE" : "ONLINE",
+        circuitBreaker: this.dynamicsCircuitBreaker,
+        latencyMs: 135,
+        lastSyncTimestamp: Date.now() - 60000,
+        activeAuthMethod: "OAUTH2_BEARER",
+        metrics: {
+          totalSyncedToday: 64,
+          failedSyncCount: this.dynamicsFailures,
+          pendingQueueDepth: 0,
+          averageLatencyMs: 140,
         },
       },
     ];
@@ -137,7 +172,14 @@ export class ErpIntegrationService {
     };
 
     const latency = Date.now() - startTime;
-    this.recordAudit("SAP_S4HANA", "GET API_PURCHASEORDER_PROCESS_SRV", poNumber, "SUCCESS", 200, latency);
+    this.recordAudit(
+      "SAP_S4HANA",
+      "GET API_PURCHASEORDER_PROCESS_SRV",
+      poNumber,
+      "SUCCESS",
+      200,
+      latency,
+    );
 
     return {
       success: true,
@@ -179,7 +221,7 @@ export class ErpIntegrationService {
       input.poNumber,
       "SUCCESS",
       201,
-      latency
+      latency,
     );
 
     return {
@@ -210,7 +252,7 @@ export class ErpIntegrationService {
       sesNumber,
       "SUCCESS",
       201,
-      latency
+      latency,
     );
 
     return {
@@ -259,7 +301,14 @@ export class ErpIntegrationService {
     };
 
     const latency = Date.now() - startTime;
-    this.recordAudit("ORACLE_NETSUITE", "GET record/v1/purchaseOrder", orderNumber, "SUCCESS", 200, latency);
+    this.recordAudit(
+      "ORACLE_NETSUITE",
+      "GET record/v1/purchaseOrder",
+      orderNumber,
+      "SUCCESS",
+      200,
+      latency,
+    );
 
     return {
       success: true,
@@ -291,7 +340,7 @@ export class ErpIntegrationService {
     const landedCostBreakdown = calculateNetSuiteLandedCost(
       input.totalFreight,
       input.method,
-      input.items
+      input.items,
     );
 
     const receiptId = `IR-NS-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -303,7 +352,7 @@ export class ErpIntegrationService {
       receiptId,
       "SUCCESS",
       201,
-      latency
+      latency,
     );
 
     return {
@@ -317,9 +366,122 @@ export class ErpIntegrationService {
   }
 
   /**
+   * Posts an intermodal or ESG General Journal entry to Microsoft Dynamics 365 Business Central
+   */
+  async syncDynamicsBcJournal(journalLines: DynamicsBcGeneralJournalLine[]) {
+    if (this.dynamicsCircuitBreaker === "OPEN") {
+      throw new Error(
+        "Microsoft Dynamics 365 BC circuit breaker is OPEN. Fast-failing request.",
+      );
+    }
+    const startTime = Date.now();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+
+    const totalDebit = journalLines.reduce(
+      (acc, l) => acc + (l.debitAmount || 0),
+      0,
+    );
+    const totalCredit = journalLines.reduce(
+      (acc, l) => acc + (l.creditAmount || 0),
+      0,
+    );
+
+    // Assert balanced entry
+    if (Math.abs(totalDebit - totalCredit) > 0.01) {
+      this.dynamicsFailures++;
+      this.recordAudit(
+        "MICROSOFT_DYNAMICS_365_BC",
+        "POST /GeneralJournals/journalLines",
+        journalLines[0]?.documentNo || "UNKNOWN",
+        "FAILED",
+        400,
+        Date.now() - startTime,
+      );
+      throw new Error(
+        `Unbalanced journal entry in Dynamics 365 BC: Debit (€${totalDebit.toFixed(2)}) != Credit (€${totalCredit.toFixed(2)})`,
+      );
+    }
+
+    const batchId = journalLines[0]?.journalBatchName || "GENERAL";
+    const latency = Date.now() - startTime;
+    this.recordAudit(
+      "MICROSOFT_DYNAMICS_365_BC",
+      "POST /GeneralJournals/journalLines",
+      journalLines[0]?.documentNo || `BATCH-${batchId}`,
+      "SUCCESS",
+      201,
+      latency,
+    );
+
+    return {
+      success: true,
+      journalBatchName: batchId,
+      postedLinesCount: journalLines.length,
+      totalAmountEur: totalDebit,
+      odataId: `https://api.businesscentral.dynamics.com/v2.0/Company('Atlas_Logistics')/GeneralJournals('${batchId}')`,
+      lines: journalLines,
+    };
+  }
+
+  /**
+   * Returns canonical Chart of Accounts for Dynamics 365 Business Central freight & ESG ledger
+   */
+  getDynamicsBcAccounts() {
+    return [
+      {
+        accountNo: "600000",
+        name: "Freight & Transport Operating Cost",
+        category: "Expense",
+      },
+      {
+        accountNo: "700000",
+        name: "Freight Commercial Revenue",
+        category: "Income",
+      },
+      {
+        accountNo: "475000",
+        name: "Customs Tax Authority Disbursements (Suplidos)",
+        category: "Liability",
+      },
+      {
+        accountNo: "475100",
+        name: "EU CBAM Carbon Certificate Liability (Reg 2023/956)",
+        category: "Liability",
+      },
+      {
+        accountNo: "631100",
+        name: "FuelEU Maritime Emissions Deficit Expense (Reg 2023/1805)",
+        category: "Expense",
+      },
+      {
+        accountNo: "572000",
+        name: "ISO 20022 Bank Settlement Clearing",
+        category: "Asset",
+      },
+      {
+        accountNo: "400000",
+        name: "Accounts Payable - Carriers & Terminals",
+        category: "Liability",
+      },
+      {
+        accountNo: "430000",
+        name: "Accounts Receivable - Shippers & Consignees",
+        category: "Asset",
+      },
+    ];
+  }
+
+  /**
    * Processes a batch of queued mutations from the client Dexie sync queue
    */
-  async processBatchQueue(mutations: Array<{ id: string; erpSystem: string; operation: string; payloadJson: string }>) {
+  async processBatchQueue(
+    mutations: Array<{
+      id: string;
+      erpSystem: string;
+      operation: string;
+      payloadJson: string;
+    }>,
+  ) {
     const results = [];
     for (const m of mutations) {
       // Process each transaction deterministically
@@ -346,12 +508,12 @@ export class ErpIntegrationService {
   }
 
   private recordAudit(
-    erpSystem: "SAP_S4HANA" | "ORACLE_NETSUITE",
+    erpSystem: ErpSystemType,
     operation: string,
     ref: string,
     status: "SUCCESS" | "FAILED",
     statusCode: number,
-    latencyMs: number
+    latencyMs: number,
   ) {
     this.auditLogs.unshift({
       id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,

@@ -359,19 +359,40 @@ export function mapAtlasToSapIncoterm(incoterm: string): string {
 }
 
 // ============================================================================
-// 6. Circuit Breaker State Machine Types
+// 6. Microsoft Dynamics 365 Business Central & Circuit Breaker Types
 // ============================================================================
+
+export type ErpSystemType =
+  "SAP_S4HANA" | "ORACLE_NETSUITE" | "MICROSOFT_DYNAMICS_365_BC";
+
+export interface DynamicsBcGeneralJournalLine {
+  journalTemplateName: string;
+  journalBatchName: string;
+  lineNumber: number;
+  accountType: "G/L Account" | "Customer" | "Vendor" | "Bank Account";
+  accountNo: string;
+  postingDate: string;
+  documentType: "Invoice" | "Payment" | "Credit Memo" | " ";
+  documentNo: string;
+  description: string;
+  debitAmount: number;
+  creditAmount: number;
+  balAccountType?: "G/L Account" | "Customer" | "Vendor" | "Bank Account";
+  balAccountNo?: string;
+  shortcutDimension1Code?: string;
+  shortcutDimension2Code?: string;
+}
 
 export type ErpCircuitBreakerState = "CLOSED" | "HALF_OPEN" | "OPEN";
 
 export interface ErpConnectorStatus {
-  system: "SAP_S4HANA" | "ORACLE_NETSUITE";
+  system: ErpSystemType;
   endpoint: string;
   status: "ONLINE" | "DEGRADED" | "OFFLINE";
   circuitBreaker: ErpCircuitBreakerState;
   latencyMs: number;
   lastSyncTimestamp: number;
-  activeAuthMethod: "ODATA_CSRF" | "SUITETALK_TBA_HMAC256";
+  activeAuthMethod: "ODATA_CSRF" | "SUITETALK_TBA_HMAC256" | "OAUTH2_BEARER";
   metrics: {
     totalSyncedToday: number;
     failedSyncCount: number;
@@ -387,7 +408,7 @@ export interface ErpConnectorStatus {
 export interface ErpDemoPreset {
   id: string;
   name: string;
-  erpSystem: "SAP_S4HANA" | "ORACLE_NETSUITE";
+  erpSystem: ErpSystemType;
   description: string;
   sampleInput: {
     referenceNumber: string;
@@ -476,6 +497,38 @@ export const ERP_DEMO_PRESETS: Record<string, ErpDemoPreset> = {
           unitValue: 120,
           weightKg: 180,
           volumeCbm: 1.5,
+        },
+      ],
+    },
+  },
+  dynamics_bc_intermodal: {
+    id: "dynamics_bc_intermodal",
+    name: "MS Dynamics 365 BC: Contabilidad Intermodal y Pasivos CBAM (Rotterdam ➔ Zaragoza)",
+    erpSystem: "MICROSOFT_DYNAMICS_365_BC",
+    description:
+      "Sincronización de asientos contables OData v4 con distribución a cuentas de flete 600000, suplidos 475000 y pasivo CBAM 475100.",
+    sampleInput: {
+      referenceNumber: "ORD-D365-2026-9041",
+      originPlant: "NLRTM-TERMINAL",
+      destinationPort: "ESZAZ",
+      freightChargesUsd: 8750,
+      incoterm: "DAP",
+      items: [
+        {
+          line: 1,
+          itemRefName: "Bobinas de Acero Galvanizado (Anexo I CBAM 7208)",
+          quantity: 25,
+          unitValue: 2400,
+          weightKg: 28000,
+          volumeCbm: 12.0,
+        },
+        {
+          line: 2,
+          itemRefName: "Perfiles de Aluminio Estruido (Anexo I CBAM 7604)",
+          quantity: 40,
+          unitValue: 1150,
+          weightKg: 14000,
+          volumeCbm: 22.5,
         },
       ],
     },

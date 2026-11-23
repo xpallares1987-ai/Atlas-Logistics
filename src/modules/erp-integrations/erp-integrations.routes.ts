@@ -82,7 +82,39 @@ const BatchQueueSchema = z.object({
 
 const DirectSyncSchema = z.object({
   poNumber: z.string().min(1),
-  erpSystem: z.enum(["SAP_S4HANA", "ORACLE_NETSUITE"]).optional(),
+  erpSystem: z
+    .enum(["SAP_S4HANA", "ORACLE_NETSUITE", "MICROSOFT_DYNAMICS_365_BC"])
+    .optional(),
+});
+
+const DynamicsBcJournalSchema = z.object({
+  lines: z
+    .array(
+      z.object({
+        journalTemplateName: z.string().default("GENERAL"),
+        journalBatchName: z.string().default("ATLAS"),
+        lineNumber: z.number().default(10000),
+        accountType: z
+          .enum(["G/L Account", "Customer", "Vendor", "Bank Account"])
+          .default("G/L Account"),
+        accountNo: z.string().min(1),
+        postingDate: z.string().min(1),
+        documentType: z
+          .enum(["Invoice", "Payment", "Credit Memo", " "])
+          .default("Invoice"),
+        documentNo: z.string().min(1),
+        description: z.string().min(1),
+        debitAmount: z.number().nonnegative().default(0),
+        creditAmount: z.number().nonnegative().default(0),
+        balAccountType: z
+          .enum(["G/L Account", "Customer", "Vendor", "Bank Account"])
+          .optional(),
+        balAccountNo: z.string().optional(),
+        shortcutDimension1Code: z.string().optional(),
+        shortcutDimension2Code: z.string().optional(),
+      }),
+    )
+    .min(1),
 });
 
 // ============================================================================
@@ -652,6 +684,65 @@ export const erpIntegrationsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(200).send({
         success: true,
         logs: serviceLogs,
+      });
+    },
+  );
+
+  // 12. Microsoft Dynamics 365 Business Central - Post General Journal
+  fastify.post(
+    "/dynamics-bc/journal",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary:
+          "Post General Journal entry to Microsoft Dynamics 365 Business Central",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const parse = DynamicsBcJournalSchema.safeParse(request.body);
+      if (!parse.success) {
+        return reply.status(400).send({
+          error: "Invalid Dynamics 365 BC Journal Payload",
+          details: parse.error.issues,
+        });
+      }
+      try {
+        const result = await erpIntegrationService.syncDynamicsBcJournal(
+          parse.data.lines,
+        );
+        return reply.status(200).send(result);
+      } catch (err: unknown) {
+        return reply.status(400).send({
+          error: "Dynamics 365 BC Journal Posting Error",
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    },
+  );
+
+  // 13. Microsoft Dynamics 365 Business Central - Chart of Accounts
+  fastify.get(
+    "/dynamics-bc/accounts",
+    {
+      schema: {
+        tags: [...ERP_TAG],
+        summary:
+          "List canonical Chart of Accounts for Dynamics 365 Business Central",
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (_request, reply) => {
+      const accounts = erpIntegrationService.getDynamicsBcAccounts();
+      return reply.status(200).send({
+        success: true,
+        accounts,
       });
     },
   );

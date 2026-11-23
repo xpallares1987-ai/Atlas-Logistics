@@ -30,6 +30,9 @@ export type AccountLedgerType =
   | "OPERATIONAL_FREIGHT_REVENUE"
   | "OPERATIONAL_FREIGHT_COST"
   | "DISBURSEMENT_TAX_LIABILITY" // Suplidos / Customs Duties Pass-Through
+  | "CBAM_CARBON_LIABILITY"
+  | "FUELEU_COMPLIANCE_PENALTY"
+  | "BANK_CLEARING"
   | "ACCOUNTS_RECEIVABLE"
   | "ACCOUNTS_PAYABLE";
 
@@ -81,6 +84,19 @@ export interface GlSyncPayload {
         department: string;
       }>;
     };
+    msDynamics365Bc: {
+      journalBatch: string;
+      documentNo: string;
+      journalLines: Array<{
+        accountType: string;
+        accountNo: string;
+        postingDate: string;
+        documentNo: string;
+        description: string;
+        debitAmount: number;
+        creditAmount: number;
+      }>;
+    };
   };
 }
 
@@ -115,6 +131,40 @@ export class GlSyncService {
         accountType: "DISBURSEMENT_TAX_LIABILITY",
         glAccountNumber: "475000", // Standard French/Spanish PGC Suplidos pass-through account
         isDisbursement: true,
+      };
+    }
+
+    if (
+      descUpper.includes("CBAM") ||
+      descUpper.includes("CARBON CERTIFICATE")
+    ) {
+      return {
+        accountType: "CBAM_CARBON_LIABILITY",
+        glAccountNumber: "475100", // EU CBAM Carbon Certificate Liability (Reg 2023/956)
+        isDisbursement: false,
+      };
+    }
+
+    if (
+      descUpper.includes("FUELEU") ||
+      descUpper.includes("EMISSIONS DEFICIT")
+    ) {
+      return {
+        accountType: "FUELEU_COMPLIANCE_PENALTY",
+        glAccountNumber: "631100", // FuelEU Maritime Emissions Deficit Expense (Reg 2023/1805)
+        isDisbursement: false,
+      };
+    }
+
+    if (
+      descUpper.includes("ISO 20022") ||
+      descUpper.includes("BANK CLEARING") ||
+      descUpper.includes("WIRE SETTLEMENT")
+    ) {
+      return {
+        accountType: "BANK_CLEARING",
+        glAccountNumber: "572000", // ISO 20022 Bank Settlement Clearing
+        isDisbursement: false,
       };
     }
 
@@ -273,6 +323,28 @@ export class GlSyncService {
       department: l.isDisbursement ? "PASS_THROUGH" : "FREIGHT_OPERATIONS",
     }));
 
+    const dynamicsBcLines = glLines.map((l) => ({
+      accountType: "G/L Account",
+      accountNo: l.glAccountNumber,
+      postingDate,
+      documentNo: inv.invoiceNumber,
+      description: l.description,
+      debitAmount: inv.type === "AP" ? l.baseCurrencyAmount : 0,
+      creditAmount: inv.type === "AR" ? l.baseCurrencyAmount : 0,
+    }));
+
+    const totalLinesAmount =
+      totalNetBaseCurrency + totalDisbursementsBaseCurrency;
+    dynamicsBcLines.push({
+      accountType: inv.type === "AR" ? "Customer" : "Vendor",
+      accountNo: inv.type === "AR" ? "430000" : "400000",
+      postingDate,
+      documentNo: inv.invoiceNumber,
+      description: `Contra Balance - ${inv.companyName || "Trading Partner"}`,
+      debitAmount: inv.type === "AR" ? totalLinesAmount : 0,
+      creditAmount: inv.type === "AP" ? totalLinesAmount : 0,
+    });
+
     const syncPayload: GlSyncPayload = {
       syncJobId: `gl_job_${uuidv4()}`,
       invoiceId: inv.id,
@@ -306,6 +378,11 @@ export class GlSyncService {
           tranDate: postingDate,
           dueDate: dueDateStr,
           lines: netSuiteLines,
+        },
+        msDynamics365Bc: {
+          journalBatch: "ATLAS_GL",
+          documentNo: inv.invoiceNumber,
+          journalLines: dynamicsBcLines,
         },
       },
     };
