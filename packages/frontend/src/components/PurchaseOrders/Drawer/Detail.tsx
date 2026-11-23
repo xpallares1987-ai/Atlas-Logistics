@@ -14,6 +14,7 @@ import {
   Ship,
   Plus,
   AlertCircle,
+  Radio,
 } from "lucide-react";
 import {
   MilestoneStepper,
@@ -93,6 +94,9 @@ export const Detail: React.FC<DetailProps> = ({
   onSelectException,
   onRefreshParent,
 }) => {
+  const [activeTab, setActiveTab] = useState<
+    "visibility" | "telemetry" | "lines"
+  >("visibility");
   const [selectedMilestone, setSelectedMilestone] = useState("QC_PASSED");
   const [milestoneNotes, setMilestoneNotes] = useState("");
   const [submittingMilestone, setSubmittingMilestone] = useState(false);
