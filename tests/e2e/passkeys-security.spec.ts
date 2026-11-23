@@ -115,6 +115,22 @@ test.describe("Passkeys Biometrics, FIDO2 & TOTP 2FA (/settings#security)", () =
         ),
     ).toBeVisible({ timeout: 10000 });
 
+    // Enable 2FA switch if not already checked to reveal code and secret
+    const totpContainer = page
+      .locator(
+        "div:has(> div > h3:has-text('Two-Factor Authentication (TOTP RFC 6238)'))",
+      )
+      .or(
+        page.locator(
+          "div:has(h3:has-text('Two-Factor Authentication (TOTP RFC 6238)'))",
+        ),
+      )
+      .first();
+    const totpToggle = totpContainer.locator("input[type='checkbox']");
+    if ((await totpToggle.count()) > 0 && !(await totpToggle.isChecked())) {
+      await totpToggle.check({ force: true });
+    }
+
     // Verify live countdown timer or code preview
     await expect(
       page

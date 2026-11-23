@@ -120,6 +120,8 @@ docs/
 | [**0037**](adr/0037-sqlite-wal-concurrency-and-monorepo-invariants.md) | SQLite WAL Concurrency, Monorepo Boundaries & Zero-Cost Architecture | `Accepted` | 2026-11-23 | Architecture / Concurrency / Governance | SQLite WAL multi-station concurrency benchmark, pure SCM engine isolation, zero paid SaaS mandate & $0.00 infrastructure |
 | [**0038**](adr/0038-customs-mtls-and-regulatory-filing-gateway.md) | Sovereign Customs Authority Gateway & mTLS XML/SOAP Filing Engine | `Accepted` | 2026-11-23 | Customs / Security / EDI | Direct mTLS, X.509 PKI certificates, dual SOAP/REST customs gateways (AEAT, ATLAS, DELTA, NCTS P5, HMRC CDS) & CUSRES ledger |
 | [**0039**](adr/0039-hybrid-persistence-and-crdt-synchronization.md) | Distributed Hybrid Persistence & CRDT Multi-Station Synchronization Engine | `Accepted` | 2026-11-23 | Distributed Systems / CRDT / Architecture | Abstract database adapter, state-based CRDTs, logical vector clocks, regulatory hold precedence invariant & zero cloud fees |
+| [**0040**](adr/0040-financial-settlement-automated-clearing-and-outbox-event-bus.md) | Autonomous Financial Settlement, Automated Clearing & Outbox Event Bus | `Accepted` | 2026-11-23 | Financial / Intercompany Clearing / Outbox | Scaled-integer micro-cents, multi-currency bilateral netting, automated IATA CASS reconciliation & transactional outbox |
+| [**0041**](adr/0041-intelligent-document-processing-and-ruggedized-wms.md) | Intelligent Document Processing (IDP) & Ruggedized Mobile WMS Architecture | `Accepted` | 2026-11-23 | WMS / Mobile / Hardware Scanners / IDP | Rugged Zebra Android UI, >=48px glove touch targets, hardware barcode wedge listeners, cross-docking & wave picking |
 
 ---
 
