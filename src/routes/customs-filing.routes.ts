@@ -11,6 +11,7 @@ import {
   customsGatewayService,
   type RegisterCertificateInput,
   type SubmitDeclarationInput,
+  type CustomsAgency,
 } from "../services/customs-gateway.service.js";
 import {
   buildErrorResponses,
@@ -147,10 +148,9 @@ export const customsFilingRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { agency, tenantId } = request.query;
-      // @ts-expect-error agency string to enum
       const list = await customsGatewayService.listCertificates(
         tenantId,
-        agency,
+        agency as CustomsAgency | undefined,
       );
       return reply.code(200).send(list);
     },
@@ -259,8 +259,7 @@ export const customsFilingRoutes: FastifyPluginAsync = async (fastify) => {
         request.query;
       const list = await customsGatewayService.listTransmissions({
         clearanceId,
-        // @ts-expect-error query enum cast
-        agency,
+        agency: agency as CustomsAgency | undefined,
         responseStatus,
         tenantId,
         limit,

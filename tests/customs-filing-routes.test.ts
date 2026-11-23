@@ -36,7 +36,6 @@ describe("Customs Authority Gateway REST Routes (ADR 0038)", () => {
         id: testCompanyId,
         name: "Test Customs Importer BCO Corp",
         taxId: "ESA99887766",
-        companyType: "OPERATING",
         createdAt: now,
         updatedAt: now,
       })

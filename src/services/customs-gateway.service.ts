@@ -28,6 +28,8 @@ import {
   type MessageFunction,
 } from "../scm/engines/customs-filing.engine.js";
 
+export type { CustomsAgency, CustomsProtocol, MessageFunction };
+
 // ============================================================================
 // 1. DATA CONTRACTS & INTERFACES
 // ============================================================================
