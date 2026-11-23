@@ -1,1 +1,0 @@
-export{t as Manifest,t as default}from"./Manifest-DRnTp6Cg.js";
