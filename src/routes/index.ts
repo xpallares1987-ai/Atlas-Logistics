@@ -72,6 +72,7 @@ import portalVendorRoutes from "./portal-vendor.routes.js";
 import { resolutionPlansRoutes } from "./scm/resolution-plans.routes.js";
 import { customsFilingRoutes } from "./customs-filing.routes.js";
 import { dcsaVgmRoutes } from "./dcsa-vgm.routes.js";
+import { crdtSyncRoutes } from "./crdt-sync.routes.js";
 
 export {
   shipmentsRoutes,
@@ -301,6 +302,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(customsFilingRoutes);
   await fastify.register(dcsaVgmRoutes);
+  await fastify.register(crdtSyncRoutes, {
+    prefix: "/api/sync",
+  });
 };
 
 export default registerAllRoutes;
