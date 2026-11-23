@@ -6,8 +6,11 @@ dev-dist/
 coverage/
 .turbo/
 .cache/
+# Backups and temporary sync folders
 backups/
 backups-test/
+.tmp.driveupload/
+.tmp.drivedownload/
 .pnpm-store/
 pnpm-lock.yaml
 package-lock.json

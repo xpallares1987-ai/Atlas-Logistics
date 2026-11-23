@@ -93,6 +93,8 @@ const DEFAULT_IGNORES = [
   'coverage',
   '.turbo',
   '.cache',
+  '.tmp.driveupload',
+  '.tmp.drivedownload',
   'backups',
   '.pnpm-store',
   'pnpm-lock.yaml',
