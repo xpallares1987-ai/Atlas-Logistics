@@ -1,0 +1,1 @@
+export{t as BookingSiStudioTab}from"./SiStudio-BoZg3qCy.js";
