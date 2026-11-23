@@ -1,0 +1,1 @@
+import{n as e}from"./react-core-DIn2POCk.js";export default e();

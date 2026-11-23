@@ -1,0 +1,1 @@
+export{t as ImdgSegregation,t as default}from"./ImdgSegregation-CNG-e4Ns.js";

@@ -1,0 +1,1 @@
+export{t as DdSuspension,t as default}from"./DdSuspension-CRiTLk_v.js";
