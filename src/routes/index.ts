@@ -69,6 +69,7 @@ import customsBrokerageRoutes from "./customs/customs-brokerage.routes.js";
 import airCargoClearingRoutes from "./air-cargo/air-cargo-clearing.routes.js";
 import uneceTransportRoutes from "./unece-transport.routes.js";
 import portalVendorRoutes from "./portal-vendor.routes.js";
+import { resolutionPlansRoutes } from "./scm/resolution-plans.routes.js";
 
 export {
   shipmentsRoutes,
@@ -290,6 +291,9 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   });
   await fastify.register(portalVendorRoutes, {
     prefix: "/api/portal/vendor",
+  });
+  await fastify.register(resolutionPlansRoutes, {
+    prefix: "/api/scm/disruptions",
   });
 };
 
