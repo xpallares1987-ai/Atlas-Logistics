@@ -1,0 +1,1 @@
+import{r as e}from"./useApiQuery-y-YDBAVW.js";function t(){return e([`shipments`],`/shipments`)}export{t};
