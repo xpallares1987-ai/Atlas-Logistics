@@ -34,6 +34,7 @@ const PUBLIC_SEGMENT_PREFIXES: readonly string[] = [
   "/api/ai/config-status",
   "/api/ai/status",
   "/api/warehouse/ws",
+  "/api/portal",
   "/ws",
   "/docs",
 ];
