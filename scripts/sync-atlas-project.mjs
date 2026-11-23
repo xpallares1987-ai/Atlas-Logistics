@@ -79,12 +79,25 @@ const TASK_SCHEDULE = {
 
 const BOARD_PATH = "C:\\Users\\xpall\\.gemini\\antigravity-cli\\ipc-shared\\shared-board.json";
 
-function runGh(args) {
-  return execFileSync("gh", args, {
-    env: { ...process.env, GITHUB_TOKEN: "" },
-    encoding: "utf8",
-    stdio: ["pipe", "pipe", "pipe"],
-  }).trim();
+function runGh(args, maxRetries = 3) {
+  let attempt = 0;
+  while (true) {
+    try {
+      return execFileSync("gh", args, {
+        env: { ...process.env, GITHUB_TOKEN: "" },
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+      }).trim();
+    } catch (err) {
+      attempt++;
+      if (attempt >= maxRetries) throw err;
+      const waitMs = attempt * 2500;
+      console.warn(
+        `[runGh] Command failed (attempt ${attempt}/${maxRetries}), retrying in ${waitMs}ms...`,
+      );
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
+    }
+  }
 }
 
 function setIssueDateField(issueId, fieldId, dateValue) {
@@ -178,26 +191,30 @@ async function main() {
       ]);
       console.log(`Created issue: ${url}`);
 
-      // Re-fetch issues to get GraphQL ID
-      const updatedIssues = JSON.parse(
-        runGh([
+      // Fetch newly created issue to get its GraphQL ID
+      const issueNum = url.split("/").pop();
+      try {
+        const singleIssueRaw = runGh([
           "issue",
-          "list",
+          "view",
+          issueNum,
           "--repo",
           REPO,
-          "--limit",
-          "100",
-          "--state",
-          "all",
           "--json",
           "id,number,title,url,state",
-        ]) || "[]",
-      );
-      issue = updatedIssues.find((i) => i.url === url) || {
-        url,
-        id: null,
-        title: issueTitle,
-      };
+        ]);
+        issue = JSON.parse(singleIssueRaw || "null") || {
+          url,
+          id: null,
+          title: issueTitle,
+        };
+      } catch {
+        issue = {
+          url,
+          id: null,
+          title: issueTitle,
+        };
+      }
     }
 
     // Check if issue is already in Project 4
