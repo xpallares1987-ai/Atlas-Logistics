@@ -1,0 +1,1 @@
+export{t as Dossier,t as default}from"./Dossier-BK8N4Pf1.js";
