@@ -30,6 +30,7 @@ const PUBLIC_SEGMENT_PREFIXES: readonly string[] = [
   "/api/auth",
   "/api/edi/inbound",
   "/api/dcsa/v3/events",
+  "/api/dcsa/v3/events/ingest",
   "/api/documents/verify",
   "/api/ai/config-status",
   "/api/ai/status",

@@ -223,11 +223,11 @@ export const dcsaVgmRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   /**
-   * POST /api/dcsa/v3/events
+   * POST /api/dcsa/v3/events/ingest
    * Ingests a DCSA v3.0 operational telemetry event.
    */
   fastify.post<{ Body: IngestDcsaEventInput }>(
-    "/api/dcsa/v3/events",
+    "/api/dcsa/v3/events/ingest",
     {
       schema: {
         description:

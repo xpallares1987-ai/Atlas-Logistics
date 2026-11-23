@@ -180,10 +180,10 @@ UNZ+1+VGM-ACK-99'`;
     expect(body.updatedRecord.ediTransmittedAt).toBeDefined();
   });
 
-  it("POST /api/dcsa/v3/events ingests a DCSA v3.0 operational telemetry event", async () => {
+  it("POST /api/dcsa/v3/events/ingest ingests a DCSA v3.0 operational telemetry event", async () => {
     const res = await app.inject({
       method: "POST",
-      url: "/api/dcsa/v3/events",
+      url: "/api/dcsa/v3/events/ingest",
       payload: {
         eventType: "EQUIPMENT",
         eventClassifierCode: "ACT",
