@@ -1,0 +1,1 @@
+export{t as UsmcaImmex}from"./UsmcaImmex-BVL_ycpX.js";
