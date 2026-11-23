@@ -1,0 +1,1 @@
+import{r as e}from"./useApiQuery-jk8IfCui.js";function t(){return e([`shipments`],`/shipments`)}export{t};
