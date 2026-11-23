@@ -16,6 +16,7 @@ import {
   DollarSign,
   CheckCircle2,
 } from "lucide-react";
+import { DisruptionPlans } from "./DisruptionPlans";
 
 export interface SuggestedMitigationAction {
   action: string;
@@ -82,7 +83,9 @@ export const ExceptionResolution: React.FC<ExceptionResolutionProps> = ({
 
   if (!isOpen || !exception) return null;
 
-  const handleAction = async (targetStatus: DetailedSupplyChainException["status"]) => {
+  const handleAction = async (
+    targetStatus: DetailedSupplyChainException["status"],
+  ) => {
     setSubmitting(true);
     setError(null);
     try {
@@ -117,11 +120,15 @@ export const ExceptionResolution: React.FC<ExceptionResolutionProps> = ({
                 {exception.status.replace(/_/g, " ")}
               </span>
             </div>
-            <h3 className="text-lg font-bold text-slate-100">{exception.title}</h3>
+            <h3 className="text-lg font-bold text-slate-100">
+              {exception.title}
+            </h3>
             {exception.poNumber && (
               <p className="text-xs text-slate-400">
                 Affecting Purchase Order:{" "}
-                <span className="font-semibold text-slate-200">{exception.poNumber}</span>
+                <span className="font-semibold text-slate-200">
+                  {exception.poNumber}
+                </span>
               </p>
             )}
           </div>
@@ -251,6 +258,14 @@ export const ExceptionResolution: React.FC<ExceptionResolutionProps> = ({
                 </div>
               </div>
             )}
+
+          {/* Autonomous Disruption Resolution Engine (ADR 0036) */}
+          <DisruptionPlans
+            exceptionId={exception.id}
+            poId={exception.poId}
+            isResolved={exception.status === "RESOLVED"}
+            onPlanExecuted={() => handleAction("RESOLVED")}
+          />
 
           {/* Operator Action & Resolution Notes */}
           <div className="space-y-3 pt-4 border-t border-slate-800">

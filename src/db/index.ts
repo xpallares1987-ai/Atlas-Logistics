@@ -52,6 +52,7 @@ export async function applyMandatorySqlitePragmas(
 ): Promise<void> {
   await sqlClient.execute("PRAGMA busy_timeout = 5000;");
   await sqlClient.execute("PRAGMA journal_mode = WAL;");
+  await sqlClient.execute("PRAGMA synchronous = NORMAL;");
   await sqlClient.execute("PRAGMA foreign_keys = ON;");
 }
 

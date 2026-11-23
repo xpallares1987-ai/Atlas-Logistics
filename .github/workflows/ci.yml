@@ -107,6 +107,9 @@ jobs:
       - name: Verify SQLite WAL backup and restoration test
         run: pnpm run test:backup-restore
 
+      - name: Verify SQLite WAL concurrency & multi-station stress test
+        run: pnpm run test:concurrency
+
       - name: Run Vitest unit & integration tests with coverage
         run: pnpm test -- --coverage
 

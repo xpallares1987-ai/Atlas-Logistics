@@ -13,6 +13,10 @@ pnpm-lock.yaml
 package-lock.json
 
 # Internal audit reports and verification scripts
+data/
+*.db
+*.db-wal
+*.db-shm
 audit-results.json
 scratch/
 *.patch

@@ -23,6 +23,7 @@
     "lint": "pnpm run eslint",
     "test": "vitest run --fileParallelism=false",
     "test:coverage": "vitest run --coverage",
+    "test:concurrency": "vitest run tests/concurrency/sqlite-wal-stress.test.ts",
     "type-check": "tsc --noEmit && pnpm --filter @atlas/frontend type-check",
     "type-check:backend": "tsc --noEmit",
     "eslint": "eslint .",

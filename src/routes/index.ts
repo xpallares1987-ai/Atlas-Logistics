@@ -68,6 +68,9 @@ import carrierIntegrationsRoutes from "./carrier/carrier-integrations.routes.js"
 import customsBrokerageRoutes from "./customs/customs-brokerage.routes.js";
 import airCargoClearingRoutes from "./air-cargo/air-cargo-clearing.routes.js";
 import uneceTransportRoutes from "./unece-transport.routes.js";
+import portalVendorRoutes from "./portal-vendor.routes.js";
+import { resolutionPlansRoutes } from "./scm/resolution-plans.routes.js";
+import { customsFilingRoutes } from "./customs-filing.routes.js";
 
 export {
   shipmentsRoutes,
@@ -128,6 +131,7 @@ export {
   supplyChainVisibilityRoutes,
   carrierTelemetryRoutes,
   externalGovernanceRoutes,
+  customsFilingRoutes,
 };
 
 /**
@@ -287,6 +291,13 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(uneceTransportRoutes, {
     prefix: "/api/analytics/unece-transport",
   });
+  await fastify.register(portalVendorRoutes, {
+    prefix: "/api/portal/vendor",
+  });
+  await fastify.register(resolutionPlansRoutes, {
+    prefix: "/api/scm/disruptions",
+  });
+  await fastify.register(customsFilingRoutes);
 };
 
 export default registerAllRoutes;
