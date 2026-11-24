@@ -1,1 +1,0 @@
-export{t as Manifest,t as default}from"./Manifest-BP4A5SdK.js";

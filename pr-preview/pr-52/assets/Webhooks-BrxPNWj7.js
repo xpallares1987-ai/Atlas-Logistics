@@ -1,1 +1,0 @@
-export{t as Webhooks,t as default}from"./Webhooks-D2nVLRD2.js";

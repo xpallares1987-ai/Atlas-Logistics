@@ -1,1 +1,0 @@
-import{r as e}from"./useApiQuery-DvFTfdm1.js";function t(){return e([`shipments`],`/shipments`)}export{t};

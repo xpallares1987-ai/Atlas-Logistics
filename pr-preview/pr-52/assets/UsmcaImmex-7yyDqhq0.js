@@ -1,1 +1,0 @@
-export{t as UsmcaImmex}from"./UsmcaImmex-C_LkiqT4.js";

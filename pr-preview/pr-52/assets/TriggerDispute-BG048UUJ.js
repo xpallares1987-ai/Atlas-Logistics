@@ -1,1 +1,0 @@
-export{t as TriggerDispute,t as default}from"./TriggerDispute-kgxADs2x.js";
