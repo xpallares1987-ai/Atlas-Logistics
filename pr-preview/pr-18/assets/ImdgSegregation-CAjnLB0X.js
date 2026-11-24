@@ -1,1 +1,0 @@
-export{t as ImdgSegregation,t as default}from"./ImdgSegregation-CaA2N_LS.js";

@@ -1,1 +1,0 @@
-export{t as EndorseTitle,t as default}from"./EndorseTitle-BAyK7w1L.js";

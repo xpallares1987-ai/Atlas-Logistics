@@ -1,1 +1,0 @@
-export{t as Dossier,t as default}from"./Dossier-BqdE7keY.js";
