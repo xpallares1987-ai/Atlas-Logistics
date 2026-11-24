@@ -15,6 +15,10 @@ on:
       - '.github/workflows/scorecard.yml'
       - '.github/workflows/stale.yml'
       - '.github/workflows/release.yml'
+      - '.github/workflows/label.yml'
+      - '.github/workflows/project-sync.yml'
+      - '.github/workflows/greetings.yml'
+      - '.github/workflows/db-push.yml'
   pull_request:
     branches:
       - main
@@ -29,6 +33,10 @@ on:
       - '.github/workflows/scorecard.yml'
       - '.github/workflows/stale.yml'
       - '.github/workflows/release.yml'
+      - '.github/workflows/label.yml'
+      - '.github/workflows/project-sync.yml'
+      - '.github/workflows/greetings.yml'
+      - '.github/workflows/db-push.yml'
   workflow_dispatch:
 
 concurrency:
@@ -47,19 +55,16 @@ jobs:
   lint-and-build:
     name: Lint, Type Check, Build & Test
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        node-version: [22]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup pnpm
         uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js 22
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -313,7 +318,6 @@ jobs:
         env:
           DATABASE_URL: file:/app/data/prod.db
           JWT_SECRET: smoke-test-jwt-secret-key-super-secure-32chars
-          GRAFANA_ADMIN_PASSWORD: smoke-test-grafana-password
 
   verify-provenance:
     name: Verify SLSA Provenance Gate
@@ -335,41 +339,20 @@ jobs:
       - name: Create Evidence Directory
         run: mkdir -p provenance-evidence
 
-      - name: Verify SLSA Provenance (atlas-backend)
+      - name: Verify SLSA Provenance for Published Images
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          gh attestation verify \
-            "oci://ghcr.io/${OWNER_LC}/atlas-backend:latest" \
-            --repo "${{ github.repository }}" \
-            --signer-workflow "${{ github.repository }}/.github/workflows/ci.yml" \
-            --format json > provenance-evidence/atlas-backend-attestation.json
-          echo "✅ Backend SLSA Provenance verified successfully."
-
-      - name: Verify SLSA Provenance (atlas-worker)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          gh attestation verify \
-            "oci://ghcr.io/${OWNER_LC}/atlas-worker:latest" \
-            --repo "${{ github.repository }}" \
-            --signer-workflow "${{ github.repository }}/.github/workflows/ci.yml" \
-            --format json > provenance-evidence/atlas-worker-attestation.json
-          echo "✅ Worker SLSA Provenance verified successfully."
-
-      - name: Verify SLSA Provenance (atlas-frontend)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          gh attestation verify \
-            "oci://ghcr.io/${OWNER_LC}/atlas-frontend:latest" \
-            --repo "${{ github.repository }}" \
-            --signer-workflow "${{ github.repository }}/.github/workflows/ci.yml" \
-            --format json > provenance-evidence/atlas-frontend-attestation.json
-          echo "✅ Frontend SLSA Provenance verified successfully."
+          for COMPONENT in atlas-backend atlas-worker atlas-frontend; do
+            echo "Verifying SLSA provenance for ${COMPONENT}..."
+            gh attestation verify \
+              "oci://ghcr.io/${OWNER_LC}/${COMPONENT}:latest" \
+              --repo "${{ github.repository }}" \
+              --signer-workflow "${{ github.repository }}/.github/workflows/ci.yml" \
+              --format json > "provenance-evidence/${COMPONENT}-attestation.json"
+            echo "✅ ${COMPONENT} SLSA Provenance verified successfully."
+          done
 
       - name: Archive Cryptographic Provenance Evidence
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
