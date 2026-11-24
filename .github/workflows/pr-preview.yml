@@ -22,12 +22,12 @@ jobs:
     steps:
       # 1. Checkout unconditionally FIRST so Git context exists for removals
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # 2. Cleanup step runs if PR is closed
       - name: Cleanup Preview on PR Close
         if: ${{ github.event.action == 'closed' }}
-        uses: rossjrw/pr-preview-action@430e3dfc1de8a8ae77e77d862d25676ef9db55d1 # v1.4.8
+        uses: rossjrw/pr-preview-action@873417d2df72380da1f3978378fb58560bcde976 # v1.8.2
         with:
           source-dir: ./packages/frontend/dist
           preview-branch: gh-pages
@@ -38,11 +38,11 @@ jobs:
       # 3. Setup and Build steps run only if PR is active
       - name: Setup pnpm
         if: ${{ github.event.action != 'closed' }}
-        uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - name: Setup Node.js
         if: ${{ github.event.action != 'closed' }}
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: "pnpm"
@@ -60,7 +60,7 @@ jobs:
 
       - name: Deploy PR Preview to gh-pages
         if: ${{ github.event.action != 'closed' }}
-        uses: rossjrw/pr-preview-action@430e3dfc1de8a8ae77e77d862d25676ef9db55d1 # v1.4.8
+        uses: rossjrw/pr-preview-action@873417d2df72380da1f3978378fb58560bcde976 # v1.8.2
         with:
           source-dir: ./packages/frontend/dist
           preview-branch: gh-pages
