@@ -161,6 +161,10 @@ export const Header: React.FC<HeaderProps> = ({
               label:
                 "Auditoría Financiera EU ETS & Deducciones Origen (Art. 9)",
             },
+            {
+              id: "CERTIFICATES_INVENTORY",
+              label: "Inventario de Certificados & Subastas EEX (2026+)",
+            },
           ] as const
         ).map((tab) => (
           <button

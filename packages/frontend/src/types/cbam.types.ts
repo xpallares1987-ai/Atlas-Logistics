@@ -5,10 +5,16 @@
  * @see {@link docs/adr/0020-modular-frontend-architecture.md}
  */
 
-export type CbamTabId = "DECLARATIONS" | "CALCULATOR" | "FINANCE_ETS";
+export type CbamTabId =
+  "DECLARATIONS" | "CALCULATOR" | "FINANCE_ETS" | "CERTIFICATES_INVENTORY";
 
 export type CbamDeclarationStatus =
-  "VALIDATED" | "SUBMITTED_REGISTRY" | "AMENDED" | "DRAFT";
+  | "VALIDATED"
+  | "SUBMITTED_REGISTRY"
+  | "PENDING_SURRENDER"
+  | "CERTIFICATES_SURRENDERED"
+  | "AMENDED"
+  | "DRAFT";
 
 export interface CbamDeclarationLine {
   id: string;
@@ -70,4 +76,72 @@ export interface CbamLiabilityResult {
   foreignCarbonPricePaidEur: number;
   netCarbonLiabilityEur: number;
   notes: string;
+}
+
+// ============================================================================
+// DEFINITIVE CBAM REGIME & ISO 20022 TYPES (2026+)
+// ============================================================================
+
+export interface CbamEexQuoteRecord {
+  id: string;
+  quoteWeek: string;
+  validFrom: string;
+  validUntil: string;
+  auctionAveragePriceEur: number;
+  scaledPrice: number;
+  source: string;
+  isFallback?: boolean;
+}
+
+export interface CbamCertificateLot {
+  id: string;
+  tenantId?: string;
+  lotReference: string;
+  purchaseDate: string;
+  ncaRegistryAccountId: string;
+  quantityPurchased: number;
+  quantitySurrendered: number;
+  quantityAvailable: number;
+  unitPriceEur: number;
+  totalCostEur: number;
+  paymentReference?: string | null;
+  status: "ACTIVE" | "EXHAUSTED" | "CANCELLED";
+}
+
+export interface CbamInventorySummary {
+  totalPurchased: number;
+  totalSurrendered: number;
+  totalAvailable: number;
+  totalValuationEur: number;
+  activeLotsCount: number;
+}
+
+export interface CbamSurrenderLotItem {
+  lotId: string;
+  lotReference: string;
+  quantity: number;
+  unitPriceEur: number;
+}
+
+export interface CbamSurrenderResult {
+  surrenderReference: string;
+  declarationId: string;
+  declarationNumber: string;
+  reportingPeriod: string;
+  totalCertificatesSurrendered: number;
+  totalCostEur: number;
+  verifierName: string;
+  verifierAccreditationNumber: string;
+  verificationReportId: string;
+  surrenderPayloadHashSha256: string;
+  surrenderLots: CbamSurrenderLotItem[];
+  surrenderDate: string;
+}
+
+export interface CbamPaymentOrderResult {
+  lotId: string;
+  messageId: string;
+  messageType: "PAIN_001";
+  schema: string;
+  xml: string;
 }

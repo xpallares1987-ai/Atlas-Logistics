@@ -9,11 +9,15 @@ import { useState, useEffect, useMemo } from "react";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 import {
   CbamCatalogItem,
+  CbamCertificateLot,
   CbamDeclaration,
   CbamDeclarationStatus,
+  CbamEexQuoteRecord,
   CbamEmissionsResult,
   CbamInstallation,
+  CbamInventorySummary,
   CbamLiabilityResult,
+  CbamSurrenderResult,
   CbamTabId,
 } from "../../../types/cbam.types";
 
@@ -21,6 +25,18 @@ export function formatCbamStatusBadge(status: CbamDeclarationStatus | string): {
   label: string;
   className: string;
 } {
+  if (status === "CERTIFICATES_SURRENDERED") {
+    return {
+      label: "CERTIFICADOS ENTREGADOS",
+      className: "bg-teal-500/20 text-teal-300 border border-teal-500/30",
+    };
+  }
+  if (status === "PENDING_SURRENDER") {
+    return {
+      label: "PENDIENTE ENTREGA",
+      className: "bg-purple-500/20 text-purple-300 border border-purple-500/30",
+    };
+  }
   if (status === "SUBMITTED_REGISTRY") {
     return {
       label: "REGISTRADO UE",
@@ -92,6 +108,113 @@ export function useCbam() {
     ["cbam-installations"],
     "/cbam/installations",
   );
+
+  // Fetch Certificate Inventory & EEX Quotes (2026+ Definitive Regime)
+  const DEFAULT_CERTIFICATE_LOTS: CbamCertificateLot[] = [
+    {
+      id: "lot-demo-01",
+      lotReference: "LOT-2026-001",
+      purchaseDate: "2026-09-01",
+      ncaRegistryAccountId: "ES-CBAM-ACC-88319",
+      quantityPurchased: 2500,
+      quantitySurrendered: 1200,
+      quantityAvailable: 1300,
+      unitPriceEur: 84.5,
+      totalCostEur: 211250.0,
+      status: "ACTIVE",
+    },
+    {
+      id: "lot-demo-02",
+      lotReference: "LOT-2026-002",
+      purchaseDate: "2026-10-01",
+      ncaRegistryAccountId: "ES-CBAM-ACC-88319",
+      quantityPurchased: 1500,
+      quantitySurrendered: 0,
+      quantityAvailable: 1500,
+      unitPriceEur: 87.25,
+      totalCostEur: 130875.0,
+      status: "ACTIVE",
+    },
+  ];
+
+  const DEFAULT_INVENTORY_SUMMARY: CbamInventorySummary = {
+    totalPurchased: 4000,
+    totalSurrendered: 1200,
+    totalAvailable: 2800,
+    totalValuationEur: 240750.0,
+    activeLotsCount: 2,
+  };
+
+  const DEFAULT_EEX_QUOTES: CbamEexQuoteRecord[] = [
+    {
+      id: "eex-2026-W43",
+      quoteWeek: "2026-W43",
+      validFrom: "2026-10-19",
+      validUntil: "2026-10-25",
+      auctionAveragePriceEur: 88.5,
+      scaledPrice: 88500000,
+      source: "EEX_AUCTION",
+    },
+    {
+      id: "eex-2026-W42",
+      quoteWeek: "2026-W42",
+      validFrom: "2026-10-12",
+      validUntil: "2026-10-18",
+      auctionAveragePriceEur: 87.25,
+      scaledPrice: 87250000,
+      source: "EEX_AUCTION",
+    },
+    {
+      id: "eex-2026-W41",
+      quoteWeek: "2026-W41",
+      validFrom: "2026-10-05",
+      validUntil: "2026-10-11",
+      auctionAveragePriceEur: 85.5,
+      scaledPrice: 85500000,
+      source: "EEX_AUCTION",
+    },
+  ];
+
+  const { data: inventoryData, refetch: refetchInventory } = useApiQuery<{
+    summary: CbamInventorySummary;
+    lots: CbamCertificateLot[];
+  }>(["cbam-inventory"], "/cbam/certificates/inventory");
+
+  const { data: rawEexQuotes = [] } = useApiQuery<CbamEexQuoteRecord[]>(
+    ["cbam-eex-quotes"],
+    "/cbam/eex/quotes",
+  );
+
+  const { data: rawActiveQuote } = useApiQuery<CbamEexQuoteRecord>(
+    ["cbam-active-eex-quote"],
+    "/cbam/eex/quotes/active",
+  );
+
+  const certificateLots = useMemo(() => {
+    if (inventoryData?.lots && inventoryData.lots.length > 0) {
+      return inventoryData.lots;
+    }
+    return DEFAULT_CERTIFICATE_LOTS;
+  }, [inventoryData]);
+
+  const inventorySummary = useMemo(() => {
+    if (inventoryData?.summary) {
+      return inventoryData.summary;
+    }
+    return DEFAULT_INVENTORY_SUMMARY;
+  }, [inventoryData]);
+
+  const eexQuotes = useMemo(() => {
+    if (rawEexQuotes && rawEexQuotes.length > 0) {
+      return rawEexQuotes;
+    }
+    return DEFAULT_EEX_QUOTES;
+  }, [rawEexQuotes]);
+
+  const activeEexQuote = useMemo(() => {
+    if (rawActiveQuote) return rawActiveQuote;
+    return eexQuotes[0] || DEFAULT_EEX_QUOTES[0];
+  }, [rawActiveQuote, eexQuotes]);
 
   // Fetch Selected Declaration Details
   const { data: declarationDetails } = useApiQuery<CbamDeclaration>(
@@ -192,6 +315,149 @@ export function useCbam() {
     setShowStatusModal(true);
   };
 
+  const downloadXmlBlob = (filename: string, xmlString: string) => {
+    if (typeof window === "undefined") return;
+    const blob = new Blob([xmlString], {
+      type: "application/xml;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePurchaseLot = async (params: {
+    lotReference: string;
+    purchaseDate: string;
+    ncaRegistryAccountId: string;
+    quantityPurchased: number;
+    unitPriceEur: number;
+    generatePaymentOrder: boolean;
+    debtorName: string;
+    debtorIban: string;
+    debtorBic: string;
+  }) => {
+    try {
+      const res = await fetch("/api/cbam/certificates/lots", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          lotReference: params.lotReference,
+          purchaseDate: params.purchaseDate,
+          ncaRegistryAccountId: params.ncaRegistryAccountId,
+          quantityPurchased: params.quantityPurchased,
+          unitPriceEur: params.unitPriceEur,
+        }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(
+          errJson.message || "Error al registrar lote en el servidor",
+        );
+      }
+
+      const lot = await res.json();
+
+      if (params.generatePaymentOrder && lot.id) {
+        const pmtRes = await fetch(
+          `/api/cbam/certificates/lots/${lot.id}/payment-order`,
+          {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              debtorName: params.debtorName,
+              debtorIban: params.debtorIban,
+              debtorBic: params.debtorBic,
+            }),
+          },
+        );
+        if (pmtRes.ok) {
+          const pmtData = await pmtRes.json();
+          if (pmtData.xml) {
+            downloadXmlBlob(
+              `pain_001_CBAM_${params.lotReference}.xml`,
+              pmtData.xml,
+            );
+          }
+        }
+      }
+
+      refetchInventory();
+    } catch (err: unknown) {
+      console.error("Purchase lot error:", err);
+      throw err;
+    }
+  };
+
+  const handleDownloadPaymentOrder = async (lotId: string) => {
+    try {
+      const res = await fetch(
+        `/api/cbam/certificates/lots/${lotId}/payment-order`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            debtorName: "Atlas Forwarding Customs SL",
+            debtorIban: "ES9121000418450200051332",
+            debtorBic: "CAIXESBBXXX",
+          }),
+        },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.xml) {
+          downloadXmlBlob(`pain_001_CBAM_${lotId}.xml`, data.xml);
+        }
+      }
+    } catch (err) {
+      console.error("Download payment order error:", err);
+    }
+  };
+
+  const handleSurrenderCertificates = async (params: {
+    declarationId: string;
+    verifierName: string;
+    verifierAccreditationNumber: string;
+    verificationReportId: string;
+  }): Promise<CbamSurrenderResult> => {
+    try {
+      const res = await fetch(
+        `/api/cbam/declarations/${params.declarationId}/surrender`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            verifierName: params.verifierName,
+            verifierAccreditationNumber: params.verifierAccreditationNumber,
+            verificationReportId: params.verificationReportId,
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(
+          errJson.error ||
+            errJson.message ||
+            "Fallo en la liquidación de certificados",
+        );
+      }
+
+      const json = await res.json();
+      refetchDeclarations();
+      refetchInventory();
+      return json.result as CbamSurrenderResult;
+    } catch (err: unknown) {
+      console.error("Surrender error:", err);
+      throw err;
+    }
+  };
+
   const stats = useMemo(() => {
     const totalNetMassSum = declarations.reduce(
       (acc, d) => acc + (d.totalNetMassTonnes || 0),
@@ -258,6 +524,13 @@ export function useCbam() {
     remarksInput,
     setRemarksInput,
     stats,
+    certificateLots,
+    inventorySummary,
+    eexQuotes,
+    activeEexQuote,
+    handlePurchaseLot,
+    handleDownloadPaymentOrder,
+    handleSurrenderCertificates,
     handleRunEmissionsCalc,
     handleRunLiabilityCalc,
     handleSaveStatus,

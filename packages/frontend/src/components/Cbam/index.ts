@@ -17,6 +17,15 @@ export type { CalculatorProps } from "./Tab/Calculator";
 export { FinanceEts } from "./Tab/FinanceEts";
 export type { FinanceEtsProps } from "./Tab/FinanceEts";
 
+export { CertificateInventory } from "./Tab/CertificateInventory";
+export type { CertificateInventoryProps } from "./Tab/CertificateInventory";
+
+export { PurchaseLotModal } from "./Modal/PurchaseLotModal";
+export type { PurchaseLotModalProps } from "./Modal/PurchaseLotModal";
+
+export { SurrenderWizardModal } from "./Modal/SurrenderWizardModal";
+export type { SurrenderWizardModalProps } from "./Modal/SurrenderWizardModal";
+
 export { ValidateStatus } from "./Modal/ValidateStatus";
 export type { ValidateStatusProps } from "./Modal/ValidateStatus";
 

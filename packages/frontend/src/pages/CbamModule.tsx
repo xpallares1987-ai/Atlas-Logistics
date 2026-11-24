@@ -10,6 +10,7 @@ import {
   Declarations,
   Calculator,
   FinanceEts,
+  CertificateInventory,
   ValidateStatus,
   useCbam,
 } from "../components/Cbam";
@@ -54,6 +55,13 @@ export default function CbamModule() {
     remarksInput,
     setRemarksInput,
     stats,
+    certificateLots,
+    inventorySummary,
+    eexQuotes,
+    activeEexQuote,
+    handlePurchaseLot,
+    handleDownloadPaymentOrder,
+    handleSurrenderCertificates,
     handleRunEmissionsCalc,
     handleRunLiabilityCalc,
     handleSaveStatus,
@@ -121,6 +129,19 @@ export default function CbamModule() {
           setSimForeignPricePaid={setSimForeignPricePaid}
           liabilityResult={liabilityResult}
           onRunLiabilityCalc={handleRunLiabilityCalc}
+        />
+      )}
+
+      {activeTab === "CERTIFICATES_INVENTORY" && (
+        <CertificateInventory
+          lots={certificateLots}
+          summary={inventorySummary}
+          eexQuotes={eexQuotes}
+          activeEexQuote={activeEexQuote}
+          declarations={declarations}
+          onPurchaseLot={handlePurchaseLot}
+          onSurrenderCertificates={handleSurrenderCertificates}
+          onDownloadPaymentOrder={handleDownloadPaymentOrder}
         />
       )}
 
