@@ -1,1 +1,0 @@
-import{r as e}from"./useApiQuery-DjIc20Np.js";function t(){return e([`shipments`],`/shipments`)}export{t};

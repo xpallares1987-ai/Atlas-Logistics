@@ -1,1 +1,0 @@
-export{t as Dossier,t as default}from"./Dossier-Ca4dryb6.js";
