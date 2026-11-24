@@ -339,7 +339,7 @@ pnpm run db:reset-and-seed
 A: Database is NOT empty. Never reseed a populated production DB:
 ```bash
 # Check if data exists:
-sqlite3 ./atlas-erp-prod.db ".tables"
+sqlite3 ./data/prod.db ".tables"
 # If tables have data, DO NOT run seed:
 # → Consult DBA for manual data correction
 ```

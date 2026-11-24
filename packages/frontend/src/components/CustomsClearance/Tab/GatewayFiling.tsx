@@ -490,3 +490,6 @@ export function GatewayFilingTab({
     </div>
   );
 }
+
+export type GatewayFilingProps = GatewayFilingTabProps;
+export const GatewayFiling = GatewayFilingTab;

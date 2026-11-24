@@ -23,8 +23,8 @@ import {
   CbamInventorySummary,
   CbamSurrenderResult,
 } from "../../../types/cbam.types";
-import { PurchaseLotModal } from "../Modal/PurchaseLotModal";
-import { SurrenderWizardModal } from "../Modal/SurrenderWizardModal";
+import { PurchaseLot as PurchaseLotModal } from "../Modal/PurchaseLot";
+import { SurrenderWizard as SurrenderWizardModal } from "../Modal/SurrenderWizard";
 
 export interface CertificateInventoryProps {
   lots: CbamCertificateLot[];

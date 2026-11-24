@@ -11,4 +11,4 @@ export { HoldAlert as CustomsClearanceHoldAlert } from "./Banner/HoldAlert";
 export { DeclarationList as CustomsClearanceDeclarationList } from "./Panel/DeclarationList";
 export { DeclarationDetail as CustomsClearanceDeclarationDetail } from "./Panel/DeclarationDetail";
 export { CalculatorModal as CustomsClearanceCalculatorModal } from "./Modal/Calculator";
-export { GatewayFilingTab as CustomsClearanceGatewayFilingTab } from "./Tab/GatewayFilingTab";
+export { GatewayFiling as CustomsClearanceGatewayFilingTab } from "./Tab/GatewayFiling";

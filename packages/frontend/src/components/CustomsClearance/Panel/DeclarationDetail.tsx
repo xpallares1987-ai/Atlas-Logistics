@@ -15,7 +15,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { CustomsDeclaration, StatusVisuals } from "../types/index";
-import { GatewayFilingTab } from "../Tab/GatewayFilingTab";
+import { GatewayFiling as GatewayFilingTab } from "../Tab/GatewayFiling";
 
 interface DeclarationDetailProps {
   selectedDecl: CustomsDeclaration | null;

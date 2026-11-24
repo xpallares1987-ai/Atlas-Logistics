@@ -151,10 +151,10 @@ All logistics calculations are 100% deterministic, executing strictly defined ma
 The database layer utilizes **libSQL** (`@libsql/client`) with **Drizzle ORM**:
 
 - **Environment Isolation & Resolution**:
-  - **Development (`NODE_ENV=development`)**: Automatically targets `file:atlas-erp-v2.db` with local development seed data.
-  - **Production (`NODE_ENV=production`)**: Automatically targets `file:atlas-erp-prod.db` with isolated enterprise tables and initialized admin credentials.
-  - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/var/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
-- **121 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
+  - **Development (`NODE_ENV=development`)**: Automatically targets `file:./data/dev.db` with local development seed data.
+  - **Production (`NODE_ENV=production`)**: Automatically targets `file:./data/prod.db` with isolated enterprise tables and initialized admin credentials.
+  - **Dynamic URI / Cloud Deployment (`DATABASE_URL`)**: Supports overriding with custom file paths (e.g. `/app/data/prod.db`) or remote Turso/libSQL clusters (`libsql://...`) with `DATABASE_AUTH_TOKEN`.
+- **282 Relational Tables** mapped with strict TypeScript schemas in `src/db/schema/*.ts`.
 - **WAL Journal Mode & Busy Timeout**: High-concurrency transaction resiliency for background jobs and concurrent Fastify requests.
 - **Custom SQL Triggers**: Automatic sequential code generators (`CLM-YYYY-XXXX`, `CMR-YYYY-XXXXX`, `DUA-YYYY-XXXX`, `OEA-YYYY-XXXX`, `CP-YYYY-XXXX`, `GA-YYYY-XXXX`, `DGD-YYYY-XXXX`, `INS-CERT-YYYY-XXXX`, `BULK-YYYY-XXXX`) and immutable audit logs.
 - **SQL Views**: Aggregated financial summaries and warehouse occupancy metrics.

@@ -7,9 +7,9 @@
 # For multi-node deployments, use Docker Swarm or Kubernetes.
 #
 # Usage:
-#   docker compose -f docker-compose.prod.yml up -d                 # Deploy
-#   docker compose -f docker-compose.prod.yml logs -f backend       # Tail logs
-#   docker compose -f docker-compose.prod.yml down                  # Stop
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d    # Deploy
+#   docker compose -f docker-compose.prod.yml logs -f backend                     # Tail logs
+#   docker compose -f docker-compose.prod.yml down                                # Stop
 #
 # ==============================================================================
 
@@ -29,15 +29,9 @@ services:
   # BACKEND SERVICE (Node.js + Fastify + SQLite + BullMQ)
   # ============================================================================
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-      target: production
-      args:
-        NODE_VERSION: 22
-        PNPM_VERSION: 11.5.1
     container_name: atlas-backend-prod
-    image: atlas-logistics:backend-prod
+    image: ghcr.io/xpallares1987-ai/atlas-backend@sha256:d19038fcb8a13b6eeedbfac04809f1c2db37e51233c9fa35ac10632c88b2583c
+    pull_policy: if_not_present
     restart: always
     ports:
       - "3001:3001"
@@ -87,15 +81,9 @@ services:
   # FRONTEND SERVICE (Nginx SPA + API reverse proxy)
   # ============================================================================
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
-      args:
-        NODE_VERSION: 22
-        PNPM_VERSION: 11.5.1
     container_name: atlas-frontend-prod
-    image: atlas-logistics:frontend-prod
+    image: ghcr.io/xpallares1987-ai/atlas-frontend@sha256:dca8b12096e869f610d56f78ffa886934b52c4924f9e0318b70ab6a43be3211b
+    pull_policy: if_not_present
     restart: always
     ports:
       - "80:8080"
@@ -131,15 +119,9 @@ services:
   # WORKER SERVICE (BullMQ Background Jobs)
   # ============================================================================
   worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker
-      target: production
-      args:
-        NODE_VERSION: 22
-        PNPM_VERSION: 11.5.1
     container_name: atlas-worker-prod
-    image: atlas-logistics:worker-prod
+    image: ghcr.io/xpallares1987-ai/atlas-worker@sha256:15c05c9c86ad7a5e0308a77b874c24bed8e34b4300ddff42965308af0be9cf4e
+    pull_policy: if_not_present
     restart: always
     env_file:
       - path: .env.production
@@ -239,4 +221,3 @@ networks:
   default:
     name: atlas-network
     driver: bridge
-

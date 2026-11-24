@@ -43,11 +43,13 @@ export function getSafeDbPath() {
     return resolveWithinRoot(rawPath, "DATABASE_URL");
   }
   const devDb = path.resolve(ROOT_DIR, "data/dev.db");
-  const v2Db = path.resolve(ROOT_DIR, "atlas-erp-v2.db");
-  const prodDb = path.resolve(ROOT_DIR, "atlas-erp-prod.db");
+  const prodDb = path.resolve(ROOT_DIR, "data/prod.db");
+  const legacyV2Db = path.resolve(ROOT_DIR, "atlas-erp-v2.db");
+  const legacyProdDb = path.resolve(ROOT_DIR, "atlas-erp-prod.db");
   if (existsSync(devDb)) return devDb;
-  if (existsSync(v2Db)) return v2Db;
   if (existsSync(prodDb)) return prodDb;
+  if (existsSync(legacyV2Db)) return legacyV2Db;
+  if (existsSync(legacyProdDb)) return legacyProdDb;
   return devDb;
 }
 

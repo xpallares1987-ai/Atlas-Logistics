@@ -15,7 +15,7 @@ import {
   DollarSign,
 } from "lucide-react";
 
-export interface PurchaseLotModalProps {
+export interface PurchaseLotProps {
   isOpen: boolean;
   onClose: () => void;
   defaultUnitPriceEur?: number;
@@ -32,7 +32,9 @@ export interface PurchaseLotModalProps {
   }) => Promise<void>;
 }
 
-export const PurchaseLotModal: React.FC<PurchaseLotModalProps> = ({
+export type PurchaseLotModalProps = PurchaseLotProps;
+
+export const PurchaseLot: React.FC<PurchaseLotProps> = ({
   isOpen,
   onClose,
   defaultUnitPriceEur = 85.5,
@@ -324,3 +326,5 @@ export const PurchaseLotModal: React.FC<PurchaseLotModalProps> = ({
     </div>
   );
 };
+
+export const PurchaseLotModal = PurchaseLot;

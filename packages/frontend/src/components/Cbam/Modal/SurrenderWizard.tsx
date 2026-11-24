@@ -24,7 +24,7 @@ import {
   CbamSurrenderResult,
 } from "../../../types/cbam.types";
 
-export interface SurrenderWizardModalProps {
+export interface SurrenderWizardProps {
   isOpen: boolean;
   onClose: () => void;
   declarations: CbamDeclaration[];
@@ -38,7 +38,9 @@ export interface SurrenderWizardModalProps {
   }) => Promise<CbamSurrenderResult>;
 }
 
-export const SurrenderWizardModal: React.FC<SurrenderWizardModalProps> = ({
+export type SurrenderWizardModalProps = SurrenderWizardProps;
+
+export const SurrenderWizard: React.FC<SurrenderWizardProps> = ({
   isOpen,
   onClose,
   declarations,
@@ -538,3 +540,5 @@ export const SurrenderWizardModal: React.FC<SurrenderWizardModalProps> = ({
     </div>
   );
 };
+
+export const SurrenderWizardModal = SurrenderWizard;

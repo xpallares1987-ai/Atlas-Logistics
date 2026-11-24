@@ -107,7 +107,7 @@
 │                                                                   │
 │  Local File System                                               │
 │  ┌──────────────────────────────────────────┐                    │
-│  │ SQLite Database (atlas-erp-v2.db)        │                   │
+│  │ SQLite Database (data/dev.db)            │                   │
 │  │  - Local file, instant access            │                   │
 │  │  - Same as production                    │                   │
 │  │  - Inspectable with `pnpm db:inspect`    │                   │
