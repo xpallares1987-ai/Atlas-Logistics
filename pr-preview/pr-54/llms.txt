@@ -1,0 +1,15 @@
+# Atlas Logistics Enterprise ERP
+
+> Next-Generation Supply Chain Management, Operations Cockpit, and Multimodal Transport ERP.
+
+## Capabilities & Workflows
+- [Operations Cockpit 2.0](/cockpit): Prioritized actionable inbox with explainable attention scoring and in-situ execution.
+- [Shipment 360](/shipment-360): End-to-end multimodal timeline, events, documents, and container tracking.
+- [Freight Rate Comparer](/quotes): Ocean FCL/LCL, Air Freight, and Port Drayage Last-Mile quoting with GLEC ISO 14083 emissions.
+- [Customs Clearance](/customs): DUA clearance, bonded warehouse, USMCA cross-border, e-BL smart contracts, and PKI audit.
+
+## API Documentation
+- [Health Status](/api/health): Service, SQLite WAL database, and queue telemetry.
+- [Operations API](/api/scm/v1/operational/cockpit): Real-time actionable operational items and work item lifecycle.
+- [Freight Rates API](/api/rates): Live carrier rates, fuel adjustments (BAF), and surcharge comparisons.
+- [Addresses Directory](/api/addresses): UN/LOCODE hub directory and warehouse geocoding.
