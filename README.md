@@ -131,6 +131,9 @@ gh attestation verify oci://ghcr.io/xpallares1987-ai/atlas-backend:latest \
 The project's technical documentation is structured according to the **Diátaxis Documentation Framework** across four quadrants in [`docs/`](docs/README.md):
 
 - [**SCM Platform Architecture**](docs/architecture/SCM_PLATFORM_ARCHITECTURE.md) — Aggregate models, transactional outbox, event runtime, and CQRS projections.
+- [**EU CBAM Definitive Regime Architecture Specification**](docs/architecture/CBAM_DEFINITIVE_REGIME_SPEC.md) — Regulation (EU) 2023/956, EEX EUA auction benchmarking, FIFO certificate accounting, Article 8 accredited verifier non-repudiation seals, and ISO 20022 `pain.001` financial settlement.
+- [**FuelEU Maritime & EU ETS Architecture Specification**](docs/architecture/FUELEU_MARITIME_SPEC.md) — Regulation (EU) 2023/1805 Well-to-Wake (WtW) greenhouse gas intensity modeling, Compliance Balance (CB), Fleet Pooling (Art. 21), and Onshore Power Supply (OPS).
+- [**Trade Finance & SWIFT ISO 20022 Architecture Specification**](docs/architecture/TRADE_FINANCE_ISO20022_SPEC.md) — Institutional ISO 20022 messaging (`pain.001`, `camt.053`, `pacs.008`), UNCITRAL MLETR electronic Bill of Lading (eBL) transfer chains, and UCP 600 discrepancy auditing.
 - [**Local Development Walkthrough**](docs/setup-guides/development-guide.md) — Setup with `pnpm`, environment variables, migration execution, and test suites.
 - [**Docker & Multi-Container Infrastructure**](docs/setup-guides/docker-setup.md) — Execution profiles (default, observability, worker) and BuildKit caching.
 - [**Station Context & Navigation Cockpit**](docs/setup-guides/station-context-cockpit-guide.md) — Enterprise forwarding station hierarchy, role-based station switching, and dynamic navigation.
