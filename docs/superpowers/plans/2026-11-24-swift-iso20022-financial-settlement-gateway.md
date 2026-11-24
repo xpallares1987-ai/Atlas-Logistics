@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript, Drizzle ORM v1.0.0-rc.6, SQLite (WAL mode), Fastify v5, TypeBox, Vitest, React, Tailwind CSS, Lucide icons, Dexie.js.
 
-**Spec:** [docs/adr/0040-financial-settlement-automated-clearing-and-outbox-event-bus.md](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/adr/0040-financial-settlement-automated-clearing-and-outbox-event-bus.md) & [docs/adr/0042-maritime-decarbonization-and-cbam-financial-ledger.md](file:///C:/Users/xpall/Source/Atlas-Logistics/docs/adr/0042-maritime-decarbonization-and-cbam-financial-ledger.md).
+**Spec:** [docs/adr/0040-financial-settlement-automated-clearing-and-outbox-event-bus.md](../../adr/0040-financial-settlement-automated-clearing-and-outbox-event-bus.md) & [docs/adr/0042-maritime-decarbonization-and-cbam-financial-ledger.md](../../adr/0042-maritime-decarbonization-and-cbam-financial-ledger.md).
 
 ## Global Constraints
 
