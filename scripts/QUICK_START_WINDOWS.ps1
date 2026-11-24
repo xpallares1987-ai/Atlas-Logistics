@@ -94,7 +94,6 @@ Write-Host ""
 Write-Host "  For daily development:" -ForegroundColor Cyan
 Write-Host "    pnpm dev                # Start Redis + Backend + Frontend (RECOMMENDED)" -ForegroundColor Green
 Write-Host "    pnpm dev:minimal        # Start Backend + Frontend only (fast)" -ForegroundColor Gray
-Write-Host "    pnpm dev:observability  # Start all + Prometheus + Grafana (debugging)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Database utilities:" -ForegroundColor Cyan
 Write-Host "    pnpm db:inspect         # Open Drizzle Studio (visual explorer)" -ForegroundColor Gray

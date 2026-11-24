@@ -31,8 +31,6 @@ export const logger = pino({
       "headers.cookie",
       "connectionString",
       "DATABASE_AUTH_TOKEN",
-      "GRAFANA_CLOUD_PROM_TOKEN",
-      "GRAFANA_ASSISTANT_TOKEN",
     ],
     censor: "[REDACTED]",
   },

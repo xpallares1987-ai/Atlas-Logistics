@@ -42,7 +42,7 @@ else
 fi
 
 check "Checking required secrets in .env.production"
-REQUIRED_VARS=("JWT_SECRET" "COOKIE_SECRET" "GRAFANA_ADMIN_PASSWORD" "DATABASE_URL")
+REQUIRED_VARS=("JWT_SECRET" "COOKIE_SECRET" "DATABASE_URL")
 MISSING_VARS=()
 
 for var in "${REQUIRED_VARS[@]}"; do

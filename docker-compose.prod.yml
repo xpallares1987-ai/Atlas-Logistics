@@ -229,132 +229,14 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # ============================================================================
-  # PROMETHEUS (Metrics Collection & Alerting) — Optional
-  # ============================================================================
-  prometheus:
-    image: prom/prometheus:latest
-    pull_policy: if_not_present
-    container_name: atlas-prometheus-prod
-    restart: always
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./grafana/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./grafana/rules:/etc/prometheus/rules:ro
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.enable-lifecycle'
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      <<: *default_healthcheck
-    networks:
-      - default
-    profiles:
-      - observability
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-    security_opt:
-      - no-new-privileges:true
-
-  # ============================================================================
-  # GRAFANA (Visualization & Dashboards) — Optional
-  # ============================================================================
-  grafana:
-    image: grafana/grafana:latest
-    pull_policy: if_not_present
-    container_name: atlas-grafana-prod
-    restart: always
-    ports:
-      - "3002:3000"
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - grafana_data:/var/lib/grafana
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_change_me_in_prod}
-      GF_SECURITY_ADMIN_USER: admin
-      GF_USERS_ALLOW_SIGN_UP: 'false'
-      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3002}
-      GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-assistant-app
-      GRAFANA_CLOUD_PROM_QUERY_URL: ${GRAFANA_CLOUD_PROM_QUERY_URL:-https://prometheus-prod-72-prod-eu-west-4.grafana.net/api/prom}
-      GRAFANA_CLOUD_PROM_USER: ${GRAFANA_CLOUD_PROM_USER:-3759940}
-      GRAFANA_CLOUD_PROM_TOKEN: ${GRAFANA_CLOUD_PROM_TOKEN:-}
-      GRAFANA_ASSISTANT_URL: ${GRAFANA_ASSISTANT_URL:-https://assistant-prod-eu-west-2.grafana.net/assistant}
-      GRAFANA_ASSISTANT_INSTANCE_ID: ${GRAFANA_ASSISTANT_INSTANCE_ID:-1917865}
-      GRAFANA_ASSISTANT_TOKEN: ${GRAFANA_ASSISTANT_TOKEN:-}
-    depends_on:
-      prometheus:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      <<: *default_healthcheck
-    networks:
-      - default
-    profiles:
-      - observability
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-    security_opt:
-      - no-new-privileges:true
-
-  # ============================================================================
-  # NODE EXPORTER (System Metrics Collection) — Optional
-  # ============================================================================
-  node-exporter:
-    image: prom/node-exporter:latest
-    pull_policy: if_not_present
-    container_name: atlas-node-exporter-prod
-    restart: always
-    ports:
-      - "9100:9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-      - '--collector.netdev.device-exclude=^(docker[0-9a-f]+|veth[0-9a-f]+)$$'
-    networks:
-      - default
-    profiles:
-      - observability
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-    security_opt:
-      - no-new-privileges:true
-
 volumes:
   backend_data:
     driver: local
   redis_data:
-    driver: local
-  prometheus_data:
-    driver: local
-  grafana_data:
     driver: local
 
 networks:
   default:
     name: atlas-network
     driver: bridge
+

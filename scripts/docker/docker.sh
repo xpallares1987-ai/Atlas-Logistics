@@ -60,7 +60,7 @@ start_prod() {
         echo -e "${RED}✗ .env.production not found!${NC}"
         echo -e "${YELLOW}Create .env.production with required secrets:${NC}"
         echo "  - JWT_SECRET"
-        echo "  - GRAFANA_ADMIN_PASSWORD"
+        echo "  - COOKIE_SECRET"
         exit 1
     fi
     
@@ -75,13 +75,6 @@ start_prod() {
     echo "  • Frontend:    http://localhost"
     echo "  • API:         http://localhost/api"
     echo "  • Swagger:     http://localhost/docs"
-    
-    if [ "$1" == "--with-observability" ]; then
-        echo -e "${BLUE}• Starting observability stack...${NC}"
-        docker compose -f docker-compose.prod.yml --profile observability up -d
-        echo "  • Prometheus:  http://localhost:9090"
-        echo "  • Grafana:     http://localhost:3002"
-    fi
     
     echo -e "${BLUE}View logs: docker compose -f docker-compose.prod.yml logs -f${NC}"
 }
@@ -106,7 +99,7 @@ restart() {
     
     if [ -z "$SERVICE" ]; then
         echo "Usage: restart <service-name> [docker-compose file]"
-        echo "Services: backend, frontend, redis, worker, prometheus, grafana"
+        echo "Services: backend, frontend, redis, worker"
         exit 1
     fi
     

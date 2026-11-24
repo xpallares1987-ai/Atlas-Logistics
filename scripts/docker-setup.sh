@@ -97,12 +97,10 @@ setup_prod() {
     JWT_SECRET=$(generate_secret)
     COOKIE_SECRET=$(generate_secret)
     REDIS_PASSWORD=$(generate_secret)
-    GRAFANA_PASSWORD=$(generate_secret)
     
     print_success "Generated JWT_SECRET"
     print_success "Generated COOKIE_SECRET"
     print_success "Generated REDIS_PASSWORD"
-    print_success "Generated GRAFANA_ADMIN_PASSWORD"
     
     # Create .env.production
     cat > "$PROJECT_ROOT/.env.production" << EOF
@@ -133,12 +131,6 @@ VITE_API_URL=https://api.yourdomain.com
 JWT_SECRET=$JWT_SECRET
 COOKIE_SECRET=$COOKIE_SECRET
 
-# Observability
-GRAFANA_ADMIN_PASSWORD=$GRAFANA_PASSWORD
-PROMETHEUS_RETENTION=30d
-PROMETHEUS_EXTERNAL_URL=https://monitoring.yourdomain.com
-GRAFANA_EXTERNAL_URL=https://monitoring.yourdomain.com
-
 # Google Cloud / Firebase (Optional)
 # GOOGLE_CLOUD_PROJECT=atlas-logistics-prod
 # GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/gcp-key.json
@@ -150,7 +142,7 @@ EOF
     
     echo ""
     print_warning "IMPORTANT: Before deploying to production:"
-    echo "  1. Update VITE_API_URL, PROMETHEUS_EXTERNAL_URL, GRAFANA_EXTERNAL_URL in .env.production"
+    echo "  1. Update VITE_API_URL in .env.production"
     echo "  2. Move secrets to Docker Secrets or a secrets manager"
     echo "  3. Enable HTTPS/TLS on reverse proxy"
     echo "  4. Backup .env.production in a secure location"
@@ -164,7 +156,6 @@ Generated Production Secrets: $(date)
 JWT_SECRET: $JWT_SECRET
 COOKIE_SECRET: $COOKIE_SECRET
 REDIS_PASSWORD: $REDIS_PASSWORD
-GRAFANA_ADMIN_PASSWORD: $GRAFANA_PASSWORD
 
 IMPORTANT: Keep this file in a secure location. Move to a secrets manager before production.
 EOF

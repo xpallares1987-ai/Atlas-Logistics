@@ -10,7 +10,6 @@
   "scripts": {
     "dev": "concurrently -k -p \"[{name}]\" -n \"REDIS,BACKEND,MFE\" -c \"red,cyan,magenta\" \"docker compose up redis --remove-orphans\" \"pnpm run start:backend\" \"wait-on http://127.0.0.1:3001/health -t 30000 && turbo run dev\"",
     "dev:minimal": "concurrently -k -p \"[{name}]\" -n \"BACKEND,MFE\" -c \"cyan,magenta\" \"pnpm run start:backend\" \"wait-on http://127.0.0.1:3001/health -t 30000 && turbo run dev\"",
-    "dev:observability": "concurrently -k -p \"[{name}]\" -n \"REDIS,BACKEND,MFE,OBS\" -c \"red,cyan,magenta,yellow\" \"docker compose up redis --remove-orphans\" \"pnpm run start:backend\" \"wait-on http://127.0.0.1:3001/health -t 30000 && turbo run dev\" \"docker compose --profile observability up prometheus grafana node-exporter\"",
     "dev:stop": "docker compose down",
     "dev:dashboard": "pnpm --filter @atlas/dashboard dev",
     "dev:redis:only": "docker compose up redis --remove-orphans",

@@ -110,13 +110,6 @@ function validateEnv() {
       message: "Must be at least 32 characters",
     },
 
-    // Grafana (only if observability enabled)
-    GRAFANA_ADMIN_PASSWORD: {
-      required: false,
-      validate: (val) => val && val.length >= 8,
-      message: "Must be at least 8 characters",
-    },
-
     // API URL
     VITE_API_URL: {
       required: false,
@@ -170,7 +163,7 @@ function validateEnv() {
 
   // Check if .env.production has required secrets for prod
   if (process.env.NODE_ENV === "production") {
-    const secrets = ["JWT_SECRET", "COOKIE_SECRET", "GRAFANA_ADMIN_PASSWORD"];
+    const secrets = ["JWT_SECRET", "COOKIE_SECRET"];
     const hasAllSecrets = secrets.every((s) => env[s] && env[s].length >= 32);
 
     if (hasAllSecrets) {

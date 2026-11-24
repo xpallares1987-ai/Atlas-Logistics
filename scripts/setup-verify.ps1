@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # ATLAS LOGISTICS — SETUP VERIFICATION (Windows PowerShell)
 # ==============================================================================
 # Usage: .\setup-verify.ps1 (can be run from any working directory)
@@ -114,7 +114,6 @@ Write-Host ""
 Write-Host "  Standard (recommended):" -ForegroundColor Cyan
 Write-Host "    pnpm dev                  — Starts backend + frontend + Redis"
 Write-Host "    pnpm dev:minimal         — Starts backend + frontend only (no Docker)"
-Write-Host "    pnpm dev:observability   — Starts all + Prometheus + Grafana"
 Write-Host ""
 Write-Host "  Database:" -ForegroundColor Cyan
 Write-Host "    pnpm db:migrate         — Run migrations"

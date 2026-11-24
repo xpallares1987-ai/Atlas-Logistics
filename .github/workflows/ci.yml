@@ -318,7 +318,6 @@ jobs:
         env:
           DATABASE_URL: file:/app/data/prod.db
           JWT_SECRET: smoke-test-jwt-secret-key-super-secure-32chars
-          GRAFANA_ADMIN_PASSWORD: smoke-test-grafana-admin-password
 
   verify-provenance:
     name: Verify SLSA Provenance Gate

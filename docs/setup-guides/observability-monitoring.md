@@ -6,12 +6,14 @@ This document is the definitive reference for metrics, structured logging, distr
 
 ## 1. Observability Architecture Overview
 
-Atlas Logistics implements end-to-end observability adhering to the OpenTelemetry (OTel) standard:
+Atlas Logistics implements a 100% self-contained, zero-cost native observability architecture without external reporting or monitoring sidecars (zero Grafana, zero external Prometheus server):
 
 ```
-Fastify App (Pino + Prom-Client) ──► Prometheus (/metrics) ──► Grafana Dashboards (Port 3002)
-                                 └──► Loki (Logs)          ──► Grafana Explore
-                                 └──► OpenTelemetry Trace  ──► Tempo / APM
+Fastify App (@prometheus-io/client in-process) ──► /metrics (Scrapable endpoint)
+      │
+      ├──► Native Telemetry Hooks (onResponse) ──► SQLite WAL (system_metrics)
+      │                                                │
+      └──► Structured JSON Logs (Pino)                 └──► In-App React Cockpit (Recharts)
 ```
 
 ---
@@ -20,7 +22,7 @@ Fastify App (Pino + Prom-Client) ──► Prometheus (/metrics) ──► Grafa
 
 | Endpoint | Protocol | Purpose | Authentication |
 | :--- | :--- | :--- | :--- |
-| `GET /metrics` | HTTP (Prometheus format) | Application & process metrics | Internal / Scraper network |
+| `GET /metrics` | HTTP (Prometheus format) | In-process application & process metrics | Internal / Scraper network |
 | `GET /health` | HTTP JSON | Liveness & readiness probe | Public |
 | `GET /api/scm/v1/operational/outbox/dlq` | HTTP JSON | Dead Letter Queue inspection | Operator RBAC/ABAC |
 | `GET /api/scm/v1/operational/cockpit/summary` | HTTP JSON | Real-time work queue KPI counters | Operator RBAC/ABAC |
@@ -35,14 +37,12 @@ Fastify App (Pino + Prom-Client) ──► Prometheus (/metrics) ──► Grafa
 
 ---
 
-## 3. Grafana Dashboard Configuration
+## 3. Native In-Application Cockpit & Dashboards
 
-When running with `docker compose --profile observability up -d`:
-* **Grafana URL**: `http://localhost:3002` (Default credentials: `admin` / `admin`).
-* **Pre-provisioned Dashboards**:
-  1. **Atlas Executive Overview**: Global request rate, error rate, p95 latency, active shipments.
-  2. **SCM Operations & Outbox Health**: Outbox processing lag, DLQ size, workflow instances state.
-  3. **Node.js Process Telemetry**: Event loop lag, V8 heap usage, GC pause duration.
+All system telemetry, latency distributions, and operational throughput are rendered directly within the Atlas Logistics web application using native React components backed by `recharts`:
+* **Zero Third-Party Containers**: No Grafana or Prometheus server containers required.
+* **Domain & Multitenant Scoping**: Live metrics correlate directly with tenant, branch, and shipment operational entities.
+* **Offline-First PWA Compatibility**: Operates seamlessly in local and edge deployments without external network connectivity.
 
 ---
 

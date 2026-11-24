@@ -74,11 +74,10 @@ if /i "%1"=="dev" (
     echo.
     echo WARNING: Before deploying to production:
     echo   1. Edit .env.production with your production values
-    echo   2. Update VITE_API_URL, PROMETHEUS_EXTERNAL_URL, GRAFANA_EXTERNAL_URL
+    echo   2. Update VITE_API_URL
     echo   3. Generate strong secrets:
     echo      - JWT_SECRET: 32-byte random hex
     echo      - REDIS_PASSWORD: 32-byte random hex
-    echo      - GRAFANA_ADMIN_PASSWORD: 32-byte random
     echo   4. Store secrets securely (Docker Secrets, Vault, etc.)
     echo   5. Enable HTTPS/TLS on reverse proxy
     echo.
