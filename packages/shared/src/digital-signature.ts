@@ -130,9 +130,15 @@ export class DigitalSignatureService {
   }
 
   private async fallbackSha256(data: Uint8Array): Promise<string> {
-    if (typeof process !== "undefined" && process.versions?.node) {
-      const { createHash } = await import("node:crypto");
-      return createHash("sha256").update(data).digest("hex");
+    const subtle = globalThis.crypto?.subtle;
+    if (subtle) {
+      const hashBuffer = await subtle.digest(
+        "SHA-256",
+        data as unknown as BufferSource,
+      );
+      return Array.from(new Uint8Array(hashBuffer))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
     }
     return "0000000000000000000000000000000000000000000000000000000000000000";
   }
