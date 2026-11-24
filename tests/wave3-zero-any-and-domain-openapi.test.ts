@@ -28,7 +28,7 @@ import {
 } from "../src/services/documents/document-signer.service.js";
 
 // ============================================================================
-// 1. WAVE 3 DOMAIN ROUTE MODULE MANIFEST (20 MODULES / 179 ENDPOINTS)
+// 1. WAVE 3 DOMAIN ROUTE MODULE MANIFEST (20 MODULES / 181 ENDPOINTS)
 // ============================================================================
 
 interface Wave3RouteModuleSpec {
@@ -50,7 +50,7 @@ const WAVE3_ROUTE_MODULES: readonly Wave3RouteModuleSpec[] = [
   },
   {
     relativePath: "src/modules/erp-integrations/erp-integrations.routes.ts",
-    expectedEndpoints: 11,
+    expectedEndpoints: 13,
     expectedTag: "ERP Integrations",
   },
   {
@@ -207,7 +207,7 @@ describe("P1-A Wave 3 — Repository-Wide Zero-Any & Domain OpenAPI Closure", ()
     ).toEqual([]);
   });
 
-  it("enforces 1:1 OpenAPI schema coverage, domain tags, and AGENTS.md §6 headers on all 20 Wave 3 domain route modules (179 endpoints)", () => {
+  it("enforces 1:1 OpenAPI schema coverage, domain tags, and AGENTS.md §6 headers on all 20 Wave 3 domain route modules (181 endpoints)", () => {
     let wave3TotalEndpoints = 0;
 
     for (const mod of WAVE3_ROUTE_MODULES) {
@@ -238,10 +238,10 @@ describe("P1-A Wave 3 — Repository-Wide Zero-Any & Domain OpenAPI Closure", ()
       wave3TotalEndpoints += schemaCount;
     }
 
-    expect(wave3TotalEndpoints).toBe(179);
+    expect(wave3TotalEndpoints).toBe(181);
   });
 
-  it("enforces 100% OpenAPI schema coverage across all 30 domain route modules in src/modules/ (297 endpoints)", () => {
+  it("enforces 100% OpenAPI schema coverage across all 30 domain route modules in src/modules/ (299 endpoints)", () => {
     const modulesRoot = resolve(process.cwd(), "src/modules");
     const allRouteFiles = collectSourceTsFiles(modulesRoot).filter((f) =>
       f.endsWith(".routes.ts"),
@@ -269,8 +269,8 @@ describe("P1-A Wave 3 — Repository-Wide Zero-Any & Domain OpenAPI Closure", ()
     }
 
     expect(mismatches).toEqual([]);
-    expect(totalRoutes).toBe(297);
-    expect(totalSchemas).toBe(297);
+    expect(totalRoutes).toBe(299);
+    expect(totalSchemas).toBe(299);
   });
 
   it("boots Fastify app and compiles a valid OpenAPI 3.x document containing Wave 3 domain tags", async () => {
