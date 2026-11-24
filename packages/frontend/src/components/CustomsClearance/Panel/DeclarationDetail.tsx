@@ -4,6 +4,7 @@
  * @module @atlas/frontend/components/CustomsClearance/Panel
  */
 
+import { useState } from "react";
 import {
   FileText,
   FileCode,
@@ -14,6 +15,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { CustomsDeclaration, StatusVisuals } from "../types/index";
+import { GatewayFilingTab } from "../Tab/GatewayFilingTab";
 
 interface DeclarationDetailProps {
   selectedDecl: CustomsDeclaration | null;
@@ -32,6 +34,10 @@ export function DeclarationDetail({
   isDispatching = false,
   onDispatchClearance,
 }: DeclarationDetailProps) {
+  const [activeSubtab, setActiveSubtab] = useState<"casillas" | "gateway">(
+    "casillas",
+  );
+
   if (!selectedDecl) {
     return (
       <div className="w-full lg:w-2/3 bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col items-center justify-center text-slate-500 min-h-[600px] lg:min-h-0">
@@ -127,288 +133,336 @@ export function DeclarationDetail({
           </div>
         </div>
 
-        {/* e-Firma / SAT / AEAT Verified Seal Banner */}
-        {(selectedDecl.status === "Green Channel" ||
-          selectedDecl.status === "Cleared") && (
-          <div className="mx-6 mt-6 p-4 bg-emerald-950/40 border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-black text-emerald-200">
-                    Levante de Importación Concedido (Canal Verde)
-                  </h4>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    e-Firma OEA Validada
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-400/80 mt-1">
-                  {selectedDecl.efirma?.tamperSealHash ? (
-                    <>
-                      Sello Digital:{" "}
-                      <span className="font-mono text-[10px] text-white">
-                        {selectedDecl.efirma.tamperSealHash.substring(0, 24)}...
-                      </span>{" "}
-                      | Certificado:{" "}
-                      <span className="font-mono text-[10px] text-white">
-                        {selectedDecl.efirma.certificateSerial}
-                      </span>
-                    </>
-                  ) : (
-                    "Despacho autorizado por la Autoridad Aduanera con firma electrónica OEA."
-                  )}
-                </p>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Suplidos (Arancel + IVA) asentados en el submayor contable sin
-                  margen comercial (Zero-Markup Pass-Through).
-                </p>
-              </div>
-            </div>
-            {selectedDecl.shipmentId && (
-              <a
-                href={`/shipment-360?id=${selectedDecl.shipmentId}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/30 text-xs font-bold rounded-xl transition-all whitespace-nowrap shrink-0"
-              >
-                Ver Hito en Shipment 360 →
-              </a>
-            )}
-          </div>
-        )}
+        {/* Subtab Navigation Strip */}
+        <div className="flex items-center gap-2 px-6 border-b border-white/10 bg-slate-900/40">
+          <button
+            type="button"
+            onClick={() => setActiveSubtab("casillas")}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all ${
+              activeSubtab === "casillas"
+                ? "border-indigo-500 text-white bg-indigo-500/10"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Casillas DUA (54)</span>
+          </button>
 
-        {/* DUA Box Layout Structure */}
-        <div className="p-6 space-y-6">
-          {/* 54 Boxes Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Box 1 & 2: Exporter */}
-            <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-4">
-              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-                Casilla 02 - Exportador / Expedidor
-              </span>
-              <h4 className="text-sm font-bold text-white mt-1">
-                {selectedDecl.exporterName || "Global Freight Logistics Ltd"}
-              </h4>
-              <p className="text-xs text-slate-400 mt-1">
-                Pudong Logistics Hub, Shanghai (CN)
-              </p>
-              <p className="text-xs text-slate-500 mt-2 font-mono">
-                Origen: {selectedDecl.originCountry || "CN"}
-              </p>
-            </div>
-
-            {/* Box 8: Consignee & EORI */}
-            <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-4">
-              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-                Casilla 08 - Destinatario / Importador
-              </span>
-              <h4 className="text-sm font-bold text-white mt-1">
-                {selectedDecl.consigneeName || "Iberica Import Logistics SL"}
-              </h4>
-              <p className="text-xs text-slate-400 mt-1">
-                Carrer del Port 45, Barcelona (ES)
-              </p>
-              <p className="text-xs text-emerald-400 mt-2 font-mono font-bold">
-                EORI: {selectedDecl.eoriNumber || "ESB88492019"}
-              </p>
-            </div>
-
-            {/* Box 14: Declarant Representative */}
-            <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-4">
-              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-                Casilla 14 - Declarante / Representante
-              </span>
-              <h4 className="text-sm font-bold text-white mt-1">
-                Atlas Logistics Customs Brokerage SL
-              </h4>
-              <p className="text-xs text-slate-400 mt-1">
-                EORI: ESB88492019 (Representación Directa)
-              </p>
-              <p className="text-xs text-indigo-300 mt-2 font-mono">
-                Estado OEA: Certificado
-              </p>
-            </div>
-          </div>
-
-          {/* Box 31, 33, 46: Goods & Valuation */}
-          <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-5">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-white/10 gap-2">
-              <div>
-                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-                  Casilla 31 & 33 - Mercancía y Código TARIC
-                </span>
-                <h3 className="text-lg font-bold text-white mt-1">
-                  {selectedDecl.hsDescription ||
-                    "Convertidores estáticos y fuentes de alimentación conmutadas"}
-                </h3>
-              </div>
-              <div className="px-3 py-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-xl">
-                <span className="text-xs font-mono font-black text-indigo-300">
-                  TARIC: {selectedDecl.hsCode || "8504.40.90.90"}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 text-xs">
-              <div>
-                <span className="text-slate-400">Casilla 46 (Valor CIF):</span>
-                <p className="text-base font-bold text-white mt-0.5">
-                  {Number(selectedDecl.customsValue || 25000).toLocaleString(
-                    "es-ES",
-                  )}{" "}
-                  EUR
-                </p>
-              </div>
-              <div>
-                <span className="text-slate-400">
-                  Derechos de Arancel (A00):
-                </span>
-                <p className="text-base font-bold text-amber-400 mt-0.5">
-                  {Number(selectedDecl.dutiesAmount || 825).toLocaleString(
-                    "es-ES",
-                  )}{" "}
-                  EUR
-                </p>
-              </div>
-              <div>
-                <span className="text-slate-400">IVA Importación (B00):</span>
-                <p className="text-base font-bold text-indigo-400 mt-0.5">
-                  {Number(selectedDecl.taxesAmount || 5423.25).toLocaleString(
-                    "es-ES",
-                  )}{" "}
-                  EUR
-                </p>
-              </div>
-              <div>
-                <span className="text-slate-400">
-                  Total Liquidación (Casilla 47):
-                </span>
-                <p className="text-base font-black text-emerald-400 mt-0.5">
-                  {Number(selectedDecl.totalPayable || 6248.25).toLocaleString(
-                    "es-ES",
-                  )}{" "}
-                  EUR
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Deterministic Compliance Diagnostics Breakdown */}
-          <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-5">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Diagnóstico de Cumplimiento Normativo (Reglas Deterministas)
-            </h3>
-
-            <div className="space-y-3">
-              {/* EORI Rule */}
-              <div className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <div className="text-xs">
-                  <p className="font-bold text-slate-200">
-                    Validación EORI (Regla EORI-01)
-                  </p>
-                  <p className="text-slate-400 mt-0.5">
-                    EORI del importador (
-                    {selectedDecl.eoriNumber || "ESB88492019"}) registrado y
-                    habilitado para operaciones aduaneras en la UE.
-                  </p>
-                </div>
-              </div>
-
-              {/* Sanctions Rule */}
-              <div
-                className={`flex items-start gap-3 p-3 rounded-xl border ${
-                  selectedDecl.originCountry === "RU" ||
-                  selectedDecl.originCountry === "KP"
-                    ? "bg-rose-500/10 border-rose-500/20"
-                    : "bg-white/5 border-white/5"
-                }`}
-              >
-                {selectedDecl.originCountry === "RU" ||
-                selectedDecl.originCountry === "KP" ? (
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                ) : (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                )}
-                <div className="text-xs">
-                  <p className="font-bold text-slate-200">
-                    Screening de Sanciones y Restricciones (Regla SANC-01)
-                  </p>
-                  <p className="text-slate-400 mt-0.5">
-                    {selectedDecl.originCountry === "RU" ||
-                    selectedDecl.originCountry === "KP"
-                      ? `Alerta: El país de origen (${selectedDecl.originCountry}) está sujeto a medidas restrictivas internacionales.`
-                      : `País de origen (${selectedDecl.originCountry || "CN"}) verificado libre de embargos comerciales.`}
-                  </p>
-                </div>
-              </div>
-
-              {/* Valuation & Dual Use */}
-              <div
-                className={`flex items-start gap-3 p-3 rounded-xl border ${
-                  selectedDecl.isDualUse
-                    ? "bg-rose-500/10 border-rose-500/20"
-                    : "bg-white/5 border-white/5"
-                }`}
-              >
-                {selectedDecl.isDualUse ? (
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                ) : (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                )}
-                <div className="text-xs">
-                  <p className="font-bold text-slate-200">
-                    Control de Doble Uso y Material Sensible (Regla DUAL-01)
-                  </p>
-                  <p className="text-slate-400 mt-0.5">
-                    {selectedDecl.isDualUse
-                      ? "Mercancía clasificada como tecnología de doble uso. Requiere licencia de exportación/importación."
-                      : "Clasificación TARIC exenta de licencias de doble uso (Reglamento UE 2021/821)."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Attached Documents */}
-          <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-5">
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-              Casilla 44 - Documentos Presentados y Certificados
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-              <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5 text-xs">
-                <FileText className="w-4 h-4 text-indigo-400" />
-                <div>
-                  <p className="font-bold text-white">N935 Factura</p>
-                  <p className="text-[10px] text-slate-400">
-                    Factura comercial definitiva
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5 text-xs">
-                <FileText className="w-4 h-4 text-indigo-400" />
-                <div>
-                  <p className="font-bold text-white">N705 Conocimiento</p>
-                  <p className="text-[10px] text-slate-400">
-                    {selectedDecl.blNumber || "BL-88492019"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5 text-xs">
-                <FileText className="w-4 h-4 text-indigo-400" />
-                <div>
-                  <p className="font-bold text-white">N714 Packing List</p>
-                  <p className="text-[10px] text-slate-400">
-                    Lista de empaque y bultos
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() => setActiveSubtab("gateway")}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all ${
+              activeSubtab === "gateway"
+                ? "border-indigo-500 text-white bg-indigo-500/10"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Pasarela Regulatoria & PKI (ADR 0038)</span>
+          </button>
         </div>
+
+        {activeSubtab === "gateway" ? (
+          <GatewayFilingTab
+            declaration={selectedDecl}
+            onDispatched={() => onAudit(selectedDecl.id)}
+          />
+        ) : (
+          <>
+            {/* e-Firma / SAT / AEAT Verified Seal Banner */}
+            {(selectedDecl.status === "Green Channel" ||
+              selectedDecl.status === "Cleared") && (
+              <div className="mx-6 mt-6 p-4 bg-emerald-950/40 border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-black text-emerald-200">
+                        Levante de Importación Concedido (Canal Verde)
+                      </h4>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        e-Firma OEA Validada
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-400/80 mt-1">
+                      {selectedDecl.efirma?.tamperSealHash ? (
+                        <>
+                          Sello Digital:{" "}
+                          <span className="font-mono text-[10px] text-white">
+                            {selectedDecl.efirma.tamperSealHash.substring(
+                              0,
+                              24,
+                            )}
+                            ...
+                          </span>{" "}
+                          | Certificado:{" "}
+                          <span className="font-mono text-[10px] text-white">
+                            {selectedDecl.efirma.certificateSerial}
+                          </span>
+                        </>
+                      ) : (
+                        "Despacho autorizado por la Autoridad Aduanera con firma electrónica OEA."
+                      )}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Suplidos (Arancel + IVA) asentados en el submayor contable
+                      sin margen comercial (Zero-Markup Pass-Through).
+                    </p>
+                  </div>
+                </div>
+                {selectedDecl.shipmentId && (
+                  <a
+                    href={`/shipment-360?id=${selectedDecl.shipmentId}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/30 text-xs font-bold rounded-xl transition-all whitespace-nowrap shrink-0"
+                  >
+                    Ver Hito en Shipment 360 →
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* DUA Box Layout Structure */}
+            <div className="p-6 space-y-6">
+              {/* 54 Boxes Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Box 1 & 2: Exporter */}
+                <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-4">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                    Casilla 02 - Exportador / Expedidor
+                  </span>
+                  <h4 className="text-sm font-bold text-white mt-1">
+                    {selectedDecl.exporterName ||
+                      "Global Freight Logistics Ltd"}
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Pudong Logistics Hub, Shanghai (CN)
+                  </p>
+                  <p className="text-xs text-slate-500 mt-2 font-mono">
+                    Origen: {selectedDecl.originCountry || "CN"}
+                  </p>
+                </div>
+
+                {/* Box 8: Consignee & EORI */}
+                <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-4">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                    Casilla 08 - Destinatario / Importador
+                  </span>
+                  <h4 className="text-sm font-bold text-white mt-1">
+                    {selectedDecl.consigneeName ||
+                      "Iberica Import Logistics SL"}
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Carrer del Port 45, Barcelona (ES)
+                  </p>
+                  <p className="text-xs text-emerald-400 mt-2 font-mono font-bold">
+                    EORI: {selectedDecl.eoriNumber || "ESB88492019"}
+                  </p>
+                </div>
+
+                {/* Box 14: Declarant Representative */}
+                <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-4">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                    Casilla 14 - Declarante / Representante
+                  </span>
+                  <h4 className="text-sm font-bold text-white mt-1">
+                    Atlas Logistics Customs Brokerage SL
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-1">
+                    EORI: ESB88492019 (Representación Directa)
+                  </p>
+                  <p className="text-xs text-indigo-300 mt-2 font-mono">
+                    Estado OEA: Certificado
+                  </p>
+                </div>
+              </div>
+
+              {/* Box 31, 33, 46: Goods & Valuation */}
+              <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-5">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-white/10 gap-2">
+                  <div>
+                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                      Casilla 31 & 33 - Mercancía y Código TARIC
+                    </span>
+                    <h3 className="text-lg font-bold text-white mt-1">
+                      {selectedDecl.hsDescription ||
+                        "Convertidores estáticos y fuentes de alimentación conmutadas"}
+                    </h3>
+                  </div>
+                  <div className="px-3 py-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-xl">
+                    <span className="text-xs font-mono font-black text-indigo-300">
+                      TARIC: {selectedDecl.hsCode || "8504.40.90.90"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 text-xs">
+                  <div>
+                    <span className="text-slate-400">
+                      Casilla 46 (Valor CIF):
+                    </span>
+                    <p className="text-base font-bold text-white mt-0.5">
+                      {Number(
+                        selectedDecl.customsValue || 25000,
+                      ).toLocaleString("es-ES")}{" "}
+                      EUR
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">
+                      Derechos de Arancel (A00):
+                    </span>
+                    <p className="text-base font-bold text-amber-400 mt-0.5">
+                      {Number(selectedDecl.dutiesAmount || 825).toLocaleString(
+                        "es-ES",
+                      )}{" "}
+                      EUR
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">
+                      IVA Importación (B00):
+                    </span>
+                    <p className="text-base font-bold text-indigo-400 mt-0.5">
+                      {Number(
+                        selectedDecl.taxesAmount || 5423.25,
+                      ).toLocaleString("es-ES")}{" "}
+                      EUR
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">
+                      Total Liquidación (Casilla 47):
+                    </span>
+                    <p className="text-base font-black text-emerald-400 mt-0.5">
+                      {Number(
+                        selectedDecl.totalPayable || 6248.25,
+                      ).toLocaleString("es-ES")}{" "}
+                      EUR
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Deterministic Compliance Diagnostics Breakdown */}
+              <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-5">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  Diagnóstico de Cumplimiento Normativo (Reglas Deterministas)
+                </h3>
+
+                <div className="space-y-3">
+                  {/* EORI Rule */}
+                  <div className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="text-xs">
+                      <p className="font-bold text-slate-200">
+                        Validación EORI (Regla EORI-01)
+                      </p>
+                      <p className="text-slate-400 mt-0.5">
+                        EORI del importador (
+                        {selectedDecl.eoriNumber || "ESB88492019"}) registrado y
+                        habilitado para operaciones aduaneras en la UE.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Sanctions Rule */}
+                  <div
+                    className={`flex items-start gap-3 p-3 rounded-xl border ${
+                      selectedDecl.originCountry === "RU" ||
+                      selectedDecl.originCountry === "KP"
+                        ? "bg-rose-500/10 border-rose-500/20"
+                        : "bg-white/5 border-white/5"
+                    }`}
+                  >
+                    {selectedDecl.originCountry === "RU" ||
+                    selectedDecl.originCountry === "KP" ? (
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    )}
+                    <div className="text-xs">
+                      <p className="font-bold text-slate-200">
+                        Screening de Sanciones y Restricciones (Regla SANC-01)
+                      </p>
+                      <p className="text-slate-400 mt-0.5">
+                        {selectedDecl.originCountry === "RU" ||
+                        selectedDecl.originCountry === "KP"
+                          ? `Alerta: El país de origen (${selectedDecl.originCountry}) está sujeto a medidas restrictivas internacionales.`
+                          : `País de origen (${selectedDecl.originCountry || "CN"}) verificado libre de embargos comerciales.`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Valuation & Dual Use */}
+                  <div
+                    className={`flex items-start gap-3 p-3 rounded-xl border ${
+                      selectedDecl.isDualUse
+                        ? "bg-rose-500/10 border-rose-500/20"
+                        : "bg-white/5 border-white/5"
+                    }`}
+                  >
+                    {selectedDecl.isDualUse ? (
+                      <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    )}
+                    <div className="text-xs">
+                      <p className="font-bold text-slate-200">
+                        Control de Doble Uso y Material Sensible (Regla DUAL-01)
+                      </p>
+                      <p className="text-slate-400 mt-0.5">
+                        {selectedDecl.isDualUse
+                          ? "Mercancía clasificada como tecnología de doble uso. Requiere licencia de exportación/importación."
+                          : "Clasificación TARIC exenta de licencias de doble uso (Reglamento UE 2021/821)."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Attached Documents */}
+              <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-5">
+                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                  Casilla 44 - Documentos Presentados y Certificados
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                  <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5 text-xs">
+                    <FileText className="w-4 h-4 text-indigo-400" />
+                    <div>
+                      <p className="font-bold text-white">N935 Factura</p>
+                      <p className="text-[10px] text-slate-400">
+                        Factura comercial definitiva
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5 text-xs">
+                    <FileText className="w-4 h-4 text-indigo-400" />
+                    <div>
+                      <p className="font-bold text-white">N705 Conocimiento</p>
+                      <p className="text-[10px] text-slate-400">
+                        {selectedDecl.blNumber || "BL-88492019"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5 text-xs">
+                    <FileText className="w-4 h-4 text-indigo-400" />
+                    <div>
+                      <p className="font-bold text-white">N714 Packing List</p>
+                      <p className="text-[10px] text-slate-400">
+                        Lista de empaque y bultos
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

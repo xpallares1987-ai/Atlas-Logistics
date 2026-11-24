@@ -15,7 +15,7 @@ Structured strictly according to the 4 quadrants of the **Diátaxis Documentatio
 docs/
 ├── README.md                  # Master documentation index and navigation hub
 ├── architecture/              # [Explanation] SCM domain aggregates, outbox runtime, event blueprints
-├── adr/                       # [Decisions] Architectural Decision Records (0001 through 0022)
+├── adr/                       # [Decisions] Architectural Decision Records (0001 through 0042)
 ├── setup-guides/              # [How-To Guides] Development, container verification, DDL migrations, security
 ├── runbooks/                  # [Runbooks] Operational procedures, branch governance, incident response
 ├── deployment/                # [How-To Guides] Production deployment, Docker Compose, runner matrices

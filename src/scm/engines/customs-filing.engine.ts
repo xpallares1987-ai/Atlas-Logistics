@@ -409,9 +409,9 @@ export function parseCusresResponse(rawResponse: string): ParsedCusresResponse {
     filingReference = filingMatch[1].trim();
   }
 
-  // Extract Status or Routing Channel (<RoutingChannel>, <Status>, <Circuit>)
+  // Extract Status or Routing Channel (<RoutingChannel>, <Status>, <Circuit>, <Circuito>, <StatusCode>)
   const channelMatch = rawResponse.match(
-    /<(?:[a-zA-Z0-9_-]+:)?(?:RoutingChannel|Status|Circuit|StatusCode)>([^<]+)<\//i,
+    /<(?:[a-zA-Z0-9_-]+:)?(?:RoutingChannel|Status|Circuit|Circuito|StatusCode)>([^<]+)<\//i,
   );
   const rawStatus = (channelMatch ? channelMatch[1].trim() : "").toUpperCase();
 

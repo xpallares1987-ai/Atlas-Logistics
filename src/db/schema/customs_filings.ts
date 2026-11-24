@@ -32,6 +32,9 @@ export const customsPkiCertificates = sqliteTable(
     })
       .notNull()
       .default("LOCAL_PKCS12"),
+    encryptedPkcs12Blob: text("encrypted_pkcs12_blob"),
+    ivHex: text("iv_hex"),
+    authTagHex: text("auth_tag_hex"),
     isRevoked: integer("is_revoked", { mode: "boolean" })
       .notNull()
       .default(false),

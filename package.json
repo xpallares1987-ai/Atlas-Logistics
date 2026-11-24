@@ -1,7 +1,7 @@
 {
   "name": "atlas-logistics",
   "version": "1.0.0",
-  "description": "Atlas Logistics Monorepo",
+  "description": "Sovereign Multimodal Freight Forwarding & SCM Super-App ($0 Cloud): Global ocean (DCSA), air (IATA/CASS), rail & road TMS, single-window EU DUA customs, definitive CBAM/FuelEU decarbonization, ISO 20022/MLETR trade finance, and SQLite WAL local-first architecture.",
   "type": "module",
   "packageManager": "pnpm@11.5.1",
   "engines": {

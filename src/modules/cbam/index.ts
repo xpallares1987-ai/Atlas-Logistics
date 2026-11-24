@@ -5,6 +5,8 @@
 
 export * from "./cbam-calculator.service.js";
 export * from "./cbam-financial.service.js";
+export * from "./cbam-eex.service.js";
+export * from "./cbam-certificate.service.js";
 export * from "./cbam-xml.service.js";
 export * from "./cbam.pdf.js";
 export * from "./cbam.routes.js";

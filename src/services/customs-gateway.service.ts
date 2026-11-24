@@ -14,7 +14,13 @@ import {
   customsPkiCertificates,
   customsFilingTransmissions,
 } from "../db/schema/customs_filings.js";
-import { customsClearances } from "../db/schema/customs_brokerage.js";
+import {
+  customsClearances,
+  customsClearanceShipments,
+} from "../db/schema/customs_brokerage.js";
+import { controlTowerIncidents } from "../db/schema/control_tower.js";
+import { customsKeystoreService } from "./customs/customs-keystore.service.js";
+import { customsSimulatorService } from "./customs/customs-simulator.service.js";
 import { outboxBus } from "../scm/kernel/outbox-bus.js";
 import {
   SecurityActorContext,
@@ -27,6 +33,8 @@ import {
   type CustomsProtocol,
   type MessageFunction,
 } from "../scm/engines/customs-filing.engine.js";
+
+export type CustomsMessageFunction = MessageFunction;
 
 export type { CustomsAgency, CustomsProtocol, MessageFunction };
 
@@ -44,6 +52,8 @@ export interface RegisterCertificateInput {
   validFrom: string;
   validUntil: string;
   keyStorageType?: "LOCAL_PKCS12" | "AZURE_KEYVAULT" | "AWS_KMS" | "PKCS11_HSM";
+  pkcs12Buffer?: Buffer;
+  customSecret?: string;
 }
 
 export interface SubmitDeclarationInput {
@@ -79,6 +89,20 @@ export class CustomsGatewayService {
     const certId = `cert_${uuidv4().replace(/-/g, "").slice(0, 16)}`;
     const now = new Date().toISOString();
 
+    let encryptedBlob: string | undefined;
+    let ivHex: string | undefined;
+    let authTagHex: string | undefined;
+
+    if (input.pkcs12Buffer) {
+      const encrypted = customsKeystoreService.encryptPkcs12(
+        input.pkcs12Buffer,
+        input.customSecret,
+      );
+      encryptedBlob = encrypted.encryptedBlob;
+      ivHex = encrypted.ivHex;
+      authTagHex = encrypted.authTagHex;
+    }
+
     const [created] = await db
       .insert(customsPkiCertificates)
       .values({
@@ -92,6 +116,9 @@ export class CustomsGatewayService {
         validFrom: input.validFrom,
         validUntil: input.validUntil,
         keyStorageType: input.keyStorageType ?? "LOCAL_PKCS12",
+        encryptedPkcs12Blob: encryptedBlob,
+        ivHex,
+        authTagHex,
         isRevoked: false,
         createdAt: now,
         updatedAt: now,
@@ -215,16 +242,14 @@ export class CustomsGatewayService {
 
     // 6. Handle immediate synchronous Ack simulation if requested
     if (input.simulateImmediateAck) {
-      const simulatedCusresXml = `<?xml version="1.0" encoding="UTF-8"?>
-<cusres:CustomsResponse xmlns:cusres="http://wco.org/cusres">
-  <cusres:FilingReference>${transmission.filingReference}</cusres:FilingReference>
-  <cusres:MRN>26${input.agency.slice(0, 2)}${clearance.customsOfficeCode.slice(-4)}${Date.now().toString().slice(-8)}</cusres:MRN>
-  <cusres:RoutingChannel>GREEN</cusres:RoutingChannel>
-</cusres:CustomsResponse>`;
+      const simulated = customsSimulatorService.simulateAuthorityExchange(
+        input.agency,
+        synthesized.rawPayload,
+      );
 
       return this.processCusresWebhook(
         transmission.id,
-        simulatedCusresXml,
+        simulated.rawResponseXml,
         tenantId,
         actor,
       );
@@ -276,7 +301,20 @@ export class CustomsGatewayService {
       .where(eq(customsFilingTransmissions.id, transmission.id))
       .returning();
 
-    // 3. Atomically synchronize parent clearance state
+    // 3. Atomically synchronize parent clearance state & Control Tower incidents
+    const [clearance] = await db
+      .select()
+      .from(customsClearances)
+      .where(eq(customsClearances.id, transmission.clearanceId));
+
+    const clearanceShipments = clearance?.id
+      ? await db
+          .select({ shipmentId: customsClearanceShipments.shipmentId })
+          .from(customsClearanceShipments)
+          .where(eq(customsClearanceShipments.clearanceId, clearance.id))
+      : [];
+    const shipmentIds = clearanceShipments.map((cs) => cs.shipmentId);
+
     const clearanceUpdates: Record<string, unknown> = {
       updatedAt: now,
     };
@@ -289,12 +327,75 @@ export class CustomsGatewayService {
       clearanceUpdates.routingChannel = "GREEN";
       clearanceUpdates.status = "LEVANTE_RELEASED";
       clearanceUpdates.levanteReleasedAt = now;
+
+      // Automatically resolve any active customs hold incidents for this shipment
+      for (const shipmentId of shipmentIds) {
+        await db
+          .update(controlTowerIncidents)
+          .set({
+            status: "RESOLVED",
+            resolutionAction: `Auto-resolved upon customs green channel release (MRN: ${parsed.mrnAssigned || clearance?.mrn || "RELEASED"})`,
+            resolvedAt: now,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(controlTowerIncidents.shipmentId, shipmentId),
+              eq(controlTowerIncidents.incidentType, "CUSTOMS_HOLD"),
+              eq(controlTowerIncidents.status, "OPEN"),
+            ),
+          );
+      }
     } else if (parsed.responseStatus === "DOCS_REQUIRED_ORANGE") {
       clearanceUpdates.routingChannel = "ORANGE";
       clearanceUpdates.status = "ROUTED";
+
+      // Inject documentary hold incident into Control Tower
+      for (const shipmentId of shipmentIds) {
+        const incId = `inc_${uuidv4().replace(/-/g, "").slice(0, 16)}`;
+        await db
+          .insert(controlTowerIncidents)
+          .values({
+            id: incId,
+            incidentNumber: `INC-CUS-${Date.now().toString().slice(-6)}`,
+            shipmentId,
+            incidentType: "CUSTOMS_HOLD",
+            severity: "MEDIUM",
+            title: `Customs Documentary Inspection (Circuit Orange) - ${transmission.agency}`,
+            description: `Customs authority requires additional commercial invoices or certificates for declaration ${clearance?.clearanceNumber}.`,
+            status: "OPEN",
+            autoResolved: false,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .onConflictDoNothing();
+      }
     } else if (parsed.responseStatus === "INSPECTION_RED") {
       clearanceUpdates.routingChannel = "RED";
       clearanceUpdates.status = "ROUTED";
+
+      // Inject physical examination incident into Control Tower
+      for (const shipmentId of shipmentIds) {
+        const incId = `inc_${uuidv4().replace(/-/g, "").slice(0, 16)}`;
+        await db
+          .insert(controlTowerIncidents)
+          .values({
+            id: incId,
+            incidentNumber: `INC-CUS-${Date.now().toString().slice(-6)}`,
+            shipmentId,
+            incidentType: "CUSTOMS_HOLD",
+            severity: "CRITICAL",
+            title: `Customs Physical Inspection (Circuit Red) - ${transmission.agency}`,
+            description: `Physical cargo examination ordered by customs at terminal for declaration ${clearance?.clearanceNumber}.`,
+            status: "OPEN",
+            autoResolved: false,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .onConflictDoNothing();
+      }
+    } else if (parsed.responseStatus === "REJECTED_ERROR") {
+      clearanceUpdates.status = "REJECTED";
     }
 
     await db
@@ -367,6 +468,102 @@ export class CustomsGatewayService {
       );
 
     return tx ?? null;
+  }
+
+  /**
+   * Uploads, extracts X.509 metadata, and encrypts a PKCS#12 digital certificate in the vault.
+   */
+  async uploadCertificate(input: {
+    tenantId?: string;
+    agency: CustomsAgency;
+    certificateAlias: string;
+    pkcs12Base64: string;
+    passphrase?: string;
+  }) {
+    const rawBuffer = Buffer.from(input.pkcs12Base64, "base64");
+    const metadata =
+      customsKeystoreService.extractCertificateMetadata(rawBuffer);
+
+    return this.registerCertificate({
+      tenantId: input.tenantId ?? "tenant-default",
+      agency: input.agency,
+      certificateAlias: input.certificateAlias,
+      thumbprintSha256: metadata.thumbprintSha256,
+      issuerDn: metadata.issuerDn,
+      subjectDn: metadata.subjectDn,
+      validFrom: metadata.validFrom,
+      validUntil: metadata.validUntil,
+      keyStorageType: "LOCAL_PKCS12",
+      pkcs12Buffer: rawBuffer,
+    });
+  }
+
+  /**
+   * Performs a dry-run synthesis of the customs XML/SOAP declaration without persistence.
+   */
+  async previewDeclaration(input: {
+    clearanceId: string;
+    agency: CustomsAgency;
+    protocol?: CustomsProtocol;
+    messageFunction?: CustomsMessageFunction;
+    guaranteeReference?: string;
+    tenantId?: string;
+  }) {
+    const tenantId = input.tenantId ?? "tenant-default";
+
+    const [clearance] = await db
+      .select()
+      .from(customsClearances)
+      .where(
+        and(
+          eq(customsClearances.id, input.clearanceId),
+          eq(customsClearances.tenantId, tenantId),
+        ),
+      );
+
+    if (!clearance) {
+      throw new Error(`Customs clearance not found: ${input.clearanceId}`);
+    }
+
+    const activeCerts = await this.listCertificates(tenantId, input.agency);
+    const cert = activeCerts[0];
+    const thumbprint = cert
+      ? cert.thumbprintSha256
+      : `PREVIEW_THUMBPRINT_${input.agency}_${Date.now()}`;
+
+    const synthesized = synthesizeCustomsDeclaration({
+      clearanceId: clearance.id,
+      clearanceNumber: clearance.clearanceNumber,
+      agency: input.agency,
+      protocol: input.protocol,
+      messageFunction: input.messageFunction,
+      customsOfficeCode: clearance.customsOfficeCode,
+      importerEoriOrVat: clearance.importerCompanyId,
+      declarantEoriOrVat: clearance.declarantAddressId,
+      taricCode: clearance.taricCode,
+      goodsDescription: clearance.goodsDescription,
+      originCountryCode: clearance.originCountryCode,
+      grossMassKg: clearance.grossMassKg,
+      netMassKg: clearance.netMassKg,
+      customsValueEur: clearance.customsValueEur,
+      dutyAmountEur: clearance.assessedDutyAmountEur,
+      vatAmountEur: clearance.assessedVatAmountEur,
+      guaranteeReference: input.guaranteeReference,
+      certificateThumbprint: thumbprint,
+    });
+
+    return {
+      clearanceId: clearance.id,
+      agency: input.agency,
+      protocol: synthesized.protocol,
+      messageFunction: synthesized.messageFunction,
+      filingReference: synthesized.filingReference,
+      canonicalPayloadSha256: synthesized.canonicalPayloadSha256,
+      signatureAlgorithm: synthesized.signatureAlgorithm,
+      certificateThumbprint: synthesized.certificateThumbprint,
+      xmlPayload: synthesized.rawPayload,
+      rawPayload: synthesized.rawPayload,
+    };
   }
 }
 

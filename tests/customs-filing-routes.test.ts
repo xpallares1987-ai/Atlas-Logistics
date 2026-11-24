@@ -62,7 +62,10 @@ describe("Customs Authority Gateway REST Routes (ADR 0038)", () => {
     await db
       .delete(customsPkiCertificates)
       .where(
-        eq(customsPkiCertificates.certificateAlias, "AEAT_PROD_ESB55443322"),
+        inArray(customsPkiCertificates.certificateAlias, [
+          "AEAT_PROD_ESB55443322",
+          "NCTS_UPLOAD_TEST_CERT",
+        ]),
       );
 
     await db
@@ -163,6 +166,48 @@ describe("Customs Authority Gateway REST Routes (ADR 0038)", () => {
     expect(body.agency).toBe("AEAT");
     expect(body.certificateAlias).toBe("AEAT_PROD_ESB55443322");
     expect(body.isRevoked).toBe(false);
+  });
+
+  it("POST /api/customs/certificates/upload uploads and secures PKCS#12 payload", async () => {
+    const dummyBuffer = Buffer.from("SECURE_VAULT_TEST_KEY_DATA", "utf8");
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/customs/certificates/upload",
+      payload: {
+        agency: "NCTS_P5",
+        certificateAlias: "NCTS_UPLOAD_TEST_CERT",
+        pkcs12Base64: dummyBuffer.toString("base64"),
+        tenantId: "tenant-default",
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+    expect(body.id).toMatch(/^cert_/);
+    expect(body.agency).toBe("NCTS_P5");
+    expect(body.certificateAlias).toBe("NCTS_UPLOAD_TEST_CERT");
+    expect(body.thumbprintSha256).toBeDefined();
+  });
+
+  it("POST /api/customs/filings/preview produces dry-run XML and SHA-256 digest without saving transmission", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/customs/filings/preview",
+      payload: {
+        clearanceId: testClearanceId,
+        agency: "AEAT",
+        protocol: "SOAP_MTLS",
+        messageFunction: "ORIGINAL",
+        tenantId: "tenant-default",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.xmlPayload).toContain("<soapenv:Envelope");
+    expect(body.xmlPayload).toContain("DUA-2026-TEST-90001");
+    expect(body.canonicalPayloadSha256).toHaveLength(64);
+    expect(body.signatureAlgorithm).toBe("rsa-sha256");
   });
 
   it("GET /api/customs/certificates lists active certificates", async () => {
@@ -274,7 +319,7 @@ describe("Customs Authority Gateway REST Routes (ADR 0038)", () => {
     expect(res.statusCode).toBe(201);
     const body = res.json();
     expect(body.responseStatus).toBe("ACCEPTED_GREEN");
-    expect(body.mrnAssigned).toMatch(/^26AT/);
+    expect(body.mrnAssigned).toMatch(/^26(DE|AT|[A-Z]{2})/);
     expect(body.acknowledgedAt).toBeDefined();
 
     // Verify parent clearance

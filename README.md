@@ -1,10 +1,12 @@
 # Atlas Logistics 🌍🚢✈️🚛
 
-Atlas Logistics is an **enterprise-grade, multimodal Supply Chain Management (SCM) Super-App and Freight Forwarding Operating System**. It centralizes mission-critical operations for international freight forwarders, customs brokers, ocean carriers, air cargo operators, and surface logistics providers. 
+**Sovereign Multimodal Freight Forwarding & SCM Super-App ($0 Cloud)**: Global ocean (DCSA), air (IATA/CASS), rail & road TMS, single-window EU DUA customs, definitive CBAM/FuelEU decarbonization, ISO 20022/MLETR trade finance, and SQLite WAL local-first architecture.
 
-The platform is architected as a modular monorepo combining a high-throughput Fastify backend, a modern Progressive Web App (PWA) host in `packages/frontend` (React 19, Vite, TailwindCSS), reusable design primitives in `packages/ui`, shared cryptographic and domain types in `packages/shared`, and specialized modules for freight rate comparison, visual BPMN process modeling, and warehouse digital twin operations.
+Atlas Logistics centralizes mission-critical operations for international freight forwarders, customs brokers, ocean carriers, air cargo operators, surface logistics providers, and green compliance officers. 
 
-![Atlas Logistics Status](https://img.shields.io/badge/Status-Active-success) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16834/badge)](https://www.bestpractices.dev/projects/16834) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue) ![pnpm](https://img.shields.io/badge/pnpm-v10-orange) ![Fastify](https://img.shields.io/badge/Fastify-5.2+-emerald) ![SLSA Provenance](https://img.shields.io/badge/SLSA%20v1.0-Build%20Level%202-brightgreen) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+The platform is architected as a modular monorepo combining a high-throughput Fastify backend, a modern Progressive Web App (PWA) host in `packages/frontend` (React 19, Vite, TailwindCSS), reusable design primitives in `packages/ui`, a client SDK in `packages/client-sdk`, shared cryptographic and domain types in `packages/shared`, and specialized modules for freight rate comparison, visual BPMN process modeling, and warehouse digital twin operations.
+
+![Atlas Logistics Status](https://img.shields.io/badge/Status-Active-success) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16834/badge)](https://www.bestpractices.dev/projects/16834) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue) ![pnpm](https://img.shields.io/badge/pnpm-v11-orange) ![Fastify](https://img.shields.io/badge/Fastify-5.2+-emerald) ![React](https://img.shields.io/badge/React-19-blue) ![ADRs](https://img.shields.io/badge/ADRs-42%20Accepted-purple) ![SLSA Provenance](https://img.shields.io/badge/SLSA%20v1.0-Build%20Level%202-brightgreen) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
 ---
 
@@ -16,7 +18,7 @@ Atlas Logistics operates **100% locally with zero cloud subscription costs**, le
 - **SCM Core & Workflow Engine:** Domain-Driven Design (DDD) with an atomic Transactional Outbox pattern, versioned workflow runtime with topological DAG cycle detection, and high-performance CQRS BFF read models (Shipment 360 and Operations Cockpit).
 - **Backend API Server:** Fastify 5 with JWT authentication (`@fastify/jwt`), Role-Based / Attribute-Based Access Control (RBAC/ABAC), and real-time native WebSockets (`ws://`).
 - **Background Job Orchestration:** BullMQ + ioredis with transparent in-memory fallback for local single-process development without an external Redis instance.
-- **Monorepo Workspaces:** Turborepo + pnpm workspaces with clean modular boundaries (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/dashboard`, `@atlas/warehouse-ops`).
+- **Monorepo Workspaces:** Turborepo + pnpm workspaces with clean modular boundaries (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/client-sdk`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/dashboard`, `@atlas/warehouse-ops`).
 
 ---
 
@@ -53,7 +55,7 @@ The project's technical documentation is structured according to the **Diátaxis
 - [**Station Context & Navigation Cockpit**](docs/setup-guides/station-context-cockpit-guide.md) — Enterprise forwarding station hierarchy, role-based station switching, and dynamic navigation.
 - [**Observability & Telemetry**](docs/setup-guides/observability-monitoring.md) — Prometheus metrics (`/metrics`), Grafana dashboards, and structured Pino logging.
 - [**Security & Zero-Leak Policy**](docs/setup-guides/security-backup-policy.md) — Zero-leak pre-commit guard, credential isolation, and SQLite online backup routines.
-- [**Architectural Decision Records (ADRs)**](docs/adr/) — Complete historical registry of architectural standards (ADR 0001 through ADR 0022).
+- [**Architectural Decision Records (ADRs)**](docs/adr/) — Complete historical registry of architectural standards (ADR 0001 through ADR 0042).
 
 ---
 
@@ -116,8 +118,10 @@ Atlas Logistics provides end-to-end operational, regulatory, and documentary cov
 ### 9. 🌿 Carbon Border Adjustment Mechanism (CBAM) & Scope 3
 - **Regulation (EU) 2023/956 & 2023/1773**: Complete coverage across all 6 regulated sectors (Iron & Steel, Aluminum, Cement, Fertilizers, Hydrogen, Electricity).
 - **Embedded Emissions Calculation**: Direct (Scope 1) and indirect electricity (Scope 2) emissions, complex precursor calculations, and verified vs default factor comparisons.
-- **EU ETS Financial Settlement**: CBAM certificate valuation based on weekly EU ETS carbon auctions with automatic origin carbon price deductions (e.g. UK ETS).
-- **Official Exports**: DG TAXUD compliant XML generator for the EU CBAM Transitional Registry and formal PDF Declarations of Embedded Emissions.
+- **Definitive CBAM Regime (2026+) & EEX Carbon Auction Indexer**: Weekly EUA auction volume-weighted average price benchmarking, electronic certificate inventory holding accounts, and deterministic FIFO lot consumption.
+- **Article 8 Verification & Cryptographic Surrender**: Non-repudiation SHA-256 seal linking declarations to independent accredited verifier credentials (e.g., ENAC, DAkkS) and consumed certificate lots.
+- **ISO 20022 Financial Settlement**: Automated generation of `pain.001.001.09` wire transfer instructions for certificate purchasing from the National Competent Authority (NCA / Tesoro Público).
+- **Official Exports**: DG TAXUD compliant XML generator for the EU CBAM Registry and formal bilingual PDF Declarations of Embedded Emissions.
 
 ### 10. 🚆 Intermodal Rail Freight & Trans-European Networks (CIM / TEN-T)
 - **COTIF / CIM Uniform Rules (UIC 992)**: International rail freight dossier management and official CIM Consignment Note generation.
@@ -137,10 +141,13 @@ Atlas Logistics provides end-to-end operational, regulatory, and documentary cov
 - **Directive (EU) 2023/959 (Maritime EU ETS)**: 100% intra-EU and 50% extra-EU scope allocations for $\text{CO}_2$, $\text{CH}_4$, and $\text{N}_2\text{O}$ emissions, plus TEU Green BAF surcharge engines.
 - **Official Exports**: THETIS-MRV / FuelEU XML generator and official DNV / Bureau Veritas audit-ready PDF certificates.
 
-### 13. 🏦 Trade Finance & Documentary Credits (UCP 600 / SWIFT MT700)
+### 13. 🏦 Trade Finance, SWIFT ISO 20022 & Documentary Credits
+- **Institutional SWIFT ISO 20022 Banking Gateway**: Bidirectional payment initiation (`pain.001.001.09`, `pacs.008.001.08`), electronic bank statement ingestion and automatic AP/AR reconciliation (`camt.053.001.08`), and trade finance status notices (`tsmt.019.001.01`).
+- **Autonomous Netting & Financial Clearing**: Multilateral and bilateral netting cycles executed with micro-cents integer precision, completely eliminating IEEE-754 floating point rounding drift.
+- **MLETR & Digital Transferable Records**: UNCITRAL Model Law on Electronic Transferable Records (MLETR) compliant electronic bills of lading (eBL) with cryptographic endorsement chains.
 - **ICC Uniform Rules**: Commercial Letters of Credit (UCP 600 / eUCP v2.1), Demand Guarantees & Standby L/Cs (URDG 758 / ISP98), and Documentary Collections (URC 522).
 - **UCP 600 / ISBP 745 Discrepancy Auditing Engine**: Strict verification of the 21-day presentation rule, $+/-5\%$ tolerances, exact invoice descriptions, clean bills of lading, and 110% CIF/CIP insurance policies.
-- **SWIFT Messaging**: Structured generation of **SWIFT MT700** (Issue of a Documentary Credit) and **SWIFT MT734** (Advice of Refusal) payloads.
+- **SWIFT Messaging**: Structured generation of **SWIFT MT700** (Issue of a Documentary Credit), **SWIFT MT103** (Single Customer Credit Transfer), and **SWIFT MT734** (Advice of Refusal) payloads.
 
 ### 14. 🛡️ Authorized Economic Operator (AEO/C-TPAT / ISO 28000)
 - **AEO Self-Assessment (UCC Arts. 38–39)**: Deterministic scoring across all 6 statutory criteria for AEOF, AEOC, and AEOS authorizations.

@@ -1,4 +1,10 @@
-import { sqliteTable, text, real, integer } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  real,
+  integer,
+  index,
+} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 // Official CBAM Goods Catalog (EU Reg. 2023/956 & 2023/1773)
@@ -71,7 +77,14 @@ export const cbamDeclarations = sqliteTable("cbam_declarations", {
     .default(0.0), // Art. 9 deduction
   netCarbonLiabilityEur: real("net_carbon_liability_eur").notNull(),
   status: text("status", {
-    enum: ["DRAFT", "VALIDATED", "SUBMITTED_REGISTRY", "AMENDED"],
+    enum: [
+      "DRAFT",
+      "VALIDATED",
+      "SUBMITTED_REGISTRY",
+      "PENDING_SURRENDER",
+      "CERTIFICATES_SURRENDERED",
+      "AMENDED",
+    ],
   })
     .notNull()
     .default("VALIDATED"),
@@ -119,3 +132,122 @@ export const cbamDeclarationLines = sqliteTable("cbam_declaration_lines", {
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
 });
+
+// ============================================================================
+// 5. OFFICIAL EEX CARBON AUCTION QUOTES (WEEKLY EUA / CBAM BENCHMARK)
+// ============================================================================
+
+export const cbamEexQuotes = sqliteTable(
+  "cbam_eex_quotes",
+  {
+    id: text("id").primaryKey(),
+    quoteWeek: text("quote_week").notNull().unique(), // e.g. "2026-W42"
+    validFrom: text("valid_from").notNull(),
+    validUntil: text("valid_until").notNull(),
+    auctionAveragePriceEur: real("auction_average_price_eur").notNull(),
+    scaledPrice: integer("scaled_price").notNull(), // micro-cents integer (eur * 1,000,000)
+    publishedAt: text("published_at").notNull(),
+    source: text("source", {
+      enum: ["EEX_AUCTION", "COMMISSION_PUBLICATION", "CONFIGURED_FALLBACK"],
+    })
+      .notNull()
+      .default("EEX_AUCTION"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    quoteWeekIdx: index("cbam_eex_quotes_week_idx").on(table.quoteWeek),
+  }),
+);
+
+// ============================================================================
+// 6. CBAM ELECTRONIC CERTIFICATE INVENTORY (HOLDING LEDGER & LOTS)
+// ============================================================================
+
+export const cbamCertificateInventory = sqliteTable(
+  "cbam_certificate_inventory",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().default("tenant-default"),
+    lotReference: text("lot_reference").notNull().unique(), // e.g. "LOT-2026-001"
+    purchaseDate: text("purchase_date").notNull(),
+    ncaRegistryAccountId: text("nca_registry_account_id").notNull(), // e.g. "ES-CBAM-ACC-88319"
+    quantityPurchased: integer("quantity_purchased").notNull(), // 1 cert = 1 tCO2e
+    quantitySurrendered: integer("quantity_surrendered").notNull().default(0),
+    quantityAvailable: integer("quantity_available").notNull(),
+    unitPriceEur: real("unit_price_eur").notNull(),
+    unitPriceScaled: integer("unit_price_scaled").notNull(), // micro-cents integer
+    totalCostEur: real("total_cost_eur").notNull(),
+    totalCostScaled: integer("total_cost_scaled").notNull(), // micro-cents integer
+    paymentReference: text("payment_reference"),
+    bankingTransmissionId: text("banking_transmission_id"),
+    status: text("status", {
+      enum: ["ACTIVE", "EXHAUSTED", "CANCELLED"],
+    })
+      .notNull()
+      .default("ACTIVE"),
+    metadata: text("metadata", { mode: "json" }),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    tenantStatusIdx: index("cbam_cert_inv_tenant_status_idx").on(
+      table.tenantId,
+      table.status,
+    ),
+  }),
+);
+
+// ============================================================================
+// 7. CBAM CERTIFICATE SURRENDERS (DEFINITIVE SETTLEMENT & AUDIT PROVENANCE)
+// ============================================================================
+
+export interface CbamSurrenderLotAllocation {
+  lotId: string;
+  lotReference: string;
+  quantity: number;
+  unitPriceEur: number;
+}
+
+export const cbamCertificateSurrenders = sqliteTable(
+  "cbam_certificate_surrenders",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().default("tenant-default"),
+    surrenderReference: text("surrender_reference").notNull().unique(), // e.g. "SURRENDER-2026-Q3-001"
+    declarationId: text("declaration_id")
+      .notNull()
+      .references(() => cbamDeclarations.id, { onDelete: "restrict" }),
+    reportingPeriod: text("reporting_period").notNull(),
+    totalCertificatesSurrendered: integer(
+      "total_certificates_surrendered",
+    ).notNull(),
+    surrenderDate: text("surrender_date").notNull(),
+    surrenderLots: text("surrender_lots", { mode: "json" }).notNull(),
+    totalCostEur: real("total_cost_eur").notNull(),
+    verifierName: text("verifier_name").notNull(),
+    verifierAccreditationNumber: text(
+      "verifier_accreditation_number",
+    ).notNull(), // e.g. "ENAC-045/V-012"
+    verificationReportId: text("verification_report_id").notNull(),
+    surrenderPayloadHashSha256: text("surrender_payload_hash_sha256").notNull(),
+    iso20022PaymentTransmissionId: text("iso20022_payment_transmission_id"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    declarationIdx: index("cbam_cert_surrenders_decl_idx").on(
+      table.declarationId,
+    ),
+    tenantPeriodIdx: index("cbam_cert_surrenders_tenant_period_idx").on(
+      table.tenantId,
+      table.reportingPeriod,
+    ),
+  }),
+);

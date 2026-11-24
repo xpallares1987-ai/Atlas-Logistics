@@ -12,6 +12,8 @@ import {
   type RegisterCertificateInput,
   type SubmitDeclarationInput,
   type CustomsAgency,
+  type CustomsProtocol,
+  type CustomsMessageFunction,
 } from "../services/customs-gateway.service.js";
 import {
   buildErrorResponses,
@@ -41,6 +43,20 @@ const CERTIFICATE_PROPERTIES = {
 };
 
 const CERTIFICATE_SCHEMA = openApiObject(CERTIFICATE_PROPERTIES);
+
+const PREVIEW_PROPERTIES = {
+  clearanceId: { type: "string" },
+  agency: { type: "string" },
+  protocol: { type: "string" },
+  messageFunction: { type: "string" },
+  filingReference: { type: "string" },
+  canonicalPayloadSha256: { type: "string" },
+  signatureAlgorithm: { type: "string" },
+  certificateThumbprint: { type: "string" },
+  xmlPayload: { type: "string" },
+};
+
+const PREVIEW_SCHEMA = openApiObject(PREVIEW_PROPERTIES);
 
 const TRANSMISSION_PROPERTIES = {
   id: { type: "string" },
@@ -125,6 +141,59 @@ export const customsFilingRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   /**
+   * POST /api/customs/certificates/upload
+   * Uploads and encrypts a PKCS#12 bundle in the vault.
+   */
+  fastify.post<{
+    Body: {
+      agency: CustomsAgency;
+      certificateAlias: string;
+      pkcs12Base64: string;
+      passphrase?: string;
+      tenantId?: string;
+    };
+  }>(
+    "/api/customs/certificates/upload",
+    {
+      schema: {
+        description:
+          "Uploads and encrypts a PKCS#12 digital certificate into the tenant vault",
+        tags: ["Customs Gateway"],
+        body: openApiObject({
+          agency: {
+            type: "string",
+            enum: ["AEAT", "ATLAS", "DELTA", "NCTS_P5", "HMRC_CDS", "CBP_ACE"],
+          },
+          certificateAlias: { type: "string" },
+          pkcs12Base64: { type: "string" },
+          passphrase: { type: "string" },
+          tenantId: { type: "string" },
+        }),
+        response: {
+          201: CERTIFICATE_SCHEMA,
+          ...buildErrorResponses([400, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const result = await customsGatewayService.uploadCertificate(
+          request.body,
+        );
+        return reply.code(201).send(result);
+      } catch (err: unknown) {
+        request.log.error(err, "Failed to upload customs PKI certificate");
+        return reply.code(400).send({
+          statusCode: 400,
+          error: "Bad Request",
+          message:
+            err instanceof Error ? err.message : "Certificate upload failed",
+        });
+      }
+    },
+  );
+
+  /**
    * GET /api/customs/certificates
    * Lists active, non-revoked digital certificates for the tenant.
    */
@@ -153,6 +222,75 @@ export const customsFilingRoutes: FastifyPluginAsync = async (fastify) => {
         agency as CustomsAgency | undefined,
       );
       return reply.code(200).send(list);
+    },
+  );
+
+  /**
+   * POST /api/customs/filings/preview
+   * Performs a dry-run XML/SOAP declaration synthesis with SHA-256 digest computation.
+   */
+  fastify.post<{
+    Body: {
+      clearanceId: string;
+      agency: CustomsAgency;
+      protocol?: CustomsProtocol;
+      messageFunction?: CustomsMessageFunction;
+      guaranteeReference?: string;
+      tenantId?: string;
+    };
+  }>(
+    "/api/customs/filings/preview",
+    {
+      schema: {
+        description:
+          "Dry-run synthesis of XML/SOAP customs declaration envelope and cryptographic digest",
+        tags: ["Customs Gateway"],
+        body: openApiObject({
+          clearanceId: { type: "string" },
+          agency: {
+            type: "string",
+            enum: ["AEAT", "ATLAS", "DELTA", "NCTS_P5", "HMRC_CDS", "CBP_ACE"],
+          },
+          protocol: {
+            type: "string",
+            enum: ["SOAP_MTLS", "REST_MTLS", "AS4"],
+          },
+          messageFunction: {
+            type: "string",
+            enum: [
+              "ORIGINAL",
+              "REPLACEMENT",
+              "AMENDMENT",
+              "CANCELLATION",
+              "STATUS_QUERY",
+            ],
+          },
+          guaranteeReference: { type: "string" },
+          tenantId: { type: "string" },
+        }),
+        response: {
+          200: PREVIEW_SCHEMA,
+          ...buildErrorResponses([400, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const preview = await customsGatewayService.previewDeclaration(
+          request.body,
+        );
+        return reply.code(200).send(preview);
+      } catch (err: unknown) {
+        request.log.error(err, "Failed to preview customs filing declaration");
+        const msg =
+          err instanceof Error ? err.message : "Filing preview failed";
+        const code = msg.includes("not found") ? 404 : 400;
+        return reply.code(code).send({
+          statusCode: code,
+          error: code === 404 ? "Not Found" : "Bad Request",
+          message: msg,
+        });
+      }
     },
   );
 
