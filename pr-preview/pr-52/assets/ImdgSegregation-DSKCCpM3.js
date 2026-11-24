@@ -1,0 +1,1 @@
+export{t as ImdgSegregation,t as default}from"./ImdgSegregation-AU5ujl0V.js";
