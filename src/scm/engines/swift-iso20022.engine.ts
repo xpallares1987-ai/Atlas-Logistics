@@ -241,18 +241,33 @@ export function parseSwiftMtMessage(rawInput: string): SwiftMtMessage {
     };
   }
 
-  // 3. Extract Block 3 User Header
+  // 3. Extract Block 3 User Header (Linear Search without ReDoS)
   let bankingPriority: string | undefined;
-  const b3Match = normalized.match(/\{3:\{108:([^}]+)\}\}/);
-  if (b3Match) {
-    bankingPriority = b3Match[1];
+  const b3Start = normalized.indexOf("{3:{108:");
+  if (b3Start !== -1) {
+    const valStart = b3Start + 8;
+    const b3End = normalized.indexOf("}}", valStart);
+    if (b3End !== -1) {
+      bankingPriority = normalized.substring(valStart, b3End).trim();
+    }
   }
 
-  // 4. Extract Block 4 (Body Payload)
+  // 4. Extract Block 4 Body Payload (Linear Search without ReDoS)
   let rawBody = "";
-  const b4Match = normalized.match(/\{4:\r?\n?([\s\S]*?)(?:-\}|\z)/);
-  if (b4Match) {
-    rawBody = b4Match[1].trim();
+  const b4Start = normalized.indexOf("{4:");
+  if (b4Start !== -1) {
+    let contentStart = b4Start + 3;
+    if (normalized.startsWith("\r\n", contentStart)) {
+      contentStart += 2;
+    } else if (normalized.startsWith("\n", contentStart)) {
+      contentStart += 1;
+    }
+    const b4End = normalized.indexOf("-}", contentStart);
+    rawBody = (
+      b4End !== -1
+        ? normalized.substring(contentStart, b4End)
+        : normalized.substring(contentStart)
+    ).trim();
   } else {
     // If no block wrapper, treat entire input as Block 4 body
     rawBody = normalized;
@@ -787,6 +802,40 @@ export function buildBusinessApplicationHeaderXml(
 }
 
 /**
+ * Safely extracts an XML block between <tag> and </tag> using linear index search (zero ReDoS).
+ */
+function extractXmlBlock(source: string, tagName: string): string | null {
+  const openTag = `<${tagName}>`;
+  const closeTag = `</${tagName}>`;
+  const startIdx = source.indexOf(openTag);
+  if (startIdx === -1) return null;
+  const contentStart = startIdx + openTag.length;
+  const endIdx = source.indexOf(closeTag, contentStart);
+  if (endIdx === -1) return null;
+  return source.substring(contentStart, endIdx);
+}
+
+/**
+ * Safely extracts all XML blocks between <tag> and </tag> using linear index search (zero ReDoS).
+ */
+function extractAllXmlBlocks(source: string, tagName: string): string[] {
+  const blocks: string[] = [];
+  const openTag = `<${tagName}>`;
+  const closeTag = `</${tagName}>`;
+  let searchPos = 0;
+  while (searchPos < source.length) {
+    const startIdx = source.indexOf(openTag, searchPos);
+    if (startIdx === -1) break;
+    const contentStart = startIdx + openTag.length;
+    const endIdx = source.indexOf(closeTag, contentStart);
+    if (endIdx === -1) break;
+    blocks.push(source.substring(contentStart, endIdx));
+    searchPos = endIdx + closeTag.length;
+  }
+  return blocks;
+}
+
+/**
  * Parses compliant ISO 20022 camt.053.001.08 XML statement payload into structured records.
  */
 export function parseCamt053Xml(xml: string): ParsedCamt053 {
@@ -798,8 +847,7 @@ export function parseCamt053Xml(xml: string): ParsedCamt053 {
   const messageId = getTagValue(xml, "MsgId");
   const creationDateTime = getTagValue(xml, "CreDtTm");
 
-  const stmtMatch = xml.match(/<Stmt>([\s\S]*?)<\/Stmt>/);
-  const stmtBody = stmtMatch ? stmtMatch[1] : xml;
+  const stmtBody = extractXmlBlock(xml, "Stmt") ?? xml;
 
   const statementId = getTagValue(stmtBody, "Id");
   const seqNbStr = getTagValue(stmtBody, "ElctrncSeqNb");
@@ -807,20 +855,16 @@ export function parseCamt053Xml(xml: string): ParsedCamt053 {
     ? parseInt(seqNbStr, 10)
     : undefined;
 
-  const acctMatch = stmtBody.match(/<Acct>([\s\S]*?)<\/Acct>/);
-  const acctBody = acctMatch ? acctMatch[1] : stmtBody;
+  const acctBody = extractXmlBlock(stmtBody, "Acct") ?? stmtBody;
 
   const accountIban = getTagValue(acctBody, "IBAN");
   const accountCurrency = getTagValue(acctBody, "Ccy");
   const accountServicerBic = getTagValue(acctBody, "BICFI");
 
   const entries: ParsedCamt053Entry[] = [];
-  const entryRegex = /<Ntry>([\s\S]*?)<\/Ntry>/g;
-  let entryMatch: RegExpExecArray | null;
+  const entryChunks = extractAllXmlBlocks(stmtBody, "Ntry");
 
-  while ((entryMatch = entryRegex.exec(stmtBody)) !== null) {
-    const entryChunk = entryMatch[1];
-
+  for (const entryChunk of entryChunks) {
     const amtMatch = entryChunk.match(/<Amt\s+Ccy="([^"]+)">([^<]+)<\/Amt>/);
     const currency = amtMatch ? amtMatch[1] : accountCurrency || "EUR";
     const amount = amtMatch ? parseFloat(amtMatch[2]) : 0;

@@ -43,10 +43,13 @@ export class AtlasClient implements IHttpClient {
 
   public constructor(config: AtlasClientConfig = {}) {
     this.config = config;
-    this.baseUrl = (
+    let rawBase =
       config.baseUrl ??
-      (typeof window !== "undefined" ? "/api" : "http://127.0.0.1:3001/api")
-    ).replace(/\/+$/, "");
+      (typeof window !== "undefined" ? "/api" : "http://127.0.0.1:3001/api");
+    while (rawBase.endsWith("/")) {
+      rawBase = rawBase.slice(0, -1);
+    }
+    this.baseUrl = rawBase;
     this.fetchImpl = config.fetch ?? fetch;
 
     // Instantiate resources

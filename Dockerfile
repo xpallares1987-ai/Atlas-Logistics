@@ -10,7 +10,7 @@ ARG BUILDKIT_INLINE_CACHE=1
 # ============================================================================
 # STAGE 1: DEPENDENCIES — Install and cache pnpm dependencies
 # ============================================================================
-FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS dependencies
+FROM node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS dependencies
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -23,8 +23,7 @@ ENV npm_config_fetch_retry_maxtimeout=120000
 ENV npm_config_network_timeout=120000
 
 RUN apk add --no-cache git python3 make g++ && \
-    corepack enable && \
-    corepack prepare pnpm@${PNPM_VERSION} --activate
+    (corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate || npm install -g pnpm@${PNPM_VERSION})
 
 WORKDIR /app
 
