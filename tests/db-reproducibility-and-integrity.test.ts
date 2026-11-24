@@ -72,8 +72,8 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%' ORDER BY name;",
     );
     const tables = res.rows.map((r: any) => String(r.name));
-    // 276 operational domain tables (+ 1 __drizzle_migrations table = 277 total physical tables)
-    expect(tables.length).toBe(276);
+    // 278 operational domain tables (+ 1 __drizzle_migrations table = 279 total physical tables)
+    expect(tables.length).toBe(278);
 
     // Assert canonical core bounded context tables exist
     expect(tables).toContain("companies");
@@ -84,6 +84,8 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
     expect(tables).toContain("branch_offices");
     expect(tables).toContain("departments");
     expect(tables).toContain("financial_clearing_entries");
+    expect(tables).toContain("banking_transmissions");
+    expect(tables).toContain("bank_statement_entries");
     expect(tables).toContain("bilateral_netting_cycles");
     expect(tables).toContain("cass_reconciliation_batches");
     expect(tables).toContain("cass_reconciliation_items");
@@ -144,7 +146,7 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
     const tablesRes = await scratchClient.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%' ORDER BY name;",
     );
-    expect(tablesRes.rows.length).toBe(276);
+    expect(tablesRes.rows.length).toBe(278);
   }, 30000);
 
   it("proves forward migration upgrade continuity and data preservation from an earlier baseline snapshot (E4 verification)", async () => {
@@ -256,7 +258,7 @@ describe("Database Integrity, DDL Parity & Migration Reproducibility Contract", 
     const tablesRes = await upgradeClient.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%' ORDER BY name;",
     );
-    expect(tablesRes.rows.length).toBe(276);
+    expect(tablesRes.rows.length).toBe(278);
 
     // 8. Verify all Drizzle migrations are recorded in __drizzle_migrations
     const migCount = await upgradeClient.execute(
