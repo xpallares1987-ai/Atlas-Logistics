@@ -14,11 +14,92 @@ The platform is architected as a modular monorepo combining a high-throughput Fa
 
 Atlas Logistics operates **100% locally with zero cloud subscription costs**, leveraging embedded, high-performance open technologies:
 
-- **Embedded Relational Persistence:** Drizzle ORM + SQLite / libSQL operating in Write-Ahead Logging (WAL) mode with mandatory foreign key enforcement (`PRAGMA foreign_keys = ON;`). Normalized domain schemas cover parties, transport planning, execution, and workflow state.
+- **Embedded Relational Persistence:** Drizzle ORM + SQLite / libSQL operating in Write-Ahead Logging (WAL) mode with mandatory foreign key enforcement (`PRAGMA foreign_keys = ON;`). 281 normalized domain tables cover parties, transport planning, multimodal execution, decarbonization, and treasury state.
 - **SCM Core & Workflow Engine:** Domain-Driven Design (DDD) with an atomic Transactional Outbox pattern, versioned workflow runtime with topological DAG cycle detection, and high-performance CQRS BFF read models (Shipment 360 and Operations Cockpit).
-- **Backend API Server:** Fastify 5 with JWT authentication (`@fastify/jwt`), Role-Based / Attribute-Based Access Control (RBAC/ABAC), and real-time native WebSockets (`ws://`).
+- **Backend API Server:** Fastify 5 with JWT authentication (`@fastify/jwt`), Role-Based / Attribute-Based Access Control (RBAC/ABAC), 30 domain route modules with 306 OpenAPI endpoints, and real-time native WebSockets (`ws://`).
 - **Background Job Orchestration:** BullMQ + ioredis with transparent in-memory fallback for local single-process development without an external Redis instance.
 - **Monorepo Workspaces:** Turborepo + pnpm workspaces with clean modular boundaries (`@atlas/frontend`, `@atlas/ui`, `@atlas/shared`, `@atlas/client-sdk`, `@atlas/rate-comparer`, `@atlas/bpmn-modeler`, `@atlas/dashboard`, `@atlas/warehouse-ops`).
+
+### 🏛️ High-Level System Architecture
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer["Frontend Client Host (React 19 + Vite + Tailwind CSS)"]
+        PWA["Atlas PWA Host (:5173 / :80)<br/>@atlas/frontend"]
+        UI["Design Primitives<br/>@atlas/ui"]
+        Shared["Shared Contracts & WebCrypto<br/>@atlas/shared"]
+        SDK["Client SDK<br/>@atlas/client-sdk"]
+        Wiki["In-App Knowledge Hub<br/>/wiki (Bilingual Handbooks)"]
+        PWA --> UI
+        PWA --> Shared
+        PWA --> SDK
+        PWA --> Wiki
+    end
+
+    subgraph BackendLayer["Backend Server & API Gateway (Fastify 5)"]
+        API["Fastify 5 Gateway (:3001)<br/>JWT + RBAC + Zod/TypeBox"]
+        Routes["30 Domain Route Modules<br/>(306 OpenAPI Endpoints)"]
+        WS["Real-Time WebSockets<br/>Cargo Telemetry & Events"]
+        Outbox["Transactional Outbox Bus<br/>Topological DAG Engine"]
+        API --> Routes
+        API --> WS
+        API --> Outbox
+    end
+
+    subgraph DataLayer["Sovereign Local Persistence ($0 Cloud)"]
+        DevDB[("Development Database<br/>data/dev.db (WAL Mode)")]
+        ProdDB[("Production Database<br/>data/prod.db (/app/data/prod.db)")]
+        Drizzle["Drizzle ORM Engine<br/>281 Relational Tables"]
+        Drizzle --> DevDB
+        Drizzle --> ProdDB
+    end
+
+    subgraph WorkerLayer["Asynchronous Background Queue"]
+        Worker["BullMQ + Redis Worker<br/>(Transparent In-Memory Fallback)"]
+    end
+
+    PWA <-->|"HTTP / REST & SSE"| API
+    PWA <-->|"ws:// Native WebSocket"| WS
+    Routes <--> Drizzle
+    Outbox <--> Worker
+    Worker <--> Drizzle
+```
+
+### 🔄 End-to-End Multimodal Logistics & Regulatory Pipeline
+
+```mermaid
+flowchart LR
+    subgraph Planning["1. Commercial & Booking"]
+        Quotation["Rate Comparer & RFQ"] --> Booking["DCSA Ocean / Air / Road / Rail Booking"]
+        Booking --> PO["PO SKU Allocation<br/>(ADR 0032)"]
+    end
+
+    subgraph Execution["2. Multimodal Execution"]
+        PO --> Ocean["Ocean FCL/LCL<br/>(DCSA eBL)"]
+        PO --> Air["Air Cargo<br/>(IATA e-AWB / CASS)"]
+        PO --> Road["Road FTL/LTL<br/>(e-CMR IRU)"]
+        PO --> Rail["Intermodal Rail<br/>(CIM / TEN-T)"]
+    end
+
+    subgraph Compliance["3. Customs & Single Window"]
+        Ocean & Air & Road & Rail --> DUA["54-Box SAD / DUA<br/>TARIC Duty Engine"]
+        DUA --> Sanctions["OFAC / EU Sanctions Screening"]
+        Sanctions --> Dispatch["AEAT / NCTS Gateway<br/>Cryptographic PKI Filing"]
+    end
+
+    subgraph Decarbonization["4. Decarbonization & ESG"]
+        Dispatch --> CBAM["EU CBAM Definitive (2026+)<br/>EEX Indexer & FIFO Lots"]
+        Dispatch --> FuelEU["FuelEU Maritime<br/>WtW Intensity & Pooling"]
+        CBAM --> Verifier["Art. 8 Verifier SHA-256 Seal"]
+    end
+
+    subgraph Treasury["5. Trade Finance & Settlement"]
+        Verifier --> ISO["SWIFT ISO 20022<br/>pain.001 / camt.053"]
+        FuelEU --> ISO
+        ISO --> Netting["Micro-Cents Netting Engine<br/>MLETR eBL Endorsement"]
+        Netting --> TreasurySettled["Bank Settlement Confirmation"]
+    end
+```
 
 ---
 
