@@ -75,7 +75,7 @@ const WAVE3_ROUTE_MODULES: readonly Wave3RouteModuleSpec[] = [
   },
   {
     relativePath: "src/modules/cbam/cbam.routes.ts",
-    expectedEndpoints: 9,
+    expectedEndpoints: 16,
     expectedTag: "EU CBAM Compliance",
   },
   {
@@ -238,10 +238,10 @@ describe("P1-A Wave 3 — Repository-Wide Zero-Any & Domain OpenAPI Closure", ()
       wave3TotalEndpoints += schemaCount;
     }
 
-    expect(wave3TotalEndpoints).toBe(181);
+    expect(wave3TotalEndpoints).toBe(188);
   });
 
-  it("enforces 100% OpenAPI schema coverage across all 30 domain route modules in src/modules/ (299 endpoints)", () => {
+  it("enforces 100% OpenAPI schema coverage across all 30 domain route modules in src/modules/ (306 endpoints)", () => {
     const modulesRoot = resolve(process.cwd(), "src/modules");
     const allRouteFiles = collectSourceTsFiles(modulesRoot).filter((f) =>
       f.endsWith(".routes.ts"),
@@ -269,8 +269,8 @@ describe("P1-A Wave 3 — Repository-Wide Zero-Any & Domain OpenAPI Closure", ()
     }
 
     expect(mismatches).toEqual([]);
-    expect(totalRoutes).toBe(299);
-    expect(totalSchemas).toBe(299);
+    expect(totalRoutes).toBe(306);
+    expect(totalSchemas).toBe(306);
   });
 
   it("boots Fastify app and compiles a valid OpenAPI 3.x document containing Wave 3 domain tags", async () => {

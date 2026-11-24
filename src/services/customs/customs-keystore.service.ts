@@ -95,9 +95,10 @@ export class CustomsKeystoreService {
 
     try {
       return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
       throw new Error(
-        `Certificate vault decryption failed (bad passphrase or corrupted auth tag): ${err.message}`,
+        `Certificate vault decryption failed (bad passphrase or corrupted auth tag): ${message}`,
       );
     }
   }

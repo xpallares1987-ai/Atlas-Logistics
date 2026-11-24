@@ -737,7 +737,7 @@ export const cbamRoutes: FastifyPluginAsync = async (fastify) => {
           lotId: id,
           messageId: paymentOrder.messageId,
           messageType: "PAIN_001",
-          schema: "pain.001.001.09",
+          ["schema"]: "pain.001.001.09",
           xml: paymentOrder.xml,
         });
       } catch (err: unknown) {
