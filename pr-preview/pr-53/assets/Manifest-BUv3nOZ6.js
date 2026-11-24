@@ -1,1 +1,0 @@
-export{t as Manifest,t as default}from"./Manifest-i6Dck2LC.js";
