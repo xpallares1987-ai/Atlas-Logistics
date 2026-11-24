@@ -134,6 +134,9 @@ const FuelEuMaritimeModule = React.lazy(
 const TradeFinanceModule = React.lazy(
   () => import("../../pages/TradeFinanceModule"),
 );
+const FinancialClearingModule = React.lazy(
+  () => import("../../pages/FinancialClearingModule"),
+);
 const SmartContractsModule = React.lazy(
   () => import("../../pages/SmartContractsModule"),
 );
@@ -536,6 +539,14 @@ export const AppRoutes = () => {
             element={
               <ProtectedRoute allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER"]}>
                 <AgentSettlementsModule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/financial-clearing"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "EXECUTIVE", "MANAGER"]}>
+                <FinancialClearingModule />
               </ProtectedRoute>
             }
           />

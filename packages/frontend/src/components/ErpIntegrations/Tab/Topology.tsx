@@ -113,7 +113,7 @@ export const Topology: React.FC<TopologyProps> = ({ connectors }) => {
               </div>
               <div>
                 <h3 className="text-base font-bold text-white">
-                  Oracle NetSuite ERP
+                  Oracle NetSuite ERP Production
                 </h3>
                 <span className="text-xs text-slate-400">
                   SuiteTalk REST & Landed Cost

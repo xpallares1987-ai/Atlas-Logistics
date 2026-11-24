@@ -214,3 +214,129 @@ export const cassReconciliationItems = sqliteTable(
     index("idx_cass_items_batch_status").on(table.batchId, table.status),
   ],
 );
+
+// ============================================================================
+// 5. BANKING TRANSMISSIONS (ISO 20022 PAIN.001 / PACS.008 BATCH RUNS & BAH)
+// ============================================================================
+
+export const bankingTransmissions = sqliteTable(
+  "banking_transmissions",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().default("tenant-default"),
+    transmissionNumber: text("transmission_number").notNull().unique(),
+    nettingCycleId: text("netting_cycle_id").references(
+      () => bilateralNettingCycles.id,
+      { onDelete: "set null" },
+    ),
+    messageType: text("message_type", {
+      enum: ["PAIN_001", "PACS_008", "TSMT_019", "CAMT_053"],
+    }).notNull(),
+    bahMessageId: text("bah_message_id").notNull(),
+    senderBic: text("sender_bic").notNull(),
+    receiverBic: text("receiver_bic").notNull(),
+    totalAmount: real("total_amount").notNull().default(0),
+    currency: text("currency", {
+      enum: ["USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "CNY"],
+    })
+      .notNull()
+      .default("EUR"),
+    payloadXml: text("payload_xml").notNull(),
+    payloadHashSha256: text("payload_hash_sha256").notNull(),
+    status: text("status", {
+      enum: ["PENDING", "TRANSMITTED", "ACKED", "REJECTED"],
+    })
+      .notNull()
+      .default("PENDING"),
+    transmittedAt: text("transmitted_at"),
+    ackReceivedAt: text("ack_received_at"),
+    failureReason: text("failure_reason"),
+    metadata: text("metadata", { mode: "json" }),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("idx_banking_transmissions_tenant_status").on(
+      table.tenantId,
+      table.status,
+    ),
+    index("idx_banking_transmissions_netting_cycle").on(
+      table.tenantId,
+      table.nettingCycleId,
+    ),
+    index("idx_banking_transmissions_number").on(
+      table.tenantId,
+      table.transmissionNumber,
+    ),
+    index("idx_banking_transmissions_message_type").on(
+      table.tenantId,
+      table.messageType,
+    ),
+  ],
+);
+
+// ============================================================================
+// 6. BANK STATEMENT ENTRIES (ISO 20022 CAMT.053 INGESTION & AP/AR MATCHING)
+// ============================================================================
+
+export const bankStatementEntries = sqliteTable(
+  "bank_statement_entries",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().default("tenant-default"),
+    statementId: text("statement_id").notNull(),
+    transmissionId: text("transmission_id").references(
+      () => bankingTransmissions.id,
+      { onDelete: "set null" },
+    ),
+    bookingDate: text("booking_date").notNull(), // YYYY-MM-DD
+    valueDate: text("value_date").notNull(), // YYYY-MM-DD
+    creditDebitIndicator: text("credit_debit_indicator", {
+      enum: ["CRDT", "DBIT"],
+    }).notNull(),
+    amount: real("amount").notNull(),
+    currency: text("currency", {
+      enum: ["USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "CNY"],
+    })
+      .notNull()
+      .default("EUR"),
+    accountIban: text("account_iban"),
+    accountBic: text("account_bic"),
+    endToEndId: text("end_to_end_id"),
+    paymentInformationId: text("payment_information_id"),
+    remittanceInformation: text("remittance_information"),
+    reconciliationStatus: text("reconciliation_status", {
+      enum: ["UNMATCHED", "PARTIALLY_MATCHED", "RECONCILED", "DISPUTED"],
+    })
+      .notNull()
+      .default("UNMATCHED"),
+    matchedInvoiceId: text("matched_invoice_id"),
+    matchedCompanyId: text("matched_company_id"),
+    notes: text("notes"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("idx_bank_statement_tenant_statement").on(
+      table.tenantId,
+      table.statementId,
+    ),
+    index("idx_bank_statement_tenant_reconciled").on(
+      table.tenantId,
+      table.reconciliationStatus,
+    ),
+    index("idx_bank_statement_end_to_end").on(table.tenantId, table.endToEndId),
+    index("idx_bank_statement_transmission").on(
+      table.tenantId,
+      table.transmissionId,
+    ),
+  ],
+);

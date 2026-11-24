@@ -74,6 +74,7 @@ import { customsFilingRoutes } from "./customs-filing.routes.js";
 import { dcsaVgmRoutes } from "./dcsa-vgm.routes.js";
 import { crdtSyncRoutes } from "./crdt-sync.routes.js";
 import { marineTelemetryRoutes } from "./marine-telemetry.routes.js";
+import { iso20022Routes } from "./financial/iso20022.routes.js";
 
 export {
   shipmentsRoutes,
@@ -307,6 +308,7 @@ export const registerAllRoutes: FastifyPluginAsync = async (fastify) => {
     prefix: "/api/sync",
   });
   await fastify.register(marineTelemetryRoutes);
+  await fastify.register(iso20022Routes);
 };
 
 export default registerAllRoutes;

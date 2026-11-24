@@ -121,6 +121,35 @@ export interface BankStatementInput {
   entries: StatementEntry[];
 }
 
+export interface BusinessApplicationHeaderInput {
+  messageDefinitionIdentifier: string; // e.g. "pain.001.001.09" or "pacs.008.001.08"
+  businessMessageIdentifier: string;
+  creationDate?: string;
+  senderBic: string;
+  receiverBic: string;
+}
+
+export interface ParsedCamt053Entry {
+  amount: number;
+  currency: string;
+  creditDebitIndicator: "CRDT" | "DBIT";
+  bookingDate: string;
+  endToEndId?: string;
+  entryReference?: string;
+  remittanceInfo?: string;
+}
+
+export interface ParsedCamt053 {
+  messageId: string;
+  creationDateTime: string;
+  statementId: string;
+  electronicSequenceNumber?: number;
+  accountIban: string;
+  accountCurrency: string;
+  accountServicerBic?: string;
+  entries: ParsedCamt053Entry[];
+}
+
 // ============================================================================
 // 2. XML ENCODING & SECURITY UTILITIES
 // ============================================================================
@@ -725,4 +754,105 @@ export function generateCamt053Xml(statement: BankStatementInput): string {
     </Stmt>
   </BkToCstmrStmt>
 </Document>`;
+}
+
+/**
+ * Builds standard ISO 20022 Business Application Header (head.001.001.02)
+ * for SWIFT Alliance Lite2 and EBICS 3.0 envelopes.
+ */
+export function buildBusinessApplicationHeaderXml(
+  input: BusinessApplicationHeaderInput,
+): string {
+  const creDt = input.creationDate || new Date().toISOString();
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<AppHdr xmlns="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+  <Fr>
+    <FIId>
+      <FinInstnId>
+        <BICFI>${escapeXml(input.senderBic)}</BICFI>
+      </FinInstnId>
+    </FIId>
+  </Fr>
+  <To>
+    <FIId>
+      <FinInstnId>
+        <BICFI>${escapeXml(input.receiverBic)}</BICFI>
+      </FinInstnId>
+    </FIId>
+  </To>
+  <BizMsgIdr>${escapeXml(input.businessMessageIdentifier)}</BizMsgIdr>
+  <MsgDefIdr>${escapeXml(input.messageDefinitionIdentifier)}</MsgDefIdr>
+  <CreDt>${escapeXml(creDt)}</CreDt>
+</AppHdr>`;
+}
+
+/**
+ * Parses compliant ISO 20022 camt.053.001.08 XML statement payload into structured records.
+ */
+export function parseCamt053Xml(xml: string): ParsedCamt053 {
+  const getTagValue = (source: string, tagName: string): string => {
+    const match = source.match(new RegExp(`<${tagName}>([^<]+)</${tagName}>`));
+    return match ? match[1].trim() : "";
+  };
+
+  const messageId = getTagValue(xml, "MsgId");
+  const creationDateTime = getTagValue(xml, "CreDtTm");
+
+  const stmtMatch = xml.match(/<Stmt>([\s\S]*?)<\/Stmt>/);
+  const stmtBody = stmtMatch ? stmtMatch[1] : xml;
+
+  const statementId = getTagValue(stmtBody, "Id");
+  const seqNbStr = getTagValue(stmtBody, "ElctrncSeqNb");
+  const electronicSequenceNumber = seqNbStr
+    ? parseInt(seqNbStr, 10)
+    : undefined;
+
+  const acctMatch = stmtBody.match(/<Acct>([\s\S]*?)<\/Acct>/);
+  const acctBody = acctMatch ? acctMatch[1] : stmtBody;
+
+  const accountIban = getTagValue(acctBody, "IBAN");
+  const accountCurrency = getTagValue(acctBody, "Ccy");
+  const accountServicerBic = getTagValue(acctBody, "BICFI");
+
+  const entries: ParsedCamt053Entry[] = [];
+  const entryRegex = /<Ntry>([\s\S]*?)<\/Ntry>/g;
+  let entryMatch: RegExpExecArray | null;
+
+  while ((entryMatch = entryRegex.exec(stmtBody)) !== null) {
+    const entryChunk = entryMatch[1];
+
+    const amtMatch = entryChunk.match(/<Amt\s+Ccy="([^"]+)">([^<]+)<\/Amt>/);
+    const currency = amtMatch ? amtMatch[1] : accountCurrency || "EUR";
+    const amount = amtMatch ? parseFloat(amtMatch[2]) : 0;
+
+    const indStr = getTagValue(entryChunk, "CdtDbtInd");
+    const creditDebitIndicator: "CRDT" | "DBIT" =
+      indStr === "DBIT" ? "DBIT" : "CRDT";
+
+    const bookingDate = getTagValue(entryChunk, "Dt");
+    const endToEndId = getTagValue(entryChunk, "EndToEndId");
+    const entryReference = getTagValue(entryChunk, "AcctSvcrRef") || endToEndId;
+    const remittanceInfo = getTagValue(entryChunk, "Ustrd");
+
+    entries.push({
+      amount,
+      currency,
+      creditDebitIndicator,
+      bookingDate,
+      endToEndId: endToEndId || undefined,
+      entryReference: entryReference || undefined,
+      remittanceInfo: remittanceInfo || undefined,
+    });
+  }
+
+  return {
+    messageId,
+    creationDateTime,
+    statementId,
+    electronicSequenceNumber,
+    accountIban,
+    accountCurrency,
+    accountServicerBic: accountServicerBic || undefined,
+    entries,
+  };
 }

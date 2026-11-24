@@ -297,12 +297,12 @@ export default function ErpIntegrationsModule() {
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-              Corporate ERP Connectors
+              Conectores ERP & Integración Empresarial
               <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                SAP S/4HANA
+                SAP S/4HANA OData
               </span>
               <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                NetSuite
+                NetSuite SuiteTalk
               </span>
               <span className="text-xs px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
                 Dynamics 365 BC
@@ -422,7 +422,7 @@ export default function ErpIntegrationsModule() {
           }`}
         >
           <ArrowLeftRight className="w-4 h-4" />
-          Estudio de Mapeo de Esquemas
+          Estudio de Mapeo de Esquemas (Bi-Direccional)
         </button>
 
         <button
@@ -434,7 +434,7 @@ export default function ErpIntegrationsModule() {
           }`}
         >
           <Activity className="w-4 h-4" />
-          Consola de Ejecución & Sincronización
+          Consola de Ejecución & Sincronización ERP
         </button>
 
         <button
@@ -446,7 +446,7 @@ export default function ErpIntegrationsModule() {
           }`}
         >
           <Database className="w-4 h-4" />
-          Cola Offline Dexie & Resiliencia
+          Cola Offline Dexie & Resiliencia de Red
         </button>
       </div>
 
@@ -568,14 +568,10 @@ export default function ErpIntegrationsModule() {
         <Queue
           queueItems={queueItems}
           onEnqueueManual={() => {
-            void handleEnqueueOffline(
-              "MICROSOFT_DYNAMICS_365_BC",
-              "POST_GENERAL_JOURNAL",
-              {
-                manual: true,
-                timestamp: Date.now(),
-              },
-            );
+            void handleEnqueueOffline("SAP_S4HANA", "SYNC_PO", {
+              manual: true,
+              timestamp: Date.now(),
+            });
           }}
           onFlushQueue={handleFlushDexieQueue}
           isFlushing={batchQueueMutation.isPending}

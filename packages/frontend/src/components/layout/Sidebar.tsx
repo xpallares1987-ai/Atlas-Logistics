@@ -446,6 +446,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   >
                     Trade Finance
                   </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/financial-clearing"
+                    icon={Landmark}
+                    badge="ISO 20022"
+                  >
+                    Financial Clearing
+                  </NavLink>
                 </>
               )}
             </div>
@@ -1033,6 +1041,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     badge="UCP 600"
                   >
                     Trade Finance
+                  </NavLink>
+                  <NavLink
+                    onClick={closeMobile}
+                    to="/financial-clearing"
+                    icon={Landmark}
+                    badge="ISO 20022"
+                  >
+                    Financial Clearing
                   </NavLink>
                   <NavLink
                     onClick={closeMobile}
