@@ -97,6 +97,7 @@
     "docs:generate:settings-dashboard": "node scripts/generate-docs.mjs --settings-dashboard"
   },
   "dependencies": {
+    "@atlas/client-sdk": "workspace:^",
     "@atlas/shared": "workspace:^",
     "@bull-board/api": "^9.13.2",
     "@bull-board/fastify": "^9.13.2",

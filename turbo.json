@@ -15,6 +15,9 @@
     "@atlas/shared#build": {
       "outputs": []
     },
+    "@atlas/client-sdk#build": {
+      "outputs": []
+    },
     "lint": {
       "dependsOn": ["^lint"],
       "outputs": []

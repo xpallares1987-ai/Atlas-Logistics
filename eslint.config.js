@@ -13,6 +13,7 @@ export default tseslint.config(
       ".worktrees/**",
       "backups-test/**",
       "packages/bpmn-modeler/**",
+      "packages/client-sdk/**",
       "packages/mfe-dashboard/**",
       "packages/mfe-warehouse/**",
       "packages/rate-comparer/**",

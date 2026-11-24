@@ -149,7 +149,7 @@ async function main() {
     "--state",
     "all",
     "--json",
-    "id,number,title,url,state",
+    "id,number,title,url,state,createdAt,closedAt",
   ]);
   const existingIssues = JSON.parse(rawIssues || "[]");
 
@@ -275,15 +275,26 @@ async function main() {
       }
     }
 
-    // 2. Update Start Date and End Date on Issue for Roadmap View
-    const schedule = TASK_SCHEDULE[task.id];
-    if (schedule && issue.id) {
-      try {
-        setIssueDateField(issue.id, START_DATE_ISSUE_FIELD_ID, schedule.start);
-        setIssueDateField(issue.id, END_DATE_ISSUE_FIELD_ID, schedule.end);
-        console.log(`Set ${task.id} (${issue.id}) -> Roadmap: ${schedule.start} to ${schedule.end}`);
-      } catch (dateErr) {
-        console.warn(`Could not set dates for ${task.id}:`, dateErr.message);
+    // 2. Update Start Date and End Date on Issue for Roadmap View (Created Date -> Start, Closed Date -> End)
+    if (issue.id) {
+      const schedule = TASK_SCHEDULE[task.id];
+      const startDate = issue.createdAt
+        ? issue.createdAt.slice(0, 10)
+        : schedule?.start;
+      const endDate = issue.closedAt
+        ? issue.closedAt.slice(0, 10)
+        : (schedule?.end || startDate);
+
+      if (startDate) {
+        try {
+          setIssueDateField(issue.id, START_DATE_ISSUE_FIELD_ID, startDate);
+          if (endDate) {
+            setIssueDateField(issue.id, END_DATE_ISSUE_FIELD_ID, endDate);
+          }
+          console.log(`Set ${task.id} (${issue.id}) -> Roadmap: ${startDate} to ${endDate}`);
+        } catch (dateErr) {
+          console.warn(`Could not set dates for ${task.id}:`, dateErr.message);
+        }
       }
     }
   }
