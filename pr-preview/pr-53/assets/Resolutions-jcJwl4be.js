@@ -1,0 +1,1 @@
+export{t as Resolutions,t as default}from"./Resolutions-bYgUpEP8.js";
