@@ -13,6 +13,7 @@ import { TradeFinanceFeeService } from "./trade-finance-fee.service.js";
 import { SwiftMessageService } from "./swift-message.service.js";
 import { PDFService } from "../../services/pdf.service.js";
 import { domainEventBus } from "../../lib/events/index.js";
+import { authMiddleware, requireRole } from "../../middleware/auth.js";
 import {
   OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
   OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
@@ -230,6 +231,7 @@ export const tradeFinanceRoutes: FastifyPluginAsync = async (
   app.post(
     "/instruments",
     {
+      preHandler: [authMiddleware, requireRole(["ACCOUNTING", "CONTROLLING"])],
       schema: {
         tags: [...TRADE_FINANCE_TAG],
         summary: "Create and issue a new documentary trade credit instrument",
@@ -351,6 +353,7 @@ export const tradeFinanceRoutes: FastifyPluginAsync = async (
   app.post(
     "/instruments/:id/validate-ucp",
     {
+      preHandler: [authMiddleware, requireRole(["ACCOUNTING", "CONTROLLING"])],
       schema: {
         tags: [...TRADE_FINANCE_TAG],
         summary:

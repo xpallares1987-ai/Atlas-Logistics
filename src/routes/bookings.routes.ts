@@ -20,6 +20,7 @@ import {
   assertTenantAccess,
   TenantAccessDeniedError,
 } from "../lib/tenancy/index.js";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
 import {
   OPENAPI_ID_PARAMS_SCHEMA,
   OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
@@ -164,6 +165,7 @@ const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   }>(
     "/",
     {
+      preHandler: [authMiddleware, requireRole(["OPERATIONS", "SALES"])],
       schema: {
         tags: ["Bookings"],
         summary: "Create a new booking request (Phase 1: PENDING)",
@@ -242,6 +244,7 @@ const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   }>(
     "/:id/confirm",
     {
+      preHandler: [authMiddleware, requireRole(["OPERATIONS"])],
       schema: {
         tags: ["Bookings"],
         summary:
@@ -316,6 +319,7 @@ const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   }>(
     "/:id/cancel",
     {
+      preHandler: [authMiddleware, requireRole(["OPERATIONS", "SALES"])],
       schema: {
         tags: ["Bookings"],
         summary: "Cancel an active or pending booking request",

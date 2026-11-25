@@ -29,6 +29,7 @@ import { CbamEexService } from "./cbam-eex.service.js";
 import { CbamCertificateService } from "./cbam-certificate.service.js";
 import { bootstrapCbamDefinitiveTables } from "./cbam-bootstrap.js";
 import { PDFService } from "../../services/pdf.service.js";
+import { authMiddleware, requireRole } from "../../middleware/auth.js";
 import {
   OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
   OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
@@ -508,6 +509,7 @@ export const cbamRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post(
     "/eex/quotes",
     {
+      preHandler: [authMiddleware, requireRole(["COMPLIANCE", "OPERATIONS"])],
       schema: {
         tags: [...CBAM_TAG],
         summary:
@@ -630,6 +632,7 @@ export const cbamRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post(
     "/certificates/lots",
     {
+      preHandler: [authMiddleware, requireRole(["COMPLIANCE", "OPERATIONS"])],
       schema: {
         tags: [...CBAM_TAG],
         summary:
@@ -689,6 +692,7 @@ export const cbamRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post(
     "/certificates/lots/:id/payment-order",
     {
+      preHandler: [authMiddleware, requireRole(["COMPLIANCE", "OPERATIONS"])],
       schema: {
         tags: [...CBAM_TAG],
         summary:
@@ -754,6 +758,7 @@ export const cbamRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post(
     "/declarations/:id/surrender",
     {
+      preHandler: [authMiddleware, requireRole(["COMPLIANCE", "OPERATIONS"])],
       schema: {
         tags: [...CBAM_TAG],
         summary:

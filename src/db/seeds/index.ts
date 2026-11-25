@@ -47,6 +47,7 @@ export * from "./unlocode.seed.js";
 export * from "./address-identifiers.seed.js";
 export * from "./organization.seed.js";
 export * from "./po.seed.js";
+export * from "./banking.seed.js";
 
 import { seedTriggers } from "./triggers.seed.js";
 import { seedCore } from "./core.seed.js";
@@ -88,6 +89,7 @@ import { seedCrossBorder } from "./cross-border.seed.js";
 import { seedEFirma } from "./efirma.seed.js";
 import { seedSmartContracts } from "./smart-contracts.seed.js";
 import { seedErp } from "./erp.seed.js";
+import { seedBanking } from "./banking.seed.js";
 import { seedDemurrageDisputes } from "./demurrage-dispute.seed.js";
 import { seedOceanBookings } from "./ocean-booking.seed.js";
 import { seedStowagePlans } from "./stowage.seed.js";
@@ -233,6 +235,7 @@ export async function seedPhase4(ctx?: Partial<SeedContext>): Promise<void> {
   await seedEFirma();
   await seedSmartContracts();
   await seedErp();
+  await seedBanking();
   console.log(
     "✅ [PHASE 4] Transfronterizo, Blockchain & ERP completadas con éxito.",
   );

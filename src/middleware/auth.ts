@@ -66,7 +66,11 @@ export const authMiddleware = async (
 
     const sessionId = request.cookies[SESSION_COOKIE_NAME];
     if (!sessionId) {
-      return reply.code(401).send({ error: "Missing Authentication." });
+      return reply.code(401).send({
+        error: authHeader
+          ? "Invalid or expired authorization token"
+          : "Missing Authentication.",
+      });
     }
 
     const { session, user } = await validateSession(sessionId);
@@ -105,16 +109,71 @@ export const authMiddleware = async (
   }
 };
 
+export const ROLE_HIERARCHY_ALIASES: Record<string, string[]> = {
+  OPERATIONS: [
+    "OPERATIONS",
+    "OPERATOR",
+    "ROLE_OCEAN_OPERATOR",
+    "ROLE_AIR_DISPATCHER",
+    "ROLE_DRAYAGE_CONTROLLER",
+  ],
+  ACCOUNTING: [
+    "ACCOUNTING",
+    "FINANCE",
+    "CONTROLLING",
+    "TREASURY",
+    "ROLE_FINANCIAL_CONTROLLER",
+  ],
+  CUSTOMS: ["CUSTOMS", "CUSTOMS_BROKER", "ROLE_CUSTOMS_DECLARANT"],
+  COMPLIANCE: ["COMPLIANCE", "ESG_OFFICER", "ROLE_COMPLIANCE_OFFICER"],
+  SALES: ["SALES", "COMMERCIAL", "ROLE_SALES_KEY_ACCOUNTS"],
+  MANAGEMENT: ["MANAGEMENT", "DIRECTOR", "ROLE_BRANCH_DIRECTOR"],
+};
+
+export function isRoleAuthorized(
+  userRole: string | undefined | null,
+  allowedRoles: string[],
+): boolean {
+  if (!userRole) return false;
+  const normalizedUserRole = userRole.trim().toUpperCase();
+
+  // 1. ADMIN Superuser bypass
+  if (normalizedUserRole === "ADMIN" || normalizedUserRole === "SYSTEM_ADMIN") {
+    return true;
+  }
+
+  // Normalize allowed roles
+  const normalizedAllowed = allowedRoles.map((r) => r.trim().toUpperCase());
+
+  // 2. Direct match
+  if (normalizedAllowed.includes(normalizedUserRole)) {
+    return true;
+  }
+
+  // 3. Hierarchy alias match
+  for (const allowed of normalizedAllowed) {
+    const aliases = ROLE_HIERARCHY_ALIASES[allowed];
+    if (aliases && aliases.includes(normalizedUserRole)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export const requireRole = (allowedRoles: string[]) => {
   return async (
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<FastifyReply | void> => {
-    const userRole = request.user?.role || "USER";
-    if (!allowedRoles.includes(userRole)) {
-      return reply
-        .code(403)
-        .send({ error: "Forbidden: Insufficient permissions" });
+    const userRole = request.user?.role;
+    if (!isRoleAuthorized(userRole, allowedRoles)) {
+      return reply.code(403).send({
+        error: "Forbidden: Insufficient permissions",
+        code: "INSUFFICIENT_ROLE",
+        userRole: userRole || "ANONYMOUS",
+        requiredRoles: allowedRoles,
+      });
     }
   };
 };

@@ -28,6 +28,7 @@ import {
   assertTenantAccess,
   TenantAccessDeniedError,
 } from "../../lib/tenancy/index.js";
+import { authMiddleware, requireRole } from "../../middleware/auth.js";
 import {
   extractCommercialInvoice,
   extractPackingList,
@@ -387,12 +388,10 @@ const customsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         return reply.send(result);
       } catch (error: unknown) {
         if (error instanceof z.ZodError) {
-          return reply
-            .code(400)
-            .send({
-              error: "Validation error",
-              details: { issues: error.issues },
-            });
+          return reply.code(400).send({
+            error: "Validation error",
+            details: { issues: error.issues },
+          });
         }
         return reply.code(500).send({ error: getErrorMessage(error) });
       }
@@ -431,12 +430,10 @@ const customsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
         return reply.send(result);
       } catch (error: unknown) {
         if (error instanceof z.ZodError) {
-          return reply
-            .code(400)
-            .send({
-              error: "Validation error",
-              details: { issues: error.issues },
-            });
+          return reply.code(400).send({
+            error: "Validation error",
+            details: { issues: error.issues },
+          });
         }
         return reply.code(500).send({ error: getErrorMessage(error) });
       }
@@ -520,6 +517,7 @@ const customsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.post(
     "/customs-declarations/:id/clearance",
     {
+      preHandler: [authMiddleware, requireRole(["CUSTOMS", "COMPLIANCE"])],
       schema: {
         tags: ["Customs Declarations"],
         summary:
@@ -783,12 +781,10 @@ const customsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
           return reply.code(403).send({ error: error.message });
         }
         if (error instanceof z.ZodError) {
-          return reply
-            .code(400)
-            .send({
-              error: "Validation error",
-              details: { issues: error.issues },
-            });
+          return reply.code(400).send({
+            error: "Validation error",
+            details: { issues: error.issues },
+          });
         }
         return reply.code(500).send({ error: getErrorMessage(error) });
       }
@@ -799,6 +795,7 @@ const customsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.post(
     "/customs-declarations",
     {
+      preHandler: [authMiddleware, requireRole(["CUSTOMS", "OPERATIONS"])],
       schema: {
         tags: ["Customs Declarations"],
         summary:
@@ -936,12 +933,10 @@ const customsRoutes: FastifyPluginAsync = async (fastify, _opts) => {
           return reply.code(403).send({ error: error.message });
         }
         if (error instanceof z.ZodError) {
-          return reply
-            .code(400)
-            .send({
-              error: "Validation error",
-              details: { issues: error.issues },
-            });
+          return reply.code(400).send({
+            error: "Validation error",
+            details: { issues: error.issues },
+          });
         }
         return reply.code(500).send({ error: getErrorMessage(error) });
       }
