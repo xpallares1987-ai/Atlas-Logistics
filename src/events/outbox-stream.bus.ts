@@ -19,6 +19,48 @@ import { ensureScmFoundationTables } from "../scm/kernel/outbox-bus.js";
 // 1. DATA CONTRACTS & INTERFACES
 // ============================================================================
 
+const RETRY_AFTER_PREFIX = "[RETRY_AFTER:";
+
+/**
+ * Computes deterministic exponential backoff delay (in milliseconds).
+ * Formula: delayMs = min(maxMs, baseMs * 2^(retryCount - 1))
+ */
+export function computeBackoffDelay(
+  retryCount: number,
+  baseMs: number,
+  maxMs: number,
+): number {
+  if (retryCount <= 0) return 0;
+  const factor = Math.pow(2, Math.min(retryCount - 1, 30));
+  return Math.min(maxMs, Math.max(0, Math.floor(baseMs * factor)));
+}
+
+/**
+ * Encodes next retry timestamp into the lastError string without DDL schema drift.
+ */
+export function encodeLastError(
+  errorMessage: string,
+  nextRetryAtMs: number,
+): string {
+  return `${RETRY_AFTER_PREFIX} ${nextRetryAtMs}] ${errorMessage}`;
+}
+
+/**
+ * Parses next retry timestamp from lastError string if present.
+ */
+export function parseRetryAfter(
+  lastError: string | null | undefined,
+): number | null {
+  if (!lastError || !lastError.startsWith(RETRY_AFTER_PREFIX)) {
+    return null;
+  }
+  const endIdx = lastError.indexOf("]");
+  if (endIdx === -1) return null;
+  const tsStr = lastError.substring(RETRY_AFTER_PREFIX.length, endIdx).trim();
+  const ts = Number(tsStr);
+  return Number.isFinite(ts) ? ts : null;
+}
+
 export interface OutboxStreamEvent<T = unknown> {
   eventId: string;
   eventType: string;
@@ -374,6 +416,12 @@ export class OutboxStreamBus extends EventEmitter {
         .limit(batchLimit);
 
       for (const row of candidateRows) {
+        // Enforce exponential backoff: skip rows whose retry_after timestamp has not elapsed yet
+        const retryAfter = parseRetryAfter(row.lastError);
+        if (retryAfter && retryAfter > Date.now()) {
+          continue;
+        }
+
         const matchingConsumers = this.consumers.filter(
           (c) => c.eventType === row.eventType || c.eventType === "*",
         );
@@ -448,13 +496,22 @@ export class OutboxStreamBus extends EventEmitter {
         if (rowError) {
           const nextRetry = row.retryCount + 1;
           const isDeadLetter = nextRetry >= this.config.maxRetries;
+          const backoffDelayMs = computeBackoffDelay(
+            nextRetry,
+            this.config.baseBackoffMs,
+            this.config.maxBackoffMs,
+          );
+          const nextRetryAt = Date.now() + backoffDelayMs;
+          const encodedError = isDeadLetter
+            ? rowError.message
+            : encodeLastError(rowError.message, nextRetryAt);
 
           await db
             .update(scmOutboxMessages)
             .set({
               status: isDeadLetter ? "FAILED" : "PENDING",
               retryCount: nextRetry,
-              lastError: rowError.message,
+              lastError: encodedError,
             })
             .where(eq(scmOutboxMessages.eventId, row.eventId));
 

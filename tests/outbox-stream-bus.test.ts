@@ -202,6 +202,9 @@ describe("OutboxStreamBus & Idempotent Consumer (T-65 / ADR 0040)", () => {
       expect(row.status).toBe("PENDING");
       expect(row.lastError).toContain("503");
 
+      // Wait for backoff window (10ms * 2^0 = 10ms)
+      await new Promise((r) => setTimeout(r, 20));
+
       // Pass 2: retryCount becomes 2 (PENDING)
       await bus.pollAndDispatchBatch();
       row = (
@@ -211,6 +214,9 @@ describe("OutboxStreamBus & Idempotent Consumer (T-65 / ADR 0040)", () => {
           .where(eq(scmOutboxMessages.eventId, eventId))
       )[0];
       expect(row.retryCount).toBe(2);
+
+      // Wait for backoff window (10ms * 2^1 = 20ms)
+      await new Promise((r) => setTimeout(r, 30));
 
       // Pass 3: retryCount becomes 3 >= maxRetries (3) -> Dead Letter Queue (FAILED)
       const res3 = await bus.pollAndDispatchBatch();
