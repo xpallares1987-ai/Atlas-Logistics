@@ -1,0 +1,1 @@
+ALTER TABLE `fuel_eu_penalties_ledger` ADD `banking_transmission_id` text;
