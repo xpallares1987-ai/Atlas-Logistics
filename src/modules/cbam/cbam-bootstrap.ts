@@ -83,4 +83,21 @@ export async function bootstrapCbamDefinitiveTables(): Promise<void> {
   await client.execute(`
     CREATE INDEX IF NOT EXISTS cbam_cert_surrenders_tenant_period_idx ON cbam_certificate_surrenders(tenant_id, reporting_period);
   `);
+
+  // Ensure fuel_eu_penalties_ledger has banking_transmission_id defensively
+  try {
+    const tableInfo = await client.execute(
+      "PRAGMA table_info(fuel_eu_penalties_ledger);",
+    );
+    const cols = (tableInfo.rows as unknown as Array<{ name: string }>).map(
+      (r) => r.name,
+    );
+    if (!cols.includes("banking_transmission_id")) {
+      await client.execute(
+        "ALTER TABLE fuel_eu_penalties_ledger ADD COLUMN banking_transmission_id TEXT;",
+      );
+    }
+  } catch {
+    // If table doesn't exist yet in an isolated test, ignore safely
+  }
 }

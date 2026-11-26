@@ -143,6 +143,189 @@ export const iso20022Routes: FastifyPluginAsync = async (fastify) => {
   );
 
   /**
+   * POST /api/financial/iso20022/cbam/generate
+   * Generates a compliant ISO 20022 pain.001 payment initiation for a CBAM certificate lot.
+   */
+  fastify.post<{
+    Body: {
+      lotId: string;
+      debtorName: string;
+      debtorIban: string;
+      debtorBic: string;
+      creditorNcaName?: string;
+      creditorNcaIban?: string;
+      creditorNcaBic?: string;
+    };
+  }>(
+    "/api/financial/iso20022/cbam/generate",
+    {
+      schema: {
+        description:
+          "Generates ISO 20022 pain.001.001.09 payment initiation XML for settling a CBAM Certificate Lot purchase with NCA",
+        tags: ["Financial Clearing - ISO 20022"],
+        body: openApiObject({
+          lotId: { type: "string" },
+          debtorName: { type: "string" },
+          debtorIban: { type: "string" },
+          debtorBic: { type: "string" },
+          creditorNcaName: { anyOf: [{ type: "string" }, { type: "null" }] },
+          creditorNcaIban: { anyOf: [{ type: "string" }, { type: "null" }] },
+          creditorNcaBic: { anyOf: [{ type: "string" }, { type: "null" }] },
+        }),
+        response: {
+          200: openApiObject({
+            success: { type: "boolean" },
+            payment: openApiObject(BANKING_TRANSMISSION_PROPERTIES),
+          }),
+          ...buildErrorResponses([400, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const {
+          lotId,
+          debtorName,
+          debtorIban,
+          debtorBic,
+          creditorNcaName,
+          creditorNcaIban,
+          creditorNcaBic,
+        } = request.body;
+
+        if (!lotId || !debtorName || !debtorIban || !debtorBic) {
+          return reply.code(400).send({
+            error: "BAD_REQUEST",
+            message:
+              "lotId, debtorName, debtorIban, and debtorBic are mandatory.",
+          });
+        }
+
+        const payment =
+          await swiftIso20022Service.generateCbamCertificatePayment({
+            lotId,
+            debtorName,
+            debtorIban,
+            debtorBic,
+            creditorNcaName,
+            creditorNcaIban,
+            creditorNcaBic,
+          });
+
+        return reply.code(200).send({
+          success: true,
+          payment,
+        });
+      } catch (err: unknown) {
+        const error = err as Error;
+        if (error.message?.includes("not found")) {
+          return reply.code(404).send({
+            error: "NOT_FOUND",
+            message: error.message,
+          });
+        }
+        return reply.code(500).send({
+          error: "INTERNAL_SERVER_ERROR",
+          message:
+            error.message || "Failed to generate CBAM payment instruction",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/financial/iso20022/fueleu/generate
+   * Generates a compliant ISO 20022 pain.001 payment initiation for settling FuelEU Maritime penalties.
+   */
+  fastify.post<{
+    Body: {
+      penaltyId: string;
+      debtorName: string;
+      debtorIban: string;
+      debtorBic: string;
+      creditorFundName?: string;
+      creditorFundIban?: string;
+      creditorFundBic?: string;
+    };
+  }>(
+    "/api/financial/iso20022/fueleu/generate",
+    {
+      schema: {
+        description:
+          "Generates ISO 20022 pain.001.001.09 payment initiation XML for settling FuelEU Maritime penalties with EU Innovation Fund",
+        tags: ["Financial Clearing - ISO 20022"],
+        body: openApiObject({
+          penaltyId: { type: "string" },
+          debtorName: { type: "string" },
+          debtorIban: { type: "string" },
+          debtorBic: { type: "string" },
+          creditorFundName: { anyOf: [{ type: "string" }, { type: "null" }] },
+          creditorFundIban: { anyOf: [{ type: "string" }, { type: "null" }] },
+          creditorFundBic: { anyOf: [{ type: "string" }, { type: "null" }] },
+        }),
+        response: {
+          200: openApiObject({
+            success: { type: "boolean" },
+            payment: openApiObject(BANKING_TRANSMISSION_PROPERTIES),
+          }),
+          ...buildErrorResponses([400, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const {
+          penaltyId,
+          debtorName,
+          debtorIban,
+          debtorBic,
+          creditorFundName,
+          creditorFundIban,
+          creditorFundBic,
+        } = request.body;
+
+        if (!penaltyId || !debtorName || !debtorIban || !debtorBic) {
+          return reply.code(400).send({
+            error: "BAD_REQUEST",
+            message:
+              "penaltyId, debtorName, debtorIban, and debtorBic are mandatory.",
+          });
+        }
+
+        const payment = await swiftIso20022Service.generateFuelEuPenaltyPayment(
+          {
+            penaltyId,
+            debtorName,
+            debtorIban,
+            debtorBic,
+            creditorFundName,
+            creditorFundIban,
+            creditorFundBic,
+          },
+        );
+
+        return reply.code(200).send({
+          success: true,
+          payment,
+        });
+      } catch (err: unknown) {
+        const error = err as Error;
+        if (error.message?.includes("not found")) {
+          return reply.code(404).send({
+            error: "NOT_FOUND",
+            message: error.message,
+          });
+        }
+        return reply.code(500).send({
+          error: "INTERNAL_SERVER_ERROR",
+          message:
+            error.message || "Failed to generate FuelEU payment instruction",
+        });
+      }
+    },
+  );
+
+  /**
    * POST /api/financial/iso20022/statements/reconcile
    * Ingests electronic bank statement (camt.053) and executes automated AP/AR clearing reconciliation.
    */
@@ -237,7 +420,7 @@ export const iso20022Routes: FastifyPluginAsync = async (fastify) => {
    * Lists banking transmissions with optional pagination.
    */
   fastify.get<{
-    Querystring: { limit?: number };
+    Querystring: { limit?: number; category?: string };
   }>(
     "/api/financial/iso20022/transmissions",
     {
@@ -246,6 +429,7 @@ export const iso20022Routes: FastifyPluginAsync = async (fastify) => {
         tags: ["Financial Clearing - ISO 20022"],
         querystring: openApiObject({
           limit: { anyOf: [{ type: "number" }, { type: "null" }] },
+          category: { anyOf: [{ type: "string" }, { type: "null" }] },
         }),
         response: {
           200: openApiObject({
@@ -257,10 +441,29 @@ export const iso20022Routes: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const transmissions = await swiftIso20022Service.listTransmissions(
+      const { category, limit } = request.query;
+      let transmissions = await swiftIso20022Service.listTransmissions(
         "tenant-default",
-        request.query.limit || 50,
+        limit || 100,
       );
+
+      if (category && category !== "ALL") {
+        transmissions = transmissions.filter((t) => {
+          const meta = (t.metadata as Record<string, unknown>) || {};
+          if (category === "NETTING") {
+            return (
+              t.nettingCycleId !== null || meta.category === "NETTING_CYCLE"
+            );
+          }
+          if (category === "CBAM") {
+            return meta.category === "CBAM_CERTIFICATE_PURCHASE";
+          }
+          if (category === "FUELEU") {
+            return meta.category === "FUELEU_MARITIME_PENALTY";
+          }
+          return true;
+        });
+      }
 
       return reply.code(200).send({
         success: true,

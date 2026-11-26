@@ -8,13 +8,15 @@
 
 import crypto from "node:crypto";
 import { db } from "../db/index.js";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, or } from "drizzle-orm";
 import {
   bankingTransmissions,
   bankStatementEntries,
   bilateralNettingCycles,
   financialClearingEntries,
 } from "../db/schema/financial_clearing.js";
+import { cbamCertificateInventory } from "../db/schema/cbam.js";
+import { fuelEuPenaltiesLedger } from "../db/schema/fueleu_maritime.js";
 import { outboxStreamBus } from "../events/outbox-stream.bus.js";
 import { DEFAULT_OPERATOR_ACTOR } from "../scm/kernel/primitives.js";
 import {
@@ -35,6 +37,28 @@ export interface SettlementPaymentOptions {
   paymentType?: "PAIN_001" | "PACS_008";
   senderBic?: string;
   receiverBic?: string;
+}
+
+export interface CbamPaymentOptions {
+  lotId: string;
+  tenantId?: string;
+  debtorName: string;
+  debtorIban: string;
+  debtorBic: string;
+  creditorNcaName?: string;
+  creditorNcaIban?: string;
+  creditorNcaBic?: string;
+}
+
+export interface FuelEuPenaltyPaymentOptions {
+  penaltyId: string;
+  tenantId?: string;
+  debtorName: string;
+  debtorIban: string;
+  debtorBic: string;
+  creditorFundName?: string;
+  creditorFundIban?: string;
+  creditorFundBic?: string;
 }
 
 export interface StatementReconciliationResult {
@@ -175,6 +199,269 @@ export class SwiftIso20022Service {
   }
 
   /**
+   * Generates a compliant ISO 20022 pain.001 wire payment initiation for settling a CBAM Certificate Lot.
+   */
+  async generateCbamCertificatePayment(
+    options: CbamPaymentOptions,
+  ): Promise<typeof bankingTransmissions.$inferSelect> {
+    const tenantId = options.tenantId || "tenant-default";
+
+    // 1. Fetch Lot from inventory
+    const [lot] = await db
+      .select()
+      .from(cbamCertificateInventory)
+      .where(
+        and(
+          eq(cbamCertificateInventory.id, options.lotId),
+          eq(cbamCertificateInventory.tenantId, tenantId),
+        ),
+      )
+      .limit(1);
+
+    if (!lot) {
+      throw new Error(`CBAM Certificate Lot ${options.lotId} not found`);
+    }
+
+    const transmissionNumber = `TRX-CBAM-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+    const bahMessageId = `BAH-${transmissionNumber}`;
+    const today = new Date().toISOString().slice(0, 10);
+    const creditorNcaName =
+      options.creditorNcaName ||
+      `National Competent Authority (${lot.ncaRegistryAccountId})`;
+    const creditorNcaIban =
+      options.creditorNcaIban || "ES9121000418450200051332";
+    const creditorNcaBic = options.creditorNcaBic || "BACESMMXXXX";
+
+    // 2. Synthesize ParsedMt103 representation
+    const syntheticMt103: ParsedMt103 = {
+      senderReference: lot.lotReference || transmissionNumber,
+      bankOperationCode: "CRED",
+      valueDate: today,
+      currency: "EUR",
+      instructedAmount: lot.totalCostEur,
+      orderingCustomer: {
+        name: options.debtorName,
+        addressLines: ["Atlas Carbon Operations Hub", "Valencia, Spain"],
+        accountOrIban: options.debtorIban,
+        bic: options.debtorBic,
+      },
+      orderingInstitutionBic: options.debtorBic,
+      accountWithInstitutionBic: creditorNcaBic,
+      beneficiaryCustomer: {
+        name: creditorNcaName,
+        addressLines: [
+          "EU CBAM National Registry Treasury",
+          "Brussels / Madrid",
+        ],
+        accountOrIban: creditorNcaIban,
+        bic: creditorNcaBic,
+      },
+      remittanceInformation: `CBAM Lot ${lot.lotReference} / ${lot.quantityPurchased} certs / RegAcc ${lot.ncaRegistryAccountId}`,
+      chargeDetails: "SHA",
+    };
+
+    // 3. Build XML Documents
+    const bahXml = buildBusinessApplicationHeaderXml({
+      businessMessageIdentifier: bahMessageId,
+      messageDefinitionIdentifier: "pain.001.001.09",
+      senderBic: options.debtorBic,
+      receiverBic: creditorNcaBic,
+    });
+
+    const docXml = translateMt103ToPain001Xml(syntheticMt103);
+    const fullXml = `<?xml version="1.0" encoding="UTF-8"?>\n<AppHdrAndDoc xmlns="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">\n${bahXml}\n${docXml}\n</AppHdrAndDoc>`;
+    const payloadHash = crypto
+      .createHash("sha256")
+      .update(fullXml, "utf8")
+      .digest("hex");
+    const transmissionId = `btx_${crypto.randomUUID()}`;
+
+    // 4. Insert into banking_transmissions and link to lot
+    const record: typeof bankingTransmissions.$inferInsert = {
+      id: transmissionId,
+      tenantId,
+      transmissionNumber,
+      nettingCycleId: null,
+      messageType: "PAIN_001",
+      bahMessageId,
+      senderBic: options.debtorBic,
+      receiverBic: creditorNcaBic,
+      totalAmount: lot.totalCostEur,
+      currency: "EUR",
+      payloadXml: fullXml,
+      payloadHashSha256: payloadHash,
+      status: "PENDING",
+      metadata: {
+        category: "CBAM_CERTIFICATE_PURCHASE",
+        lotId: lot.id,
+        lotReference: lot.lotReference,
+        quantityPurchased: lot.quantityPurchased,
+        unitPriceEur: lot.unitPriceEur,
+        ncaRegistryAccountId: lot.ncaRegistryAccountId,
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.insert(bankingTransmissions).values(record);
+
+    await db
+      .update(cbamCertificateInventory)
+      .set({
+        bankingTransmissionId: transmissionId,
+        paymentReference: transmissionNumber,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(cbamCertificateInventory.id, lot.id));
+
+    // 5. Publish to Outbox
+    await outboxStreamBus.publish({
+      eventType: "financial.iso20022.cbam_payment_initiated.v1",
+      aggregateType: "banking_transmission",
+      aggregateId: transmissionId,
+      producerContext: "cbam-clearing",
+      payload: {
+        transmissionId,
+        transmissionNumber,
+        lotId: lot.id,
+        lotReference: lot.lotReference,
+        totalCostEur: lot.totalCostEur,
+        debtorIban: options.debtorIban,
+        creditorNcaIban,
+        actor: DEFAULT_OPERATOR_ACTOR,
+      },
+    });
+
+    return record as typeof bankingTransmissions.$inferSelect;
+  }
+
+  /**
+   * Generates a compliant ISO 20022 pain.001 wire payment initiation for settling FuelEU Maritime Penalties.
+   */
+  async generateFuelEuPenaltyPayment(
+    options: FuelEuPenaltyPaymentOptions,
+  ): Promise<typeof bankingTransmissions.$inferSelect> {
+    const tenantId = options.tenantId || "tenant-default";
+
+    // 1. Fetch Penalty from ledger
+    const [penalty] = await db
+      .select()
+      .from(fuelEuPenaltiesLedger)
+      .where(eq(fuelEuPenaltiesLedger.id, options.penaltyId))
+      .limit(1);
+
+    if (!penalty) {
+      throw new Error(`FuelEU Penalty ${options.penaltyId} not found`);
+    }
+
+    const transmissionNumber = `TRX-FUELEU-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+    const bahMessageId = `BAH-${transmissionNumber}`;
+    const today = new Date().toISOString().slice(0, 10);
+    const creditorFundName =
+      options.creditorFundName || "EU Innovation Fund - FuelEU Maritime Escrow";
+    const creditorFundIban = options.creditorFundIban || "BE68539007547034";
+    const creditorFundBic = options.creditorFundBic || "EUEBBE22XXX";
+
+    // 2. Synthesize ParsedMt103 representation
+    const syntheticMt103: ParsedMt103 = {
+      senderReference: penalty.settlementReference || transmissionNumber,
+      bankOperationCode: "CRED",
+      valueDate: today,
+      currency: "EUR",
+      instructedAmount: penalty.netPayableEur,
+      orderingCustomer: {
+        name: options.debtorName,
+        addressLines: ["Atlas Maritime Operations", "Barcelona, Spain"],
+        accountOrIban: options.debtorIban,
+        bic: options.debtorBic,
+      },
+      orderingInstitutionBic: options.debtorBic,
+      accountWithInstitutionBic: creditorFundBic,
+      beneficiaryCustomer: {
+        name: creditorFundName,
+        addressLines: ["European Commission DG CLIMA", "Brussels, Belgium"],
+        accountOrIban: creditorFundIban,
+        bic: creditorFundBic,
+      },
+      remittanceInformation: `FuelEU Art23 Penalty ${penalty.settlementReference} / Year ${penalty.reportingYear} / Deficit ${penalty.vlsfoEquivalentDeficitTonnes.toFixed(2)}t`,
+      chargeDetails: "SHA",
+    };
+
+    // 3. Build XML Documents
+    const bahXml = buildBusinessApplicationHeaderXml({
+      businessMessageIdentifier: bahMessageId,
+      messageDefinitionIdentifier: "pain.001.001.09",
+      senderBic: options.debtorBic,
+      receiverBic: creditorFundBic,
+    });
+
+    const docXml = translateMt103ToPain001Xml(syntheticMt103);
+    const fullXml = `<?xml version="1.0" encoding="UTF-8"?>\n<AppHdrAndDoc xmlns="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">\n${bahXml}\n${docXml}\n</AppHdrAndDoc>`;
+    const payloadHash = crypto
+      .createHash("sha256")
+      .update(fullXml, "utf8")
+      .digest("hex");
+    const transmissionId = `btx_${crypto.randomUUID()}`;
+
+    // 4. Insert into banking_transmissions and link to penalty
+    const record: typeof bankingTransmissions.$inferInsert = {
+      id: transmissionId,
+      tenantId,
+      transmissionNumber,
+      nettingCycleId: null,
+      messageType: "PAIN_001",
+      bahMessageId,
+      senderBic: options.debtorBic,
+      receiverBic: creditorFundBic,
+      totalAmount: penalty.netPayableEur,
+      currency: "EUR",
+      payloadXml: fullXml,
+      payloadHashSha256: payloadHash,
+      status: "PENDING",
+      metadata: {
+        category: "FUELEU_MARITIME_PENALTY",
+        penaltyId: penalty.id,
+        settlementReference: penalty.settlementReference,
+        reportingYear: penalty.reportingYear,
+        vlsfoEquivalentDeficitTonnes: penalty.vlsfoEquivalentDeficitTonnes,
+        statutoryPenaltyRateEurPerTonne:
+          penalty.statutoryPenaltyRateEurPerTonne,
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.insert(bankingTransmissions).values(record);
+
+    await db
+      .update(fuelEuPenaltiesLedger)
+      .set({
+        bankingTransmissionId: transmissionId,
+      })
+      .where(eq(fuelEuPenaltiesLedger.id, penalty.id));
+
+    // 5. Publish to Outbox
+    await outboxStreamBus.publish({
+      eventType: "financial.iso20022.fueleu_payment_initiated.v1",
+      aggregateType: "banking_transmission",
+      aggregateId: transmissionId,
+      producerContext: "fueleu-clearing",
+      payload: {
+        transmissionId,
+        transmissionNumber,
+        penaltyId: penalty.id,
+        settlementReference: penalty.settlementReference,
+        netPayableEur: penalty.netPayableEur,
+        debtorIban: options.debtorIban,
+        creditorFundIban,
+        actor: DEFAULT_OPERATOR_ACTOR,
+      },
+    });
+
+    return record as typeof bankingTransmissions.$inferSelect;
+  }
+
+  /**
    * Ingests an ISO 20022 camt.053 XML electronic bank statement and reconciles matched invoices.
    */
   async ingestBankStatement(
@@ -193,35 +480,93 @@ export class SwiftIso20022Service {
         "UNMATCHED" | "RECONCILED" | "PARTIALLY_MATCHED" = "UNMATCHED";
       let matchedInvoiceId: string | undefined;
 
-      // Match against open Financial Clearing entries by reference or endToEndId
-      if (entry.endToEndId || entry.remittanceInfo) {
-        const candidateRef = entry.endToEndId || entry.remittanceInfo;
-        if (candidateRef) {
-          const [matched] = await db
-            .select()
-            .from(financialClearingEntries)
-            .where(
-              and(
-                eq(financialClearingEntries.tenantId, tenantId),
-                eq(financialClearingEntries.reference, candidateRef),
+      // Extract all candidate references from endToEndId, entryReference, and remittanceInfo
+      const candidateRefs = [
+        entry.endToEndId,
+        entry.entryReference,
+        entry.remittanceInfo,
+      ].filter((ref): ref is string => Boolean(ref && ref.trim().length > 0));
+
+      for (const candidateRef of candidateRefs) {
+        if ((reconciliationStatus as string) === "RECONCILED") break;
+
+        // 1. Tier 1: Match against open Financial Clearing entries by reference
+        const [matched] = await db
+          .select()
+          .from(financialClearingEntries)
+          .where(
+            and(
+              eq(financialClearingEntries.tenantId, tenantId),
+              eq(financialClearingEntries.reference, candidateRef),
+            ),
+          )
+          .limit(1);
+
+        if (matched) {
+          matchedInvoiceId = matched.id;
+          reconciliationStatus = "RECONCILED";
+          reconciledCount++;
+
+          await db
+            .update(financialClearingEntries)
+            .set({
+              status: "SETTLED",
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(financialClearingEntries.id, matched.id));
+          break;
+        }
+
+        // 2. Tier 2: Match against CBAM Certificate Inventory lots by lotReference or paymentReference
+        const [matchedLot] = await db
+          .select()
+          .from(cbamCertificateInventory)
+          .where(
+            and(
+              eq(cbamCertificateInventory.tenantId, tenantId),
+              or(
+                eq(cbamCertificateInventory.lotReference, candidateRef),
+                eq(cbamCertificateInventory.paymentReference, candidateRef),
               ),
-            )
-            .limit(1);
+            ),
+          )
+          .limit(1);
 
-          if (matched) {
-            matchedInvoiceId = matched.id;
-            reconciliationStatus = "RECONCILED";
-            reconciledCount++;
+        if (matchedLot) {
+          matchedInvoiceId = matchedLot.id;
+          reconciliationStatus = "RECONCILED";
+          reconciledCount++;
 
-            // Update matching clearing entry to SETTLED
-            await db
-              .update(financialClearingEntries)
-              .set({
-                status: "SETTLED",
-                updatedAt: new Date().toISOString(),
-              })
-              .where(eq(financialClearingEntries.id, matched.id));
-          }
+          await db
+            .update(cbamCertificateInventory)
+            .set({
+              status: "ACTIVE",
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(cbamCertificateInventory.id, matchedLot.id));
+          break;
+        }
+
+        // 3. Tier 3: Match against FuelEU Maritime Penalties ledger by settlementReference
+        const [matchedPenalty] = await db
+          .select()
+          .from(fuelEuPenaltiesLedger)
+          .where(eq(fuelEuPenaltiesLedger.settlementReference, candidateRef))
+          .limit(1);
+
+        if (matchedPenalty) {
+          matchedInvoiceId = matchedPenalty.id;
+          reconciliationStatus = "RECONCILED";
+          reconciledCount++;
+
+          await db
+            .update(fuelEuPenaltiesLedger)
+            .set({
+              paymentStatus: "PAID_TO_EU_FUND",
+              settledAt: new Date().toISOString(),
+            })
+            .where(eq(fuelEuPenaltiesLedger.id, matchedPenalty.id));
+          break;
         }
       }
 

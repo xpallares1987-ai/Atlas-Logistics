@@ -322,6 +322,7 @@ export const fuelEuPenaltiesLedger = sqliteTable("fuel_eu_penalties_ledger", {
   euFundTreasuryAccount: text("eu_fund_treasury_account")
     .notNull()
     .default("EU-INNOVATION-FUND-FUELEU-ESCROW"),
+  bankingTransmissionId: text("banking_transmission_id"),
   settledAt: text("settled_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),

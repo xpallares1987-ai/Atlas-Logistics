@@ -41,6 +41,7 @@ interface BankingTransmissionItem {
   payloadXml: string;
   payloadHashSha256: string;
   status: "PENDING" | "TRANSMITTED" | "ACKED" | "REJECTED";
+  metadata?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -75,6 +76,9 @@ export default function FinancialClearingModule() {
   const [activeTab, setActiveTab] = useState<
     "TRANSMISSIONS" | "RECONCILIATION" | "DOCUMENTARY_CREDITS"
   >("TRANSMISSIONS");
+  const [categoryFilter, setCategoryFilter] = useState<
+    "ALL" | "NETTING" | "CBAM" | "FUELEU"
+  >("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTransmission, setSelectedTransmission] =
     useState<BankingTransmissionItem | null>(null);
@@ -84,8 +88,8 @@ export default function FinancialClearingModule() {
   // Queries for Transmissions and Statements
   const { data: transmissionsData, isLoading: loadingTransmissions } =
     useApiQuery<TransmissionsApiResponse>(
-      ["iso20022-transmissions"],
-      "/financial/iso20022/transmissions",
+      ["iso20022-transmissions", categoryFilter],
+      `/financial/iso20022/transmissions?category=${categoryFilter}`,
     );
 
   const { data: statementsData, isLoading: loadingStatements } =
@@ -293,14 +297,63 @@ export default function FinancialClearingModule() {
             </div>
 
             {activeTab === "TRANSMISSIONS" && (
-              <div className="w-64">
-                <Input
-                  type="text"
-                  placeholder="Filter message #, BIC, status..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  leftIcon={<Search size={14} />}
-                />
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1 p-0.5 bg-slate-950/80 rounded-lg border border-white/5 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setCategoryFilter("ALL")}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      categoryFilter === "ALL"
+                        ? "bg-indigo-500/30 text-indigo-200 border border-indigo-500/40"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCategoryFilter("NETTING")}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      categoryFilter === "NETTING"
+                        ? "bg-indigo-500/30 text-indigo-200 border border-indigo-500/40"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Netting B2B
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCategoryFilter("CBAM")}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      categoryFilter === "CBAM"
+                        ? "bg-indigo-500/30 text-indigo-200 border border-indigo-500/40"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    CBAM Certs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCategoryFilter("FUELEU")}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      categoryFilter === "FUELEU"
+                        ? "bg-indigo-500/30 text-indigo-200 border border-indigo-500/40"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    FuelEU Canon
+                  </button>
+                </div>
+
+                <div className="w-56">
+                  <Input
+                    type="text"
+                    placeholder="Filter #, BIC, status..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    leftIcon={<Search size={14} />}
+                  />
+                </div>
               </div>
             )}
           </div>
