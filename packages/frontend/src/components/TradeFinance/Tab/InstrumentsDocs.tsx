@@ -13,6 +13,9 @@ import {
   FileCode2,
   Download,
   FileCheck2,
+  CheckCircle2,
+  Loader2,
+  Coins,
 } from "lucide-react";
 import { Input } from "@atlas/ui";
 import { TradeInstrument } from "../../../types/trade-finance.types";
@@ -47,6 +50,9 @@ export interface InstrumentsDocsProps {
   selectedInstrument: TradeInstrument | null;
   setSelectedInstrument: (inst: TradeInstrument) => void;
   currentInst: TradeInstrument | null;
+  isSettling?: boolean;
+  settlementSuccessMsg?: string | null;
+  onHonourSettlement?: () => void;
 }
 
 export const InstrumentsDocs: React.FC<InstrumentsDocsProps> = ({
@@ -59,6 +65,9 @@ export const InstrumentsDocs: React.FC<InstrumentsDocsProps> = ({
   selectedInstrument,
   setSelectedInstrument,
   currentInst,
+  isSettling = false,
+  settlementSuccessMsg,
+  onHonourSettlement,
 }) => {
   return (
     <div className="flex-1 px-4 md:px-8 pb-8 flex flex-col lg:flex-row gap-6 min-h-0 z-10 relative overflow-y-auto lg:overflow-hidden">
@@ -188,9 +197,42 @@ export const InstrumentsDocs: React.FC<InstrumentsDocsProps> = ({
                   Banco Emisor: {currentInst.issuingBankName} (
                   {currentInst.issuingBankBic})
                 </p>
+                {settlementSuccessMsg && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium flex items-center gap-2">
+                    <CheckCircle2
+                      size={14}
+                      className="text-emerald-400 shrink-0"
+                    />
+                    <span>{settlementSuccessMsg}</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                {currentInst.status === "HONOURED_PAID" ? (
+                  <span className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm">
+                    <CheckCircle2 size={14} className="text-emerald-400" />
+                    Liquidado via pacs.008
+                  </span>
+                ) : (
+                  (currentInst.status === "ACCEPTED" ||
+                    currentInst.status === "DOCUMENTS_PRESENTED") &&
+                  onHonourSettlement && (
+                    <button
+                      type="button"
+                      onClick={onHonourSettlement}
+                      disabled={isSettling}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white transition-all flex items-center gap-1.5 shadow-md border border-emerald-400/30 disabled:opacity-50"
+                    >
+                      {isSettling ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Coins size={14} className="text-emerald-200" />
+                      )}
+                      Liquidar Crédito (pacs.008)
+                    </button>
+                  )
+                )}
                 <a
                   href={`/api/trade-finance/instruments/${currentInst.id}/swift-mt700`}
                   target="_blank"

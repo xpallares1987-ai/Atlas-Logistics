@@ -57,6 +57,10 @@ export function useTradeFinance() {
     null,
   );
   const [isAuditing, setIsAuditing] = useState(false);
+  const [isSettling, setIsSettling] = useState(false);
+  const [settlementSuccessMsg, setSettlementSuccessMsg] = useState<
+    string | null
+  >(null);
 
   // On-Demand Gemini AI UCP 600 Audit State
   const [isAuditingGeminiUcp, setIsAuditingGeminiUcp] = useState(false);
@@ -175,6 +179,38 @@ export function useTradeFinance() {
     }
   };
 
+  const handleHonourSettlement = async () => {
+    if (!selectedInstrument) return;
+    setIsSettling(true);
+    setSettlementSuccessMsg(null);
+    try {
+      const res = await fetch(
+        `/api/trade-finance/instruments/${selectedInstrument.id}/honour-settlement`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
+        },
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setSettlementSuccessMsg(
+          `Crédito documentario liquidado con éxito via ISO 20022 pacs.008 (Ref: ${data.transmissionNumber}).`,
+        );
+        refetchInstruments();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.message || "Error al liquidar crédito documentario.");
+      }
+    } catch (err) {
+      console.error("Settlement error:", err);
+      alert("Error de conexión al liquidar el crédito documentario.");
+    } finally {
+      setIsSettling(false);
+    }
+  };
+
   const stats = useMemo(() => {
     const totalFinancedVolume = instruments.reduce(
       (acc, inst) => acc + (inst.creditAmount || 0),
@@ -236,6 +272,10 @@ export function useTradeFinance() {
     geminiUcpAudit,
     setGeminiUcpAudit,
     stats,
+    isSettling,
+    settlementSuccessMsg,
+    setSettlementSuccessMsg,
+    handleHonourSettlement,
     handleRunGeminiUcpAudit,
     handleRunFeeSim,
     handleRunUcpAudit,

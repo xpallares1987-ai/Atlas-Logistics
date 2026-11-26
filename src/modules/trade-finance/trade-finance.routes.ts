@@ -12,6 +12,7 @@ import { UcpDiscrepancyValidatorService } from "./ucp-discrepancy-validator.serv
 import { TradeFinanceFeeService } from "./trade-finance-fee.service.js";
 import { SwiftMessageService } from "./swift-message.service.js";
 import { PDFService } from "../../services/pdf.service.js";
+import { swiftIso20022Service } from "../../services/swift-iso20022.service.js";
 import { domainEventBus } from "../../lib/events/index.js";
 import { authMiddleware, requireRole } from "../../middleware/auth.js";
 import {
@@ -425,6 +426,84 @@ export const tradeFinanceRoutes: FastifyPluginAsync = async (
         success: true,
         auditResult,
       });
+    },
+  );
+
+  // 4.5 POST /api/trade-finance/instruments/:id/honour-settlement
+  app.post(
+    "/instruments/:id/honour-settlement",
+    {
+      preHandler: [
+        authMiddleware,
+        requireRole(["ACCOUNTING", "CONTROLLING", "ADMIN"]),
+      ],
+      schema: {
+        tags: [...TRADE_FINANCE_TAG],
+        summary:
+          "Honour and settle a verified trade credit instrument via ISO 20022 pacs.008 payment transfer",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: openApiObject({
+          debtorIban: { type: "string" },
+          debtorBic: { type: "string" },
+          creditorIban: { type: "string" },
+          creditorBic: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const body = (request.body ?? {}) as {
+        debtorIban?: string;
+        debtorBic?: string;
+        creditorIban?: string;
+        creditorBic?: string;
+      };
+
+      try {
+        const transmission =
+          await swiftIso20022Service.generateTradeCreditSettlementPayment({
+            instrumentId: id,
+            debtorIban: body.debtorIban,
+            debtorBic: body.debtorBic,
+            creditorIban: body.creditorIban,
+            creditorBic: body.creditorBic,
+          });
+
+        domainEventBus.publish("trade-finance:instrument-honoured", id, {
+          instrumentId: id,
+          transmissionId: transmission.id,
+          transmissionNumber: transmission.transmissionNumber,
+          totalAmount: transmission.totalAmount,
+          currency: transmission.currency,
+          settledAt: new Date().toISOString(),
+        });
+
+        return reply.code(200).send({
+          success: true,
+          instrumentId: id,
+          transmissionId: transmission.id,
+          transmissionNumber: transmission.transmissionNumber,
+          totalAmount: transmission.totalAmount,
+          currency: transmission.currency,
+          messageType: transmission.messageType,
+          status: transmission.status,
+          payloadHashSha256: transmission.payloadHashSha256,
+        });
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Error settling trade credit";
+        const isNotFound = errorMessage.includes("not found");
+        const statusCode = isNotFound ? 404 : 400;
+
+        return reply.code(statusCode).send({
+          error: isNotFound ? "Not Found" : "Settlement Error",
+          message: errorMessage,
+        });
+      }
     },
   );
 

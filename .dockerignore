@@ -5,6 +5,7 @@
 
 # Node/Package managers
 node_modules
+**/node_modules
 npm-debug.log
 yarn-error.log
 pnpm-error.log
@@ -13,13 +14,17 @@ pnpm-error.log
 # Build artifacts
 dist
 build
+**/dist
+**/build
 !packages/frontend/dist
 !packages/*/dist
 .turbo
+**/turbo
 .next
 .nuxt
 out
 .cache
+**/.cache
 
 # Dependencies
 *.tgz

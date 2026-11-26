@@ -17,6 +17,10 @@ import {
 } from "../db/schema/financial_clearing.js";
 import { cbamCertificateInventory } from "../db/schema/cbam.js";
 import { fuelEuPenaltiesLedger } from "../db/schema/fueleu_maritime.js";
+import {
+  tradeCreditInstruments,
+  tradeDiscrepancies,
+} from "../db/schema/trade_finance.js";
 import { outboxStreamBus } from "../events/outbox-stream.bus.js";
 import { DEFAULT_OPERATOR_ACTOR } from "../scm/kernel/primitives.js";
 import {
@@ -59,6 +63,15 @@ export interface FuelEuPenaltyPaymentOptions {
   creditorFundName?: string;
   creditorFundIban?: string;
   creditorFundBic?: string;
+}
+
+export interface TradeCreditPaymentOptions {
+  instrumentId: string;
+  tenantId?: string;
+  debtorIban?: string;
+  debtorBic?: string;
+  creditorIban?: string;
+  creditorBic?: string;
 }
 
 export interface StatementReconciliationResult {
@@ -454,6 +467,179 @@ export class SwiftIso20022Service {
         netPayableEur: penalty.netPayableEur,
         debtorIban: options.debtorIban,
         creditorFundIban,
+        actor: DEFAULT_OPERATOR_ACTOR,
+      },
+    });
+
+    return record as typeof bankingTransmissions.$inferSelect;
+  }
+
+  /**
+   * Generates a compliant ISO 20022 pacs.008 interbank customer credit transfer
+   * to honour and settle a verified Documentary Letter of Credit (LC) under UCP 600 rules.
+   */
+  async generateTradeCreditSettlementPayment(
+    options: TradeCreditPaymentOptions,
+  ): Promise<typeof bankingTransmissions.$inferSelect> {
+    const tenantId = options.tenantId || "tenant-default";
+
+    // 1. Fetch Letter of Credit Instrument
+    const [instrument] = await db
+      .select()
+      .from(tradeCreditInstruments)
+      .where(eq(tradeCreditInstruments.id, options.instrumentId))
+      .limit(1);
+
+    if (!instrument) {
+      throw new Error(
+        `Trade credit instrument ${options.instrumentId} not found`,
+      );
+    }
+
+    // 2. Assert Instrument Compliance State under UCP 600
+    if (instrument.status === "HONOURED_PAID") {
+      throw new Error(
+        `Trade credit instrument ${instrument.instrumentReference} has already been honoured and settled.`,
+      );
+    }
+
+    if (instrument.status === "DISCREPANCIES_FOUND") {
+      // Check if all recorded discrepancies have been waived by applicant
+      const openDiscrepancies = await db
+        .select()
+        .from(tradeDiscrepancies)
+        .where(
+          and(
+            eq(tradeDiscrepancies.instrumentId, instrument.id),
+            or(
+              eq(tradeDiscrepancies.status, "OPEN"),
+              eq(tradeDiscrepancies.status, "WAIVER_REQUESTED"),
+              eq(tradeDiscrepancies.status, "REJECTED_REFUSAL"),
+            ),
+          ),
+        );
+
+      if (openDiscrepancies.length > 0) {
+        throw new Error(
+          `Cannot honour instrument ${instrument.instrumentReference}: contains ${openDiscrepancies.length} unresolved/unwaived UCP 600 discrepancies.`,
+        );
+      }
+    } else if (
+      instrument.status !== "ACCEPTED" &&
+      instrument.status !== "DOCUMENTS_PRESENTED"
+    ) {
+      throw new Error(
+        `Cannot honour instrument ${instrument.instrumentReference}: current status is '${instrument.status}', expected 'ACCEPTED' or compliant presentation.`,
+      );
+    }
+
+    const transmissionNumber = `TRX-LC-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+    const bahMessageId = `BAH-${transmissionNumber}`;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const debtorBic =
+      options.debtorBic || instrument.issuingBankBic || "ATLAESMMXXX";
+    const debtorIban = options.debtorIban || "ES9121000418450200051332";
+    const creditorBic =
+      options.creditorBic || instrument.confirmingBankBic || "BNPAFRPPXXX";
+    const creditorIban = options.creditorIban || "FR7630006000011234567890189";
+
+    // 3. Synthesize ParsedMt103 for interbank payment execution
+    const syntheticMt103: ParsedMt103 = {
+      senderReference: instrument.instrumentReference,
+      bankOperationCode: "CRED",
+      valueDate: today,
+      currency: instrument.currency || "EUR",
+      instructedAmount: instrument.creditAmount,
+      orderingCustomer: {
+        name: instrument.applicantName || "Atlas Operations Hub",
+        addressLines: ["Avenida del Puerto 120", "Valencia, Spain"],
+        accountOrIban: debtorIban,
+        bic: debtorBic,
+      },
+      orderingInstitutionBic: debtorBic,
+      accountWithInstitutionBic: creditorBic,
+      beneficiaryCustomer: {
+        name: instrument.beneficiaryName || "International Trade Beneficiary",
+        addressLines: ["Trade Finance Hub", "Marseille, France"],
+        accountOrIban: creditorIban,
+        bic: creditorBic,
+      },
+      remittanceInformation: `Honouring LC ${instrument.instrumentReference} / UCP600 / Beneficiary ${instrument.beneficiaryName}`,
+      chargeDetails: "SHA",
+    };
+
+    // 4. Build ISO 20022 BAH (head.001.001.02) and pacs.008.001.08 XML
+    const bahXml = buildBusinessApplicationHeaderXml({
+      businessMessageIdentifier: bahMessageId,
+      messageDefinitionIdentifier: "pacs.008.001.08",
+      senderBic: debtorBic,
+      receiverBic: creditorBic,
+    });
+
+    const docXml = translateMt103ToPacs008Xml(syntheticMt103);
+    const fullXml = `<?xml version="1.0" encoding="UTF-8"?>\n<AppHdrAndDoc xmlns="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">\n${bahXml}\n${docXml}\n</AppHdrAndDoc>`;
+    const payloadHash = crypto
+      .createHash("sha256")
+      .update(fullXml, "utf8")
+      .digest("hex");
+    const transmissionId = `btx_${crypto.randomUUID()}`;
+
+    // 5. Insert record into banking_transmissions
+    const record: typeof bankingTransmissions.$inferInsert = {
+      id: transmissionId,
+      tenantId,
+      transmissionNumber,
+      nettingCycleId: null,
+      messageType: "PACS_008",
+      bahMessageId,
+      senderBic: debtorBic,
+      receiverBic: creditorBic,
+      totalAmount: instrument.creditAmount,
+      currency: (instrument.currency as "EUR" | "USD" | "GBP") || "EUR",
+      payloadXml: fullXml,
+      payloadHashSha256: payloadHash,
+      status: "ACKED",
+      transmittedAt: new Date().toISOString(),
+      ackReceivedAt: new Date().toISOString(),
+      metadata: {
+        category: "TRADE_CREDIT_SETTLEMENT",
+        instrumentId: instrument.id,
+        instrumentReference: instrument.instrumentReference,
+        instrumentType: instrument.instrumentType,
+        applicantName: instrument.applicantName,
+        beneficiaryName: instrument.beneficiaryName,
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.insert(bankingTransmissions).values(record);
+
+    // 6. Transition instrument status to HONOURED_PAID
+    await db
+      .update(tradeCreditInstruments)
+      .set({
+        status: "HONOURED_PAID",
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(tradeCreditInstruments.id, instrument.id));
+
+    // 7. Dispatch Outbox Event
+    await outboxStreamBus.publish({
+      eventType: "financial.iso20022.trade_credit_honoured.v1",
+      aggregateType: "trade_credit_instrument",
+      aggregateId: instrument.id,
+      producerContext: "trade-finance-clearing",
+      payload: {
+        transmissionId,
+        transmissionNumber,
+        instrumentId: instrument.id,
+        instrumentReference: instrument.instrumentReference,
+        creditAmount: instrument.creditAmount,
+        currency: instrument.currency,
+        debtorIban,
+        creditorIban,
         actor: DEFAULT_OPERATOR_ACTOR,
       },
     });

@@ -34,6 +34,15 @@ export interface TradeFinanceInstrumentIssuedPayload {
   beneficiaryCompanyId: string;
 }
 
+export interface TradeFinanceInstrumentHonouredPayload {
+  instrumentId: string;
+  transmissionId: string;
+  transmissionNumber: string;
+  totalAmount: number;
+  currency: string;
+  settledAt: string;
+}
+
 export interface CargoClaimFiledPayload {
   claimId: string;
   shipmentId: string;
@@ -160,6 +169,10 @@ export interface DomainEventRegistry {
   "trade-finance:instrument-issued": BaseDomainEvent<
     "trade-finance:instrument-issued",
     TradeFinanceInstrumentIssuedPayload
+  >;
+  "trade-finance:instrument-honoured": BaseDomainEvent<
+    "trade-finance:instrument-honoured",
+    TradeFinanceInstrumentHonouredPayload
   >;
   "claims:claim-filed": BaseDomainEvent<
     "claims:claim-filed",
