@@ -17,6 +17,8 @@ import { cbamRoutes } from "../../src/modules/cbam/cbam.routes.js";
 import { tradeFinanceRoutes } from "../../src/modules/trade-finance/trade-finance.routes.js";
 import customsRoutes from "../../src/modules/customs/customs.routes.js";
 import bookingsRoutes from "../../src/routes/bookings.routes.js";
+import { invoicesRoutes } from "../../src/routes/financial/invoices.routes.js";
+import { settlementsRoutes } from "../../src/routes/financial/settlements.routes.js";
 
 const TEST_JWT_SECRET =
   process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32
@@ -44,6 +46,8 @@ describe("P1-C: Domain-Tiered Route RBAC Security Suite", () => {
     await app.register(tradeFinanceRoutes, { prefix: "/api/trade-finance" });
     await app.register(customsRoutes, { prefix: "/api" });
     await app.register(bookingsRoutes, { prefix: "/api/bookings" });
+    await app.register(invoicesRoutes, { prefix: "/api" });
+    await app.register(settlementsRoutes, { prefix: "/api" });
 
     await app.ready();
   });
@@ -142,6 +146,41 @@ describe("P1-C: Domain-Tiered Route RBAC Security Suite", () => {
         payload: { carrierBookingNumber: "MSCU12345" },
       });
       expect(res.statusCode).toBe(401);
+    });
+
+    it("returns 401 when calling protected Invoices mutation endpoints without Bearer token", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/invoices",
+        payload: {
+          invoiceNumber: "INV-2026-UNAUTH-01",
+          type: "AR",
+        },
+      });
+
+      expect(res.statusCode).toBe(401);
+      const json = res.json();
+      expect(json.error || json.message).toMatch(
+        /Unauthorized|Missing Authentication|Invalid or expired/i,
+      );
+    });
+
+    it("returns 401 when calling protected Agent Settlements generation without Bearer token", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/agent-settlements",
+        payload: {
+          agentId: "agent-unauth-01",
+          periodStart: "2026-01-01",
+          periodEnd: "2026-01-31",
+        },
+      });
+
+      expect(res.statusCode).toBe(401);
+      const json = res.json();
+      expect(json.error || json.message).toMatch(
+        /Unauthorized|Missing Authentication|Invalid or expired/i,
+      );
     });
   });
 
@@ -242,6 +281,54 @@ describe("P1-C: Domain-Tiered Route RBAC Security Suite", () => {
       expect(json.code).toBe("INSUFFICIENT_ROLE");
       expect(json.requiredRoles).toEqual(["OPERATIONS", "SALES"]);
     });
+
+    it("returns 403 when an OPERATIONS user tries to create an invoice (requires ACCOUNTING or ADMIN)", async () => {
+      const opsToken = signTestToken({
+        id: "ops-02",
+        role: "OPERATIONS",
+        companyId: "comp-ops",
+      });
+
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/invoices",
+        headers: { authorization: `Bearer ${opsToken}` },
+        payload: {
+          invoiceNumber: "INV-2026-FAIL-01",
+          type: "AR",
+          totalAmount: 1500,
+        },
+      });
+
+      expect(res.statusCode).toBe(403);
+      const json = res.json();
+      expect(json.code).toBe("INSUFFICIENT_ROLE");
+      expect(json.requiredRoles).toEqual(["ACCOUNTING", "ADMIN"]);
+    });
+
+    it("returns 403 when a CUSTOMS officer tries to generate agent settlement (requires ACCOUNTING or ADMIN)", async () => {
+      const customsToken = signTestToken({
+        id: "cust-03",
+        role: "CUSTOMS_BROKER",
+        companyId: "comp-customs",
+      });
+
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/agent-settlements",
+        headers: { authorization: `Bearer ${customsToken}` },
+        payload: {
+          agentId: "agent-01",
+          periodStart: "2026-01-01",
+          periodEnd: "2026-01-31",
+        },
+      });
+
+      expect(res.statusCode).toBe(403);
+      const json = res.json();
+      expect(json.code).toBe("INSUFFICIENT_ROLE");
+      expect(json.requiredRoles).toEqual(["ACCOUNTING", "ADMIN"]);
+    });
   });
 
   // ============================================================================
@@ -327,6 +414,52 @@ describe("P1-C: Domain-Tiered Route RBAC Security Suite", () => {
       expect(res.json().error).toMatch(
         /Trade credit instrument not found|Instrument not found/i,
       );
+    });
+
+    it("allows ACCOUNTING officer to create an invoice and sync GL", async () => {
+      const accountantToken = signTestToken({
+        id: "acct-01",
+        role: "ACCOUNTING",
+        companyId: "comp-2",
+      });
+
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/invoices",
+        headers: { authorization: `Bearer ${accountantToken}` },
+        payload: {
+          partyId: "comp-2",
+          invoiceNumber: `INV-2026-AUTH-${Date.now()}`,
+          type: "AR",
+          totalAmount: 2500,
+          currency: "EUR",
+        },
+      });
+
+      expect(res.statusCode).not.toBe(401);
+      expect(res.statusCode).not.toBe(403);
+      expect(res.statusCode).toBe(201);
+      expect(res.json().id).toBeDefined();
+    });
+
+    it("allows ADMIN to transition invoice status without 403", async () => {
+      const adminToken = signTestToken({
+        id: "admin-finance",
+        role: "ADMIN",
+        companyId: "holding-admin",
+      });
+
+      const res = await app.inject({
+        method: "PUT",
+        url: "/api/invoices/inv-nonexistent-id/status",
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { status: "Paid" },
+      });
+
+      expect(res.statusCode).not.toBe(401);
+      expect(res.statusCode).not.toBe(403);
+      // Reached domain logic, invoice not found
+      expect(res.statusCode).toBe(404);
     });
   });
 });

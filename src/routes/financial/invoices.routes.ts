@@ -6,6 +6,7 @@
  */
 
 import { FastifyPluginAsync } from "fastify";
+import { authMiddleware, requireRole } from "../../middleware/auth.js";
 import { db } from "../../db/index.js";
 import {
   invoices,
@@ -272,6 +273,7 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Body: CreateInvoiceBody }>(
     "/invoices",
     {
+      preHandler: [authMiddleware, requireRole(["ACCOUNTING", "ADMIN"])],
       schema: {
         tags: ["Invoices"],
         summary: "Create a draft AR/AP invoice and enqueue accounting sync",
@@ -372,6 +374,7 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.put<{ Params: InvoiceIdParams; Body: UpdateInvoiceStatusBody }>(
     "/invoices/:id/status",
     {
+      preHandler: [authMiddleware, requireRole(["ACCOUNTING", "ADMIN"])],
       schema: {
         tags: ["Invoices"],
         summary:
@@ -498,6 +501,7 @@ export const invoicesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Params: InvoiceIdParams }>(
     "/invoices/:id/sync-gl",
     {
+      preHandler: [authMiddleware, requireRole(["ACCOUNTING", "ADMIN"])],
       schema: {
         tags: ["Invoices"],
         summary: "Enqueue asynchronous General Ledger ERP synchronization",

@@ -6,6 +6,7 @@
  */
 
 import { FastifyPluginAsync } from "fastify";
+import { authMiddleware, requireRole } from "../../middleware/auth.js";
 import { db } from "../../db/index.js";
 import { invoices, agentSettlements } from "../../db/schema/finance.js";
 import { companies } from "../../db/schema/core.js";
@@ -85,6 +86,7 @@ export const settlementsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Body: CreateSettlementBody }>(
     "/agent-settlements",
     {
+      preHandler: [authMiddleware, requireRole(["ACCOUNTING", "ADMIN"])],
       schema: {
         tags: [...SETTLEMENTS_TAG],
         summary:
