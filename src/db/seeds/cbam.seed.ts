@@ -2,8 +2,18 @@ import { db } from "../index.js";
 import * as schema from "../schema/index.js";
 import { faker } from "@faker-js/faker";
 import { sql } from "drizzle-orm";
+import crypto from "node:crypto";
+import { bootstrapCbamDefinitiveTables } from "../../modules/cbam/cbam-bootstrap.js";
+import {
+  buildBusinessApplicationHeaderXml,
+  translateMt103ToPain001Xml,
+  type ParsedMt103,
+} from "../../scm/engines/swift-iso20022.engine.js";
 
 export async function seedCbam(): Promise<void> {
+  // Ensure definitive tables exist defensively before seeding
+  await bootstrapCbamDefinitiveTables();
+
   // ==========================================
   // 15. MECANISMO DE AJUSTE EN FRONTERA POR CARBONO (CBAM) - REGLAMENTO (UE) 2023/956
   // ==========================================
@@ -407,7 +417,309 @@ export async function seedCbam(): Promise<void> {
     ])
     .onConflictDoNothing();
 
+  // ==========================================
+  // 15.5. CBAM DEFINITIVE REGIME FIXTURES (EEX QUOTES, INVENTORY & SURRENDERS)
+  // ==========================================
   console.log(
-    "✅ Creados Catálogo CBAM, Instalaciones Verificadas, Declaraciones Trimestrales y Líneas de Importación.",
+    "📊 Inyectando Cotizaciones EEX, Lotes de Certificados CBAM y Actas de Entrega Definitivas...",
+  );
+
+  // 1. EEX Weekly Quotes (2026-W38 to 2026-W41)
+  await db
+    .insert(schema.cbamEexQuotes)
+    .values([
+      {
+        id: "eex_2026_w38",
+        quoteWeek: "2026-W38",
+        validFrom: "2026-09-14",
+        validUntil: "2026-09-20",
+        auctionAveragePriceEur: 82.4,
+        scaledPrice: 82400000,
+        publishedAt: "2026-09-14T08:00:00Z",
+        source: "EEX_AUCTION",
+      },
+      {
+        id: "eex_2026_w39",
+        quoteWeek: "2026-W39",
+        validFrom: "2026-09-21",
+        validUntil: "2026-09-27",
+        auctionAveragePriceEur: 83.15,
+        scaledPrice: 83150000,
+        publishedAt: "2026-09-21T08:00:00Z",
+        source: "EEX_AUCTION",
+      },
+      {
+        id: "eex_2026_w40",
+        quoteWeek: "2026-W40",
+        validFrom: "2026-09-28",
+        validUntil: "2026-10-04",
+        auctionAveragePriceEur: 84.0,
+        scaledPrice: 84000000,
+        publishedAt: "2026-09-28T08:00:00Z",
+        source: "EEX_AUCTION",
+      },
+      {
+        id: "eex_2026_w41",
+        quoteWeek: "2026-W41",
+        validFrom: "2026-10-05",
+        validUntil: "2026-10-11",
+        auctionAveragePriceEur: 84.75,
+        scaledPrice: 84750000,
+        publishedAt: "2026-10-05T08:00:00Z",
+        source: "EEX_AUCTION",
+      },
+    ])
+    .onConflictDoUpdate({
+      target: schema.cbamEexQuotes.id,
+      set: {
+        auctionAveragePriceEur: sql`excluded.auction_average_price_eur`,
+        scaledPrice: sql`excluded.scaled_price`,
+        publishedAt: sql`excluded.published_at`,
+        source: sql`excluded.source`,
+      },
+    });
+
+  // 2. ISO 20022 Transmission for Lot LOT-2026-001 Settlement
+  const transmissionNumber = "TRX-CBAM-20260920-PAIN001";
+  const bahMessageId = `BAH-${transmissionNumber}`;
+  const debtorBic = "CAIXESBBXXX";
+  const creditorNcaBic = "BACESMMXXXX";
+
+  const syntheticMt103: ParsedMt103 = {
+    senderReference: "LOT-2026-001",
+    bankOperationCode: "CRED",
+    valueDate: "2026-09-20",
+    currency: "EUR",
+    instructedAmount: 412000.0,
+    orderingCustomer: {
+      name: "Atlas Carbon Operations Hub",
+      addressLines: ["Avenida del Puerto 120", "Valencia, Spain"],
+      accountOrIban: "ES9121000418450200051332",
+      bic: debtorBic,
+    },
+    orderingInstitutionBic: debtorBic,
+    accountWithInstitutionBic: creditorNcaBic,
+    beneficiaryCustomer: {
+      name: "Oficina Española de Cambio Climático (OECC)",
+      addressLines: ["Plaza San Juan de la Cruz s/n", "Madrid, Spain"],
+      accountOrIban: "ES6000491500051234567892",
+      bic: creditorNcaBic,
+    },
+    remittanceInformation:
+      "CBAM Certificate Lot LOT-2026-001 / 5,000 certs / RegAcc ES-CBAM-ACC-88319",
+    chargeDetails: "SHA",
+  };
+
+  const bahXml = buildBusinessApplicationHeaderXml({
+    businessMessageIdentifier: bahMessageId,
+    messageDefinitionIdentifier: "pain.001.001.09",
+    senderBic: debtorBic,
+    receiverBic: creditorNcaBic,
+  });
+  const docXml = translateMt103ToPain001Xml(syntheticMt103);
+  const fullXml = `<?xml version="1.0" encoding="UTF-8"?>\n<AppHdrAndDoc xmlns="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">\n${bahXml}\n${docXml}\n</AppHdrAndDoc>`;
+  const payloadHash = crypto
+    .createHash("sha256")
+    .update(fullXml, "utf8")
+    .digest("hex");
+
+  await db
+    .insert(schema.bankingTransmissions)
+    .values([
+      {
+        id: "btx_cbam_demo_01",
+        tenantId: "tenant-default",
+        transmissionNumber,
+        nettingCycleId: null,
+        messageType: "PAIN_001",
+        bahMessageId,
+        senderBic: debtorBic,
+        receiverBic: creditorNcaBic,
+        totalAmount: 412000.0,
+        currency: "EUR",
+        payloadXml: fullXml,
+        payloadHashSha256: payloadHash,
+        status: "ACKED",
+        transmittedAt: "2026-09-20T10:15:00Z",
+        ackReceivedAt: "2026-09-20T10:15:30Z",
+        metadata: {
+          category: "CBAM_CERTIFICATE_PURCHASE",
+          lotReference: "LOT-2026-001",
+          quantityPurchased: 5000,
+          unitPriceEur: 82.4,
+          ncaRegistryAccountId: "ES-CBAM-ACC-88319",
+        },
+        createdAt: "2026-09-20T10:15:00Z",
+        updatedAt: "2026-09-20T10:15:30Z",
+      },
+    ])
+    .onConflictDoUpdate({
+      target: schema.bankingTransmissions.id,
+      set: {
+        status: sql`excluded.status`,
+        totalAmount: sql`excluded.total_amount`,
+        payloadHashSha256: sql`excluded.payload_hash_sha256`,
+        metadata: sql`excluded.metadata`,
+        updatedAt: sql`excluded.updated_at`,
+      },
+    });
+
+  // 3. CBAM Certificate Inventory Lots (3 Lots)
+  await db
+    .insert(schema.cbamCertificateInventory)
+    .values([
+      {
+        id: "cbam_lot_001",
+        tenantId: "tenant-default",
+        lotReference: "LOT-2026-001",
+        purchaseDate: "2026-09-20",
+        ncaRegistryAccountId: "ES-CBAM-ACC-88319",
+        quantityPurchased: 5000,
+        quantitySurrendered: 1500,
+        quantityAvailable: 3500,
+        unitPriceEur: 82.4,
+        unitPriceScaled: 82400000,
+        totalCostEur: 412000.0,
+        totalCostScaled: 412000000000,
+        paymentReference: transmissionNumber,
+        bankingTransmissionId: "btx_cbam_demo_01",
+        status: "ACTIVE",
+        metadata: {
+          ncaCountry: "ES",
+          eexQuoteWeek: "2026-W38",
+          allocatedDeclarations: ["cbam_dec_2026_q3_01"],
+        },
+      },
+      {
+        id: "cbam_lot_002",
+        tenantId: "tenant-default",
+        lotReference: "LOT-2026-002",
+        purchaseDate: "2026-09-27",
+        ncaRegistryAccountId: "ES-CBAM-ACC-88319",
+        quantityPurchased: 3000,
+        quantitySurrendered: 0,
+        quantityAvailable: 3000,
+        unitPriceEur: 83.15,
+        unitPriceScaled: 83150000,
+        totalCostEur: 249450.0,
+        totalCostScaled: 249450000000,
+        paymentReference: "TRX-CBAM-20260927-PAIN001",
+        bankingTransmissionId: null,
+        status: "ACTIVE",
+        metadata: {
+          ncaCountry: "ES",
+          eexQuoteWeek: "2026-W39",
+        },
+      },
+      {
+        id: "cbam_lot_003",
+        tenantId: "tenant-default",
+        lotReference: "LOT-2026-003",
+        purchaseDate: "2026-10-04",
+        ncaRegistryAccountId: "DE-CBAM-ACC-44912",
+        quantityPurchased: 4000,
+        quantitySurrendered: 0,
+        quantityAvailable: 4000,
+        unitPriceEur: 84.0,
+        unitPriceScaled: 84000000,
+        totalCostEur: 336000.0,
+        totalCostScaled: 336000000000,
+        paymentReference: "TRX-CBAM-20261004-PAIN001",
+        bankingTransmissionId: null,
+        status: "ACTIVE",
+        metadata: {
+          ncaCountry: "DE",
+          eexQuoteWeek: "2026-W40",
+        },
+      },
+    ])
+    .onConflictDoUpdate({
+      target: schema.cbamCertificateInventory.id,
+      set: {
+        quantityPurchased: sql`excluded.quantity_purchased`,
+        quantitySurrendered: sql`excluded.quantity_surrendered`,
+        quantityAvailable: sql`excluded.quantity_available`,
+        unitPriceEur: sql`excluded.unit_price_eur`,
+        totalCostEur: sql`excluded.total_cost_eur`,
+        bankingTransmissionId: sql`excluded.banking_transmission_id`,
+        status: sql`excluded.status`,
+        metadata: sql`excluded.metadata`,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      },
+    });
+
+  // 4. CBAM Official Surrender / Redemption Record
+  const surrenderPayload = JSON.stringify({
+    surrenderReference: "SURR-2026-Q3-001",
+    declarationId: "cbam_dec_2026_q3_01",
+    reportingPeriod: "2026-Q3",
+    certificatesSurrendered: 1500,
+    verifierName: "Bureau Veritas Certification España",
+    verifierAccreditationNumber: "ENAC-045/V-012",
+    verificationReportId: "BV-CBAM-VER-2026-0994",
+    surrenderLots: [
+      {
+        lotId: "cbam_lot_001",
+        lotReference: "LOT-2026-001",
+        quantity: 1500,
+        unitPriceEur: 82.4,
+      },
+    ],
+  });
+  const surrenderHash = crypto
+    .createHash("sha256")
+    .update(surrenderPayload, "utf8")
+    .digest("hex");
+
+  await db
+    .insert(schema.cbamCertificateSurrenders)
+    .values([
+      {
+        id: "cbam_surr_001",
+        tenantId: "tenant-default",
+        surrenderReference: "SURR-2026-Q3-001",
+        declarationId: "cbam_dec_2026_q3_01",
+        reportingPeriod: "2026-Q3",
+        totalCertificatesSurrendered: 1500,
+        surrenderDate: "2026-10-15T14:30:00Z",
+        surrenderLots: [
+          {
+            lotId: "cbam_lot_001",
+            lotReference: "LOT-2026-001",
+            quantity: 1500,
+            unitPriceEur: 82.4,
+          },
+        ],
+        totalCostEur: 123600.0, // 1500 * 82.4
+        verifierName: "Bureau Veritas Certification España",
+        verifierAccreditationNumber: "ENAC-045/V-012",
+        verificationReportId: "BV-CBAM-VER-2026-0994",
+        surrenderPayloadHashSha256: surrenderHash,
+        iso20022PaymentTransmissionId: "btx_cbam_demo_01",
+        createdAt: "2026-10-15T14:30:00Z",
+      },
+    ])
+    .onConflictDoUpdate({
+      target: schema.cbamCertificateSurrenders.id,
+      set: {
+        totalCertificatesSurrendered: sql`excluded.total_certificates_surrendered`,
+        surrenderLots: sql`excluded.surrender_lots`,
+        totalCostEur: sql`excluded.total_cost_eur`,
+        surrenderPayloadHashSha256: sql`excluded.surrender_payload_hash_sha256`,
+        iso20022PaymentTransmissionId: sql`excluded.iso20022_payment_transmission_id`,
+      },
+    });
+
+  // Also update declaration status to reflect definitive compliance
+  await db
+    .update(schema.cbamDeclarations)
+    .set({
+      status: "CERTIFICATES_SURRENDERED",
+      updatedAt: new Date().toISOString(),
+    })
+    .where(sql`id = 'cbam_dec_2026_q3_01'`);
+
+  console.log(
+    "✅ Creados Catálogo CBAM, Instalaciones Verificadas, Declaraciones Trimestrales, Cotizaciones EEX, Lotes de Certificados y Actas de Entrega Definitivas.",
   );
 }
