@@ -17,6 +17,8 @@ import {
   Copy,
   Check,
   Scale,
+  Download,
+  FileCode2,
 } from "lucide-react";
 import {
   CbamCertificateLot,
@@ -36,6 +38,10 @@ export interface SurrenderWizardProps {
     verifierAccreditationNumber: string;
     verificationReportId: string;
   }) => Promise<CbamSurrenderResult>;
+  onDownloadSurrenderPaymentOrder?: (params: {
+    surrenderId: string;
+    surrenderReference: string;
+  }) => Promise<void>;
 }
 
 export type SurrenderWizardModalProps = SurrenderWizardProps;
@@ -47,6 +53,7 @@ export const SurrenderWizard: React.FC<SurrenderWizardProps> = ({
   certificateLots,
   activeEtsPrice = 85.5,
   onConfirmSurrender,
+  onDownloadSurrenderPaymentOrder,
 }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedDeclarationId, setSelectedDeclarationId] =
@@ -523,6 +530,36 @@ export const SurrenderWizard: React.FC<SurrenderWizardProps> = ({
                   </div>
                 </div>
               </div>
+
+              {onDownloadSurrenderPaymentOrder && surrenderResult && (
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs text-left">
+                  <div className="flex items-center gap-2">
+                    <FileCode2 className="w-5 h-5 text-emerald-400" />
+                    <div>
+                      <p className="font-semibold text-slate-200">
+                        Orden de Tesorería ISO 20022 (pain.001)
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        Transferencia bancaria oficial de liquidación para el
+                        Tesoro Público
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onDownloadSurrenderPaymentOrder({
+                        surrenderId: surrenderResult.surrenderReference, // or reference
+                        surrenderReference: surrenderResult.surrenderReference,
+                      })
+                    }
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/30 transition-all font-semibold flex items-center gap-1.5 shrink-0"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Descargar XML
+                  </button>
+                </div>
+              )}
 
               <div className="flex justify-center pt-2">
                 <button

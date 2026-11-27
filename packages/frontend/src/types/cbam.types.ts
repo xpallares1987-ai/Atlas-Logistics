@@ -138,6 +138,16 @@ export interface CbamSurrenderResult {
   surrenderDate: string;
 }
 
+export interface CbamSurrenderPaymentOrderResult {
+  surrenderId: string;
+  surrenderReference: string;
+  messageId: string;
+  messageType: "PAIN_001";
+  schema: string;
+  totalAmountEur: number;
+  xml: string;
+}
+
 export interface CbamPaymentOrderResult {
   lotId: string;
   messageId: string;

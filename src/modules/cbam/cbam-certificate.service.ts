@@ -44,6 +44,26 @@ export interface SurrenderCertificatesInput {
   tenantId?: string;
 }
 
+export interface CbamPaymentOrderInput {
+  lotId: string;
+  debtorName: string;
+  debtorIban: string;
+  debtorBic: string;
+  creditorNcaName?: string;
+  creditorNcaIban?: string;
+  creditorNcaBic?: string;
+}
+
+export interface CbamSurrenderPaymentOrderInput {
+  surrenderId: string;
+  debtorName: string;
+  debtorIban: string;
+  debtorBic: string;
+  creditorNcaName?: string;
+  creditorNcaIban?: string;
+  creditorNcaBic?: string;
+}
+
 export interface SurrenderResult {
   surrenderReference: string;
   declarationId: string;
@@ -496,6 +516,110 @@ export class CbamCertificateService {
 
     return {
       messageId,
+      xml,
+    };
+  }
+
+  /**
+   * Generates a standardized ISO 20022 pain.001.001.09 payment initiation XML document
+   * for settling the definitive surrender liability of a CBAM declaration with the National Competent Authority.
+   */
+  public static async generateSurrenderPaymentOrderXml(
+    input: CbamSurrenderPaymentOrderInput,
+  ): Promise<{
+    messageId: string;
+    surrenderReference: string;
+    totalAmountEur: number;
+    xml: string;
+  }> {
+    const surrenderResults = await db
+      .select()
+      .from(cbamCertificateSurrenders)
+      .where(eq(cbamCertificateSurrenders.id, input.surrenderId))
+      .limit(1);
+
+    if (surrenderResults.length === 0) {
+      throw new Error(`Surrender record not found: ${input.surrenderId}`);
+    }
+
+    const surrender = surrenderResults[0];
+    const messageId = `MSG-SURR-${Date.now()}`;
+    const creationDate = new Date().toISOString();
+    const creditorName =
+      input.creditorNcaName ??
+      "Agencia Tributaria - Tesoro Publico / Liquidacion CBAM";
+    const creditorIban = input.creditorNcaIban ?? "ES6001820001000000000001";
+    const creditorBic = input.creditorNcaBic ?? "BBVAESMMXXX";
+    const totalAmount = surrender.totalCostEur;
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.09">
+  <CstmrCdtTrfInitn>
+    <GrpHdr>
+      <MsgId>${escapeXml(messageId)}</MsgId>
+      <CreDtTm>${escapeXml(creationDate)}</CreDtTm>
+      <NbOfTxs>1</NbOfTxs>
+      <InitgPty>
+        <Nm>${escapeXml(input.debtorName)}</Nm>
+      </InitgPty>
+    </GrpHdr>
+    <PmtInf>
+      <PmtInfId>PMT-CBAM-SURR-${escapeXml(surrender.surrenderReference)}</PmtInfId>
+      <PmtMtd>TRF</PmtMtd>
+      <ReqdExctnDt>
+        <Dt>${escapeXml(creationDate.slice(0, 10))}</Dt>
+      </ReqdExctnDt>
+      <Dbtr>
+        <Nm>${escapeXml(input.debtorName)}</Nm>
+      </Dbtr>
+      <DbtrAcct>
+        <Id>
+          <IBAN>${escapeXml(input.debtorIban.replace(/\s+/g, ""))}</IBAN>
+        </Id>
+      </DbtrAcct>
+      <DbtrAgt>
+        <FinInstnId>
+          <BICFI>${escapeXml(input.debtorBic)}</BICFI>
+        </FinInstnId>
+      </DbtrAgt>
+      <CdtTrfTxInf>
+        <PmtId>
+          <EndToEndId>E2E-CBAM-SURR-${escapeXml(surrender.surrenderReference)}</EndToEndId>
+        </PmtId>
+        <Amt>
+          <InstdAmt Ccy="EUR">${totalAmount.toFixed(2)}</InstdAmt>
+        </Amt>
+        <Cdtr>
+          <Nm>${escapeXml(creditorName)}</Nm>
+        </Cdtr>
+        <CdtrAcct>
+          <Id>
+            <IBAN>${escapeXml(creditorIban.replace(/\s+/g, ""))}</IBAN>
+          </Id>
+        </CdtrAcct>
+        <CdtrAgt>
+          <FinInstnId>
+            <BICFI>${escapeXml(creditorBic)}</BICFI>
+          </FinInstnId>
+        </CdtrAgt>
+        <RmtInf>
+          <Ustrd>LIQUIDACION DEFINITIVA ENTREGA CERTIFICADOS CBAM REG (UE) 2023/956 - ${escapeXml(surrender.surrenderReference)} - PERIODO ${escapeXml(surrender.reportingPeriod)}</Ustrd>
+        </RmtInf>
+      </CdtTrfTxInf>
+    </PmtInf>
+  </CstmrCdtTrfInitn>
+</Document>`;
+
+    // Store payment transmission id if not set
+    await db
+      .update(cbamCertificateSurrenders)
+      .set({ iso20022PaymentTransmissionId: messageId })
+      .where(eq(cbamCertificateSurrenders.id, input.surrenderId));
+
+    return {
+      messageId,
+      surrenderReference: surrender.surrenderReference,
+      totalAmountEur: totalAmount,
       xml,
     };
   }

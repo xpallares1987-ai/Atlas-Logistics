@@ -380,5 +380,57 @@ describe("CBAM Definitive Regime (2026+) & ISO 20022 Financial Settlement Suite"
       expect(json.xml).toContain("pain.001.001.09");
       expect(json.xml).toContain("ES9121000418450200051332");
     });
+
+    it("GET /api/cbam/certificates/surrenders - lists all non-repudiation surrender records", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/cbam/certificates/surrenders",
+        headers: authHeader,
+      });
+
+      expect(res.statusCode).toBe(200);
+      const list = res.json();
+      expect(Array.isArray(list)).toBe(true);
+      expect(list.length).toBeGreaterThanOrEqual(1);
+      const surrenderRecord = list.find(
+        (s: { declarationId: string }) => s.declarationId === testDeclarationId,
+      );
+      expect(surrenderRecord).toBeDefined();
+      expect(surrenderRecord.surrenderPayloadHashSha256).toMatch(
+        /^[a-f0-9]{64}$/,
+      );
+    });
+
+    it("POST /api/cbam/certificates/surrenders/:id/payment-order - generates pain.001 wire XML for surrender settlement", async () => {
+      const listRes = await app.inject({
+        method: "GET",
+        url: "/api/cbam/certificates/surrenders",
+        headers: authHeader,
+      });
+      const list = listRes.json();
+      const surrender = list[0];
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/cbam/certificates/surrenders/${surrender.id}/payment-order`,
+        headers: authHeader,
+        payload: {
+          debtorName: "Atlas Forwarding Customs SL",
+          debtorIban: "ES9121000418450200051332",
+          debtorBic: "CAIXESBBXXX",
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const json = res.json();
+      expect(json.messageType).toBe("PAIN_001");
+      expect(json.schema).toBe("pain.001.001.09");
+      expect(json.totalAmountEur).toBe(surrender.totalCostEur);
+      expect(json.xml).toContain("pain.001.001.09");
+      expect(json.xml).toContain("ES9121000418450200051332");
+      expect(json.xml).toContain(
+        "LIQUIDACION DEFINITIVA ENTREGA CERTIFICADOS CBAM",
+      );
+    });
   });
 });

@@ -61,6 +61,7 @@ export default function CbamModule() {
     activeEexQuote,
     handlePurchaseLot,
     handleDownloadPaymentOrder,
+    handleDownloadSurrenderPaymentOrder,
     handleSurrenderCertificates,
     handleRunEmissionsCalc,
     handleRunLiabilityCalc,
@@ -142,6 +143,7 @@ export default function CbamModule() {
           onPurchaseLot={handlePurchaseLot}
           onSurrenderCertificates={handleSurrenderCertificates}
           onDownloadPaymentOrder={handleDownloadPaymentOrder}
+          onDownloadSurrenderPaymentOrder={handleDownloadSurrenderPaymentOrder}
         />
       )}
 

@@ -419,6 +419,40 @@ export function useCbam() {
     }
   };
 
+  const handleDownloadSurrenderPaymentOrder = async (params: {
+    surrenderId: string;
+    surrenderReference: string;
+    debtorName?: string;
+    debtorIban?: string;
+    debtorBic?: string;
+  }) => {
+    try {
+      const res = await fetch(
+        `/api/cbam/certificates/surrenders/${params.surrenderId}/payment-order`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            debtorName: params.debtorName || "Atlas Forwarding Customs SL",
+            debtorIban: params.debtorIban || "ES9121000418450200051332",
+            debtorBic: params.debtorBic || "CAIXESBBXXX",
+          }),
+        },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.xml) {
+          downloadXmlBlob(
+            `pain_001_CBAM_SURRENDER_${params.surrenderReference}.xml`,
+            data.xml,
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Download surrender payment order error:", err);
+    }
+  };
+
   const handleSurrenderCertificates = async (params: {
     declarationId: string;
     verifierName: string;
@@ -530,6 +564,7 @@ export function useCbam() {
     activeEexQuote,
     handlePurchaseLot,
     handleDownloadPaymentOrder,
+    handleDownloadSurrenderPaymentOrder,
     handleSurrenderCertificates,
     handleRunEmissionsCalc,
     handleRunLiabilityCalc,

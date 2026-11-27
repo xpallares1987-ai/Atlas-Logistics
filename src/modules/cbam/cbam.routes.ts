@@ -828,4 +828,115 @@ export const cbamRoutes: FastifyPluginAsync = async (fastify) => {
       }
     },
   );
+
+  // 17. GET /api/cbam/certificates/surrenders
+  fastify.get(
+    "/certificates/surrenders",
+    {
+      preHandler: [
+        authMiddleware,
+        requireRole(["COMPLIANCE", "OPERATIONS", "ACCOUNTING", "ADMIN"]),
+      ],
+      schema: {
+        tags: [...CBAM_TAG],
+        summary:
+          "List all executed CBAM certificate surrender non-repudiation records",
+        response: {
+          200: OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
+          ...buildErrorResponses([401, 403, 500]),
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const surrenders = await db
+          .select()
+          .from(cbamCertificateSurrenders)
+          .orderBy(desc(cbamCertificateSurrenders.createdAt));
+        return reply.send(surrenders);
+      } catch (err: unknown) {
+        req.log.error(err);
+        return reply.status(500).send({
+          error: "Database error",
+          message: getErrorMessage(err),
+        });
+      }
+    },
+  );
+
+  // 18. POST /api/cbam/certificates/surrenders/:id/payment-order
+  fastify.post(
+    "/certificates/surrenders/:id/payment-order",
+    {
+      preHandler: [
+        authMiddleware,
+        requireRole(["ACCOUNTING", "ADMIN", "COMPLIANCE"]),
+      ],
+      schema: {
+        tags: [...CBAM_TAG],
+        summary:
+          "Generate ISO 20022 pain.001.001.09 wire transfer XML for settling surrendered CBAM certificate liabilities",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: openApiObject({
+          debtorName: { type: "string" },
+          debtorIban: { type: "string" },
+          debtorBic: { type: "string" },
+          creditorNcaName: { type: "string" },
+          creditorNcaIban: { type: "string" },
+          creditorNcaBic: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
+    async (req, reply) => {
+      const { id } = req.params as { id: string };
+      const body = req.body as {
+        debtorName: string;
+        debtorIban: string;
+        debtorBic: string;
+        creditorNcaName?: string;
+        creditorNcaIban?: string;
+        creditorNcaBic?: string;
+      };
+
+      if (!body.debtorName || !body.debtorIban || !body.debtorBic) {
+        return reply.status(400).send({
+          error: "Validation error",
+          message:
+            "debtorName, debtorIban, and debtorBic are mandatory to generate ISO 20022 surrender settlement wire.",
+        });
+      }
+
+      try {
+        const result =
+          await CbamCertificateService.generateSurrenderPaymentOrderXml({
+            surrenderId: id,
+            ...body,
+          });
+
+        return reply.send({
+          surrenderId: id,
+          surrenderReference: result.surrenderReference,
+          messageId: result.messageId,
+          messageType: "PAIN_001",
+          ["schema"]: "pain.001.001.09",
+          totalAmountEur: result.totalAmountEur,
+          xml: result.xml,
+        });
+      } catch (err: unknown) {
+        const errMsg = getErrorMessage(err);
+        if (errMsg.includes("not found")) {
+          return reply.status(404).send({ error: errMsg });
+        }
+        req.log.error(err);
+        return reply.status(500).send({
+          error: "Surrender payment order generation error",
+          message: errMsg,
+        });
+      }
+    },
+  );
 };

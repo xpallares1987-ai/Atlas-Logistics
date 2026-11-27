@@ -50,6 +50,10 @@ export interface CertificateInventoryProps {
     verificationReportId: string;
   }) => Promise<CbamSurrenderResult>;
   onDownloadPaymentOrder: (lotId: string) => Promise<void>;
+  onDownloadSurrenderPaymentOrder?: (params: {
+    surrenderId: string;
+    surrenderReference: string;
+  }) => Promise<void>;
 }
 
 export const CertificateInventory: React.FC<CertificateInventoryProps> = ({
@@ -61,6 +65,7 @@ export const CertificateInventory: React.FC<CertificateInventoryProps> = ({
   onPurchaseLot,
   onSurrenderCertificates,
   onDownloadPaymentOrder,
+  onDownloadSurrenderPaymentOrder,
 }) => {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showSurrenderModal, setShowSurrenderModal] = useState(false);
@@ -82,6 +87,7 @@ export const CertificateInventory: React.FC<CertificateInventoryProps> = ({
         certificateLots={lots}
         activeEtsPrice={activeEexQuote?.auctionAveragePriceEur || 85.5}
         onConfirmSurrender={onSurrenderCertificates}
+        onDownloadSurrenderPaymentOrder={onDownloadSurrenderPaymentOrder}
       />
 
       {/* Main 2-Column Grid */}
