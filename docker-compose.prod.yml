@@ -13,6 +13,7 @@
 #
 # ==============================================================================
 
+name: atlas-logistics-prod
 
 x-common-variables: &common_env
   NODE_ENV: production

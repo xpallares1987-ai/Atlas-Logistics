@@ -81,8 +81,11 @@ COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder --chown=nginx:nginx /app/packages/frontend/dist /usr/share/nginx/html
 
 # Create required nginx directories with proper permissions
-RUN mkdir -p /var/cache/nginx /var/run && \
-    chown -R nginx:nginx /var/cache/nginx /var/run /etc/nginx/conf.d /usr/share/nginx/html
+RUN mkdir -p /var/cache/nginx /var/run /tmp/nginx && \
+    touch /tmp/nginx.pid && \
+    chown -R nginx:nginx /var/cache/nginx /var/run /tmp/nginx /tmp/nginx.pid /etc/nginx/conf.d /usr/share/nginx/html && \
+    sed -i 's|/var/run/nginx.pid|/tmp/nginx.pid|g' /etc/nginx/nginx.conf && \
+    sed -i 's|^user .*|# user directive commented for non-root execution|g' /etc/nginx/nginx.conf
 
 # Security context
 USER nginx
@@ -94,4 +97,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s \
     CMD curl -f http://localhost:8080/healthz || exit 1
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["nginx", "-g", "daemon off; pid /tmp/nginx.pid;"]
