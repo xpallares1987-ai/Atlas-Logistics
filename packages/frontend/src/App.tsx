@@ -6,6 +6,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Analytics } from "@vercel/analytics/react";
 import { useAppStore } from "./store/useAppStore";
 import { ApiStatusProvider } from "./contexts/ApiStatusContext";
 import { TopNavbar } from "./components/layout/TopNavbar";
@@ -40,6 +41,19 @@ function RouteAwareSpeedInsights() {
   );
 }
 
+function VercelAnalytics() {
+  if (!import.meta.env.PROD || typeof window === "undefined") {
+    return null;
+  }
+
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") {
+    return null;
+  }
+
+  return <Analytics />;
+}
+
 function GlobalNavigationListener() {
   const navigate = useNavigate();
   React.useEffect(() => {
@@ -66,6 +80,7 @@ export default function App() {
         <Router basename={import.meta.env.BASE_URL}>
           <GlobalNavigationListener />
           <RouteAwareSpeedInsights />
+          <VercelAnalytics />
           <div
             className={`flex h-screen font-sans overflow-hidden ${theme === "dark" ? "dark bg-slate-950 text-white" : "bg-slate-50 text-slate-900"}`}
           >
