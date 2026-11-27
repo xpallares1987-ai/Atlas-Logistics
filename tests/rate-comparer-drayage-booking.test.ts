@@ -1,5 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import Fastify, { FastifyInstance } from "fastify";
+
+vi.mock("../src/middleware/auth.js", () => ({
+  authMiddleware: vi.fn(async () => {}),
+  requireRole: vi.fn(() => async () => {}),
+}));
+
 import bookingsRoutes from "../src/routes/bookings.routes.js";
 import drayageRoutes from "../src/routes/drayage.routes.js";
 import quotesRoutes from "../src/routes/quotes.routes.js";

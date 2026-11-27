@@ -14,6 +14,7 @@ import {
   translateMt103ToPain001Xml,
   translateMt103ToPacs008Xml,
   translateMt700ToTsmt019Xml,
+  buildBusinessApplicationHeaderXml,
   type ParsedMt103,
   type ParsedMt700,
 } from "../../scm/engines/swift-iso20022.engine.js";
@@ -164,6 +165,45 @@ export async function seedBanking(): Promise<void> {
   const pacsHash = crypto.createHash("sha256").update(pacsXml).digest("hex");
   const tsmtHash = crypto.createHash("sha256").update(tsmtXml).digest("hex");
 
+  // Synthetic MT103/PACS.008 for Trade Credit Settlement (LC-2026-HAM-0219 / lc_hamb_2026_05)
+  const mt103LcPacs: ParsedMt103 = {
+    senderReference: "LC-2026-HAM-0219",
+    bankOperationCode: "CRED",
+    valueDate: "2026-10-15",
+    currency: "EUR",
+    instructedAmount: 680000.0,
+    orderingCustomer: {
+      accountOrIban: "DE89500700100123456789",
+      name: "Bavarian Precision Tools GmbH",
+      addressLines: ["Industriestrasse 42", "80331 Munich", "DE"],
+      bic: "DEUTDEDDXXX",
+    },
+    orderingInstitutionBic: "DEUTDEDDXXX",
+    accountWithInstitutionBic: "BNPAESMMXXX",
+    beneficiaryCustomer: {
+      accountOrIban: "ES7600491500051234567890",
+      name: "Iberica Heavy Industry Components SA",
+      addressLines: ["Poligono Industrial El Abra", "48500 Bilbao", "ES"],
+      bic: "BNPAESMMXXX",
+    },
+    remittanceInformation:
+      "Honouring LC LC-2026-HAM-0219 / UCP 600 / Beneficiary Iberica Heavy Industry Components SA",
+    chargeDetails: "SHA",
+  };
+
+  const lcBahXml = buildBusinessApplicationHeaderXml({
+    businessMessageIdentifier: "BAH-TRX-LC-20261015-PACS008",
+    messageDefinitionIdentifier: "pacs.008.001.08",
+    senderBic: "DEUTDEDDXXX",
+    receiverBic: "BNPAESMMXXX",
+  });
+  const lcDocXml = translateMt103ToPacs008Xml(mt103LcPacs);
+  const lcPacsXml = `<?xml version="1.0" encoding="UTF-8"?>\n<AppHdrAndDoc xmlns="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">\n${lcBahXml}\n${lcDocXml}\n</AppHdrAndDoc>`;
+  const lcPacsHash = crypto
+    .createHash("sha256")
+    .update(lcPacsXml, "utf8")
+    .digest("hex");
+
   // 4. Seed Banking Transmissions
   await db
     .insert(schema.bankingTransmissions)
@@ -234,6 +274,32 @@ export async function seedBanking(): Promise<void> {
           letterOfCreditNumber: "LC-2026-VAL-9912",
           shipmentId: "sh_demo_01",
           goodsCategory: "CLEAN_TECH_BATTERIES",
+        },
+      },
+      {
+        id: "btx_lc_demo_01",
+        tenantId: "tenant-default",
+        transmissionNumber: "TRX-LC-20261015-PACS008",
+        nettingCycleId: null,
+        messageType: "PACS_008",
+        bahMessageId: "BAH-TRX-LC-20261015-PACS008",
+        senderBic: "DEUTDEDDXXX",
+        receiverBic: "BNPAESMMXXX",
+        totalAmount: 680000.0,
+        currency: "EUR",
+        payloadXml: lcPacsXml,
+        payloadHashSha256: lcPacsHash,
+        status: "ACKED",
+        transmittedAt: "2026-10-15 11:30:00",
+        ackReceivedAt: "2026-10-15 11:30:45",
+        failureReason: null,
+        metadata: {
+          category: "TRADE_CREDIT_SETTLEMENT",
+          instrumentId: "lc_hamb_2026_05",
+          instrumentReference: "LC-2026-HAM-0219",
+          applicantName: "Bavarian Precision Tools GmbH",
+          beneficiaryName: "Iberica Heavy Industry Components SA",
+          applicableRules: "UCP600",
         },
       },
     ])
@@ -337,6 +403,28 @@ export async function seedBanking(): Promise<void> {
         notes:
           "Demurrage disputed: terminal weather closure waiver active under FMC / Port Authority protocol",
       },
+      {
+        id: "bse_lc_hamb_01",
+        tenantId: "tenant-default",
+        statementId: "STMT-2026-10-01",
+        transmissionId: "btx_lc_demo_01",
+        bookingDate: "2026-10-15",
+        valueDate: "2026-10-15",
+        creditDebitIndicator: "DBIT",
+        amount: 680000.0,
+        currency: "EUR",
+        accountIban: "ES7600491500051234567890",
+        accountBic: "BNPAESMMXXX",
+        endToEndId: "TRX-LC-20261015-PACS008",
+        paymentInformationId: "PMT-LC-HAM-0219",
+        remittanceInformation:
+          "Honouring LC LC-2026-HAM-0219 / UCP 600 / Beneficiary Iberica Heavy Industry Components SA",
+        reconciliationStatus: "RECONCILED",
+        matchedInvoiceId: null,
+        matchedCompanyId: participantA,
+        notes:
+          "Documentary Credit interbank settlement fully honoured under ICC UCP 600 rules via ISO 20022 pacs.008 transfer",
+      },
     ])
     .onConflictDoUpdate({
       target: schema.bankStatementEntries.id,
@@ -348,6 +436,15 @@ export async function seedBanking(): Promise<void> {
         updatedAt: sql`CURRENT_TIMESTAMP`,
       },
     });
+
+  // 6. Update Canonical LC Instrument (lc_hamb_2026_05) to HONOURED_PAID
+  await db
+    .update(schema.tradeCreditInstruments)
+    .set({
+      status: "HONOURED_PAID",
+      updatedAt: "2026-10-15 11:30:45",
+    })
+    .where(sql`id = 'lc_hamb_2026_05'`);
 
   console.log(
     "✅ [PHASE 4/FINANCE] Ciclos de Netting, Transmisiones ISO 20022 y Extractos Bancarios inyectados con éxito.",
