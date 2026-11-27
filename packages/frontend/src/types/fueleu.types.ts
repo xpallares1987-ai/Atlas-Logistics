@@ -51,6 +51,19 @@ export interface FuelEuVoyage {
 
 export interface ComplianceAccount {
   id: string;
+  vesselId: string;
+  reportingYear: number;
+  targetGhgIntensityGco2eqPerMj: number;
+  actualAttainedGhgIntensityGco2eqPerMj: number;
+  totalAnnualEnergyMj: number;
+  complianceBalanceGco2eq: number;
+  complianceStatus:
+    "SURPLUS" | "DEFICIT" | "BALANCED_BY_POOL" | "PENALTY_PAID" | string;
+  calculatedFuelEuPenaltyEur: number;
+  bankedSurplusTransferredNextYearGco2eq?: number;
+  borrowedDeficitFromNextYearGco2eq?: number;
+  poolId?: string | null;
+  verifierAccreditationNumber?: string;
   accountHolderName?: string;
   currentBalance?: number;
   [key: string]: unknown;
@@ -185,6 +198,7 @@ export interface PoolingFuelsTabProps {
   fuelSimResult: FuelSimResult | null;
   onRunFuelSim: () => void;
   pools: PoolRecord[];
+  accounts?: ComplianceAccount[];
   vessels?: Record<string, unknown>[];
   onSettlePool?: (poolId: string) => Promise<void>;
   onCreatePool?: (input: {
@@ -195,6 +209,8 @@ export interface PoolingFuelsTabProps {
     vesselIds: string[];
     remarks?: string;
   }) => Promise<void>;
+  onBankSurplus?: (accountId: string, amountGco2eq?: number) => Promise<void>;
+  onBorrowDeficit?: (accountId: string, amountGco2eq?: number) => Promise<void>;
 }
 
 export interface StatusVerificationModalProps {

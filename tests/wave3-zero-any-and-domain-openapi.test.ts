@@ -40,7 +40,7 @@ interface Wave3RouteModuleSpec {
 const WAVE3_ROUTE_MODULES: readonly Wave3RouteModuleSpec[] = [
   {
     relativePath: "src/modules/fueleu/fueleu.routes.ts",
-    expectedEndpoints: 20,
+    expectedEndpoints: 22,
     expectedTag: "FuelEU Maritime & EU ETS",
   },
   {
@@ -238,7 +238,7 @@ describe("P1-A Wave 3 — Repository-Wide Zero-Any & Domain OpenAPI Closure", ()
       wave3TotalEndpoints += schemaCount;
     }
 
-    expect(wave3TotalEndpoints).toBe(196);
+    expect(wave3TotalEndpoints).toBe(198);
   });
 
   it("enforces 100% OpenAPI schema coverage across all 30 domain route modules in src/modules/ (309 endpoints)", () => {
@@ -269,8 +269,8 @@ describe("P1-A Wave 3 — Repository-Wide Zero-Any & Domain OpenAPI Closure", ()
     }
 
     expect(mismatches).toEqual([]);
-    expect(totalRoutes).toBe(314);
-    expect(totalSchemas).toBe(314);
+    expect(totalRoutes).toBe(316);
+    expect(totalSchemas).toBe(316);
   });
 
   it("boots Fastify app and compiles a valid OpenAPI 3.x document containing Wave 3 domain tags", async () => {

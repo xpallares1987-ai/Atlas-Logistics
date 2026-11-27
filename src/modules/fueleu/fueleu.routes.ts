@@ -18,6 +18,7 @@ import { PDFService } from "../../services/pdf.service.js";
 import { CarbonInsettingLedgerService } from "../carbon-insetting/carbon-insetting-ledger.service.js";
 import { EtsGreenBafSettlementService } from "./ets-green-baf-settlement.service.js";
 import { FuelEuPoolService } from "./fueleu-pool.service.js";
+import { FuelEuFlexibilityService } from "./fueleu-flexibility.service.js";
 import {
   OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
   OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
@@ -827,11 +828,9 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.send({ success: true, ...result });
       } catch (err: unknown) {
-        return reply
-          .status(400)
-          .send({
-            error: getErrorMessage(err, "Failed to register compliance pool"),
-          });
+        return reply.status(400).send({
+          error: getErrorMessage(err, "Failed to register compliance pool"),
+        });
       }
     },
   );
@@ -858,11 +857,84 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
         const settlement = await FuelEuPoolService.settlePoolCompensation(id);
         return reply.send({ success: true, settlement });
       } catch (err: unknown) {
-        return reply
-          .status(400)
-          .send({
-            error: getErrorMessage(err, "Failed to settle pool penalties"),
-          });
+        return reply.status(400).send({
+          error: getErrorMessage(err, "Failed to settle pool penalties"),
+        });
+      }
+    },
+  );
+
+  // 18. POST /api/fueleu/compliance/:id/bank - Bank Surplus Compliance Balance (Art. 20(1))
+  fastify.post(
+    "/compliance/:id/bank",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary:
+          "Bank surplus compliance balance (Art. 20(1)) to next reporting year with SQLite WAL persistence",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: openApiObject({
+          amountGco2eq: { type: "number" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const body = request.body as { amountGco2eq?: number } | undefined;
+
+      try {
+        const result = await FuelEuFlexibilityService.bankSurplus(
+          id,
+          body?.amountGco2eq,
+        );
+        return reply.send({ success: true, ...result });
+      } catch (err: unknown) {
+        return reply.status(400).send({
+          error: getErrorMessage(
+            err,
+            "Failed to bank surplus compliance balance",
+          ),
+        });
+      }
+    },
+  );
+
+  // 19. POST /api/fueleu/compliance/:id/borrow - Borrow Deficit Compliance Balance (Art. 20(2))
+  fastify.post(
+    "/compliance/:id/borrow",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary:
+          "Borrow compliance deficit from next reporting year (Art. 20(2)) with 1.10 statutory penalty surcharge",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        body: openApiObject({
+          amountGco2eq: { type: "number" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const body = request.body as { amountGco2eq?: number } | undefined;
+
+      try {
+        const result = await FuelEuFlexibilityService.borrowDeficit(
+          id,
+          body?.amountGco2eq,
+        );
+        return reply.send({ success: true, ...result });
+      } catch (err: unknown) {
+        return reply.status(400).send({
+          error: getErrorMessage(err, "Failed to borrow compliance deficit"),
+        });
       }
     },
   );

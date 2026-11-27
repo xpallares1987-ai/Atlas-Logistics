@@ -6,7 +6,16 @@
  */
 
 import { useState } from "react";
-import { Flame, ShieldCheck, CheckCircle2, Plus, Sparkles } from "lucide-react";
+import {
+  Flame,
+  ShieldCheck,
+  CheckCircle2,
+  Plus,
+  Sparkles,
+  ArrowRightLeft,
+  PiggyBank,
+  AlertTriangle,
+} from "lucide-react";
 import { Input } from "@atlas/ui";
 import type { PoolingFuelsTabProps } from "../../../types/fueleu.types";
 
@@ -21,11 +30,22 @@ export function PoolingFuels({
   fuelSimResult,
   onRunFuelSim,
   pools,
+  accounts = [],
   vessels = [],
   onSettlePool,
   onCreatePool,
+  onBankSurplus,
+  onBorrowDeficit,
 }: PoolingFuelsTabProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showFlexModal, setShowFlexModal] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+  const [flexActionType, setFlexActionType] = useState<"BANK" | "BORROW">(
+    "BANK",
+  );
+  const [flexAmountTonnes, setFlexAmountTonnes] = useState<number>(0);
+  const [isProcessingFlex, setIsProcessingFlex] = useState(false);
+
   const [poolCodeInput, setPoolCodeInput] = useState("");
   const [poolNameInput, setPoolNameInput] = useState("");
   const [operatorInput, setOperatorInput] = useState(
@@ -34,6 +54,35 @@ export function PoolingFuels({
   const [reportingYearInput, setReportingYearInput] = useState(2025);
   const [selectedVessels, setSelectedVessels] = useState<string[]>([]);
   const [isSettlingId, setIsSettlingId] = useState<string | null>(null);
+
+  const openFlexModal = (
+    accId: string,
+    type: "BANK" | "BORROW",
+    defaultTonnes: number,
+  ) => {
+    setSelectedAccountId(accId);
+    setFlexActionType(type);
+    setFlexAmountTonnes(Math.abs(defaultTonnes));
+    setShowFlexModal(true);
+  };
+
+  const handleFlexSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAccountId) return;
+    setIsProcessingFlex(true);
+    try {
+      const amountGco2eq =
+        flexAmountTonnes > 0 ? flexAmountTonnes * 1_000_000 : undefined;
+      if (flexActionType === "BANK" && onBankSurplus) {
+        await onBankSurplus(selectedAccountId, amountGco2eq);
+      } else if (flexActionType === "BORROW" && onBorrowDeficit) {
+        await onBorrowDeficit(selectedAccountId, amountGco2eq);
+      }
+      setShowFlexModal(false);
+    } finally {
+      setIsProcessingFlex(false);
+    }
+  };
 
   const toggleVessel = (vId: string) => {
     setSelectedVessels((prev) =>
@@ -330,6 +379,113 @@ export function PoolingFuels({
         </div>
       </div>
 
+      {/* Cuentas de Cumplimiento & Mecanismos de Flexibilidad (Art. 20) */}
+      {accounts.length > 0 && (
+        <div className="p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-base font-black text-white flex items-center gap-2">
+              <ArrowRightLeft size={18} className="text-cyan-400" />
+              Mecanismos de Flexibilidad (Art. 20: Banca y Anticipo)
+            </h3>
+            <span className="text-xs text-slate-400">
+              {accounts.length} Cuentas Anuales
+            </span>
+          </div>
+          <p className="text-xs text-slate-400">
+            Traspaso de superávit de cumplimiento al año siguiente (Art. 20(1))
+            o anticipo de déficit con recargo estatutario del 10% (Art. 20(2)).
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {accounts.map((acc) => {
+              const balanceTonnes = acc.complianceBalanceGco2eq / 1_000_000;
+              const isSurplus = acc.complianceBalanceGco2eq > 0;
+              const isDeficit = acc.complianceBalanceGco2eq < 0;
+
+              return (
+                <div
+                  key={acc.id}
+                  className="p-4 rounded-2xl bg-slate-900/70 border border-white/10 space-y-3 flex flex-col justify-between"
+                >
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-xs font-bold text-white block">
+                          Buque: {acc.vesselId}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          Año de Notificación: {acc.reportingYear}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                          isSurplus
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "bg-rose-500/20 text-rose-300"
+                        }`}
+                      >
+                        {acc.complianceStatus}
+                      </span>
+                    </div>
+
+                    <div className="pt-2 flex justify-between items-baseline font-mono">
+                      <span className="text-xs text-slate-400">
+                        Balance (CB):
+                      </span>
+                      <span
+                        className={`font-black text-sm ${
+                          isSurplus ? "text-emerald-400" : "text-rose-400"
+                        }`}
+                      >
+                        {isSurplus ? "+" : ""}
+                        {balanceTonnes.toFixed(2)} t CO2e
+                      </span>
+                    </div>
+
+                    {acc.calculatedFuelEuPenaltyEur > 0 && (
+                      <div className="flex justify-between text-[11px] font-mono text-amber-400">
+                        <span>Penalización Exigible:</span>
+                        <span>
+                          €{acc.calculatedFuelEuPenaltyEur.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-white/10 flex gap-2">
+                    {isSurplus && onBankSurplus && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openFlexModal(acc.id, "BANK", balanceTonnes)
+                        }
+                        className="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-500/40 text-cyan-300 flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                      >
+                        <PiggyBank size={13} />
+                        Bancar (Art. 20.1)
+                      </button>
+                    )}
+
+                    {isDeficit && onBorrowDeficit && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openFlexModal(acc.id, "BORROW", balanceTonnes)
+                        }
+                        className="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/40 text-amber-300 flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                      >
+                        <AlertTriangle size={13} />
+                        Anticipar (Art. 20.2)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Modal Creación de Pool */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
@@ -448,6 +604,82 @@ export function PoolingFuels({
                   className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold transition-all shadow-md shadow-emerald-900/30"
                 >
                   Registrar Pool
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Mecanismo de Flexibilidad (Art. 20) */}
+      {showFlexModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-slate-900 border border-white/20 shadow-2xl space-y-4">
+            <h4 className="text-base font-black text-white flex items-center gap-2">
+              {flexActionType === "BANK" ? (
+                <>
+                  <PiggyBank size={18} className="text-cyan-400" />
+                  Banca de Superávit (Artículo 20.1)
+                </>
+              ) : (
+                <>
+                  <AlertTriangle size={18} className="text-amber-400" />
+                  Anticipo de Déficit (Artículo 20.2)
+                </>
+              )}
+            </h4>
+            <p className="text-xs text-slate-400">
+              {flexActionType === "BANK"
+                ? "Traspasa superávit de cumplimiento al año siguiente. Se creará o incrementará el saldo a favor en la cuenta de cumplimiento del año N+1."
+                : "Anticipa déficit de cumplimiento del año N+1. Neutraliza la sanción actual y carga un débito equivalente al principal + 10% de recargo estatutario en el año N+1."}
+            </p>
+
+            <form onSubmit={handleFlexSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="text-slate-300 block mb-1">
+                  Cantidad a Traspasar (t CO2e)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={flexAmountTonnes}
+                  onChange={(e) => setFlexAmountTonnes(Number(e.target.value))}
+                />
+              </div>
+
+              {flexActionType === "BORROW" && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 space-y-1">
+                  <div className="flex justify-between font-bold">
+                    <span>Recargo Estatutario:</span>
+                    <span>+10.0%</span>
+                  </div>
+                  <div className="flex justify-between font-mono">
+                    <span>Carga en Año N+1:</span>
+                    <span>{(flexAmountTonnes * 1.1).toFixed(2)} t CO2e</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowFlexModal(false)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={flexAmountTonnes <= 0 || isProcessingFlex}
+                  className={`px-4 py-2 rounded-xl font-bold text-white transition-all shadow-md ${
+                    flexActionType === "BANK"
+                      ? "bg-cyan-600 hover:bg-cyan-500 shadow-cyan-900/30"
+                      : "bg-amber-600 hover:bg-amber-500 shadow-amber-900/30"
+                  }`}
+                >
+                  {isProcessingFlex ? "Procesando..." : "Confirmar Operación"}
                 </button>
               </div>
             </form>

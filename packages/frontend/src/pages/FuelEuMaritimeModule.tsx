@@ -107,9 +107,12 @@ export default function FuelEuMaritimeModule() {
             fuelSimResult={vm.fuelSimResult}
             onRunFuelSim={vm.handleRunFuelSim}
             pools={vm.pools}
+            accounts={vm.accounts}
             vessels={vm.vessels}
             onSettlePool={vm.handleSettlePool}
             onCreatePool={vm.handleCreatePool}
+            onBankSurplus={vm.handleBankSurplus}
+            onBorrowDeficit={vm.handleBorrowDeficit}
           />
         )}
 

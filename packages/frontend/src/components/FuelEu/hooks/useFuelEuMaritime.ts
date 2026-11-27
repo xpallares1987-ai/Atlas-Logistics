@@ -94,10 +94,9 @@ export function useFuelEuMaritime() {
       searchQuery,
     )}`,
   );
-  const { data: accounts = [] } = useApiQuery<ComplianceAccount[]>(
-    ["fueleu-accounts"],
-    "/fueleu/accounts",
-  );
+  const { data: accounts = [], refetch: refetchAccounts } = useApiQuery<
+    ComplianceAccount[]
+  >(["fueleu-accounts"], "/fueleu/accounts");
   const { data: pools = [], refetch: refetchPools } = useApiQuery<PoolRecord[]>(
     ["fueleu-pools"],
     "/fueleu/pools",
@@ -263,6 +262,48 @@ export function useFuelEuMaritime() {
     }
   };
 
+  const handleBankSurplus = async (
+    accountId: string,
+    amountGco2eq?: number,
+  ) => {
+    try {
+      const res = await fetch(
+        resolveApiUrl(`/api/fueleu/compliance/${accountId}/bank`),
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ amountGco2eq }),
+        },
+      );
+      if (res.ok) {
+        await refetchAccounts();
+      }
+    } catch (err) {
+      console.error("Error banking FuelEU surplus:", err);
+    }
+  };
+
+  const handleBorrowDeficit = async (
+    accountId: string,
+    amountGco2eq?: number,
+  ) => {
+    try {
+      const res = await fetch(
+        resolveApiUrl(`/api/fueleu/compliance/${accountId}/borrow`),
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ amountGco2eq }),
+        },
+      );
+      if (res.ok) {
+        await refetchAccounts();
+      }
+    } catch (err) {
+      console.error("Error borrowing FuelEU deficit:", err);
+    }
+  };
+
   return {
     activeTab,
     setActiveTab,
@@ -320,5 +361,7 @@ export function useFuelEuMaritime() {
     handleSaveStatus: handleConfirmStatusUpdate,
     handleCreatePool,
     handleSettlePool,
+    handleBankSurplus,
+    handleBorrowDeficit,
   };
 }
