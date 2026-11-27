@@ -99,6 +99,8 @@
   "dependencies": {
     "@atlas/client-sdk": "workspace:^",
     "@atlas/shared": "workspace:^",
+    "@aws-sdk/client-s3": "^3.1178.0",
+    "@aws-sdk/s3-request-presigner": "^3.1178.0",
     "@bull-board/api": "^9.13.2",
     "@bull-board/fastify": "^9.13.2",
     "@fastify/cookie": "^11.1.5",

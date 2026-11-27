@@ -15,6 +15,7 @@ import {
   DocumentSignerService,
   OfficialDocumentType,
 } from "../services/documents/index.js";
+import { storageService } from "../services/storage/storage.service.js";
 import { db } from "../db/index.js";
 import { shipments, locations, documents } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
@@ -68,6 +69,19 @@ const signDocSchema = z.object({
   signedBy: z.string().min(1, "Signer name required"),
   signerTitle: z.string().min(1, "Signer title required"),
   signerCertificate: z.string().optional(),
+});
+
+const presignedUploadSchema = z.object({
+  name: z.string().min(1, "Filename is required"),
+  type: z.string().default("ATTACHMENT"),
+  mimeType: z.string().min(1, "MIME type is required"),
+  shipmentId: z.string().optional(),
+  fileSize: z.number().int().positive().optional(),
+});
+
+const confirmUploadSchema = z.object({
+  fileSize: z.number().int().positive().optional(),
+  sha256Hash: z.string().optional(),
 });
 
 interface MultipartPart {
@@ -388,6 +402,7 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
         summary: "Generate and stream a Booking Confirmation PDF document",
         body: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
         response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
           ...buildErrorResponses([400, 401, 403, 500]),
         },
       },
@@ -624,6 +639,185 @@ export const documentsRoutes: FastifyPluginAsync = async (fastify) => {
           mimeTypes[ext] || "application/octet-stream",
         );
         return reply.send(fileBuffer);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
+
+  // ============================================================================
+  // PRESIGNED S3 OBJECT STORAGE (MinIO / AWS S3)
+  // ============================================================================
+
+  fastify.post(
+    "/presigned-upload",
+    {
+      schema: {
+        tags: [...DOCUMENTS_TAG],
+        summary:
+          "Request a presigned PUT URL for direct client-to-storage upload",
+        response: {
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const parseRes = presignedUploadSchema.safeParse(request.body);
+        if (!parseRes.success) {
+          return reply.code(400).send({
+            error: "Validation error",
+            details: parseRes.error.flatten().fieldErrors,
+          });
+        }
+
+        const { name, type, mimeType, shipmentId, fileSize } = parseRes.data;
+        const docId = `doc_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+        const sanitizedBaseName = path
+          .basename(name)
+          .replace(/[^a-zA-Z0-9._-]/g, "_");
+        const s3Key = `documents/${type}/${docId}-${sanitizedBaseName}`;
+
+        const uploadUrl = await storageService.getPresignedUploadUrl(
+          s3Key,
+          mimeType,
+          900, // 15 minutes
+        );
+
+        // Insert pending document entry in SQLite WAL ledger
+        await db.insert(documents).values({
+          id: docId,
+          name: sanitizedBaseName,
+          type,
+          shipmentId: shipmentId || null,
+          url: s3Key,
+          fileSize: fileSize || null,
+          status: "PENDING",
+        });
+
+        return reply.code(201).send({
+          success: true,
+          documentId: docId,
+          uploadUrl,
+          key: s3Key,
+          expiresIn: 900,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
+
+  fastify.post(
+    "/:id/confirm",
+    {
+      schema: {
+        tags: [...DOCUMENTS_TAG],
+        summary: "Confirm direct client upload and mark document AVAILABLE",
+        params: buildParamSchema("id", "Target document UUID."),
+        response: {
+          ...buildErrorResponses([400, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const bodyParse = confirmUploadSchema.safeParse(request.body || {});
+
+        const [doc] = await db
+          .select()
+          .from(documents)
+          .where(eq(documents.id, id))
+          .limit(1);
+
+        if (!doc) {
+          return reply.code(404).send({ error: "Document not found" });
+        }
+
+        let verifiedSize = bodyParse.success
+          ? bodyParse.data.fileSize
+          : undefined;
+        try {
+          const head = await storageService.headObject(doc.url);
+          if (head.ContentLength) {
+            verifiedSize = head.ContentLength;
+          }
+        } catch {
+          // If storage inspection fails in dev/offline, proceed with provided metadata
+        }
+
+        const sha256 = bodyParse.success
+          ? bodyParse.data.sha256Hash
+          : undefined;
+
+        await db
+          .update(documents)
+          .set({
+            status: "AVAILABLE",
+            fileSize: verifiedSize || doc.fileSize,
+            sha256Hash: sha256 || doc.sha256Hash,
+            updatedAt: new Date(),
+          })
+          .where(eq(documents.id, id));
+
+        return reply.send({
+          success: true,
+          status: "AVAILABLE",
+          documentId: id,
+          key: doc.url,
+          fileSize: verifiedSize || doc.fileSize,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Internal Server Error";
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
+
+  fastify.get(
+    "/:id/download-url",
+    {
+      schema: {
+        tags: [...DOCUMENTS_TAG],
+        summary: "Get a temporary presigned GET URL for secure download",
+        params: buildParamSchema("id", "Target document UUID."),
+        response: {
+          ...buildErrorResponses([400, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+
+        const [doc] = await db
+          .select()
+          .from(documents)
+          .where(eq(documents.id, id))
+          .limit(1);
+
+        if (!doc) {
+          return reply.code(404).send({ error: "Document not found" });
+        }
+
+        const downloadUrl = await storageService.getPresignedDownloadUrl(
+          doc.url,
+          900, // 15 minutes
+        );
+
+        return reply.send({
+          success: true,
+          documentId: id,
+          downloadUrl,
+          expiresIn: 900,
+        });
       } catch (error: unknown) {
         const message =
           error instanceof Error ? error.message : "Internal Server Error";
