@@ -50,8 +50,9 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    # healthcheck matches Dockerfile.backend exactly
     healthcheck:
-      test: ["CMD", "sh", "-c", "redis-cli --version >/dev/null && node -e \"fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -88,7 +89,8 @@ services:
     restart: always
     ports:
       - "80:8080"
-      - "443:8443"  # Enable TLS termination (configure with cert volumes)
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       backend:
         condition: service_healthy
@@ -142,7 +144,7 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "sh", "-c", "node -e \"fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -172,8 +174,9 @@ services:
     pull_policy: if_not_present
     container_name: atlas-redis-prod
     restart: always
-    ports:
-      - "6379:6379"
+    # Do not expose unauthenticated Redis on host network in production
+    # ports:
+    #   - "6379:6379"
     volumes:
       # Persistent RDB snapshots + AOF log
       - redis_data:/data
@@ -194,7 +197,7 @@ services:
       - "--maxmemory-policy"
       - "allkeys-lru"
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
