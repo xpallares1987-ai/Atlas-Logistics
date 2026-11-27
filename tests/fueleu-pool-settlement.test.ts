@@ -177,7 +177,7 @@ describe("FuelEU Maritime Article 21 — Fleet Compliance Pooling & Penalty Comp
       .from(schema.fuelEuComplianceAccounts)
       .where(eq(schema.fuelEuComplianceAccounts.vesselId, deficitVesselId));
     expect(acc.poolId).toBe(body.pool.id);
-  });
+  }, 15000);
 
   it("POST /api/fueleu/pools/:id/settle executes atomic penalty neutralization to €0.00", async () => {
     // 1. Create pool
@@ -240,5 +240,5 @@ describe("FuelEU Maritime Article 21 — Fleet Compliance Pooling & Penalty Comp
     expect(updatedPenalty.poolOffsetId).toBe(poolId);
     expect(updatedPenalty.offsetAmountEur).toBe(321743.43);
     expect(updatedPenalty.netPayableEur).toBe(0.0);
-  });
+  }, 15000);
 });

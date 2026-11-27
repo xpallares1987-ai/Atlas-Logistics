@@ -10,5 +10,6 @@ export * from "./hooks/useCarbonInsetting";
 export * from "./Header";
 export * from "./Tab/TokensLedger";
 export * from "./Tab/AllocationStudio";
+export * from "./Tab/BlockchainLedger";
 export * from "./Tab/FuelEuPooling";
 export * from "./Tab/SustainabilityAudit";

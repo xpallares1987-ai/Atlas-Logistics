@@ -28,7 +28,10 @@ import {
   InsettingTabKey,
   AllocFormState,
   AvailableShipmentOption,
+  InsettingAllocationRecord,
+  BlockchainVerificationReport,
 } from "../types/index";
+import { QrCanvasService } from "../../../services/qr-canvas.service";
 
 export function useCarbonInsetting() {
   const queryClient = useQueryClient();
@@ -45,6 +48,17 @@ export function useCarbonInsetting() {
     ["shipments-list"],
     "/shipments",
   );
+
+  const { data: allocationsData } = useApiQuery<{
+    allocations: InsettingAllocationRecord[];
+  }>(["carbon-insetting-allocations"], "/carbon-insetting/allocations");
+
+  const [verificationReport, setVerificationReport] =
+    useState<BlockchainVerificationReport | null>(null);
+
+  const allocations = useMemo(() => {
+    return allocationsData?.allocations || [];
+  }, [allocationsData]);
 
   const availableShipments = useMemo(() => {
     return Array.isArray(shipmentsData) ? shipmentsData : [];
@@ -157,6 +171,121 @@ export function useCarbonInsetting() {
     setPoolResult(freshPool);
   };
 
+  const handleVerifyLedger = async () => {
+    try {
+      const res = await fetch("/api/carbon-insetting/allocations/verify", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("atlas_token") || ""}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setVerificationReport(data.report);
+      }
+    } catch (err) {
+      console.error("Error verifying insetting blockchain:", err);
+    }
+  };
+
+  const handleDownloadAllocationPDF = async (
+    alloc: InsettingAllocationRecord,
+  ) => {
+    const doc = new jsPDF();
+
+    // Top Brand Bar
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(0, 0, 210, 40, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("ATLAS LOGISTICS · CERTIFICADO OFICIAL DE INSETTING", 14, 20);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      "Cryptographic SHA-256 Book-and-Claim Ledger · ISO 14083 / GLEC Framework v3.0",
+      14,
+      28,
+    );
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Certificado N°: ${alloc.certificateCode}`, 14, 52);
+
+    autoTable(doc, {
+      startY: 58,
+      theme: "grid",
+      headStyles: { fillColor: [16, 185, 129], textColor: 255 },
+      body: [
+        ["Beneficiario Acreditado", alloc.beneficiaryName],
+        ["Expedición / Envío Asignado", alloc.shipmentId || "N/A"],
+        ["Referencia de Asignación", alloc.allocationReference],
+        ["Modalidad de Transporte", alloc.transportMode],
+        [
+          "Contenido Energético Retirado",
+          `${alloc.allocatedEnergyMj.toLocaleString()} MJ`,
+        ],
+        [
+          "Volumen Combustible Equivalente",
+          `${alloc.equivalentFuelVolumeTonnes} Toneladas Métricas`,
+        ],
+        ["Emisiones Scope 3 Evitadas", `-${alloc.abatedGhgTco2eq} tCO2e`],
+        [
+          "Coste Total de Descarbonización",
+          `€${alloc.costEur.toLocaleString()}`,
+        ],
+        ["Auditor Verificador Acreditado", alloc.leadAuditorVerifier],
+        [
+          "Fecha de Registro en Cadena",
+          new Date(alloc.allocatedAt).toLocaleString("es-ES"),
+        ],
+        ["Hash de Bloque Anterior", alloc.previousBlockHash],
+        ["Sello de Bloque (SHA-256)", alloc.blockHashSha256],
+      ],
+    });
+
+    const finalY =
+      (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+        .finalY + 12;
+
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    doc.text(
+      "DECLARACIÓN OFICIAL: El presente certificado acredita el retiro definitivo e irrevocable de atributos de sostenibilidad " +
+        "bajo esquema Book-and-Claim. La reducción de huella de carbono Scope 3 queda computada exclusivamente en la contabilidad " +
+        "ambiental de la empresa beneficiaria garantizando la ausencia de doble cómputo conforme al estándar ISO 14083.",
+      14,
+      finalY,
+      { maxWidth: 130 },
+    );
+
+    // Embed client-side QR Code into PDF
+    try {
+      const qrDataUrl = await QrCanvasService.generateDataUrl(
+        alloc.verificationQrUrl ||
+          `https://atlas-logistics.io/verify/insetting/${alloc.certificateCode}`,
+        {
+          width: 120,
+          margin: 1,
+        },
+      );
+      doc.addImage(qrDataUrl, "PNG", 152, finalY, 44, 44);
+    } catch (qrErr) {
+      console.warn("Could not render QR code into PDF:", qrErr);
+    }
+
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      "Atlas-Logistics Scope 3 Digital Twin Registry · Corredor Oficial Book TEST01",
+      14,
+      finalY + 48,
+    );
+
+    doc.save(`Certificado_Insetting_${alloc.certificateCode}.pdf`);
+  };
+
   const handleDownloadPDF = (token: InsettingToken) => {
     const doc = new jsPDF();
 
@@ -257,8 +386,12 @@ export function useCarbonInsetting() {
     liveAbatement,
     totalAvoidedCO2e,
     totalFuelVolumeMT,
+    allocations,
+    verificationReport,
     handleIssueToken,
     handleExecutePool,
     handleDownloadPDF,
+    handleVerifyLedger,
+    handleDownloadAllocationPDF,
   };
 }

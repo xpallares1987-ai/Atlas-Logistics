@@ -149,7 +149,19 @@ export function Header({
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          <span>Asignación & Mass Balance Studio</span>
+          <span>Emisión BDN & Asignación Studio</span>
+        </button>
+
+        <button
+          onClick={() => onTabChange("BLOCKCHAIN_LEDGER")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === "BLOCKCHAIN_LEDGER"
+              ? "bg-slate-800 text-emerald-400 border border-emerald-500/40 shadow-sm"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          }`}
+        >
+          <Coins className="w-4 h-4" />
+          <span>Cadena SHA-256 & Sellos QR</span>
         </button>
 
         <button

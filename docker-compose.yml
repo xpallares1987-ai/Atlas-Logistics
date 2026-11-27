@@ -39,6 +39,7 @@ services:
         PNPM_VERSION: 10.0.0
     container_name: atlas-backend-dev
     image: atlas-logistics:backend-dev
+    pull_policy: build
     ports:
       - "3001:3001"
     env_file:
@@ -90,6 +91,7 @@ services:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
     container_name: atlas-frontend-dev
     image: atlas-logistics:frontend-dev
+    pull_policy: build
     ports:
       - "8080:8080"
     depends_on:

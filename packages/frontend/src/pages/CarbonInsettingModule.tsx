@@ -10,6 +10,7 @@ import {
   Header,
   TokensLedger,
   AllocationStudio,
+  BlockchainLedger,
   FuelEuPooling,
   SustainabilityAudit,
 } from "../components/CarbonInsetting";
@@ -29,9 +30,13 @@ export default function CarbonInsettingModule() {
     liveAbatement,
     totalAvoidedCO2e,
     totalFuelVolumeMT,
+    allocations,
+    verificationReport,
     handleIssueToken,
     handleExecutePool,
     handleDownloadPDF,
+    handleVerifyLedger,
+    handleDownloadAllocationPDF,
   } = useCarbonInsetting();
 
   return (
@@ -61,6 +66,15 @@ export default function CarbonInsettingModule() {
           availableShipments={availableShipments}
           liveAbatement={liveAbatement}
           onIssueToken={handleIssueToken}
+        />
+      )}
+
+      {activeTab === "BLOCKCHAIN_LEDGER" && (
+        <BlockchainLedger
+          allocations={allocations}
+          verificationReport={verificationReport}
+          onVerifyLedger={handleVerifyLedger}
+          onDownloadAllocationPDF={handleDownloadAllocationPDF}
         />
       )}
 

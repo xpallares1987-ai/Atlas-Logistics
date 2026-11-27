@@ -9,6 +9,7 @@ import { FuelType, TransportMode } from "@atlas/shared";
 export type InsettingTabKey =
   | "TOKENS_LEDGER"
   | "ALLOCATION_STUDIO"
+  | "BLOCKCHAIN_LEDGER"
   | "FUELEU_POOLING"
   | "SUSTAINABILITY_AUDIT";
 
@@ -21,6 +22,36 @@ export interface AllocFormState {
   allocatedShipmentRef: string;
   beneficiaryCompany: string;
   transportMode: TransportMode;
+}
+
+export interface InsettingAllocationRecord {
+  id: string;
+  allocationReference: string;
+  tokenId: string;
+  shipmentId: string | null;
+  beneficiaryCompanyId: string | null;
+  beneficiaryName: string;
+  transportMode: string;
+  allocatedEnergyMj: number;
+  equivalentFuelVolumeTonnes: number;
+  abatedGhgTco2eq: number;
+  costEur: number;
+  certificateCode: string;
+  verificationQrUrl: string;
+  previousBlockHash: string;
+  blockHashSha256: string;
+  status: string;
+  leadAuditorVerifier: string;
+  allocatedAt: string;
+}
+
+export interface BlockchainVerificationReport {
+  isValid: boolean;
+  totalAllocationsChecked: number;
+  genesisBlockHash: string;
+  latestBlockHash: string | null;
+  tamperedAllocationId?: string;
+  verificationTimestamp: string;
 }
 
 export interface AvailableShipmentOption {
