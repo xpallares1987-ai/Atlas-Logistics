@@ -98,7 +98,7 @@ export function useFuelEuMaritime() {
     ["fueleu-accounts"],
     "/fueleu/accounts",
   );
-  const { data: pools = [] } = useApiQuery<PoolRecord[]>(
+  const { data: pools = [], refetch: refetchPools } = useApiQuery<PoolRecord[]>(
     ["fueleu-pools"],
     "/fueleu/pools",
   );
@@ -224,6 +224,45 @@ export function useFuelEuMaritime() {
   const currentVoyage = voyageDetails || selectedVoyage;
   const currentAccount = accounts[0] || null;
 
+  const handleCreatePool = async (input: {
+    poolCode: string;
+    poolName: string;
+    reportingYear: number;
+    managingOperatorName: string;
+    vesselIds: string[];
+    remarks?: string;
+  }) => {
+    try {
+      const res = await fetch(resolveApiUrl("/api/fueleu/pools"), {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(input),
+      });
+      if (res.ok) {
+        await refetchPools();
+      }
+    } catch (err) {
+      console.error("Error creating FuelEU pool:", err);
+    }
+  };
+
+  const handleSettlePool = async (poolId: string) => {
+    try {
+      const res = await fetch(
+        resolveApiUrl(`/api/fueleu/pools/${poolId}/settle`),
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+        },
+      );
+      if (res.ok) {
+        await refetchPools();
+      }
+    } catch (err) {
+      console.error("Error settling FuelEU pool:", err);
+    }
+  };
+
   return {
     activeTab,
     setActiveTab,
@@ -279,5 +318,7 @@ export function useFuelEuMaritime() {
     totalFuelEnergySum: kpis.totalFuelEnergySum,
     avgGhgIntensity: kpis.avgGhgIntensity,
     handleSaveStatus: handleConfirmStatusUpdate,
+    handleCreatePool,
+    handleSettlePool,
   };
 }

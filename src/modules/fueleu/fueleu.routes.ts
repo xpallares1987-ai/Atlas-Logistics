@@ -17,6 +17,7 @@ import { ThetisMrvXmlService } from "./thetis-mrv-xml.service.js";
 import { PDFService } from "../../services/pdf.service.js";
 import { CarbonInsettingLedgerService } from "../carbon-insetting/carbon-insetting-ledger.service.js";
 import { EtsGreenBafSettlementService } from "./ets-green-baf-settlement.service.js";
+import { FuelEuPoolService } from "./fueleu-pool.service.js";
 import {
   OPENAPI_FLEXIBLE_ARRAY_SCHEMA,
   OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
@@ -764,6 +765,104 @@ export const fuelEuRoutes: FastifyPluginAsync = async (fastify) => {
         return reply
           .status(400)
           .send({ error: getErrorMessage(err, "Failed to settle Green BAF") });
+      }
+    },
+  );
+
+  // 16. POST /api/fueleu/pools - Register Fleet Compliance Pool (Art. 21)
+  fastify.post(
+    "/pools",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary:
+          "Register and evaluate a FuelEU Maritime Article 21 fleet compliance pool in SQLite WAL",
+        body: openApiObject({
+          poolCode: { type: "string" },
+          poolName: { type: "string" },
+          reportingYear: { type: "number" },
+          managingOperatorName: { type: "string" },
+          vesselIds: { type: "array", items: { type: "string" } },
+          remarks: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = request.body as {
+        poolCode: string;
+        poolName: string;
+        reportingYear: number;
+        managingOperatorName: string;
+        vesselIds: string[];
+        remarks?: string;
+      };
+
+      if (
+        !body?.poolCode ||
+        !body?.poolName ||
+        !body?.reportingYear ||
+        !Array.isArray(body?.vesselIds) ||
+        body.vesselIds.length === 0
+      ) {
+        return reply.status(400).send({
+          error:
+            "Missing required fields: poolCode, poolName, reportingYear, and non-empty vesselIds array",
+        });
+      }
+
+      try {
+        const result = await FuelEuPoolService.createPool({
+          poolCode: body.poolCode,
+          poolName: body.poolName,
+          reportingYear: Number(body.reportingYear),
+          managingOperatorName:
+            body.managingOperatorName || "Atlas Decarbonization Pool Operator",
+          vesselIds: body.vesselIds,
+          remarks: body.remarks,
+        });
+
+        return reply.send({ success: true, ...result });
+      } catch (err: unknown) {
+        return reply
+          .status(400)
+          .send({
+            error: getErrorMessage(err, "Failed to register compliance pool"),
+          });
+      }
+    },
+  );
+
+  // 17. POST /api/fueleu/pools/:id/settle - Settle and Neutralize Fleet Pool Penalties (Art. 21)
+  fastify.post(
+    "/pools/:id/settle",
+    {
+      schema: {
+        tags: [...FUELEU_TAG],
+        summary:
+          "Settle multilateral fleet compliance pool and neutralize statutory penalties in SQLite WAL",
+        params: OPENAPI_ID_PARAMS_SCHEMA,
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 404, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+
+      try {
+        const settlement = await FuelEuPoolService.settlePoolCompensation(id);
+        return reply.send({ success: true, settlement });
+      } catch (err: unknown) {
+        return reply
+          .status(400)
+          .send({
+            error: getErrorMessage(err, "Failed to settle pool penalties"),
+          });
       }
     },
   );

@@ -69,12 +69,14 @@ export interface FuelRecord {
 export interface PoolRecord {
   id: string;
   poolReference?: string;
+  poolCode?: string;
   poolName?: string;
   complianceBalanceEur?: number;
   status?: string;
   managingOperatorName?: string;
   reportingYear?: number | string;
   consolidatedNetComplianceBalanceGco2eq: number;
+  isPoolCompliantZeroPenalty?: boolean;
   totalEnrolledVesselsCount?: number;
   remarks?: string;
   [key: string]: unknown;
@@ -183,6 +185,16 @@ export interface PoolingFuelsTabProps {
   fuelSimResult: FuelSimResult | null;
   onRunFuelSim: () => void;
   pools: PoolRecord[];
+  vessels?: Record<string, unknown>[];
+  onSettlePool?: (poolId: string) => Promise<void>;
+  onCreatePool?: (input: {
+    poolCode: string;
+    poolName: string;
+    reportingYear: number;
+    managingOperatorName: string;
+    vesselIds: string[];
+    remarks?: string;
+  }) => Promise<void>;
 }
 
 export interface StatusVerificationModalProps {
