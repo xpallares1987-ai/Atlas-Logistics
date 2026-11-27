@@ -48,11 +48,16 @@ services:
       <<: *common_env
       DATABASE_URL: ${DATABASE_URL:-file:./data/dev.db}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      JWT_SECRET: ${JWT_SECRET:-dev-atlas-enterprise-jwt-secret-key-32chars}
     volumes:
       # Source code for hot-reload (cached mount for performance)
       - ./src:/app/src:cached
       - ./packages:/app/packages:cached
+      # Protect in-container node_modules from Windows host symlink overrides
+      - /app/packages/shared/node_modules
+      - /app/packages/ui/node_modules
+      - /app/packages/frontend/node_modules
+      - /app/packages/client-sdk/node_modules
       # Data persistence
       - ./data:/app/data:cached
     depends_on:

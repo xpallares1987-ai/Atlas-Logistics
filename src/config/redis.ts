@@ -8,10 +8,24 @@
 import { Redis } from "ioredis";
 import { logger } from "./logger.js";
 
-const REDIS_HOST = process.env.REDIS_HOST || "127.0.0.1";
-const REDIS_PORT = process.env.REDIS_PORT
+let REDIS_HOST = process.env.REDIS_HOST || "127.0.0.1";
+let REDIS_PORT = process.env.REDIS_PORT
   ? parseInt(process.env.REDIS_PORT, 10)
   : 6379;
+
+if (process.env.REDIS_URL) {
+  try {
+    const parsed = new URL(process.env.REDIS_URL);
+    if (parsed.hostname) {
+      REDIS_HOST = parsed.hostname;
+    }
+    if (parsed.port) {
+      REDIS_PORT = parseInt(parsed.port, 10);
+    }
+  } catch {
+    // Ignore URL parse error and fallback to host/port
+  }
+}
 
 const isExplicitMock = process.env.USE_REDIS_MOCK === "true";
 const isExplicitReal = process.env.USE_REDIS_MOCK === "false";

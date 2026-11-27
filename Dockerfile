@@ -24,7 +24,7 @@ ENV npm_config_network_timeout=180000
 ENV npm_config_network_concurrency=4
 
 RUN apk add --no-cache git python3 make g++ && \
-    (corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate || npm install -g pnpm@${PNPM_VERSION})
+    (corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate || npm install -g --force pnpm@${PNPM_VERSION})
 
 WORKDIR /app
 
