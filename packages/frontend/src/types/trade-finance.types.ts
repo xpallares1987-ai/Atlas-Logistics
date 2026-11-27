@@ -93,3 +93,40 @@ export interface BankFeeCalculationResult {
   calculatedAmendmentFeeEur: number;
   calculatedPaymentFeeEur: number;
 }
+
+export type ParsedSwiftMtResult =
+  | {
+      messageType: "MT700";
+      instrumentReference: string;
+      issueDate: string;
+      expiryDate: string;
+      expiryPlace: string;
+      applicantName: string;
+      beneficiaryName: string;
+      currency: string;
+      creditAmount: number;
+      tolerancePercentage: number;
+      applicableRules: string;
+      paymentTerms: string;
+      portOfLoading: string;
+      portOfDischarge: string;
+      latestShipmentDate: string;
+      goodsDescription: string;
+      requiredDocumentsSummary: string[];
+      additionalConditions: string[];
+      confirmationInstructions: string;
+    }
+  | {
+      messageType: "MT760";
+      instrumentReference: string;
+      issueDate: string;
+      expiryDate: string;
+      applicantName: string;
+      beneficiaryName: string;
+      currency: string;
+      guaranteeAmount: number;
+      applicableRules: string;
+      purposeOfGuarantee: string;
+      underlyingContractReference?: string;
+      guaranteeTerms: string;
+    };

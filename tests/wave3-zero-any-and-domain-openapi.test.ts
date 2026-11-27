@@ -70,7 +70,7 @@ const WAVE3_ROUTE_MODULES: readonly Wave3RouteModuleSpec[] = [
   },
   {
     relativePath: "src/modules/trade-finance/trade-finance.routes.ts",
-    expectedEndpoints: 11,
+    expectedEndpoints: 14,
     expectedTag: "Trade Finance & Letters of Credit",
   },
   {
@@ -238,7 +238,7 @@ describe("P1-A Wave 3 — Repository-Wide Zero-Any & Domain OpenAPI Closure", ()
       wave3TotalEndpoints += schemaCount;
     }
 
-    expect(wave3TotalEndpoints).toBe(191);
+    expect(wave3TotalEndpoints).toBe(194);
   });
 
   it("enforces 100% OpenAPI schema coverage across all 30 domain route modules in src/modules/ (309 endpoints)", () => {
@@ -269,8 +269,8 @@ describe("P1-A Wave 3 — Repository-Wide Zero-Any & Domain OpenAPI Closure", ()
     }
 
     expect(mismatches).toEqual([]);
-    expect(totalRoutes).toBe(309);
-    expect(totalSchemas).toBe(309);
+    expect(totalRoutes).toBe(312);
+    expect(totalSchemas).toBe(312);
   });
 
   it("boots Fastify app and compiles a valid OpenAPI 3.x document containing Wave 3 domain tags", async () => {

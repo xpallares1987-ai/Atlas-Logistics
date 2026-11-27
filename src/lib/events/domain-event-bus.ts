@@ -43,6 +43,17 @@ export interface TradeFinanceInstrumentHonouredPayload {
   settledAt: string;
 }
 
+export interface TradeFinanceSwiftMtIngestedPayload {
+  instrumentId: string;
+  instrumentReference: string;
+  messageType: "MT700" | "MT760";
+  creditAmount: number;
+  currency: string;
+  applicantName: string;
+  beneficiaryName: string;
+  isUpdate: boolean;
+}
+
 export interface CargoClaimFiledPayload {
   claimId: string;
   shipmentId: string;
@@ -173,6 +184,10 @@ export interface DomainEventRegistry {
   "trade-finance:instrument-honoured": BaseDomainEvent<
     "trade-finance:instrument-honoured",
     TradeFinanceInstrumentHonouredPayload
+  >;
+  "trade-finance:swift-mt-ingested": BaseDomainEvent<
+    "trade-finance:swift-mt-ingested",
+    TradeFinanceSwiftMtIngestedPayload
   >;
   "claims:claim-filed": BaseDomainEvent<
     "claims:claim-filed",

@@ -275,6 +275,7 @@ export function useTradeFinance() {
     isSettling,
     settlementSuccessMsg,
     setSettlementSuccessMsg,
+    refetchInstruments,
     handleHonourSettlement,
     handleRunGeminiUcpAudit,
     handleRunFeeSim,

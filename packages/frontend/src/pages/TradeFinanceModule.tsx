@@ -51,6 +51,7 @@ export default function TradeFinanceModule() {
     stats,
     isSettling,
     settlementSuccessMsg,
+    refetchInstruments,
     handleHonourSettlement,
     handleRunGeminiUcpAudit,
     handleRunFeeSim,
@@ -88,6 +89,7 @@ export default function TradeFinanceModule() {
           isSettling={isSettling}
           settlementSuccessMsg={settlementSuccessMsg}
           onHonourSettlement={handleHonourSettlement}
+          onRefreshInstruments={refetchInstruments}
         />
       )}
 

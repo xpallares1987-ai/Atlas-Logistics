@@ -5,7 +5,7 @@
  * @see {@link docs/adr/0020-modular-frontend-architecture.md}
  */
 
-import React from "react";
+import React, { useState } from "react";
 import { motion, Variants } from "framer-motion";
 import {
   Search,
@@ -16,10 +16,12 @@ import {
   CheckCircle2,
   Loader2,
   Coins,
+  Upload,
 } from "lucide-react";
 import { Input } from "@atlas/ui";
 import { TradeInstrument } from "../../../types/trade-finance.types";
 import { formatInstrumentFilterLabel } from "../hooks/useTradeFinance";
+import { ImportSwiftMtModal } from "../Modal/ImportSwiftMtModal";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -53,6 +55,7 @@ export interface InstrumentsDocsProps {
   isSettling?: boolean;
   settlementSuccessMsg?: string | null;
   onHonourSettlement?: () => void;
+  onRefreshInstruments?: () => void;
 }
 
 export const InstrumentsDocs: React.FC<InstrumentsDocsProps> = ({
@@ -68,19 +71,34 @@ export const InstrumentsDocs: React.FC<InstrumentsDocsProps> = ({
   isSettling = false,
   settlementSuccessMsg,
   onHonourSettlement,
+  onRefreshInstruments,
 }) => {
+  const [showImportModal, setShowImportModal] = useState(false);
   return (
     <div className="flex-1 px-4 md:px-8 pb-8 flex flex-col lg:flex-row gap-6 min-h-0 z-10 relative overflow-y-auto lg:overflow-hidden">
       {/* Left Column: Instruments List */}
       <div className="w-full lg:w-1/3 flex flex-col bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl min-h-[400px] lg:min-h-0">
         <div className="p-4 border-b border-white/10 space-y-3">
-          <Input
-            type="text"
-            placeholder="Buscar Referencia, Ordenante, Beneficiario, Banco..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            leftIcon={<Search size={16} />}
-          />
+          <div className="flex gap-2 items-center">
+            <div className="flex-1">
+              <Input
+                type="text"
+                placeholder="Buscar Referencia, Ordenante, Beneficiario..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                leftIcon={<Search size={16} />}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowImportModal(true)}
+              className="px-3 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0"
+              title="Importar mensaje SWIFT MT700 / MT760"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              SWIFT MT
+            </button>
+          </div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {[
               "ALL",
@@ -442,6 +460,16 @@ export const InstrumentsDocs: React.FC<InstrumentsDocsProps> = ({
           </div>
         )}
       </div>
+
+      <ImportSwiftMtModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onIngestSuccess={() => {
+          if (onRefreshInstruments) {
+            onRefreshInstruments();
+          }
+        }}
+      />
     </div>
   );
 };
