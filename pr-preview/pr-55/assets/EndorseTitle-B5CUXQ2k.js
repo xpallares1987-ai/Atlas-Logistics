@@ -1,0 +1,1 @@
+export{t as EndorseTitle,t as default}from"./EndorseTitle-DczY4_9N.js";

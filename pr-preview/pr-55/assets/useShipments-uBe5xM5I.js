@@ -1,0 +1,1 @@
+import{r as e}from"./useApiQuery-_YK62Nsl.js";function t(){return e([`shipments`],`/shipments`)}export{t};

@@ -1,0 +1,1 @@
+export{t as UsmcaImmex}from"./UsmcaImmex-CvTo3sPY.js";
