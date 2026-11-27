@@ -824,4 +824,339 @@ export const tradeFinanceRoutes: FastifyPluginAsync = async (
       return reply.send(pdfBuffer);
     },
   );
+
+  // 12. POST /api/trade-finance/messages/parse
+  app.post(
+    "/messages/parse",
+    {
+      preHandler: [
+        authMiddleware,
+        requireRole(["FINANCE", "OPERATIONS", "ADMIN", "ACCOUNTING"]),
+      ],
+      schema: {
+        tags: [...TRADE_FINANCE_TAG],
+        summary:
+          "Parse raw incoming SWIFT FIN text (MT700 Letter of Credit or MT760 Demand Guarantee)",
+        body: openApiObject({
+          rawMessage: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { rawMessage } = request.body as { rawMessage: string };
+      if (!rawMessage || typeof rawMessage !== "string" || !rawMessage.trim()) {
+        return reply.code(400).send({
+          error: "Validation error",
+          message: "rawMessage is mandatory and cannot be empty",
+        });
+      }
+
+      try {
+        const parsed = SwiftMessageService.parseMtMessage(rawMessage);
+        return reply.send(parsed);
+      } catch (err: unknown) {
+        return reply.code(400).send({
+          error: "SWIFT parse error",
+          message: (err as Error).message,
+        });
+      }
+    },
+  );
+
+  // 13. POST /api/trade-finance/messages/generate-mt760
+  app.post(
+    "/messages/generate-mt760",
+    {
+      preHandler: [authMiddleware, requireRole(["FINANCE", "ADMIN"])],
+      schema: {
+        tags: [...TRADE_FINANCE_TAG],
+        summary:
+          "Generate SWIFT MT760 message text (Issue of Demand Guarantee under URDG 758 / ISP98)",
+        body: openApiObject({
+          instrumentReference: { type: "string" },
+          senderBic: { type: "string" },
+          receiverBic: { type: "string" },
+          issueDate: { type: "string" },
+          expiryDate: { type: "string" },
+          expiryPlace: { type: "string" },
+          applicantName: { type: "string" },
+          beneficiaryName: { type: "string" },
+          currency: { type: "string" },
+          guaranteeAmount: { type: "number" },
+          applicableRules: { type: "string", enum: ["URDG758", "ISP98"] },
+          purposeOfGuarantee: {
+            type: "string",
+            enum: [
+              "PERFORMANCE_BOND",
+              "ADVANCE_PAYMENT",
+              "BID_BOND",
+              "PAYMENT_GUARANTEE",
+              "FINANCIAL_GUARANTEE",
+            ],
+          },
+          underlyingContractReference: { type: "string" },
+          guaranteeTerms: { type: "string" },
+        }),
+        response: {
+          200: openApiObject({
+            messageType: { type: "string" },
+            instrumentReference: { type: "string" },
+            rawMessage: { type: "string" },
+          }),
+          ...buildErrorResponses([400, 401, 403, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = request.body as Parameters<
+        typeof SwiftMessageService.generateMt760
+      >[0];
+      if (
+        !body.instrumentReference ||
+        !body.senderBic ||
+        !body.receiverBic ||
+        !body.applicantName ||
+        !body.beneficiaryName ||
+        !body.guaranteeAmount
+      ) {
+        return reply.code(400).send({
+          error: "Validation error",
+          message:
+            "instrumentReference, senderBic, receiverBic, applicantName, beneficiaryName, and guaranteeAmount are required",
+        });
+      }
+
+      try {
+        const rawMessage = SwiftMessageService.generateMt760(body);
+        return reply.send({
+          messageType: "MT760",
+          instrumentReference: body.instrumentReference,
+          rawMessage,
+        });
+      } catch (err: unknown) {
+        return reply.code(400).send({
+          error: "Generation error",
+          message: (err as Error).message,
+        });
+      }
+    },
+  );
+
+  // 14. POST /api/trade-finance/instruments/ingest-swift-mt
+  app.post(
+    "/instruments/ingest-swift-mt",
+    {
+      preHandler: [
+        authMiddleware,
+        requireRole(["FINANCE", "OPERATIONS", "ADMIN"]),
+      ],
+      schema: {
+        tags: [...TRADE_FINANCE_TAG],
+        summary:
+          "Ingest and upsert incoming SWIFT MT700 or MT760 into trade credit instruments table",
+        body: openApiObject({
+          rawMessage: { type: "string" },
+          forceUpdate: { type: "boolean" },
+          applicantCompanyId: { type: "string" },
+        }),
+        response: {
+          200: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          201: OPENAPI_FLEXIBLE_OBJECT_SCHEMA,
+          ...buildErrorResponses([400, 401, 403, 409, 500]),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { rawMessage, forceUpdate, applicantCompanyId } = request.body as {
+        rawMessage: string;
+        forceUpdate?: boolean;
+        applicantCompanyId?: string;
+      };
+
+      if (!rawMessage || typeof rawMessage !== "string" || !rawMessage.trim()) {
+        return reply.code(400).send({
+          error: "Validation error",
+          message: "rawMessage is mandatory",
+        });
+      }
+
+      let parsed;
+      try {
+        parsed = SwiftMessageService.parseMtMessage(rawMessage);
+      } catch (err: unknown) {
+        return reply.code(400).send({
+          error: "SWIFT parse error",
+          message: (err as Error).message,
+        });
+      }
+
+      const existing = await db
+        .select()
+        .from(schema.tradeCreditInstruments)
+        .where(
+          eq(
+            schema.tradeCreditInstruments.instrumentReference,
+            parsed.instrumentReference,
+          ),
+        )
+        .get();
+
+      if (existing && !forceUpdate) {
+        return reply.code(409).send({
+          error: "Instrument reference already exists",
+          message: `Instrument with reference '${parsed.instrumentReference}' already exists in database. Pass forceUpdate: true to overwrite non-terminal state.`,
+          instrumentId: existing.id,
+          instrumentReference: existing.instrumentReference,
+        });
+      }
+
+      const instrumentId = existing
+        ? existing.id
+        : `tci_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const now = new Date().toISOString();
+
+      if (parsed.messageType === "MT700") {
+        const instrumentData: TradeInstrumentInsert = {
+          id: instrumentId,
+          instrumentReference: parsed.instrumentReference,
+          instrumentType: "COMMERCIAL_LC_IRREVOCABLE",
+          applicableRules: parsed.applicableRules,
+          applicantCompanyId:
+            applicantCompanyId || existing?.applicantCompanyId || null,
+          applicantName: parsed.applicantName,
+          beneficiaryName: parsed.beneficiaryName,
+          beneficiaryCountry: "ES",
+          issuingBankBic: parsed.header.senderBic || "UNKNOWN",
+          issuingBankName: parsed.header.senderBic || "Issuing Bank",
+          confirmingBankBic: parsed.header.receiverBic || null,
+          confirmingBankName: parsed.header.receiverBic || null,
+          currency: parsed.currency,
+          creditAmount: parsed.creditAmount,
+          tolerancePercentage: parsed.tolerancePercentage,
+          issueDate: parsed.issueDate,
+          latestShipmentDate: parsed.latestShipmentDate,
+          expiryDate: parsed.expiryDate,
+          expiryPlace: parsed.expiryPlace,
+          portOfLoading: parsed.portOfLoading,
+          portOfDischarge: parsed.portOfDischarge,
+          goodsDescriptionSummary: parsed.goodsDescription,
+          partialShipmentsAllowed: parsed.partialShipmentsAllowed,
+          transhipmentAllowed: parsed.transhipmentAllowed,
+          presentationPeriodDays: 21,
+          confirmationInstructions: parsed.confirmationInstructions,
+          paymentTerms: parsed.paymentTerms,
+          tenorDays: parsed.tenorDays,
+          status: existing ? existing.status : "ISSUED",
+          remarks: `Ingested from SWIFT MT700 transmission. Documents required: ${parsed.requiredDocumentsSummary.length}`,
+          updatedAt: now,
+        };
+
+        if (existing) {
+          await db
+            .update(schema.tradeCreditInstruments)
+            .set(instrumentData)
+            .where(eq(schema.tradeCreditInstruments.id, existing.id));
+        } else {
+          await db.insert(schema.tradeCreditInstruments).values(instrumentData);
+        }
+
+        await domainEventBus.publish(
+          "trade-finance:swift-mt-ingested",
+          instrumentId,
+          {
+            instrumentId,
+            instrumentReference: parsed.instrumentReference,
+            messageType: "MT700",
+            creditAmount: parsed.creditAmount,
+            currency: parsed.currency,
+            applicantName: parsed.applicantName,
+            beneficiaryName: parsed.beneficiaryName,
+            isUpdate: !!existing,
+          },
+        );
+
+        return reply.code(existing ? 200 : 201).send({
+          success: true,
+          instrumentId,
+          instrumentReference: parsed.instrumentReference,
+          messageType: "MT700",
+          status: existing ? existing.status : "ISSUED",
+          parsed,
+        });
+      } else {
+        // MT760
+        const instrumentData: TradeInstrumentInsert = {
+          id: instrumentId,
+          instrumentReference: parsed.instrumentReference,
+          instrumentType: "DEMAND_GUARANTEE_URDG758",
+          applicableRules: parsed.applicableRules,
+          applicantCompanyId:
+            applicantCompanyId || existing?.applicantCompanyId || null,
+          applicantName: parsed.applicantName,
+          beneficiaryName: parsed.beneficiaryName,
+          beneficiaryCountry: "ES",
+          issuingBankBic: parsed.header.senderBic || "UNKNOWN",
+          issuingBankName: parsed.header.senderBic || "Issuing Bank",
+          confirmingBankBic: parsed.header.receiverBic || null,
+          confirmingBankName: parsed.header.receiverBic || null,
+          currency: parsed.currency,
+          creditAmount: parsed.guaranteeAmount,
+          tolerancePercentage: 0,
+          issueDate: parsed.issueDate,
+          latestShipmentDate: parsed.expiryDate,
+          expiryDate: parsed.expiryDate,
+          expiryPlace: "Counters of Beneficiary Bank",
+          portOfLoading: "N/A",
+          portOfDischarge: "N/A",
+          goodsDescriptionSummary: parsed.guaranteeTerms.slice(0, 200),
+          partialShipmentsAllowed: false,
+          transhipmentAllowed: false,
+          presentationPeriodDays: 21,
+          confirmationInstructions: "CONFIRM",
+          paymentTerms: "SIGHT",
+          tenorDays: 0,
+          status: existing ? existing.status : "ISSUED",
+          remarks: `Ingested from SWIFT MT760 demand guarantee. Purpose: ${parsed.purposeOfGuarantee}`,
+          updatedAt: now,
+        };
+
+        if (existing) {
+          await db
+            .update(schema.tradeCreditInstruments)
+            .set(instrumentData)
+            .where(eq(schema.tradeCreditInstruments.id, existing.id));
+        } else {
+          await db.insert(schema.tradeCreditInstruments).values(instrumentData);
+        }
+
+        await domainEventBus.publish(
+          "trade-finance:swift-mt-ingested",
+          instrumentId,
+          {
+            instrumentId,
+            instrumentReference: parsed.instrumentReference,
+            messageType: "MT760",
+            creditAmount: parsed.guaranteeAmount,
+            currency: parsed.currency,
+            applicantName: parsed.applicantName,
+            beneficiaryName: parsed.beneficiaryName,
+            isUpdate: !!existing,
+          },
+        );
+
+        return reply.code(existing ? 200 : 201).send({
+          success: true,
+          instrumentId,
+          instrumentReference: parsed.instrumentReference,
+          messageType: "MT760",
+          status: existing ? existing.status : "ISSUED",
+          parsed,
+        });
+      }
+    },
+  );
 };
