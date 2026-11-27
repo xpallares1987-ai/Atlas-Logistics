@@ -84,6 +84,7 @@ COPY --from=builder --chown=nginx:nginx /app/packages/frontend/dist /usr/share/n
 RUN mkdir -p /var/cache/nginx /var/run /tmp/nginx && \
     touch /tmp/nginx.pid && \
     chown -R nginx:nginx /var/cache/nginx /var/run /tmp/nginx /tmp/nginx.pid /etc/nginx/conf.d /usr/share/nginx/html && \
+    sed -i 's|pid\s\+/run/nginx.pid;|pid /tmp/nginx.pid;|g' /etc/nginx/nginx.conf && \
     sed -i 's|/var/run/nginx.pid|/tmp/nginx.pid|g' /etc/nginx/nginx.conf && \
     sed -i 's|^user .*|# user directive commented for non-root execution|g' /etc/nginx/nginx.conf
 
@@ -97,4 +98,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s \
     CMD curl -f http://localhost:8080/healthz || exit 1
 
-CMD ["nginx", "-g", "daemon off; pid /tmp/nginx.pid;"]
+CMD ["nginx", "-g", "daemon off;"]
