@@ -13,7 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import Fastify, { FastifyInstance } from "fastify";
 import { db } from "../src/db/index.js";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, inArray } from "drizzle-orm";
 import {
   bankingTransmissions,
   bankStatementEntries,
@@ -37,6 +37,7 @@ describe("SWIFT ISO 20022 Decarbonization Financial Clearing Suite", () => {
   const testVesselId = `vsl_test_${Date.now()}`;
   const testPenaltyId = `pen_test_${Date.now()}`;
   const testPenaltyRef = `PEN-TEST-ISO-${Date.now()}`;
+  const createdTransmissionIds: string[] = [];
 
   beforeAll(async () => {
     app = Fastify({ logger: false });
@@ -101,7 +102,11 @@ describe("SWIFT ISO 20022 Decarbonization Financial Clearing Suite", () => {
     await app.close();
 
     // Cleanup test records
-    await db.delete(bankingTransmissions).where(sql`id LIKE 'btx_%'`);
+    if (createdTransmissionIds.length > 0) {
+      await db
+        .delete(bankingTransmissions)
+        .where(inArray(bankingTransmissions.id, createdTransmissionIds));
+    }
     await db
       .delete(bankStatementEntries)
       .where(sql`statement_id LIKE 'STMT-TEST-%'`);
@@ -122,6 +127,7 @@ describe("SWIFT ISO 20022 Decarbonization Financial Clearing Suite", () => {
       debtorIban: "ES9121000418450200051332",
       debtorBic: "CAIXESBBXXX",
     });
+    createdTransmissionIds.push(payment.id);
 
     expect(payment).toBeDefined();
     expect(payment.id).toBeDefined();
@@ -149,6 +155,7 @@ describe("SWIFT ISO 20022 Decarbonization Financial Clearing Suite", () => {
       debtorIban: "ES9121000418450200051332",
       debtorBic: "CAIXESBBXXX",
     });
+    createdTransmissionIds.push(payment.id);
 
     expect(payment).toBeDefined();
     expect(payment.id).toBeDefined();
@@ -181,6 +188,7 @@ describe("SWIFT ISO 20022 Decarbonization Financial Clearing Suite", () => {
 
     expect(res.statusCode).toBe(200);
     const json = res.json();
+    if (json.payment?.id) createdTransmissionIds.push(json.payment.id);
     expect(json.success).toBe(true);
     expect(json.payment.messageType).toBe("PAIN_001");
     expect(json.payment.totalAmount).toBe(8550.0);
@@ -200,6 +208,7 @@ describe("SWIFT ISO 20022 Decarbonization Financial Clearing Suite", () => {
 
     expect(res.statusCode).toBe(200);
     const json = res.json();
+    if (json.payment?.id) createdTransmissionIds.push(json.payment.id);
     expect(json.success).toBe(true);
     expect(json.payment.messageType).toBe("PAIN_001");
     expect(json.payment.totalAmount).toBe(25200.0);
