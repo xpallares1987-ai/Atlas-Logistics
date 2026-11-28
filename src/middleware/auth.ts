@@ -64,7 +64,7 @@ export const authMiddleware = async (
       }
     }
 
-    const sessionId = request.cookies[SESSION_COOKIE_NAME];
+    const sessionId = request.cookies?.[SESSION_COOKIE_NAME];
     if (!sessionId) {
       return reply.code(401).send({
         error: authHeader
@@ -77,15 +77,17 @@ export const authMiddleware = async (
 
     if (!session) {
       const sessionCookie = createBlankSessionCookie();
-      reply.setCookie(
-        sessionCookie.name,
-        sessionCookie.value,
-        sessionCookie.attributes,
-      );
+      if (typeof reply.setCookie === "function") {
+        reply.setCookie(
+          sessionCookie.name,
+          sessionCookie.value,
+          sessionCookie.attributes,
+        );
+      }
       return reply.code(401).send({ error: "Invalid Session Cookie" });
     }
 
-    if (session && session.fresh) {
+    if (session && session.fresh && typeof reply.setCookie === "function") {
       const sessionCookie = createSessionCookie(session.id);
       reply.setCookie(
         sessionCookie.name,
