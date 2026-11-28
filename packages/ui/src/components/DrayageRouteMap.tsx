@@ -47,11 +47,15 @@ export const DrayageRouteMap: React.FC<DrayageRouteMapProps> = ({
       }).setView([origin.lat, origin.lon], 10);
 
       // CARTO Voyager tile layer with API Key and OSM fallback
-      const cartoApiKey =
+      const rawApiKey =
         (typeof import.meta !== "undefined" &&
           (import.meta as any).env?.VITE_CARTO_API_KEY) ||
         (typeof process !== "undefined" && process.env?.CARTO_API_KEY) ||
         "";
+      const cartoApiKey =
+        rawApiKey && rawApiKey !== "undefined" && rawApiKey !== "null"
+          ? rawApiKey.trim()
+          : "";
 
       const tileUrl = cartoApiKey
         ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${cartoApiKey}`

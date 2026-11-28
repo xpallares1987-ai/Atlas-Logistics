@@ -21,7 +21,7 @@ import {
 import { Input } from "@atlas/ui";
 import { TradeInstrument } from "../../../types/trade-finance.types";
 import { formatInstrumentFilterLabel } from "../hooks/useTradeFinance";
-import { ImportSwiftMtModal } from "../Modal/ImportSwiftMtModal";
+import { ImportSwiftMtModal } from "../Modal/ImportSwiftMt";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },

@@ -11,6 +11,8 @@
 
 const PUBLIC_EXACT_PATHS: ReadonlySet<string> = new Set([
   "/api/events",
+  "/api/dashboard/live",
+  "/api/ws/notifications",
   "/api/health",
   "/api/healthz",
   "/api/readyz",

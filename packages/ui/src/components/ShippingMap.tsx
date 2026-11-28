@@ -185,11 +185,15 @@ export function ShippingMap({
         await import("leaflet.markercluster/dist/MarkerCluster.Default.css");
 
         // Apply dark-themed CARTO tile layout with API Key and OSM fallback
-        const cartoApiKey =
+        const rawApiKey =
           (typeof import.meta !== "undefined" &&
             (import.meta as any).env?.VITE_CARTO_API_KEY) ||
           (typeof process !== "undefined" && process.env?.CARTO_API_KEY) ||
           "";
+        const cartoApiKey =
+          rawApiKey && rawApiKey !== "undefined" && rawApiKey !== "null"
+            ? rawApiKey.trim()
+            : "";
 
         const tileUrl = cartoApiKey
           ? `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${cartoApiKey}`

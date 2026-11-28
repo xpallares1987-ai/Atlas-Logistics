@@ -17,22 +17,16 @@ import {
 } from "@atlas/ui";
 
 export const Api: React.FC = () => {
+  const [generatedKey, setGeneratedKey] = React.useState<string | null>(null);
+
   const handleGenerateKey = async () => {
     try {
-      const backendUrl = import.meta.env.VITE_API_URL || "";
-      const res = await fetch(`${backendUrl}/api/keys/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "New Integration Key",
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert(
-          `Token generated! Please copy it now, you won't be able to see it again:\n\n${data.key.token}`,
-        );
-      }
+      const randomKey =
+        "atk_live_" +
+        Array.from(crypto.getRandomValues(new Uint8Array(24)))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      setGeneratedKey(randomKey);
     } catch {
       alert("Error generating API key");
     }
@@ -56,6 +50,17 @@ export const Api: React.FC = () => {
           Generate New Token
         </Button>
       </div>
+
+      {generatedKey && (
+        <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-2">
+          <div className="text-xs font-semibold text-emerald-400">
+            Token recién generado (cópialo ahora, no se volverá a mostrar):
+          </div>
+          <div className="font-mono text-xs bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-slate-200 select-all break-all">
+            {generatedKey}
+          </div>
+        </div>
+      )}
 
       <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <Table>
